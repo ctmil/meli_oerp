@@ -33,7 +33,7 @@ class product_product(osv.osv):
 	'meli_description': fields.html(string='Description'),
 	'meli_category': fields.many2one("mercadolibre.category","Categoría de MercadoLibre"),
 	'meli_listing_type': fields.char(string='Tipo de lista', size=128),
-	'meli_buying_mode': fields.char(string='Modo de venta', size=128),
+	'meli_buying_mode': fields.selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra', size=128),
 	'meli_price': fields.char(string='Precio de venta', size=128),
 	'meli_currency': fields.char(string='Moneda (ARS)', size=128),
 	'meli_condition': fields.selection([ ("new", "Nuevo"), ("used", "Usado"), ("not_specified","No especificado")],'Condición del producto'),
