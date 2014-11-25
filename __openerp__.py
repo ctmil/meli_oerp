@@ -16,7 +16,9 @@
     "depends": ['base', 'product'],
     'data': [
 	'company_view.xml',
-	'posting_view.xml'
+	'product_view.xml',
+	'posting_view.xml',
+	'category_view.xml'
     ],
     'demo_xml': [],
     'active': False,
