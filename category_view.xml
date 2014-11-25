@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<openerp>
+    <data>
+
+        <record model="ir.ui.view" id="view_meli_category_tree">
+            <field name="name">mercadolibre.category.tree</field>
+            <field name="model">mercadolibre.category</field>
+            <field name="type">tree</field>
+            <field name="arch" type="xml">
+                <tree string="Categories" >
+                    <field name="name"/>
+                    <field name="meli_category_id"/>
+                </tree>
+            </field>
+        </record>
+
+
+        <record model="ir.actions.act_window" id="action_meli_categories_tree">
+            <field name="name">Categories</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">mercadolibre.category</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">tree,form</field>
+        </record>
+
+        <menuitem id="menu_meli_categories"
+            action="action_meli_categories_tree"
+            parent="menu_meli"
+            name="Categories" />
+
+    </data>
+</openerp>
