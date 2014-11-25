@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<openerp>
+    <data>
+
+        <record model="ir.ui.view" id="view_company_page_mercadolibreb">
+            <field name="name">res.company.form.meli</field>
+            <field name="model">res.company</field>
+            <field name="inherit_id" ref="base.view_company_form"/>
+            <field name="arch" type="xml">
+                <data>
+                    <notebook>
+                        <page string="MercadoLibre">
+				<group>
+					<field name="mercadolibre_client_id" />
+					<field name="mercadolibre_secret_key" />
+				</group>
+                        </page>
+                    </notebook>
+                </data>
+            </field>
+        </record>
+
+    </data>
+</openerp>
