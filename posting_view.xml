@@ -2,7 +2,34 @@
 <openerp>
     <data>
 
+        <record model="ir.ui.view" id="view_meli_posting_tree">
+            <field name="name">mercadolibre.posting.tree</field>
+            <field name="model">mercadolibre.posting</field>
+            <field name="type">tree</field>
+            <field name="arch" type="xml">
+                <tree string="Postings" >
+                    <field name="name"/>
+                    <field name="posting_date"/>
+                </tree>
+            </field>
+        </record>
+
+
+        <record model="ir.actions.act_window" id="action_meli_postings_tree">
+            <field name="name">Postings</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">mercadolibre.posting</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">tree,form</field>
+        </record>
+
+
         <menuitem id="menu_meli" name="MercadoLibre" parent="base.menu_base_partner" sequence="9"/>
+
+        <menuitem id="menu_meli_postings"
+            action="action_meli_postings_tree"
+            parent="menu_meli"
+            name="Postings" />
 
     </data>
 </openerp>

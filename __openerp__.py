@@ -15,7 +15,8 @@
     "category": "Sales",
     "depends": ['base', 'product'],
     'data': [
-	'company_view.xml'
+	'company_view.xml',
+	'posting_view.xml'
     ],
     'demo_xml': [],
     'active': False,
