@@ -34,6 +34,12 @@ class product_post(osv.osv_memory):
 	def product_post(self, cr, uid, ids, context=None):
 		product_ids = context['active_ids']
 		product_obj = self.pool.get('product.product')
+		company = self.pool.get('res.company').browse(cr,uid,1)
+		mercadolibre_client_id = company.mercadolibre_client_id
+		mercadolibre_secret_key = company.mercadolibre_secret_key
+		print mercadolibre_client_id
+		print mercadolibre_secret_key
+	
 		for product_id in product_ids:
 			product = product_obj.browse(cr,uid,product_id)
 			print product.name
