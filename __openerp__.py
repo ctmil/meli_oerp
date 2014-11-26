@@ -18,7 +18,8 @@
 	'company_view.xml',
 	'product_view.xml',
 	'posting_view.xml',
-	'category_view.xml'
+	'category_view.xml',
+	'product_post.xml',
     ],
     'demo_xml': [],
     'active': False,
