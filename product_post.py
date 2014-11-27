@@ -22,6 +22,11 @@
 from openerp.osv import fields, osv
 import logging
 
+from bottle import Bottle, run, template, route, request
+import json
+
+import melisdk
+from melisdk.meli import Meli
 
 class product_post(osv.osv_memory):
 	_name = "mercadolibre.product.post"
@@ -39,11 +44,16 @@ class product_post(osv.osv_memory):
 		mercadolibre_secret_key = company.mercadolibre_secret_key
 		print mercadolibre_client_id
 		print mercadolibre_secret_key
-	
+
+		meli = Meli(client_id=mercadolibre_client_id,client_secret=mercadolibre_secret_key, access_token=ACCESS_TOKEN,refresh_token=REFRESH_TOKEN)
+		
 		for product_id in product_ids:
 			product = product_obj.browse(cr,uid,product_id)
 			print product.name
 			# invocar posting
+			body = {"condition":"new", "warranty":"60 dias", "currency_id":"BRL", "accepts_mercadopago":True, "description":"Lindo Ray_Ban_Original_Wayfarer", "listing_type_id":"bronze", "title":"oculos Ray Ban Aviador  Que Troca As Lentes  Lancamento!", "available_quantity":64, "price":289, "subtitle":"Acompanha 3 Pares De Lentes!! Compra 100% Segura", "buying_mode":"buy_it_now", "category_id":"MLB5125", "pictures":[{"source":"http://upload.wikimedia.org/wikipedia/commons/f/fd/Ray_Ban_Original_Wayfarer.jpg"}, {"source":"http://en.wikipedia.org/wiki/File:Teashades.gif"}] }
+			response = meli.post("/items", body, {'access_token':meli.access_token})
+			print response.content
 		import pdb;pdb.set_trace()
 
 		return {}

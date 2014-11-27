@@ -22,12 +22,10 @@
 from openerp.osv import fields, osv
 import logging
 
-
 class product_product(osv.osv):
     
     _inherit = "product.template"
     
-
     _columns = {
 	'meli_title': fields.char(string='Nombre del producto en Mercado Libre',size=256), 
 	'meli_description': fields.html(string='Description'),

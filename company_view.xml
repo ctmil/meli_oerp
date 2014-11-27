@@ -10,10 +10,13 @@
                 <data>
                     <notebook>
                         <page string="MercadoLibre">
-				<group>
-					<field name="mercadolibre_client_id" />
-					<field name="mercadolibre_secret_key" />
-				</group>
+							<group>
+								<field name="mercadolibre_client_id" />
+								<field name="mercadolibre_secret_key" />
+								<field name="mercadolibre_access_token" invisible="0"/>
+								<field name="mercadolibre_refresh_token" invisible="0"/>
+								<field name="mercadolibre_code" invisible="0"/>
+							</group>
                         </page>
                     </notebook>
                 </data>

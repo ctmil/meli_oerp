@@ -29,7 +29,10 @@ class res_company(osv.osv):
     
     _columns = {
 	'mercadolibre_client_id': fields.char(string='Client ID para ingresar a MercadoLibre',size=128), 
-	'mercadolibre_secret_key': fields.char(string='Secret Key para ingresar a MercadoLibre',size=128), 
+	'mercadolibre_secret_key': fields.char(string='Secret Key para ingresar a MercadoLibre',size=128),
+	'mercadolibre_access_token': fields.char( string='Access Token',size=256),
+	'mercadolibre_refresh_token': fields.char( string='Refresh Token', size=256),
+	'mercadolibre_code': fields.char( string='Code', size=256)
 	# TODO Agregar el banner
     }
 
