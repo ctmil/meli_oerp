@@ -11,6 +11,7 @@
                     <notebook>
                         <page string="MercadoLibre">
 							<group>
+								<field name="meli_id" />
 								<field name="meli_title" />
 								<field name="meli_description" />
 								<field name="meli_category" />
@@ -26,7 +27,7 @@
 								<field name="meli_imagen" />
 								<field name="meli_video" />
 
-								<button name='%(payment.action_payment_acquirer)d' type="action"
+								<button name='%(action_product_post)d' type="action"
 										string="Publicar producto" class="oe_link"/>
 							</group>
                         </page>

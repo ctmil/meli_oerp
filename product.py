@@ -27,6 +27,7 @@ class product_product(osv.osv):
     _inherit = "product.template"
     
     _columns = {
+	'meli_id': fields.char(string='Id del item asignado por Meli', size=256),
 	'meli_title': fields.char(string='Nombre del producto en Mercado Libre',size=256), 
 	'meli_description': fields.html(string='Description'),
 	'meli_category': fields.many2one("mercadolibre.category","Categoría de MercadoLibre"),
