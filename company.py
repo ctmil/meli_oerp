@@ -21,20 +21,107 @@
 
 from openerp.osv import fields, osv
 import logging
+import urllib2
 
+from meli_oerp_config import *
+
+import requests
+import melisdk
+from melisdk.meli import Meli
+
+#REDIRECT_URI = 'http://127.0.0.1:8069/meli_login'
 
 class res_company(osv.osv):
-    _name = "res.company"
-    _inherit = "res.company"
+	_name = "res.company"
+	_inherit = "res.company"
+
+	def meli_get_object( self, cr, uid, ids, field_name, attributes, context=None ):
+		return True
+
+	def get_meli_state( self, cr, uid, ids, field_name, attributes, context=None ):
+		# recoger el estado y devolver True o False (meli)
+		#False if logged ok
+		#True if need login
+		user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+		company = user_obj.company_id
+
+		CLIENT_ID = company.mercadolibre_client_id
+		CLIENT_SECRET = company.mercadolibre_secret_key
+		ACCESS_TOKEN = company.mercadolibre_access_token
+		REFRESH_TOKEN = company.mercadolibre_refresh_token
+			
+
+		meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+		
+		response = meli.get("/items/")
+		print "response.content:", response.content
+		response = meli.get("/users/")
+		print "response.content:", response.content
+		print "get_meli_state:"
+		ML_state = False
+		if ACCESS_TOKEN=='':
+			try:
+				##response = meli.get("/users/"+CLIENT_ID)
+				#meli.authorize( REFRESH_TOKEN, REDIRECT_URI)
+				#ACCESS_TOKEN = meli.access_token
+				#REFRESH_TOKEN = meli.refresh_token
+				#company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': REFRESH_TOKEN } )
+				ML_state = True
+			except requests.exceptions.HTTPError as e:
+				print "And you get an HTTPError:", e.message
+				
+		res = {}		
+		for company in self.browse(cr,uid,ids):
+			res[company.id] = ML_state
+ 		return res
     
-    _columns = {
+	_columns = {
 	'mercadolibre_client_id': fields.char(string='Client ID para ingresar a MercadoLibre',size=128), 
 	'mercadolibre_secret_key': fields.char(string='Secret Key para ingresar a MercadoLibre',size=128),
 	'mercadolibre_access_token': fields.char( string='Access Token',size=256),
 	'mercadolibre_refresh_token': fields.char( string='Refresh Token', size=256),
-	'mercadolibre_code': fields.char( string='Code', size=256)
-	# TODO Agregar el banner
-    }
+	'mercadolibre_code': fields.char( string='Code', size=256),
+	'mercadolibre_state': fields.function( get_meli_state, method=True, type='boolean', string="Estado de la sesión con MLA", store=False ),
+	}
+
+	def	meli_logout(self, cr, uid, ids, context=None ):
+
+		user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+		company = user_obj.company_id
+
+		CLIENT_ID = company.mercadolibre_client_id
+		CLIENT_SECRET = company.mercadolibre_secret_key
+		ACCESS_TOKEN = ''
+		REFRESH_TOKEN = ''
+		
+		company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
+		url_logout_meli = '/web?debug=#view_type=kanban&model=product.template&action=150'
+		print url_logout_meli
+		return {
+			"type": "ir.actions.act_url",
+			"url": url_logout_meli,
+			"target": "new",
+		}
+
+	def meli_login(self, cr, uid, ids, context=None ):
+
+		user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+		company = user_obj.company_id
+
+		CLIENT_ID = company.mercadolibre_client_id
+		CLIENT_SECRET = company.mercadolibre_secret_key
+		meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
+
+		url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
+		#url_login_oerp = "/meli_login"
+
+		print "OK company.meli_login() called: url is ", url_login_meli
+		
+		return {
+			"type": "ir.actions.act_url",
+			"url": url_login_meli,
+			"target": "new",
+		}
 
 res_company()
 

@@ -16,12 +16,30 @@
 								<field name="mercadolibre_access_token" invisible="0"/>
 								<field name="mercadolibre_refresh_token" invisible="0"/>
 								<field name="mercadolibre_code" invisible="0"/>
+								<field name="mercadolibre_state" invisible="0"/>
+
+								<button name='meli_login' type="object"
+										string="Iniciar sesión en MLA" attrs="{'invisible':[('mercadolibre_state','=',False)]}"/>
+
+								<button name='meli_logout' type="object"
+										string="Cerrar sesión con MLA" attrs="{'invisible':[('mercadolibre_state','=',True)]}"/>
+<!--
+								<button name='%(meli_login_action)d' type="action"
+										string="Login en MLA (action)"/>
+
+								<a href="/meli_login" target="_blank">URL</a>-->
 							</group>
                         </page>
                     </notebook>
                 </data>
             </field>
         </record>
+
+		<record model="ir.actions.act_url" id="meli_login_action">
+			<field name="name">meli_login_action</field>
+			<field name="url">/meli_login</field>
+			<field name="target">new</field>
+		</record>
 
     </data>
 </openerp>

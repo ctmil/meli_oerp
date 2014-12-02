@@ -21,6 +21,7 @@
 
 from openerp.osv import fields, osv
 import logging
+import meli_oerp_config
 
 
 class mercadolibre_posting(osv.osv):

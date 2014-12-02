@@ -26,9 +26,14 @@
 								<field name="meli_warranty" />
 								<field name="meli_imagen" />
 								<field name="meli_video" />
+								<field name="meli_state" />
 
-								<button name='%(action_product_post)d' type="action"
-										string="Publicar producto" class="oe_link"/>
+								<button name='%(action_product_post)d' type="object"
+										string="Publicar producto en MLA" attrs="{'invisible':[('meli_state','=',True)]}"/>
+
+                                <button name='product_meli_login' type="object"
+										string="Iniciar sesión en MLA" attrs="{'invisible':[('meli_state','=',False)]}"/>
+								
 							</group>
                         </page>
                     </notebook>
