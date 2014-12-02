@@ -28,7 +28,7 @@
 								<field name="meli_video" />
 								<field name="meli_state" />
 
-								<button name='%(action_product_post)d' type="object"
+								<button name='%(action_product_post)d' type="action"
 										string="Publicar producto en MLA" attrs="{'invisible':[('meli_state','=',True)]}"/>
 
                                 <button name='product_meli_login' type="object"
