@@ -8,11 +8,7 @@ from openerp.osv import fields, osv
 from openerp.http import request
 
 
-REDIRECT_URI = 'http://127.0.0.1:8069/meli_login'
-ACCESS_TOKEN = ''
-REFRESH_TOKEN = ''
-CLIENT_ID = ''
-CLIENT_SECRET = ''
+from meli_oerp_config import *
 
 class MercadoLibre(http.Controller):
     @http.route('/meli/', auth='public')
