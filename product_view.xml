@@ -25,11 +25,28 @@
 								<field name="meli_available_quantity" />
 								<field name="meli_warranty" />
 								<field name="meli_imagen" />
+                                <field name="meli_imagen_id" />
 								<field name="meli_video" />
 								<field name="meli_state" />
+                                <field name="meli_status" />
+
+                                <button name='product_meli_get_product' type="object"
+										string="Cargar desde MLA" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
 
 								<button name='%(action_product_post)d' type="action"
-										string="Publicar producto en MLA" attrs="{'invisible':[('meli_state','=',True)]}"/>
+										string="Publicar producto en MLA" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','!=',False)]}"/>
+
+                                <button name='%(action_product_post)d' type="action"
+										string="Actualizar producto en MLA" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
+
+								<button name='product_meli_status_active' type="object"
+										string="Activar producto en MLA" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False),('meli_status','=','active')]}"/>
+
+                                <button name='product_meli_delete' type="object"
+										string="Eliminar producto de MLA" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
+
+                                <button name='product_meli_upload_image' type="object"
+										string="Subir imagen a MLA" attrs="{'invisible':[('meli_state','=',True)]}"/>
 
                                 <button name='product_meli_login' type="object"
 										string="Iniciar sesión en MLA" attrs="{'invisible':[('meli_state','=',False)]}"/>

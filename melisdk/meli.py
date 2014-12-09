@@ -22,11 +22,17 @@ class Meli(object):
         self.SDK_VERSION = parser.get('config', 'sdk_version')
         self.AUTH_URL = parser.get('config', 'auth_url')
         self.OAUTH_URL = parser.get('config', 'oauth_url')
+        self.LOGOUT_URL = parser.get('config', 'logout_url')
 
     #AUTH METHODS
     def auth_url(self,redirect_URI):
         params = {'client_id':self.client_id,'response_type':'code','redirect_uri':redirect_URI}
         url = self.AUTH_URL  + '?' + urlencode(params)
+        return url
+
+    def get_logout_url(self,redirect_URI):
+        params = {'platform_id': 'ml','main_platform': 'ml','go':redirect_URI}
+        url = self.LOGOUT_URL + '?' + urlencode(params)
         return url
 
     def authorize(self, code, redirect_URI):
@@ -83,6 +89,14 @@ class Meli(object):
 
         response = requests.post(uri, data=body, params=urlencode(params), headers=headers)
         return response
+
+    def upload(self, path, files, params={}):
+        #headers = {'Accept': 'application/json', 'User-Agent':self.SDK_VERSION, 'Content-type':'multipart/form-data'}
+        headers = {}
+        uri = self.make_path(path)
+        response = requests.post(uri, files=files, params=urlencode(params), headers=headers)
+        return response
+
 
     def put(self, path, body=None, params={}):
         headers = {'Accept': 'application/json', 'User-Agent':self.SDK_VERSION, 'Content-type':'application/json'}

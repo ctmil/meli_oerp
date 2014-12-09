@@ -86,11 +86,41 @@ class product_post(osv.osv_memory):
                 "condition": product.meli_condition,
                 "available_quantity": product.meli_available_quantity,
                 "warranty": product.meli_warranty,
-                "pictures": [ { 'source': product.meli_imagen} ] ,
+                #"pictures": [ { 'source': product.meli_imagen} ] ,
                 "video_id": product.meli_video,
             }
+
             print body
-            response = meli.post("/items", body, {'access_token':meli.access_token})
+
+            if product.meli_imagen:
+                body["pictures"] = [ { 'source': product.meli_imagen} ]
+            else:
+                #publicando imagen cargada en OpenERP
+                print "uploading image..."
+                #response = meli.upload("/pictures", imagedata, {'access_token':meli.access_token})
+
+            if (product.meli_id):
+                body = {
+                    "title": product.meli_title,
+                    #"description": product.meli_description,	
+                    #"category_id": product.meli_category.meli_category_id,
+                    #"listing_type_id": product.meli_listing_type,
+                    "buying_mode": product.meli_buying_mode,
+                    "price": product.meli_price,
+                    #"currency_id": product.meli_currency,
+                    "condition": product.meli_condition,
+                    "available_quantity": product.meli_available_quantity,
+                    "warranty": product.meli_warranty,
+                    #"pictures": [ { 'source': product.meli_imagen} ] ,
+                    "video_id": product.meli_video,
+                }
+                response = meli.put("/items/"+product.meli_id, body, {'access_token':meli.access_token})
+                if (product.meli_imagen_id):
+                    response = meli.post("/items/"+product.meli_id+"/pictures", { 'id': product.meli_imagen_id }, { 'access_token': meli.access_token } )
+                    print "Assign Imagen Id to Product ID: ", response.content
+            else:
+                response = meli.post("/items", body, {'access_token':meli.access_token})
+
             print response.content
             rjson = response.json()
             print rjson
@@ -104,7 +134,7 @@ class product_post(osv.osv_memory):
             if "id" in rjson:
                 product.write( { 'meli_id': rjson["id"]} )
 
-        import pdb;pdb.set_trace()
+        #import pdb;pdb.set_trace()
 
         return {}
 	

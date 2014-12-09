@@ -23,6 +23,8 @@ from openerp.osv import fields, osv
 import logging
 import requests
 import melisdk
+import base64
+import mimetypes
 
 from meli_oerp_config import *
 
@@ -31,6 +33,26 @@ from melisdk.meli import Meli
 class product_product(osv.osv):
     
     _inherit = "product.template"
+
+
+    def product_meli_get_product( self, cr, uid, ids, context=None ):
+        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+        company = user_obj.company_id
+        product_obj = self.pool.get('product.product')
+        product = product_obj.browse(cr, uid, ids[0])
+
+        CLIENT_ID = company.mercadolibre_client_id
+        CLIENT_SECRET = company.mercadolibre_secret_key
+        ACCESS_TOKEN = company.mercadolibre_access_token
+        REFRESH_TOKEN = company.mercadolibre_refresh_token
+
+        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+
+        response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token})
+
+        print "product_meli_get_product: " + response.content
+
+        return {}
 
     def product_meli_login(self, cr, uid, ids, context=None ):
 
@@ -52,7 +74,7 @@ class product_product(osv.osv):
 	        "target": "new",
         }
 
-    def product_meli_state( self, cr, uid, ids, field_name, attributes, context=None ):
+    def product_get_meli_loginstate( self, cr, uid, ids, field_name, attributes, context=None ):
         # recoger el estado y devolver True o False (meli)
         #False if logged ok
         #True if need login
@@ -75,21 +97,187 @@ class product_product(osv.osv):
             res[product.id] = ML_state
         return res
 
+    def product_meli_status_close( self, cr, uid, ids, context=None ):
+        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+        company = user_obj.company_id
+        product_obj = self.pool.get('product.product')
+        product = product_obj.browse(cr, uid, ids[0])
+
+        CLIENT_ID = company.mercadolibre_client_id
+        CLIENT_SECRET = company.mercadolibre_secret_key
+        ACCESS_TOKEN = company.mercadolibre_access_token
+        REFRESH_TOKEN = company.mercadolibre_refresh_token
+
+        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+
+        response = meli.put("/items/"+product.meli_id, { 'status': 'closed' }, {'access_token':meli.access_token})
+
+        print "product_meli_status_close: " + response.content
+
+        return {}
+
+    def product_meli_status_pause( self, cr, uid, ids, context=None ):
+        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+        company = user_obj.company_id
+        product_obj = self.pool.get('product.product')
+        product = product_obj.browse(cr, uid, ids[0])
+
+        CLIENT_ID = company.mercadolibre_client_id
+        CLIENT_SECRET = company.mercadolibre_secret_key
+        ACCESS_TOKEN = company.mercadolibre_access_token
+        REFRESH_TOKEN = company.mercadolibre_refresh_token
+
+        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+
+        response = meli.put("/items/"+product.meli_id, { 'status': 'paused' }, {'access_token':meli.access_token})
+
+        print "product_meli_status_pause: " + response.content
+
+        return {}
+
+    def product_meli_status_active( self, cr, uid, ids, context=None ):
+        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+        company = user_obj.company_id
+        product_obj = self.pool.get('product.product')
+        product = product_obj.browse(cr, uid, ids[0])
+
+        CLIENT_ID = company.mercadolibre_client_id
+        CLIENT_SECRET = company.mercadolibre_secret_key
+        ACCESS_TOKEN = company.mercadolibre_access_token
+        REFRESH_TOKEN = company.mercadolibre_refresh_token
+
+        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+
+        response = meli.put("/items/"+product.meli_id, { 'status': 'active' }, {'access_token':meli.access_token})
+
+        print "product_meli_status_active: " + response.content
+
+        return {}
+
+    def product_meli_delete( self, cr, uid, ids, context=None ):
+
+        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+        company = user_obj.company_id
+        product_obj = self.pool.get('product.product')
+        product = product_obj.browse(cr, uid, ids[0])
+
+        if product.meli_status!='closed':
+            self.product_meli_status_close( cr, uid, ids, context )
+
+        CLIENT_ID = company.mercadolibre_client_id
+        CLIENT_SECRET = company.mercadolibre_secret_key
+        ACCESS_TOKEN = company.mercadolibre_access_token
+        REFRESH_TOKEN = company.mercadolibre_refresh_token
+
+        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+
+        response = meli.put("/items/"+product.meli_id, { 'deleted': 'true' }, {'access_token':meli.access_token})
+
+        print "product_meli_delete: " + response.content
+        rjson = response.json()
+        ML_status = rjson["status"]
+        if "error" in rjson:
+            ML_status = rjson["error"]
+        if "sub_status" in rjson:
+            if len(rjson["sub_status"]) and rjson["sub_status"][0]=='deleted':
+                product.write({ 'meli_id': '' })
+
+        return {}
+
+    def product_meli_upload_image( self, cr, uid, ids, context=None ):
+
+        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+        company = user_obj.company_id
+
+        product_obj = self.pool.get('product.product')
+        product = product_obj.browse(cr, uid, ids[0])
+
+        CLIENT_ID = company.mercadolibre_client_id
+        CLIENT_SECRET = company.mercadolibre_secret_key
+        ACCESS_TOKEN = company.mercadolibre_access_token
+        REFRESH_TOKEN = company.mercadolibre_refresh_token
+
+        #
+        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+
+        print "product_meli_upload_image"
+        #print "product_meli_upload_image: " + response.content
+        imagebin = base64.b64decode(product.image)
+        imageb64 = product.image
+#       print "data:image/png;base64,"+imageb64
+#       files = [ ('images', ('image_medium', imagebin, "image/png")) ]
+        files = { 'file': ('image.png', imagebin, "image/png"), }
+        print  files
+        response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
+        print response.content
+
+        rjson = response.json()
+        if ("error" in rjson):
+            print "Error!"
+            return {}
+
+        if ("id" in rjson):
+            #guardar id
+            product.write( { "meli_imagen_id": rjson["id"] } )
+            #asociar imagen a producto
+            response = meli.post("/items/"+product.meli_id+"/pictures", { 'id': rjson["id"] }, { 'access_token': meli.access_token } )
+            print response.content
+        
+        return {}
+
+
+    def product_get_meli_status( self, cr, uid, ids, field_name, attributes, context=None ):
+        
+        print "product_get_meli_status"
+        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+        company = user_obj.company_id
+
+        product_obj = self.pool.get('product.product')
+        product = product_obj.browse(cr, uid, ids[0])
+
+        CLIENT_ID = company.mercadolibre_client_id
+        CLIENT_SECRET = company.mercadolibre_secret_key
+        ACCESS_TOKEN = company.mercadolibre_access_token
+        REFRESH_TOKEN = company.mercadolibre_refresh_token
+
+        ML_status = "unknown"
+        if ACCESS_TOKEN=='':
+            ML_status = "unknown"
+        else:
+            meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+            if product.meli_id:
+                response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token} )
+                print response.content
+                rjson = response.json()
+                ML_status = rjson["status"]
+                if "error" in rjson:
+                    ML_status = rjson["error"]
+                if "sub_status" in rjson:
+                    if len(rjson["sub_status"]) and rjson["sub_status"][0]=='deleted':
+                        product.write({ 'meli_id': '' })
+
+        res = {}		
+        for product in self.browse(cr,uid,ids):
+            res[product.id] = ML_status
+        return res
+
     _columns = {
 	'meli_id': fields.char(string='Id del item asignado por Meli', size=256),
 	'meli_title': fields.char(string='Nombre del producto en Mercado Libre',size=256), 
-	'meli_description': fields.html(string='Description'),
+	'meli_description': fields.html(string='Descripción'),
 	'meli_category': fields.many2one("mercadolibre.category","Categoría de MercadoLibre"),
 	'meli_listing_type': fields.selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("premium","Premium")], string='Tipo de lista'),
 	'meli_buying_mode': fields.selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra'),
 	'meli_price': fields.char(string='Precio de venta', size=128),
 	'meli_currency': fields.selection([("ARS","Peso Argentino (ARS)")],string='Moneda (ARS)'),
 	'meli_condition': fields.selection([ ("new", "Nuevo"), ("used", "Usado"), ("not_specified","No especificado")],'Condición del producto'),
-	'meli_available_quantity': fields.integer(string='Cantidad disponible', size=128),
+	'meli_available_quantity': fields.integer(string='Cantidad disponible'),
 	'meli_warranty': fields.char(string='Garantía', size=256),
 	'meli_imagen': fields.char(string='Imagen', size=256),
+    'meli_imagen_id': fields.char(string='Imagen Id', size=256),
 	'meli_video': fields.char(string='Video (id de youtube)', size=256),
-	'meli_state': fields.function( product_meli_state, method=True, type='boolean', string="Estado de la sesión con MLA", store=False ),
+	'meli_state': fields.function( product_get_meli_loginstate, method=True, type='boolean', string="Inicio de sesión requerida", store=False ),
+    'meli_status': fields.function( product_get_meli_status, method=True, type='char', size=128, string="Estado del producto en MLA", store=False ),
 	### Agregar imagen/archivo uno o mas, y la descripcion en HTML...
 	# TODO Agregar el banner
     }
