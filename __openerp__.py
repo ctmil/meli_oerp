@@ -19,6 +19,7 @@
 	'product_view.xml',
 	'posting_view.xml',
 	'category_view.xml',
+	'banner_view.xml',
 	'product_post.xml',
     ],
     'demo_xml': [],

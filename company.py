@@ -81,7 +81,7 @@ class res_company(osv.osv):
 	'mercadolibre_access_token': fields.char( string='Access Token',size=256),
 	'mercadolibre_refresh_token': fields.char( string='Refresh Token', size=256),
 	'mercadolibre_code': fields.char( string='Code', size=256),
-	'mercadolibre_state': fields.function( get_meli_state, method=True, type='boolean', string="Estado de la sesión con MLA", store=False ),
+	'mercadolibre_state': fields.function( get_meli_state, method=True, type='boolean', string="Se requiere Iniciar Sesión con MLA", store=False ),
 	}
 
 	def	meli_logout(self, cr, uid, ids, context=None ):
