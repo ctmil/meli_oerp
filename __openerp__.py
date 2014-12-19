@@ -8,7 +8,7 @@
 ##############################################################################
 
 {
-    'name': 'MercadoLibre Connector',
+    'name': 'MercadoLibre Publisher',
     'version': '0.1',
     'author': 'Moldeo Interactive',
     'website': 'http://business.moldeo.coop',
@@ -16,11 +16,11 @@
     "depends": ['base', 'product'],
     'data': [
 	'company_view.xml',
-	'product_view.xml',
 	'posting_view.xml',
+    'product_post.xml',
+    'product_view.xml',	
 	'category_view.xml',
 	'banner_view.xml',
-	'product_post.xml',
     ],
     'demo_xml': [],
     'active': False,
