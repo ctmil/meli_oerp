@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<openerp>
+    <data>
+
+        <record model="ir.ui.view" id="view_meli_banner_tree">
+            <field name="name">mercadolibre.banner.tree</field>
+            <field name="model">mercadolibre.banner</field>
+            <field name="type">tree</field>
+            <field name="arch" type="xml">
+                <tree string="Banners" >
+                    <field name="name"/>
+                    <field name="description"/>
+                </tree>
+            </field>
+        </record>
+
+
+        <record model="ir.actions.act_window" id="action_meli_banners_tree">
+            <field name="name">Banners</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">mercadolibre.banner</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">tree,form</field>
+        </record>
+
+        <menuitem id="menu_meli_banners"
+            action="action_meli_banners_tree"
+            parent="menu_meli"
+            name="Banners" />
+
+    </data>
+</openerp>
