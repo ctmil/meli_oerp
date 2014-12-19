@@ -20,7 +20,9 @@
 ##############################################################################
 
 from openerp.osv import fields, osv
+from openerp.tools.translate import _
 import logging
+_logger = logging.getLogger(__name__)
 
 #from bottle import Bottle, run, template, route, request
 #import json
@@ -123,16 +125,29 @@ class product_post(osv.osv_memory):
 
             print response.content
             rjson = response.json()
-            print rjson
             if "message" in rjson:
                 print "Message received: %s" % rjson["message"]
                 if rjson["message"]=="expired_token":
                     print "EXPIRED TOKEN! LOGIN!"
+
             if "error" in rjson:
-                print "Error received: %s" % rjson["error"]
+                #print "Error received: %s " % rjson["error"]
+                error_msg = 'MELI: mensaje de error:  %s , mensaje: %s, status: %s ' % (rjson["error"], rjson["message"], rjson["status"])
+                _logger.error(error_msg)
+
+                if "message" in rjson and (rjson["message"]=='invalid_token' or rjson["message"]=="expired_token"):
+                    meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
+                    url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
+                    print "url_login_meli:", url_login_meli
+                    raise osv.except_osv( _('MELI WARNING'), _('INVALID TOKEN or EXPIRED TOKEN (must login, go to Edit Company and login):  error: %s, message: %s, status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
+                else:
+                    raise osv.except_osv( _('MELI WARNING'), _('Completar todos los campos! Error: %s , Mensage: %s, Status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
+                    
+                    
              
             if "id" in rjson:
                 product.write( { 'meli_id': rjson["id"]} )
+               #product.write( { 'meli_url': rjson["url"]} )
 
         #import pdb;pdb.set_trace()
 

@@ -2,10 +2,10 @@
 <openerp>
     <data>
 
-        <record model="ir.ui.view" id="view_product_page_mercadolibre">
-            <field name="name">product.normal.form</field>
-            <field name="model">product.template</field>
-            <field name="inherit_id" ref="product.product_template_form_view" />
+        <record model="ir.ui.view" id="product_nh_ml_form_view">
+            <field name="name">product.nh.ml.form.inherit</field>
+            <field name="model">product.product</field>
+            <field name="inherit_id" ref="product.product_normal_form_view" />
             <field name="arch" type="xml">
                 <data>
                     <notebook>
@@ -14,6 +14,7 @@
 								<field name="meli_id" />
 								<field name="meli_title" />
 								<field name="meli_description" />
+                                <field name="meli_description_banner_id" on_change="product_on_change_meli_banner( meli_description_banner_id)" />
 								<field name="meli_category" />
 								<field name="meli_listing_type" />
 								<field name="meli_buying_mode" />
@@ -32,15 +33,16 @@
 
                                 <button name='product_meli_get_product' type="object"
 										string="Cargar desde MLA" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
-
+                                
 								<button name='%(action_product_post)d' type="action"
 										string="Publicar producto en MLA" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','!=',False)]}"/>
 
                                 <button name='%(action_product_post)d' type="action"
 										string="Actualizar producto en MLA" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
+<!-- ,('meli_status','=','active'), -->
 
 								<button name='product_meli_status_active' type="object"
-										string="Activar producto en MLA" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False),('meli_status','=','active')]}"/>
+										string="Activar producto en MLA" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
 
                                 <button name='product_meli_delete' type="object"
 										string="Eliminar producto de MLA" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
@@ -49,7 +51,7 @@
 										string="Subir imagen a MLA" attrs="{'invisible':[('meli_state','=',True)]}"/>
 
                                 <button name='product_meli_login' type="object"
-										string="Iniciar sesión en MLA" attrs="{'invisible':[('meli_state','=',False)]}"/>
+										string="Se requiere Iniciar Sesión en MLA" attrs="{'invisible':[('meli_state','=',False)]}"/>
 								
 							</group>
                         </page>

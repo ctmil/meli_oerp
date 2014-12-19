@@ -20,7 +20,10 @@
 ##############################################################################
 
 from openerp.osv import fields, osv
+from openerp.tools.translate import _
 import logging
+_logger = logging.getLogger(__name__)
+
 import requests
 import melisdk
 import base64
@@ -32,7 +35,7 @@ from melisdk.meli import Meli
 
 class product_product(osv.osv):
     
-    _inherit = "product.template"
+    _inherit = "product.product"
 
 
     def product_meli_get_product( self, cr, uid, ids, context=None ):
@@ -91,6 +94,16 @@ class product_product(osv.osv):
         ML_state = False
         if ACCESS_TOKEN=='':
             ML_state = True
+        else:
+            response = meli.get("/users/me/", {'access_token':meli.access_token} )
+            rjson = response.json()
+            if 'error' in rjson:
+                if rjson['message']=='invalid_token':
+                    ACCESS_TOKEN = ''
+                    REFRESH_TOKEN = ''
+                    company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
+                    ML_state = True
+                    #raise osv.except_osv( _('MELI WARNING'), _('INVALID TOKEN (must login, go to Edit Company and login):  error: %s, message: %s, status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
 
         res = {}		
         for product in self.browse(cr,uid,ids):
@@ -225,10 +238,27 @@ class product_product(osv.osv):
         
         return {}
 
+    def product_on_change_meli_banner(self, cr, uid, ids, banner_id ):
+        print 'product_on_change_meli_banner > ', banner_id
+        print 'ids:', ids
+
+        banner_obj = self.pool.get('mercadolibre.banner')
+
+        #solo para saber si ya habia una descripcion completada
+        product_obj = self.pool.get('product.product')
+        if len(ids):
+            product = product_obj.browse(cr, uid, ids[0])
+        else:
+            product = product_obj.browse(cr, uid, ids)
+
+        banner = banner_obj.browse( cr, uid, banner_id )
+
+
+        return { 'value': { 'meli_description' : banner.description } }
 
     def product_get_meli_status( self, cr, uid, ids, field_name, attributes, context=None ):
         
-        print "product_get_meli_status"
+        print "product_get_meli_status (product status)"
         user_obj = self.pool.get('res.users').browse(cr, uid, uid)
         company = user_obj.company_id
 
@@ -263,8 +293,10 @@ class product_product(osv.osv):
 
     _columns = {
 	'meli_id': fields.char(string='Id del item asignado por Meli', size=256),
+    'meli_url': fields.char(string='Link in MercadoLibre',size=256),
 	'meli_title': fields.char(string='Nombre del producto en Mercado Libre',size=256), 
 	'meli_description': fields.html(string='Descripción'),
+    'meli_description_banner_id': fields.many2one("mercadolibre.banner","Banner"),
 	'meli_category': fields.many2one("mercadolibre.category","Categoría de MercadoLibre"),
 	'meli_listing_type': fields.selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("premium","Premium")], string='Tipo de lista'),
 	'meli_buying_mode': fields.selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra'),
