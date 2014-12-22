@@ -60,8 +60,7 @@ class res_company(osv.osv):
             print "response.content:", response.content
             rjson = response.json()
             #response = meli.get("/users/")
-            #print "response.content:", response.content
-            #print "get_meli_state:"
+
             if ACCESS_TOKEN=='':
                 ML_state = True
         except requests.exceptions.ConnectionError as e:
