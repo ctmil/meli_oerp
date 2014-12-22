@@ -13,7 +13,7 @@
     'author': 'Moldeo Interactive',
     'website': 'http://business.moldeo.coop',
     "category": "Sales",
-    "depends": ['base', 'product'],
+    "depends": ['base', 'product','sale'],
     'data': [
 	'company_view.xml',
 	'posting_view.xml',
