@@ -3,28 +3,10 @@
 
 import re
 import os
-import requests as _requests
+import requests
 from urllib import urlencode
 from ConfigParser import SafeConfigParser
 import json
-
-import ssl
-from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.poolmanager import PoolManager
-
-
-class Ssl1HttpAdapter(HTTPAdapter):
-    """"Transport adapter" that allows us to use SSLv3."""
-
-    def init_poolmanager(self, connections, maxsize, block=False):
-        print "INIT"
-        self.poolmanager = PoolManager(num_pools=connections,
-                                        maxsize=maxsize,
-                                        block=block,
-                                        ssl_version=ssl.PROTOCOL_TLSv1)
-
-requests = _requests.Session()
-requests.mount('https://api.mercadolibre.com/', Ssl1HttpAdapter())
 
 class Meli(object):
     def __init__(self, client_id, client_secret, access_token=None, refresh_token=None):
