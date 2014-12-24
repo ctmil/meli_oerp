@@ -21,6 +21,7 @@
     'product_view.xml',	
 	'category_view.xml',
 	'banner_view.xml',
+    'warning_view.xml',
     ],
     'demo_xml': [],
     'active': False,

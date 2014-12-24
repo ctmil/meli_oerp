@@ -7,6 +7,7 @@
 ##############################################################################
 
 import controllers
+import warning
 import company
 import product
 import category
