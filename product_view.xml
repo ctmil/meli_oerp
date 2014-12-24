@@ -11,6 +11,8 @@
                     <notebook>
                         <page string="MercadoLibre">
 							<group>
+                                <field name="meli_post_required" />
+                                <field name="meli_permalink" widget="url"/>                                
 								<field name="meli_id" />
 								<field name="meli_title" />
 								<field name="meli_description" />

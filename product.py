@@ -227,16 +227,20 @@ class product_product(osv.osv):
         rjson = response.json()
         if ("error" in rjson):
             print "Error!"
-            return {}
+            raise osv.except_osv( _('MELI WARNING'), _('No se pudo cargar la imagen en MELI! Error: %s , Mensaje: %s, Status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
+            return { 'status': 'error', 'message': 'not uploaded'}
 
         if ("id" in rjson):
             #guardar id
             product.write( { "meli_imagen_id": rjson["id"] } )
             #asociar imagen a producto
-            response = meli.post("/items/"+product.meli_id+"/pictures", { 'id': rjson["id"] }, { 'access_token': meli.access_token } )
-            print response.content
+            if product.meli_id:
+                response = meli.post("/items/"+product.meli_id+"/pictures", { 'id': rjson["id"] }, { 'access_token': meli.access_token } )
+                print response.content
+            else:
+                return { 'status': 'warning', 'message': 'uploaded but not assigned' }
         
-        return {}
+        return { 'status': 'success', 'message': 'uploaded and assigned' } 
 
     def product_on_change_meli_banner(self, cr, uid, ids, banner_id ):
         print 'product_on_change_meli_banner > ', banner_id
@@ -291,9 +295,48 @@ class product_product(osv.osv):
             res[product.id] = ML_status
         return res
 
+    def product_get_permalink( self, cr, uid, ids, field_name, attributes, context=None ):
+        ML_permalink = ''
+
+        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+        company = user_obj.company_id
+
+        product_obj = self.pool.get('product.product')
+        product = product_obj.browse(cr, uid, ids[0])        
+
+        CLIENT_ID = company.mercadolibre_client_id
+        CLIENT_SECRET = company.mercadolibre_secret_key
+        ACCESS_TOKEN = company.mercadolibre_access_token
+        REFRESH_TOKEN = company.mercadolibre_refresh_token
+
+
+        ML_permalink = ""
+        if ACCESS_TOKEN=='':
+            ML_permalink = ""
+        else:
+            meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+            if product.meli_id:
+                response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token} )
+                print response.content
+                rjson = response.json()
+                ML_permalink = rjson["permalink"]
+                if "error" in rjson:
+                    ML_permalink = ""
+                #if "sub_status" in rjson:
+                    #if len(rjson["sub_status"]) and rjson["sub_status"][0]=='deleted':
+                    #    product.write({ 'meli_id': '' })
+
+
+        res = {}		
+        for product in self.browse(cr,uid,ids):
+            res[product.id] = ML_permalink
+        return res      
+
+
     _columns = {
-	'meli_id': fields.char(string='Id del item asignado por Meli', size=256),
-    'meli_url': fields.char(string='Link in MercadoLibre',size=256),
+    'meli_post_required': fields.boolean(string='Este producto es publicable en Mercado Libre'),
+	'meli_id': fields.char( string='Id del item asignado por Meli', size=256),
+    'meli_permalink': fields.function( product_get_permalink, method=True, type='char',  size=256, string='PermaLink in MercadoLibre' ),
 	'meli_title': fields.char(string='Nombre del producto en Mercado Libre',size=256), 
 	'meli_description': fields.html(string='Descripción'),
     'meli_description_banner_id': fields.many2one("mercadolibre.banner","Banner"),
