@@ -135,7 +135,7 @@ class res_company(osv.osv):
         return {
             "type": "ir.actions.act_url",
             "url": url_login_meli,
-            "target": "new",
+            "target": "self",
         }
 
 res_company()
