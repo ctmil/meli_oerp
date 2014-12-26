@@ -11,27 +11,6 @@
                     <notebook>
                         <page string="MercadoLibre">
 							<group>
-                                <field name="meli_post_required" />
-                                <field name="meli_permalink" widget="url"/>                                
-								<field name="meli_id" />
-								<field name="meli_title" />
-								<field name="meli_description" />
-                                <field name="meli_description_banner_id" on_change="product_on_change_meli_banner( meli_description_banner_id)" />
-								<field name="meli_category" />
-								<field name="meli_listing_type" />
-								<field name="meli_buying_mode" />
-
-								<field name="meli_price" />
-								<field name="meli_currency" />
-
-								<field name="meli_condition" />
-								<field name="meli_available_quantity" />
-								<field name="meli_warranty" />
-								<field name="meli_imagen" />
-                                <field name="meli_imagen_id" />
-								<field name="meli_video" />
-								<field name="meli_state" />
-                                <field name="meli_status" />
 
                                 <button name='product_meli_get_product' type="object"
 										string="Cargar desde MLA" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
@@ -54,6 +33,33 @@
 
                                 <button name='product_meli_login' type="object"
 										string="Se requiere Iniciar Sesión en MLA" attrs="{'invisible':[('meli_state','=',False)]}"/>
+                                <br/>
+                                <field name="meli_post_required" />
+                                <field name="meli_state" />
+                                <field name="meli_status" />
+                                <field name="meli_permalink" widget="url"/>                                
+								<field name="meli_id" />
+                                <br/>
+                                <br/>
+								<field name="meli_title" />
+								<field name="meli_description" />
+                                <field name="meli_description_banner_id" on_change="product_on_change_meli_banner( meli_description_banner_id)" />
+								<field name="meli_category" />
+								<field name="meli_listing_type" />
+								<field name="meli_buying_mode" />
+
+								<field name="meli_price" />
+								<field name="meli_currency" />
+
+								<field name="meli_condition" />
+								<field name="meli_available_quantity" />
+								<field name="meli_warranty" />
+								<field name="meli_imagen" />
+                                <field name="meli_imagen_id" />
+								<field name="meli_video" />
+								
+
+
 								
 							</group>
                         </page>

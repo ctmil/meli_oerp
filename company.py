@@ -26,6 +26,7 @@ _logger = logging.getLogger(__name__)
 import urllib2
 
 from meli_oerp_config import *
+from warning import warning
 
 import requests
 import melisdk
@@ -44,8 +45,10 @@ class res_company(osv.osv):
         # recoger el estado y devolver True o False (meli)
         #False if logged ok
         #True if need login
+        print 'company get_meli_state() '
         user_obj = self.pool.get('res.users').browse(cr, uid, uid)
         company = user_obj.company_id
+        warningobj = self.pool.get('warning')
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
@@ -56,11 +59,14 @@ class res_company(osv.osv):
         ML_state = False
 
         try:
-            response = meli.get("/items/")
+            response = meli.get("/items/MLA1", {'access_token':meli.access_token} )
             print "response.content:", response.content
             rjson = response.json()
             #response = meli.get("/users/")
-
+            if "error" in rjson:
+                if "message" in rjson and rjson["message"]=="expired_token":
+                    ML_state = True
+                                  
             if ACCESS_TOKEN=='':
                 ML_state = True
         except requests.exceptions.ConnectionError as e:
@@ -69,10 +75,14 @@ class res_company(osv.osv):
             error_msg = 'MELI WARNING: NO INTERNET CONNECTION TO API.MERCADOLIBRE.COM: complete the Cliend Id, and Secret Key and try again '
             _logger.error(error_msg)
             
-            
-
 #        except requests.exceptions.HTTPError as e:
 #            print "And you get an HTTPError:", e.message
+
+        if ML_state:
+            ACCESS_TOKEN = ''
+            REFRESH_TOKEN = ''
+
+            company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
 
         res = {}		
         for company in self.browse(cr,uid,ids):
@@ -80,13 +90,13 @@ class res_company(osv.osv):
         return res
 
     _columns = {
-    'mercadolibre_client_id': fields.char(string='Client ID para ingresar a MercadoLibre',size=128), 
-    'mercadolibre_secret_key': fields.char(string='Secret Key para ingresar a MercadoLibre',size=128),
-    'mercadolibre_access_token': fields.char( string='Access Token',size=256),
-    'mercadolibre_refresh_token': fields.char( string='Refresh Token', size=256),
-    'mercadolibre_code': fields.char( string='Code', size=256),
-    'mercadolibre_state': fields.function( get_meli_state, method=True, type='boolean', string="Se requiere Iniciar Sesión con MLA", store=False ),
-    #'mercadolibre_login': fields.selection( [ ("unknown", "Desconocida"), ("logged","Abierta"), ("not logged","Cerrada")],string='Estado de la sesión'), ) 
+        'mercadolibre_client_id': fields.char(string='Client ID para ingresar a MercadoLibre',size=128), 
+        'mercadolibre_secret_key': fields.char(string='Secret Key para ingresar a MercadoLibre',size=128),
+        'mercadolibre_access_token': fields.char( string='Access Token',size=256),
+        'mercadolibre_refresh_token': fields.char( string='Refresh Token', size=256),
+        'mercadolibre_code': fields.char( string='Code', size=256),
+        'mercadolibre_state': fields.function( get_meli_state, method=True, type='boolean', string="Se requiere Iniciar Sesión con MLA", store=False ),
+        #'mercadolibre_login': fields.selection( [ ("unknown", "Desconocida"), ("logged","Abierta"), ("not logged","Cerrada")],string='Estado de la sesión'), ) 
     }
 
     def	meli_logout(self, cr, uid, ids, context=None ):

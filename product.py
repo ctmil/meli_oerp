@@ -265,6 +265,7 @@ class product_product(osv.osv):
         print "product_get_meli_status (product status)"
         user_obj = self.pool.get('res.users').browse(cr, uid, uid)
         company = user_obj.company_id
+        warningobj = self.pool.get('warning')
 
         product_obj = self.pool.get('product.product')
         product = product_obj.browse(cr, uid, ids[0])
@@ -319,9 +320,10 @@ class product_product(osv.osv):
                 response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token} )
                 print response.content
                 rjson = response.json()
-                ML_permalink = rjson["permalink"]
+                if "permalink" in rjson:
+                    ML_permalink = rjson["permalink"]
                 if "error" in rjson:
-                    ML_permalink = ""
+                    ML_permalink = ""                    
                 #if "sub_status" in rjson:
                     #if len(rjson["sub_status"]) and rjson["sub_status"][0]=='deleted':
                     #    product.write({ 'meli_id': '' })

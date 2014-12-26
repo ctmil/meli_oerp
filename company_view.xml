@@ -19,12 +19,13 @@
                     <notebook>
                         <page string="MercadoLibre">
 							<group>
+								<field name="mercadolibre_state" invisible="0"/>
 								<field name="mercadolibre_client_id" />
 								<field name="mercadolibre_secret_key" />
 								<field name="mercadolibre_access_token" invisible="0"/>
 								<field name="mercadolibre_refresh_token" invisible="0"/>
 								<field name="mercadolibre_code" invisible="0"/>
-								<field name="mercadolibre_state" invisible="0"/>
+
 
 								<button name='meli_login' type="object"
 										string="Iniciar sesión en MLA" attrs="{'invisible':[('mercadolibre_state','=',False)]}"/>
