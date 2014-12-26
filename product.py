@@ -213,6 +213,9 @@ class product_product(osv.osv):
         #
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
+        if product.image==None:
+            return { 'status': 'error', 'message': 'no image to upload' }
+
         print "product_meli_upload_image"
         #print "product_meli_upload_image: " + response.content
         imagebin = base64.b64decode(product.image)
@@ -350,13 +353,19 @@ class product_product(osv.osv):
 	'meli_condition': fields.selection([ ("new", "Nuevo"), ("used", "Usado"), ("not_specified","No especificado")],'Condición del producto'),
 	'meli_available_quantity': fields.integer(string='Cantidad disponible'),
 	'meli_warranty': fields.char(string='Garantía', size=256),
-	'meli_imagen': fields.char(string='Imagen', size=256),
+	'meli_imagen_logo': fields.char(string='Imagen Logo', size=256),
     'meli_imagen_id': fields.char(string='Imagen Id', size=256),
-	'meli_video': fields.char(string='Video (id de youtube)', size=256),
+	'meli_video': fields.char( string='Video (id de youtube)', size=256),
 	'meli_state': fields.function( product_get_meli_loginstate, method=True, type='boolean', string="Inicio de sesión requerida", store=False ),
     'meli_status': fields.function( product_get_meli_status, method=True, type='char', size=128, string="Estado del producto en MLA", store=False ),
 	### Agregar imagen/archivo uno o mas, y la descripcion en HTML...
 	# TODO Agregar el banner
     }
+
+    _defaults = {
+        'meli_imagen_logo': 'http://www.nuevohorizonte-sa.com.ar/images/logo1.png',
+        'meli_video': '6JhmxwtTjoA'
+    }
+
 
 product_product()
