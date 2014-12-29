@@ -131,7 +131,7 @@ class product_post(osv.osv_memory):
             if (product.meli_id):
                 body = {
                     "title": product.meli_title or '',
-                    #"description": product.meli_description,	
+                    #"description": product.meli_description or '',	
                     #"category_id": product.meli_category.meli_category_id,
                     #"listing_type_id": product.meli_listing_type,
                     "buying_mode": product.meli_buying_mode or '',
@@ -151,7 +151,12 @@ class product_post(osv.osv_memory):
                 else:
                     body["pictures"] = [ { 'source': product.meli_imagen_logo} ]
             else:
-                return 
+                return warningobj.info(cr, uid, title='MELI WARNING', message="Debe completar el campo 'Imagen_Logo' con el url: http://www.nuevohorizonte-sa.com.ar/images/logo1.png", message_html="")
+
+            #check fields
+            if product.meli_description==False:
+                return warningobj.info(cr, uid, title='MELI WARNING', message="Debe completar el campo 'description' (en html)", message_html="")
+
 
             #put for editing, post for creating
             if product.meli_id:

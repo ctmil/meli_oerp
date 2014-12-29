@@ -346,7 +346,7 @@ class product_product(osv.osv):
 	'meli_description': fields.html(string='Descripción'),
     'meli_description_banner_id': fields.many2one("mercadolibre.banner","Banner"),
 	'meli_category': fields.many2one("mercadolibre.category","Categoría de MercadoLibre"),
-	'meli_listing_type': fields.selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("premium","Premium")], string='Tipo de lista'),
+	'meli_listing_type': fields.selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium")], string='Tipo de lista'),
 	'meli_buying_mode': fields.selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra'),
 	'meli_price': fields.char(string='Precio de venta', size=128),
 	'meli_currency': fields.selection([("ARS","Peso Argentino (ARS)")],string='Moneda (ARS)'),
