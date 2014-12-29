@@ -14,23 +14,26 @@
 
                                 <button name='product_meli_get_product' type="object"
 										string="Cargar desde MLA" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
-                                
+                                <br/>                                
 								<button name='%(action_product_post)d' type="action"
 										string="Publicar producto en MLA" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','!=',False)]}"/>
-
+                                <br/>
                                 <button name='%(action_product_post)d' type="action"
 										string="Actualizar producto en MLA" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
 <!-- ,('meli_status','=','active'), -->
-
+                                <br/>
 								<button name='product_meli_status_active' type="object"
 										string="Activar producto en MLA" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
-
+                                <br/>
+                                <button name='product_meli_status_pause' type="object"
+										string="Pausar producto en MLA" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
+                                <br/>
                                 <button name='product_meli_delete' type="object"
 										string="Eliminar producto de MLA" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
-
+                                <br/>
                                 <button name='product_meli_upload_image' type="object"
 										string="Subir imagen a MLA" attrs="{'invisible':[('meli_state','=',True)]}"/>
-
+                                <br/>
                                 <button name='product_meli_login' type="object"
 										string="Se requiere Iniciar Sesión en MLA" attrs="{'invisible':[('meli_state','=',False)]}"/>
                                 <br/>
