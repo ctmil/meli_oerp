@@ -1,5 +1,4 @@
 from openerp import http
-from bottle import template
 
 import melisdk
 from melisdk.meli import Meli
@@ -54,7 +53,7 @@ class MercadoLibreLogin(http.Controller):
             ACCESS_TOKEN = meli.access_token
             REFRESH_TOKEN = meli.refresh_token
             company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': codes['code'] } )
-            return template('LOGGED WIT CODE: {{code}} <br>ACCESS_TOKEN: {{access_token}} <br>REFRESH_TOKEN: {{refresh_token}} <br>MercadoLibre for Odoo 8 - Moldeo Interactive <br><a href="javascript:window.history.go(-2);">Volver a Odoo</a> <script>window.history.go(-2)</script>', code=codes['code'], access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN )
+            return 'LOGGED WIT CODE: %s <br>ACCESS_TOKEN: %s <br>REFRESH_TOKEN: %s <br>MercadoLibre for Odoo 8 - Moldeo Interactive <br><a href="javascript:window.history.go(-2);">Volver a Odoo</a> <script>window.history.go(-2)</script>' % ( codes['code'], ACCESS_TOKEN, REFRESH_TOKEN )
         else:
             return "<a href='"+meli.auth_url(redirect_URI=REDIRECT_URI)+"'>Login</a>"
 

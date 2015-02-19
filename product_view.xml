@@ -59,6 +59,7 @@
 								<field name="meli_warranty" />
 								<field name="meli_imagen_logo" />
                                 <field name="meli_imagen_id" />
+                                <field name="meli_multi_imagen_id" />
 								<field name="meli_video" />
 								
 

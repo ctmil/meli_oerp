@@ -140,18 +140,31 @@ class product_post(osv.osv_memory):
                     "condition": product.meli_condition or '',
                     "available_quantity": product.meli_available_quantity or '0',
                     "warranty": product.meli_warranty or '',
+                    "pictures": [],
                     #"pictures": [ { 'source': product.meli_imagen_logo} ] ,
                     "video_id": product.meli_video or '',
                 }
 
+            #publicando multiples imagenes
+            multi_images_ids = {}
+            if (product.images):
+                print 'website_multi_images presente:   ', product.images
+                #recorrer las imagenes y publicarlas
+                multi_images_ids = product.product_meli_upload_multi_images()                 
+
             #asignando imagen de logo (por source)
             if product.meli_imagen_logo:
                 if product.meli_imagen_id:
-                    body["pictures"] = [ { 'id': product.meli_imagen_id },{ 'source': product.meli_imagen_logo} ]
-                else:
-                    body["pictures"] = [ { 'source': product.meli_imagen_logo} ]
+                    body["pictures"]+= [ { 'id': product.meli_imagen_id } ]
+
+                if (multi_images_ids):
+                    body["pictures"]+= multi_images_ids
+
+                body["pictures"]+= [ { 'source': product.meli_imagen_logo} ]
+
             else:
                 return warningobj.info(cr, uid, title='MELI WARNING', message="Debe completar el campo 'Imagen_Logo' con el url: http://www.nuevohorizonte-sa.com.ar/images/logo1.png", message_html="")
+            
 
             #check fields
             if product.meli_description==False:

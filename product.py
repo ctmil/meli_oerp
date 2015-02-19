@@ -245,6 +245,52 @@ class product_product(osv.osv):
         
         return { 'status': 'success', 'message': 'uploaded and assigned' } 
 
+    def product_meli_upload_multi_images( self, cr, uid, ids, context=None ):
+
+        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+        company = user_obj.company_id
+
+        product_obj = self.pool.get('product.product')
+        product = product_obj.browse(cr, uid, ids[0])
+
+        CLIENT_ID = company.mercadolibre_client_id
+        CLIENT_SECRET = company.mercadolibre_secret_key
+        ACCESS_TOKEN = company.mercadolibre_access_token
+        REFRESH_TOKEN = company.mercadolibre_refresh_token
+
+        #
+        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+
+        if product.images==None:
+            return { 'status': 'error', 'message': 'no images to upload' }
+
+        image_ids = []
+        c = 0
+
+        #loop over images
+        for product_image in product.images:
+            print "product_image: ", product_image
+            imagebin = base64.b64decode( product_image.image )
+            files = { 'file': ('image.png', imagebin, "image/png"), }
+            print  files
+            response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
+            print response.content
+
+            rjson = response.json()
+            if ("error" in rjson):
+                print "Error!"
+                raise osv.except_osv( _('MELI WARNING'), _('No se pudo cargar la imagen en MELI! Error: %s , Mensaje: %s, Status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
+                #return { 'status': 'error', 'message': 'not uploaded'}
+            else:
+                print "image id:", rjson['id']
+                image_ids+= [ { 'id': rjson['id'] }]
+                c = c + 1 
+        
+        product.write( { "meli_multi_imagen_id": "%s" % (image_ids) } )
+                
+        return image_ids
+        
+
     def product_on_change_meli_banner(self, cr, uid, ids, banner_id ):
         print 'product_on_change_meli_banner > ', banner_id
         print 'ids:', ids
@@ -355,6 +401,7 @@ class product_product(osv.osv):
 	'meli_warranty': fields.char(string='Garantía', size=256),
 	'meli_imagen_logo': fields.char(string='Imagen Logo', size=256),
     'meli_imagen_id': fields.char(string='Imagen Id', size=256),
+    'meli_multi_imagen_id': fields.char(string='Multi Imagen Ids', size=512),
 	'meli_video': fields.char( string='Video (id de youtube)', size=256),
 	'meli_state': fields.function( product_get_meli_loginstate, method=True, type='boolean', string="Inicio de sesión requerida", store=False ),
     'meli_status': fields.function( product_get_meli_status, method=True, type='char', size=128, string="Estado del producto en MLA", store=False ),
