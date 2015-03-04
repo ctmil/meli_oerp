@@ -25,6 +25,7 @@ import logging
 _logger = logging.getLogger(__name__)
 
 import json
+from datetime import datetime
 
 #from bottle import Bottle, run, template, route, request
 #import json
@@ -84,14 +85,14 @@ class product_post(osv.osv_memory):
             if (product.meli_id):
                 response = meli.get("/items/%s" % product.meli_id, {'access_token':meli.access_token})
 
-            print product.meli_category.meli_category_id
+            # print product.meli_category.meli_category_id
 
             if product.meli_title==False:
-                print 'Assigning title: product.meli_title: %s name: %s' % (product.meli_title, product.name)
+                # print 'Assigning title: product.meli_title: %s name: %s' % (product.meli_title, product.name)
                 product.meli_title = product.name
                 
             if product.meli_price==False:
-                print 'Assigning price: product.meli_price: %s standard_price: %s' % (product.meli_price, product.standard_price)
+                # print 'Assigning price: product.meli_price: %s standard_price: %s' % (product.meli_price, product.standard_price)
                 product.meli_price = product.standard_price
                 
 
@@ -110,7 +111,7 @@ class product_post(osv.osv_memory):
                 "video_id": product.meli_video  or '',
             }
 
-            print body
+            # print body
 
             assign_img = False and product.meli_id
 
@@ -118,7 +119,7 @@ class product_post(osv.osv_memory):
             if product.image==None:
                 return warningobj.info(cr, uid, title='MELI WARNING', message="Debe cargar una imagen de base en el producto.", message_html="" )
             elif product.meli_imagen_id==False:
-                print "try uploading image..."
+                # print "try uploading image..."
                 resim = product.product_meli_upload_image()
                 if "status" in resim:
                     if (resim["status"]=="error" or resim["status"]=="warning"):
@@ -148,28 +149,35 @@ class product_post(osv.osv_memory):
             #publicando multiples imagenes
             multi_images_ids = {}
             if (product.images):
-                print 'website_multi_images presente:   ', product.images
+                # print 'website_multi_images presente:   ', product.images
                 #recorrer las imagenes y publicarlas
                 multi_images_ids = product.product_meli_upload_multi_images()                 
 
             #asignando imagen de logo (por source)
             if product.meli_imagen_logo:
                 if product.meli_imagen_id:
-                    body["pictures"]+= [ { 'id': product.meli_imagen_id } ]
+                    if 'pictures' in body.keys():
+                        body["pictures"]+= [ { 'id': product.meli_imagen_id } ]
+                    else:
+                        body["pictures"] = [ { 'id': product.meli_imagen_id } ]
 
-                if (multi_images_ids):
-                    body["pictures"]+= multi_images_ids
+                        if (multi_images_ids):
+                            if 'pictures' in body.keys():
+                                body["pictures"]+= multi_images_ids
+                            else:
+                                body["pictures"] = multi_images_ids
 
-                body["pictures"]+= [ { 'source': product.meli_imagen_logo} ]
+                    if 'pictures' in body.keys():
+                        body["pictures"]+= [ { 'source': product.meli_imagen_logo} ]
+                    else:
+                        body["pictures"]+= [ { 'source': product.meli_imagen_logo} ]
 
             else:
                 return warningobj.info(cr, uid, title='MELI WARNING', message="Debe completar el campo 'Imagen_Logo' con el url: http://www.nuevohorizonte-sa.com.ar/images/logo1.png", message_html="")
             
-
             #check fields
             if product.meli_description==False:
                 return warningobj.info(cr, uid, title='MELI WARNING', message="Debe completar el campo 'description' (en html)", message_html="")
-
 
             #put for editing, post for creating
             if product.meli_id:
@@ -179,7 +187,7 @@ class product_post(osv.osv_memory):
                 response = meli.post("/items", body, {'access_token':meli.access_token})
 
             #check response
-            print response.content
+            # print response.content
             rjson = response.json()
 
             #check error
@@ -204,26 +212,13 @@ class product_post(osv.osv_memory):
             #last modifications if response is OK 
             if "id" in rjson:
                 product.write( { 'meli_id': rjson["id"]} )
-                if (product.meli_imagen_id):
-                    if len(rjson["pictures"]):
-                        #check if ID is already assigned
-                        if ("id" in rjson["pictures"][0]):
-                            if (rjson["pictures"][0]["id"]==product.meli_imagen_id):
-                                assign_img = False
-                            else:
-                                assign_img = True
-                        else:
-                            assign_img = True
-                    else:
-                        assign_img = True
-               #product.write( { 'meli_url': rjson["url"]} )
+		
+            posting_fields = {'posting_date': str(datetime.now()),'meli_id':rjson['id'],'product_id':product.id,'name': 'Post: ' + product.meli_title }
 
-            #finally assingning uploaded image
+            posting_id = self.pool.get('mercadolibre.posting').search(cr,uid,[('meli_id','=',rjson['id'])])
 
-            if assign_img:
-                print "Assigning Imagen Id to Product ID: ", response.content
-                #response = meli.post("/items/"+product.meli_id+"/pictures", { 'id': product.meli_imagen_id }, { 'access_token': meli.access_token } )
-
+            if not posting_id:
+	            posting_id = self.pool.get('mercadolibre.posting').create(cr,uid,(posting_fields))
 
 
         return {}

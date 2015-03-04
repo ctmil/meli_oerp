@@ -40,7 +40,5 @@
         <field name="model">product.product</field>
     </record>
 
-
-
 </data>
 </openerp>

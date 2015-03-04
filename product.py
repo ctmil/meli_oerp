@@ -53,7 +53,7 @@ class product_product(osv.osv):
 
         response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token})
 
-        print "product_meli_get_product: " + response.content
+        #print "product_meli_get_product: " + response.content
 
         return {}
 
@@ -69,7 +69,6 @@ class product_product(osv.osv):
         url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
         #url_login_oerp = "/meli_login"
 
-        print "OK company.meli_login() called: url is ", url_login_meli
 
         return {
 	        "type": "ir.actions.act_url",
@@ -125,7 +124,7 @@ class product_product(osv.osv):
 
         response = meli.put("/items/"+product.meli_id, { 'status': 'closed' }, {'access_token':meli.access_token})
 
-        print "product_meli_status_close: " + response.content
+        #print "product_meli_status_close: " + response.content
 
         return {}
 
@@ -144,7 +143,7 @@ class product_product(osv.osv):
 
         response = meli.put("/items/"+product.meli_id, { 'status': 'paused' }, {'access_token':meli.access_token})
 
-        print "product_meli_status_pause: " + response.content
+        #print "product_meli_status_pause: " + response.content
 
         return {}
 
@@ -163,7 +162,7 @@ class product_product(osv.osv):
 
         response = meli.put("/items/"+product.meli_id, { 'status': 'active' }, {'access_token':meli.access_token})
 
-        print "product_meli_status_active: " + response.content
+        #print "product_meli_status_active: " + response.content
 
         return {}
 
@@ -186,7 +185,7 @@ class product_product(osv.osv):
 
         response = meli.put("/items/"+product.meli_id, { 'deleted': 'true' }, {'access_token':meli.access_token})
 
-        print "product_meli_delete: " + response.content
+        #print "product_meli_delete: " + response.content
         rjson = response.json()
         ML_status = rjson["status"]
         if "error" in rjson:
@@ -216,20 +215,19 @@ class product_product(osv.osv):
         if product.image==None:
             return { 'status': 'error', 'message': 'no image to upload' }
 
-        print "product_meli_upload_image"
+        # print "product_meli_upload_image"
         #print "product_meli_upload_image: " + response.content
         imagebin = base64.b64decode(product.image)
         imageb64 = product.image
 #       print "data:image/png;base64,"+imageb64
 #       files = [ ('images', ('image_medium', imagebin, "image/png")) ]
         files = { 'file': ('image.png', imagebin, "image/png"), }
-        print  files
+        #print  files
         response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
-        print response.content
+       # print response.content
 
         rjson = response.json()
         if ("error" in rjson):
-            print "Error!"
             raise osv.except_osv( _('MELI WARNING'), _('No se pudo cargar la imagen en MELI! Error: %s , Mensaje: %s, Status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
             return { 'status': 'error', 'message': 'not uploaded'}
 
@@ -239,7 +237,6 @@ class product_product(osv.osv):
             #asociar imagen a producto
             if product.meli_id:
                 response = meli.post("/items/"+product.meli_id+"/pictures", { 'id': rjson["id"] }, { 'access_token': meli.access_token } )
-                print response.content
             else:
                 return { 'status': 'warning', 'message': 'uploaded but not assigned' }
         
@@ -269,22 +266,18 @@ class product_product(osv.osv):
 
         #loop over images
         for product_image in product.images:
-            print "product_image: ", product_image
-            imagebin = base64.b64decode( product_image.image )
-            files = { 'file': ('image.png', imagebin, "image/png"), }
-            print  files
-            response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
-            print response.content
+            if (product_image.image):
+                imagebin = base64.b64decode( product_image.image )
+                files = { 'file': ('image.png', imagebin, "image/png"), }
+                response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
 
-            rjson = response.json()
-            if ("error" in rjson):
-                print "Error!"
-                raise osv.except_osv( _('MELI WARNING'), _('No se pudo cargar la imagen en MELI! Error: %s , Mensaje: %s, Status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
-                #return { 'status': 'error', 'message': 'not uploaded'}
-            else:
-                print "image id:", rjson['id']
-                image_ids+= [ { 'id': rjson['id'] }]
-                c = c + 1 
+                rjson = response.json()
+                if ("error" in rjson):
+                    raise osv.except_osv( _('MELI WARNING'), _('No se pudo cargar la imagen en MELI! Error: %s , Mensaje: %s, Status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
+                    #return { 'status': 'error', 'message': 'not uploaded'}
+                else:
+                    image_ids+= [ { 'id': rjson['id'] }]
+                    c = c + 1 
         
         product.write( { "meli_multi_imagen_id": "%s" % (image_ids) } )
                 
@@ -292,8 +285,6 @@ class product_product(osv.osv):
         
 
     def product_on_change_meli_banner(self, cr, uid, ids, banner_id ):
-        print 'product_on_change_meli_banner > ', banner_id
-        print 'ids:', ids
 
         banner_obj = self.pool.get('mercadolibre.banner')
 
@@ -311,7 +302,6 @@ class product_product(osv.osv):
 
     def product_get_meli_status( self, cr, uid, ids, field_name, attributes, context=None ):
         
-        print "product_get_meli_status (product status)"
         user_obj = self.pool.get('res.users').browse(cr, uid, uid)
         company = user_obj.company_id
         warningobj = self.pool.get('warning')
@@ -331,7 +321,6 @@ class product_product(osv.osv):
             meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
             if product.meli_id:
                 response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token} )
-                print response.content
                 rjson = response.json()
                 ML_status = rjson["status"]
                 if "error" in rjson:
@@ -367,7 +356,6 @@ class product_product(osv.osv):
             meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
             if product.meli_id:
                 response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token} )
-                print response.content
                 rjson = response.json()
                 if "permalink" in rjson:
                     ML_permalink = rjson["permalink"]
