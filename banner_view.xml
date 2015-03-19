@@ -8,8 +8,7 @@
             <field name="type">tree</field>
             <field name="arch" type="xml">
                 <tree string="Banners" >
-                    <field name="name"/>
-                    <field name="description"/>
+                    <field name="name"/>                    
                 </tree>
             </field>
         </record>

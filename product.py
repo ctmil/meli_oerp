@@ -231,9 +231,11 @@ class product_product(osv.osv):
             raise osv.except_osv( _('MELI WARNING'), _('No se pudo cargar la imagen en MELI! Error: %s , Mensaje: %s, Status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
             return { 'status': 'error', 'message': 'not uploaded'}
 
+        _logger.info( rjson )
+
         if ("id" in rjson):
             #guardar id
-            product.write( { "meli_imagen_id": rjson["id"] } )
+            product.write( { "meli_imagen_id": rjson["id"], "meli_imagen_link": rjson["variations"][0]["url"] } )
             #asociar imagen a producto
             if product.meli_id:
                 response = meli.post("/items/"+product.meli_id+"/pictures", { 'id': rjson["id"] }, { 'access_token': meli.access_token } )
@@ -296,9 +298,19 @@ class product_product(osv.osv):
             product = product_obj.browse(cr, uid, ids)
 
         banner = banner_obj.browse( cr, uid, banner_id )
+        
+        #banner.description
+        _logger.info( banner.description )
+        result = ""
+        if (banner.description!="" and banner.description!=False and product.meli_imagen_link!=""):
+            imgtag = "<img style='width: 420px; height: auto;' src='%s'/>" % ( product.meli_imagen_link )
+            result = banner.description.replace( "[IMAGEN_PRODUCTO]", imgtag )
+            if (result):
+                _logger.info( "result: %s" % (result) )
+            else:
+                result = banner.description
 
-
-        return { 'value': { 'meli_description' : banner.description } }
+        return { 'value': { 'meli_description' : result } }
 
     def product_get_meli_status( self, cr, uid, ids, field_name, attributes, context=None ):
         
@@ -389,6 +401,7 @@ class product_product(osv.osv):
 	'meli_warranty': fields.char(string='Garantía', size=256),
 	'meli_imagen_logo': fields.char(string='Imagen Logo', size=256),
     'meli_imagen_id': fields.char(string='Imagen Id', size=256),
+    'meli_imagen_link': fields.char(string='Imagen Link', size=256),
     'meli_multi_imagen_id': fields.char(string='Multi Imagen Ids', size=512),
 	'meli_video': fields.char( string='Video (id de youtube)', size=256),
 	'meli_state': fields.function( product_get_meli_loginstate, method=True, type='boolean', string="Inicio de sesión requerida", store=False ),

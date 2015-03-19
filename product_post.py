@@ -95,7 +95,6 @@ class product_post(osv.osv_memory):
                 # print 'Assigning price: product.meli_price: %s standard_price: %s' % (product.meli_price, product.standard_price)
                 product.meli_price = product.standard_price
                 
-
             body = {
                 "title": product.meli_title or '',
                 "description": product.meli_description or '',	
@@ -171,6 +170,18 @@ class product_post(osv.osv_memory):
                         body["pictures"]+= [ { 'source': product.meli_imagen_logo} ]
                     else:
                         body["pictures"]+= [ { 'source': product.meli_imagen_logo} ]
+                else:
+                    imagen_producto = ""
+                    if (product.meli_description!="" and product.meli_description!=False and product.meli_imagen_link!=""):
+                        imgtag = "<img style='width: 420px; height: auto;' src='%s'/>" % ( product.meli_imagen_link )
+                        result = product.meli_description.replace( "[IMAGEN_PRODUCTO]", imgtag )
+                        if (result):
+                            _logger.info( "result: %s" % (result) )
+                            product.meli_description = result
+                        else:
+                            result = product.meli_description
+                            
+                                        
 
             else:
                 return warningobj.info(cr, uid, title='MELI WARNING', message="Debe completar el campo 'Imagen_Logo' con el url: http://www.nuevohorizonte-sa.com.ar/images/logo1.png", message_html="")
