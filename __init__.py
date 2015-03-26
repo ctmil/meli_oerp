@@ -15,5 +15,5 @@ import banner
 import posting
 import product_post
 import questions
-
+import orders
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:

@@ -95,6 +95,7 @@ class res_company(osv.osv):
         'mercadolibre_access_token': fields.char( string='Access Token',size=256),
         'mercadolibre_refresh_token': fields.char( string='Refresh Token', size=256),
         'mercadolibre_code': fields.char( string='Code', size=256),
+        'mercadolibre_seller_id': fields.char( string='Vendedor Id', size=256),
         'mercadolibre_state': fields.function( get_meli_state, method=True, type='boolean', string="Se requiere Iniciar Sesión con MLA", store=False ),
         #'mercadolibre_login': fields.selection( [ ("unknown", "Desconocida"), ("logged","Abierta"), ("not logged","Cerrada")],string='Estado de la sesión'), ) 
     }
@@ -137,6 +138,18 @@ class res_company(osv.osv):
             "url": url_login_meli,
             "target": "self",
         }
+
+    def meli_query_orders(self, cr, uid, ids, context=None ):
+
+        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+        company = user_obj.company_id
+        
+        orders_obj = self.pool.get('mercadolibre.orders') 
+
+        result = orders_obj.orders_query_all(cr,uid,ids)
+#"type": "ir.actions.act_window",
+#"id": "action_meli_orders_tree",
+        return {}
 
 res_company()
 

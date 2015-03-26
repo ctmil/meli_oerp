@@ -23,6 +23,7 @@
 	'banner_view.xml',
     'warning_view.xml',
     'questions_view.xml',
+    'orders_view.xml',
     ],
     'demo_xml': [],
     'active': False,

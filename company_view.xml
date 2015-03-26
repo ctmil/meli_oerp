@@ -25,6 +25,7 @@
 								<field name="mercadolibre_access_token" invisible="0"/>
 								<field name="mercadolibre_refresh_token" invisible="0"/>
 								<field name="mercadolibre_code" invisible="0"/>
+                                <field name="mercadolibre_seller_id" invisible="0"/>
 
 
 								<button name='meli_login' type="object"
@@ -32,6 +33,9 @@
 
 								<button name='meli_logout' type="object"
 										string="Cerrar sesión con MLA" attrs="{'invisible':[('mercadolibre_state','=',True)]}"/>
+
+                                <button name='meli_query_orders' type="object"
+										string="Iniciar búsqueda de órdenes en MLA" attrs="{'invisible':[('mercadolibre_state','=',True)]}"/>
 <!--
 								<button name='%(meli_login_action)d' type="action"
 										string="Login en MLA (action)"/>

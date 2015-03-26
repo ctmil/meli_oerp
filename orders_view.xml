@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<openerp>
+    <data>
+
+        <record model="ir.ui.view" id="view_meli_orders_tree">
+            <field name="name">mercadolibre.orders.tree</field>
+            <field name="model">mercadolibre.orders</field>
+            <field name="type">tree</field>
+            <field name="arch" type="xml">
+                <tree string="Orders" >
+                    <field name="order_id"/>                    
+                    <field name="status"/>
+                    <field name="date_created"/>
+                    <field name="date_closed"/>
+                </tree>                
+            </field>
+        </record>
+
+        <record model="ir.ui.view" id="view_meli_buyers_tree">
+            <field name="name">mercadolibre.buyers.tree</field>
+            <field name="model">mercadolibre.buyers</field>
+            <field name="type">tree</field>
+            <field name="arch" type="xml">
+                <tree string="Buyers" >
+                    <field name="buyer_id"/>                    
+                    <field name="nickname"/>
+                    <field name="email"/>
+                </tree>                
+            </field>
+        </record>
+
+        <record model="ir.ui.view" id="view_meli_orders_form">
+            <field name="name">mercadolibre.orders.form</field>
+            <field name="model">mercadolibre.orders</field>
+            <field name="type">form</field>
+            <field name="arch" type="xml">
+				<group>
+                    <field name="seller"/>
+                    <field name="order_id"/>
+                    <field name="status"/>
+                    <field name="date_created"/>
+                    <field name="date_closed"/>
+                    <field name="status_detail"/>
+                    <field name="order_items"/>
+                    <field name="total_amount"/>
+                    <field name="currency_id"/>                   
+                    <field name="buyer"/>   
+                    <field name="payments"/>
+                </group>
+            </field>
+        </record>
+
+        <record model="ir.ui.view" id="view_meli_order_items_tree">
+            <field name="name">mercadolibre.order_items.tree</field>
+            <field name="model">mercadolibre.order_items</field>
+            <field name="type">tree</field>
+            <field name="arch" type="xml">
+                <tree string="Order Items" >
+                    <field name="posting_id"/>
+                    <field name="order_id"/>                    
+                    <field name="order_item_id"/>
+                    <field name="unit_price"/>
+                    <field name="quantity"/>
+                </tree>                
+            </field>
+        </record>
+
+        <record model="ir.ui.view" id="view_meli_payments_tree">
+            <field name="name">mercadolibre.payments.tree</field>
+            <field name="model">mercadolibre.payments</field>
+            <field name="type">tree</field>
+            <field name="arch" type="xml">
+                <tree string="Payments" >
+                    <field name="payment_id"/>
+                    <field name="transaction_amount"/>                    
+                    <field name="currency_id"/>
+                    <field name="status"/>
+                    <field name="date_created"/>
+                    <field name="date_last_modified"/>
+                </tree>                
+            </field>
+        </record>
+
+
+    <record id="meli_orders_search_view" model="ir.ui.view">
+        <field name="name">MercadoLibre Orders - Search</field>
+        <field name="model">mercadolibre.orders</field>
+        <field name="arch" type="xml">
+	    <search string="Search MercadoLibre Orders Information">
+                <filter string='Status' icon="terp-mrp" domain="[]" context="{'group_by' : 'status'}"/>
+	    </search>
+        </field>
+    </record>
+
+    <record id="meli_buyers_search_view" model="ir.ui.view">
+        <field name="name">MercadoLibre Buyers - Search</field>
+        <field name="model">mercadolibre.buyers</field>
+        <field name="arch" type="xml">
+	    <search string="Search MercadoLibre Buyers Information">
+                <filter string='Status' icon="terp-mrp" domain="[]" context="{'group_by' : 'nickname'}"/>
+	    </search>
+        </field>
+    </record>
+
+
+    <record id="view_orders_update" model="ir.ui.view">
+          <field name="name">Update Meli Order</field>
+          <field name="model">mercadolibre.orders.update</field>
+          <field name="type">form</field>
+          <field name="arch" type="xml">
+            <form string="Update Order" version="7.0">
+
+
+
+                <footer>
+                    <button name="order_update" string="Update Order"  type="object" class="oe_highlight"  />
+		or
+                    <button string="Cancel" class="oe_link" special="cancel" />
+                </footer>
+            </form>
+          </field>
+    </record>
+
+        <record model="ir.actions.act_window" id="action_meli_orders_tree">
+            <field name="name">Orders</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">mercadolibre.orders</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">tree,form</field>
+            <field name="search_view_id" ref="meli_orders_search_view"/>
+        </record>
+
+        <record model="ir.actions.act_window" id="action_meli_buyers_tree">
+            <field name="name">Buyers</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">mercadolibre.buyers</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">tree,form</field>
+            <field name="search_view_id" ref="meli_buyers_search_view"/>
+        </record>
+
+        <record id="action_update_meli_orders" model="ir.actions.act_window">
+            <field name="name">Update Meli Orders</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="src_model">mercadolibre.orders</field>
+            <field name="res_model">mercadolibre.orders.update</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+
+        <record model="ir.values" id="update_meli_orders">
+            <field name="name">Update Order</field>
+            <field name="key2">client_action_multi</field>
+            <field name="value" eval="'ir.actions.act_window,' +str(ref('action_update_meli_orders'))" />
+            <field name="key">action</field>
+            <field name="model">mercadolibre.orders</field>
+        </record>
+
+        <menuitem id="menu_meli" name="MercadoLibre" parent="base.menu_base_partner" sequence="9"/>
+
+        <menuitem id="menu_meli_orders"
+            action="action_meli_orders_tree"
+            parent="menu_meli"
+            name="Orders" />
+
+        <menuitem id="menu_meli_buyers"
+            action="action_meli_buyers_tree"
+            parent="menu_meli"
+            name="Buyers" />
+
+    </data>
+</openerp>
