@@ -112,8 +112,8 @@ class mercadolibre_orders(osv.osv):
 
 
         #create or update order
-        if (order):
-            _logger.info("Updating order: %i" % (order.order_id))
+        if (order and order.order_id):
+            _logger.info("Updating order: %s" % (order.order_id))
             order.write( order_fields )
         else:
             _logger.info("Adding new order: " )
@@ -268,8 +268,8 @@ class mercadolibre_orders(osv.osv):
 
         orders_query = "/orders/search?seller="+company.mercadolibre_seller_id+"&sort=date_desc"
 
-        if (offset>0):
-            orders_query = orders_query + "&offset="+offset    
+        if (offset):
+            orders_query = orders_query + "&offset="+str(offset).strip()
 
         response = meli.get( orders_query, {'access_token':meli.access_token})
         orders_json = response.json()
