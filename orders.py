@@ -88,6 +88,8 @@ class mercadolibre_orders(osv.osv):
         order_items_obj = self.pool.get('mercadolibre.order_items')
         payments_obj = self.pool.get('mercadolibre.payments')
 
+	order = None
+
         # if id is defined, we are updating existing one
         if (oid):
             order = order_obj.browse(cr, uid, oid )
@@ -114,13 +116,14 @@ class mercadolibre_orders(osv.osv):
 
 
         #create or update order
-        if (order and order.order_id):
-            _logger.info("Updating order: %s" % (order.order_id))
+        if (order and order.id):
+            _logger.info("Updating order: %s" % (order.id))
             order.write( order_fields )
         else:
             _logger.info("Adding new order: " )
             _logger.info(order_fields)
-            order = order_obj.create(cr,uid,(order_fields))
+            return_id = order_obj.create(cr,uid,(order_fields))
+            order = order_obj.browse(cr,uid,return_id)
 
 
         #check error
@@ -146,7 +149,7 @@ class mercadolibre_orders(osv.osv):
                         post_related_obj = post_related[0]
 
                 order_item_fields = {
-                    'order_id': order,
+                    'order_id': order.id,
                     'posting_id': post_related_obj,
                     'order_item_id': Item['item']['id'],
                     'order_item_title': Item['item']['title'],
@@ -155,8 +158,7 @@ class mercadolibre_orders(osv.osv):
                     'quantity': Item['quantity'],
                     'currency_id': Item['currency_id']
                 }
-                
-                order_item_ids = order_items_obj.search(cr,uid,[('order_item_id','=',order_item_fields['order_item_id']),('order_id','=',order_item_fields['order_id'])] )
+                order_item_ids = order_items_obj.search(cr,uid,[('order_item_id','=',order_item_fields['order_item_id']),('order_id','=',order.id)] )
 
                 if not order_item_ids:
 	                order_item_ids = order_items_obj.create(cr,uid,( order_item_fields ))
@@ -174,7 +176,7 @@ class mercadolibre_orders(osv.osv):
                 _logger.info(Payment )
 
                 payment_fields = {
-                    'order_id': order,
+                    'order_id': order.id,
                     'payment_id': Payment['id'],
                     'transaction_amount': Payment['transaction_amount'] or '',
                     'currency_id': Payment['currency_id'] or '',
@@ -184,7 +186,7 @@ class mercadolibre_orders(osv.osv):
                 }
                 
                 payment_ids = payments_obj.search(cr,uid,[  ('payment_id','=',payment_fields['payment_id']),
-                                                            ('order_id','=',payment_fields['order_id'] ) ] )
+                                                            ('order_id','=',order.id ) ] )
 
                 if not payment_ids:
 	                payment_ids = payments_obj.create(cr,uid,( payment_fields ))
@@ -209,8 +211,14 @@ class mercadolibre_orders(osv.osv):
 
             if not buyer_ids:
                 buyer_ids = buyers_obj.create(cr,uid,( buyer_fields ))
+		if order:
+			return_id = self.pool.get('mercadolibre.orders').write(cr,uid,order.id,{'buyer':buyer_ids})
             else:
                 buyers_obj.write(cr,uid, buyer_ids[0], ( buyer_fields ) )
+		return_id = self.pool.get('mercadolibre.orders').write(cr,uid,order.id,{'buyer':buyer_ids[0]})
+
+	    if order:
+		return_id = self.pool.get('mercadolibre.orders').update
 
         return {}
 
