@@ -113,7 +113,7 @@ class mercadolibre_orders(osv.osv):
 
         #create or update order
         if (order):
-            _logger.info("Updating order:" + order )
+            _logger.info("Updating order: %i" % (order.order_id))
             order.write( order_fields )
         else:
             _logger.info("Adding new order: " )
