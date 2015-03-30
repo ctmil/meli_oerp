@@ -93,7 +93,9 @@ class mercadolibre_orders(osv.osv):
             order = order_obj.browse(cr, uid, oid )
         else:
         #we search for existing order with same order_id => "id"
-            order = order_obj.search(cr,uid, [ ('order_id','=',order_json['id']) ] )
+            order_s = order_obj.search(cr,uid, [ ('order_id','=',order_json['id']) ] )
+            if (order_s):
+                order = order_obj.browse(cr, uid, order_s[0] )
 
         
         #process base order fields
