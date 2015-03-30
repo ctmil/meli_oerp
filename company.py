@@ -146,7 +146,7 @@ class res_company(osv.osv):
         
         orders_obj = self.pool.get('mercadolibre.orders') 
 
-        result = orders_obj.orders_query_all(cr,uid,ids)
+        result = orders_obj.orders_query_recent(cr,uid)
 #"type": "ir.actions.act_window",
 #"id": "action_meli_orders_tree",
         return {}

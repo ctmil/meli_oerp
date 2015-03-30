@@ -140,7 +140,8 @@ class mercadolibre_orders(osv.osv):
                 post_related = posting_obj.search( cr, uid, [('meli_id','=',Item['item']['id'])])
                 post_related_obj = ''
                 if (post_related):
-                    post_related_obj = post_related[0]
+                    if (post_related[0]):
+                        post_related_obj = post_related[0]
 
                 order_item_fields = {
                     'order_id': order,
@@ -245,9 +246,12 @@ class mercadolibre_orders(osv.osv):
 
         return {}
 
-    def orders_query_all( self, cr, uid, id, context=None ):
 
-        #get with an item id
+    def orders_query_iterate( self, cr, uid, offset=0, context=None ):
+
+
+        offset_next = 0
+
         user_obj = self.pool.get('res.users').browse(cr, uid, uid)
         company = user_obj.company_id
 
@@ -261,11 +265,17 @@ class mercadolibre_orders(osv.osv):
         #
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN )
 
-        response = meli.get("/orders/search?seller="+company.mercadolibre_seller_id, {'access_token':meli.access_token})
+
+        orders_query = "/orders/search?seller="+company.mercadolibre_seller_id+"&sort=date_desc"
+
+        if (offset>0):
+            orders_query = orders_query + "&offset="+offset    
+
+        response = meli.get( orders_query, {'access_token':meli.access_token})
         orders_json = response.json()
 
         if "error" in orders_json:
-            _logger.error( "/orders/search?seller="+company.mercadolibre_seller_id )
+            _logger.error( orders_query )
             _logger.error( orders_json["error"] )            
             if (orders_json["message"]=="invalid_token"):
                 _logger.error( orders_json["message"] )
@@ -287,11 +297,24 @@ class mercadolibre_orders(osv.osv):
             if "total" in orders_json["paging"]:
                 if (orders_json["paging"]["total"]==0):
                     return {}
+                else:
+                    if (orders_json["paging"]["total"]==orders_json["paging"]["limit"]):
+                        offset_next = offset + orders_json["paging"]["limit"]
 
         if "results" in orders_json:
             for order_json in orders_json["results"]:
                 if order_json:
                     self.orders_update_order_json( cr, uid, {"id": False, "order_json": order_json} )
+
+
+        if (offset_next>0):
+            self.orders_query_iterate(cr,uid,offset_next)
+            
+        return {}
+
+    def orders_query_recent( self, cr, uid, context=None ):
+
+        self.orders_query_iterate( cr, uid, 0 )
 
         return {}
 
