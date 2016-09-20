@@ -212,7 +212,7 @@ class product_product(osv.osv):
         #
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
-        if product.image==None:
+        if product.image==None or product.image==False:
             return { 'status': 'error', 'message': 'no image to upload' }
 
         # print "product_meli_upload_image"
