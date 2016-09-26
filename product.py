@@ -34,7 +34,7 @@ from meli_oerp_config import *
 from melisdk.meli import Meli
 
 class product_product(osv.osv):
-    
+
     _inherit = "product.product"
 
 
@@ -104,7 +104,7 @@ class product_product(osv.osv):
                     ML_state = True
                     #raise osv.except_osv( _('MELI WARNING'), _('INVALID TOKEN (must login, go to Edit Company and login):  error: %s, message: %s, status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
 
-        res = {}		
+        res = {}
         for product in self.browse(cr,uid,ids):
             res[product.id] = ML_state
         return res
@@ -241,8 +241,8 @@ class product_product(osv.osv):
                 response = meli.post("/items/"+product.meli_id+"/pictures", { 'id': rjson["id"] }, { 'access_token': meli.access_token } )
             else:
                 return { 'status': 'warning', 'message': 'uploaded but not assigned' }
-        
-        return { 'status': 'success', 'message': 'uploaded and assigned' } 
+
+        return { 'status': 'success', 'message': 'uploaded and assigned' }
 
     def product_meli_upload_multi_images( self, cr, uid, ids, context=None ):
 
@@ -279,12 +279,12 @@ class product_product(osv.osv):
                     #return { 'status': 'error', 'message': 'not uploaded'}
                 else:
                     image_ids+= [ { 'id': rjson['id'] }]
-                    c = c + 1 
-        
+                    c = c + 1
+
         product.write( { "meli_multi_imagen_id": "%s" % (image_ids) } )
-                
+
         return image_ids
-        
+
 
     def product_on_change_meli_banner(self, cr, uid, ids, banner_id ):
 
@@ -298,7 +298,7 @@ class product_product(osv.osv):
             product = product_obj.browse(cr, uid, ids)
 
         banner = banner_obj.browse( cr, uid, banner_id )
-        
+
         #banner.description
         _logger.info( banner.description )
         result = ""
@@ -313,7 +313,7 @@ class product_product(osv.osv):
         return { 'value': { 'meli_description' : result } }
 
     def product_get_meli_status( self, cr, uid, ids, field_name, attributes, context=None ):
-        
+
         user_obj = self.pool.get('res.users').browse(cr, uid, uid)
         company = user_obj.company_id
         warningobj = self.pool.get('warning')
@@ -341,7 +341,7 @@ class product_product(osv.osv):
                     if len(rjson["sub_status"]) and rjson["sub_status"][0]=='deleted':
                         product.write({ 'meli_id': '' })
 
-        res = {}		
+        res = {}
         for product in self.browse(cr,uid,ids):
             res[product.id] = ML_status
         return res
@@ -353,7 +353,7 @@ class product_product(osv.osv):
         company = user_obj.company_id
 
         product_obj = self.pool.get('product.product')
-        product = product_obj.browse(cr, uid, ids[0])        
+        product = product_obj.browse(cr, uid, ids[0])
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
@@ -372,29 +372,31 @@ class product_product(osv.osv):
                 if "permalink" in rjson:
                     ML_permalink = rjson["permalink"]
                 if "error" in rjson:
-                    ML_permalink = ""                    
+                    ML_permalink = ""
                 #if "sub_status" in rjson:
                     #if len(rjson["sub_status"]) and rjson["sub_status"][0]=='deleted':
                     #    product.write({ 'meli_id': '' })
 
 
-        res = {}		
+        res = {}
         for product in self.browse(cr,uid,ids):
             res[product.id] = ML_permalink
-        return res      
+        return res
 
 
     _columns = {
+    'meli_imagen_id': fields.char(string='Imagen Id', size=256),
     'meli_post_required': fields.boolean(string='Este producto es publicable en Mercado Libre'),
 	'meli_id': fields.char( string='Id del item asignado por Meli', size=256),
     'meli_permalink': fields.function( product_get_permalink, method=True, type='char',  size=256, string='PermaLink in MercadoLibre' ),
-	'meli_title': fields.char(string='Nombre del producto en Mercado Libre',size=256), 
+	'meli_title': fields.char(string='Nombre del producto en Mercado Libre',size=256),
 	'meli_description': fields.html(string='Descripción'),
     'meli_description_banner_id': fields.many2one("mercadolibre.banner","Banner"),
 	'meli_category': fields.many2one("mercadolibre.category","Categoría de MercadoLibre"),
 	'meli_listing_type': fields.selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special")], string='Tipo de lista'),
 	'meli_buying_mode': fields.selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra'),
 	'meli_price': fields.char(string='Precio de venta', size=128),
+  'meli_price_fixed': fields.boolean(string='Price is fixed'),
 	'meli_currency': fields.selection([("ARS","Peso Argentino (ARS)")],string='Moneda (ARS)'),
 	'meli_condition': fields.selection([ ("new", "Nuevo"), ("used", "Usado"), ("not_specified","No especificado")],'Condición del producto'),
 	'meli_available_quantity': fields.integer(string='Cantidad disponible'),

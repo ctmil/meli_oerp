@@ -51,6 +51,7 @@
 								<field name="meli_listing_type" />
 								<field name="meli_buying_mode" />
 
+								<field name="meli_price_fixed" />
 								<field name="meli_price" />
 								<field name="meli_currency" />
 
