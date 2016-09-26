@@ -22,8 +22,7 @@
 								<field name="mercadolibre_state" invisible="0"/>								
 								<field name="mercadolibre_client_id" />
 								<field name="mercadolibre_secret_key" />
-								<field name="mercadolibre_redirect_uri" />
-								<hr/>
+								<field name="mercadolibre_redirect_uri" />								
 								<field name="mercadolibre_access_token" invisible="0"/>
 								<field name="mercadolibre_refresh_token" invisible="0"/>
 								<field name="mercadolibre_code" invisible="0"/>
