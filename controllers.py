@@ -15,6 +15,7 @@ class MercadoLibre(http.Controller):
 
         cr, uid, context = request.cr, request.uid, request.context
         company = request.registry.get('res.company').browse(cr,uid,1)
+        REDIRECT_URI = company.mercadolibre_redirect_uri
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
         ACCESS_TOKEN = company.mercadolibre_access_token
@@ -36,6 +37,7 @@ class MercadoLibreLogin(http.Controller):
     def index(self, **codes ):
         cr, uid, context = request.cr, request.uid, request.context
         company = request.registry.get('res.company').browse(cr,uid,1)
+        REDIRECT_URI = company.mercadolibre_redirect_uri
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
 

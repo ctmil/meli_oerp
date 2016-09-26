@@ -62,6 +62,7 @@ class product_product(osv.osv):
         user_obj = self.pool.get('res.users').browse(cr, uid, uid)
         company = user_obj.company_id
 
+        REDIRECT_URI = company.mercadolibre_redirect_uri
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
@@ -396,7 +397,7 @@ class product_product(osv.osv):
 	'meli_listing_type': fields.selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special")], string='Tipo de lista'),
 	'meli_buying_mode': fields.selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra'),
 	'meli_price': fields.char(string='Precio de venta', size=128),
-  'meli_price_fixed': fields.boolean(string='Price is fixed'),
+	'meli_price_fixed': fields.boolean(string='Price is fixed'),
 	'meli_currency': fields.selection([("ARS","Peso Argentino (ARS)")],string='Moneda (ARS)'),
 	'meli_condition': fields.selection([ ("new", "Nuevo"), ("used", "Usado"), ("not_specified","No especificado")],'Condición del producto'),
 	'meli_available_quantity': fields.integer(string='Cantidad disponible'),
