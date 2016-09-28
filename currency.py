@@ -7,7 +7,8 @@ class res_currency(models.Model):
     @api.model
     def update_prices(self):
         # Moneda en USD
-        currency_usd = res.env['res.currency].search([('name','=','USD')])
+        currency_obj = self.pool.get('res.currency')
+        currency_usd = currency_obj.search(['name','=','USD'])
         products = self.env['product.product'].search([])
         for product in products:
             if product.list_price > 0:
