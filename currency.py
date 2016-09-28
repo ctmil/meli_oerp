@@ -1,5 +1,6 @@
 
 from openerp import models, fields, api, _
+import math
 
 class res_currency_rate(models.Model):
     _inherit = 'res.currency.rate'
