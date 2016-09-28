@@ -1,5 +1,5 @@
 
-from openerp import models
+from openerp import models, fields, api, _
 
 class res_currency(models.Model):
     _inherit = 'res.currency'
