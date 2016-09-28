@@ -12,9 +12,9 @@ class res_currency(models.Model):
         products = self.env['product.product'].search([])
         for product in products:
             if product.list_price > 0:
-                   product.meli_price = product_list_price / currency.silent_rate
+                   product.meli_price = product_list_price / currency.rate
 
-    @api.onchange('silent_rate') # if these fields are changed, call method
+    @api.onchange('rate') # if these fields are changed, call method
     def check_change(self):
         import pdb;pdb.set_trace();
         self.update_prices()
