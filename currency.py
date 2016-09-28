@@ -35,13 +35,10 @@ class res_currency_rate(models.Model):
 
     @api.model
     def update_prices(self):
-        # Moneda en USD
-        #currency_obj = self.pool.get('res.currency')
-        currency_usd = self.env['res.currency'].search(['name','=','USD'])
         products = self.env['product.product'].search([])
         for product in products:
-            if product.list_price > 0 and currency_usd.rate>0:
-                   product.meli_price = product.list_price / currency_usd.rate.rate
+            if product.list_price > 0 and self.rate>0:
+                   product.meli_price = product.list_price / self.rate
 
 
 res_currency_rate()
