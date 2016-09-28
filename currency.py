@@ -16,4 +16,7 @@ class res_currency(models.Model):
 
     @api.onchange('silent_rate') # if these fields are changed, call method
     def check_change(self):
+        import pdb;pdb.set_trace();
         self.update_prices()
+
+res_currency()
