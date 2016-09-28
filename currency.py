@@ -1,5 +1,5 @@
 
-
+from openerp import models
 
 class res_currency(models.Model):
     _inherit = 'res.currency'
