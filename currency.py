@@ -17,7 +17,7 @@ class res_currency_rate(models.Model):
             if self.rate>0:
                 new_price = product.lst_price / self.rate
                 vals = {
-                    meli_price = vals(new_price)
+                    meli_price : str(new_price)
                     }
                 product.write(vals)
 
