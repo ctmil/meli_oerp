@@ -11,13 +11,13 @@ class res_currency_rate(models.Model):
 
     @api.model
     def update_prices(self):
-        import pdb;pdb.set_trace();
+        #import pdb;pdb.set_trace();
         products = self.env['product.product'].search([])
         for product in products:
             if self.rate>0:
                 new_price = product.lst_price / self.rate
                 vals = {
-                    meli_price : str(new_price)
+                    'meli_price': str(new_price)
                     }
                 product.write(vals)
 
