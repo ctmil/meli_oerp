@@ -37,8 +37,8 @@ class res_currency_rate(models.Model):
     def update_prices(self):
         products = self.env['product.product'].search([])
         for product in products:
-            if product.list_price > 0 and self.rate>0:
-                   product.meli_price = product.list_price / self.rate
+            if self.rate>0:
+                   product.meli_price = str(product.lst_price / self.rate)
 
 
 res_currency_rate()
