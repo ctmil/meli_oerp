@@ -70,7 +70,7 @@ class product_post(osv.osv_memory):
 
 
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
-	
+
         if ACCESS_TOKEN=='':
             meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
             url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
@@ -91,14 +91,14 @@ class product_post(osv.osv_memory):
             if product.meli_title==False:
                 # print 'Assigning title: product.meli_title: %s name: %s' % (product.meli_title, product.name)
                 product.meli_title = product.name
-                
+
             if product.meli_price==False:
                 # print 'Assigning price: product.meli_price: %s standard_price: %s' % (product.meli_price, product.standard_price)
                 product.meli_price = product.standard_price
-                
+
             body = {
                 "title": product.meli_title or '',
-                "description": product.meli_description or '',	
+                "description": product.meli_description or '',
                 "category_id": product.meli_category.meli_category_id or '0',
                 "listing_type_id": product.meli_listing_type or '0',
                 "buying_mode": product.meli_buying_mode or '',
@@ -132,7 +132,7 @@ class product_post(osv.osv_memory):
             if (product.meli_id):
                 body = {
                     "title": product.meli_title or '',
-                    #"description": product.meli_description or '',	
+                    #"description": product.meli_description or '',
                     #"category_id": product.meli_category.meli_category_id,
                     #"listing_type_id": product.meli_listing_type,
                     "buying_mode": product.meli_buying_mode or '',
@@ -151,7 +151,7 @@ class product_post(osv.osv_memory):
             if (product.images):
                 # print 'website_multi_images presente:   ', product.images
                 #recorrer las imagenes y publicarlas
-                multi_images_ids = product.product_meli_upload_multi_images()                 
+                multi_images_ids = product.product_meli_upload_multi_images()
 
             #asignando imagen de logo (por source)
             if product.meli_imagen_logo:
@@ -181,12 +181,12 @@ class product_post(osv.osv_memory):
                             product.meli_description = result
                         else:
                             result = product.meli_description
-                            
-                                        
+
+
 
             else:
                 return warningobj.info(cr, uid, title='MELI WARNING', message="Debe completar el campo 'Imagen_Logo' con el url: http://www.nuevohorizonte-sa.com.ar/images/logo1.png", message_html="")
-            
+
             #check fields
             if product.meli_description==False:
                 return warningobj.info(cr, uid, title='MELI WARNING', message="Debe completar el campo 'description' (en html)", message_html="")
@@ -220,11 +220,11 @@ class product_post(osv.osv_memory):
                 else:
                      #Any other errors
                     return warningobj.info(cr, uid, title='MELI WARNING', message="Completar todos los campos!  ", message_html="<br><br>"+missing_fields )
-                                        
-            #last modifications if response is OK 
+
+            #last modifications if response is OK
             if "id" in rjson:
                 product.write( { 'meli_id': rjson["id"]} )
-		
+
             posting_fields = {'posting_date': str(datetime.now()),'meli_id':rjson['id'],'product_id':product.id,'name': 'Post: ' + product.meli_title }
 
             posting_id = self.pool.get('mercadolibre.posting').search(cr,uid,[('meli_id','=',rjson['id'])])
