@@ -251,15 +251,15 @@ class mercadolibre_orders(osv.osv):
                 partner_ids = respartner_obj.create(cr,uid,( meli_buyer_fields ))
 
 
-		if order:
-			return_id = self.pool.get('mercadolibre.orders').write(cr,uid,order.id,{'buyer':buyer_ids[0]})
-        else:
-            buyers_obj.write(cr,uid, buyer_ids[0], ( buyer_fields ) )
+    		if order:
+	    		return_id = self.pool.get('mercadolibre.orders').write(cr,uid,order.id,{'buyer':buyer_ids[0]})
+            else:
+                buyers_obj.write(cr,uid, buyer_ids[0], ( buyer_fields ) )
+            
+            return_id = self.pool.get('mercadolibre.orders').write(cr,uid,order.id,{'buyer':buyer_ids[0]})
 
-		return_id = self.pool.get('mercadolibre.orders').write(cr,uid,order.id,{'buyer':buyer_ids[0]})
-
-	    if order:
-		return_id = self.pool.get('mercadolibre.orders').update
+        if order:
+            return_id = self.pool.get('mercadolibre.orders').update
 
         return {}
 
