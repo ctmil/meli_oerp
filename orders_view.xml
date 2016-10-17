@@ -16,6 +16,41 @@
             </field>
         </record>
 
+        <record model="ir.ui.view" id="view_sale_order_form_meli">
+            <field name="name">sale.order.form.meli</field>
+            <field name="model">sale.order</field>
+            <field name="inherit_id" ref="base.view_order_form"/>
+            <field name="arch" type="xml">
+                <data>
+                    <notebook>
+                        <page string="MercadoLibre">
+							<group>
+								<field name="meli_order_id" invisible="0"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </data>
+            </field>
+        </record>
+
+        <record model="ir.ui.view" id="view_res_partner_form_meli">
+            <field name="name">res.partner.form.meli</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.view_partner_form"/>
+            <field name="arch" type="xml">
+                <data>
+                    <notebook>
+                        <page string="MercadoLibre">
+							<group>
+								<field name="meli_buyer_id" invisible="0"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </data>
+            </field>
+        </record>
+
+
         <record model="ir.ui.view" id="view_meli_buyers_tree">
             <field name="name">mercadolibre.buyers.tree</field>
             <field name="model">mercadolibre.buyers</field>
