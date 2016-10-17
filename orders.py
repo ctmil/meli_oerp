@@ -252,9 +252,10 @@ class mercadolibre_orders(osv.osv):
 
 
 		if order:
-			return_id = self.pool.get('mercadolibre.orders').write(cr,uid,order.id,{'buyer':buyer_ids})
-            else:
-                buyers_obj.write(cr,uid, buyer_ids[0], ( buyer_fields ) )
+			return_id = self.pool.get('mercadolibre.orders').write(cr,uid,order.id,{'buyer':buyer_ids[0]})
+        else:
+            buyers_obj.write(cr,uid, buyer_ids[0], ( buyer_fields ) )
+
 		return_id = self.pool.get('mercadolibre.orders').write(cr,uid,order.id,{'buyer':buyer_ids[0]})
 
 	    if order:
