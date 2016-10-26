@@ -40,6 +40,30 @@ class sale_order(osv.osv):
 
     _columns = {
         'meli_order_id': fields.char('Meli Order Id'),
+        'meli_status': fields.selection( [
+        #Initial state of an order, and it has no payment yet.
+                                        ("confirmed","Confirmado"),
+        #The order needs a payment to become confirmed and show users information.
+                                      ("payment_required","Pago requerido"),
+        #There is a payment related with the order, but it has not accredited yet
+                                    ("payment_in_process","Pago en proceso"),
+        #The order has a related payment and it has been accredited.
+                                    ("paid","Pagado"),
+        #The order has not completed by some reason.
+                                    ("cancelled","Cancelado")], string='Order Status'),
+
+        'meli_status_detail': fields.text(string='Status detail, in case the order was cancelled.'),
+        'meli_date_created': fields.date('Creation date'),
+        'meli_date_closed': fields.date('Closing date'),
+
+#        'meli_order_items': fields.one2many('mercadolibre.order_items','order_id','Order Items' ),
+#        'meli_payments': fields.one2many('mercadolibre.payments','order_id','Payments' ),
+        'meli_shipping': fields.text(string="Shipping"),
+
+#        'meli_total_amount': fields.char(string='Total amount'),
+#        'meli_currency_id': fields.char(string='Currency'),
+#        'buyer': fields.many2one( "mercadolibre.buyers","Buyer"),
+#       'meli_seller': fields.text( string='Seller' ),
     }
 
 sale_order()

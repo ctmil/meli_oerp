@@ -8,11 +8,11 @@
             <field name="type">tree</field>
             <field name="arch" type="xml">
                 <tree string="Orders" >
-                    <field name="order_id"/>                    
+                    <field name="order_id"/>
                     <field name="status"/>
                     <field name="date_created"/>
                     <field name="date_closed"/>
-                </tree>                
+                </tree>
             </field>
         </record>
 
@@ -26,6 +26,12 @@
                         <page string="MercadoLibre">
 							<group>
 								<field name="meli_order_id" invisible="0"/>
+								<field name="meli_status" invisible="0"/>
+								<field name="meli_status_detail" invisible="0"/>
+								<field name="meli_total_amount" invisible="0"/>
+								<field name="meli_currency_id" invisible="0"/>
+								<field name="meli_date_created" invisible="0"/>
+								<field name="meli_date_closed" invisible="0"/>
                             </group>
                         </page>
                     </notebook>
@@ -57,10 +63,10 @@
             <field name="type">tree</field>
             <field name="arch" type="xml">
                 <tree string="Buyers" >
-                    <field name="buyer_id"/>                    
+                    <field name="buyer_id"/>
                     <field name="nickname"/>
                     <field name="email"/>
-                </tree>                
+                </tree>
             </field>
         </record>
 
@@ -78,8 +84,8 @@
                     <field name="status_detail"/>
                     <field name="order_items"/>
                     <field name="total_amount"/>
-                    <field name="currency_id"/>                   
-                    <field name="buyer"/>   
+                    <field name="currency_id"/>
+                    <field name="buyer"/>
                     <field name="payments"/>
                 </group>
             </field>
@@ -92,11 +98,11 @@
             <field name="arch" type="xml">
                 <tree string="Order Items" >
                     <field name="posting_id"/>
-                    <field name="order_id"/>                    
+                    <field name="order_id"/>
                     <field name="order_item_id"/>
                     <field name="unit_price"/>
                     <field name="quantity"/>
-                </tree>                
+                </tree>
             </field>
         </record>
 
@@ -107,12 +113,12 @@
             <field name="arch" type="xml">
                 <tree string="Payments" >
                     <field name="payment_id"/>
-                    <field name="transaction_amount"/>                    
+                    <field name="transaction_amount"/>
                     <field name="currency_id"/>
                     <field name="status"/>
                     <field name="date_created"/>
                     <field name="date_last_modified"/>
-                </tree>                
+                </tree>
             </field>
         </record>
 
