@@ -148,11 +148,6 @@ class mercadolibre_orders(osv.osv):
             'date_closed': order_json["date_closed"] or '',
         }
 
-        if (order_json["shipping"]):
-            order_fields['shipping'] = self.pretty_json( cr, uid, id, order_json["shipping"] )
-            meli_order_fields['meli_shipping'] = self.pretty_json( cr, uid, id, order_json["shipping"] )
-
-
         if 'buyer' in order_json:
             Buyer = order_json['buyer']
             meli_buyer_fields = {
@@ -205,6 +200,11 @@ class mercadolibre_orders(osv.osv):
             'meli_date_created': order_json["date_created"] or '',
             'meli_date_closed': order_json["date_closed"] or '',
         }
+
+        if (order_json["shipping"]):
+            order_fields['shipping'] = self.pretty_json( cr, uid, id, order_json["shipping"] )
+            meli_order_fields['meli_shipping'] = self.pretty_json( cr, uid, id, order_json["shipping"] )
+
 
         #create or update order
         if (order and order.id):
