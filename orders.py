@@ -61,7 +61,7 @@ class sale_order(osv.osv):
         'meli_shipping': fields.text(string="Shipping"),
 
 #        'meli_total_amount': fields.char(string='Total amount'),
-#        'meli_currency_id': fields.char(string='Currency'),
+        'meli_currency_id': fields.char(string='Currency'),
 #        'buyer': fields.many2one( "mercadolibre.buyers","Buyer"),
 #       'meli_seller': fields.text( string='Seller' ),
     }
