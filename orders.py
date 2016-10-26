@@ -247,7 +247,7 @@ class mercadolibre_orders(osv.osv):
             _logger.info("Adding new sale.order: " )
             _logger.info(meli_order_fields)
             sreturn_id = saleorder_obj.create(cr,uid,(meli_order_fields))
-            sorder = saleorder_obj.browse(cr,uid,return_id)
+            sorder = saleorder_obj.browse(cr,uid,sreturn_id)
 
         #check error
         if not order:
