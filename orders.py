@@ -139,7 +139,7 @@ class mercadolibre_orders(osv.osv):
         pricelist_obj = self.pool.get('product.pricelist')
         respartner_obj = self.pool.get('res.partner')
 
-        plistids = pricelist_obj.search(cr,uid, [] )
+        plistids = pricelist_obj.search(cr,uid, [('currency_id','=','ARS')] )
         plistid = None
         if plistids:
             plistid = plistids[0]
