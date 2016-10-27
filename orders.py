@@ -311,8 +311,8 @@ class mercadolibre_orders(osv.osv):
                     'company_id': company.id,
                     'order_id': sorder.id,
                     'meli_order_item_id': Item['item']['id'],
-                    'price_unit': product_related_obj.lst_price,
-                    'price_total': product_related_obj.lst_price * float(Item['quantity']),
+                    'price_unit': product_related_obj.price,
+                    'price_total': product_related_obj.price * float(Item['quantity']),
                     'product_id': product_related_obj.id,
                     'product_uom_qty': Item['quantity'],
                 }
