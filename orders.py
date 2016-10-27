@@ -285,6 +285,7 @@ class mercadolibre_orders(osv.osv):
                 if (post_related):
                     if (post_related[0]):
                         post_related_obj = post_related[0]
+
                 if (product_related):
                     if (product_related[0]):
                         product_related_obj_id = product_related[0]
