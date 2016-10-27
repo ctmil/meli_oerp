@@ -281,12 +281,14 @@ class mercadolibre_orders(osv.osv):
                 post_related = posting_obj.search( cr, uid, [('meli_id','=',Item['item']['id'])])
                 post_related_obj = ''
                 product_related_obj = ''
+                product_related_obj_id = False
                 if (post_related):
                     if (post_related[0]):
                         post_related_obj = post_related[0]
                 if (product_related):
                     if (product_related[0]):
-                        product_related_obj = product_related[0]
+                        product_related_obj_id = product_related[0]
+                        product_related_obj = product_obj.browse(cr, uid, product_related_obj_id)
                         _logger.info("product_related:")
                         _logger.info( product_related_obj )
 
