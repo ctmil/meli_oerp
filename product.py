@@ -45,7 +45,6 @@ class product_product(osv.osv):
         pricelists = self.env['product.pricelist'].search([])
         pricelist = pricelists[0]
         
-        
         return {}
 
     def product_meli_get_product( self, cr, uid, ids, context=None ):
@@ -396,7 +395,7 @@ class product_product(osv.osv):
 
 
 	def product_post(self, cr, uid, ids, context=None):
-
+        import pdb;pdb.set_trace();
 #        product_ids = context['active_ids'] 
 		product_ids = ids
         product_obj = self.pool.get('product.product')
