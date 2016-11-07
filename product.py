@@ -394,10 +394,10 @@ class product_product(osv.osv):
         return res
 
 
-	def product_post(self, cr, uid, ids, context=None):
+    def product_post(self, cr, uid, ids, context=None):
         import pdb;pdb.set_trace();
 #        product_ids = context['active_ids'] 
-		product_ids = ids
+        product_ids = ids
         product_obj = self.pool.get('product.product')
 
         user_obj = self.pool.get('res.users').browse(cr, uid, uid)
@@ -420,9 +420,9 @@ class product_product(osv.osv):
             meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
             url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
             return {
-	            "type": "ir.actions.act_url",
-	            "url": url_login_meli,
-	            "target": "new",
+                "type": "ir.actions.act_url",
+                "url": url_login_meli,
+                "target": "new",
             }
 
         for product_id in product_ids:
@@ -575,7 +575,7 @@ class product_product(osv.osv):
             posting_id = self.pool.get('mercadolibre.posting').search(cr,uid,[('meli_id','=',rjson['id'])])
 
             if not posting_id:
-	            posting_id = self.pool.get('mercadolibre.posting').create(cr,uid,(posting_fields))
+                posting_id = self.pool.get('mercadolibre.posting').create(cr,uid,(posting_fields))
 
 
         return {}
