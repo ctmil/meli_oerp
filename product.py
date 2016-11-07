@@ -30,6 +30,8 @@ import melisdk
 import base64
 import mimetypes
 
+from datetime import datetime
+
 from meli_oerp_config import *
 
 from melisdk.meli import Meli
