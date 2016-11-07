@@ -12,8 +12,9 @@ class res_currency_rate(models.Model):
 
     @api.model
     def update_prices(self):
-        #import pdb;pdb.set_trace();
+        import pdb;pdb.set_trace();
         products = self.env['product.product'].search([])
+		product_post = sel
 
         pricelists = self.env['product.pricelist'].search([])
         pricelist = pricelists[0]
@@ -26,6 +27,7 @@ class res_currency_rate(models.Model):
                         'meli_price': str(new_price)
                     }
                     product.write(vals)
+                    product.product_post()
 
 
 res_currency_rate()
