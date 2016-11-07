@@ -14,7 +14,6 @@ class res_currency_rate(models.Model):
     def update_prices(self):
         import pdb;pdb.set_trace();
         products = self.env['product.product'].search([])
-		product_post = sel
 
         pricelists = self.env['product.pricelist'].search([])
         pricelist = pricelists[0]
