@@ -26,7 +26,7 @@ class res_currency_rate(models.Model):
                             'meli_price': str(new_price)
                         }
                         product.write(vals)
-                        product.product_post()
+                        #product.product_post()
 
 
 res_currency_rate()
