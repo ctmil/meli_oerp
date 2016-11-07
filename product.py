@@ -43,7 +43,7 @@ class product_product(osv.osv):
     @api.one
     @api.onchange('lst_price') # if these fields are changed, call method
     def check_change_price(self):
-        import pdb;pdb.set_trace();
+        #import pdb;pdb.set_trace();
         pricelists = self.env['product.pricelist'].search([])
         pricelist = pricelists[0]
         
