@@ -44,7 +44,8 @@ class product_product(osv.osv):
         import pdb;pdb.set_trace();
         pricelists = self.env['product.pricelist'].search([])
         pricelist = pricelists[0]
-
+        
+        
         return {}
 
     def product_meli_get_product( self, cr, uid, ids, context=None ):

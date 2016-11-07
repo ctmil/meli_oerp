@@ -16,17 +16,17 @@ class res_currency_rate(models.Model):
         products = self.env['product.product'].search([])
 
         pricelists = self.env['product.pricelist'].search([])
-        pricelist = pricelists[0]
-
-        if self.currency_id.name == pricelist.currency_id.name:
-            for product in products:
-                if self.rate>0 and not product.meli_price_fixed:
-                    new_price = math.ceil( product.lst_price / self.rate )
-                    vals = {
-                        'meli_price': str(new_price)
-                    }
-                    product.write(vals)
-                    product.product_post()
+        #pricelist = pricelists[0]
+        for pricelist in pricelists:
+            if self.currency_id.name == pricelist.currency_id.name:
+                for product in products:
+                    if self.rate>0 and not product.meli_price_fixed:
+                        new_price = math.ceil( product.lst_price / self.rate )
+                        vals = {
+                            'meli_price': str(new_price)
+                        }
+                        product.write(vals)
+                        product.product_post()
 
 
 res_currency_rate()
