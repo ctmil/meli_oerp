@@ -37,6 +37,14 @@ class product_product(osv.osv):
 
     _inherit = "product.product"
 
+    @api.one
+    @api.onchange('lst_price') # if these fields are changed, call method
+    def check_change_price(self):
+        import pdb;pdb.set_trace();
+        pricelists = self.env['product.pricelist'].search([])
+        pricelist = pricelists[0]
+
+        return {}
 
     def product_meli_get_product( self, cr, uid, ids, context=None ):
         user_obj = self.pool.get('res.users').browse(cr, uid, uid)
