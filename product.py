@@ -64,7 +64,10 @@ class product_product(osv.osv):
 
         response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token})
 
-        #print "product_meli_get_product: " + response.content
+        print "product_meli_get_product: " + response.content
+
+        #
+        #product.write()
 
         return {}
 
@@ -611,8 +614,8 @@ class product_product(osv.osv):
     }
 
     _defaults = {
-        'meli_imagen_logo': 'http://www.nuevohorizonte-sa.com.ar/images/logo1.png',
-        'meli_video': '6JhmxwtTjoA'
+        'meli_imagen_logo': 'None',
+        'meli_video': ''
     }
 
 
