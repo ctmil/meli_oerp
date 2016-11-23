@@ -69,7 +69,7 @@ class product_product(osv.osv):
         
 
         meli_fields = {
-            'meli_imagen_id': response.content['pictures'][0]["id"],
+            'meli_imagen_id': response.content['pictures'][1]['id'],
             'meli_post_required': True,
             'meli_id': response.content['id'],
             'meli_permalink': response.content['permalink'],
