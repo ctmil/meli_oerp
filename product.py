@@ -86,6 +86,7 @@ class product_product(osv.osv):
             'meli_id': rjson['id'],
             'meli_permalink': rjson['permalink'],
             'meli_title': rjson['title'],
+            'name': rjson['title'],
             'meli_description': str(des),
 #            'meli_description_banner_id': ,
 #            'meli_category': rjson['category_id'],
