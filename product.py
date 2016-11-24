@@ -73,7 +73,9 @@ class product_product(osv.osv):
         #TODO: traer la descripcion: con 
         #https://api.mercadolibre.com/items/{ITEM_ID}/description?access_token=$ACCESS_TOKEN
         if rjson['descriptions']:
-            des = ''
+            response2 = meli.get("/items/"+product.meli_id+"/description", {'access_token':meli.access_token})
+            rjson2 = response2.json()
+            des = rjson2['text']
 
         #TODO: verificar q es un video         
         if rjson['video_id']:
