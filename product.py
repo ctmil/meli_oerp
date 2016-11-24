@@ -81,14 +81,17 @@ class product_product(osv.osv):
         if rjson['video_id']:
             vid = ''
 
+        #TODO: traer las imagenes
+        #TODO: 
+
 
         meli_fields = {
+            'name': str(rjson['title']),
             'meli_imagen_id': rjson['pictures'][1]['id'],
             'meli_post_required': True,
             'meli_id': rjson['id'],
             'meli_permalink': rjson['permalink'],
             'meli_title': rjson['title'],
-            'name': rjson['title'],
             'meli_description': str(des),
 #            'meli_description_banner_id': ,
 #            'meli_category': rjson['category_id'],
