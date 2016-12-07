@@ -108,6 +108,7 @@ class product_product(osv.osv):
 
 
         meli_fields = {
+            'name': str(rjson['title']),
             'meli_imagen_id': rjson['pictures'][1]['id'],
             'meli_post_required': True,
             'meli_id': rjson['id'],
