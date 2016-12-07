@@ -85,7 +85,7 @@ class product_product(osv.osv):
                     idcreated = self.pool.get('product.product').create(cr,uid,{ 'name': item['title'], 'meli_id': item['id'] })
                     if (idcreated):
                         product = product_obj.browse(cr, uid, idcreated)
-                        product.product_meli_get_product( cr, uid, [idcreated] )
+                        product_obj.product_meli_get_product( cr, uid, [idcreated] )
 
         return {}
 
