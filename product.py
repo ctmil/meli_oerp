@@ -57,7 +57,7 @@ class product_product(osv.osv):
 
         return {}
 
-    def product_meli_get_products( self, cr, uid, ids, context=None ):
+    def product_meli_get_products( self, cr, uid, context=None ):
         user_obj = self.pool.get('res.users').browse(cr, uid, uid)
         company = user_obj.company_id
         product_obj = self.pool.get('product.product')
