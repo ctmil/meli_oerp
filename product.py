@@ -61,7 +61,7 @@ class product_product(osv.osv):
         user_obj = self.pool.get('res.users').browse(cr, uid, uid)
         company = user_obj.company_id
         product_obj = self.pool.get('product.product')
-        product = product_obj.browse(cr, uid, ids[0])
+        #product = product_obj.browse(cr, uid, ids[0])
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
