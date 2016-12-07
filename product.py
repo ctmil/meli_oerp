@@ -70,7 +70,7 @@ class product_product(osv.osv):
 
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
-        response = meli.get("/search/MLA/search?seller_id="+company.mercadolibre_seller_id, {'access_token':meli.access_token})
+        response = meli.get("/sites/MLA/search?seller_id="+company.mercadolibre_seller_id, {'access_token':meli.access_token})
 
         print "product_meli_get_products: " + response.content
         rjson = response.json()
