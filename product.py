@@ -80,7 +80,7 @@ class product_product(osv.osv):
                 print item
                 posting_id = self.pool.get('product.product').search(cr,uid,[('meli_id','=',item['id'])])
                 if (posting_id):
-                    print "Item in database: " + posting_id
+                    print "Item in database: " + str(posting_id[0])
                 else:
                     idcreated = product_obj.create({ 'name': item['title'], 'meli_id': item['id'] })
                     if (idcreated):
