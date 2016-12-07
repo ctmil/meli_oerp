@@ -37,6 +37,9 @@
 
                                 <button name='meli_query_orders' type="object"
 										string="Iniciar búsqueda de órdenes en MLA" attrs="{'invisible':[('mercadolibre_state','=',True)]}"/>
+										
+								<button name='meli_query_products' type="object"
+										string="Iniciar búsqueda de productos en MLA" attrs="{'invisible':[('mercadolibre_state','=',True)]}"/>
 <!--
 								<button name='%(meli_login_action)d' type="action"
 										string="Login en MLA (action)"/>

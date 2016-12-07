@@ -66,7 +66,7 @@ class res_company(osv.osv):
             if "error" in rjson:
                 if "message" in rjson and rjson["message"]=="expired_token":
                     ML_state = True
-                                  
+
             if ACCESS_TOKEN=='':
                 ML_state = True
         except requests.exceptions.ConnectionError as e:
@@ -74,7 +74,7 @@ class res_company(osv.osv):
             ML_state = True
             error_msg = 'MELI WARNING: NO INTERNET CONNECTION TO API.MERCADOLIBRE.COM: complete the Cliend Id, and Secret Key and try again '
             _logger.error(error_msg)
-            
+
 #        except requests.exceptions.HTTPError as e:
 #            print "And you get an HTTPError:", e.message
 
@@ -84,13 +84,13 @@ class res_company(osv.osv):
 
             company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
 
-        res = {}		
+        res = {}
         for company in self.browse(cr,uid,ids):
             res[company.id] = ML_state
         return res
 
     _columns = {
-        'mercadolibre_client_id': fields.char(string='Client ID para ingresar a MercadoLibre',size=128), 
+        'mercadolibre_client_id': fields.char(string='Client ID para ingresar a MercadoLibre',size=128),
         'mercadolibre_secret_key': fields.char(string='Secret Key para ingresar a MercadoLibre',size=128),
         'mercadolibre_redirect_uri': fields.char( string='Redirect uri (https://myserver/meli_login)',size=1024),
         'mercadolibre_access_token': fields.char( string='Access Token',size=256),
@@ -98,7 +98,7 @@ class res_company(osv.osv):
         'mercadolibre_code': fields.char( string='Code', size=256),
         'mercadolibre_seller_id': fields.char( string='Vendedor Id', size=256),
         'mercadolibre_state': fields.function( get_meli_state, method=True, type='boolean', string="Se requiere Iniciar Sesión con MLA", store=False ),
-        #'mercadolibre_login': fields.selection( [ ("unknown", "Desconocida"), ("logged","Abierta"), ("not logged","Cerrada")],string='Estado de la sesión'), ) 
+        #'mercadolibre_login': fields.selection( [ ("unknown", "Desconocida"), ("logged","Abierta"), ("not logged","Cerrada")],string='Estado de la sesión'), )
     }
 
     def	meli_logout(self, cr, uid, ids, context=None ):
@@ -144,10 +144,22 @@ class res_company(osv.osv):
 
         user_obj = self.pool.get('res.users').browse(cr, uid, uid)
         company = user_obj.company_id
-        
-        orders_obj = self.pool.get('mercadolibre.orders') 
+
+        orders_obj = self.pool.get('mercadolibre.orders')
 
         result = orders_obj.orders_query_recent(cr,uid)
+#"type": "ir.actions.act_window",
+#"id": "action_meli_orders_tree",
+        return {}
+
+	def meli_query_products(self, cr, uid, ids, context=None ):
+
+        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+        company = user_obj.company_id
+
+        products_obj = self.pool.get('product.product')
+
+        result = products_obj.product_meli_get_products(cr,uid)
 #"type": "ir.actions.act_window",
 #"id": "action_meli_orders_tree",
         return {}
