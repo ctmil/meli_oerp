@@ -78,6 +78,14 @@ class product_product(osv.osv):
         if (results):
             for item in results:
                 print item
+                posting_id = self.pool.get('product.product').search(cr,uid,[('meli_id','=',item['id'])])
+                if (posting_id):
+                    print "Item in database: " + posting_id
+                else:
+                    idcreated = product_obj.create({ 'name': item['title'], 'meli_id': item['id'] })
+                    if (idcreated):
+                        product = product_obj.browse(cr, uid, idcreated)
+                        product.product_meli_get_product( cr, uid, [idcreated] )
 
         return {}
 
