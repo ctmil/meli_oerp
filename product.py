@@ -37,7 +37,7 @@ from meli_oerp_config import *
 from melisdk.meli import Meli
 
 
-class product_template(osv,osv):
+class product_template(osv.osv):
     _inherit = "product.template"
     _columns = {
       'name': fields.char('Name', size=128, required=True, translate=False, select=True)
