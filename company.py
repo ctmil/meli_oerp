@@ -152,16 +152,15 @@ class res_company(osv.osv):
 #"id": "action_meli_orders_tree",
         return {}
 
-	def meli_query_products(self, cr, uid, ids, context=None ):
-
+    def meli_query_products(self, cr, uid, ids, context=None ):
         user_obj = self.pool.get('res.users').browse(cr, uid, uid)
         company = user_obj.company_id
 
         products_obj = self.pool.get('product.product')
 
         result = products_obj.product_meli_get_products(cr,uid)
-#"type": "ir.actions.act_window",
-#"id": "action_meli_orders_tree",
+        #"type": "ir.actions.act_window",
+        #"id": "action_meli_orders_tree",
         return {}
 
 res_company()
