@@ -128,6 +128,7 @@ class product_product(osv.osv):
         rjson = response.json()
 
         des = ''
+        desplain = ''
         vid = ''
         if 'error' in rjson:
             return {}
@@ -138,6 +139,7 @@ class product_product(osv.osv):
             response2 = meli.get("/items/"+product.meli_id+"/description", {'access_token':meli.access_token})
             rjson2 = response2.json()
             des = rjson2['text']
+            desplain = rjson['plain_text']
 
         #TODO: verificar q es un video
         if rjson['video_id']:
@@ -191,7 +193,7 @@ class product_product(osv.osv):
             'meli_id': rjson['id'],
             'meli_permalink': rjson['permalink'],
             'meli_title': rjson['title'],
-            'meli_description': str(des),
+            'meli_description': str(des) | str(desplain),
 #            'meli_description_banner_id': ,
             'meli_category': mlcatid,
             'meli_listing_type': rjson['listing_type_id'],
