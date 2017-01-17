@@ -152,6 +152,24 @@ class product_product(osv.osv):
             image_base64 = base64.encodestring(image)
             product.image_medium = image_base64
 
+        #categories
+        mlcatid = ""
+        if ('category_id' in rjson):
+            category_id = rjson['category_id']
+            ml_cat_id = self.pool.get('mercadolibre.category').search(cr,uid,[('meli_category_id','=',category_id)])
+            if (ml_cat_id):
+              print "category exists!" + str(ml_cat_id)
+              mlcatid = ml_cat_id.id
+            else:
+              print "Creating category: " + str(category_id)
+              cat_fields = {
+                name: ''+str(category_id),
+                meli_category_id: ''+str(category_id),
+              }
+              ml_cat_id = self.pool.get('mercadolibre.category').create(cr,uid,(cat_fields))
+              if (ml_cat_id):
+                  mlcatid = ml_cat_id.id
+
 
 
         meli_fields = {
@@ -163,7 +181,7 @@ class product_product(osv.osv):
             'meli_title': rjson['title'],
             'meli_description': str(des),
 #            'meli_description_banner_id': ,
-#            'meli_category': rjson['category_id'],
+            'meli_category': mlcatid,
             'meli_listing_type': rjson['listing_type_id'],
             'meli_buying_mode':rjson['buying_mode'],
             'meli_price': str(rjson['price']),
@@ -352,7 +370,7 @@ class product_product(osv.osv):
         imageb64 = product.image
 #       print "data:image/png;base64,"+imageb64
 #       files = [ ('images', ('image_medium', imagebin, "image/png")) ]
-        files = { 'file': ('image.png', imagebin, "image/png"), }
+        files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
         #print  files
         response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
        # print response.content
@@ -366,7 +384,7 @@ class product_product(osv.osv):
 
         if ("id" in rjson):
             #guardar id
-            product.write( { "meli_imagen_id": rjson["id"], "meli_imagen_link": rjson["variations"][0]["url"] } )
+            product.write( { "meli_imagen_id": rjson["id"], "meli_imagen_link": rjson["variations"][0]["url"] })
             #asociar imagen a producto
             if product.meli_id:
                 response = meli.post("/items/"+product.meli_id+"/pictures", { 'id': rjson["id"] }, { 'access_token': meli.access_token } )
@@ -413,6 +431,7 @@ class product_product(osv.osv):
                 else:
                     image_ids+= [ { 'id': rjson['id'] }]
                     c = c + 1
+                    print "image_ids:" + str(image_ids)
 
         product.write( { "meli_multi_imagen_id": "%s" % (image_ids) } )
 
