@@ -400,10 +400,12 @@ class product_product(osv.osv):
         #loop over images
         for product_image in product.images:
             if (product_image.image):
+                print "product_image.image:" + str(product_image.image)
                 imagebin = base64.b64decode( product_image.image )
-                files = { 'file': ('image.png', imagebin, "image/png"), }
+                #files = { 'file': ('image.png', imagebin, "image/png"), }
+                files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
                 response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
-
+                print "meli upload:" + response.content
                 rjson = response.json()
                 if ("error" in rjson):
                     raise osv.except_osv( _('MELI WARNING'), _('No se pudo cargar la imagen en MELI! Error: %s , Mensaje: %s, Status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
