@@ -70,6 +70,9 @@ class product_product(osv.osv):
 
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
+        url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
+        #url_login_oerp = "/meli_login"
+
         response = meli.get("/sites/MLA/search?seller_id="+company.mercadolibre_seller_id, {'access_token':meli.access_token})
 
         print "product_meli_get_products: " + response.content
@@ -80,7 +83,11 @@ class product_product(osv.osv):
                 ACCESS_TOKEN = ''
                 REFRESH_TOKEN = ''
                 company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
-            return {}
+            return {
+	        "type": "ir.actions.act_url",
+	        "url": url_login_meli,
+	        "target": "new",
+        }
 
         results = rjson['results']
         if (results):
