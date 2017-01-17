@@ -170,7 +170,7 @@ class product_product(osv.osv):
               if ("path_from_root" in rjson_cat):
                   path_from_root = rjson_cat["path_from_root"]
                   for path in path_from_root:
-                    fullname = fullname + "/" + path["name"]
+                    fullname = fullname + "/" + str(path["name"])
 
               #fullname = fullname + "/" + rjson_cat['name']
               print "category fullname:" + str(fullname)
