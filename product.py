@@ -170,12 +170,12 @@ class product_product(osv.osv):
               if ("path_from_root" in rjson_cat):
                   path_from_root = rjson_cat["path_from_root"]
                   for path in path_from_root:
-                    fullname = fullname + "/" + str(path["name"])
+                    fullname = fullname + "/" + path["name"]
 
               #fullname = fullname + "/" + rjson_cat['name']
-              print "category fullname:" + str(fullname)
+              print "category fullname:" + fullname
               cat_fields = {
-                'name': ''+str(fullname),
+                'name': fullname,
                 'meli_category_id': ''+str(category_id),
               }
               ml_cat_id = self.pool.get('mercadolibre.category').create(cr,uid,(cat_fields))
