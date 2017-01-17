@@ -74,6 +74,14 @@ class product_product(osv.osv):
 
         print "product_meli_get_products: " + response.content
         rjson = response.json()
+
+        if 'error' in rjson:
+            if rjson['message']=='invalid_token' or rjson['message']=='expired_token':
+                ACCESS_TOKEN = ''
+                REFRESH_TOKEN = ''
+                company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
+            return {}
+
         results = rjson['results']
         if (results):
             for item in results:
