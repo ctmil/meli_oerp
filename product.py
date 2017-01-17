@@ -159,7 +159,7 @@ class product_product(osv.osv):
             ml_cat_id = self.pool.get('mercadolibre.category').search(cr,uid,[('meli_category_id','=',category_id)])
             if (ml_cat_id):
               print "category exists!" + str(ml_cat_id)
-              mlcatid = ml_cat_id.id
+              mlcatid = ml_cat_id[0]
             else:
               print "Creating category: " + str(category_id)
               cat_fields = {
