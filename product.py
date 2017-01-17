@@ -163,8 +163,8 @@ class product_product(osv.osv):
             else:
               print "Creating category: " + str(category_id)
               cat_fields = {
-                name: ''+str(category_id),
-                meli_category_id: ''+str(category_id),
+                'name': ''+str(category_id),
+                'meli_category_id': ''+str(category_id),
               }
               ml_cat_id = self.pool.get('mercadolibre.category').create(cr,uid,(cat_fields))
               if (ml_cat_id):
