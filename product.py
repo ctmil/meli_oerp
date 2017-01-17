@@ -140,6 +140,8 @@ class product_product(osv.osv):
             rjson2 = response2.json()
             des = rjson2['text']
             desplain = rjson2['plain_text']
+            if (len(des)>0):
+                desplain = des
 
         #TODO: verificar q es un video
         if rjson['video_id']:
@@ -184,16 +186,18 @@ class product_product(osv.osv):
               if (ml_cat_id):
                   mlcatid = ml_cat_id
 
-
+        imagen_id = ''
+        if (len(rjson['pictures'])>0):
+            imagen_id = rjson['pictures'][0]['id']
 
         meli_fields = {
             'name': str(rjson['title']),
-            'meli_imagen_id': rjson['pictures'][0]['id'],
+            'meli_imagen_id': imagen_id,
             'meli_post_required': True,
             'meli_id': rjson['id'],
             'meli_permalink': rjson['permalink'],
             'meli_title': rjson['title'],
-            'meli_description': str(des) | str(desplain),
+            'meli_description': desplain,
 #            'meli_description_banner_id': ,
             'meli_category': mlcatid,
             'meli_listing_type': rjson['listing_type_id'],
