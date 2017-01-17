@@ -147,7 +147,7 @@ class product_product(osv.osv):
         #TODO:
         pictures = rjson['pictures']
         if pictures and len(pictures):
-            thumbnail_url = rpictures[0]['url']
+            thumbnail_url = pictures[0]['url']
             image = urllib2.urlopen(thumbnail_url).read()
             image_base64 = base64.encodestring(image)
             product.image_medium = image_base64
