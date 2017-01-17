@@ -139,7 +139,7 @@ class product_product(osv.osv):
             response2 = meli.get("/items/"+product.meli_id+"/description", {'access_token':meli.access_token})
             rjson2 = response2.json()
             des = rjson2['text']
-            desplain = rjson['plain_text']
+            desplain = rjson2['plain_text']
 
         #TODO: verificar q es un video
         if rjson['video_id']:
