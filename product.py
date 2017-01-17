@@ -162,8 +162,20 @@ class product_product(osv.osv):
               mlcatid = ml_cat_id[0]
             else:
               print "Creating category: " + str(category_id)
+              #https://api.mercadolibre.com/categories/MLA1743
+              response_cat = meli.get("/categories/"+str(category_id), {'access_token':meli.access_token})
+              rjson_cat = response_cat.json()
+              print "category:" + str(rjson_cat)
+              fullname = ""
+              if ("path_from_root" in rjson_cat):
+                  path_from_root = rjson_cat["path_from_root"]
+                  for path_id in path_from_root:
+                    fullname = fullname + "/" + path_from_root[path_id]["name]
+
+              fullname = fullname + "/" + rjson_cat['name']
+              print "category fullname:" + str(fullname)
               cat_fields = {
-                'name': ''+str(category_id),
+                'name': ''+str(fullname),
                 'meli_category_id': ''+str(category_id),
               }
               ml_cat_id = self.pool.get('mercadolibre.category').create(cr,uid,(cat_fields))
