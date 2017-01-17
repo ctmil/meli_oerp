@@ -73,7 +73,7 @@ class product_product(osv.osv):
         url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
         #url_login_oerp = "/meli_login"
 
-        response = meli.get("/sites/MLA/search?seller_id="+company.mercadolibre_seller_id, {'access_token':meli.access_token})
+        response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token})
 
         print "product_meli_get_products: " + response.content
         rjson = response.json()
