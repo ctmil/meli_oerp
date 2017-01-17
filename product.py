@@ -29,6 +29,7 @@ import requests
 import melisdk
 import base64
 import mimetypes
+import urllib2
 
 from datetime import datetime
 
@@ -103,7 +104,6 @@ class product_product(osv.osv):
                     if (idcreated):
                         product = product_obj.browse(cr, uid, idcreated)
                         product_obj.product_meli_get_product( cr, uid, [idcreated] )
-
         return {}
 
     def product_meli_get_product( self, cr, uid, ids, context=None ):
@@ -129,6 +129,8 @@ class product_product(osv.osv):
 
         des = ''
         vid = ''
+        if 'error' in rjson:
+            return {}
 
         #TODO: traer la descripcion: con
         #https://api.mercadolibre.com/items/{ITEM_ID}/description?access_token=$ACCESS_TOKEN
@@ -143,6 +145,13 @@ class product_product(osv.osv):
 
         #TODO: traer las imagenes
         #TODO:
+        pictures = rjson['pictures']
+        if pictures and len(pictures):
+            logo_url = rjson[""]
+            logo = urllib2.urlopen().read()
+            image_base64 = base64.encodestring(image)
+            product.image_medium = image_base64
+
 
 
         meli_fields = {
