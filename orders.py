@@ -205,6 +205,7 @@ class mercadolibre_orders(osv.osv):
             buyer_ids = buyers_obj.search(cr,uid,[  ('buyer_id','=',buyer_fields['buyer_id'] ) ] )
             buyer_id = 0
             if not buyer_ids:
+                print "creating buyer:" + str(buyer_fields)
                 buyer_id = buyers_obj.create(cr,uid,( buyer_fields ))
             else:
                 if (len(buyer_ids)>0):
@@ -213,6 +214,7 @@ class mercadolibre_orders(osv.osv):
             partner_ids = respartner_obj.search(cr,uid,[  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ] )
             partner_id = 0
             if not partner_ids:
+                print "creating partner:" + str(meli_buyer_fields)
                 partner_id = respartner_obj.create(cr,uid,( meli_buyer_fields ))
             else:
                 if (len(partner_ids)>0):
@@ -250,6 +252,7 @@ class mercadolibre_orders(osv.osv):
         else:
             _logger.info("Adding new order: " )
             _logger.info(order_fields)
+            print "creating order:" + str(order_fields)
             return_id = order_obj.create(cr,uid,(order_fields))
             order = order_obj.browse(cr,uid,return_id)
 
@@ -259,6 +262,7 @@ class mercadolibre_orders(osv.osv):
         else:
             _logger.info("Adding new sale.order: " )
             _logger.info(meli_order_fields)
+            print "creating sale order:" + str(order_fields)
             sreturn_id = saleorder_obj.create(cr,uid,(meli_order_fields))
             sorder = saleorder_obj.browse(cr,uid,sreturn_id)
 
