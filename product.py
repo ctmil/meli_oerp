@@ -155,7 +155,7 @@ class product_product(osv.osv):
             image = urllib2.urlopen(thumbnail_url).read()
             image_base64 = base64.encodestring(image)
             product.image_medium = image_base64
-            if (len(pictures)>1):
+            #if (len(pictures)>1):
                 #complete product images:
                 #delete all images...
 
