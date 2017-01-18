@@ -221,8 +221,6 @@ class mercadolibre_orders(osv.osv):
             else:
                 buyers_obj.write(cr,uid, buyer_id, ( buyer_fields ) )
 
-            return_id = self.pool.get('mercadolibre.orders').write(cr,uid,order.id,{'buyer':buyer_id})
-
 
         #process base order fields
         meli_order_fields = {
