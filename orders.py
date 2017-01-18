@@ -269,17 +269,20 @@ class mercadolibre_orders(osv.osv):
         #check error
         if not order:
             _logger.error("Error adding order. " )
+            print "Error adding order"
             return {}
 
         #check error
         if not sorder:
             _logger.error("Error adding sale.order. " )
+            print "Error adding sale.order"
             return {}
 
         #update internal fields (items, payments, buyers)
         if 'order_items' in order_json:
             items = order_json['order_items']
             _logger.info( items )
+            print "order items" + str(items)
             cn = 0
             for Item in items:
                 cn = cn + 1
