@@ -166,7 +166,7 @@ class mercadolibre_orders(osv.osv):
                 order = order_obj.browse(cr, uid, order_s[0] )
 
             sorder_s = saleorder_obj.search(cr,uid, [ ('meli_order_id','=',order_json['id']) ] )
-            if (sorder_s):
+            if (sorder_s and len(sorder_s)>0):
                 sorder = saleorder_obj.browse(cr, uid, sorder_s[0] )
 
         order_fields = {
