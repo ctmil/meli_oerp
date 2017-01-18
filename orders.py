@@ -204,7 +204,9 @@ class mercadolibre_orders(osv.osv):
             buyer_ids = buyers_obj.search(cr,uid,[  ('buyer_id','=',buyer_fields['buyer_id'] ) ] )
 
             if not buyer_ids:
-                buyer_ids = buyers_obj.create(cr,uid,( buyer_fields ))
+                buyer_id = buyers_obj.create(cr,uid,( buyer_fields ))
+            else:
+                buyer_id = buyer_ids[0]
 
             partner_ids = respartner_obj.search(cr,uid,[  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ] )
 
@@ -215,7 +217,7 @@ class mercadolibre_orders(osv.osv):
             if order:
                 return_id = self.pool.get('mercadolibre.orders').write(cr,uid,order.id,{'buyer':buyer_ids[0]})
             else:
-                buyers_obj.write(cr,uid, buyer_ids[0], ( buyer_fields ) )
+                buyers_obj.write(cr,uid, buyer_id, ( buyer_fields ) )
 
             return_id = self.pool.get('mercadolibre.orders').write(cr,uid,order.id,{'buyer':buyer_ids[0]})
 
