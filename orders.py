@@ -127,7 +127,7 @@ class mercadolibre_orders(osv.osv):
 
         oid = data["id"]
         order_json = data["order_json"]
-
+        print "data:" + data
         #_logger.info("orders_update_order_json > data[id]: " + oid + " order_json:" + order_json )
 
         user_obj = self.pool.get('res.users').browse(cr, uid, uid)
@@ -169,7 +169,6 @@ class mercadolibre_orders(osv.osv):
             if (sorder_s):
                 sorder = saleorder_obj.browse(cr, uid, sorder_s[0] )
 
-
         order_fields = {
             'order_id': '%i' % (order_json["id"]),
             'status': order_json["status"],
@@ -179,6 +178,8 @@ class mercadolibre_orders(osv.osv):
             'date_created': order_json["date_created"] or '',
             'date_closed': order_json["date_closed"] or '',
         }
+
+        print "order:" + order
 
         if 'buyer' in order_json:
             Buyer = order_json['buyer']
