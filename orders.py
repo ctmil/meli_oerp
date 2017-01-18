@@ -318,6 +318,7 @@ class mercadolibre_orders(osv.osv):
                 order_item_ids = order_items_obj.search(cr,uid,[('order_item_id','=',order_item_fields['order_item_id']),('order_id','=',order.id)] )
 
                 if not order_item_ids:
+                    print "order_item_fields: " + str(order_item_fields)
                     order_item_ids = order_items_obj.create(cr,uid,( order_item_fields ))
                 else:
                     order_items_obj.write(cr,uid, order_item_ids[0], ( order_item_fields ) )
@@ -334,6 +335,7 @@ class mercadolibre_orders(osv.osv):
                 saleorderline_item_ids = saleorderline_obj.search(cr,uid,[('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
 
                 if not saleorderline_item_ids:
+                    print "saleorderline_item_fields: " + str(saleorderline_item_fields)
                     saleorderline_item_ids = saleorderline_obj.create(cr,uid,( saleorderline_item_fields ))
                 else:
                     saleorderline_obj.write(cr,uid, saleorderline_item_ids[0], ( saleorderline_item_fields ) )
