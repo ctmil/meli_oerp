@@ -331,6 +331,7 @@ class mercadolibre_orders(osv.osv):
                     'price_total': float(Item['unit_price']) * float(Item['quantity']),
                     'product_id': product_related_obj.id,
                     'product_uom_qty': Item['quantity'],
+                    'product_uom': 1
                 }
                 saleorderline_item_ids = saleorderline_obj.search(cr,uid,[('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
 
