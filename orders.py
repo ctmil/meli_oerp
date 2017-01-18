@@ -202,11 +202,12 @@ class mercadolibre_orders(osv.osv):
             }
 
             buyer_ids = buyers_obj.search(cr,uid,[  ('buyer_id','=',buyer_fields['buyer_id'] ) ] )
-
+            buyer_id = 0
             if not buyer_ids:
                 buyer_id = buyers_obj.create(cr,uid,( buyer_fields ))
             else:
-                buyer_id = buyer_ids[0]
+                if (len(buyer_ids)>0):
+                      buyer_id = buyer_ids[0]
 
             partner_ids = respartner_obj.search(cr,uid,[  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ] )
 
