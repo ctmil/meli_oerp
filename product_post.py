@@ -110,8 +110,8 @@ class product_post(osv.osv_memory):
                 #"pictures": [ { 'source': product.meli_imagen_logo} ] ,
                 "video_id": product.meli_video  or '',
             }
-
-            if (product.meli_id):
+            print "product.meli_id before setting condigions ]"+product.meli_id+"["
+            if (len(product.meli_id)==0):
                 body["condition"] = product.meli_condition;
 
             # print body
@@ -141,7 +141,7 @@ class product_post(osv.osv_memory):
                     "buying_mode": product.meli_buying_mode or '',
                     "price": product.meli_price or '0',
                     #"currency_id": product.meli_currency,
-                    "condition": product.meli_condition or '',
+                    #"condition": product.meli_condition or '',
                     "available_quantity": product.meli_available_quantity or '0',
                     "warranty": product.meli_warranty or '',
                     "pictures": [],
