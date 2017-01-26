@@ -138,7 +138,7 @@ class product_post(osv.osv_memory):
                     #"description": product.meli_description or '',
                     #"category_id": product.meli_category.meli_category_id,
                     #"listing_type_id": product.meli_listing_type,
-                    "buying_mode": product.meli_buying_mode or '',
+                    #"buying_mode": product.meli_buying_mode or '',
                     "price": product.meli_price or '0',
                     #"currency_id": product.meli_currency,
                     #"condition": product.meli_condition or '',
