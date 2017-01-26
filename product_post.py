@@ -104,12 +104,15 @@ class product_post(osv.osv_memory):
                 "buying_mode": product.meli_buying_mode or '',
                 "price": product.meli_price  or '0',
                 "currency_id": product.meli_currency  or '0',
-                "condition": product.meli_condition  or '',
+                #"condition": product.meli_condition  or '',
                 "available_quantity": product.meli_available_quantity  or '0',
                 "warranty": product.meli_warranty or '',
                 #"pictures": [ { 'source': product.meli_imagen_logo} ] ,
                 "video_id": product.meli_video  or '',
             }
+
+            if (product.meli_id):
+                body["condition"] = product.meli_condition;
 
             # print body
 
