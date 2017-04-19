@@ -78,6 +78,7 @@ class product_product(osv.osv):
         response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token,'offset': 0 })
         #response = meli.get("/sites/MLA/search?seller_id="+company.mercadolibre_seller_id+"&limit=0", {'access_token':meli.access_token})
         rjson = response.json()
+        _logger.info( rjson )
 
         if 'error' in rjson:
             if rjson['message']=='invalid_token' or rjson['message']=='expired_token':
@@ -116,12 +117,13 @@ class product_product(osv.osv):
         else:
             results = rjson['results']
 
-
-
+        _logger.info( rjson )
         if (results):
             for item_id in results:
                 print item_id
+                _logger.info( item_id )
                 posting_id = self.pool.get('product.product').search(cr,uid,[('meli_id','=',item_id)])
+                _logger.info( posting_id )
                 response = meli.get("/items/"+item_id, {'access_token':meli.access_token})
                 rjson = response.json()
                 if (posting_id):
