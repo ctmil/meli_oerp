@@ -74,10 +74,9 @@ class product_product(osv.osv):
         url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
         #url_login_oerp = "/meli_login"
 
-        response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token})
-
-        print "product_meli_get_products: " + response.content
-        rjson = response.json()
+        results = []
+        response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token,'offset': 0 })
+        #response = meli.get("/sites/MLA/search?seller_id="+company.mercadolibre_seller_id+"&limit=0", {'access_token':meli.access_token})
 
         if 'error' in rjson:
             if rjson['message']=='invalid_token' or rjson['message']=='expired_token':
@@ -87,10 +86,37 @@ class product_product(osv.osv):
             return {
 	        "type": "ir.actions.act_url",
 	        "url": url_login_meli,
-	        "target": "new",
-        }
+	        "target": "new",}
 
-        results = rjson['results']
+        #download?
+        if (rjson['paging']['total']>rjson['paging']['limit']):
+
+            pages = rjson['paging']['total']/rjson['paging']['limit']
+            ioff = rjson['paging']['limit']
+            condition_last_off = False
+            while (condition_last_off!=True):
+                response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token,'offset': ioff })
+                if 'error' in rjson:
+                    if rjson['message']=='invalid_token' or rjson['message']=='expired_token':
+                        ACCESS_TOKEN = ''
+                        REFRESH_TOKEN = ''
+                        company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
+                    condition = True
+                    return {
+        	        "type": "ir.actions.act_url",
+        	        "url": url_login_meli,
+        	        "target": "new",}
+                else:
+                    results += rjson['results']
+                    ioff+= rjson['paging']['limit']
+                    condition_last_off = ( ioff>rjson['paging']['total'])
+
+
+        else:
+            results = rjson['results']
+
+
+
         if (results):
             for item_id in results:
                 print item_id
