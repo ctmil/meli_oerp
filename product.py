@@ -123,11 +123,11 @@ class product_product(osv.osv):
                 print item_id
                 _logger.info( item_id )
                 posting_id = self.pool.get('product.product').search(cr,uid,[('meli_id','=',item_id)])
-                _logger.info( posting_id )
                 response = meli.get("/items/"+item_id, {'access_token':meli.access_token})
                 rjson = response.json()
                 if (posting_id):
-                    print "Item already in database: " + str(posting_id[0])
+                    _logger.info( "Item already in database: " + str(posting_id[0]) )
+                    #print "Item already in database: " + str(posting_id[0])
                 else:
                     idcreated = self.pool.get('product.product').create(cr,uid,{ 'name': rjson['title'], 'meli_id': rjson['id'] })
                     if (idcreated):
