@@ -77,6 +77,7 @@ class product_product(osv.osv):
         results = []
         response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token,'offset': 0 })
         #response = meli.get("/sites/MLA/search?seller_id="+company.mercadolibre_seller_id+"&limit=0", {'access_token':meli.access_token})
+        rjson = response.json()
 
         if 'error' in rjson:
             if rjson['message']=='invalid_token' or rjson['message']=='expired_token':
@@ -90,12 +91,12 @@ class product_product(osv.osv):
 
         #download?
         if (rjson['paging']['total']>rjson['paging']['limit']):
-
             pages = rjson['paging']['total']/rjson['paging']['limit']
             ioff = rjson['paging']['limit']
             condition_last_off = False
             while (condition_last_off!=True):
                 response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token,'offset': ioff })
+                rjson2 = response.json()
                 if 'error' in rjson:
                     if rjson['message']=='invalid_token' or rjson['message']=='expired_token':
                         ACCESS_TOKEN = ''
@@ -107,9 +108,9 @@ class product_product(osv.osv):
         	        "url": url_login_meli,
         	        "target": "new",}
                 else:
-                    results += rjson['results']
+                    results += rjson2['results']
                     ioff+= rjson['paging']['limit']
-                    condition_last_off = ( ioff>rjson['paging']['total'])
+                    condition_last_off = ( ioff>=rjson['paging']['total'])
 
 
         else:
