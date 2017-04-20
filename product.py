@@ -116,10 +116,13 @@ class product_product(osv.osv):
 
 
         _logger.info( rjson )
+        _logger.info( "("+rjson['paging']['total']+") products to check...")
+        iitem = 0
         if (results):
             for item_id in results:
                 print item_id
-                _logger.info( item_id )
+                iitem+= 1
+                _logger.info( item_id + "("+str(iitem)+"/"+str(rjson['paging']['total'])+")" )
                 posting_id = self.pool.get('product.product').search(cr,uid,[('meli_id','=',item_id)])
                 response = meli.get("/items/"+item_id, {'access_token':meli.access_token})
                 rjson = response.json()
