@@ -99,8 +99,8 @@ class product_product(osv.osv):
             while (condition_last_off!=True):
                 response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token,'offset': ioff })
                 rjson2 = response.json()
-                if 'error' in rjson:
-                    if rjson['message']=='invalid_token' or rjson['message']=='expired_token':
+                if 'error' in rjson2:
+                    if rjson2['message']=='invalid_token' or rjson2['message']=='expired_token':
                         ACCESS_TOKEN = ''
                         REFRESH_TOKEN = ''
                         company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
@@ -125,12 +125,12 @@ class product_product(osv.osv):
                 _logger.info( item_id + "("+str(iitem)+"/"+str(rjson['paging']['total'])+")" )
                 posting_id = self.pool.get('product.product').search(cr,uid,[('meli_id','=',item_id)])
                 response = meli.get("/items/"+item_id, {'access_token':meli.access_token})
-                rjson = response.json()
+                rjson3 = response.json()
                 if (posting_id):
                     _logger.info( "Item already in database: " + str(posting_id[0]) )
                     #print "Item already in database: " + str(posting_id[0])
                 else:
-                    idcreated = self.pool.get('product.product').create(cr,uid,{ 'name': rjson['title'], 'meli_id': rjson['id'] })
+                    idcreated = self.pool.get('product.product').create(cr,uid,{ 'name': rjson3['title'], 'meli_id': rjson3['id'] })
                     if (idcreated):
                         product = product_obj.browse(cr, uid, idcreated)
                         product_obj.product_meli_get_product( cr, uid, [idcreated] )
