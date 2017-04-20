@@ -116,7 +116,7 @@ class product_product(osv.osv):
 
 
         _logger.info( rjson )
-        _logger.info( "("+rjson['paging']['total']+") products to check...")
+        _logger.info( "("+str(rjson['paging']['total'])+") products to check...")
         iitem = 0
         if (results):
             for item_id in results:
