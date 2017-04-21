@@ -137,6 +137,8 @@ class product_product(osv.osv):
                             _logger.info( "product created: " + str(rjson3['id']) + "-" + str( rjson3['title']) )
                             product = product_obj.browse(cr, uid, idcreated)
                             product_obj.product_meli_get_product( cr, uid, [idcreated] )
+                    else:
+                        _logger.info( "product error: " + str(rjson3) )
         return {}
 
     def product_meli_get_product( self, cr, uid, ids, context=None ):
