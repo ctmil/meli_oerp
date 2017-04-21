@@ -170,8 +170,10 @@ class product_product(osv.osv):
         if rjson['descriptions']:
             response2 = meli.get("/items/"+product.meli_id+"/description", {'access_token':meli.access_token})
             rjson2 = response2.json()
-            des = rjson2['text']
-            desplain = rjson2['plain_text']
+            if 'text' in rjson2:
+               des = rjson2['text']
+            if 'plain_text' in rjson2:
+               desplain = rjson2['plain_text']
             if (len(des)>0):
                 desplain = des
 
