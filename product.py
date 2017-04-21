@@ -130,8 +130,8 @@ class product_product(osv.osv):
                     _logger.info( "Item already in database: " + str(posting_id[0]) )
                     #print "Item already in database: " + str(posting_id[0])
                 else:
-                    #idcreated = self.pool.get('product.product').create(cr,uid,{ 'name': rjson3['title'], 'meli_id': rjson3['id'] })
-                    idcreated = self.pool.get('product.product').create(cr,uid,{ 'name': rjson3['id'], 'description': rjson3['title'], 'meli_id': rjson3['id'] })
+                    idcreated = self.pool.get('product.product').create(cr,uid,{ 'name': rjson3['title'], 'meli_id': rjson3['id'] })
+                    #idcreated = self.pool.get('product.product').create(cr,uid,{ 'name': rjson3['id'], 'description': rjson3['title'], 'meli_id': rjson3['id'] })
                     if (idcreated):
                         _logger.info( "product created: " + str(rjson3['id']) + "-" + str( rjson3['title']) )
                         product = product_obj.browse(cr, uid, idcreated)
