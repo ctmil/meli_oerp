@@ -251,7 +251,8 @@ class product_product(osv.osv):
             'meli_video': str(vid)
         }
         tmpl_fields = {
-          'name': str(rjson['title'])
+          #'name': str(rjson['title'])
+          'name': str(rjson['id'])
         }
         product.write( meli_fields )
         product_template.write( tmpl_fields )
