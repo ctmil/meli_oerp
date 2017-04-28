@@ -125,11 +125,11 @@ class mercadolibre_orders(osv.osv):
 
     def orders_update_order_json( self, cr, uid, data, context=None ):
 
+        _logger.info("orders_update_order_json > data: " + data )
         oid = data["id"]
         order_json = data["order_json"]
         #print "data:" + str(data)
         #_logger.info("orders_update_order_json > data[id]: " + oid + " order_json:" + order_json )
-
         user_obj = self.pool.get('res.users').browse(cr, uid, uid)
         company = user_obj.company_id
 
@@ -400,7 +400,7 @@ class mercadolibre_orders(osv.osv):
 
         response = meli.get("/orders/"+order.order_id, {'access_token':meli.access_token})
         order_json = response.json()
-        #_logger.info( product_json )
+        #_logger.info( order_json )
 
         if "error" in order_json:
             _logger.error( order_json["error"] )
