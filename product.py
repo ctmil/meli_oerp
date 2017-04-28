@@ -79,7 +79,6 @@ class product_product(osv.osv):
         #response = meli.get("/sites/MLA/search?seller_id="+company.mercadolibre_seller_id+"&limit=0", {'access_token':meli.access_token})
         rjson = response.json()
         _logger.info( rjson )
-        results = rjson['results']
 
         if 'error' in rjson:
             if rjson['message']=='invalid_token' or rjson['message']=='expired_token':
@@ -90,6 +89,10 @@ class product_product(osv.osv):
 	        "type": "ir.actions.act_url",
 	        "url": url_login_meli,
 	        "target": "new",}
+
+
+        if 'results' in rjson:
+            results = rjson['results']
 
         #download?
         if (rjson['paging']['total']>rjson['paging']['limit']):

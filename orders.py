@@ -430,7 +430,6 @@ class mercadolibre_orders(osv.osv):
         #
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN )
 
-
         orders_query = "/orders/search?seller="+company.mercadolibre_seller_id+"&sort=date_desc"
 
         if (offset):
