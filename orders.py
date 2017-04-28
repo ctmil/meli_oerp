@@ -127,7 +127,7 @@ class mercadolibre_orders(osv.osv):
 
         oid = data["id"]
         order_json = data["order_json"]
-        print "data:" + str(data)
+        #print "data:" + str(data)
         #_logger.info("orders_update_order_json > data[id]: " + oid + " order_json:" + order_json )
 
         user_obj = self.pool.get('res.users').browse(cr, uid, uid)
