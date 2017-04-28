@@ -125,7 +125,7 @@ class mercadolibre_orders(osv.osv):
 
     def orders_update_order_json( self, cr, uid, data, context=None ):
 
-        _logger.info("orders_update_order_json > data: " + data )
+        _logger.info("orders_update_order_json > data: " + str(data) )
         oid = data["id"]
         order_json = data["order_json"]
         #print "data:" + str(data)
