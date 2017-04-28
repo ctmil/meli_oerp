@@ -400,7 +400,7 @@ class mercadolibre_orders(osv.osv):
 
         response = meli.get("/orders/"+order.order_id, {'access_token':meli.access_token})
         order_json = response.json()
-        #_logger.info( order_json )
+        _logger.info( order_json )
 
         if "error" in order_json:
             _logger.error( order_json["error"] )
@@ -469,7 +469,9 @@ class mercadolibre_orders(osv.osv):
         if "results" in orders_json:
             for order_json in orders_json["results"]:
                 if order_json:
-                    self.orders_update_order_json( cr, uid, {"id": False, "order_json": order_json} )
+                    _logger.info( order_json )
+                    pdata = {"id": False, "order_json": order_json}
+                    self.orders_update_order_json( cr, uid, pdata )
 
 
         if (offset_next>0):
