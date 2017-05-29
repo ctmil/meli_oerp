@@ -27,9 +27,8 @@ class mercadolibre_category(models.Model):
     _name = "mercadolibre.category"
     _description = "Categories of MercadoLibre"
 
-
-	name = fields.Char('Name');
-	meli_category_id = fields.Char('Category Id');
+    name = fields.Char('Name');
+    meli_category_id = fields.Char('Category Id');
 
 
 mercadolibre_category()

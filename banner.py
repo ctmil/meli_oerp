@@ -27,9 +27,8 @@ class mercadolibre_banner(models.Model):
     _name = "mercadolibre.banner"
     _description = "Banners for MercadoLibre descriptions"
 
-
-	name = fields.Char('Name');
-	description = fields.Html(string='Description');
+    name = fields.Char('Name');
+    description = fields.Html(string='Description');
 
 
 mercadolibre_banner()
