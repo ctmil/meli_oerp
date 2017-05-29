@@ -1,11 +1,11 @@
-from odoo import fields, osv, _
+from odoo import fields, osv, osv_memory, _
 #from openerp.tools.translate import _
 
 #CHANGE WARNING_MODULE with your module name
 WARNING_MODULE = 'meli_oerp'
 WARNING_TYPES = [('warning','Warning'),('info','Information'),('error','Error')]
 
-class warning(osv.osv_memory):
+class warning(osv_memory):
     _name = 'warning'
     _description = 'warning'
     _columns = {
