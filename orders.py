@@ -523,7 +523,7 @@ class mercadolibre_order_items(models.Model):
 	order_item_category_id = fields.Char('Item Category Id');
 	unit_price = fields.Char(string='Unit price');
 	quantity = fields.Integer(string='Quantity');
-    #       'total_price': fields.char(string='Total price'),
+	#       'total_price': fields.char(string='Total price'),
 	currency_id': fields.Char(string='Currency');
 
 mercadolibre_order_items()
