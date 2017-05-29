@@ -19,18 +19,17 @@
 #
 ##############################################################################
 
-from openerp.osv import fields, osv
+from odoo import fields, osv
 import logging
 
 
 class mercadolibre_category(osv.osv):
     _name = "mercadolibre.category"
     _description = "Categories of MercadoLibre"
-    
+
     _columns = {
 	'name': fields.char('Name'),
 	'meli_category_id': fields.char('Category Id'),
     }
 
 mercadolibre_category()
-

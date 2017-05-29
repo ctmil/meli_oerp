@@ -1,5 +1,5 @@
 
-from openerp import models, fields, api, _
+from odoo import models, fields, api, _
 import math
 
 class res_currency_rate(models.Model):
@@ -30,4 +30,3 @@ class res_currency_rate(models.Model):
 
 
 res_currency_rate()
-

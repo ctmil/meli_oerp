@@ -19,7 +19,7 @@
 #
 ##############################################################################
 
-from openerp.osv import fields, osv
+from odoo import fields, osv
 import logging
 import meli_oerp_config
 
@@ -31,7 +31,7 @@ from melisdk.meli import Meli
 class mercadolibre_questions(osv.osv):
 	_name = "mercadolibre.questions"
 	_description = "Preguntas en MercadoLibre"
-    
+
 	_columns = {
         'posting_id': fields.many2one("mercadolibre.posting","Posting"),
         'question_id': fields.char('Question Id'),
@@ -49,4 +49,3 @@ class mercadolibre_questions(osv.osv):
 
 
 mercadolibre_questions()
-

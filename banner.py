@@ -19,18 +19,17 @@
 #
 ##############################################################################
 
-from openerp.osv import fields, osv
+from odoo import fields, osv
 import logging
 
 
 class mercadolibre_banner(osv.osv):
     _name = "mercadolibre.banner"
     _description = "Banners for MercadoLibre descriptions"
-    
+
     _columns = {
 	'name': fields.char('Name'),
 	'description': fields.html(string='Description'),
     }
 
 mercadolibre_banner()
-

@@ -19,8 +19,8 @@
 #
 ##############################################################################
 
-from openerp.osv import fields, osv
-from openerp.tools.translate import _
+from odoo import fields, osv, _
+#from openerp.tools.translate import _
 import logging
 _logger = logging.getLogger(__name__)
 import urllib2
@@ -164,4 +164,3 @@ class res_company(osv.osv):
         return {}
 
 res_company()
-

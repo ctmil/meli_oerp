@@ -19,9 +19,9 @@
 #
 ##############################################################################
 
-from openerp import models, fields, api, _
-from openerp.osv import fields, osv
-from openerp.tools.translate import _
+from odoo import models, fields, api, _
+from odoo import fields, osv
+
 import logging
 _logger = logging.getLogger(__name__)
 

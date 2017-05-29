@@ -19,7 +19,7 @@
 #
 ##############################################################################
 
-from openerp.osv import fields, osv
+from odoo import fields, osv
 import logging
 import meli_oerp_config
 

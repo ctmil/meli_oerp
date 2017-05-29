@@ -1,10 +1,10 @@
-from openerp import http
+from odoo import http
 
 import melisdk
 from melisdk.meli import Meli
 
-from openerp.osv import fields, osv
-from openerp.http import request
+from odoo import fields, osv
+from odoo.http import request
 
 
 from meli_oerp_config import *
@@ -46,7 +46,7 @@ class MercadoLibreLogin(http.Controller):
         codes.setdefault('code','none')
         codes.setdefault('error','none')
         if codes['error']!='none':
-            message = "ERROR: %s" % codes['error']            
+            message = "ERROR: %s" % codes['error']
             return "<h1>"+message+"</h1><br/><a href='"+meli.auth_url(redirect_URI=REDIRECT_URI)+"'>Login</a>"
 
         if codes['code']!='none':
@@ -69,13 +69,3 @@ class MercadoLibreLogout(http.Controller):
     @http.route('/meli_logout/', auth='public')
     def index(self):
         return "LOGOUT: MercadoLibre for Odoo 8 - Moldeo Interactive"
-
-
-
-
-
-
-
-
-
-
