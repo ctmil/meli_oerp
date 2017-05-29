@@ -516,15 +516,15 @@ class mercadolibre_order_items(models.Model):
 	_name = "mercadolibre.order_items"
 	_description = "Producto pedido en MercadoLibre"
 
-    posting_id = fields.Many2one("mercadolibre.posting","Posting");
-    order_id = fields.Many2one("mercadolibre.orders","Order");
-    order_item_id = fields.Char('Item Id');
-    order_item_title = fields.Char('Item Title');
-    order_item_category_id = fields.Char('Item Category Id');
-    unit_price = fields.Char(string='Unit price');
-    quantity = fields.Integer(string='Quantity');
+ 	posting_id = fields.Many2one("mercadolibre.posting","Posting");
+	order_id = fields.Many2one("mercadolibre.orders","Order");
+ 	order_item_id = fields.Char('Item Id');
+	order_item_title = fields.Char('Item Title');
+	order_item_category_id = fields.Char('Item Category Id');
+	unit_price = fields.Char(string='Unit price');
+	quantity = fields.Integer(string='Quantity');
     #       'total_price': fields.char(string='Total price'),
-    currency_id': fields.Char(string='Currency');
+	currency_id': fields.Char(string='Currency');
 
 mercadolibre_order_items()
 
@@ -533,13 +533,13 @@ class mercadolibre_payments(models.Model):
 	_name = "mercadolibre.payments"
 	_description = "Pagos en MercadoLibre"
 
-    order_id = fields.Many2one("mercadolibre.orders","Order");
-    payment_id = fields.Char('Payment Id');
-    transaction_amount = fields.Char('Transaction Amount');
-    currency_id = fields.Char(string='Currency');
-    status = fields.Char(string='Payment Status');
-    date_created = fields.Date('Creation date');
-    date_last_modified = fields.Date('Modification date');
+	order_id = fields.Many2one("mercadolibre.orders","Order");
+	payment_id = fields.Char('Payment Id');
+	transaction_amount = fields.Char('Transaction Amount');
+	currency_id = fields.Char(string='Currency');
+	status = fields.Char(string='Payment Status');
+	date_created = fields.Date('Creation date');
+	date_last_modified = fields.Date('Modification date');
 
 mercadolibre_payments()
 
@@ -547,14 +547,14 @@ class mercadolibre_buyers(models.Model):
 	_name = "mercadolibre.buyers"
 	_description = "Compradores en MercadoLibre"
 
-    buyer_id = fields.Char(string='Buyer ID');
-    nickname = fields.Char(string='Nickname');
-    email = fields.Char(string='Email');
-    phone = fields.Char( string='Phone');
-    alternative_phone = fields.Char( string='Alternative Phone');
-    first_name = fields.Char( string='First Name');
-    last_name = fields.Char( string='Last Name');
-    billing_info = fields.Char( string='Billing Info');
+	buyer_id = fields.Char(string='Buyer ID');
+	nickname = fields.Char(string='Nickname');
+	email = fields.Char(string='Email');
+	phone = fields.Char( string='Phone');
+	alternative_phone = fields.Char( string='Alternative Phone');
+	first_name = fields.Char( string='First Name');
+	last_name = fields.Char( string='Last Name');
+ 	billing_info = fields.Char( string='Billing Info');
 
 mercadolibre_buyers()
 
