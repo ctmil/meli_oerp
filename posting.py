@@ -178,16 +178,14 @@ class mercadolibre_posting(models.Model):
 
         return {}
 
-    _columns = {
-        'posting_date': fields.Date('Fecha del posting'),
-        'name': fields.Char('Name'),
-        'meli_id': fields.Char('Id del item asignado por Meli', size=256),
-        'product_id': fields.Many2one('product.product','product_id'),
-        'meli_status': fields.Char( string="Estado del producto en MLA", size=256 ),
-        'meli_permalink': fields.Char( string="Permalink en MercadoLibre", size=512 ),
-        'meli_price': fields.Char(string='Precio de venta', size=128),
-        'posting_questions': fields.One2many( 'mercadolibre.questions','posting_id','Questions' ),
-        'posting_update': fields.Char( compute=posting_update, string="Posting Update", store=False ),
-    }
+    posting_date = fields.Date('Fecha del posting');
+    name = fields.Char('Name');
+    meli_id = fields.Char('Id del item asignado por Meli', size=256);
+    product_id = fields.Many2one('product.product','product_id');
+    meli_status = fields.Char( string="Estado del producto en MLA", size=256 );
+    meli_permalink = fields.Char( string="Permalink en MercadoLibre", size=512 );
+    meli_price = fields.Char(string='Precio de venta', size=128);
+    posting_questions = fields.One2many( 'mercadolibre.questions','posting_id','Questions' );
+    posting_update = fields.Char( compute=posting_update, string="Posting Update", store=False );
 
 mercadolibre_posting()

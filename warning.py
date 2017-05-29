@@ -8,12 +8,11 @@ WARNING_TYPES = [('warning','Warning'),('info','Information'),('error','Error')]
 class warning(models.TransientModel):
     _name = 'warning'
     _description = 'warning'
-    _columns = {
-        'type': fields.Selection(WARNING_TYPES, string='Type', readonly=True),
-        'title': fields.Char(string="Title", size=100, readonly=True),
-        'message': fields.Text(string="Message", readonly=True),
-        'message_html': fields.Html(string="Message HTML", readonly=True),
-    }
+    type = fields.Selection(WARNING_TYPES, string='Type', readonly=True);
+    title = fields.Char(string="Title", size=100, readonly=True);
+    message = fields.Text(string="Message", readonly=True);
+    message_html = fields.Html(string="Message HTML", readonly=True);
+
     _req_name = 'title'
 
     def _get_view_id(self, cr, uid):
