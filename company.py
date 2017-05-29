@@ -41,13 +41,14 @@ class res_company(models.Model):
     def meli_get_object( self, cr, uid, ids, field_name, attributes, context=None ):
         return True
 
-    def get_meli_state( self, cr, uid, ids, field_name, attributes, context=None ):
+    def get_meli_state( self ):
         # recoger el estado y devolver True o False (meli)
         #False if logged ok
         #True if need login
         print 'company get_meli_state() '
-        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        company = user_obj.company_id
+        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+        #company = user_obj.company_id
+        company = self.env.user.company_id
         warningobj = self.pool.get('warning')
 
         CLIENT_ID = company.mercadolibre_client_id
