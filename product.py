@@ -19,7 +19,8 @@
 #
 ##############################################################################
 
-from odoo import models, fields, api, _
+from odoo import models, fields, api, osv
+from odoo.tools.translate import _
 
 import logging
 _logger = logging.getLogger(__name__)
@@ -37,14 +38,14 @@ from meli_oerp_config import *
 from melisdk.meli import Meli
 
 
-class product_template(osv.osv):
+class product_template(models.Model):
     _inherit = "product.template"
     _columns = {
       'name': fields.Char('Name', size=128, required=True, translate=False, select=True)
     }
 product_template()
 
-class product_product(osv.osv):
+class product_product(models.Model):
 
     _inherit = "product.product"
 
