@@ -1,4 +1,5 @@
-from odoo import fields, osv, osv_memory, _
+from odoo import fields, osv, _
+from osv import osv_memory
 #from openerp.tools.translate import _
 
 #CHANGE WARNING_MODULE with your module name
