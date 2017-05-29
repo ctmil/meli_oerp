@@ -97,7 +97,7 @@ class res_company(models.Model):
         'mercadolibre_refresh_token': fields.Char( string='Refresh Token', size=256),
         'mercadolibre_code': fields.Char( string='Code', size=256),
         'mercadolibre_seller_id': fields.Char( string='Vendedor Id', size=256),
-        'mercadolibre_state': fields.Function( get_meli_state, method=True, type='boolean', string="Se requiere Iniciar Sesión con MLA", store=False ),
+        'mercadolibre_state': fields.Boolean( compute=get_meli_state, string="Se requiere Iniciar Sesión con MLA", store=False ),
         #'mercadolibre_login': fields.selection( [ ("unknown", "Desconocida"), ("logged","Abierta"), ("not logged","Cerrada")],string='Estado de la sesión'), )
     }
 

@@ -43,7 +43,7 @@ class sale_order_line(models.Model):
     }
 sale_order_line()
 
-class sale_order(osv.osv):
+class sale_order(models.Model):
     _inherit = "sale.order"
 
     _columns = {

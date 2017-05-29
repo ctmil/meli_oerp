@@ -788,7 +788,7 @@ class product_product(osv.osv):
     'meli_imagen_id': fields.Char(string='Imagen Id', size=256),
     'meli_post_required': fields.Boolean(string='Este producto es publicable en Mercado Libre'),
 	'meli_id': fields.Char( string='Id del item asignado por Meli', size=256),
-    'meli_permalink': fields.Function( product_get_permalink, method=True, type='char',  size=256, string='PermaLink in MercadoLibre' ),
+    'meli_permalink': fields.Char( compute=product_get_permalink, size=256, string='PermaLink in MercadoLibre' ),
 	'meli_title': fields.Char(string='Nombre del producto en Mercado Libre',size=256),
 	'meli_description': fields.Html(string='Descripción'),
     'meli_description_banner_id': fields.Many2one("mercadolibre.banner","Banner"),
@@ -806,8 +806,8 @@ class product_product(osv.osv):
     'meli_imagen_link': fields.Char(string='Imagen Link', size=256),
     'meli_multi_imagen_id': fields.Char(string='Multi Imagen Ids', size=512),
 	'meli_video': fields.Char( string='Video (id de youtube)', size=256),
-	'meli_state': fields.Function( product_get_meli_loginstate, method=True, type='boolean', string="Inicio de sesión requerida", store=False ),
-    'meli_status': fields.Function( product_get_meli_status, method=True, type='char', size=128, string="Estado del producto en MLA", store=False ),
+	'meli_state': fields.Boolean( compute=product_get_meli_loginstate, string="Inicio de sesión requerida", store=False ),
+    'meli_status': fields.Char( compute=product_get_meli_status, size=128, string="Estado del producto en MLA", store=False ),
 	### Agregar imagen/archivo uno o mas, y la descripcion en HTML...
 	# TODO Agregar el banner
     }

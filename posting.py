@@ -187,7 +187,7 @@ class mercadolibre_posting(models.Model):
         'meli_permalink': fields.Char( string="Permalink en MercadoLibre", size=512 ),
         'meli_price': fields.Char(string='Precio de venta', size=128),
         'posting_questions': fields.One2many( 'mercadolibre.questions','posting_id','Questions' ),
-        'posting_update': fields.Function( posting_update, method=True, type='char', string="Posting Update", store=False ),
+        'posting_update': fields.Char( compute=posting_update, string="Posting Update", store=False ),
     }
 
 mercadolibre_posting()

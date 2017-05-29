@@ -19,7 +19,7 @@
 #
 ##############################################################################
 
-from odoo import fields, osv
+from odoo import fields, osv, models
 import logging
 import meli_oerp_config
 
@@ -28,7 +28,7 @@ from melisdk.meli import Meli
 
 #https://api.mercadolibre.com/questions/search?item_id=MLA508223205
 
-class mercadolibre_questions(osv.osv):
+class mercadolibre_questions(models.Model):
 	_name = "mercadolibre.questions"
 	_description = "Preguntas en MercadoLibre"
 
