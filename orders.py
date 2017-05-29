@@ -76,7 +76,7 @@ class sale_order(models.Model):
 
 sale_order()
 
-class res_partner(osv.osv):
+class res_partner(models.Model):
     _inherit = "res.partner"
 
     _columns = {
@@ -516,57 +516,57 @@ class mercadolibre_orders(models.Model):
 mercadolibre_orders()
 
 
-class mercadolibre_order_items(osv.osv):
+class mercadolibre_order_items(models.Model):
 	_name = "mercadolibre.order_items"
 	_description = "Producto pedido en MercadoLibre"
 
 	_columns = {
-        'posting_id': fields.many2one("mercadolibre.posting","Posting"),
-        'order_id': fields.many2one("mercadolibre.orders","Order"),
-        'order_item_id': fields.char('Item Id'),
-        'order_item_title': fields.char('Item Title'),
-        'order_item_category_id': fields.char('Item Category Id'),
-        'unit_price': fields.char(string='Unit price'),
-        'quantity': fields.integer(string='Quantity'),
+        'posting_id': fields.Many2one("mercadolibre.posting","Posting"),
+        'order_id': fields.Many2one("mercadolibre.orders","Order"),
+        'order_item_id': fields.Char('Item Id'),
+        'order_item_title': fields.Char('Item Title'),
+        'order_item_category_id': fields.Char('Item Category Id'),
+        'unit_price': fields.Char(string='Unit price'),
+        'quantity': fields.Integer(string='Quantity'),
 #        'total_price': fields.char(string='Total price'),
-        'currency_id': fields.char(string='Currency')
+        'currency_id': fields.Char(string='Currency')
 	}
 mercadolibre_order_items()
 
 
-class mercadolibre_payments(osv.osv):
+class mercadolibre_payments(models.Model):
 	_name = "mercadolibre.payments"
 	_description = "Pagos en MercadoLibre"
 
 	_columns = {
-        'order_id': fields.many2one("mercadolibre.orders","Order"),
-        'payment_id': fields.char('Payment Id'),
-        'transaction_amount': fields.char('Transaction Amount'),
-        "currency_id": fields.char(string='Currency'),
-        "status": fields.char(string='Payment Status'),
-        "date_created": fields.date('Creation date'),
-        "date_last_modified": fields.date('Modification date'),
+        'order_id': fields.Many2one("mercadolibre.orders","Order"),
+        'payment_id': fields.Char('Payment Id'),
+        'transaction_amount': fields.Char('Transaction Amount'),
+        "currency_id": fields.Char(string='Currency'),
+        "status": fields.Char(string='Payment Status'),
+        "date_created": fields.Date('Creation date'),
+        "date_last_modified": fields.Date('Modification date'),
 	}
 mercadolibre_payments()
 
-class mercadolibre_buyers(osv.osv):
+class mercadolibre_buyers(models.Model):
 	_name = "mercadolibre.buyers"
 	_description = "Compradores en MercadoLibre"
 
 	_columns = {
-        'buyer_id': fields.char(string='Buyer ID'),
-        'nickname': fields.char(string='Nickname'),
-        'email': fields.char(string='Email'),
-        'phone': fields.char( string='Phone'),
-        'alternative_phone': fields.char( string='Alternative Phone'),
-        'first_name': fields.char( string='First Name'),
-        'last_name': fields.char( string='Last Name'),
-        'billing_info': fields.char( string='Billing Info'),
+        'buyer_id': fields.Char(string='Buyer ID'),
+        'nickname': fields.Char(string='Nickname'),
+        'email': fields.Char(string='Email'),
+        'phone': fields.Char( string='Phone'),
+        'alternative_phone': fields.Char( string='Alternative Phone'),
+        'first_name': fields.Char( string='First Name'),
+        'last_name': fields.Char( string='Last Name'),
+        'billing_info': fields.Char( string='Billing Info'),
 	}
 mercadolibre_buyers()
 
 
-class mercadolibre_orders_update(osv.osv_memory):
+class mercadolibre_orders_update(models.TransientModel):
     _name = "mercadolibre.orders.update"
     _description = "Update Order"
 
