@@ -40,7 +40,7 @@ from melisdk.meli import Meli
 class product_template(osv.osv):
     _inherit = "product.template"
     _columns = {
-      'name': fields.char('Name', size=128, required=True, translate=False, select=True)
+      'name': fields.Char('Name', size=128, required=True, translate=False, select=True)
     }
 product_template()
 
@@ -785,29 +785,29 @@ class product_product(osv.osv):
         return {}
 
     _columns = {
-    'meli_imagen_id': fields.char(string='Imagen Id', size=256),
-    'meli_post_required': fields.boolean(string='Este producto es publicable en Mercado Libre'),
-	'meli_id': fields.char( string='Id del item asignado por Meli', size=256),
-    'meli_permalink': fields.function( product_get_permalink, method=True, type='char',  size=256, string='PermaLink in MercadoLibre' ),
-	'meli_title': fields.char(string='Nombre del producto en Mercado Libre',size=256),
-	'meli_description': fields.html(string='Descripción'),
-    'meli_description_banner_id': fields.many2one("mercadolibre.banner","Banner"),
-	'meli_category': fields.many2one("mercadolibre.category","Categoría de MercadoLibre"),
-	'meli_listing_type': fields.selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special"),("gold_pro","Oro Pro")], string='Tipo de lista'),
-	'meli_buying_mode': fields.selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra'),
-	'meli_price': fields.char(string='Precio de venta', size=128),
-	'meli_price_fixed': fields.boolean(string='Price is fixed'),
-	'meli_currency': fields.selection([("ARS","Peso Argentino (ARS)")],string='Moneda (ARS)'),
-	'meli_condition': fields.selection([ ("new", "Nuevo"), ("used", "Usado"), ("not_specified","No especificado")],'Condición del producto'),
-	'meli_available_quantity': fields.integer(string='Cantidad disponible'),
-	'meli_warranty': fields.char(string='Garantía', size=256),
-	'meli_imagen_logo': fields.char(string='Imagen Logo', size=256),
-    'meli_imagen_id': fields.char(string='Imagen Id', size=256),
-    'meli_imagen_link': fields.char(string='Imagen Link', size=256),
-    'meli_multi_imagen_id': fields.char(string='Multi Imagen Ids', size=512),
-	'meli_video': fields.char( string='Video (id de youtube)', size=256),
-	'meli_state': fields.function( product_get_meli_loginstate, method=True, type='boolean', string="Inicio de sesión requerida", store=False ),
-    'meli_status': fields.function( product_get_meli_status, method=True, type='char', size=128, string="Estado del producto en MLA", store=False ),
+    'meli_imagen_id': fields.Char(string='Imagen Id', size=256),
+    'meli_post_required': fields.Boolean(string='Este producto es publicable en Mercado Libre'),
+	'meli_id': fields.Char( string='Id del item asignado por Meli', size=256),
+    'meli_permalink': fields.Function( product_get_permalink, method=True, type='char',  size=256, string='PermaLink in MercadoLibre' ),
+	'meli_title': fields.Char(string='Nombre del producto en Mercado Libre',size=256),
+	'meli_description': fields.Html(string='Descripción'),
+    'meli_description_banner_id': fields.Many2one("mercadolibre.banner","Banner"),
+	'meli_category': fields.Many2one("mercadolibre.category","Categoría de MercadoLibre"),
+	'meli_listing_type': fields.Selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special"),("gold_pro","Oro Pro")], string='Tipo de lista'),
+	'meli_buying_mode': fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra'),
+	'meli_price': fields.Char(string='Precio de venta', size=128),
+	'meli_price_fixed': fields.Boolean(string='Price is fixed'),
+	'meli_currency': fields.Selection([("ARS","Peso Argentino (ARS)")],string='Moneda (ARS)'),
+	'meli_condition': fields.Selection([ ("new", "Nuevo"), ("used", "Usado"), ("not_specified","No especificado")],'Condición del producto'),
+	'meli_available_quantity': fields.Integer(string='Cantidad disponible'),
+	'meli_warranty': fields.Char(string='Garantía', size=256),
+	'meli_imagen_logo': fields.Char(string='Imagen Logo', size=256),
+    'meli_imagen_id': fields.Char(string='Imagen Id', size=256),
+    'meli_imagen_link': fields.Char(string='Imagen Link', size=256),
+    'meli_multi_imagen_id': fields.Char(string='Multi Imagen Ids', size=512),
+	'meli_video': fields.Char( string='Video (id de youtube)', size=256),
+	'meli_state': fields.Function( product_get_meli_loginstate, method=True, type='boolean', string="Inicio de sesión requerida", store=False ),
+    'meli_status': fields.Function( product_get_meli_status, method=True, type='char', size=128, string="Estado del producto en MLA", store=False ),
 	### Agregar imagen/archivo uno o mas, y la descripcion en HTML...
 	# TODO Agregar el banner
     }

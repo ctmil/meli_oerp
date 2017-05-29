@@ -9,10 +9,10 @@ class warning(models.TransientModel):
     _name = 'warning'
     _description = 'warning'
     _columns = {
-        'type': fields.selection(WARNING_TYPES, string='Type', readonly=True),
-        'title': fields.char(string="Title", size=100, readonly=True),
-        'message': fields.text(string="Message", readonly=True),
-        'message_html': fields.html(string="Message HTML", readonly=True),
+        'type': fields.Selection(WARNING_TYPES, string='Type', readonly=True),
+        'title': fields.Char(string="Title", size=100, readonly=True),
+        'message': fields.Text(string="Message", readonly=True),
+        'message_html': fields.Html(string="Message HTML", readonly=True),
     }
     _req_name = 'title'
 

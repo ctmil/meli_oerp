@@ -19,7 +19,7 @@
 #
 ##############################################################################
 
-from odoo import fields, osv
+from odoo import fields, osv, models
 from odoo.tools.translate import _
 import logging
 import meli_oerp_config
@@ -30,7 +30,7 @@ _logger = logging.getLogger(__name__)
 from meli_oerp_config import *
 from melisdk.meli import Meli
 
-class mercadolibre_posting_update(osv.osv_memory):
+class mercadolibre_posting_update(models.TransientModel):
     _name = "mercadolibre.posting.update"
     _description = "Update Posting Questions"
 
@@ -51,7 +51,7 @@ class mercadolibre_posting_update(osv.osv_memory):
 mercadolibre_posting_update()
 
 
-class mercadolibre_posting(osv.osv):
+class mercadolibre_posting(models.Model):
     _name = "mercadolibre.posting"
     _description = "Posting en MercadoLibre"
 
@@ -179,15 +179,15 @@ class mercadolibre_posting(osv.osv):
         return {}
 
     _columns = {
-        'posting_date': fields.date('Fecha del posting'),
-        'name': fields.char('Name'),
-        'meli_id': fields.char('Id del item asignado por Meli', size=256),
-        'product_id': fields.many2one('product.product','product_id'),
-        'meli_status': fields.char( string="Estado del producto en MLA", size=256 ),
-        'meli_permalink': fields.char( string="Permalink en MercadoLibre", size=512 ),
-        'meli_price': fields.char(string='Precio de venta', size=128),
-        'posting_questions': fields.one2many( 'mercadolibre.questions','posting_id','Questions' ),
-        'posting_update': fields.function( posting_update, method=True, type='char', string="Posting Update", store=False ),
+        'posting_date': fields.Date('Fecha del posting'),
+        'name': fields.Char('Name'),
+        'meli_id': fields.Char('Id del item asignado por Meli', size=256),
+        'product_id': fields.Many2one('product.product','product_id'),
+        'meli_status': fields.Char( string="Estado del producto en MLA", size=256 ),
+        'meli_permalink': fields.Char( string="Permalink en MercadoLibre", size=512 ),
+        'meli_price': fields.Char(string='Precio de venta', size=128),
+        'posting_questions': fields.One2many( 'mercadolibre.questions','posting_id','Questions' ),
+        'posting_update': fields.Function( posting_update, method=True, type='char', string="Posting Update", store=False ),
     }
 
 mercadolibre_posting()

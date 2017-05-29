@@ -23,13 +23,13 @@ from odoo import fields, osv
 import logging
 
 
-class mercadolibre_banner(osv.osv):
+class mercadolibre_banner(models.Model):
     _name = "mercadolibre.banner"
     _description = "Banners for MercadoLibre descriptions"
 
     _columns = {
-	'name': fields.char('Name'),
-	'description': fields.html(string='Description'),
+	'name': fields.Char('Name'),
+	'description': fields.Html(string='Description'),
     }
 
 mercadolibre_banner()

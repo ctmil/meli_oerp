@@ -19,7 +19,7 @@
 #
 ##############################################################################
 
-from odoo import fields, osv, _
+from odoo import fields, osv, models, _
 from odoo.tools.translate import _
 import logging
 _logger = logging.getLogger(__name__)
@@ -36,13 +36,13 @@ from warning import warning
 import melisdk
 from melisdk.meli import Meli
 
-class product_post(osv.osv_memory):
+class product_post(models.TransientModel):
     _name = "mercadolibre.product.post"
     _description = "Wizard de Product Posting en MercadoLibre"
 
     _columns = {
-	    'type': fields.selection([('post','Alta'),('put','Editado'),('delete','Borrado')], string='Tipo de operación' ),
-	    'posting_date': fields.date('Fecha del posting'),
+	    'type': fields.Selection([('post','Alta'),('put','Editado'),('delete','Borrado')], string='Tipo de operación' ),
+	    'posting_date': fields.Date('Fecha del posting'),
 	    #'company_id': fields.many2one('res.company',string='Company'),
 	    #'mercadolibre_state': fields.related( 'res.company', 'mercadolibre_state', string="State" )
     }

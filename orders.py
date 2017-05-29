@@ -19,7 +19,7 @@
 #
 ##############################################################################
 
-from odoo import fields, osv
+from odoo import fields, osv, models
 import logging
 import meli_oerp_config
 
@@ -35,11 +35,11 @@ import posting
 import product
 #https://api.mercadolibre.com/questions/search?item_id=MLA508223205
 
-class sale_order_line(osv.osv):
+class sale_order_line(models.Model):
     _inherit = "sale.order.line"
 
     _columns = {
-        'meli_order_item_id': fields.char('Meli Order Item Id'),
+        'meli_order_item_id': fields.Char('Meli Order Item Id'),
     }
 sale_order_line()
 
@@ -47,8 +47,8 @@ class sale_order(osv.osv):
     _inherit = "sale.order"
 
     _columns = {
-        'meli_order_id': fields.char('Meli Order Id'),
-        'meli_status': fields.selection( [
+        'meli_order_id': fields.Char('Meli Order Id'),
+        'meli_status': fields.Selection( [
         #Initial state of an order, and it has no payment yet.
                                         ("confirmed","Confirmado"),
         #The order needs a payment to become confirmed and show users information.
@@ -60,16 +60,16 @@ class sale_order(osv.osv):
         #The order has not completed by some reason.
                                     ("cancelled","Cancelado")], string='Order Status'),
 
-        'meli_status_detail': fields.text(string='Status detail, in case the order was cancelled.'),
-        'meli_date_created': fields.date('Creation date'),
-        'meli_date_closed': fields.date('Closing date'),
+        'meli_status_detail': fields.Text(string='Status detail, in case the order was cancelled.'),
+        'meli_date_created': fields.Date('Creation date'),
+        'meli_date_closed': fields.Date('Closing date'),
 
 #        'meli_order_items': fields.one2many('mercadolibre.order_items','order_id','Order Items' ),
 #        'meli_payments': fields.one2many('mercadolibre.payments','order_id','Payments' ),
-        'meli_shipping': fields.text(string="Shipping"),
+        'meli_shipping': fields.Text(string="Shipping"),
 
-        'meli_total_amount': fields.char(string='Total amount'),
-        'meli_currency_id': fields.char(string='Currency'),
+        'meli_total_amount': fields.Char(string='Total amount'),
+        'meli_currency_id': fields.Char(string='Currency'),
 #        'buyer': fields.many2one( "mercadolibre.buyers","Buyer"),
 #       'meli_seller': fields.text( string='Seller' ),
     }
@@ -80,12 +80,12 @@ class res_partner(osv.osv):
     _inherit = "res.partner"
 
     _columns = {
-        'meli_buyer_id': fields.char('Meli Buyer Id'),
+        'meli_buyer_id': fields.Char('Meli Buyer Id'),
     }
 
 res_partner()
 
-class mercadolibre_orders(osv.osv):
+class mercadolibre_orders(models.Model):
     _name = "mercadolibre.orders"
     _description = "Pedidos en MercadoLibre"
 
@@ -485,9 +485,9 @@ class mercadolibre_orders(osv.osv):
         return {}
 
     _columns = {
-        'order_id': fields.char('Order Id'),
+        'order_id': fields.Char('Order Id'),
 
-        'status': fields.selection( [
+        'status': fields.Selection( [
         #Initial state of an order, and it has no payment yet.
                                         ("confirmed","Confirmado"),
         #The order needs a payment to become confirmed and show users information.
@@ -499,18 +499,18 @@ class mercadolibre_orders(osv.osv):
         #The order has not completed by some reason.
                                     ("cancelled","Cancelado")], string='Order Status'),
 
-        'status_detail': fields.text(string='Status detail, in case the order was cancelled.'),
-        'date_created': fields.date('Creation date'),
-        'date_closed': fields.date('Closing date'),
+        'status_detail': fields.Text(string='Status detail, in case the order was cancelled.'),
+        'date_created': fields.Date('Creation date'),
+        'date_closed': fields.Date('Closing date'),
 
-        'order_items': fields.one2many('mercadolibre.order_items','order_id','Order Items' ),
-        'payments': fields.one2many('mercadolibre.payments','order_id','Payments' ),
-        'shipping': fields.text(string="Shipping"),
+        'order_items': fields.One2many('mercadolibre.order_items','order_id','Order Items' ),
+        'payments': fields.One2many('mercadolibre.payments','order_id','Payments' ),
+        'shipping': fields.Text(string="Shipping"),
 
-        'total_amount': fields.char(string='Total amount'),
-        'currency_id': fields.char(string='Currency'),
-        'buyer': fields.many2one( "mercadolibre.buyers","Buyer"),
-        'seller': fields.text( string='Seller' ),
+        'total_amount': fields.Char(string='Total amount'),
+        'currency_id': fields.Char(string='Currency'),
+        'buyer': fields.Many2one( "mercadolibre.buyers","Buyer"),
+        'seller': fields.Text( string='Seller' ),
     }
 
 mercadolibre_orders()

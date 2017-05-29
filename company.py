@@ -34,7 +34,7 @@ from melisdk.meli import Meli
 
 #REDIRECT_URI = 'http://127.0.0.1:8069/meli_login'
 
-class res_company(osv.osv):
+class res_company(models.Model):
     _name = "res.company"
     _inherit = "res.company"
 
@@ -90,14 +90,14 @@ class res_company(osv.osv):
         return res
 
     _columns = {
-        'mercadolibre_client_id': fields.char(string='Client ID para ingresar a MercadoLibre',size=128),
-        'mercadolibre_secret_key': fields.char(string='Secret Key para ingresar a MercadoLibre',size=128),
-        'mercadolibre_redirect_uri': fields.char( string='Redirect uri (https://myserver/meli_login)',size=1024),
-        'mercadolibre_access_token': fields.char( string='Access Token',size=256),
-        'mercadolibre_refresh_token': fields.char( string='Refresh Token', size=256),
-        'mercadolibre_code': fields.char( string='Code', size=256),
-        'mercadolibre_seller_id': fields.char( string='Vendedor Id', size=256),
-        'mercadolibre_state': fields.function( get_meli_state, method=True, type='boolean', string="Se requiere Iniciar Sesión con MLA", store=False ),
+        'mercadolibre_client_id': fields.Char(string='Client ID para ingresar a MercadoLibre',size=128),
+        'mercadolibre_secret_key': fields.Char(string='Secret Key para ingresar a MercadoLibre',size=128),
+        'mercadolibre_redirect_uri': fields.Char( string='Redirect uri (https://myserver/meli_login)',size=1024),
+        'mercadolibre_access_token': fields.Char( string='Access Token',size=256),
+        'mercadolibre_refresh_token': fields.Char( string='Refresh Token', size=256),
+        'mercadolibre_code': fields.Char( string='Code', size=256),
+        'mercadolibre_seller_id': fields.Char( string='Vendedor Id', size=256),
+        'mercadolibre_state': fields.Function( get_meli_state, method=True, type='boolean', string="Se requiere Iniciar Sesión con MLA", store=False ),
         #'mercadolibre_login': fields.selection( [ ("unknown", "Desconocida"), ("logged","Abierta"), ("not logged","Cerrada")],string='Estado de la sesión'), )
     }
 
