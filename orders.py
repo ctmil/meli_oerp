@@ -516,7 +516,6 @@ class mercadolibre_order_items(models.Model):
 	_name = "mercadolibre.order_items"
 	_description = "Producto pedido en MercadoLibre"
 
-
     posting_id = fields.Many2one("mercadolibre.posting","Posting");
     order_id = fields.Many2one("mercadolibre.orders","Order");
     order_item_id = fields.Char('Item Id');
@@ -524,7 +523,7 @@ class mercadolibre_order_items(models.Model):
     order_item_category_id = fields.Char('Item Category Id');
     unit_price = fields.Char(string='Unit price');
     quantity = fields.Integer(string='Quantity');
-#       'total_price': fields.char(string='Total price'),
+    #       'total_price': fields.char(string='Total price'),
     currency_id': fields.Char(string='Currency');
 
 mercadolibre_order_items()
@@ -533,7 +532,6 @@ mercadolibre_order_items()
 class mercadolibre_payments(models.Model):
 	_name = "mercadolibre.payments"
 	_description = "Pagos en MercadoLibre"
-
 
     order_id = fields.Many2one("mercadolibre.orders","Order");
     payment_id = fields.Char('Payment Id');
@@ -548,7 +546,6 @@ mercadolibre_payments()
 class mercadolibre_buyers(models.Model):
 	_name = "mercadolibre.buyers"
 	_description = "Compradores en MercadoLibre"
-
 
     buyer_id = fields.Char(string='Buyer ID');
     nickname = fields.Char(string='Nickname');
