@@ -524,7 +524,7 @@ class mercadolibre_order_items(models.Model):
 	unit_price = fields.Char(string='Unit price');
 	quantity = fields.Integer(string='Quantity');
 	#       'total_price': fields.char(string='Total price'),
-	currency_id': fields.Char(string='Currency');
+	currency_id = fields.Char(string='Currency');
 
 mercadolibre_order_items()
 
