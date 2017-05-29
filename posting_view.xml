@@ -98,7 +98,7 @@
         </record>
 
 
-        <menuitem id="menu_meli" name="MercadoLibre" parent="base.menu_base_partner" sequence="9"/>
+        <menuitem id="menu_meli" name="MercadoLibre" parent="sales_team.menu_base_partner" sequence="9"/>
 
         <menuitem id="menu_meli_postings"
             action="action_meli_postings_tree"
