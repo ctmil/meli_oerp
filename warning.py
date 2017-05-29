@@ -1,5 +1,5 @@
-from openerp.osv import fields, osv
-from openerp.tools.translate import _
+from odoo import fields, osv, _
+#from openerp.tools.translate import _
 
 #CHANGE WARNING_MODULE with your module name
 WARNING_MODULE = 'meli_oerp'
@@ -20,7 +20,7 @@ class warning(osv.osv_memory):
         """Get the view id
         @return: view id, or False if no view found
         """
-        res = self.pool.get('ir.model.data').get_object_reference(cr, uid, 
+        res = self.pool.get('ir.model.data').get_object_reference(cr, uid,
         WARNING_MODULE, 'warning_form')
         return res and res[1] or False
 
@@ -58,5 +58,3 @@ class warning(osv.osv_memory):
         return res
 
 warning()
-
-
