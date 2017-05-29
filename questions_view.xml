@@ -8,7 +8,7 @@
             <field name="type">tree</field>
             <field name="arch" type="xml">
                 <tree string="Questions" >
-                    <field name="posting_id"/>                    
+                    <field name="posting_id"/>
                     <field name="question_id"/>
                     <field name="date_created"/>
                     <field name="item_id"/>
@@ -18,7 +18,7 @@
                     <field name="answer_date_created"/>
                     <field name="answer_status"/>
                     <field name="answer_text"/>
-                </tree>                
+                </tree>
             </field>
         </record>
 
@@ -44,7 +44,7 @@
         </record>
 
 
-        <menuitem id="menu_meli" name="MercadoLibre" parent="base.menu_base_partner" sequence="9"/>
+        <menuitem id="menu_meli" name="MercadoLibre" parent="sales_team.menu_base_partner" sequence="9"/>
 
         <menuitem id="menu_meli_questions"
             action="action_meli_questions_tree"

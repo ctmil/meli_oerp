@@ -198,7 +198,7 @@
             <field name="model">mercadolibre.orders</field>
         </record>
 
-        <menuitem id="menu_meli" name="MercadoLibre" parent="base.menu_base_partner" sequence="9"/>
+        <menuitem id="menu_meli" name="MercadoLibre" parent="sales_team.menu_base_partner" sequence="9"/>
 
         <menuitem id="menu_meli_orders"
             action="action_meli_orders_tree"
