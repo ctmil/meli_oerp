@@ -20,6 +20,7 @@
 ##############################################################################
 
 from odoo import fields, osv
+from odoo.tools.translate import _
 import logging
 import meli_oerp_config
 

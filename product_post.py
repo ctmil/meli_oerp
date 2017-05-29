@@ -20,6 +20,7 @@
 ##############################################################################
 
 from odoo import fields, osv, _
+from odoo.tools.translate import _
 import logging
 _logger = logging.getLogger(__name__)
 

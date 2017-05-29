@@ -19,8 +19,8 @@
 #
 ##############################################################################
 
-from odoo import fields, osv, _
-#from openerp.tools.translate import _
+from odoo import fields, osv
+from odoo.tools.translate import _
 import logging
 _logger = logging.getLogger(__name__)
 import urllib2
