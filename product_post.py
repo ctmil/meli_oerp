@@ -41,7 +41,7 @@ class product_post(models.TransientModel):
     _description = "Wizard de Product Posting en MercadoLibre"
 
     type = fields.Selection([('post','Alta'),('put','Editado'),('delete','Borrado')], string='Tipo de operación' );
-	posting_date = fields.Date('Fecha del posting');
+    posting_date = fields.Date('Fecha del posting');
 	    #'company_id': fields.many2one('res.company',string='Company'),
 	    #'mercadolibre_state': fields.related( 'res.company', 'mercadolibre_state', string="State" )
 
