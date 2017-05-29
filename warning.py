@@ -1,4 +1,4 @@
-from odoo import fields, osv
+from odoo import fields, osv, models
 from odoo.tools.translate import _
 
 #CHANGE WARNING_MODULE with your module name
