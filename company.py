@@ -45,7 +45,7 @@ class res_company(models.Model):
         # recoger el estado y devolver True o False (meli)
         #False if logged ok
         #True if need login
-        print 'company get_meli_state() '
+        _logger.info('company get_meli_state() ')
         #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
         #company = user_obj.company_id
         company = self.env.user.company_id
@@ -61,7 +61,7 @@ class res_company(models.Model):
 
         try:
             response = meli.get("/items/MLA1", {'access_token':meli.access_token} )
-            print "response.content:", response.content
+            _logger.info("response.content:", response.content)
             rjson = response.json()
             #response = meli.get("/users/")
             if "error" in rjson:
@@ -88,6 +88,7 @@ class res_company(models.Model):
         res = {}
         #for company in self.browse(cr,uid,ids):
         res[company.id] = ML_state
+        _logger.info("ML_state:",ML_state)
         return ML_state
 
     mercadolibre_client_id = fields.Char(string='Client ID para ingresar a MercadoLibre',size=128);
