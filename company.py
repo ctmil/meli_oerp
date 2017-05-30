@@ -101,10 +101,11 @@ class res_company(models.Model):
     #'mercadolibre_login': fields.selection( [ ("unknown", "Desconocida"), ("logged","Abierta"), ("not logged","Cerrada")],string='Estado de la sesión'), )
 
 
-    def	meli_logout(self, cr, uid, ids, context=None ):
+    def	meli_logout(self, cr ):
 
-        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        company = user_obj.company_id
+        company = self.env.user.company_id
+        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+        #company = user_obj.company_id
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
