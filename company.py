@@ -88,7 +88,7 @@ class res_company(models.Model):
         res = {}
         #for company in self.browse(cr,uid,ids):
         res[company.id] = ML_state
-        return res
+        return ML_state
 
     mercadolibre_client_id = fields.Char(string='Client ID para ingresar a MercadoLibre',size=128);
     mercadolibre_secret_key = fields.Char(string='Secret Key para ingresar a MercadoLibre',size=128);
