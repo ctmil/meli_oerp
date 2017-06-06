@@ -58,12 +58,10 @@ class product_product(models.Model):
         return {}
 
 
-    def product_meli_get_product( self, ids ):
-        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        #company = user_obj.company_id
+    def product_meli_get_product( self ):
         company = self.env.user.company_id
         product_obj = self.env['product.product']
-        product = product_obj.browse(ids[0])
+        product = self
 
         product_template_obj = self.env['product.template']
         product_template = product_template_obj.browse(product.product_tmpl_id.id)
@@ -185,8 +183,6 @@ class product_product(models.Model):
 
     def product_meli_login(self ):
 
-        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        #company = user_obj.company_id
         company = self.env.user.company_id
 
         REDIRECT_URI = company.mercadolibre_redirect_uri
@@ -209,8 +205,6 @@ class product_product(models.Model):
         # recoger el estado y devolver True o False (meli)
         #False if logged ok
         #True if need login
-        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        #company = user_obj.company_id
         company = self.env.user.company_id
 
         CLIENT_ID = company.mercadolibre_client_id
@@ -240,8 +234,6 @@ class product_product(models.Model):
         return res
 
     def product_meli_status_close( self, ids ):
-        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        #company = user_obj.company_id
         company = self.env.user.company_id
         product_obj = self.env['product.product']
         product = product_obj.browse(ids[0])
@@ -260,8 +252,6 @@ class product_product(models.Model):
         return {}
 
     def product_meli_status_pause( self, cr, uid, ids, context=None ):
-        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        #company = user_obj.company_id
         company = self.env.user.company_id
         product_obj = self.env['product.product']
         product = product_obj.browse(ids[0])
@@ -280,8 +270,6 @@ class product_product(models.Model):
         return {}
 
     def product_meli_status_active( self, ids ):
-        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        #company = user_obj.company_id
         company = self.env.user.company_id
         product_obj = self.env['product.product']
         product = product_obj.browse(ids[0])
@@ -301,8 +289,6 @@ class product_product(models.Model):
 
     def product_meli_delete( self, cr, uid, ids, context=None ):
 
-        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        #company = user_obj.company_id
         company = self.env.user.company_id
         product_obj = self.env['product.product']
         product = product_obj.browse(ids[0])
@@ -332,8 +318,6 @@ class product_product(models.Model):
 
     def product_meli_upload_image( self, cr, uid, ids, context=None ):
 
-        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        #company = user_obj.company_id
         company = self.env.user.company_id
 
         product_obj = self.env['product.product']
@@ -381,8 +365,6 @@ class product_product(models.Model):
 
     def product_meli_upload_multi_images( self, cr, uid, ids, context=None ):
 
-        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        #company = user_obj.company_id
         company = self.env.user.company_id
 
         product_obj = self.env['product.product']
@@ -487,11 +469,9 @@ class product_product(models.Model):
     def product_get_permalink( self, ids ):
         ML_permalink = ''
 
-        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        #company = user_obj.company_id
         company = self.env.user.company_id
 
-        product_obj = self.pool.get('product.product')
+        product_obj = self.env['product.product']
         product = product_obj.browse(ids[0])
 
         CLIENT_ID = company.mercadolibre_client_id
@@ -531,8 +511,6 @@ class product_product(models.Model):
 
         company = self.env.user.company_id
         warningobj = self.env['warning']
-
-        #company = self.pool.get('res.company').browse(cr,uid,1)
 
         REDIRECT_URI = company.mercadolibre_redirect_uri
         CLIENT_ID = company.mercadolibre_client_id

@@ -127,25 +127,25 @@ class mercadolibre_orders(models.Model):
         order_json = data["order_json"]
         #print "data:" + str(data)
         #_logger.info("orders_update_order_json > data[id]: " + oid + " order_json:" + order_json )
-        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        company = user_obj.company_id
+        company = self.env.user.company_id
 
-        saleorder_obj = self.pool.get('sale.order')
-        saleorderline_obj = self.pool.get('sale.order.line')
-        product_obj = self.pool.get('product.product')
-        pricelist_obj = self.pool.get('product.pricelist')
-        respartner_obj = self.pool.get('res.partner')
+        saleorder_obj = self.env['sale.order']
+        saleorderline_obj = self.env['sale.order.line']
+        product_obj = self.env['product.product']
 
-        plistids = pricelist_obj.search(cr,uid, [('currency_id','=','ARS')] )
+        pricelist_obj = self.env['product.pricelist']
+        respartner_obj = self.env['res.partner']
+
+        plistids = pricelist_obj.search([('currency_id','=','ARS')] )
         plistid = None
         if plistids:
             plistid = plistids[0]
 
-        order_obj = self.pool.get('mercadolibre.orders')
-        buyers_obj = self.pool.get('mercadolibre.buyers')
-        posting_obj = self.pool.get('mercadolibre.posting')
-        order_items_obj = self.pool.get('mercadolibre.order_items')
-        payments_obj = self.pool.get('mercadolibre.payments')
+        order_obj = self.env['mercadolibre.orders']
+        buyers_obj = self.env['mercadolibre.buyers']
+        posting_obj = self.env['mercadolibre.posting']
+        order_items_obj = self.env['mercadolibre.order_items']
+        payments_obj = self.env['mercadolibre.payments']
 
 
         order = None
@@ -153,18 +153,18 @@ class mercadolibre_orders(models.Model):
 
         # if id is defined, we are updating existing one
         if (oid):
-            order = order_obj.browse(cr, uid, oid )
+            order = order_obj.browse(oid )
             ##sorder = order_obj.browse(
-            sorder = saleorder_obj.browse(cr, uid, oid )
+            sorder = saleorder_obj.browse(oid )
         else:
         #we search for existing order with same order_id => "id"
-            order_s = order_obj.search(cr,uid, [ ('order_id','=',order_json['id']) ] )
+            order_s = order_obj.search([ ('order_id','=',order_json['id']) ] )
             if (order_s):
-                order = order_obj.browse(cr, uid, order_s[0] )
+                order = order_obj.browse(order_s[0] )
 
-            sorder_s = saleorder_obj.search(cr,uid, [ ('meli_order_id','=',order_json['id']) ] )
+            sorder_s = saleorder_obj.search([ ('meli_order_id','=',order_json['id']) ] )
             if (sorder_s and len(sorder_s)>0):
-                sorder = saleorder_obj.browse(cr, uid, sorder_s[0] )
+                sorder = saleorder_obj.browse(sorder_s[0] )
 
         order_fields = {
             'order_id': '%i' % (order_json["id"]),
@@ -199,28 +199,28 @@ class mercadolibre_orders(models.Model):
                 'billing_info': self.billing_info( cr, uid, Buyer['billing_info']),
             }
 
-            buyer_ids = buyers_obj.search(cr,uid,[  ('buyer_id','=',buyer_fields['buyer_id'] ) ] )
+            buyer_ids = buyers_obj.search([  ('buyer_id','=',buyer_fields['buyer_id'] ) ] )
             buyer_id = 0
             if not buyer_ids:
                 print "creating buyer:" + str(buyer_fields)
-                buyer_id = buyers_obj.create(cr,uid,( buyer_fields ))
+                buyer_id = buyers_obj.create(( buyer_fields ))
             else:
                 if (len(buyer_ids)>0):
                       buyer_id = buyer_ids[0]
 
-            partner_ids = respartner_obj.search(cr,uid,[  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ] )
+            partner_ids = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ] )
             partner_id = 0
             if not partner_ids:
                 print "creating partner:" + str(meli_buyer_fields)
-                partner_id = respartner_obj.create(cr,uid,( meli_buyer_fields ))
+                partner_id = respartner_obj.create(( meli_buyer_fields ))
             else:
                 if (len(partner_ids)>0):
                     partner_id = partner_ids[0]
 
             if order:
-                return_id = self.pool.get('mercadolibre.orders').write(cr,uid,order.id,{'buyer':buyer_id})
+                return_id = self.env['mercadolibre.orders'].write(order.id,{'buyer':buyer_id})
             else:
-                buyers_obj.write(cr,uid, buyer_id, ( buyer_fields ) )
+                buyers_obj.write(buyer_id, ( buyer_fields ) )
 
         if (len(partner_ids)>0):
             partner_id = partner_ids[0]
@@ -238,8 +238,8 @@ class mercadolibre_orders(models.Model):
         }
 
         if (order_json["shipping"]):
-            order_fields['shipping'] = self.pretty_json( cr, uid, id, order_json["shipping"] )
-            meli_order_fields['meli_shipping'] = self.pretty_json( cr, uid, id, order_json["shipping"] )
+            order_fields['shipping'] = self.pretty_json( id, order_json["shipping"] )
+            meli_order_fields['meli_shipping'] = self.pretty_json( id, order_json["shipping"] )
 
 
         #create or update order
@@ -250,8 +250,8 @@ class mercadolibre_orders(models.Model):
             _logger.info("Adding new order: " )
             _logger.info(order_fields)
             print "creating order:" + str(order_fields)
-            return_id = order_obj.create(cr,uid,(order_fields))
-            order = order_obj.browse(cr,uid,return_id)
+            return_id = order_obj.create( (order_fields))
+            order = order_obj.browse( return_id)
 
         if (sorder and sorder.id):
             _logger.info("Updating sale.order: %s" % (sorder.id))
@@ -260,8 +260,8 @@ class mercadolibre_orders(models.Model):
             _logger.info("Adding new sale.order: " )
             _logger.info(meli_order_fields)
             print "creating sale order:" + str(order_fields)
-            sreturn_id = saleorder_obj.create(cr,uid,(meli_order_fields))
-            sorder = saleorder_obj.browse(cr,uid,sreturn_id)
+            sreturn_id = saleorder_obj.create((meli_order_fields))
+            sorder = saleorder_obj.browse(sreturn_id)
 
         #check error
         if not order:
@@ -286,8 +286,8 @@ class mercadolibre_orders(models.Model):
                 _logger.info(cn)
                 _logger.info(Item )
 
-                product_related = product_obj.search( cr, uid, [('meli_id','=',Item['item']['id'])])
-                post_related = posting_obj.search( cr, uid, [('meli_id','=',Item['item']['id'])])
+                product_related = product_obj.search([('meli_id','=',Item['item']['id'])])
+                post_related = posting_obj.search([('meli_id','=',Item['item']['id'])])
                 post_related_obj = ''
                 product_related_obj = ''
                 product_related_obj_id = False
@@ -298,7 +298,7 @@ class mercadolibre_orders(models.Model):
                 if (product_related):
                     if (product_related[0]):
                         product_related_obj_id = product_related[0]
-                        product_related_obj = product_obj.browse(cr, uid, product_related_obj_id)
+                        product_related_obj = product_obj.browse( product_related_obj_id)
                         _logger.info("product_related:")
                         _logger.info( product_related_obj )
 
@@ -312,13 +312,13 @@ class mercadolibre_orders(models.Model):
                     'quantity': Item['quantity'],
                     'currency_id': Item['currency_id']
                 }
-                order_item_ids = order_items_obj.search(cr,uid,[('order_item_id','=',order_item_fields['order_item_id']),('order_id','=',order.id)] )
+                order_item_ids = order_items_obj.search( [('order_item_id','=',order_item_fields['order_item_id']),('order_id','=',order.id)] )
 
                 if not order_item_ids:
                     print "order_item_fields: " + str(order_item_fields)
-                    order_item_ids = order_items_obj.create(cr,uid,( order_item_fields ))
+                    order_item_ids = order_items_obj.create( ( order_item_fields ))
                 else:
-                    order_items_obj.write(cr,uid, order_item_ids[0], ( order_item_fields ) )
+                    order_items_obj.write( order_item_ids[0], ( order_item_fields ) )
 
                 saleorderline_item_fields = {
                     'company_id': company.id,
@@ -332,13 +332,13 @@ class mercadolibre_orders(models.Model):
                     'name': Item['item']['title'],
 #                    'customer_lead': float(0)
                 }
-                saleorderline_item_ids = saleorderline_obj.search(cr,uid,[('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
+                saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
 
                 if not saleorderline_item_ids:
                     print "saleorderline_item_fields: " + str(saleorderline_item_fields)
-                    saleorderline_item_ids = saleorderline_obj.create(cr,uid,( saleorderline_item_fields ))
+                    saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
                 else:
-                    saleorderline_obj.write(cr,uid, saleorderline_item_ids[0], ( saleorderline_item_fields ) )
+                    saleorderline_obj.write( saleorderline_item_ids[0], ( saleorderline_item_fields ) )
 
 
         if 'payments' in order_json:
@@ -360,29 +360,28 @@ class mercadolibre_orders(models.Model):
                     'date_last_modified': Payment['date_last_modified'] or '',
                 }
 
-                payment_ids = payments_obj.search(cr,uid,[  ('payment_id','=',payment_fields['payment_id']),
+                payment_ids = payments_obj.search( [  ('payment_id','=',payment_fields['payment_id']),
                                                             ('order_id','=',order.id ) ] )
 
                 if not payment_ids:
-	                payment_ids = payments_obj.create(cr,uid,( payment_fields ))
+	                payment_ids = payments_obj.create( ( payment_fields ))
                 else:
-                    payments_obj.write(cr,uid, payment_ids[0], ( payment_fields ) )
+                    payments_obj.write( payment_ids[0], ( payment_fields ) )
 
 
         if order:
-            return_id = self.pool.get('mercadolibre.orders').update
+            return_id = self.env['mercadolibre.orders'].update
 
         return {}
 
     def orders_update_order( self, cr, uid, id, context=None ):
 
         #get with an item id
-        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        company = user_obj.company_id
+        company = self.env.user.company_id
 
-        order_obj = self.pool.get('mercadolibre.orders')
-        order_items_obj = self.pool.get('mercadolibre.order_items')
-        order = order_obj.browse(cr, uid, id )
+        order_obj = self.env['mercadolibre.orders']
+        order_items_obj = self.env['mercadolibre.order_items']
+        order = order_obj.browse( id )
 
         log_msg = 'orders_update_order: %s' % (order.order_id)
         _logger.info(log_msg)
@@ -403,7 +402,7 @@ class mercadolibre_orders(models.Model):
             _logger.error( order_json["error"] )
             _logger.error( order_json["message"] )
         else:
-            self.orders_update_order_json( cr, uid, {"id": id, "order_json": order_json } )
+            self.orders_update_order_json( {"id": id, "order_json": order_json } )
 
 
         return {}
@@ -414,10 +413,9 @@ class mercadolibre_orders(models.Model):
 
         offset_next = 0
 
-        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        company = user_obj.company_id
+        company = self.env.user.company_id
 
-        orders_obj = self.pool.get('mercadolibre.orders')
+        orders_obj = self.env['mercadolibre.orders']
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
@@ -467,17 +465,17 @@ class mercadolibre_orders(models.Model):
                 if order_json:
                     _logger.info( order_json )
                     pdata = {"id": False, "order_json": order_json}
-                    self.orders_update_order_json( cr, uid, pdata )
+                    self.orders_update_order_json( pdata )
 
 
         if (offset_next>0):
-            self.orders_query_iterate(cr,uid,offset_next)
+            self.orders_query_iterate(offset_next)
 
         return {}
 
-    def orders_query_recent( self, cr, uid, context=None ):
+    def orders_query_recent( self ):
 
-        self.orders_query_iterate( cr, uid, 0 )
+        self.orders_query_iterate( 0 )
 
         return {}
 
@@ -563,17 +561,17 @@ class mercadolibre_orders_update(models.TransientModel):
     _name = "mercadolibre.orders.update"
     _description = "Update Order"
 
-    def order_update(self, cr, uid, ids, context=None):
+    def order_update(self, ids):
 
         orders_ids = context['active_ids']
-        orders_obj = self.pool.get('mercadolibre.orders')
+        orders_obj = self.env['mercadolibre.orders']
 
         for order_id in orders_ids:
 
             _logger.info("order_update: %s " % (order_id) )
 
-            order = orders_obj.browse(cr,uid, order_id)
-            orders_obj.orders_update_order( cr, uid, order_id )
+            order = orders_obj.browse( order_id)
+            orders_obj.orders_update_order( order_id )
 
         return {}
 

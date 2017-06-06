@@ -19,7 +19,7 @@
 #
 ##############################################################################
 
-from odoo import fields, osv, models
+from odoo import fields, osv, models, api
 from odoo.tools.translate import _
 import logging
 import meli_oerp_config
@@ -34,17 +34,18 @@ class mercadolibre_posting_update(models.TransientModel):
     _name = "mercadolibre.posting.update"
     _description = "Update Posting Questions"
 
-    def posting_update(self, cr, uid, ids, context=None):
+    def posting_update(self, ids ):
 
-        posting_ids = context['active_ids']
-        posting_obj = self.pool.get('mercadolibre.posting')
+        #posting_ids = context['active_ids']
+        posting_ids = ids
+        posting_obj = self.env['mercadolibre.posting']
 
         for posting_id in posting_ids:
 
             _logger.info("posting_update: %s " % (posting_id) )
 
-            posting = posting_obj.browse(cr,uid, posting_id)
-            posting_obj.posting_query_questions( cr, uid, posting_id )
+            posting = posting_obj.browse(posting_id)
+            posting_obj.posting_query_questions( posting_id )
 
         return {}
 
@@ -55,7 +56,7 @@ class mercadolibre_posting(models.Model):
     _name = "mercadolibre.posting"
     _description = "Posting en MercadoLibre"
 
-    def posting_update( self, cr, uid, ids, field_name, attributes, context=None):
+    def posting_update( self, ids, field_name, attributes, context=None):
 
         log_msg = 'posting_update: %s' % (field_name)
         _logger.info(log_msg)
@@ -75,14 +76,13 @@ class mercadolibre_posting(models.Model):
             res[posting.id] = update_status
         return res
 
-    def posting_query_questions( self, cr, uid, id, context=None ):
+    def posting_query_questions( self, id ):
 
         #get with an item id
-        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        company = user_obj.company_id
+        company = self.env.user.company_id
 
-        posting_obj = self.pool.get('mercadolibre.posting')
-        posting = posting_obj.browse(cr, uid, id )
+        posting_obj = self.env['mercadolibre.posting']
+        posting = posting_obj.browse( id )
 
         log_msg = 'posting_query_questions: %s' % (posting.meli_id)
         _logger.info(log_msg)
@@ -113,7 +113,7 @@ class mercadolibre_posting(models.Model):
         questions_json = response.json()
         #_logger.info( questions_json )
 
-        questions_obj = self.pool.get('mercadolibre.questions')
+        questions_obj = self.env['mercadolibre.questions']
 
         if 'questions' in questions_json:
             questions = questions_json['questions']
@@ -163,12 +163,12 @@ class mercadolibre_posting(models.Model):
                     question_fields['answer_status'] = question_answer['status']
                     question_fields['answer_date_created'] = question_answer['date_created']
 
-                question_fetch_ids = questions_obj.search(cr,uid,[('question_id','=',question_fields['question_id'])])
+                question_fetch_ids = questions_obj.search( [('question_id','=',question_fields['question_id'])])
 
                 if not question_fetch_ids:
-	                question_fetch_ids = questions_obj.create(cr,uid,( question_fields ))
+	                question_fetch_ids = questions_obj.create( ( question_fields ))
                 else:
-                    questions_obj.write(cr,uid, question_fetch_ids[0], ( question_fields ) )
+                    questions_obj.write( question_fetch_ids[0], ( question_fields ) )
 
 
         return {}

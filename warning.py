@@ -15,16 +15,15 @@ class warning(models.TransientModel):
 
     _req_name = 'title'
 
-    def _get_view_id(self, cr, uid):
+    def _get_view_id(self ):
         """Get the view id
         @return: view id, or False if no view found
         """
-        res = self.pool.get('ir.model.data').get_object_reference(cr, uid,
-        WARNING_MODULE, 'warning_form')
+        res = self.env['ir.model.data'].get_object_reference( WARNING_MODULE, 'warning_form')
         return res and res[1] or False
 
     def _message(self, cr, uid, id, context):
-        message = self.browse(cr, uid, id)
+        message = self.browse( id)
         message_type = [t[1]for t in WARNING_TYPES if message.type == t[0]][0]
         print '%s: %s' % (_(message_type), _(message.title))
         res = {
@@ -41,19 +40,19 @@ class warning(models.TransientModel):
         }
         return res
 
-    def warning(self, cr, uid, title, message, message_html='', context=None):
+    def warning(self, title, message, message_html='', context=None):
         id = self.create(cr, uid, {'title': title, 'message': message, 'message_html': message_html, 'type': 'warning'})
-        res = self._message(cr, uid, id, context)
+        res = self._message( id )
         return res
 
-    def info(self, cr, uid, title, message, message_html='', context=None):
-        id = self.create(cr, uid, {'title': title, 'message': message, 'message_html': message_html, 'type': 'info'})
-        res = self._message(cr, uid, id, context)
+    def info(self, title, message, message_html='', context=None):
+        id = self.create( {'title': title, 'message': message, 'message_html': message_html, 'type': 'info'})
+        res = self._message( id )
         return res
 
-    def error(self, cr, uid, title, message, message_html='', context=None):
-        id = self.create(cr, uid, {'title': title, 'message': message, 'message_html': message_html, 'type': 'error'})
-        res = self._message(cr, uid, id, context)
+    def error(self, title, message, message_html='', context=None):
+        id = self.create( {'title': title, 'message': message, 'message_html': message_html, 'type': 'error'})
+        res = self._message( id)
         return res
 
 warning()
