@@ -118,7 +118,7 @@ class product_product(models.Model):
         mlcatid = ""
         if ('category_id' in rjson):
             category_id = rjson['category_id']
-            ml_cat_id = self.env['mercadolibre.category'].search([('meli_category_id','=',category_id)])
+            ml_cat_id = self.env['mercadolibre.category'].search([('meli_category_id','=',category_id)]).id
             if (ml_cat_id):
               print "category exists!" + str(ml_cat_id)
               mlcatid = ml_cat_id[0]
