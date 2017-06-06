@@ -1,4 +1,4 @@
-from odoo import http
+from odoo import http, api
 
 import melisdk
 from melisdk.meli import Meli
@@ -36,7 +36,8 @@ class MercadoLibreLogin(http.Controller):
     @http.route(['/meli_login'], type='http', auth="user", methods=['GET'], website=True)
     def index(self, **codes ):
         cr, uid, context = request.cr, request.uid, request.context
-        company = request.registry.get('res.company').browse(cr,uid,1)
+        #company = request.registry.get('res.company').browse(cr,uid,1)
+        company = self.env.user.company_id
         REDIRECT_URI = company.mercadolibre_redirect_uri
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
