@@ -22,6 +22,7 @@
 from odoo import models, fields, api, osv
 from odoo.tools.translate import _
 
+import pdb
 import logging
 _logger = logging.getLogger(__name__)
 
