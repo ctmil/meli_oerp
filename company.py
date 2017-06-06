@@ -19,7 +19,7 @@
 #
 ##############################################################################
 
-from odoo import fields, osv, models
+from odoo import fields, osv, models, api
 from odoo.tools.translate import _
 import logging
 _logger = logging.getLogger(__name__)
