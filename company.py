@@ -24,6 +24,7 @@ from odoo.tools.translate import _
 import logging
 _logger = logging.getLogger(__name__)
 import urllib2
+import pdb
 
 from meli_oerp_config import *
 from warning import warning
@@ -41,6 +42,7 @@ class res_company(models.Model):
     def meli_get_object( self, cr, uid, ids, field_name, attributes, context=None ):
         return True
 
+    @api.multi
     def get_meli_state( self ):
         # recoger el estado y devolver True o False (meli)
         #False if logged ok
@@ -58,6 +60,8 @@ class res_company(models.Model):
 
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
         ML_state = False
+
+        pdb.set_trace()
 
         try:
             response = meli.get("/items/MLA1", {'access_token':meli.access_token} )
@@ -87,9 +91,11 @@ class res_company(models.Model):
 
         res = {}
         #for company in self.browse(cr,uid,ids):
-        res[company.id] = ML_state
+        for company in self
+            res[company.id] = ML_state
+            company.mercadolibre_state = ML_state
         _logger.info("ML_state:",ML_state)
-        return ML_state
+        return res
 
     mercadolibre_client_id = fields.Char(string='Client ID para ingresar a MercadoLibre',size=128);
     mercadolibre_secret_key = fields.Char(string='Secret Key para ingresar a MercadoLibre',size=128);
