@@ -265,6 +265,7 @@ class res_company(models.Model):
                         idcreated = self.env['product.product'].create({ 'name': rjson3['id'], 'description': rjson3['title'], 'meli_id': rjson3['id'] })
                         if (idcreated):
                             _logger.info( "product created: " + str(rjson3['id']) + "-" + str( rjson3['title']) )
+                            pdb.set_trace()
                             product = product_obj.browse(idcreated)
                             product_obj.product_meli_get_product( product )
                     else:

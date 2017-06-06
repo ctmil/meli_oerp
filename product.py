@@ -61,6 +61,7 @@ class product_product(models.Model):
     def product_meli_get_product( self ):
         company = self.env.user.company_id
         product_obj = self.env['product.product']
+        pdb.set_trace()
         product = self
 
         product_template_obj = self.env['product.template']
