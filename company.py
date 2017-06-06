@@ -128,8 +128,9 @@ class res_company(models.Model):
             "target": "new",
         }
 
-    def meli_login(self, cr, uid, ids, context=None ):
-
+    @api.multi
+    def meli_login(self):
+        self.ensure_one()
         user_obj = self.pool.get('res.users').browse(cr, uid, uid)
         company = user_obj.company_id
 
