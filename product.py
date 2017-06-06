@@ -57,9 +57,12 @@ class product_product(models.Model):
 
         return {}
 
-    def product_meli_get_products( self, cr, uid, context=None ):
-        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        company = user_obj.company_id
+
+    def product_meli_get_products( self ):
+        _logger.info('product.product_meli_get_products() ')
+        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+        #company = user_obj.company_id
+        company = self.env.user.company_id
         product_obj = self.pool.get('product.product')
         #product = product_obj.browse(cr, uid, ids[0])
 

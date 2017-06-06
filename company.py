@@ -61,7 +61,7 @@ class res_company(models.Model):
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
         ML_state = False
 
-        pdb.set_trace()
+        #pdb.set_trace()
 
         try:
             response = meli.get("/items/MLA1", {'access_token':meli.access_token} )
@@ -107,9 +107,10 @@ class res_company(models.Model):
     mercadolibre_state = fields.Boolean( compute=get_meli_state, string="Se requiere Iniciar Sesión con MLA", store=False );
     #'mercadolibre_login': fields.selection( [ ("unknown", "Desconocida"), ("logged","Abierta"), ("not logged","Cerrada")],string='Estado de la sesión'), )
 
-
-    def	meli_logout(self, cr ):
-
+    @api.multi
+    def	meli_logout(self):
+        _logger.info('company.meli_logout() ')
+        self.ensure_one()
         company = self.env.user.company_id
         #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
         #company = user_obj.company_id
@@ -130,9 +131,11 @@ class res_company(models.Model):
 
     @api.multi
     def meli_login(self):
+        _logger.info('company.meli_login() ')
         self.ensure_one()
-        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        company = user_obj.company_id
+        company = self.env.user.company_id
+        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+        #company = user_obj.company_id
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
@@ -149,25 +152,31 @@ class res_company(models.Model):
             "target": "self",
         }
 
-    def meli_query_orders(self, cr, uid, ids, context=None ):
+    @api.multi
+    def meli_query_orders(self):
 
-        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        company = user_obj.company_id
+        _logger.info('company.meli_query_orders() ')
+        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+        #company = user_obj.company_id
+        company = self.env.user.company_id
 
         orders_obj = self.pool.get('mercadolibre.orders')
 
-        result = orders_obj.orders_query_recent(cr,uid)
+        result = orders_obj.orders_query_recent()
 #"type": "ir.actions.act_window",
 #"id": "action_meli_orders_tree",
         return {}
 
-    def meli_query_products(self, cr, uid, ids, context=None ):
-        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        company = user_obj.company_id
+    @api.multi
+    def meli_query_products(self):
+        _logger.info('company.meli_query_products() ')
+        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+        #company = user_obj.company_id
+        company = self.env.user.company_id
 
         products_obj = self.pool.get('product.product')
 
-        result = products_obj.product_meli_get_products(cr,uid)
+        result = products_obj.product_meli_get_products()
         #"type": "ir.actions.act_window",
         #"id": "action_meli_orders_tree",
         return {}
