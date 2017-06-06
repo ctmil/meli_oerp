@@ -62,10 +62,10 @@ class product_product(models.Model):
         #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
         #company = user_obj.company_id
         company = self.env.user.company_id
-        product_obj = self.pool.get('product.product')
+        product_obj = self.env['product.product']
         product = product_obj.browse(ids[0])
 
-        product_template_obj = self.pool.get('product.template')
+        product_template_obj = self.env['product.template']
         product_template = product_template_obj.browse(product.product_tmpl_id.id)
 
         CLIENT_ID = company.mercadolibre_client_id
@@ -118,7 +118,7 @@ class product_product(models.Model):
         mlcatid = ""
         if ('category_id' in rjson):
             category_id = rjson['category_id']
-            ml_cat_id = self.pool.get('mercadolibre.category').search([('meli_category_id','=',category_id)])
+            ml_cat_id = self.env['mercadolibre.category'].search([('meli_category_id','=',category_id)])
             if (ml_cat_id):
               print "category exists!" + str(ml_cat_id)
               mlcatid = ml_cat_id[0]
@@ -140,7 +140,7 @@ class product_product(models.Model):
                 'name': fullname,
                 'meli_category_id': ''+str(category_id),
               }
-              ml_cat_id = self.pool.get('mercadolibre.category').create((cat_fields))
+              ml_cat_id = self.env['mercadolibre.category'].create((cat_fields))
               if (ml_cat_id):
                   mlcatid = ml_cat_id
 
@@ -239,11 +239,12 @@ class product_product(models.Model):
             res[product.id] = ML_state
         return res
 
-    def product_meli_status_close( self, cr, uid, ids, context=None ):
-        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        company = user_obj.company_id
-        product_obj = self.pool.get('product.product')
-        product = product_obj.browse(cr, uid, ids[0])
+    def product_meli_status_close( self, ids ):
+        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+        #company = user_obj.company_id
+        company = self.env.user.company_id
+        product_obj = self.env['product.product']
+        product = product_obj.browse(ids[0])
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
@@ -259,10 +260,11 @@ class product_product(models.Model):
         return {}
 
     def product_meli_status_pause( self, cr, uid, ids, context=None ):
-        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        company = user_obj.company_id
-        product_obj = self.pool.get('product.product')
-        product = product_obj.browse(cr, uid, ids[0])
+        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+        #company = user_obj.company_id
+        company = self.env.user.company_id
+        product_obj = self.env['product.product']
+        product = product_obj.browse(ids[0])
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
@@ -277,11 +279,12 @@ class product_product(models.Model):
 
         return {}
 
-    def product_meli_status_active( self, cr, uid, ids, context=None ):
-        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        company = user_obj.company_id
-        product_obj = self.pool.get('product.product')
-        product = product_obj.browse(cr, uid, ids[0])
+    def product_meli_status_active( self, ids ):
+        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+        #company = user_obj.company_id
+        company = self.env.user.company_id
+        product_obj = self.env['product.product']
+        product = product_obj.browse(ids[0])
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
@@ -298,13 +301,14 @@ class product_product(models.Model):
 
     def product_meli_delete( self, cr, uid, ids, context=None ):
 
-        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        company = user_obj.company_id
-        product_obj = self.pool.get('product.product')
-        product = product_obj.browse(cr, uid, ids[0])
+        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+        #company = user_obj.company_id
+        company = self.env.user.company_id
+        product_obj = self.env['product.product']
+        product = product_obj.browse(ids[0])
 
         if product.meli_status!='closed':
-            self.product_meli_status_close( cr, uid, ids, context )
+            self.product_meli_status_close( ids )
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
@@ -328,11 +332,12 @@ class product_product(models.Model):
 
     def product_meli_upload_image( self, cr, uid, ids, context=None ):
 
-        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        company = user_obj.company_id
+        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+        #company = user_obj.company_id
+        company = self.env.user.company_id
 
-        product_obj = self.pool.get('product.product')
-        product = product_obj.browse(cr, uid, ids[0])
+        product_obj = self.env['product.product']
+        product = product_obj.browse(ids[0])
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
@@ -376,11 +381,12 @@ class product_product(models.Model):
 
     def product_meli_upload_multi_images( self, cr, uid, ids, context=None ):
 
-        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        company = user_obj.company_id
+        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+        #company = user_obj.company_id
+        company = self.env.user.company_id
 
-        product_obj = self.pool.get('product.product')
-        product = product_obj.browse(cr, uid, ids[0])
+        product_obj = self.env['product.product']
+        product = product_obj.browse(ids[0])
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
@@ -421,16 +427,16 @@ class product_product(models.Model):
 
     def product_on_change_meli_banner(self, cr, uid, ids, banner_id ):
 
-        banner_obj = self.pool.get('mercadolibre.banner')
+        banner_obj = self.env['mercadolibre.banner']
 
         #solo para saber si ya habia una descripcion completada
-        product_obj = self.pool.get('product.product')
+        product_obj = self.env['product.product']
         if len(ids):
-            product = product_obj.browse(cr, uid, ids[0])
+            product = product_obj.browse(ids[0])
         else:
-            product = product_obj.browse(cr, uid, ids)
+            product = product_obj.browse(ids)
 
-        banner = banner_obj.browse( cr, uid, banner_id )
+        banner = banner_obj.browse( banner_id )
 
         #banner.description
         _logger.info( banner.description )
@@ -447,12 +453,11 @@ class product_product(models.Model):
 
     def product_get_meli_status( self, cr, uid, ids, field_name, attributes, context=None ):
 
-        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        company = user_obj.company_id
-        warningobj = self.pool.get('warning')
+        company = self.env.user.company_id
+        warningobj = self.env['warning']
 
-        product_obj = self.pool.get('product.product')
-        product = product_obj.browse(cr, uid, ids[0])
+        product_obj = self.env['product.product']
+        product = product_obj.browse(ids[0])
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
@@ -475,18 +480,19 @@ class product_product(models.Model):
                         product.write({ 'meli_id': '' })
 
         res = {}
-        for product in self.browse(cr,uid,ids):
+        for product in self:#.browse(cr,uid,ids):
             res[product.id] = ML_status
         return res
 
-    def product_get_permalink( self, cr, uid, ids, field_name, attributes, context=None ):
+    def product_get_permalink( self, ids ):
         ML_permalink = ''
 
-        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        company = user_obj.company_id
+        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+        #company = user_obj.company_id
+        company = self.env.user.company_id
 
         product_obj = self.pool.get('product.product')
-        product = product_obj.browse(cr, uid, ids[0])
+        product = product_obj.browse(ids[0])
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
@@ -512,21 +518,19 @@ class product_product(models.Model):
 
 
         res = {}
-        for product in self.browse(cr,uid,ids):
+        for product in self:#.browse(cr,uid,ids):
             res[product.id] = ML_permalink
         return res
 
 
-    def product_post(self, cr, uid, ids, context=None):
-        import pdb;pdb.set_trace();
+    def product_post(self,ids):
+        #import pdb;pdb.set_trace();
 #        product_ids = context['active_ids']
         product_ids = ids
-        product_obj = self.pool.get('product.product')
+        product_obj = self.env['product.product']
 
-        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        #user_obj.company_id.meli_login()
-        company = user_obj.company_id
-        warningobj = self.pool.get('warning')
+        company = self.env.user.company_id
+        warningobj = self.env['warning']
 
         #company = self.pool.get('res.company').browse(cr,uid,1)
 
@@ -549,7 +553,7 @@ class product_product(models.Model):
             }
 
         for product_id in product_ids:
-            product = product_obj.browse(cr,uid,product_id)
+            product = product_obj.browse(product_id)
 
             if (product.meli_id):
                 response = meli.get("/items/%s" % product.meli_id, {'access_token':meli.access_token})
@@ -585,7 +589,7 @@ class product_product(models.Model):
 
             #publicando imagen cargada en OpenERP
             if product.image==None:
-                return warningobj.info(cr, uid, title='MELI WARNING', message="Debe cargar una imagen de base en el producto.", message_html="" )
+                return warningobj.info( title='MELI WARNING', message="Debe cargar una imagen de base en el producto.", message_html="" )
             elif product.meli_imagen_id==False:
                 # print "try uploading image..."
                 resim = product.product_meli_upload_image()
@@ -653,11 +657,11 @@ class product_product(models.Model):
 
 
             else:
-                return warningobj.info(cr, uid, title='MELI WARNING', message="Debe completar el campo 'Imagen_Logo' con el url: http://www.nuevohorizonte-sa.com.ar/images/logo1.png", message_html="")
+                return warningobj.info(title='MELI WARNING', message="Debe completar el campo 'Imagen_Logo' con el url: http://www.nuevohorizonte-sa.com.ar/images/logo1.png", message_html="")
 
             #check fields
             if product.meli_description==False:
-                return warningobj.info(cr, uid, title='MELI WARNING', message="Debe completar el campo 'description' (en html)", message_html="")
+                return warningobj.info(title='MELI WARNING', message="Debe completar el campo 'description' (en html)", message_html="")
 
             #put for editing, post for creating
             if product.meli_id:
@@ -684,10 +688,10 @@ class product_product(models.Model):
                     url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
                     #print "url_login_meli:", url_login_meli
                     #raise osv.except_osv( _('MELI WARNING'), _('INVALID TOKEN or EXPIRED TOKEN (must login, go to Edit Company and login):  error: %s, message: %s, status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
-                    return warningobj.info(cr, uid, title='MELI WARNING', message="Debe iniciar sesión en MELI.  ", message_html="")
+                    return warningobj.info( title='MELI WARNING', message="Debe iniciar sesión en MELI.  ", message_html="")
                 else:
                      #Any other errors
-                    return warningobj.info(cr, uid, title='MELI WARNING', message="Completar todos los campos!  ", message_html="<br><br>"+missing_fields )
+                    return warningobj.info( title='MELI WARNING', message="Completar todos los campos!  ", message_html="<br><br>"+missing_fields )
 
             #last modifications if response is OK
             if "id" in rjson:
@@ -695,10 +699,10 @@ class product_product(models.Model):
 
             posting_fields = {'posting_date': str(datetime.now()),'meli_id':rjson['id'],'product_id':product.id,'name': 'Post: ' + product.meli_title }
 
-            posting_id = self.pool.get('mercadolibre.posting').search(cr,uid,[('meli_id','=',rjson['id'])])
+            posting_id = self.env['mercadolibre.posting'].search( [('meli_id','=',rjson['id'])])
 
             if not posting_id:
-                posting_id = self.pool.get('mercadolibre.posting').create(cr,uid,(posting_fields))
+                posting_id = self.env['mercadolibre.posting'].create((posting_fields))
 
 
         return {}
