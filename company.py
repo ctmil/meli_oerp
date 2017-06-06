@@ -253,7 +253,7 @@ class res_company(models.Model):
                 print item_id
                 iitem+= 1
                 _logger.info( item_id + "("+str(iitem)+"/"+str(rjson['paging']['total'])+")" )
-                posting_id = self.pool.get('product.product').search([('meli_id','=',item_id)])
+                posting_id = self.env['product.product'].search([('meli_id','=',item_id)])
                 response = meli.get("/items/"+item_id, {'access_token':meli.access_token})
                 rjson3 = response.json()
                 if (posting_id):
