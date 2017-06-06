@@ -176,7 +176,7 @@ class res_company(models.Model):
 
         products_obj = self.pool.get('product.product')
 
-        result = products_obj.product_meli_get_products(self)
+        result = products_obj.product_meli_get_products(products_obj)
         #"type": "ir.actions.act_window",
         #"id": "action_meli_orders_tree",
         return {}
