@@ -91,7 +91,7 @@ class res_company(models.Model):
 
         res = {}
         #for company in self.browse(cr,uid,ids):
-        for company in self
+        for company in self:
             res[company.id] = ML_state
             company.mercadolibre_state = ML_state
         _logger.info("ML_state:",ML_state)
