@@ -253,10 +253,10 @@ class product_product(models.Model):
 
         return {}
 
-    def product_meli_status_pause( self, cr, uid, ids, context=None ):
+    def product_meli_status_pause( self ):
         company = self.env.user.company_id
         product_obj = self.env['product.product']
-        product = product_obj.browse(ids[0])
+        product = self
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
@@ -271,10 +271,10 @@ class product_product(models.Model):
 
         return {}
 
-    def product_meli_status_active( self, ids ):
+    def product_meli_status_active( self ):
         company = self.env.user.company_id
         product_obj = self.env['product.product']
-        product = product_obj.browse(ids[0])
+        product = self
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
@@ -289,11 +289,11 @@ class product_product(models.Model):
 
         return {}
 
-    def product_meli_delete( self, cr, uid, ids, context=None ):
+    def product_meli_delete( self ):
 
         company = self.env.user.company_id
         product_obj = self.env['product.product']
-        product = product_obj.browse(ids[0])
+        product = self
 
         if product.meli_status!='closed':
             self.product_meli_status_close( ids )
@@ -318,12 +318,12 @@ class product_product(models.Model):
 
         return {}
 
-    def product_meli_upload_image( self, cr, uid, ids, context=None ):
+    def product_meli_upload_image( self ):
 
         company = self.env.user.company_id
 
         product_obj = self.env['product.product']
-        product = product_obj.browse(ids[0])
+        product = self
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
@@ -365,12 +365,12 @@ class product_product(models.Model):
 
         return { 'status': 'success', 'message': 'uploaded and assigned' }
 
-    def product_meli_upload_multi_images( self, cr, uid, ids, context=None ):
+    def product_meli_upload_multi_images( self  ):
 
         company = self.env.user.company_id
 
         product_obj = self.env['product.product']
-        product = product_obj.browse(ids[0])
+        product = self
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
@@ -409,16 +409,17 @@ class product_product(models.Model):
         return image_ids
 
 
-    def product_on_change_meli_banner(self, cr, uid, ids, banner_id ):
+    def product_on_change_meli_banner(self, banner_id ):
 
         banner_obj = self.env['mercadolibre.banner']
 
         #solo para saber si ya habia una descripcion completada
         product_obj = self.env['product.product']
-        if len(ids):
-            product = product_obj.browse(ids[0])
-        else:
-            product = product_obj.browse(ids)
+        product = self
+        #if len(ids):
+        #    product = self
+        #else:
+        #    product = product_obj.browse(ids)
 
         banner = banner_obj.browse( banner_id )
 
@@ -435,13 +436,13 @@ class product_product(models.Model):
 
         return { 'value': { 'meli_description' : result } }
 
-    def product_get_meli_status( self, cr, uid, ids, field_name, attributes, context=None ):
+    def product_get_meli_status( self ):
 
         company = self.env.user.company_id
         warningobj = self.env['warning']
 
         product_obj = self.env['product.product']
-        product = product_obj.browse(ids[0])
+        product = self
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
@@ -468,13 +469,13 @@ class product_product(models.Model):
             res[product.id] = ML_status
         return res
 
-    def product_get_permalink( self, ids ):
+    def product_get_permalink( self ):
         ML_permalink = ''
 
         company = self.env.user.company_id
 
         product_obj = self.env['product.product']
-        product = product_obj.browse(ids[0])
+        product = self
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
