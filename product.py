@@ -49,7 +49,7 @@ class product_product(models.Model):
 
     _inherit = "product.product"
 
-    @api.one
+    #@api.one
     @api.onchange('lst_price') # if these fields are changed, call method
     def check_change_price(self):
         pdb.set_trace();
@@ -60,10 +60,10 @@ class product_product(models.Model):
             else:
                 pricelist = pricelists[0].id
         self.meli_price = str(self.lst_price)
-        res = {}
-        for id in self:
-            res[id] = self.lst_price
-        return res
+        #res = {}
+        #for id in self:
+        #    res[id] = self.lst_price
+        #return res
 
 
     def product_meli_get_product( self ):
