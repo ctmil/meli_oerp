@@ -47,11 +47,12 @@ class product_post(models.TransientModel):
 	    #'mercadolibre_state': fields.related( 'res.company', 'mercadolibre_state', string="State" )
 
 
-    def pretty_json( self, cr, uid, ids, data, indent=0, context=None ):
+    def pretty_json( self, data ):
         return json.dumps( data, sort_keys=False, indent=4 )
 
     def product_post(self, context):
         pdb.set_trace()
+        company = self.env.user.company_id
         product_ids = context['active_ids']
         product_obj = self.env['product.product']
 
