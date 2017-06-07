@@ -52,7 +52,7 @@ class product_product(models.Model):
     #@api.one
     @api.onchange('lst_price') # if these fields are changed, call method
     def check_change_price(self):
-        pdb.set_trace();
+        #pdb.set_trace();
         pricelists = self.env['product.pricelist'].search([])
         if pricelists:
             if pricelists.id:
