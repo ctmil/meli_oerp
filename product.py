@@ -121,7 +121,7 @@ class product_product(models.Model):
             ml_cat_id = self.env['mercadolibre.category'].search([('meli_category_id','=',category_id)]).id
             if (ml_cat_id):
               print "category exists!" + str(ml_cat_id)
-              mlcatid = ml_cat_id[0]
+              mlcatid = ml_cat_id
             else:
               print "Creating category: " + str(category_id)
               #https://api.mercadolibre.com/categories/MLA1743
