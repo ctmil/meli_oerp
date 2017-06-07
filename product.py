@@ -215,6 +215,8 @@ class product_product(models.Model):
         # recoger el estado y devolver True o False (meli)
         #False if logged ok
         #True if need login
+        self.ensure_one()
+        pdb.set_trace()
         company = self.env.user.company_id
 
         CLIENT_ID = company.mercadolibre_client_id
@@ -225,7 +227,7 @@ class product_product(models.Model):
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
         ML_state = False
-        if ACCESS_TOKEN=='':
+        if ACCESS_TOKEN=='' or ACCESS_TOKEN==False:
             ML_state = True
         else:
             response = meli.get("/users/me/", {'access_token':meli.access_token} )
@@ -238,10 +240,11 @@ class product_product(models.Model):
                     ML_state = True
                     #raise osv.except_osv( _('MELI WARNING'), _('INVALID TOKEN (must login, go to Edit Company and login):  error: %s, message: %s, status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
 
-        res = {}
-        for product in self:#.browse(cr,uid,ids):
-            res[product.id] = ML_state
-        return res
+        self.meli_state = ML_state
+        #res = {}
+        #for company in self:#.browse(cr,uid,ids):
+        #    res[company.id] = ML_state
+        #return res
 
     def product_meli_status_close( self, ids ):
         company = self.env.user.company_id
@@ -444,8 +447,10 @@ class product_product(models.Model):
 
         return { 'value': { 'meli_description' : result } }
 
+    @api.multi
     def product_get_meli_status( self ):
-
+        self.ensure_one()
+        pdb.set_trace()
         company = self.env.user.company_id
         warningobj = self.env['warning']
 
@@ -472,12 +477,16 @@ class product_product(models.Model):
                     if len(rjson["sub_status"]) and rjson["sub_status"][0]=='deleted':
                         product.write({ 'meli_id': '' })
 
-        res = {}
-        for product in self:#.browse(cr,uid,ids):
-            res[product.id] = ML_status
-        return res
+        self.meli_status = ML_status
+        #res = {}
+        #for product in self:#.browse(cr,uid,ids):
+        #    res[product.id] = ML_status
+        #return res
 
+    @api.multi
     def product_get_permalink( self ):
+        pdb.set_trace()
+        self.ensure_one()
         ML_permalink = ''
 
         company = self.env.user.company_id
@@ -507,16 +516,17 @@ class product_product(models.Model):
                     #if len(rjson["sub_status"]) and rjson["sub_status"][0]=='deleted':
                     #    product.write({ 'meli_id': '' })
 
-
-        res = {}
-        for product in self:#.browse(cr,uid,ids):
-            res[product.id] = ML_permalink
-        return res
+        self.meli_permalink = ML_permalink
+        #res = {}
+        #for product in self:#.browse(cr,uid,ids):
+        #    res[company.id] = ML_permalink
+        #return res
 
 
     def product_post(self,ids):
         #import pdb;pdb.set_trace();
 #        product_ids = context['active_ids']
+        pdb.set_trace()
         product_ids = ids
         product_obj = self.env['product.product']
 
