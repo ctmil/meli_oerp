@@ -59,8 +59,9 @@ class product_product(models.Model):
                 pricelist = pricelists.id
             else:
                 pricelist = pricelists[0].id
-
-        return {}
+        self.meli_price = str(self.lst_price)
+        res = {}
+        #return {}
 
 
     def product_meli_get_product( self ):
