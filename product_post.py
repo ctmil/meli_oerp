@@ -152,7 +152,7 @@ class product_post(models.TransientModel):
 
             #publicando multiples imagenes
             multi_images_ids = {}
-            if (product.images):
+            if "images" in product:
                 # print 'website_multi_images presente:   ', product.images
                 #recorrer las imagenes y publicarlas
                 multi_images_ids = product.product_meli_upload_multi_images()
