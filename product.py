@@ -156,8 +156,8 @@ class product_product(models.Model):
             imagen_id = rjson['pictures'][0]['id']
 
         meli_fields = {
-            #'name': str(rjson['title']),
-            'name': str(rjson['id']),
+            'name': str(rjson['title']),
+            #'name': str(rjson['id']),
             'meli_imagen_id': imagen_id,
             'meli_post_required': True,
             'meli_id': rjson['id'],
@@ -181,8 +181,8 @@ class product_product(models.Model):
             'meli_video': str(vid)
         }
         tmpl_fields = {
-          #'name': str(rjson['title'])
-          'name': str(rjson['id']),
+          'name': str(rjson['title'])
+          #'name': str(rjson['id']),
           'lst_price': rjson['price']
         }
         product.write( meli_fields )
