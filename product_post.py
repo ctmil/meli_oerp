@@ -50,10 +50,9 @@ class product_post(models.TransientModel):
     def pretty_json( self, cr, uid, ids, data, indent=0, context=None ):
         return json.dumps( data, sort_keys=False, indent=4 )
 
-    def product_post(self, ids):
+    def product_post(self, context):
         pdb.set_trace()
-        #product_ids = context['active_ids']
-        product_ids = ids
+        product_ids = context['active_ids']
         product_obj = self.env['product.product']
 
         #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
@@ -82,7 +81,7 @@ class product_post(models.TransientModel):
             }
 
         for product_id in product_ids:
-            product = product_obj.browse(cr,uid,product_id)
+            product = product_obj.browse(product_id)
 
             if (product.meli_id):
                 response = meli.get("/items/%s" % product.meli_id, {'access_token':meli.access_token})
@@ -111,7 +110,7 @@ class product_post(models.TransientModel):
                 #"pictures": [ { 'source': product.meli_imagen_logo} ] ,
                 "video_id": product.meli_video  or '',
             }
-            print "product.meli_id before setting condigions ]"+product.meli_id+"["
+            print "product.meli_id before setting conditions ]"+product.meli_id+"["
             if (len(product.meli_id)==0):
                 body["condition"] = product.meli_condition;
 
@@ -220,10 +219,10 @@ class product_post(models.TransientModel):
                     url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
                     #print "url_login_meli:", url_login_meli
                     #raise osv.except_osv( _('MELI WARNING'), _('INVALID TOKEN or EXPIRED TOKEN (must login, go to Edit Company and login):  error: %s, message: %s, status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
-                    return warningobj.info(cr, uid, title='MELI WARNING', message="Debe iniciar sesión en MELI.  ", message_html="")
+                    return warningobj.info(title='MELI WARNING', message="Debe iniciar sesión en MELI.  ", message_html="")
                 else:
                      #Any other errors
-                    return warningobj.info(cr, uid, title='MELI WARNING', message="Completar todos los campos!  ", message_html="<br><br>"+missing_fields )
+                    return warningobj.info(title='MELI WARNING', message="Completar todos los campos!  ", message_html="<br><br>"+missing_fields )
 
             #last modifications if response is OK
             if "id" in rjson:
@@ -231,10 +230,10 @@ class product_post(models.TransientModel):
 
             posting_fields = {'posting_date': str(datetime.now()),'meli_id':rjson['id'],'product_id':product.id,'name': 'Post: ' + product.meli_title }
 
-            posting_id = self.pool.get('mercadolibre.posting').search(cr,uid,[('meli_id','=',rjson['id'])])
+            posting_id = self.env['mercadolibre.posting'].search([('meli_id','=',rjson['id'])])
 
             if not posting_id:
-	            posting_id = self.pool.get('mercadolibre.posting').create(cr,uid,(posting_fields))
+	            posting_id = self.env['mercadolibre.posting'].create((posting_fields))
 
 
         return {}
