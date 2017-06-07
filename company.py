@@ -93,13 +93,13 @@ class res_company(models.Model):
 
             company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
 
-        res = {}
+        #res = {}
         #for company in self.browse(cr,uid,ids):
-        for company in self:
-            res[company.id] = ML_state
-            company.mercadolibre_state = ML_state
-        _logger.info("ML_state:"+str(ML_state))
-        return res
+        #for company in self:
+        #    res[company.id] = ML_state
+        company.mercadolibre_state = ML_state
+        #_logger.info("ML_state:"+str(ML_state))
+        #return res
 
     mercadolibre_client_id = fields.Char(string='Client ID para ingresar a MercadoLibre',size=128);
     mercadolibre_secret_key = fields.Char(string='Secret Key para ingresar a MercadoLibre',size=128);

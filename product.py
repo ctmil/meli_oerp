@@ -216,7 +216,7 @@ class product_product(models.Model):
         #False if logged ok
         #True if need login
         self.ensure_one()
-        pdb.set_trace()
+        #pdb.set_trace()
         company = self.env.user.company_id
 
         CLIENT_ID = company.mercadolibre_client_id
@@ -450,7 +450,7 @@ class product_product(models.Model):
     @api.multi
     def product_get_meli_status( self ):
         self.ensure_one()
-        pdb.set_trace()
+        #pdb.set_trace()
         company = self.env.user.company_id
         warningobj = self.env['warning']
 
@@ -485,7 +485,7 @@ class product_product(models.Model):
 
     @api.multi
     def product_get_permalink( self ):
-        pdb.set_trace()
+        #pdb.set_trace()
         self.ensure_one()
         ML_permalink = ''
 
