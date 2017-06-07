@@ -52,7 +52,7 @@ class product_product(models.Model):
     @api.one
     @api.onchange('lst_price') # if these fields are changed, call method
     def check_change_price(self):
-        #import pdb;pdb.set_trace();
+        pdb.set_trace();
         pricelists = self.env['product.pricelist'].search([])
         pricelist = pricelists[0].id
 
@@ -62,7 +62,7 @@ class product_product(models.Model):
     def product_meli_get_product( self ):
         company = self.env.user.company_id
         product_obj = self.env['product.product']
-        pdb.set_trace()
+        #pdb.set_trace()
         product = self
 
         product_template_obj = self.env['product.template']
@@ -175,7 +175,8 @@ class product_product(models.Model):
         }
         tmpl_fields = {
           #'name': str(rjson['title'])
-          'name': str(rjson['id'])
+          'name': str(rjson['id']),
+          'lst_price': rjson['price']
         }
         product.write( meli_fields )
         product_template.write( tmpl_fields )
