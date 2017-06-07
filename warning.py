@@ -30,7 +30,7 @@ class warning(models.TransientModel):
             'name': '%s: %s' % (_(message_type), _(message.title)),
             'view_type': 'form',
             'view_mode': 'form',
-            'view_id': self._get_view_id(cr, uid),
+            'view_id': self._get_view_id(),
             'res_model': 'warning',
             'domain': [],
             'context': context,
