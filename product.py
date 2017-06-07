@@ -181,7 +181,7 @@ class product_product(models.Model):
             'meli_video': str(vid)
         }
         tmpl_fields = {
-          'name': str(rjson['title'])
+          'name': str(rjson['title']),
           #'name': str(rjson['id']),
           'lst_price': rjson['price']
         }
