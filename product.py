@@ -54,7 +54,11 @@ class product_product(models.Model):
     def check_change_price(self):
         pdb.set_trace();
         pricelists = self.env['product.pricelist'].search([])
-        pricelist = pricelists[0].id
+        if pricelists:
+            if pricelists.id:
+                pricelist = pricelists.id
+            else:
+                pricelist = pricelists[0].id
 
         return {}
 
