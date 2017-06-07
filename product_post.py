@@ -21,6 +21,7 @@
 
 from odoo import fields, osv, models, _
 from odoo.tools.translate import _
+import pdb
 import logging
 _logger = logging.getLogger(__name__)
 
@@ -49,15 +50,16 @@ class product_post(models.TransientModel):
     def pretty_json( self, cr, uid, ids, data, indent=0, context=None ):
         return json.dumps( data, sort_keys=False, indent=4 )
 
-    def product_post(self, cr, uid, ids, context=None):
+    def product_post(self, ids):
+        pdb.set_trace()
+        #product_ids = context['active_ids']
+        product_ids = ids
+        product_obj = self.env['product.product']
 
-        product_ids = context['active_ids']
-        product_obj = self.pool.get('product.product')
-
-        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
         #user_obj.company_id.meli_login()
-        company = user_obj.company_id
-        warningobj = self.pool.get('warning')
+        #company = user_obj.company_id
+        warningobj = self.env['warning']
 
         #company = self.pool.get('res.company').browse(cr,uid,1)
 
@@ -70,7 +72,7 @@ class product_post(models.TransientModel):
 
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
-        if ACCESS_TOKEN=='':
+        if ACCESS_TOKEN=='' or ACCESS_TOKEN==False:
             meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
             url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
             return {
