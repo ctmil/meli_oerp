@@ -54,7 +54,7 @@ class product_product(models.Model):
     def check_change_price(self):
         #import pdb;pdb.set_trace();
         pricelists = self.env['product.pricelist'].search([])
-        pricelist = pricelists[0]
+        pricelist = pricelists[0].id
 
         return {}
 
@@ -140,7 +140,7 @@ class product_product(models.Model):
                 'name': fullname,
                 'meli_category_id': ''+str(category_id),
               }
-              ml_cat_id = self.env['mercadolibre.category'].create((cat_fields))
+              ml_cat_id = self.env['mercadolibre.category'].create((cat_fields)).id
               if (ml_cat_id):
                   mlcatid = ml_cat_id
 
@@ -680,10 +680,10 @@ class product_product(models.Model):
 
             posting_fields = {'posting_date': str(datetime.now()),'meli_id':rjson['id'],'product_id':product.id,'name': 'Post: ' + product.meli_title }
 
-            posting_id = self.env['mercadolibre.posting'].search( [('meli_id','=',rjson['id'])])
+            posting_id = self.env['mercadolibre.posting'].search( [('meli_id','=',rjson['id'])]).id
 
             if not posting_id:
-                posting_id = self.env['mercadolibre.posting'].create((posting_fields))
+                posting_id = self.env['mercadolibre.posting'].create((posting_fields)).id
 
 
         return {}
