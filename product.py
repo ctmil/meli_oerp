@@ -656,7 +656,7 @@ class product_product(models.Model):
 
 
             else:
-                return warningobj.info(title='MELI WARNING', message="Debe completar el campo 'Imagen_Logo' con el url: http://www.nuevohorizonte-sa.com.ar/images/logo1.png", message_html="")
+                return warningobj.info(title='MELI WARNING', message="Debe completar el campo 'Imagen_Logo' con un url", message_html="")
 
             #check fields
             if product.meli_description==False:

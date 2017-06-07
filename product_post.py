@@ -158,38 +158,36 @@ class product_post(models.TransientModel):
                 multi_images_ids = product.product_meli_upload_multi_images()
 
             #asignando imagen de logo (por source)
-            if product.meli_imagen_logo:
-                if product.meli_imagen_id:
-                    if 'pictures' in body.keys():
-                        body["pictures"]+= [ { 'id': product.meli_imagen_id } ]
-                    else:
-                        body["pictures"] = [ { 'id': product.meli_imagen_id } ]
-
-                        if (multi_images_ids):
-                            if 'pictures' in body.keys():
-                                body["pictures"]+= multi_images_ids
-                            else:
-                                body["pictures"] = multi_images_ids
-
-                    if 'pictures' in body.keys():
-                        body["pictures"]+= [ { 'source': product.meli_imagen_logo} ]
-                    else:
-                        body["pictures"]+= [ { 'source': product.meli_imagen_logo} ]
+            if product.meli_imagen_id:
+                if 'pictures' in body.keys():
+                    body["pictures"]+= [ { 'id': product.meli_imagen_id } ]
                 else:
-                    imagen_producto = ""
-                    if (product.meli_description!="" and product.meli_description!=False and product.meli_imagen_link!=""):
-                        imgtag = "<img style='width: 420px; height: auto;' src='%s'/>" % ( product.meli_imagen_link )
-                        result = product.meli_description.replace( "[IMAGEN_PRODUCTO]", imgtag )
-                        if (result):
-                            _logger.info( "result: %s" % (result) )
-                            product.meli_description = result
+                    body["pictures"] = [ { 'id': product.meli_imagen_id } ]
+
+                    if (multi_images_ids):
+                        if 'pictures' in body.keys():
+                            body["pictures"]+= multi_images_ids
                         else:
-                            result = product.meli_description
-
-
+                            body["pictures"] = multi_images_ids
 
             else:
-                return warningobj.info( title='MELI WARNING', message="Debe completar el campo 'Imagen_Logo' con el url: http://www.nuevohorizonte-sa.com.ar/images/logo1.png", message_html="")
+                imagen_producto = ""
+                if (product.meli_description!="" and product.meli_description!=False and product.meli_imagen_link!=""):
+                    imgtag = "<img style='width: 420px; height: auto;' src='%s'/>" % ( product.meli_imagen_link )
+                    result = product.meli_description.replace( "[IMAGEN_PRODUCTO]", imgtag )
+                    if (result):
+                        _logger.info( "result: %s" % (result) )
+                        product.meli_description = result
+                    else:
+                        result = product.meli_description
+
+            if product.meli_imagen_logo:
+                if 'pictures' in body.keys():
+                    body["pictures"]+= [ { 'source': product.meli_imagen_logo} ]
+                else:
+                    body["pictures"]= [ { 'source': product.meli_imagen_logo} ]
+#            else:
+#                return warningobj.info( title='MELI WARNING', message="Debe completar el campo 'Imagen_Logo' con un url a la imagen.", message_html="")
 
             #check fields
             if product.meli_description==False:
