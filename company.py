@@ -94,7 +94,7 @@ class res_company(models.Model):
         for company in self:
             res[company.id] = ML_state
             company.mercadolibre_state = ML_state
-        _logger.info("ML_state:",ML_state)
+        _logger.info("ML_state:",str(ML_state))
         return res
 
     mercadolibre_client_id = fields.Char(string='Client ID para ingresar a MercadoLibre',size=128);
