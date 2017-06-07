@@ -64,6 +64,7 @@ class res_company(models.Model):
         #pdb.set_trace()
 
         try:
+            _logger.info("access_token:"+str(ACCESS_TOKEN))
             response = meli.get("/items/MLA1", {'access_token':meli.access_token} )
             _logger.info("response.content:"+str(response.content))
             rjson = response.json()
