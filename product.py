@@ -61,8 +61,8 @@ class product_product(models.Model):
                 pricelist = pricelists[0].id
         self.meli_price = str(self.lst_price)
         res = {}
-        for product_id in self:
-            res[product_id] = self.lst_price
+        for id in self:
+            res[id] = self.lst_price
         return res
 
 
