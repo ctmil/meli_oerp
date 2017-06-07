@@ -65,7 +65,7 @@ class res_company(models.Model):
 
         try:
             response = meli.get("/items/MLA1", {'access_token':meli.access_token} )
-            _logger.info("response.content:", response.content)
+            _logger.info("response.content:", str(response.content))
             rjson = response.json()
             #response = meli.get("/users/")
             if "error" in rjson:
