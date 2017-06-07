@@ -189,11 +189,11 @@ class product_post(models.TransientModel):
 
 
             else:
-                return warningobj.info(cr, uid, title='MELI WARNING', message="Debe completar el campo 'Imagen_Logo' con el url: http://www.nuevohorizonte-sa.com.ar/images/logo1.png", message_html="")
+                return warningobj.info( title='MELI WARNING', message="Debe completar el campo 'Imagen_Logo' con el url: http://www.nuevohorizonte-sa.com.ar/images/logo1.png", message_html="")
 
             #check fields
             if product.meli_description==False:
-                return warningobj.info(cr, uid, title='MELI WARNING', message="Debe completar el campo 'description' (en html)", message_html="")
+                return warningobj.info( title='MELI WARNING', message="Debe completar el campo 'description' (en html)", message_html="")
 
             #put for editing, post for creating
             if product.meli_id:
@@ -231,10 +231,10 @@ class product_post(models.TransientModel):
 
             posting_fields = {'posting_date': str(datetime.now()),'meli_id':rjson['id'],'product_id':product.id,'name': 'Post: ' + product.meli_title }
 
-            posting_id = self.env['mercadolibre.posting'].search([('meli_id','=',rjson['id'])])
+            posting_id = self.env['mercadolibre.posting'].search([('meli_id','=',rjson['id'])]).id
 
             if not posting_id:
-	            posting_id = self.env['mercadolibre.posting'].create((posting_fields))
+	            posting_id = self.env['mercadolibre.posting'].create((posting_fields)).id
 
 
         return {}
