@@ -73,6 +73,8 @@ class res_company(models.Model):
                 ML_state = True
                 if "message" in rjson and rjson["message"]=="expired_token":
                     ML_state = True
+                if rjson["error"]=="not_found":
+                    ML_state = False
 
             if ACCESS_TOKEN=='' or ACCESS_TOKEN==False:
                 ML_state = True
