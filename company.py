@@ -70,10 +70,11 @@ class res_company(models.Model):
             rjson = response.json()
             #response = meli.get("/users/")
             if "error" in rjson:
+                ML_state = True
                 if "message" in rjson and rjson["message"]=="expired_token":
                     ML_state = True
 
-            if ACCESS_TOKEN=='':
+            if ACCESS_TOKEN=='' or ACCESS_TOKEN==False:
                 ML_state = True
         except requests.exceptions.ConnectionError as e:
             #raise osv.except_osv( _('MELI WARNING'), _('NO INTERNET CONNECTION TO API.MERCADOLIBRE.COM: complete the Cliend Id, and Secret Key and try again'))
