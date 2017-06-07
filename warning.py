@@ -1,6 +1,6 @@
 from odoo import fields, osv, models
 from odoo.tools.translate import _
-
+import pdb
 #CHANGE WARNING_MODULE with your module name
 WARNING_MODULE = 'meli_oerp'
 WARNING_TYPES = [('warning','Warning'),('info','Information'),('error','Error')]
@@ -23,6 +23,7 @@ class warning(models.TransientModel):
         return res and res[1] or False
 
     def _message(self, id):
+        pdb.set_trace()
         message = self.browse( id)
         message_type = [t[1]for t in WARNING_TYPES if message.type == t[0]][0]
         print '%s: %s' % (_(message_type), _(message.title))
@@ -33,19 +34,19 @@ class warning(models.TransientModel):
             'view_id': self._get_view_id(),
             'res_model': 'warning',
             'domain': [],
-            'context': context,
+            #'context': context,
             'type': 'ir.actions.act_window',
             'target': 'new',
             'res_id': message.id
         }
         return res
 
-    def warning(self, title, message, message_html='', context=None):
+    def warning(self, title, message, message_html=''):
         id = self.create( {'title': title, 'message': message, 'message_html': message_html, 'type': 'warning'}).id
         res = self._message( id )
         return res
 
-    def info(self, title, message, message_html='', context=None):
+    def info(self, title, message, message_html=''):
         id = self.create( {'title': title, 'message': message, 'message_html': message_html, 'type': 'info'}).id
         res = self._message( id )
         return res
