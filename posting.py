@@ -177,7 +177,7 @@ class mercadolibre_posting(models.Model):
     def posting_query_all_questions( self, cr, uid, ids, context=None ):
 
         return {}
-
+company = self.env.user.company_id
     posting_date = fields.Date('Fecha del posting');
     name = fields.Char('Name');
     meli_id = fields.Char('Id del item asignado por Meli', size=256);
