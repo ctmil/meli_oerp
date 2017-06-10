@@ -144,7 +144,7 @@ class product_product(models.Model):
               #fullname = fullname + "/" + rjson_cat['name']
               print "category fullname:" + fullname
               cat_fields = {
-                'name': fullname,
+                'name': str(fullname.unicode("utf-8")),
                 'meli_category_id': ''+str(category_id),
               }
               ml_cat_id = self.env['mercadolibre.category'].create((cat_fields)).id
@@ -156,13 +156,13 @@ class product_product(models.Model):
             imagen_id = rjson['pictures'][0]['id']
 
         meli_fields = {
-            'name': str(rjson['title']),
+            'name': str(rjson['title'].encode("utf-8")),
             #'name': str(rjson['id']),
             'meli_imagen_id': imagen_id,
             'meli_post_required': True,
             'meli_id': rjson['id'],
             'meli_permalink': rjson['permalink'],
-            'meli_title': rjson['title'],
+            'meli_title': rjson['title'].encode("utf-8"),
             'meli_description': desplain,
 #            'meli_description_banner_id': ,
             'meli_category': mlcatid,
@@ -181,7 +181,7 @@ class product_product(models.Model):
             'meli_video': str(vid)
         }
         tmpl_fields = {
-          'name': str(rjson['title']),
+          'name': str(rjson['title'].encode("utf-8")),
           #'name': str(rjson['id']),
           'lst_price': rjson['price']
         }

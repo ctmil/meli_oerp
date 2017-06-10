@@ -154,12 +154,12 @@ class mercadolibre_posting(models.Model):
                     'date_created': Question['date_created'],
                     'item_id': Question['item_id'],
                     'seller_id': Question['seller_id'],
-                    'text': Question['text'],
+                    'text': str(Question['text'].encode("utf-8")),
                     'status': Question['status'],
                 }
 
                 if (question_answer):
-                    question_fields['answer_text'] = question_answer['text']
+                    question_fields['answer_text'] = str(question_answer['text'].encode("utf-8"))
                     question_fields['answer_status'] = question_answer['status']
                     question_fields['answer_date_created'] = question_answer['date_created']
 
@@ -177,7 +177,7 @@ class mercadolibre_posting(models.Model):
     def posting_query_all_questions( self, cr, uid, ids, context=None ):
 
         return {}
-        
+
     posting_date = fields.Date('Fecha del posting');
     name = fields.Char('Name');
     meli_id = fields.Char('Id del item asignado por Meli', size=256);
