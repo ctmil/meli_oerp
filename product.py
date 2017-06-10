@@ -144,7 +144,7 @@ class product_product(models.Model):
               #fullname = fullname + "/" + rjson_cat['name']
               print "category fullname:" + fullname
               cat_fields = {
-                'name': str(fullname.unicode("utf-8")),
+                'name': fullname
                 'meli_category_id': ''+str(category_id),
               }
               ml_cat_id = self.env['mercadolibre.category'].create((cat_fields)).id
