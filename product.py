@@ -155,7 +155,7 @@ class product_product(models.Model):
                                     www_cat_fields['parent_id'] = p_id
                                 www_cat_id = www_cats.create((www_cat_fields)).id
                                 if www_cat_id:
-                                    _logger.info("Website Category created:"+str(fullname))
+                                    _logger.info("Website Category created:"+fullname)
 
                             p_id = www_cat_id
 
