@@ -139,9 +139,9 @@ class product_product(models.Model):
                 if ("path_from_root" in rjson_cat):
                     path_from_root = rjson_cat["path_from_root"]
                     p_id = False
+                    #pdb.set_trace()
                     for path in path_from_root:
                         fullname = fullname + "/" + path["name"]
-                        pdb.set_trace()
                         www_cats = self.env['product.public.category']
                         if www_cats!=False:
                             www_cat_id = www_cats.search([('name','=',path["name"])]).id
