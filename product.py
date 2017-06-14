@@ -127,26 +127,24 @@ class product_product(models.Model):
             category_id = rjson['category_id']
             ml_cat_id = self.env['mercadolibre.category'].search([('meli_category_id','=',category_id)]).id
             if (ml_cat_id):
-              print "category exists!" + str(ml_cat_id)
-              mlcatid = ml_cat_id
+                print "category exists!" + str(ml_cat_id)
+                mlcatid = ml_cat_id
             else:
-              print "Creating category: " + str(category_id)
-              #https://api.mercadolibre.com/categories/MLA1743
-              response_cat = meli.get("/categories/"+str(category_id), {'access_token':meli.access_token})
-              rjson_cat = response_cat.json()
-              print "category:" + str(rjson_cat)
-              fullname = ""
-              if ("path_from_root" in rjson_cat):
-                  path_from_root = rjson_cat["path_from_root"]
-                  p_id = False
-                  for path in path_from_root:
-                    fullname = fullname + "/" + path["name"]
-                    www_cats = self.env['product.public.category']
-                    if www_cats:
+                print "Creating category: " + str(category_id)
+                #https://api.mercadolibre.com/categories/MLA1743
+                response_cat = meli.get("/categories/"+str(category_id), {'access_token':meli.access_token})
+                rjson_cat = response_cat.json()
+                print "category:" + str(rjson_cat)
+                fullname = ""
+                if ("path_from_root" in rjson_cat):
+                    path_from_root = rjson_cat["path_from_root"]
+                    p_id = False
+                    for path in path_from_root:
+                        fullname = fullname + "/" + path["name"]
+                        www_cats = self.env['product.public.category']
+                        if www_cats:
                         www_cat_id = www_cats.search([('name','=',path["name"])]).id
-                        if www_cat_id:
-                            #do nothing
-                        else:
+                        if www_cat_id==False:
                             www_cat_fields = {
                               'name': path["name"],
                               #'parent_id': p_id,
@@ -160,16 +158,15 @@ class product_product(models.Model):
 
                         p_id = www_cat_id
 
-
-              #fullname = fullname + "/" + rjson_cat['name']
-              print "category fullname:" + fullname
-              cat_fields = {
-                'name': fullname,
-                'meli_category_id': ''+str(category_id),
-              }
-              ml_cat_id = self.env['mercadolibre.category'].create((cat_fields)).id
-              if (ml_cat_id):
-                  mlcatid = ml_cat_id
+                #fullname = fullname + "/" + rjson_cat['name']
+                print "category fullname:" + fullname
+                cat_fields = {
+                    'name': fullname,
+                    'meli_category_id': ''+str(category_id),
+                }
+                ml_cat_id = self.env['mercadolibre.category'].create((cat_fields)).id
+                if (ml_cat_id):
+                    mlcatid = ml_cat_id
 
         imagen_id = ''
         if (len(rjson['pictures'])>0):
