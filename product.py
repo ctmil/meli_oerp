@@ -138,8 +138,28 @@ class product_product(models.Model):
               fullname = ""
               if ("path_from_root" in rjson_cat):
                   path_from_root = rjson_cat["path_from_root"]
+                  p_id = False
                   for path in path_from_root:
                     fullname = fullname + "/" + path["name"]
+                    www_cats = self.env['product.public.category']
+                    if www_cats:
+                        www_cat_id = www_cats.search([('name','=',path["name"])]).id
+                        if www_cat_id:
+
+                        else:
+                            www_cat_fields = {
+                              'name': path["name"],
+                              #'parent_id': p_id,
+                              #'sequence': 1
+                            }
+                            if p_id:
+                                www_cat_fields['parent_id'] = p_id
+                            www_cat_id = www_cats.create((www_cat_fields)).id
+                            if www_cat_id:
+                                _logger.info("Website Category created:"+str(fullname))
+
+                        p_id = www_cat_id
+
 
               #fullname = fullname + "/" + rjson_cat['name']
               print "category fullname:" + fullname
