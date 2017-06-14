@@ -210,8 +210,8 @@ class product_product(models.Model):
         }
         if www_cat_id!=False:
             #assign
-            meli_fields["product_cat_ids"] = [(4, [www_cat_id])]
-            tmpl_fields["product_cat_ids"] = [(4, [www_cat_id])]
+            meli_fields["public_categ_ids"] = [www_cat_id]
+            #tmpl_fields["public_categ_ids"] = [www_cat_id]
 
         product.write( meli_fields )
         product_template.write( tmpl_fields )
