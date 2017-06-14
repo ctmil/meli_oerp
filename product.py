@@ -143,18 +143,18 @@ class product_product(models.Model):
                         fullname = fullname + "/" + path["name"]
                         www_cats = self.env['product.public.category']
                         if www_cats:
-                        www_cat_id = www_cats.search([('name','=',path["name"])]).id
-                        if www_cat_id==False:
-                            www_cat_fields = {
-                              'name': path["name"],
-                              #'parent_id': p_id,
-                              #'sequence': 1
-                            }
-                            if p_id:
-                                www_cat_fields['parent_id'] = p_id
-                            www_cat_id = www_cats.create((www_cat_fields)).id
-                            if www_cat_id:
-                                _logger.info("Website Category created:"+str(fullname))
+                            www_cat_id = www_cats.search([('name','=',path["name"])]).id
+                            if www_cat_id==False:
+                                www_cat_fields = {
+                                  'name': path["name"],
+                                  #'parent_id': p_id,
+                                  #'sequence': 1
+                                }
+                                if p_id:
+                                    www_cat_fields['parent_id'] = p_id
+                                www_cat_id = www_cats.create((www_cat_fields)).id
+                                if www_cat_id:
+                                    _logger.info("Website Category created:"+str(fullname))
 
                         p_id = www_cat_id
 
