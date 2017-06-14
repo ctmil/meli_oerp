@@ -10,6 +10,7 @@
                 <tree string="Categories" >
                     <field name="name"/>
                     <field name="meli_category_id"/>
+                    <field name="public_category_id"/>
                 </tree>
             </field>
         </record>

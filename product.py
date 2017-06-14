@@ -208,10 +208,11 @@ class product_product(models.Model):
           #'name': str(rjson['id']),
           'lst_price': rjson['price']
         }
+        pdb.set_trace()
         if www_cat_id!=False:
             #assign
-            meli_fields["public_categ_ids"] = [www_cat_id]
-            #tmpl_fields["public_categ_ids"] = [www_cat_id]
+            product.public_categ_ids = [(4,www_cat_id)]
+            #tmpl_fields["public_categ_ids"] = [(4,www_cat_id)]
 
         product.write( meli_fields )
         product_template.write( tmpl_fields )
