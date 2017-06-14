@@ -208,10 +208,10 @@ class product_product(models.Model):
           #'name': str(rjson['id']),
           'lst_price': rjson['price']
         }
-        if www_cat_id:
+        if www_cat_id!=False:
             #assign
-            meli_fields["product_cat_ids"] = [(4, www_cat_id)]
-            #tmpl_fields["product_cat_ids"] = [(4, www_cat_id)]
+            meli_fields["product_cat_ids"] = [(4, [www_cat_id])]
+            tmpl_fields["product_cat_ids"] = [(4, [www_cat_id])]
 
         product.write( meli_fields )
         product_template.write( tmpl_fields )
