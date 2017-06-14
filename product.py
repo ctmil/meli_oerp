@@ -145,7 +145,7 @@ class product_product(models.Model):
                     if www_cats:
                         www_cat_id = www_cats.search([('name','=',path["name"])]).id
                         if www_cat_id:
-
+                            #do nothing
                         else:
                             www_cat_fields = {
                               'name': path["name"],
