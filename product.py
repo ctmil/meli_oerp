@@ -156,7 +156,7 @@ class product_product(models.Model):
                                 if www_cat_id:
                                     _logger.info("Website Category created:"+str(fullname))
 
-                        p_id = www_cat_id
+                            p_id = www_cat_id
 
                 #fullname = fullname + "/" + rjson_cat['name']
                 print "category fullname:" + fullname
