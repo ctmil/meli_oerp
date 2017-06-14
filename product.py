@@ -126,10 +126,12 @@ class product_product(models.Model):
         www_cat_id = False
         if ('category_id' in rjson):
             category_id = rjson['category_id']
-            ml_cat_id = self.env['mercadolibre.category'].search([('meli_category_id','=',category_id)]).id
+            ml_cat = self.env['mercadolibre.category'].search([('meli_category_id','=',category_id)])
+            ml_cat_id = ml_cat.id
             if (ml_cat_id):
                 print "category exists!" + str(ml_cat_id)
                 mlcatid = ml_cat_id
+                www_cat_id = ml_cat.public_category_id
             else:
                 print "Creating category: " + str(category_id)
                 #https://api.mercadolibre.com/categories/MLA1743
@@ -208,10 +210,10 @@ class product_product(models.Model):
           #'name': str(rjson['id']),
           'lst_price': rjson['price']
         }
-        pdb.set_trace()
+        #pdb.set_trace()
         if www_cat_id!=False:
             #assign
-            product.public_categ_ids = [(4,www_cat_id)]
+            product_template.public_categ_ids = [(4,www_cat_id)]
             #tmpl_fields["public_categ_ids"] = [(4,www_cat_id)]
 
         product.write( meli_fields )
