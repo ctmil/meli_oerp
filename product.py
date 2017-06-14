@@ -141,6 +141,7 @@ class product_product(models.Model):
                     p_id = False
                     for path in path_from_root:
                         fullname = fullname + "/" + path["name"]
+                        pdb.set_trace()
                         www_cats = self.env['product.public.category']
                         if www_cats:
                             www_cat_id = www_cats.search([('name','=',path["name"])]).id
