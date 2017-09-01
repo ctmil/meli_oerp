@@ -314,8 +314,9 @@ class res_company(models.Model):
         if product_ids:
             for obj in product_ids:
                 _logger.info( "Product to update: " + str(obj.id)  )
-                _logger.info( "Product to update name: " + str(obj.name)  )
-                obj.product_meli_get_product()
+                #_logger.info( "Product to update name: " + str(obj.name)  )
+                #obj.product_meli_get_product()
+                print "Product " + obj
 
         return {}
 
