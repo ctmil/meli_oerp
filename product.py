@@ -82,7 +82,7 @@ class product_product(models.Model):
 
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
-        try
+        try:
             response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token})
             print "product_meli_get_product > response: " + response
             rjson = response.json()
