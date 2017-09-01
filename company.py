@@ -297,7 +297,7 @@ class res_company(models.Model):
         #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
         #company = user_obj.company_id
         company = self.env.user.company_id
-        product_obj = self.pool.get('product.product')
+        product_obj = self.env['product.product']
         #product = product_obj.browse(cr, uid, ids[0])
 
         CLIENT_ID = company.mercadolibre_client_id
@@ -313,8 +313,8 @@ class res_company(models.Model):
         product_ids = self.env['product.product'].search([])
         if product_ids:
             for obj in product_ids:
+                _logger.info( "Product to update: " + str(obj.id)  )
                 product = product_obj.browse(obj.id)
-                _logger.info( "Product to update: " + str(obj.id) + " name:" + str(product.name) )
 
         return {}
 

@@ -42,7 +42,7 @@
 										string="Iniciar búsqueda de productos en MLA" attrs="{'invisible':[('mercadolibre_state','=',True)]}"/>
 
                     <button name='meli_update_products' type="object"
-    										string="Iniciar actualización de productos/stock desde MLA" attrs="{'invisible':[('mercadolibre_state','=',True)]}"/>
+    										string="Iniciar actualización de productos y stock desde MLA" attrs="{'invisible':[('mercadolibre_state','=',True)]}"/>
 <!--
 								<button name='%(meli_login_action)d' type="action"
 										string="Login en MLA (action)"/>
