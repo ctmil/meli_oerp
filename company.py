@@ -172,22 +172,6 @@ class res_company(models.Model):
         return {}
 
     @api.multi
-    def meli_update_products(self):
-        _logger.info('company.meli_update_products() ')
-        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        #company = user_obj.company_id
-        company = self.env.user.company_id
-
-        #products_obj = self.pool.get('product.product')
-
-        #result = products_obj.product_meli_get_products(products_obj)
-        #"type": "ir.actions.act_window",
-        #"id": "action_meli_orders_tree",
-        self.product_meli_update_products()
-
-        return {}
-
-    @api.multi
     def meli_query_products(self):
         _logger.info('company.meli_query_products() ')
         #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
@@ -292,6 +276,21 @@ class res_company(models.Model):
 
         return {}
 
+    @api.multi
+    def meli_update_products(self):
+        _logger.info('company.meli_update_products() ')
+        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+        #company = user_obj.company_id
+        company = self.env.user.company_id
+
+        #products_obj = self.pool.get('product.product')
+
+        #result = products_obj.product_meli_get_products(products_obj)
+        #"type": "ir.actions.act_window",
+        #"id": "action_meli_orders_tree",
+        self.product_meli_update_products()
+
+        return {}
 
     def product_meli_update_products( self ):
         _logger.info('company.product_meli_update_products() ')
