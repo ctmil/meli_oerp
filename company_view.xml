@@ -19,10 +19,10 @@
                     <notebook>
                         <page string="MercadoLibre">
 							<group>
-								<field name="mercadolibre_state" invisible="0"/>								
+								<field name="mercadolibre_state" invisible="0"/>
 								<field name="mercadolibre_client_id" />
 								<field name="mercadolibre_secret_key" />
-								<field name="mercadolibre_redirect_uri" />								
+								<field name="mercadolibre_redirect_uri" />
 								<field name="mercadolibre_access_token" invisible="0"/>
 								<field name="mercadolibre_refresh_token" invisible="0"/>
 								<field name="mercadolibre_code" invisible="0"/>
@@ -37,9 +37,12 @@
 
                                 <button name='meli_query_orders' type="object"
 										string="Iniciar búsqueda de órdenes en MLA" attrs="{'invisible':[('mercadolibre_state','=',True)]}"/>
-										
+
 								<button name='meli_query_products' type="object"
 										string="Iniciar búsqueda de productos en MLA" attrs="{'invisible':[('mercadolibre_state','=',True)]}"/>
+
+                    <button name='meli_update_products' type="object"
+    										string="Iniciar actualización de productos/stock desde MLA" attrs="{'invisible':[('mercadolibre_state','=',True)]}"/>
 <!--
 								<button name='%(meli_login_action)d' type="action"
 										string="Login en MLA (action)"/>

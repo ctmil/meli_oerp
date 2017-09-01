@@ -82,9 +82,16 @@ class product_product(models.Model):
 
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
-        response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token})
-
-        rjson = response.json()
+        try
+            response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token})
+            print "product_meli_get_product > response: " + response
+            rjson = response.json()
+        except IOError as e:
+            print "I/O error({0}): {1}".format(e.errno, e.strerror)
+            return {}
+        except:
+            print "Rare error"
+            return {}
 
         des = ''
         desplain = ''
@@ -93,7 +100,7 @@ class product_product(models.Model):
             return {}
 
         if "content" in response:
-            print "product_meli_get_product: " + response.content
+            print "product_meli_get_product > response.content: " + response.content
 
         #TODO: traer la descripcion: con
         #https://api.mercadolibre.com/items/{ITEM_ID}/description?access_token=$ACCESS_TOKEN
