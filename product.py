@@ -84,7 +84,6 @@ class product_product(models.Model):
 
         response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token})
 
-        print "product_meli_get_product: " + response.content
         rjson = response.json()
 
         des = ''
@@ -93,9 +92,12 @@ class product_product(models.Model):
         if 'error' in rjson:
             return {}
 
+        if "content" in response:
+            print "product_meli_get_product: " + response.content
+
         #TODO: traer la descripcion: con
         #https://api.mercadolibre.com/items/{ITEM_ID}/description?access_token=$ACCESS_TOKEN
-        if rjson['descriptions']:
+        if rjson and rjson['descriptions']:
             response2 = meli.get("/items/"+product.meli_id+"/description", {'access_token':meli.access_token})
             rjson2 = response2.json()
             if 'text' in rjson2:
@@ -176,6 +178,10 @@ class product_product(models.Model):
                     mlcatid = ml_cat_id
 
         imagen_id = ''
+        meli_dim_str = ''
+        if (rjson['dimensions']):
+            meli_dim_str = rjson['dimensions']
+
         if (len(rjson['pictures'])>0):
             imagen_id = rjson['pictures'][0]['id']
 
@@ -202,7 +208,8 @@ class product_product(models.Model):
 ##            'meli_imagen_id': fields.char(string='Imagen Id', size=256),
             'meli_imagen_link': rjson['thumbnail'],
 ##            'meli_multi_imagen_id': fields.char(string='Multi Imagen Ids', size=512),
-            'meli_video': str(vid)
+            'meli_video': str(vid),
+            'meli_dimensions': meli_dim_str,
         }
 
         tmpl_fields = {
@@ -761,6 +768,7 @@ class product_product(models.Model):
     meli_video = fields.Char( string='Video (id de youtube)', size=256);
     meli_state = fields.Boolean( compute=product_get_meli_loginstate, string="Inicio de sesión requerida", store=False );
     meli_status = fields.Char( compute=product_get_meli_status, size=128, string="Estado del producto en MLA", store=False );
+    meli_dimensions = fields.Char( size=128, string="Dimensiones del producto");
 	### Agregar imagen/archivo uno o mas, y la descripcion en HTML...
 	# TODO Agregar el banner
 
