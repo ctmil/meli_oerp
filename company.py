@@ -315,7 +315,8 @@ class res_company(models.Model):
             for obj in product_ids:
                 _logger.info( "Product to update: " + str(obj.id)  )
                 product = product_obj.browse(obj.id)
-                product_obj.product_meli_get_product(product)
+                _logger.info( "Product to update name: " + str(product.name)  )
+                product.product_meli_get_product()
 
         return {}
 
