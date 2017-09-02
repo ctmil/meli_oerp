@@ -317,7 +317,8 @@ class res_company(models.Model):
                 #_logger.info( "Product to update name: " + str(obj.name)  )
                 #obj.product_meli_get_product()
                 import pdb; pdb.set_trace()
-                print "Product " + obj.name
+                #print "Product " + obj.name
+                obj.product_meli_get_product()
 
         return {}
 
