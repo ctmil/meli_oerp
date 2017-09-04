@@ -225,7 +225,7 @@ class product_product(models.Model):
 
         product.write( meli_fields )
         product_template.write( tmpl_fields )
-        if (rjson['available_quantity']>0):
+        if (rjson['available_quantity']>0 and rjson["status"]=='active'):
             product_template.website_published = True
         else:
             product_template.website_published = False

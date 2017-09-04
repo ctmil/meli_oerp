@@ -313,12 +313,13 @@ class res_company(models.Model):
         product_ids = self.env['product.product'].search([])
         if product_ids:
             for obj in product_ids:
-                _logger.info( "Product to update: " + str(obj.id)  )
-                #_logger.info( "Product to update name: " + str(obj.name)  )
-                #obj.product_meli_get_product()
-                #import pdb; pdb.set_trace()
-                #print "Product " + obj.name
-                obj.product_meli_get_product()
+                if (obj.id):
+                    _logger.info( "Product to update: " + str(obj.id)  )
+                    #_logger.info( "Product to update name: " + str(obj.name)  )
+                    #obj.product_meli_get_product()
+                    #import pdb; pdb.set_trace()
+                    #print "Product " + obj.name
+                    obj.product_meli_get_product()
 
         return {}
 
