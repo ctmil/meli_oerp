@@ -179,6 +179,10 @@ class product_product(models.Model):
         if (len(rjson['pictures'])>0):
             imagen_id = rjson['pictures'][0]['id']
 
+        meli_dim_str = ''
+        if (rjson['dimensions']):
+            meli_dim_str = rjson['dimensions']
+
         meli_fields = {
             'name': str(rjson['title'].encode("utf-8")),
             #'name': str(rjson['id']),
@@ -202,7 +206,8 @@ class product_product(models.Model):
 ##            'meli_imagen_id': fields.char(string='Imagen Id', size=256),
             'meli_imagen_link': rjson['thumbnail'],
 ##            'meli_multi_imagen_id': fields.char(string='Multi Imagen Ids', size=512),
-            'meli_video': str(vid)
+            'meli_video': str(vid),
+            'meli_dimensions': meli_dim_str,
         }
 
         tmpl_fields = {
@@ -764,7 +769,8 @@ class product_product(models.Model):
     meli_video = fields.Char( string='Video (id de youtube)', size=256);
     meli_state = fields.Boolean( compute=product_get_meli_loginstate, string="Inicio de sesión requerida", store=False );
     meli_status = fields.Char( compute=product_get_meli_status, size=128, string="Estado del producto en MLA", store=False );
-	### Agregar imagen/archivo uno o mas, y la descripcion en HTML...
+    meli_dimensions = fields.Char( string="Dimensiones del producto", size=128);
+    ### Agregar imagen/archivo uno o mas, y la descripcion en HTML...
 	# TODO Agregar el banner
 
     _defaults = {
