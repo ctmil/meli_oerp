@@ -520,7 +520,7 @@ class product_product(models.Model):
                         product.write({ 'meli_id': '' })
 
         if not (ML_status=="active"):
-            product_template.website_published = False
+            self.website_published = False
 
         self.meli_status = ML_status
         #res = {}
