@@ -180,8 +180,10 @@ class product_product(models.Model):
             imagen_id = rjson['pictures'][0]['id']
 
         meli_dim_str = ''
-        if (rjson['dimensions']):
-            meli_dim_str = rjson['dimensions']
+        if ("shipping" in rjson):
+            if ("dimensions" in rjson['shipping']):
+                if (rjson['shipping']['dimensions']):
+                    meli_dim_str = rjson['shipping']['dimensions']
 
         meli_fields = {
             'name': str(rjson['title'].encode("utf-8")),
