@@ -515,14 +515,16 @@ class product_product(models.Model):
                 ML_status = rjson["status"]
                 if "error" in rjson:
                     ML_status = rjson["error"]
-                if "sub_status" in rjson:
-                    if len(rjson["sub_status"]) and rjson["sub_status"][0]=='deleted':
-                        product.write({ 'meli_id': '' })
+                else:
+                    if not (ML_status=="active"):
+                        self.website_published = False
 
-        if not (ML_status=="active"):
-            self.website_published = False
+                    self.meli_status = ML_status
 
-        self.meli_status = ML_status
+                    if "sub_status" in rjson:
+                        if len(rjson["sub_status"]) and rjson["sub_status"][0]=='deleted':
+                            product.write({ 'meli_id': '' })
+
         #res = {}
         #for product in self:#.browse(cr,uid,ids):
         #    res[product.id] = ML_status
