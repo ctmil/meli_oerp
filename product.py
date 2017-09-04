@@ -519,6 +519,9 @@ class product_product(models.Model):
                     if len(rjson["sub_status"]) and rjson["sub_status"][0]=='deleted':
                         product.write({ 'meli_id': '' })
 
+        if not (ML_status=="active"):
+            product_template.website_published = False
+
         self.meli_status = ML_status
         #res = {}
         #for product in self:#.browse(cr,uid,ids):
