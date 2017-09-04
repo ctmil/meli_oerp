@@ -276,5 +276,50 @@ class res_company(models.Model):
 
         return {}
 
+    @api.multi
+    def meli_update_products(self):
+        _logger.info('company.meli_update_products() ')
+        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+        #company = user_obj.company_id
+        company = self.env.user.company_id
+
+        #products_obj = self.pool.get('product.product')
+
+        #result = products_obj.product_meli_get_products(products_obj)
+        #"type": "ir.actions.act_window",
+        #"id": "action_meli_orders_tree",
+        self.product_meli_update_products()
+
+        return {}
+
+    def product_meli_update_products( self ):
+        _logger.info('company.product_meli_update_products() ')
+        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+        #company = user_obj.company_id
+        company = self.env.user.company_id
+        product_obj = self.env['product.product']
+        #product = product_obj.browse(cr, uid, ids[0])
+
+        CLIENT_ID = company.mercadolibre_client_id
+        CLIENT_SECRET = company.mercadolibre_secret_key
+        ACCESS_TOKEN = company.mercadolibre_access_token
+        REFRESH_TOKEN = company.mercadolibre_refresh_token
+
+        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+
+        url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
+        #url_login_oerp = "/meli_login"
+
+        product_ids = self.env['product.product'].search([])
+        if product_ids:
+            for obj in product_ids:
+                _logger.info( "Product to update: " + str(obj.id)  )
+                #_logger.info( "Product to update name: " + str(obj.name)  )
+                #obj.product_meli_get_product()
+                #import pdb; pdb.set_trace()
+                #print "Product " + obj.name
+                obj.product_meli_get_product()
+
+        return {}
 
 res_company()
