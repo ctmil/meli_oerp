@@ -306,17 +306,20 @@ class product_product(osv.osv):
         if ACCESS_TOKEN=='':
             ML_state = True
         else:
-            response = meli.get("/users/me/", {'access_token':meli.access_token} )
+            response = meli.get("/users/me", {'access_token':meli.access_token} )
             _logger.info( response.content )
-            #response = "["+response.content+"]"
-            rjson = response.json()
-            if 'error' in rjson:
-                if rjson['message']=='invalid_token' or rjson['message']=='expired_token':
-                    ACCESS_TOKEN = ''
-                    REFRESH_TOKEN = ''
-                    company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
-                    ML_state = True
-                    #raise osv.except_osv( _('MELI WARNING'), _('INVALID TOKEN (must login, go to Edit Company and login):  error: %s, message: %s, status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
+            if '404' in response.content:
+                _logger.info( response.content )
+            else:
+                #response = "["+response.content+"]"
+                rjson = response.json()
+                if 'error' in rjson:
+                    if rjson['message']=='invalid_token' or rjson['message']=='expired_token':
+                        ACCESS_TOKEN = ''
+                        REFRESH_TOKEN = ''
+                        company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
+                        ML_state = True
+                        #raise osv.except_osv( _('MELI WARNING'), _('INVALID TOKEN (must login, go to Edit Company and login):  error: %s, message: %s, status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
 
         res = {}
         for product in self.browse(cr,uid,ids):
