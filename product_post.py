@@ -111,7 +111,8 @@ class product_post(osv.osv_memory):
                 "video_id": product.meli_video  or '',
             }
             #print "product.meli_id before setting conditions ]"+product.meli_id+"["
-            if (len(product.meli_id)==0):
+            #if (len(product.meli_id)==0):
+            if not (product.meli_id):
                 body["condition"] = product.meli_condition;
 
             # print body
