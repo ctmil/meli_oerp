@@ -308,7 +308,7 @@ class product_product(osv.osv):
         else:
             response = meli.get("/users/me", {'access_token':meli.access_token} )
             _logger.info( response.content )
-            if '404' in response.content:
+            if '404 page not found' in response.content:
                 _logger.info( response.content )
             else:
                 #response = "["+response.content+"]"
