@@ -323,25 +323,26 @@ class mercadolibre_orders(osv.osv):
                 else:
                     order_items_obj.write(cr,uid, order_item_ids[0], ( order_item_fields ) )
 
-                saleorderline_item_fields = {
-                    'company_id': company.id,
-                    'order_id': sorder.id,
-                    'meli_order_item_id': Item['item']['id'],
-                    'price_unit': float(Item['unit_price']),
-#                    'price_total': float(Item['unit_price']) * float(Item['quantity']),
-                    'product_id': product_related_obj.id,
-                    'product_uom_qty': Item['quantity'],
-                    'product_uom': 1,
-                    'name': Item['item']['title'],
-#                    'customer_lead': float(0)
-                }
-                saleorderline_item_ids = saleorderline_obj.search(cr,uid,[('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
+                if (product_related_obj_id):
+                    saleorderline_item_fields = {
+                        'company_id': company.id,
+                        'order_id': sorder.id,
+                        'meli_order_item_id': Item['item']['id'],
+                        'price_unit': float(Item['unit_price']),
+    #                    'price_total': float(Item['unit_price']) * float(Item['quantity']),
+                        'product_id': product_related_obj.id,
+                        'product_uom_qty': Item['quantity'],
+                        'product_uom': 1,
+                        'name': Item['item']['title'],
+    #                    'customer_lead': float(0)
+                    }
+                    saleorderline_item_ids = saleorderline_obj.search(cr,uid,[('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
 
-                if not saleorderline_item_ids:
-                    print "saleorderline_item_fields: " + str(saleorderline_item_fields)
-                    saleorderline_item_ids = saleorderline_obj.create(cr,uid,( saleorderline_item_fields ))
-                else:
-                    saleorderline_obj.write(cr,uid, saleorderline_item_ids[0], ( saleorderline_item_fields ) )
+                    if not saleorderline_item_ids:
+                        print "saleorderline_item_fields: " + str(saleorderline_item_fields)
+                        saleorderline_item_ids = saleorderline_obj.create(cr,uid,( saleorderline_item_fields ))
+                    else:
+                        saleorderline_obj.write(cr,uid, saleorderline_item_ids[0], ( saleorderline_item_fields ) )
 
 
         if 'payments' in order_json:
