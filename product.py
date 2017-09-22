@@ -307,6 +307,8 @@ class product_product(osv.osv):
             ML_state = True
         else:
             response = meli.get("/users/me/", {'access_token':meli.access_token} )
+            _logger.info( response )
+            response = "["+response+"]"
             rjson = response.json()
             if 'error' in rjson:
                 if rjson['message']=='invalid_token' or rjson['message']=='expired_token':
