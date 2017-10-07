@@ -111,7 +111,7 @@ class mercadolibre_category(osv.osv):
                         if (ml_cat_id):
                             category_obj.import_category(cr,uid,category_id=ml_cat_id)
                             if (RECURSIVE_IMPORT):
-                                category_obj.import_all_categories(cr,uid,category_root=category_id)
+                                category_obj.import_all_categories(cr,uid,category_root=ml_cat_id)
 
 
 
