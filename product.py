@@ -802,4 +802,4 @@ class product_template(osv.osv):
 
 
 
-product_product()
+product_template()
