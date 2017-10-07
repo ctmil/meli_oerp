@@ -109,9 +109,9 @@ class mercadolibre_category(osv.osv):
                     for child in rjson["children_categories"]:
                         ml_cat_id = child["id"]
                         if (ml_cat_id):
-                            category_obj.import_category(category_id=ml_cat_id)
+                            category_obj.import_category(cr,uid,category_id=ml_cat_id)
                             if (RECURSIVE_IMPORT):
-                                category_obj.import_all_categories(category_root=category_id)
+                                category_obj.import_all_categories(cr,uid,category_root=category_id)
 
 
 
