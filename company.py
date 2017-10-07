@@ -171,7 +171,7 @@ class res_company(osv.osv):
 
         category_obj = self.pool.get('mercadolibre.category')
 
-        CATEGORY_ROOT = company.mercadolibre_category
+        CATEGORY_ROOT = company.mercadolibre_category_import
 
         result = category_obj.import_all_categories(cr,uid, category_root=CATEGORY_ROOT )
 
