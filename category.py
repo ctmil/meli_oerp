@@ -84,6 +84,7 @@ class mercadolibre_category(osv.osv):
         company = user_obj.company_id
 
         warningobj = self.pool.get('warning')
+        category_obj = self.pool.get('mercadolibre.category');
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
@@ -108,7 +109,7 @@ class mercadolibre_category(osv.osv):
                     for child in rjson["children_categories"]:
                         ml_cat_id = child["id"]
                         if (ml_cat_id):
-                            category.import_category(category_id=ml_cat_id)
+                            category_obj.import_category(category_id=ml_cat_id)
                             if (RECURSIVE_IMPORT):
                                 category.import_all_categories(category_root=category_id)
 
