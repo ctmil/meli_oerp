@@ -98,6 +98,8 @@ class res_company(osv.osv):
         'mercadolibre_code': fields.char( string='Code', size=256),
         'mercadolibre_seller_id': fields.char( string='Vendedor Id', size=256),
         'mercadolibre_state': fields.function( get_meli_state, method=True, type='boolean', string="Se requiere Iniciar Sesión con MLA", store=False ),
+        'mercadolibre_category_import': fields.char( string='Category Code to Import', size=256),
+        'mercadolibre_recursive_import':fields.boolean( string='Import all categories (recursiveness)', size=256),
         #'mercadolibre_login': fields.selection( [ ("unknown", "Desconocida"), ("logged","Abierta"), ("not logged","Cerrada")],string='Estado de la sesión'), )
     }
 
@@ -163,5 +165,16 @@ class res_company(osv.osv):
         #"id": "action_meli_orders_tree",
         return {}
 
-res_company()
+    def meli_import_categories(self, cr, uid, ids, context=None ):
+        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+        company = user_obj.company_id
 
+        category_obj = self.pool.get('mercadolibre.category')
+
+        CATEGORY_ROOT = company.mercadolibre_category
+
+        result = category_obj.import_all_categories(cr,uid, category_root=CATEGORY_ROOT )
+
+        return {}
+
+res_company()

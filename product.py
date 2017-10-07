@@ -200,34 +200,9 @@ class product_product(osv.osv):
                 #delete all images...
 
         #categories
-        mlcatid = ""
-        if ('category_id' in rjson):
-            category_id = rjson['category_id']
-            ml_cat_id = self.pool.get('mercadolibre.category').search(cr,uid,[('meli_category_id','=',category_id)])
-            if (ml_cat_id):
-              print "category exists!" + str(ml_cat_id)
-              mlcatid = ml_cat_id[0]
-            else:
-              print "Creating category: " + str(category_id)
-              #https://api.mercadolibre.com/categories/MLA1743
-              response_cat = meli.get("/categories/"+str(category_id), {'access_token':meli.access_token})
-              rjson_cat = response_cat.json()
-              print "category:" + str(rjson_cat)
-              fullname = ""
-              if ("path_from_root" in rjson_cat):
-                  path_from_root = rjson_cat["path_from_root"]
-                  for path in path_from_root:
-                    fullname = fullname + "/" + path["name"]
-
-              #fullname = fullname + "/" + rjson_cat['name']
-              print "category fullname:" + fullname
-              cat_fields = {
-                'name': fullname,
-                'meli_category_id': ''+str(category_id),
-              }
-              ml_cat_id = self.pool.get('mercadolibre.category').create(cr,uid,(cat_fields))
-              if (ml_cat_id):
-                  mlcatid = ml_cat_id
+        if ("category_id" in rjson):
+            category_obj = self.pool.get('mercadolibre.category')
+            category_obj.import_category( cr, uid, category_id=rjson['category_id'] )
 
         imagen_id = ''
         if (len(rjson['pictures'])>0):
