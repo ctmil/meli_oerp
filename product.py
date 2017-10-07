@@ -38,16 +38,16 @@ from meli_oerp_config import *
 from melisdk.meli import Meli
 
 
+#class product_template(osv.osv):
+#    _inherit = "product.template"
+#    _columns = {
+#      'name': fields.char('Name', size=128, required=True, translate=False, select=True)
+#    }
+#product_template()
+
 class product_template(osv.osv):
+
     _inherit = "product.template"
-    _columns = {
-      'name': fields.char('Name', size=128, required=True, translate=False, select=True)
-    }
-product_template()
-
-class product_product(osv.osv):
-
-    _inherit = "product.product"
 
     @api.one
     @api.onchange('lst_price') # if these fields are changed, call method
@@ -61,7 +61,7 @@ class product_product(osv.osv):
     def product_meli_get_products( self, cr, uid, context=None ):
         user_obj = self.pool.get('res.users').browse(cr, uid, uid)
         company = user_obj.company_id
-        product_obj = self.pool.get('product.product')
+        product_obj = self.pool.get('product.template')
         #product = product_obj.browse(cr, uid, ids[0])
 
         CLIENT_ID = company.mercadolibre_client_id
@@ -126,16 +126,16 @@ class product_product(osv.osv):
                 print item_id
                 iitem+= 1
                 _logger.info( item_id + "("+str(iitem)+"/"+str(rjson['paging']['total'])+")" )
-                posting_id = self.pool.get('product.product').search(cr,uid,[('meli_id','=',item_id)])
+                posting_id = self.pool.get('product.template').search(cr,uid,[('meli_id','=',item_id)])
                 response = meli.get("/items/"+item_id, {'access_token':meli.access_token})
                 rjson3 = response.json()
                 if (posting_id):
                     _logger.info( "Item already in database: " + str(posting_id[0]) )
                     #print "Item already in database: " + str(posting_id[0])
                 else:
-                    #idcreated = self.pool.get('product.product').create(cr,uid,{ 'name': rjson3['title'], 'meli_id': rjson3['id'] })
+                    #idcreated = self.pool.get('product.template').create(cr,uid,{ 'name': rjson3['title'], 'meli_id': rjson3['id'] })
                     if 'id' in rjson3:
-                        idcreated = self.pool.get('product.product').create(cr,uid,{ 'name': rjson3['id'], 'description': rjson3['title'], 'meli_id': rjson3['id'] })
+                        idcreated = self.pool.get('product.template').create(cr,uid,{ 'name': rjson3['id'], 'description': rjson3['title'], 'meli_id': rjson3['id'] })
                         if (idcreated):
                             _logger.info( "product created: " + str(rjson3['id']) + "-" + str( rjson3['title']) )
                             product = product_obj.browse(cr, uid, idcreated)
@@ -147,11 +147,12 @@ class product_product(osv.osv):
     def product_meli_get_product( self, cr, uid, ids, context=None ):
         user_obj = self.pool.get('res.users').browse(cr, uid, uid)
         company = user_obj.company_id
-        product_obj = self.pool.get('product.product')
+        product_obj = self.pool.get('product.template')
         product = product_obj.browse(cr, uid, ids[0])
 
-        product_template_obj = self.pool.get('product.template')
-        product_template = product_template_obj.browse(cr, uid, product.product_tmpl_id.id)
+        #product_template_obj = self.pool.get('product.template')
+        #product_template = product_template_obj.browse(cr, uid, product.product_tmpl_id.id)
+        #product_template = product_template_obj.browse(cr, uid, product.id)
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
@@ -238,7 +239,7 @@ class product_product(osv.osv):
           'name': str(rjson['id'])
         }
         product.write( meli_fields )
-        product_template.write( tmpl_fields )
+        #product_template.write( tmpl_fields )
 #{"id":"MLA639109219","site_id":"MLA","title":"Disco Vinilo Queen - Rock - A Kind Of Magic","subtitle":null,"seller_id":171329758,"category_id":"MLA2038","official_store_id":null,"price":31,"base_price":31,"original_price":null,"currency_id":"ARS","initial_quantity":5,"available_quantity":5,"sold_quantity":0,"buying_mode":"buy_it_now","listing_type_id":"free","start_time":"2016-10-17T20:36:22.000Z","stop_time":"2016-12-16T20:36:22.000Z","end_time":"2016-12-16T20:36:22.000Z","expiration_time":null,"condition":"used","permalink":"http://articulo.mercadolibre.com.ar/MLA-639109219-disco-vinilo-queen-rock-a-kind-of-magic-_JM","thumbnail":"http://mla-s1-p.mlstatic.com/256905-MLA25108641321_102016-I.jpg","secure_thumbnail":"https://mla-s1-p.mlstatic.com/256905-MLA25108641321_102016-I.jpg","pictures":[{"id":"256905-MLA25108641321_102016","url":"http://mla-s1-p.mlstatic.com/256905-MLA25108641321_102016-O.jpg","secure_url":"https://mla-s1-p.mlstatic.com/256905-MLA25108641321_102016-O.jpg","size":"500x400","max_size":"960x768","quality":""},{"id":"185215-MLA25150338489_112016","url":"http://www.mercadolibre.com/jm/img?s=STC&v=O&f=proccesing_image_es.jpg","secure_url":"https://www.mercadolibre.com/jm/img?s=STC&v=O&f=proccesing_image_es.jpg","size":"500x500","max_size":"500x500","quality":""}],"video_id":null,"descriptions":[{"id":"MLA639109219-1196717922"}],"accepts_mercadopago":true,"non_mercado_pago_payment_methods":[],"shipping":{"mode":"not_specified","local_pick_up":false,"free_shipping":false,"methods":[],"dimensions":null,"tags":[]},"international_delivery_mode":"none","seller_address":{"id":193196973,"comment":"3B","address_line":"Billinghurst 1711","zip_code":"1425","city":{"id":"TUxBQlBBTDI1MTVa","name":"Palermo"},"state":{"id":"AR-C","name":"Capital Federal"},"country":{"id":"AR","name":"Argentina"},"latitude":-34.5906131,"longitude":-58.4101982,"search_location":{"neighborhood":{"id":"TUxBQlBBTDI1MTVa","name":"Palermo"},"city":{"id":"TUxBQ0NBUGZlZG1sYQ","name":"Capital Federal"},"state":{"id":"TUxBUENBUGw3M2E1","name":"Capital Federal"}}},"seller_contact":null,"location":{},"geolocation":{"latitude":-34.5906131,"longitude":-58.4101982},"coverage_areas":[],"attributes":[],"warnings":[],"listing_source":"","variations":[],"status":"active","sub_status":[],"tags":[],"warranty":null,"catalog_product_id":null,"domain_id":null,"seller_custom_field":null,"parent_item_id":null,"differential_pricing":null,"deal_ids":[],"automatic_relist":false,"date_created":"2016-10-17T20:36:22.000Z","last_updated":"2016-11-07T21:38:10.000Z"}
 
         return {}
@@ -304,7 +305,7 @@ class product_product(osv.osv):
     def product_meli_status_close( self, cr, uid, ids, context=None ):
         user_obj = self.pool.get('res.users').browse(cr, uid, uid)
         company = user_obj.company_id
-        product_obj = self.pool.get('product.product')
+        product_obj = self.pool.get('product.template')
         product = product_obj.browse(cr, uid, ids[0])
 
         CLIENT_ID = company.mercadolibre_client_id
@@ -323,7 +324,7 @@ class product_product(osv.osv):
     def product_meli_status_pause( self, cr, uid, ids, context=None ):
         user_obj = self.pool.get('res.users').browse(cr, uid, uid)
         company = user_obj.company_id
-        product_obj = self.pool.get('product.product')
+        product_obj = self.pool.get('product.template')
         product = product_obj.browse(cr, uid, ids[0])
 
         CLIENT_ID = company.mercadolibre_client_id
@@ -342,7 +343,7 @@ class product_product(osv.osv):
     def product_meli_status_active( self, cr, uid, ids, context=None ):
         user_obj = self.pool.get('res.users').browse(cr, uid, uid)
         company = user_obj.company_id
-        product_obj = self.pool.get('product.product')
+        product_obj = self.pool.get('product.template')
         product = product_obj.browse(cr, uid, ids[0])
 
         CLIENT_ID = company.mercadolibre_client_id
@@ -362,7 +363,7 @@ class product_product(osv.osv):
 
         user_obj = self.pool.get('res.users').browse(cr, uid, uid)
         company = user_obj.company_id
-        product_obj = self.pool.get('product.product')
+        product_obj = self.pool.get('product.template')
         product = product_obj.browse(cr, uid, ids[0])
 
         if product.meli_status!='closed':
@@ -393,7 +394,7 @@ class product_product(osv.osv):
         user_obj = self.pool.get('res.users').browse(cr, uid, uid)
         company = user_obj.company_id
 
-        product_obj = self.pool.get('product.product')
+        product_obj = self.pool.get('product.template')
         product = product_obj.browse(cr, uid, ids[0])
 
         CLIENT_ID = company.mercadolibre_client_id
@@ -441,7 +442,7 @@ class product_product(osv.osv):
         user_obj = self.pool.get('res.users').browse(cr, uid, uid)
         company = user_obj.company_id
 
-        product_obj = self.pool.get('product.product')
+        product_obj = self.pool.get('product.template')
         product = product_obj.browse(cr, uid, ids[0])
 
         CLIENT_ID = company.mercadolibre_client_id
@@ -486,7 +487,7 @@ class product_product(osv.osv):
         banner_obj = self.pool.get('mercadolibre.banner')
 
         #solo para saber si ya habia una descripcion completada
-        product_obj = self.pool.get('product.product')
+        product_obj = self.pool.get('product.template')
         if len(ids):
             product = product_obj.browse(cr, uid, ids[0])
         else:
@@ -513,7 +514,7 @@ class product_product(osv.osv):
         company = user_obj.company_id
         warningobj = self.pool.get('warning')
 
-        product_obj = self.pool.get('product.product')
+        product_obj = self.pool.get('product.template')
         product = product_obj.browse(cr, uid, ids[0])
 
         CLIENT_ID = company.mercadolibre_client_id
@@ -547,7 +548,7 @@ class product_product(osv.osv):
         user_obj = self.pool.get('res.users').browse(cr, uid, uid)
         company = user_obj.company_id
 
-        product_obj = self.pool.get('product.product')
+        product_obj = self.pool.get('product.template')
         product = product_obj.browse(cr, uid, ids[0])
 
         CLIENT_ID = company.mercadolibre_client_id
@@ -583,7 +584,7 @@ class product_product(osv.osv):
         import pdb;pdb.set_trace();
 #        product_ids = context['active_ids']
         product_ids = ids
-        product_obj = self.pool.get('product.product')
+        product_obj = self.pool.get('product.template')
 
         user_obj = self.pool.get('res.users').browse(cr, uid, uid)
         #user_obj.company_id.meli_login()
@@ -789,6 +790,7 @@ class product_product(osv.osv):
 	'meli_video': fields.char( string='Video (id de youtube)', size=256),
 	'meli_state': fields.function( product_get_meli_loginstate, method=True, type='boolean', string="Inicio de sesión requerida", store=False ),
     'meli_status': fields.function( product_get_meli_status, method=True, type='char', size=128, string="Estado del producto en MLA", store=False ),
+    'meli_pub': fields.boolean('Meli Publication',help='MELI Product'),
 	### Agregar imagen/archivo uno o mas, y la descripcion en HTML...
 	# TODO Agregar el banner
     }

@@ -53,7 +53,7 @@ class product_post(osv.osv_memory):
     def product_post(self, cr, uid, ids, context=None):
 
         product_ids = context['active_ids']
-        product_obj = self.pool.get('product.product')
+        product_obj = self.pool.get('product.template')
 
         user_obj = self.pool.get('res.users').browse(cr, uid, uid)
         #user_obj.company_id.meli_login()
