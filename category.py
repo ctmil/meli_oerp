@@ -105,7 +105,7 @@ class mercadolibre_category(osv.osv):
                 warningobj.info(cr, uid, title='MELI WARNING', message="Preparando importación de todas las categorías en "+str(category_root), message_html=response )
                 if ("children_categories" in rjson):
                     #empezamos a iterar categorias
-                    for child in children_categories:
+                    for child in rjson["children_categories"]:
                         ml_cat_id = child["id"]
                         if (ml_cat_id):
                             category.import_category(category_id=ml_cat_id)
