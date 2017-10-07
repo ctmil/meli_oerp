@@ -5,7 +5,7 @@
         <record model="ir.ui.view" id="product_nh_ml_form_view">
             <field name="name">product.nh.ml.form.inherit</field>
             <field name="model">product.template</field>
-            <field name="inherit_id" ref="product.product.product_template_form_view" />
+            <field name="inherit_id" ref="product.product_template_form_view" />
             <field name="arch" type="xml">
               <label for="sale_ok" position="after">
                     <field name="meli_pub" />
