@@ -580,11 +580,11 @@ class product_template(osv.osv):
         return res
 
 
-    def product_post(self, cr, uid, context=None):
+    def product_post(self, cr, uid, pid, context=None):
         import pdb;pdb.set_trace();
 #        product_ids = context['active_ids']
         product_obj = self.pool.get('product.template')
-        product = self;
+        product = product_obj.browse(cr,uid,pid);
         user_obj = self.pool.get('res.users').browse(cr, uid, uid)
         #user_obj.company_id.meli_login()
         company = user_obj.company_id

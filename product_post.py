@@ -85,11 +85,11 @@ class product_post(osv.osv_memory):
             import pdb;pdb.set_trace();
             #Alta
             if (product.meli_pub and product.meli_id==False):
-                product.product_post()
+                product.product_post(product_id)
 
             #Actualiza
             if (product.meli_pub and product.meli_id):
-                product.product_post()
+                product.product_post(product_id)
 
             #Pausa
             if (product.meli_pub==False and product.meli_id):
