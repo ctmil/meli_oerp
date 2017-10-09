@@ -625,12 +625,11 @@ class product_template(osv.osv):
                 'meli_currency': 'ARS',
                 'meli_condition': 'new',
                 'meli_buying_mode': 'buy_it_now',
-                'meli_category': product.type_id.meli_category,
                 'meli_description': product.description,
                 'meli_price': str(product.list_price),
                 'meli_available_quantity': 1,
                 });
-
+            product.meli_category = product.type_id.meli_category
         #if product.meli_price==False:
             # print 'Assigning price: product.meli_price: %s standard_price: %s' % (product.meli_price, product.standard_price)
             #product.meli_price = str(product.list_price)
