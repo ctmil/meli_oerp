@@ -772,7 +772,7 @@ class product_template(osv.osv):
         posting_id = self.pool.get('mercadolibre.posting').search(cr,uid,[('meli_id','=',rjson['id'])])
 
         if not posting_id:
-            posting_id = self.pool.get('mercadolibre.posting').create(cr,uid,(posting_fields))
+            posting_id = self.pool.get('mercadolibre.posting').create(cr,uid,posting_fields)
 
         return {}
 
