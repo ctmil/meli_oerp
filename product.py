@@ -627,7 +627,8 @@ class product_template(osv.osv):
                 'meli_buying_mode': 'buy_it_now',
                 'meli_category': product.type_id.meli_category,
                 'meli_description': product.description,
-                'meli_price': str(product.list_price)
+                'meli_price': str(product.list_price),
+                'meli_available_quantity': 1,
                 });
 
         #if product.meli_price==False:
