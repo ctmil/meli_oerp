@@ -32,7 +32,7 @@ from melisdk.meli import Meli
 class mercadolibre_posting_update(osv.osv_memory):
     _name = "mercadolibre.posting.update"
     _description = "Update Posting Questions"
-    
+
     def posting_update(self, cr, uid, ids, context=None):
 
         posting_ids = context['active_ids']
@@ -64,12 +64,12 @@ class mercadolibre_posting(osv.osv):
 
         posting_obj = self.pool.get('mercadolibre.posting')
         posting = posting_obj.browse(cr, uid, ids[0])
-     
+
         update_status = "ok"
 
         self.posting_query_questions( cr, uid, ids[0] )
 
-        res = {}		
+        res = {}
         for posting in self.browse(cr,uid,ids):
             res[posting.id] = update_status
         return res
@@ -86,7 +86,7 @@ class mercadolibre_posting(osv.osv):
         log_msg = 'posting_query_questions: %s' % (posting.meli_id)
         _logger.info(log_msg)
 
-        
+
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
@@ -107,7 +107,7 @@ class mercadolibre_posting(osv.osv):
             ML_permalink = product_json["permalink"]
             ML_price = product_json["price"]
             posting.write( { 'meli_status': ML_status, 'meli_permalink': ML_permalink, 'meli_price': ML_price } )
-        
+
         response = meli.get("/questions/search?item_id="+posting.meli_id, {'access_token':meli.access_token})
         questions_json = response.json()
         #_logger.info( questions_json )
@@ -124,23 +124,23 @@ class mercadolibre_posting(osv.osv):
                 _logger.info(Question )
 
 #{
-#   'status': u'UNANSWERED', 
-#   'seller_id': 171319838, 
+#   'status': u'UNANSWERED',
+#   'seller_id': 171319838,
 #   'from': {
-#      'answered_questions': 0, 
+#      'answered_questions': 0,
 #      'id': 171329758
-#   }, 
-#   'deleted_from_listing': False, 
+#   },
+#   'deleted_from_listing': False,
 #   'text': 'Pregunta que hago para testear el m\xf3dulo de meli_oerp en Odoo....??',
-#   'answer': None, 
-#   'item_id': u'MLA548679961', 
-#   'date_created': '2015-03-04T12:04:48.000-04:00', 
+#   'answer': None,
+#   'item_id': u'MLA548679961',
+#   'date_created': '2015-03-04T12:04:48.000-04:00',
 #   'hold': False,
 #   'id': 3471012014
 #}
 
 ##{
-#   'status': 'ACTIVE', 
+#   'status': 'ACTIVE',
 #   'text': 'Ok recibiose la pregunta correctamente, ahora viendo si sale esta respuesta! Saludos\nMas saludos',
 #   'date_created': '2015-03-04T13:00:53.000-04:00'
 #}
@@ -161,7 +161,7 @@ class mercadolibre_posting(osv.osv):
                     question_fields['answer_text'] = question_answer['text']
                     question_fields['answer_status'] = question_answer['status']
                     question_fields['answer_date_created'] = question_answer['date_created']
-                
+
                 question_fetch_ids = questions_obj.search(cr,uid,[('question_id','=',question_fields['question_id'])])
 
                 if not question_fetch_ids:
@@ -178,16 +178,15 @@ class mercadolibre_posting(osv.osv):
         return {}
 
     _columns = {
-        'posting_date': fields.date('Fecha del posting'), 
-        'name': fields.char('Name'),
+        'posting_date': fields.date('Fecha del posting'),
+        'name': fields.char(string='Name', size=512 ),
         'meli_id': fields.char('Id del item asignado por Meli', size=256),
         'product_id': fields.many2one('product.product','product_id'),
         'meli_status': fields.char( string="Estado del producto en MLA", size=256 ),
-        'meli_permalink': fields.char( string="Permalink en MercadoLibre", size=512 ), 
+        'meli_permalink': fields.char( string="Permalink en MercadoLibre", size=512 ),
         'meli_price': fields.char(string='Precio de venta', size=128),
         'posting_questions': fields.one2many( 'mercadolibre.questions','posting_id','Questions' ),
         'posting_update': fields.function( posting_update, method=True, type='char', string="Posting Update", store=False ),
-    }    
+    }
 
 mercadolibre_posting()
-
