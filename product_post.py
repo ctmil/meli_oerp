@@ -82,10 +82,9 @@ class product_post(osv.osv_memory):
 
         for product_id in product_ids:
             product = product_obj.browse(cr,uid,product_id)
-
+            import pdb;pdb.set_trace();
             #Alta
             if (product.meli_pub and product.meli_id==False):
-                product._ids = product_ids
                 product.product_post()
 
             #Actualiza

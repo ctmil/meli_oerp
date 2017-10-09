@@ -581,7 +581,7 @@ class product_template(osv.osv):
 
 
     def product_post(self, cr, uid, context=None):
-#        import pdb;pdb.set_trace();
+        import pdb;pdb.set_trace();
 #        product_ids = context['active_ids']
         product_obj = self.pool.get('product.template')
         product = self;
