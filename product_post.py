@@ -85,15 +85,15 @@ class product_post(osv.osv_memory):
 
             #Alta
             if (product.meli_pub and product.meli_id==False):
-                product.product_post(cr,uid)
+                product.product_post()
 
             #Actualiza
             if (product.meli_pub and product.meli_id):
-                product.product_post(cr,uid)
+                product.product_post()
 
             #Pausa
             if (product.meli_pub==False and product.meli_id):
-                product.product_meli_status_pause(cr,uid,[product_id])
+                product.product_meli_status_pause([product_id])
 
         return {}
 
