@@ -613,30 +613,26 @@ class product_template(osv.osv):
 
         #Gisbert Repuestos
         # print product.meli_category.meli_category_id
-        if product.meli_title==False:
+        #if product.meli_title==False:
             # print 'Assigning title: product.meli_title: %s name: %s' % (product.meli_title, product.name)
-            product.meli_title = product.name
+        #    product.meli_title = product.name
 
-        product.write( {
-            'meli_title':  product.brand_id.name+" - "+product.name+" - "+product.type_id.name,
-            'meli_listing_type': 'gold_premium',
-            'meli_currency': 'ARS',
-            'meli_condition': 'new',
-            'meli_buying_mode': 'buy_it_now'
-            });
-        #if (product.)
+        #SPECIAL AUTO-FIELD-COMPLETION
         if (product.type_id.meli_category):
-            product.meli_category = product.type_id.meli_category
+            product.write( {
+                'meli_title':  product.brand_id.name+" - "+product.name+" - "+product.type_id.name,
+                'meli_listing_type': 'gold_premium',
+                'meli_currency': 'ARS',
+                'meli_condition': 'new',
+                'meli_buying_mode': 'buy_it_now',
+                'meli_category': product.type_id.meli_category,
+                'meli_description': product.description,
+                'meli_price': str(product.list_price)
+                });
 
-
-        if (product.meli_description==False):
-            product.meli_description = product.description
-
-
-
-        if product.meli_price==False:
+        #if product.meli_price==False:
             # print 'Assigning price: product.meli_price: %s standard_price: %s' % (product.meli_price, product.standard_price)
-            product.meli_price = str(product.list_price)
+            #product.meli_price = str(product.list_price)
 
         body = {
             "title": product.meli_title or '',
