@@ -85,6 +85,7 @@ class product_post(osv.osv_memory):
 
             #Alta
             if (product.meli_pub and product.meli_id==False):
+                product._ids = product_ids
                 product.product_post()
 
             #Actualiza
