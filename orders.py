@@ -135,7 +135,7 @@ class mercadolibre_orders(osv.osv):
 
         saleorder_obj = self.pool.get('sale.order')
         saleorderline_obj = self.pool.get('sale.order.line')
-        product_obj = self.pool.get('product.product')
+        product_obj = self.pool.get('product.template')
         pricelist_obj = self.pool.get('product.pricelist')
         respartner_obj = self.pool.get('res.partner')
 
