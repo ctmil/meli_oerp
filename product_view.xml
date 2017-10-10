@@ -51,7 +51,7 @@
                                 <br/>
                                 <br/>
 								<field name="meli_title" />
-                                <field name="meli_description_banner_id" on_change="product_on_change_meli_banner( meli_description_banner_id)" />
+                                <field name="meli_description_banner_id"  />
 								<field name="meli_description" />
 								<field name="meli_category" />
 								<field name="meli_listing_type" />
