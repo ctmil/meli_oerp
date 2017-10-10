@@ -181,7 +181,7 @@ class mercadolibre_posting(osv.osv):
         'posting_date': fields.date('Fecha del posting'),
         'name': fields.char(string='Name', size=512 ),
         'meli_id': fields.char('Id del item asignado por Meli', size=256),
-        'product_id': fields.many2one('product.product','product_id'),
+        'product_id': fields.many2one('product.template','product_id'),
         'meli_status': fields.char( string="Estado del producto en MLA", size=256 ),
         'meli_permalink': fields.char( string="Permalink en MercadoLibre", size=512 ),
         'meli_price': fields.char(string='Precio de venta', size=128),
