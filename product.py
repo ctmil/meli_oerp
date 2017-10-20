@@ -618,7 +618,14 @@ class product_template(osv.osv):
         #    product.meli_title = product.name
 
         #SPECIAL AUTO-FIELD-COMPLETION
-        if (product.type_id.meli_category):
+        if (product.meli_id):
+            product.write( {
+                'meli_title':  product.brand_id.name+" - "+product.name+" - "+product.type_id.name,
+                'meli_description': product.description,
+                'meli_price': str(product.list_price),
+                'meli_available_quantity': 1,
+                });
+        else:
             product.write( {
                 'meli_title':  product.brand_id.name+" - "+product.name+" - "+product.type_id.name,
                 'meli_listing_type': 'gold_premium',
@@ -629,7 +636,24 @@ class product_template(osv.osv):
                 'meli_price': str(product.list_price),
                 'meli_available_quantity': 1,
                 });
-            product.meli_category = product.type_id.meli_category
+
+        if (product.meli_category):
+            ##
+            _logger.info("meli_category: %s, %s" % (product.meli_category.name, product.meli_category.meli_category_id))
+        else:
+            if (product.type_id):
+                if (product.type_id.meli_category):
+                    response_cat = meli.get("/categories/"+str(product.type_id.meli_category.meli_category_id), {'access_token':meli.access_token})
+                    rjson_cat = response_cat.json()
+                    if ("children_categories" in rjson_cat):
+                        if (len(rjson_cat["children_categories"])==0):
+                            #It is a leaf
+                            product.meli_category = product.type_id.meli_category
+                        else:
+                            #It is a branch, abort
+                            _logger.info("meli_category is not a leaf: %s, %s" % (product.type_id.meli_category.name, product.type_id.meli_category.meli_category_id))
+                            return warningobj.info(cr, uid, title='MELI WARNING', message="Mercadolibre no acepta publicar en una categoría que contiene otras categorías.", message_html="" )
+
         #if product.meli_price==False:
             # print 'Assigning price: product.meli_price: %s standard_price: %s' % (product.meli_price, product.standard_price)
             #product.meli_price = str(product.list_price)
@@ -761,7 +785,7 @@ class product_template(osv.osv):
                 return warningobj.info(cr, uid, title='MELI WARNING', message="Debe iniciar sesión en MELI.  ", message_html="")
             else:
                  #Any other errors
-                return warningobj.info(cr, uid, title='MELI WARNING', message="Completar todos los campos!  ", message_html="<br><br>"+missing_fields )
+                return warningobj.info(cr, uid, title='MELI WARNING', message="Se registró un problema.  ", message_html="<br><br>"+missing_fields )
 
         #last modifications if response is OK
         if "id" in rjson:
