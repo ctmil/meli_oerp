@@ -618,11 +618,18 @@ class product_template(osv.osv):
         #    product.meli_title = product.name
 
         #SPECIAL AUTO-FIELD-COMPLETION
+        precio = product.meli_price
+        if (product.meli_price):
+            #check decimals
+            precio = "%0.2f" % float(product.meli_price)
+        else:
+            precio = "%0.2f" % (product.list_price)
+
         if (product.meli_id):
             product.write( {
                 'meli_title':  product.brand_id.name+" - "+product.name+" - "+product.type_id.name,
                 'meli_description': product.description,
-                'meli_price': str(product.list_price),
+                'meli_price': str(precio),
                 'meli_available_quantity': 1,
                 });
         else:
@@ -633,7 +640,7 @@ class product_template(osv.osv):
                 'meli_condition': 'new',
                 'meli_buying_mode': 'buy_it_now',
                 'meli_description': product.description,
-                'meli_price': str(product.list_price),
+                'meli_price': str(precio),
                 'meli_available_quantity': 1,
                 });
 
