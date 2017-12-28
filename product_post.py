@@ -117,6 +117,7 @@ class product_post(models.TransientModel):
                     body["condition"] = product.meli_condition
             else:
                 body["condition"] = product.meli_condition
+
             # print body
 
             assign_img = False and product.meli_id

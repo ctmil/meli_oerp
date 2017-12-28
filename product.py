@@ -771,12 +771,12 @@ class product_product(models.Model):
     meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256);
     meli_description = fields.Html(string='Descripción');
     meli_description_banner_id = fields.Many2one("mercadolibre.banner","Banner");
-    meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre");
-    meli_listing_type = fields.Selection([("free","Gratuita"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special"),("gold_pro","Oro Pro")], string='Tipo de lista');
+    meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre");    
+    meli_listing_type = fields.Selection([("free","Gratuita"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Oro Premium"),("gold_special","Clásica"),("gold_pro","Oro Pro")], string='Tipo de lista');
     meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra');
     meli_price = fields.Char(string='Precio de venta', size=128);
     meli_price_fixed = fields.Boolean(string='Price is fixed');
-    meli_currency = fields.Selection([("MXN","Peso mexicano"),("ARS","Peso Argentino (ARS)")],string='Moneda');
+    meli_currency = fields.Selection([("MXN","Peso mexicano")],string='Moneda (MXN)');
     meli_condition = fields.Selection([ ("new", "Nuevo"), ("used", "Usado"), ("not_specified","No especificado")],'Condición del producto');
     meli_available_quantity = fields.Integer(string='Cantidad disponible');
     meli_warranty = fields.Char(string='Garantía', size=256);
