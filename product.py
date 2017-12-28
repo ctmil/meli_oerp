@@ -505,7 +505,7 @@ class product_product(models.Model):
 
         return { 'value': { 'meli_description' : result } }
 
-    @api.multi
+    @api.one
     def product_get_meli_status( self ):
         self.ensure_one()
         #pdb.set_trace()
@@ -541,7 +541,7 @@ class product_product(models.Model):
         #    res[product.id] = ML_status
         #return res
 
-    @api.multi
+    @api.one
     def product_get_permalink( self ):
         #pdb.set_trace()
         self.ensure_one()
