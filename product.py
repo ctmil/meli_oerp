@@ -268,12 +268,12 @@ class product_product(models.Model):
 	        "target": "new",
         }
 
-    @api.multi
+    @api.one
     def product_get_meli_loginstate( self ):
         # recoger el estado y devolver True o False (meli)
         #False if logged ok
         #True if need login
-        self.ensure_one()
+        #self.ensure_one()
         #pdb.set_trace()
         company = self.env.user.company_id
 
@@ -771,7 +771,7 @@ class product_product(models.Model):
     meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256);
     meli_description = fields.Html(string='Descripción');
     meli_description_banner_id = fields.Many2one("mercadolibre.banner","Banner");
-    meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre");    
+    meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre");
     meli_listing_type = fields.Selection([("free","Gratuita"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Oro Premium"),("gold_special","Clásica"),("gold_pro","Oro Pro")], string='Tipo de lista');
     meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra');
     meli_price = fields.Char(string='Precio de venta', size=128);
