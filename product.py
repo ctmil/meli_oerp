@@ -507,7 +507,7 @@ class product_product(models.Model):
 
     @api.one
     def product_get_meli_status( self ):
-        self.ensure_one()
+        #self.ensure_one()
         #pdb.set_trace()
         company = self.env.user.company_id
         warningobj = self.env['warning']
@@ -544,7 +544,7 @@ class product_product(models.Model):
     @api.one
     def product_get_permalink( self ):
         #pdb.set_trace()
-        self.ensure_one()
+        #self.ensure_one()
         ML_permalink = ''
 
         company = self.env.user.company_id
