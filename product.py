@@ -275,12 +275,12 @@ class product_product(models.Model):
 	        "target": "new",
         }
 
-    @api.multi
+    @api.one
     def product_get_meli_loginstate( self ):
         # recoger el estado y devolver True o False (meli)
         #False if logged ok
         #True if need login
-        self.ensure_one()
+        #self.ensure_one()
         #pdb.set_trace()
         company = self.env.user.company_id
 
