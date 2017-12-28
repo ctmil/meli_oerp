@@ -796,6 +796,8 @@ class product_product(models.Model):
     meli_status = fields.Char( compute=product_get_meli_status, size=128, string="Estado del producto en MLA", store=False )
     meli_dimensions = fields.Char( string="Dimensiones del producto", size=128)
     meli_pub = fields.Boolean('Meli Publication',help='MELI Product')
+	### Agregar imagen/archivo uno o mas, y la descripcion en HTML...
+	# TODO Agregar el banner
 
     _defaults = {
         'meli_imagen_logo': 'None',
