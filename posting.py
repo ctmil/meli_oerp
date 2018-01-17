@@ -56,7 +56,7 @@ class mercadolibre_posting(models.Model):
     _name = "mercadolibre.posting"
     _description = "Posting en MercadoLibre"
 
-    def posting_update( self, ids, field_name, attributes, context=None):
+    def posting_update( self, ids):
 
         log_msg = 'posting_update: %s' % (field_name)
         _logger.info(log_msg)
