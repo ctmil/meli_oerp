@@ -164,9 +164,9 @@ class res_company(models.Model):
         #company = user_obj.company_id
         company = self.env.user.company_id
 
-        orders_obj = self.pool.get('mercadolibre.orders')
+        orders_obj = self.env['mercadolibre.orders']
 
-        result = orders_obj.orders_query_recent()
+        result = orders_obj.orders_query_recent(orders_obj)
 #"type": "ir.actions.act_window",
 #"id": "action_meli_orders_tree",
         return {}
