@@ -58,8 +58,8 @@ class mercadolibre_posting(models.Model):
 
     def posting_update( self ):
 
-        log_msg = 'posting_update: %s' % (field_name)
-        _logger.info(log_msg)
+        #log_msg = 'posting_update: %s' % (field_name)
+        #_logger.info(log_msg)
 
         company = self.env.user.company_id
 
