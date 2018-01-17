@@ -111,10 +111,12 @@ class product_post(models.TransientModel):
                 #"pictures": [ { 'source': product.meli_imagen_logo} ] ,
                 "video_id": product.meli_video  or '',
             }
-            print "product.meli_id before setting conditions ]"+product.meli_id+"["
-            if (len(product.meli_id)==0):
-                body["condition"] = product.meli_condition;
-
+            #print "product.meli_id before setting conditions ]"+product.meli_id+"["
+            if (product.meli_id):
+                if (len(product.meli_id)==0):
+                    body["condition"] = product.meli_condition
+            else:
+                body["condition"] = product.meli_condition
             # print body
 
             assign_img = False and product.meli_id
