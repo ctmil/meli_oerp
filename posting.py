@@ -56,33 +56,31 @@ class mercadolibre_posting(models.Model):
     _name = "mercadolibre.posting"
     _description = "Posting en MercadoLibre"
 
-    def posting_update( self, ids):
+    def posting_update( self ):
 
         log_msg = 'posting_update: %s' % (field_name)
         _logger.info(log_msg)
 
-        user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        company = user_obj.company_id
+        company = self.env.user.company_id
 
-        posting_obj = self.pool.get('mercadolibre.posting')
-        posting = posting_obj.browse(cr, uid, ids[0])
+        posting_obj = self.env['mercadolibre.posting']
+        posting = self
 
         update_status = "ok"
 
-        self.posting_query_questions( cr, uid, ids[0] )
+        posting.posting_query_questions()
 
         res = {}
-        for posting in self.browse(cr,uid,ids):
-            res[posting.id] = update_status
+        res[posting.id] = update_status
         return res
 
-    def posting_query_questions( self, id ):
+    def posting_query_questions( self ):
 
         #get with an item id
         company = self.env.user.company_id
 
         posting_obj = self.env['mercadolibre.posting']
-        posting = posting_obj.browse( id )
+        posting = self
 
         log_msg = 'posting_query_questions: %s' % (posting.meli_id)
         _logger.info(log_msg)
