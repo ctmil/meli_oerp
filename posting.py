@@ -45,7 +45,7 @@ class mercadolibre_posting_update(models.TransientModel):
             _logger.info("posting_update: %s " % (posting_id) )
 
             posting = posting_obj.browse(posting_id)
-            posting_obj.posting_query_questions( posting_id )
+            posting.posting_query_questions()
 
         return {}
 
