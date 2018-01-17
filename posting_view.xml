@@ -26,7 +26,7 @@
             <field name="model">mercadolibre.posting</field>
             <field name="type">form</field>
             <field name="arch" type="xml">
-				<group>
+				      <form string="ML Posting">
                     <field name="name"/>
                     <field name="posting_date"/>
                     <field name="meli_id"/>
@@ -36,7 +36,7 @@
                     <field name="meli_price"/>
                     <field name="posting_questions"/>
                     <field name="posting_update"/>
-                </group>
+                </form>
             </field>
         </record>
 

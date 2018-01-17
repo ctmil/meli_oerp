@@ -75,7 +75,7 @@
             <field name="model">mercadolibre.orders</field>
             <field name="type">form</field>
             <field name="arch" type="xml">
-				      <form string="Order">>
+				      <form string="Order">
                     <field name="seller"/>
                     <field name="order_id"/>
                     <field name="status"/>
