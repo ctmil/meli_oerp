@@ -166,7 +166,7 @@ class res_company(models.Model):
 
         orders_obj = self.env['mercadolibre.orders']
 
-        result = orders_obj.orders_query_recent(orders_obj)
+        result = orders_obj.orders_query_recent()
 #"type": "ir.actions.act_window",
 #"id": "action_meli_orders_tree",
         return {}
