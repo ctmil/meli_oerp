@@ -27,6 +27,7 @@
             <field name="type">form</field>
             <field name="arch" type="xml">
 				      <form string="ML Posting">
+                <group>
                     <field name="name"/>
                     <field name="posting_date"/>
                     <field name="meli_id"/>
@@ -36,6 +37,7 @@
                     <field name="meli_price"/>
                     <field name="posting_questions"/>
                     <field name="posting_update"/>
+                  </group>
                 </form>
             </field>
         </record>
