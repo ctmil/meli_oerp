@@ -36,18 +36,22 @@ class mercadolibre_posting_update(models.TransientModel):
 
     def posting_update(self, context ):
 
-        #posting_ids = context['active_ids']
+        posting_ids = False
+        _logger.info("context:")
+        _logger.info(context)
+        if ('active_ids' in context):
+            posting_ids = context['active_ids']
         #_logger.info("ids %s", ''.join(ids))
         #posting_ids = ids
         posting_obj = self.env['mercadolibre.posting']
-        _logger.info("context:")
-        _logger.info(context)
-        #for posting_id in posting_ids:
+
+        if (posting_ids):
+            for posting_id in posting_ids:
 
         #    _logger.info("posting_update: %s " % (posting_id) )
 
-        #    posting = posting_obj.browse(posting_id)
-        #    posting.posting_query_questions()
+                posting = posting_obj.browse(posting_id)
+                posting.posting_query_questions()
 
         return {}
 
