@@ -23,10 +23,10 @@ class warning(models.TransientModel):
         return res and res[1] or False
 
     def _message(self, id):
-        pdb.set_trace()
+        #pdb.set_trace()
         message = self.browse( id)
         message_type = [t[1]for t in WARNING_TYPES if message.type == t[0]][0]
-        print '%s: %s' % (_(message_type), _(message.title))
+        #print '%s: %s' % (_(message_type), _(message.title))
         res = {
             'name': '%s: %s' % (_(message_type), _(message.title)),
             'view_type': 'form',
