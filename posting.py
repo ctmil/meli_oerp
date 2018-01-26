@@ -165,7 +165,7 @@ class mercadolibre_posting(models.Model):
 
                 question = questions_obj.search( [('question_id','=',question_fields['question_id'])])
                 if not question:
-	                question_fetch_ids = questions_obj.create( ( question_fields ))
+	                question = questions_obj.create( ( question_fields ))
                 else:
                     if question:
                         question.write( (question_fields) )
