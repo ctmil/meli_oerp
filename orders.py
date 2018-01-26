@@ -176,7 +176,7 @@ class mercadolibre_orders(models.Model):
             'date_closed': order_json["date_closed"] or '',
         }
 
-        print "order:" + str(order)
+        #print "order:" + str(order)
 
         if 'buyer' in order_json:
             Buyer = order_json['buyer']
