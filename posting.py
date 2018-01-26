@@ -169,7 +169,7 @@ class mercadolibre_posting(models.Model):
                 else:
                     question = questions_obj.browse(question_fetch_ids[0])
                     if question:
-                        question.write( question_fields )
+                        question.write( (question_fields) )
 
 
         return {}
