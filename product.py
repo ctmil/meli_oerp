@@ -105,7 +105,8 @@ class product_product(models.Model):
         if 'error' in rjson:
             return {}
 
-        #if "content" in response:
+        if "content" in response:
+            _logger.info(response.content)
         #    print "product_meli_get_product > response.content: " + response.content
 
         #TODO: traer la descripcion: con
