@@ -34,7 +34,7 @@ class mercadolibre_posting_update(models.TransientModel):
     _name = "mercadolibre.posting.update"
     _description = "Update Posting Questions"
 
-    def posting_update(self, ids ):
+    def posting_update(self, cr, uuid, ids ):
 
         #posting_ids = context['active_ids']
         #_logger.info("ids %s", ''.join(ids))
