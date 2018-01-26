@@ -40,7 +40,8 @@ class mercadolibre_posting_update(models.TransientModel):
         #_logger.info("ids %s", ''.join(ids))
         #posting_ids = ids
         posting_obj = self.env['mercadolibre.posting']
-
+        _logger.info("ids:")
+        _logger.info(ids)
         #for posting_id in posting_ids:
 
         #    _logger.info("posting_update: %s " % (posting_id) )
@@ -162,12 +163,10 @@ class mercadolibre_posting(models.Model):
                     question_fields['answer_status'] = question_answer['status']
                     question_fields['answer_date_created'] = question_answer['date_created']
 
-                question_fetch_ids = questions_obj.search( [('question_id','=',question_fields['question_id'])])
-                _logger.info( question_fetch_ids )
-                if not question_fetch_ids:
+                question = questions_obj.search( [('question_id','=',question_fields['question_id'])])
+                if not question:
 	                question_fetch_ids = questions_obj.create( ( question_fields ))
                 else:
-                    question = questions_obj.browse(question_fetch_ids[0])
                     if question:
                         question.write( (question_fields) )
 
