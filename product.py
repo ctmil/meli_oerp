@@ -178,7 +178,7 @@ class product_product(models.Model):
                             p_id = www_cat_id
 
                 #fullname = fullname + "/" + rjson_cat['name']
-                print "category fullname:" + fullname
+                #print "category fullname:" + fullname
                 cat_fields = {
                     'name': fullname,
                     'meli_category_id': ''+str(category_id),
