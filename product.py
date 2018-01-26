@@ -72,6 +72,9 @@ class product_product(models.Model):
         #pdb.set_trace()
         product = self
 
+        _logger.info("product_meli_get_product")
+        _logger.info(product)
+
         product_template_obj = self.env['product.template']
         product_template = product_template_obj.browse(product.product_tmpl_id.id)
 
@@ -84,8 +87,9 @@ class product_product(models.Model):
 
         try:
             response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token})
-            print "product_meli_get_product > response: " + response
+            #_logger.info(response)
             rjson = response.json()
+            _logger.info(response)
         except IOError as e:
             print "I/O error({0}): {1}".format(e.errno, e.strerror)
             return {}
@@ -93,14 +97,16 @@ class product_product(models.Model):
             print "Rare error"
             return {}
 
+
+
         des = ''
         desplain = ''
         vid = ''
         if 'error' in rjson:
             return {}
 
-        if "content" in response:
-            print "product_meli_get_product > response.content: " + response.content
+        #if "content" in response:
+        #    print "product_meli_get_product > response.content: " + response.content
 
         #TODO: traer la descripcion: con
         #https://api.mercadolibre.com/items/{ITEM_ID}/description?access_token=$ACCESS_TOKEN
