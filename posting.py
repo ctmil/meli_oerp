@@ -163,11 +163,13 @@ class mercadolibre_posting(models.Model):
                     question_fields['answer_date_created'] = question_answer['date_created']
 
                 question_fetch_ids = questions_obj.search( [('question_id','=',question_fields['question_id'])])
-
+                _logger.info( question_fetch_ids )
                 if not question_fetch_ids:
 	                question_fetch_ids = questions_obj.create( ( question_fields ))
                 else:
-                    questions_obj.write( question_fetch_ids[0], ( question_fields ) )
+                    question = questions_obj.browse(question_fetch_ids[0])
+                    if question:
+                        question.write( question_fields )
 
 
         return {}
