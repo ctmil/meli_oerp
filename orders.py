@@ -332,7 +332,7 @@ class mercadolibre_orders(models.Model):
 
                 saleorderline_item_fields = {
                     'company_id': company.id,
-                    'order_id': sorder.id,
+                    'order_id': sorder.id.id,
                     'meli_order_item_id': Item['item']['id'],
                     'price_unit': float(Item['unit_price']),
 #                    'price_total': float(Item['unit_price']) * float(Item['quantity']),
