@@ -139,7 +139,7 @@ class mercadolibre_orders(models.Model):
         plistids = pricelist_obj.search([('currency_id','=','ARS')] )
         plistid = None
         if plistids:
-            plistid = plistids[0]
+            plistid = plistids
 
         order_obj = self.env['mercadolibre.orders']
         buyers_obj = self.env['mercadolibre.buyers']
@@ -313,8 +313,8 @@ class mercadolibre_orders(models.Model):
                     #    _logger.info( product_related_obj )
 
                 order_item_fields = {
-                    'order_id': order.id,
-                    'posting_id': post_related_obj,
+                    'order_id': order.id.id,
+                    'posting_id': post_related_obj.id,
                     'order_item_id': Item['item']['id'],
                     'order_item_title': Item['item']['title'],
                     'order_item_category_id': Item['item']['category_id'],
