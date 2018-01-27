@@ -227,7 +227,7 @@ class mercadolibre_orders(models.Model):
         #process base order fields
         meli_order_fields = {
             'partner_id': partner_id.id,
-            'pricelist_id': plistid,
+            'pricelist_id': plistid.id,
             'meli_order_id': '%i' % (order_json["id"]),
             'meli_status': order_json["status"],
             'meli_status_detail': order_json["status_detail"] or '' ,
@@ -259,7 +259,7 @@ class mercadolibre_orders(models.Model):
         else:
             _logger.info("Adding new sale.order: " )
             _logger.info(meli_order_fields)
-            print "creating sale order:" + str(order_fields)
+            #print "creating sale order:" + str(meli_order_fields)
             sreturn_id = saleorder_obj.create((meli_order_fields))
             sorder = saleorder_obj.browse(sreturn_id)
 
