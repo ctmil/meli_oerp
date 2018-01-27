@@ -160,11 +160,14 @@ class mercadolibre_orders(models.Model):
         #we search for existing order with same order_id => "id"
             order_s = order_obj.search([ ('order_id','=',order_json['id']) ] )
             if (order_s):
-                order = order_obj.browse(order_s[0] )
+                order = order_s
+            #    order = order_obj.browse(order_s[0] )
 
             sorder_s = saleorder_obj.search([ ('meli_order_id','=',order_json['id']) ] )
-            if (sorder_s and len(sorder_s)>0):
-                sorder = saleorder_obj.browse(sorder_s[0] )
+            if (sorder_s):
+                sorder = sorder_s
+            #if (sorder_s and len(sorder_s)>0):
+            #    sorder = saleorder_obj.browse(sorder_s[0] )
 
         order_fields = {
             'order_id': '%i' % (order_json["id"]),
@@ -205,20 +208,23 @@ class mercadolibre_orders(models.Model):
                 print "creating buyer:" + str(buyer_fields)
                 buyer_id = buyers_obj.create(( buyer_fields ))
             else:
-                if (len(buyer_ids)>0):
-                      buyer_id = buyer_ids[0]
+                if (buyer_ids):
+                    buyer_id = buyer_ids
+                #if (len(buyer_ids)>0):
+                #      buyer_id = buyer_ids[0]
 
             partner_ids = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ] )
             partner_id = 0
             if not partner_ids:
-                print "creating partner:" + str(meli_buyer_fields)
+                #print "creating partner:" + str(meli_buyer_fields)
                 partner_id = respartner_obj.create(( meli_buyer_fields ))
             else:
-                if (len(partner_ids)>0):
-                    partner_id = partner_ids[0]
+                partner_id = partner_ids
+                #if (len(partner_ids)>0):
+                #    partner_id = partner_ids[0]
 
             if order:
-                return_id = self.env['mercadolibre.orders'].write(order.id,{'buyer':buyer_id})
+                return_id = self.env['mercadolibre.orders'].write(order.id,{'buyer':buyer_id.id})
             else:
                 partner_id.write( ( buyer_fields ) )
 
@@ -317,7 +323,7 @@ class mercadolibre_orders(models.Model):
                     'currency_id': Item['currency_id']
                 }
                 order_item_ids = order_items_obj.search( [('order_item_id','=',order_item_fields['order_item_id']),('order_id','=',order.id)] )
-
+                _logger.info( order_item_fields )
                 if not order_item_ids:
                     #print "order_item_fields: " + str(order_item_fields)
                     order_item_ids = order_items_obj.create( ( order_item_fields ))
@@ -337,9 +343,10 @@ class mercadolibre_orders(models.Model):
 #                    'customer_lead': float(0)
                 }
                 saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
-
+                _logger.info( saleorderline_item_fields )
+                
                 if not saleorderline_item_ids:
-                    print "saleorderline_item_fields: " + str(saleorderline_item_fields)
+                    #print "saleorderline_item_fields: " + str(saleorderline_item_fields)
                     saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
                 else:
                     saleorderline_item_ids.write( ( saleorderline_item_fields ) )
