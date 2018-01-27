@@ -362,7 +362,7 @@ class mercadolibre_orders(models.Model):
                 _logger.info(Payment )
 
                 payment_fields = {
-                    'order_id': order.id,
+                    'order_id': order.id.id,
                     'payment_id': Payment['id'],
                     'transaction_amount': Payment['transaction_amount'] or '',
                     'currency_id': Payment['currency_id'] or '',
