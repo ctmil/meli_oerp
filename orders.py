@@ -120,7 +120,7 @@ class mercadolibre_orders(models.Model):
     def pretty_json( self, cr, uid, ids, data, indent=0, context=None ):
         return json.dumps( data, sort_keys=False, indent=4 )
 
-    def orders_update_order_json( self, cr, uid, data, context=None ):
+    def orders_update_order_json( self, data, context=None ):
 
         _logger.info("orders_update_order_json > data: " + str(data) )
         oid = data["id"]
