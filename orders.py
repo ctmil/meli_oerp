@@ -342,7 +342,7 @@ class mercadolibre_orders(models.Model):
                     'name': Item['item']['title'],
 #                    'customer_lead': float(0)
                 }
-                saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
+                saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id.id)] )
                 _logger.info( saleorderline_item_fields )
 
                 if not saleorderline_item_ids:
