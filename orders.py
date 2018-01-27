@@ -292,15 +292,19 @@ class mercadolibre_orders(models.Model):
                 product_related_obj = ''
                 product_related_obj_id = False
                 if (post_related):
-                    if (post_related[0]):
-                        post_related_obj = post_related[0]
+                    post_related_obj = post_related
+                    _logger.info( post_related_obj )
+                    #if (post_related[0]):
+                    #    post_related_obj = post_related[0]
 
                 if (product_related):
-                    if (product_related[0]):
-                        product_related_obj_id = product_related[0]
-                        product_related_obj = product_obj.browse( product_related_obj_id)
-                        _logger.info("product_related:")
-                        _logger.info( product_related_obj )
+                    product_related_obj = product_related
+                    _logger.info( product_related_obj )
+                    #if (product_related[0]):
+                    #    product_related_obj_id = product_related[0]
+                    #    product_related_obj = product_obj.browse( product_related_obj_id)
+                    #    _logger.info("product_related:")
+                    #    _logger.info( product_related_obj )
 
                 order_item_fields = {
                     'order_id': order.id,
@@ -315,7 +319,7 @@ class mercadolibre_orders(models.Model):
                 order_item_ids = order_items_obj.search( [('order_item_id','=',order_item_fields['order_item_id']),('order_id','=',order.id)] )
 
                 if not order_item_ids:
-                    print "order_item_fields: " + str(order_item_fields)
+                    #print "order_item_fields: " + str(order_item_fields)
                     order_item_ids = order_items_obj.create( ( order_item_fields ))
                 else:
                     order_item_ids.write( ( order_item_fields ) )
