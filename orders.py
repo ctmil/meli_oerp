@@ -87,7 +87,7 @@ class mercadolibre_orders(models.Model):
     _description = "Pedidos en MercadoLibre"
 
 
-    def billing_info( self, cr, uid, billing_json, context=None ):
+    def billing_info( self, billing_json, context=None ):
         billinginfo = ''
 
         if 'doc_type' in billing_json:
@@ -100,7 +100,7 @@ class mercadolibre_orders(models.Model):
 
         return billinginfo
 
-    def full_phone( self, cr, uid, phone_json, context=None ):
+    def full_phone( self, phone_json, context=None ):
         full_phone = ''
 
         if 'area_code' in phone_json:
@@ -117,7 +117,7 @@ class mercadolibre_orders(models.Model):
 
         return full_phone
 
-    def pretty_json( self, cr, uid, ids, data, indent=0, context=None ):
+    def pretty_json( self, ids, data, indent=0, context=None ):
         return json.dumps( data, sort_keys=False, indent=4 )
 
     def orders_update_order_json( self, data, context=None ):
@@ -183,7 +183,7 @@ class mercadolibre_orders(models.Model):
             meli_buyer_fields = {
                 'name': Buyer['first_name']+' '+Buyer['last_name'],
                 'street': 'no street',
-                'phone': self.full_phone( cr, uid, Buyer['phone']),
+                'phone': self.full_phone( Buyer['phone']),
                 'email': Buyer['email'],
                 'meli_buyer_id': Buyer['id'],
             }
@@ -192,11 +192,11 @@ class mercadolibre_orders(models.Model):
                 'buyer_id': Buyer['id'],
                 'nickname': Buyer['nickname'],
                 'email': Buyer['email'],
-                'phone': self.full_phone( cr, uid, Buyer['phone']),
-                'alternative_phone': self.full_phone( cr, uid, Buyer['alternative_phone']),
+                'phone': self.full_phone( Buyer['phone']),
+                'alternative_phone': self.full_phone( Buyer['alternative_phone']),
                 'first_name': Buyer['first_name'],
                 'last_name': Buyer['last_name'],
-                'billing_info': self.billing_info( cr, uid, Buyer['billing_info']),
+                'billing_info': self.billing_info(Buyer['billing_info']),
             }
 
             buyer_ids = buyers_obj.search([  ('buyer_id','=',buyer_fields['buyer_id'] ) ] )
@@ -220,13 +220,13 @@ class mercadolibre_orders(models.Model):
             if order:
                 return_id = self.env['mercadolibre.orders'].write(order.id,{'buyer':buyer_id})
             else:
-                buyers_obj.write(buyer_id, ( buyer_fields ) )
+                partner_id.write( ( buyer_fields ) )
 
         if (len(partner_ids)>0):
             partner_id = partner_ids[0]
         #process base order fields
         meli_order_fields = {
-            'partner_id': partner_id,
+            'partner_id': partner_id.id,
             'pricelist_id': plistid,
             'meli_order_id': '%i' % (order_json["id"]),
             'meli_status': order_json["status"],
@@ -318,7 +318,7 @@ class mercadolibre_orders(models.Model):
                     print "order_item_fields: " + str(order_item_fields)
                     order_item_ids = order_items_obj.create( ( order_item_fields ))
                 else:
-                    order_items_obj.write( order_item_ids[0], ( order_item_fields ) )
+                    order_item_ids.write( ( order_item_fields ) )
 
                 saleorderline_item_fields = {
                     'company_id': company.id,
@@ -338,7 +338,7 @@ class mercadolibre_orders(models.Model):
                     print "saleorderline_item_fields: " + str(saleorderline_item_fields)
                     saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
                 else:
-                    saleorderline_obj.write( saleorderline_item_ids[0], ( saleorderline_item_fields ) )
+                    saleorderline_item_ids.write( ( saleorderline_item_fields ) )
 
 
         if 'payments' in order_json:
@@ -366,7 +366,7 @@ class mercadolibre_orders(models.Model):
                 if not payment_ids:
 	                payment_ids = payments_obj.create( ( payment_fields ))
                 else:
-                    payments_obj.write( payment_ids[0], ( payment_fields ) )
+                    payment_ids.write( ( payment_fields ) )
 
 
         if order:
@@ -374,14 +374,14 @@ class mercadolibre_orders(models.Model):
 
         return {}
 
-    def orders_update_order( self, cr, uid, id, context=None ):
+    def orders_update_order( self, context=None ):
 
         #get with an item id
         company = self.env.user.company_id
 
         order_obj = self.env['mercadolibre.orders']
         order_items_obj = self.env['mercadolibre.order_items']
-        order = order_obj.browse( id )
+        order = self
 
         log_msg = 'orders_update_order: %s' % (order.order_id)
         _logger.info(log_msg)
@@ -561,7 +561,7 @@ class mercadolibre_orders_update(models.TransientModel):
     _name = "mercadolibre.orders.update"
     _description = "Update Order"
 
-    def order_update(self, ids):
+    def order_update(self, context):
 
         orders_ids = context['active_ids']
         orders_obj = self.env['mercadolibre.orders']
@@ -571,7 +571,7 @@ class mercadolibre_orders_update(models.TransientModel):
             _logger.info("order_update: %s " % (order_id) )
 
             order = orders_obj.browse( order_id)
-            orders_obj.orders_update_order( order_id )
+            order.orders_update_order()
 
         return {}
 
