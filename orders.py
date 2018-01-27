@@ -372,7 +372,7 @@ class mercadolibre_orders(models.Model):
                 }
 
                 payment_ids = payments_obj.search( [  ('payment_id','=',payment_fields['payment_id']),
-                                                            ('order_id','=',order.id ) ] )
+                                                            ('order_id','=',order.id.id ) ] )
 
                 if not payment_ids:
 	                payment_ids = payments_obj.create( ( payment_fields ))
