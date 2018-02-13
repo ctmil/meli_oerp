@@ -6,15 +6,16 @@
 #
 ##############################################################################
 
-import controllers
-import warning
-import company
-import product
-import category
-import banner
-import posting
-import product_post
-import questions
-import orders
-import currency
+from . import melisdk
+from . import controllers
+from . import warning
+from . import company
+from . import product
+from . import category
+from . import banner
+from . import posting
+from . import product_post
+from . import questions
+from . import orders
+from . import currency
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:

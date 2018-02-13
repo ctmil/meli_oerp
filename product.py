@@ -27,13 +27,14 @@ import logging
 _logger = logging.getLogger(__name__)
 
 import requests
-import melisdk
+from . import melisdk
 import base64
 import mimetypes
 import urllib2
 
 from datetime import datetime
 
+from . import meli_oerp_config
 from meli_oerp_config import *
 
 from melisdk.meli import Meli

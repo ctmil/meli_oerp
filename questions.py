@@ -21,9 +21,9 @@
 
 from odoo import fields, osv, models
 import logging
-import meli_oerp_config
 
-import melisdk
+from . import meli_oerp_config
+from . import melisdk
 from melisdk.meli import Meli
 
 #https://api.mercadolibre.com/questions/search?item_id=MLA508223205
@@ -42,6 +42,6 @@ class mercadolibre_questions(models.Model):
 	answer_date_created = fields.Date('Answer creation date');
 	answer_status = fields.Selection( [("ACTIVE","Active"),("DISABLED","Disabled")], string='Answer Status');
 	answer_text = fields.Text("Answer Text");
-	
+
 
 mercadolibre_questions()

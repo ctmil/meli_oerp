@@ -30,11 +30,12 @@ from datetime import datetime
 
 #from bottle import Bottle, run, template, route, request
 #import json
+from . import meli_oerp_config
 from meli_oerp_config import *
 
 from warning import warning
 
-import melisdk
+from . import melisdk
 from melisdk.meli import Meli
 
 class product_post(models.TransientModel):

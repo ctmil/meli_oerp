@@ -30,7 +30,7 @@ from meli_oerp_config import *
 from warning import warning
 
 import requests
-import melisdk
+from . import melisdk
 from melisdk.meli import Meli
 
 #REDIRECT_URI = 'http://127.0.0.1:8069/meli_login'

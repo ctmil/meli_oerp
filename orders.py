@@ -21,9 +21,9 @@
 
 from odoo import fields, osv, models, api
 import logging
-import meli_oerp_config
+from . import meli_oerp_config
 
-import melisdk
+from . import melisdk
 from melisdk.meli import Meli
 
 import json

@@ -1,13 +1,12 @@
 from odoo import http, api
 
-import melisdk
-from melisdk.meli import Meli
+from .melisdk.meli import Meli
 
 from odoo import fields, osv
 from odoo.http import request
 
 
-from meli_oerp_config import *
+from .meli_oerp_config import *
 
 class MercadoLibre(http.Controller):
     @http.route('/meli/', auth='public')
@@ -52,7 +51,7 @@ class MercadoLibreLogin(http.Controller):
             return "<h1>"+message+"</h1><br/><a href='"+meli.auth_url(redirect_URI=REDIRECT_URI)+"'>Login</a>"
 
         if codes['code']!='none':
-            print "Meli: Authorize: REDIRECT_URI: %s, code: %s" % ( REDIRECT_URI, codes['code'] )
+            #print "Meli: Authorize: REDIRECT_URI: %s, code: %s" % ( REDIRECT_URI, codes['code'] )
             meli.authorize( codes['code'], REDIRECT_URI)
             ACCESS_TOKEN = meli.access_token
             REFRESH_TOKEN = meli.refresh_token
