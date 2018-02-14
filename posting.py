@@ -28,6 +28,8 @@ _logger = logging.getLogger(__name__)
 
 from .meli_oerp_config import *
 from .melisdk.meli import Meli
+from . import warning
+
 
 class mercadolibre_posting_update(models.TransientModel):
     _name = "mercadolibre.posting.update"
@@ -43,16 +45,16 @@ class mercadolibre_posting_update(models.TransientModel):
         #_logger.info("ids %s", ''.join(ids))
         #posting_ids = ids
         posting_obj = self.env['mercadolibre.posting']
-
+        lastres = {}
         if (posting_ids):
             for posting_id in posting_ids:
 
         #    _logger.info("posting_update: %s " % (posting_id) )
 
                 posting = posting_obj.browse(posting_id)
-                posting.posting_query_questions()
+                lastres = posting.posting_query_questions()
 
-        return {}
+        return lastres
 
 mercadolibre_posting_update()
 
@@ -73,9 +75,7 @@ class mercadolibre_posting(models.Model):
 
         update_status = "ok"
 
-        posting.posting_query_questions()
-
-        res = {}
+        res = posting.posting_query_questions()
         res[posting.id] = update_status
         return res
 
@@ -87,6 +87,9 @@ class mercadolibre_posting(models.Model):
         posting_obj = self.env['mercadolibre.posting']
         posting = self
 
+        import pdb
+        pdb.set_trace()
+
         log_msg = 'posting_query_questions: %s' % (posting.meli_id)
         _logger.info(log_msg)
 
@@ -96,12 +99,16 @@ class mercadolibre_posting(models.Model):
         CLIENT_SECRET = company.mercadolibre_secret_key
         ACCESS_TOKEN = company.mercadolibre_access_token
         REFRESH_TOKEN = company.mercadolibre_refresh_token
-
+        warningobj = self.env['warning']
         #
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN )
+        if posting.meli_id:
+            response = meli.get("/items/"+posting.meli_id, {'access_token':meli.access_token})
+            product_json = response.json()
+        else:
+            _logger.info( "No posting.meli_id" )
+            return warningobj.info(title='MELI WARNING', message="El post debe contener su código ML: meli_id", message_html="")
 
-        response = meli.get("/items/"+posting.meli_id, {'access_token':meli.access_token})
-        product_json = response.json()
         #_logger.info( product_json )
 
         if "error" in product_json:

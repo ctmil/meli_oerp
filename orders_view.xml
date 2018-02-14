@@ -180,33 +180,15 @@
             <field name="search_view_id" ref="meli_buyers_search_view"/>
         </record>
 
-        <record id="action_update_meli_orders" model="ir.actions.act_window">
-            <field name="name">Update Meli Orders</field>
-            <field name="type">ir.actions.act_window</field>
-            <field name="src_model">mercadolibre.orders</field>
-            <field name="res_model">mercadolibre.orders.update</field>
-            <field name="view_type">form</field>
-            <field name="view_mode">form</field>
-            <field name="target">new</field>
-        </record>
-<!--
-        <record model="ir.values" id="update_meli_orders">
-            <field name="name">Update Order</field>
-            <field name="key2">client_action_multi</field>
-            <field name="value" eval="'ir.actions.act_window,' +str(ref('action_update_meli_orders'))" />
-            <field name="key">action</field>
-            <field name="model">mercadolibre.orders</field>
-        </record>
--->
-        <record model="ir.actions.server" id="update_meli_orders">
-            <field name="name">Update Order</field>
-            <field name="type">ir.actions.server</field>
-            <field name="model_id" ref="model_mercadolibre_orders" />
-            <field name="binding_model_id" ref="model_mercadolibre_orders_update" />
-            <!--<field name="state">code</field>-->
-            <!--<field name="code">object.action_update_meli_postings()</field>-->
-            <!--<field name="key2">client_action_multi</field>-->
-        </record>
+        <act_window id="action_update_meli_orders"
+                    name="Update Meli Orders"
+                    res_model="mercadolibre.orders.update"
+                    src_model="mercadolibre.orders"
+                    view_type="form"
+                    view_mode="form"
+                    target="new"
+                    multi="True"
+                    key2="client_action_multi" />
 
         <menuitem id="menu_meli" name="MercadoLibre" parent="sale.sale_menu_root" sequence="9"/>
 
