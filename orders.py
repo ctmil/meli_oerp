@@ -254,8 +254,7 @@ class mercadolibre_orders(models.Model):
             _logger.info("Adding new order: " )
             _logger.info(order_fields)
             print("creating order:",str(order_fields) )
-            return_id = order_obj.create( (order_fields))
-            order = order_obj.browse( return_id)
+            order = order_obj.create( (order_fields))
 
         if (sorder and sorder.id):
             _logger.info("Updating sale.order: %s" % (sorder.id))
@@ -264,8 +263,7 @@ class mercadolibre_orders(models.Model):
             _logger.info("Adding new sale.order: " )
             _logger.info(meli_order_fields)
             #print "creating sale order:" + str(meli_order_fields)
-            sreturn_id = saleorder_obj.create((meli_order_fields))
-            sorder = saleorder_obj.browse(sreturn_id)
+            sorder = saleorder_obj.create((meli_order_fields))
 
         #check error
         if not order:
@@ -311,7 +309,7 @@ class mercadolibre_orders(models.Model):
                     #    _logger.info( product_related_obj )
 
                 order_item_fields = {
-                    'order_id': order.id.id,
+                    'order_id': order.id,
                     'posting_id': post_related_obj.id,
                     'order_item_id': Item['item']['id'],
                     'order_item_title': Item['item']['title'],
@@ -320,7 +318,7 @@ class mercadolibre_orders(models.Model):
                     'quantity': Item['quantity'],
                     'currency_id': Item['currency_id']
                 }
-                order_item_ids = order_items_obj.search( [('order_item_id','=',order_item_fields['order_item_id']),('order_id','=',order.id.id)] )
+                order_item_ids = order_items_obj.search( [('order_item_id','=',order_item_fields['order_item_id']),('order_id','=',order.id)] )
                 _logger.info( order_item_fields )
                 if not order_item_ids:
                     #print "order_item_fields: " + str(order_item_fields)
@@ -330,7 +328,7 @@ class mercadolibre_orders(models.Model):
 
                 saleorderline_item_fields = {
                     'company_id': company.id,
-                    'order_id': sorder.id.id,
+                    'order_id': sorder.id,
                     'meli_order_item_id': Item['item']['id'],
                     'price_unit': float(Item['unit_price']),
 #                    'price_total': float(Item['unit_price']) * float(Item['quantity']),
@@ -340,7 +338,7 @@ class mercadolibre_orders(models.Model):
                     'name': Item['item']['title'],
 #                    'customer_lead': float(0)
                 }
-                saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id.id)] )
+                saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
                 _logger.info( saleorderline_item_fields )
 
                 if not saleorderline_item_ids:
@@ -360,7 +358,7 @@ class mercadolibre_orders(models.Model):
                 _logger.info(Payment )
 
                 payment_fields = {
-                    'order_id': order.id.id,
+                    'order_id': order.id,
                     'payment_id': Payment['id'],
                     'transaction_amount': Payment['transaction_amount'] or '',
                     'currency_id': Payment['currency_id'] or '',
@@ -370,7 +368,7 @@ class mercadolibre_orders(models.Model):
                 }
 
                 payment_ids = payments_obj.search( [  ('payment_id','=',payment_fields['payment_id']),
-                                                            ('order_id','=',order.id.id ) ] )
+                                                            ('order_id','=',order.id ) ] )
 
                 if not payment_ids:
 	                payment_ids = payments_obj.create( ( payment_fields ))
