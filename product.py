@@ -30,14 +30,13 @@ import requests
 from . import melisdk
 import base64
 import mimetypes
-import urllib2
+from urllib.request import urlopen
 
 from datetime import datetime
 
-from . import meli_oerp_config
-from meli_oerp_config import *
+from .meli_oerp_config import *
 
-from melisdk.meli import Meli
+from .melisdk.meli import Meli
 
 
 class product_template(models.Model):
@@ -92,10 +91,10 @@ class product_product(models.Model):
             rjson = response.json()
             _logger.info(response)
         except IOError as e:
-            print "I/O error({0}): {1}".format(e.errno, e.strerror)
+            print("I/O error(",e.errno,"): ", e.strerror )
             return {}
         except:
-            print "Rare error"
+            print("Rare error")
             return {}
 
 
@@ -131,7 +130,7 @@ class product_product(models.Model):
         pictures = rjson['pictures']
         if pictures and len(pictures):
             thumbnail_url = pictures[0]['url']
-            image = urllib2.urlopen(thumbnail_url).read()
+            image = urlopen(thumbnail_url).read()
             image_base64 = base64.encodestring(image)
             product.image_medium = image_base64
             #if (len(pictures)>1):
@@ -146,15 +145,15 @@ class product_product(models.Model):
             ml_cat = self.env['mercadolibre.category'].search([('meli_category_id','=',category_id)])
             ml_cat_id = ml_cat.id
             if (ml_cat_id):
-                print "category exists!" + str(ml_cat_id)
+                print("category exists!",str(ml_cat_id))
                 mlcatid = ml_cat_id
                 www_cat_id = ml_cat.public_category_id
             else:
-                print "Creating category: " + str(category_id)
+                print("Creating category: ",str(category_id))
                 #https://api.mercadolibre.com/categories/MLA1743
                 response_cat = meli.get("/categories/"+str(category_id), {'access_token':meli.access_token})
                 rjson_cat = response_cat.json()
-                print "category:" + str(rjson_cat)
+                print("category:",str(rjson_cat) )
                 fullname = ""
                 if ("path_from_root" in rjson_cat):
                     path_from_root = rjson_cat["path_from_root"]
@@ -459,12 +458,12 @@ class product_product(models.Model):
         #loop over images
         for product_image in product.images:
             if (product_image.image):
-                print "product_image.image:" + str(product_image.image)
+                print("product_image.image:",str(product_image.image))
                 imagebin = base64.b64decode( product_image.image )
                 #files = { 'file': ('image.png', imagebin, "image/png"), }
                 files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
                 response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
-                print "meli upload:" + response.content
+                print("meli upload:",response.content)
                 rjson = response.json()
                 if ("error" in rjson):
                     raise osv.except_osv( _('MELI WARNING'), _('No se pudo cargar la imagen en MELI! Error: %s , Mensaje: %s, Status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
@@ -472,7 +471,7 @@ class product_product(models.Model):
                 else:
                     image_ids+= [ { 'id': rjson['id'] }]
                     c = c + 1
-                    print "image_ids:" + str(image_ids)
+                    print("image_ids:",str(image_ids))
 
         product.write( { "meli_multi_imagen_id": "%s" % (image_ids) } )
 

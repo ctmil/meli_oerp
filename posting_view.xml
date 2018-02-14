@@ -80,12 +80,14 @@
         <field name="target">new</field>
     </record>
 
-    <record model="ir.values" id="update_meli_postings">
+    <record model="ir.actions.server" id="update_meli_postings">
         <field name="name">Update questions</field>
-        <field name="key2">client_action_multi</field>
-        <field name="value" eval="'ir.actions.act_window,' +str(ref('action_update_meli_postings'))" />
-        <field name="key">action</field>
-        <field name="model">mercadolibre.posting</field>
+        <field name="type">ir.actions.server</field>
+        <field name="model_id" ref="model_mercadolibre_posting" />
+        <field name="binding_model_id" ref="model_mercadolibre_posting_update" />
+        <!--<field name="state">code</field>-->
+        <!--<field name="code">object.action_update_meli_postings()</field>-->
+        <!--<field name="key2">client_action_multi</field>-->
     </record>
 
 
@@ -100,7 +102,7 @@
         </record>
 
 
-        <menuitem id="menu_meli" name="MercadoLibre" parent="sales_team.menu_base_partner" sequence="9"/>
+        <menuitem id="menu_meli" name="MercadoLibre" parent="sale.sale_menu_root" sequence="9"/>
 
         <menuitem id="menu_meli_postings"
             action="action_meli_postings_tree"

@@ -189,7 +189,7 @@
             <field name="view_mode">form</field>
             <field name="target">new</field>
         </record>
-
+<!--
         <record model="ir.values" id="update_meli_orders">
             <field name="name">Update Order</field>
             <field name="key2">client_action_multi</field>
@@ -197,8 +197,18 @@
             <field name="key">action</field>
             <field name="model">mercadolibre.orders</field>
         </record>
+-->
+        <record model="ir.actions.server" id="update_meli_orders">
+            <field name="name">Update Order</field>
+            <field name="type">ir.actions.server</field>
+            <field name="model_id" ref="model_mercadolibre_orders" />
+            <field name="binding_model_id" ref="model_mercadolibre_orders_update" />
+            <!--<field name="state">code</field>-->
+            <!--<field name="code">object.action_update_meli_postings()</field>-->
+            <!--<field name="key2">client_action_multi</field>-->
+        </record>
 
-        <menuitem id="menu_meli" name="MercadoLibre" parent="sales_team.menu_base_partner" sequence="9"/>
+        <menuitem id="menu_meli" name="MercadoLibre" parent="sale.sale_menu_root" sequence="9"/>
 
         <menuitem id="menu_meli_orders"
             action="action_meli_orders_tree"

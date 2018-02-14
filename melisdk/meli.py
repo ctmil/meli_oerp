@@ -9,8 +9,11 @@ try:
     from urllib import urlencode
 except ImportError:
     from urllib.parse import urlencode
-
-from ConfigParser import SafeConfigParser
+try:
+    from ConfigParser import SafeConfigParser
+except ImportError:
+    import configparser
+    from configparser import SafeConfigParser
 
 import json
 

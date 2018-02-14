@@ -23,15 +23,14 @@ from odoo import fields, osv, models, api
 from odoo.tools.translate import _
 import logging
 _logger = logging.getLogger(__name__)
-import urllib2
 import pdb
 
-from meli_oerp_config import *
-from warning import warning
+from .meli_oerp_config import *
+from .warning import warning
 
 import requests
 from . import melisdk
-from melisdk.meli import Meli
+from .melisdk.meli import Meli
 
 #REDIRECT_URI = 'http://127.0.0.1:8069/meli_login'
 
@@ -126,7 +125,7 @@ class res_company(models.Model):
 
         company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
         url_logout_meli = '/web?debug=#view_type=kanban&model=product.template&action=150'
-        print url_logout_meli
+        print(url_logout_meli)
         return {
             "type": "ir.actions.act_url",
             "url": url_logout_meli,
@@ -148,7 +147,7 @@ class res_company(models.Model):
         url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
         #url_login_oerp = "/meli_login"
 
-        print "OK company.meli_login() called: url is ", url_login_meli
+        print("OK company.meli_login() called: url is ", url_login_meli)
 
         return {
             "type": "ir.actions.act_url",
@@ -254,7 +253,7 @@ class res_company(models.Model):
         iitem = 0
         if (results):
             for item_id in results:
-                print item_id
+                print(item_id)
                 iitem+= 1
                 _logger.info( item_id + "("+str(iitem)+"/"+str(rjson['paging']['total'])+")" )
                 posting_id = self.env['product.product'].search([('meli_id','=',item_id)])

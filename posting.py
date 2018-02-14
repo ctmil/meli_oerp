@@ -22,14 +22,12 @@
 from odoo import fields, osv, models, api
 from odoo.tools.translate import _
 import logging
-from . import meli_oerp_config
 
 import logging
 _logger = logging.getLogger(__name__)
 
-from meli_oerp_config import *
-from . import melisdk
-from melisdk.meli import Meli
+from .meli_oerp_config import *
+from .melisdk.meli import Meli
 
 class mercadolibre_posting_update(models.TransientModel):
     _name = "mercadolibre.posting.update"
