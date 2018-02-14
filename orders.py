@@ -224,7 +224,7 @@ class mercadolibre_orders(models.Model):
                 #    partner_id = partner_ids[0]
 
             if order:
-                return_id = self.env['mercadolibre.orders'].write(order.id,{'buyer':buyer_id.id})
+                return_id = order.write({'buyer':buyer_id.id})
             else:
                 partner_id.write( ( buyer_fields ) )
 
