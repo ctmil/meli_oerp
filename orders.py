@@ -256,8 +256,7 @@ class mercadolibre_orders(models.Model):
             _logger.info("Adding new order: " )
             _logger.info(order_fields)
             print "creating order:" + str(order_fields)
-            return_id = order_obj.create( (order_fields))
-            order = order_obj.browse( return_id)
+            order = order_obj.create( (order_fields))
 
         if (sorder and sorder.id):
             _logger.info("Updating sale.order: %s" % (sorder.id))
@@ -266,8 +265,7 @@ class mercadolibre_orders(models.Model):
             _logger.info("Adding new sale.order: " )
             _logger.info(meli_order_fields)
             #print "creating sale order:" + str(meli_order_fields)
-            sreturn_id = saleorder_obj.create((meli_order_fields))
-            sorder = saleorder_obj.browse(sreturn_id)
+            sorder = saleorder_obj.create((meli_order_fields))
 
         #check error
         if not order:
