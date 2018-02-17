@@ -7,6 +7,12 @@
             <field name="model">product.product</field>
             <field name="inherit_id" ref="product.product_normal_form_view" />
             <field name="arch" type="xml">
+              <label for="sale_ok" position="after">
+                    <field name="meli_pub" />
+                    <label for="meli_pub" />
+
+                </label>
+                
                 <data>
                     <notebook>
                         <page string="MercadoLibre">

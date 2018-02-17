@@ -457,14 +457,14 @@ class product_product(models.Model):
         #
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
-        if product.images==None:
+        if product.product_image_ids==None:
             return { 'status': 'error', 'message': 'no images to upload' }
 
         image_ids = []
         c = 0
 
         #loop over images
-        for product_image in product.images:
+        for product_image in product.product_image_ids:
             if (product_image.image):
                 print "product_image.image:" + str(product_image.image)
                 imagebin = base64.b64decode( product_image.image )
@@ -591,13 +591,12 @@ class product_product(models.Model):
         #return res
 
 
-    def product_post(self,ids):
+    def product_post(self):
         #import pdb;pdb.set_trace();
 #        product_ids = context['active_ids']
-        pdb.set_trace()
-        product_ids = ids
+#        pdb.set_trace()
         product_obj = self.env['product.product']
-
+        product = self
         company = self.env.user.company_id
         warningobj = self.env['warning']
 
@@ -619,185 +618,187 @@ class product_product(models.Model):
                 "target": "new",
             }
 
-        for product_id in product_ids:
-            product = product_obj.browse(product_id)
+        if (product.meli_id):
+            response = meli.get("/items/%s" % product.meli_id, {'access_token':meli.access_token})
 
-            if (product.meli_id):
-                response = meli.get("/items/%s" % product.meli_id, {'access_token':meli.access_token})
+        # print product.meli_category.meli_category_id
 
-            # print product.meli_category.meli_category_id
+        if product.meli_title==False:
+            # print 'Assigning title: product.meli_title: %s name: %s' % (product.meli_title, product.name)
+            product.meli_title = product.name
 
-            if product.meli_title==False:
-                # print 'Assigning title: product.meli_title: %s name: %s' % (product.meli_title, product.name)
-                product.meli_title = product.name
+        if product.meli_price==False:
+            # print 'Assigning price: product.meli_price: %s standard_price: %s' % (product.meli_price, product.standard_price)
+            product.meli_price = product.standard_price
 
-            if product.meli_price==False:
-                # print 'Assigning price: product.meli_price: %s standard_price: %s' % (product.meli_price, product.standard_price)
-                product.meli_price = product.standard_price
+        body = {
+            "title": product.meli_title or '',
+            "description": product.meli_description or '',
+            "category_id": product.meli_category.meli_category_id or '0',
+            "listing_type_id": product.meli_listing_type or '0',
+            "buying_mode": product.meli_buying_mode or '',
+            "price": product.meli_price  or '0',
+            "currency_id": product.meli_currency  or '0',
+            "condition": product.meli_condition  or '',
+            "available_quantity": product.meli_available_quantity  or '0',
+            "warranty": product.meli_warranty or '',
+            #"pictures": [ { 'source': product.meli_imagen_logo} ] ,
+            "video_id": product.meli_video  or '',
+        }
 
+        # print body
+
+        assign_img = False and product.meli_id
+
+        #publicando imagen cargada en OpenERP
+        if product.image==None:
+            return warningobj.info( title='MELI WARNING', message="Debe cargar una imagen de base en el producto.", message_html="" )
+        elif product.meli_imagen_id==False:
+            # print "try uploading image..."
+            resim = product.product_meli_upload_image()
+            if "status" in resim:
+                if (resim["status"]=="error" or resim["status"]=="warning"):
+                    error_msg = 'MELI: mensaje de error:   ', resim
+                    _logger.error(error_msg)
+                else:
+                    assign_img = True and product.meli_imagen_id
+
+        #modificando datos si ya existe el producto en MLA
+        if (product.meli_id):
             body = {
                 "title": product.meli_title or '',
-                "description": product.meli_description or '',
-                "category_id": product.meli_category.meli_category_id or '0',
-                "listing_type_id": product.meli_listing_type or '0',
+                #"description": product.meli_description or '',
+                #"category_id": product.meli_category.meli_category_id,
+                #"listing_type_id": product.meli_listing_type,
                 "buying_mode": product.meli_buying_mode or '',
-                "price": product.meli_price  or '0',
-                "currency_id": product.meli_currency  or '0',
-                "condition": product.meli_condition  or '',
-                "available_quantity": product.meli_available_quantity  or '0',
+                "price": product.meli_price or '0',
+                #"currency_id": product.meli_currency,
+                "condition": product.meli_condition or '',
+                "available_quantity": product.meli_available_quantity or '0',
                 "warranty": product.meli_warranty or '',
+                "pictures": [],
                 #"pictures": [ { 'source': product.meli_imagen_logo} ] ,
-                "video_id": product.meli_video  or '',
+                "video_id": product.meli_video or '',
             }
 
-            # print body
+        #publicando multiples imagenes
+        multi_images_ids = {}
+        if (product.product_image_ids):
+            # print 'website_multi_images presente:   ', product.images
+            #recorrer las imagenes y publicarlas
+            multi_images_ids = product.product_meli_upload_multi_images()
 
-            assign_img = False and product.meli_id
+        #asignando imagen de logo (por source)
+        #if product.meli_imagen_logo:
+        if product.meli_imagen_id:
+            if 'pictures' in body.keys():
+                body["pictures"]+= [ { 'id': product.meli_imagen_id } ]
+            else:
+                body["pictures"] = [ { 'id': product.meli_imagen_id } ]
 
-            #publicando imagen cargada en OpenERP
-            if product.image==None:
-                return warningobj.info( title='MELI WARNING', message="Debe cargar una imagen de base en el producto.", message_html="" )
-            elif product.meli_imagen_id==False:
-                # print "try uploading image..."
-                resim = product.product_meli_upload_image()
-                if "status" in resim:
-                    if (resim["status"]=="error" or resim["status"]=="warning"):
-                        error_msg = 'MELI: mensaje de error:   ', resim
-                        _logger.error(error_msg)
-                    else:
-                        assign_img = True and product.meli_imagen_id
+            if (multi_images_ids):
+                if 'pictures' in body.keys():
+                    body["pictures"]+= multi_images_ids
+                else:
+                    body["pictures"] = multi_images_ids
 
-            #modificando datos si ya existe el producto en MLA
-            if (product.meli_id):
-                body = {
-                    "title": product.meli_title or '',
-                    #"description": product.meli_description or '',
-                    #"category_id": product.meli_category.meli_category_id,
-                    #"listing_type_id": product.meli_listing_type,
-                    "buying_mode": product.meli_buying_mode or '',
-                    "price": product.meli_price or '0',
-                    #"currency_id": product.meli_currency,
-                    "condition": product.meli_condition or '',
-                    "available_quantity": product.meli_available_quantity or '0',
-                    "warranty": product.meli_warranty or '',
-                    "pictures": [],
-                    #"pictures": [ { 'source': product.meli_imagen_logo} ] ,
-                    "video_id": product.meli_video or '',
-                }
-
-            #publicando multiples imagenes
-            multi_images_ids = {}
-            if (product.images):
-                # print 'website_multi_images presente:   ', product.images
-                #recorrer las imagenes y publicarlas
-                multi_images_ids = product.product_meli_upload_multi_images()
-
-            #asignando imagen de logo (por source)
             if product.meli_imagen_logo:
-                if product.meli_imagen_id:
-                    if 'pictures' in body.keys():
-                        body["pictures"]+= [ { 'id': product.meli_imagen_id } ]
-                    else:
-                        body["pictures"] = [ { 'id': product.meli_imagen_id } ]
-
-                        if (multi_images_ids):
-                            if 'pictures' in body.keys():
-                                body["pictures"]+= multi_images_ids
-                            else:
-                                body["pictures"] = multi_images_ids
-
-                    if 'pictures' in body.keys():
-                        body["pictures"]+= [ { 'source': product.meli_imagen_logo} ]
-                    else:
-                        body["pictures"]+= [ { 'source': product.meli_imagen_logo} ]
+                if 'pictures' in body.keys():
+                    body["pictures"]+= [ { 'source': product.meli_imagen_logo} ]
                 else:
-                    imagen_producto = ""
-                    if (product.meli_description!="" and product.meli_description!=False and product.meli_imagen_link!=""):
-                        imgtag = "<img style='width: 420px; height: auto;' src='%s'/>" % ( product.meli_imagen_link )
-                        result = product.meli_description.replace( "[IMAGEN_PRODUCTO]", imgtag )
-                        if (result):
-                            _logger.info( "result: %s" % (result) )
-                            product.meli_description = result
-                        else:
-                            result = product.meli_description
-
-
-
-            else:
-                return warningobj.info(title='MELI WARNING', message="Debe completar el campo 'Imagen_Logo' con un url", message_html="")
-
-            #check fields
-            if product.meli_description==False:
-                return warningobj.info(title='MELI WARNING', message="Debe completar el campo 'description' (en html)", message_html="")
-
-            #put for editing, post for creating
-            if product.meli_id:
-                response = meli.put("/items/"+product.meli_id, body, {'access_token':meli.access_token})
-            else:
-                assign_img = True and product.meli_imagen_id
-                response = meli.post("/items", body, {'access_token':meli.access_token})
-
-            #check response
-            # print response.content
-            rjson = response.json()
-
-            #check error
-            if "error" in rjson:
-                #print "Error received: %s " % rjson["error"]
-                error_msg = 'MELI: mensaje de error:  %s , mensaje: %s, status: %s, cause: %s ' % (rjson["error"], rjson["message"], rjson["status"], rjson["cause"])
-                _logger.error(error_msg)
-
-                missing_fields = error_msg
-
-                #expired token
-                if "message" in rjson and (rjson["message"]=='invalid_token' or rjson["message"]=="expired_token"):
-                    meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
-                    url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
-                    #print "url_login_meli:", url_login_meli
-                    #raise osv.except_osv( _('MELI WARNING'), _('INVALID TOKEN or EXPIRED TOKEN (must login, go to Edit Company and login):  error: %s, message: %s, status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
-                    return warningobj.info( title='MELI WARNING', message="Debe iniciar sesión en MELI.  ", message_html="")
+                    body["pictures"] = [ { 'source': product.meli_imagen_logo} ]
+        else:
+            imagen_producto = ""
+            if (product.meli_description!="" and product.meli_description!=False and product.meli_imagen_link!=""):
+                imgtag = "<img style='width: 420px; height: auto;' src='%s'/>" % ( product.meli_imagen_link )
+                result = product.meli_description.replace( "[IMAGEN_PRODUCTO]", imgtag )
+                if (result):
+                    _logger.info( "result: %s" % (result) )
+                    product.meli_description = result
                 else:
-                     #Any other errors
-                    return warningobj.info( title='MELI WARNING', message="Completar todos los campos!  ", message_html="<br><br>"+missing_fields )
+                    result = product.meli_description
 
-            #last modifications if response is OK
-            if "id" in rjson:
-                product.write( { 'meli_id': rjson["id"]} )
 
-            posting_fields = {'posting_date': str(datetime.now()),'meli_id':rjson['id'],'product_id':product.id,'name': 'Post: ' + product.meli_title }
 
-            posting_id = self.env['mercadolibre.posting'].search( [('meli_id','=',rjson['id'])]).id
+        #else:
+        #    return warningobj.info(title='MELI WARNING', message="Debe completar el campo 'Imagen_Logo' con un url", message_html="")
 
-            if not posting_id:
-                posting_id = self.env['mercadolibre.posting'].create((posting_fields)).id
+        #check fields
+        if product.meli_description==False:
+            return warningobj.info(title='MELI WARNING', message="Debe completar el campo 'description' (en html)", message_html="")
+
+        #put for editing, post for creating
+        _logger.info(body)
+
+        if product.meli_id:
+            response = meli.put("/items/"+product.meli_id, body, {'access_token':meli.access_token})
+        else:
+            assign_img = True and product.meli_imagen_id
+            response = meli.post("/items", body, {'access_token':meli.access_token})
+
+        #check response
+        # print response.content
+        rjson = response.json()
+        _logger.info(rjson)
+
+        #check error
+        if "error" in rjson:
+            #print "Error received: %s " % rjson["error"]
+            error_msg = 'MELI: mensaje de error:  %s , mensaje: %s, status: %s, cause: %s ' % (rjson["error"], rjson["message"], rjson["status"], rjson["cause"])
+            _logger.error(error_msg)
+
+            missing_fields = error_msg
+
+            #expired token
+            if "message" in rjson and (rjson["message"]=='invalid_token' or rjson["message"]=="expired_token"):
+                meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
+                url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
+                #print "url_login_meli:", url_login_meli
+                #raise osv.except_osv( _('MELI WARNING'), _('INVALID TOKEN or EXPIRED TOKEN (must login, go to Edit Company and login):  error: %s, message: %s, status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
+                return warningobj.info( title='MELI WARNING', message="Debe iniciar sesión en MELI.  ", message_html="")
+            else:
+                 #Any other errors
+                return warningobj.info( title='MELI WARNING', message="Completar todos los campos!  ", message_html="<br><br>"+missing_fields )
+
+        #last modifications if response is OK
+        if "id" in rjson:
+            product.write( { 'meli_id': rjson["id"]} )
+
+        posting_fields = {'posting_date': str(datetime.now()),'meli_id':rjson['id'],'product_id':product.id,'name': 'Post: ' + product.meli_title }
+
+        posting_id = self.env['mercadolibre.posting'].search( [('meli_id','=',rjson['id'])]).id
+
+        if not posting_id:
+            posting_id = self.env['mercadolibre.posting'].create((posting_fields)).id
 
 
         return {}
 
-    meli_imagen_id = fields.Char(string='Imagen Id', size=256);
-    meli_post_required = fields.Boolean(string='Este producto es publicable en Mercado Libre');
-    meli_id = fields.Char( string='Id del item asignado por Meli', size=256);
-    meli_permalink = fields.Char( compute=product_get_permalink, size=256, string='PermaLink in MercadoLibre' );
-    meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256);
-    meli_description = fields.Html(string='Descripción');
-    meli_description_banner_id = fields.Many2one("mercadolibre.banner","Banner");
-    meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre");
-    meli_listing_type = fields.Selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special"),("gold_pro","Oro Pro")], string='Tipo de lista');
-    meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra');
-    meli_price = fields.Char(string='Precio de venta', size=128);
-    meli_price_fixed = fields.Boolean(string='Price is fixed');
-    meli_currency = fields.Selection([("ARS","Peso Argentino (ARS)")],string='Moneda (ARS)');
-    meli_condition = fields.Selection([ ("new", "Nuevo"), ("used", "Usado"), ("not_specified","No especificado")],'Condición del producto');
-    meli_available_quantity = fields.Integer(string='Cantidad disponible');
-    meli_warranty = fields.Char(string='Garantía', size=256);
-    meli_imagen_logo = fields.Char(string='Imagen Logo', size=256);
-    meli_imagen_id = fields.Char(string='Imagen Id', size=256);
-    meli_imagen_link = fields.Char(string='Imagen Link', size=256);
-    meli_multi_imagen_id = fields.Char(string='Multi Imagen Ids', size=512);
-    meli_video = fields.Char( string='Video (id de youtube)', size=256);
-    meli_state = fields.Boolean( compute=product_get_meli_loginstate, string="Inicio de sesión requerida", store=False );
-    meli_status = fields.Char( compute=product_get_meli_status, size=128, string="Estado del producto en MLA", store=False );
-    meli_dimensions = fields.Char( string="Dimensiones del producto", size=128);
+    meli_imagen_id = fields.Char(string='Imagen Id', size=256)
+    meli_post_required = fields.Boolean(string='Este producto es publicable en Mercado Libre')
+    meli_id = fields.Char( string='Id del item asignado por Meli', size=256)
+    meli_permalink = fields.Char( compute=product_get_permalink, size=256, string='PermaLink in MercadoLibre' )
+    meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
+    meli_description = fields.Html(string='Descripción')
+    meli_description_banner_id = fields.Many2one("mercadolibre.banner","Banner")
+    meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre")
+    meli_listing_type = fields.Selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special"),("gold_pro","Oro Pro")], string='Tipo de lista')
+    meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
+    meli_price = fields.Char(string='Precio de venta', size=128)
+    meli_price_fixed = fields.Boolean(string='Price is fixed')
+    meli_currency = fields.Selection([("ARS","Peso Argentino (ARS)")],string='Moneda (ARS)')
+    meli_condition = fields.Selection([ ("new", "Nuevo"), ("used", "Usado"), ("not_specified","No especificado")],'Condición del producto')
+    meli_available_quantity = fields.Integer(string='Cantidad disponible')
+    meli_warranty = fields.Char(string='Garantía', size=256)
+    meli_imagen_logo = fields.Char(string='Imagen Logo', size=256)
+    meli_imagen_id = fields.Char(string='Imagen Id', size=256)
+    meli_imagen_link = fields.Char(string='Imagen Link', size=256)
+    meli_multi_imagen_id = fields.Char(string='Multi Imagen Ids', size=512)
+    meli_video = fields.Char( string='Video (id de youtube)', size=256)
+    meli_state = fields.Boolean( compute=product_get_meli_loginstate, string="Inicio de sesión requerida", store=False )
+    meli_status = fields.Char( compute=product_get_meli_status, size=128, string="Estado del producto en MLA", store=False )
+    meli_dimensions = fields.Char( string="Dimensiones del producto", size=128)
+    meli_pub = fields.Boolean('Meli Publication',help='MELI Product')
 	### Agregar imagen/archivo uno o mas, y la descripcion en HTML...
 	# TODO Agregar el banner
 
