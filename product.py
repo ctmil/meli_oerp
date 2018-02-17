@@ -456,7 +456,7 @@ class product_product(models.Model):
         #
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
-        if product.images==None:
+        if product.product_image_ids==None:
             return { 'status': 'error', 'message': 'no images to upload' }
 
         image_ids = []
