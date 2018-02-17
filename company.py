@@ -101,14 +101,17 @@ class res_company(models.Model):
         #_logger.info("ML_state:"+str(ML_state))
         #return res
 
-    mercadolibre_client_id = fields.Char(string='Client ID para ingresar a MercadoLibre',size=128);
-    mercadolibre_secret_key = fields.Char(string='Secret Key para ingresar a MercadoLibre',size=128);
-    mercadolibre_redirect_uri = fields.Char( string='Redirect uri (https://myserver/meli_login)',size=1024);
-    mercadolibre_access_token = fields.Char( string='Access Token',size=256);
-    mercadolibre_refresh_token = fields.Char( string='Refresh Token', size=256);
-    mercadolibre_code = fields.Char( string='Code', size=256);
-    mercadolibre_seller_id = fields.Char( string='Vendedor Id', size=256);
-    mercadolibre_state = fields.Boolean( compute=get_meli_state, string="Se requiere Iniciar Sesión con MLA", store=False );
+    mercadolibre_client_id = fields.Char(string='Client ID para ingresar a MercadoLibre',size=128)
+    mercadolibre_secret_key = fields.Char(string='Secret Key para ingresar a MercadoLibre',size=128)
+    mercadolibre_redirect_uri = fields.Char( string='Redirect uri (https://myserver/meli_login)',size=1024)
+    mercadolibre_access_token = fields.Char( string='Access Token',size=256)
+    mercadolibre_refresh_token = fields.Char( string='Refresh Token', size=256)
+    mercadolibre_code = fields.Char( string='Code', size=256)
+    mercadolibre_seller_id = fields.Char( string='Vendedor Id', size=256)
+    mercadolibre_state = fields.Boolean( compute=get_meli_state, string="Se requiere Iniciar Sesión con MLA", store=False )
+    mercadolibre_category_import = fields.Char( string='Category Code to Import', size=256)
+    mercadolibre_recursive_import = fields.Boolean( string='Import all categories (recursiveness)', size=256)
+
     #'mercadolibre_login': fields.selection( [ ("unknown", "Desconocida"), ("logged","Abierta"), ("not logged","Cerrada")],string='Estado de la sesión'), )
 
     @api.multi
@@ -321,6 +324,17 @@ class res_company(models.Model):
                 #import pdb; pdb.set_trace()
                 #print "Product " + obj.name
                 obj.product_meli_get_product()
+
+        return {}
+
+    def meli_import_categories(self, context=None ):
+        company = self.env.user.company_id
+
+        category_obj = self.env['mercadolibre.category']
+
+        CATEGORY_ROOT = company.mercadolibre_category_import
+
+        result = category_obj.import_all_categories(category_root=CATEGORY_ROOT )
 
         return {}
 
