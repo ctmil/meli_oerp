@@ -70,7 +70,8 @@ class mercadolibre_category(models.Model):
                     fullname = fullname + "/" + path["name"]
 
               #fullname = fullname + "/" + rjson_cat['name']
-              print "category fullname:" + str(fullname)
+              #print "category fullname:" + str(fullname)
+              _logger.info(fullname)
               cat_fields = {
                 'name': fullname,
                 'meli_category_id': ''+str(category_id),
