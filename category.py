@@ -43,7 +43,7 @@ class mercadolibre_category(models.Model):
     def import_category(self, category_id ):
         company = self.env.user.company_id
 
-        warningobj = self.pool.get('warning')
+        warningobj = self.env['warning']
         category_obj = self.env['mercadolibre.category']
 
         CLIENT_ID = company.mercadolibre_client_id
@@ -81,7 +81,7 @@ class mercadolibre_category(models.Model):
     def import_all_categories(self, category_root ):
         company = self.env.user.company_id
 
-        warningobj = self.pool.get('warning')
+        warningobj = self.env['warning']
         category_obj = self.env['mercadolibre.category']
 
         CLIENT_ID = company.mercadolibre_client_id
