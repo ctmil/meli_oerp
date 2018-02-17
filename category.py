@@ -21,7 +21,15 @@
 
 from odoo import fields, osv, models, api
 import logging
+_logger = logging.getLogger(__name__)
+import urllib2
 
+from meli_oerp_config import *
+from warning import warning
+
+import requests
+import melisdk
+from melisdk.meli import Meli
 
 class mercadolibre_category(models.Model):
     _name = "mercadolibre.category"
