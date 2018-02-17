@@ -36,7 +36,7 @@ class mercadolibre_category(models.Model):
         company = self.env.user.company_id
 
         warningobj = self.pool.get('warning')
-        category_obj = self.pool.env['mercadolibre.category']
+        category_obj = self.env['mercadolibre.category']
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
@@ -74,7 +74,7 @@ class mercadolibre_category(models.Model):
         company = self.env.user.company_id
 
         warningobj = self.pool.get('warning')
-        category_obj = self.pool.env['mercadolibre.category']
+        category_obj = self.env['mercadolibre.category']
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
