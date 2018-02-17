@@ -699,7 +699,7 @@ class product_product(models.Model):
                     else:
                         body["pictures"] = multi_images_ids
 
-            if 'pictures' in body.keys():
+            if 'pictures' in body.keys() and product.meli_imagen_logo:
                 body["pictures"]+= [ { 'source': product.meli_imagen_logo} ]
             else:
                 body["pictures"]+= [ { 'source': product.meli_imagen_logo} ]
