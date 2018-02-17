@@ -269,13 +269,20 @@ class res_company(models.Model):
                 else:
                     #idcreated = self.pool.get('product.product').create(cr,uid,{ 'name': rjson3['title'], 'meli_id': rjson3['id'] })
                     if 'id' in rjson3:
-                        productcreated = self.env['product.product'].create({ 'name': rjson3['id'], 'description': rjson3['title'].encode("utf-8"), 'meli_id': rjson3['id'] })
+                        prod_fields = {
+                            'name': rjson3['id'],
+                            'description': rjson3['title'].encode("utf-8"),
+                            'meli_id': rjson3['id']
+                        }
+                        prod_fields['default_code'] = rjson3['id']
+                        productcreated = self.env['product.product'].create((prod_fields))
                         if (productcreated):
                             _logger.info( "product created: " + str(productcreated) + " >> meli_id:" + str(rjson3['id']) + "-" + str( rjson3['title'].encode("utf-8")) )
                             #pdb.set_trace()
-                            _logger.info(product_obj)
                             _logger.info(productcreated)
                             productcreated.product_meli_get_product()
+                        else:
+                            _logger.info( "product couldnt be created")
                     else:
                         _logger.info( "product error: " + str(rjson3) )
 
