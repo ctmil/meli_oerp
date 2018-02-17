@@ -693,11 +693,11 @@ class product_product(models.Model):
             else:
                 body["pictures"] = [ { 'id': product.meli_imagen_id } ]
 
-                if (multi_images_ids):
-                    if 'pictures' in body.keys():
-                        body["pictures"]+= multi_images_ids
-                    else:
-                        body["pictures"] = multi_images_ids
+            if (multi_images_ids):
+                if 'pictures' in body.keys():
+                    body["pictures"]+= multi_images_ids
+                else:
+                    body["pictures"] = multi_images_ids
 
             if product.meli_imagen_logo:
                 if 'pictures' in body.keys():
