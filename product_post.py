@@ -80,22 +80,25 @@ class product_post(models.TransientModel):
 	            "url": url_login_meli,
 	            "target": "new",
             }
-
+        res = {}
         for product_id in product_ids:
             product = product_obj.browse(product_id)
             #import pdb;pdb.set_trace();
             #Alta
             if (product.meli_pub and product.meli_id==False):
-                product.product_post()
+                res = product.product_post()
 
             #Actualiza
             if (product.meli_pub and product.meli_id):
-                product.product_post()
+                res = product.product_post()
 
             #Pausa
             if (product.meli_pub==False and product.meli_id):
-                product.product_meli_status_pause()
+                res = product.product_meli_status_pause()
 
-        return {}
+            if 'name' in res:
+                return res
+
+        return res
 
 product_post()
