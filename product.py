@@ -463,7 +463,7 @@ class product_product(models.Model):
         c = 0
 
         #loop over images
-        for product_image in product.images:
+        for product_image in product.product_image_ids:
             if (product_image.image):
                 print "product_image.image:" + str(product_image.image)
                 imagebin = base64.b64decode( product_image.image )
@@ -680,7 +680,7 @@ class product_product(models.Model):
 
         #publicando multiples imagenes
         multi_images_ids = {}
-        if (product.images):
+        if (product.product_image_ids):
             # print 'website_multi_images presente:   ', product.images
             #recorrer las imagenes y publicarlas
             multi_images_ids = product.product_meli_upload_multi_images()
