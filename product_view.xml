@@ -14,7 +14,7 @@
 
                                 <button name='product_meli_get_product' type="object"
 										string="Cargar desde MLA" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
-                                <br/>                                
+                                <br/>
 								<button name='%(action_product_post)d' type="action"
 										string="Publicar producto en MLA" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','!=',False)]}"/>
                                 <br/>
@@ -28,6 +28,9 @@
                                 <button name='product_meli_status_pause' type="object"
 										string="Pausar producto en MLA" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
                                 <br/>
+                                <button name='product_meli_status_close' type="object"
+										string="Cerrar producto en MLA" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
+                                <br/>
                                 <button name='product_meli_delete' type="object"
 										string="Eliminar producto de MLA" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
                                 <br/>
@@ -40,7 +43,7 @@
                                 <field name="meli_post_required" />
                                 <field name="meli_state" />
                                 <field name="meli_status" />
-                                <field name="meli_permalink" widget="url"/>                                
+                                <field name="meli_permalink" widget="url"/>
 								<field name="meli_id" />
                                 <br/>
                                 <br/>
@@ -63,10 +66,10 @@
                                 <field name="meli_imagen_link" />
                                 <field name="meli_multi_imagen_id" />
 								<field name="meli_video" />
-								
 
 
-								
+
+
 							</group>
                         </page>
                     </notebook>

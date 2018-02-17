@@ -311,10 +311,10 @@ class product_product(models.Model):
         #    res[company.id] = ML_state
         #return res
 
-    def product_meli_status_close( self, ids ):
+    def product_meli_status_close( self ):
         company = self.env.user.company_id
         product_obj = self.env['product.product']
-        product = product_obj.browse(ids[0])
+        product = self
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
@@ -372,7 +372,7 @@ class product_product(models.Model):
         product = self
 
         if product.meli_status!='closed':
-            self.product_meli_status_close( ids )
+            self.product_meli_status_close()
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
