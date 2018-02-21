@@ -20,8 +20,17 @@
 ##############################################################################
 
 from odoo import fields, osv, models, api
+from odoo.tools.translate import _
 import logging
+_logger = logging.getLogger(__name__)
+import pdb
 
+from .meli_oerp_config import *
+from .warning import warning
+
+import requests
+from . import melisdk
+from .melisdk.meli import Meli
 
 class mercadolibre_category(models.Model):
     _name = "mercadolibre.category"
