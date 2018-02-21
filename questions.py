@@ -36,9 +36,9 @@ class mercadolibre_questions(models.Model):
 	item_id = fields.Char(string="Item ID",size=255);
 	seller_id = fields.Char(string="Seller ID",size=255);
 	text = fields.Text("Question Text");
-	status = fields.Selection( [("UNANSWERED","Question is not answered yet."),("ANSWERED","Question was answered."),("CLOSED_UNANSWERED","The item is closed and the question was never answered."),("UNDER_REVIEW","The item is under review and the question too.")], string='Question Status');
+	status = fields.Selection( [("UNANSWERED","Question is not answered yet."),("ANSWERED","Question was answered."),("CLOSED_UNANSWERED","The item is closed and the question was never answered."),("UNDER_REVIEW","The item is under review and the question too."),("BANNED","Banned")], string='Question Status');
 	answer_date_created = fields.Date('Answer creation date');
-	answer_status = fields.Selection( [("ACTIVE","Active"),("DISABLED","Disabled")], string='Answer Status');
+	answer_status = fields.Selection( [("ACTIVE","Active"),("DISABLED","Disabled"),("BANNED","Banned")], string='Answer Status');
 	answer_text = fields.Text("Answer Text");
 
 
