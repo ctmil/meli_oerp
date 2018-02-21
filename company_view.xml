@@ -32,26 +32,26 @@
 
 
 								<button name='meli_login' type="object"
-										string="Iniciar sesión en MLA" attrs="{'invisible':[('mercadolibre_state','=',False)]}"/>
+										string="Iniciar sesión en ML" attrs="{'invisible':[('mercadolibre_state','=',False)]}"/>
 
 								<button name='meli_logout' type="object"
-										string="Cerrar sesión con MLA" attrs="{'invisible':[('mercadolibre_state','=',True)]}"/>
+										string="Cerrar sesión con ML" attrs="{'invisible':[('mercadolibre_state','=',True)]}"/>
 
                                 <button name='meli_query_orders' type="object"
-										string="Iniciar búsqueda de órdenes en MLA" attrs="{'invisible':[('mercadolibre_state','=',True)]}"/>
+										string="Iniciar búsqueda de órdenes en ML" attrs="{'invisible':[('mercadolibre_state','=',True)]}"/>
 
 								<button name='meli_query_products' type="object"
-										string="Iniciar búsqueda de productos en MLA" attrs="{'invisible':[('mercadolibre_state','=',True)]}"/>
+										string="Iniciar búsqueda de productos en ML" attrs="{'invisible':[('mercadolibre_state','=',True)]}"/>
 
                     <button name='meli_update_products' type="object"
-    										string="Iniciar actualización de productos y stock desde MLA" attrs="{'invisible':[('mercadolibre_state','=',True)]}"/>
+    										string="Iniciar actualización de productos y stock desde ML" attrs="{'invisible':[('mercadolibre_state','=',True)]}"/>
 
                         <button name='meli_import_categories' type="object"
-                            										string="Iniciar importación de categorías en MLA" attrs="{'invisible':[('mercadolibre_state','=',True)]}"/>
+                            										string="Iniciar importación de categorías en ML" attrs="{'invisible':[('mercadolibre_state','=',True)]}"/>
 
 <!--
 								<button name='%(meli_login_action)d' type="action"
-										string="Login en MLA (action)"/>
+										string="Login en ML (action)"/>
 
 								<a href="/meli_login" target="_blank">URL</a>-->
 							</group>
