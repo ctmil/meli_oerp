@@ -26,7 +26,9 @@
 								<field name="mercadolibre_access_token" invisible="0"/>
 								<field name="mercadolibre_refresh_token" invisible="0"/>
 								<field name="mercadolibre_code" invisible="0"/>
-                                <field name="mercadolibre_seller_id" invisible="0"/>
+                <field name="mercadolibre_category_import" invisible="0"/>
+                <field name="mercadolibre_recursive_import" invisible="0"/>
+                <field name="mercadolibre_seller_id" invisible="0"/>
 
 
 								<button name='meli_login' type="object"
@@ -43,6 +45,10 @@
 
                     <button name='meli_update_products' type="object"
     										string="Iniciar actualización de productos y stock desde MLA" attrs="{'invisible':[('mercadolibre_state','=',True)]}"/>
+
+                        <button name='meli_import_categories' type="object"
+                            										string="Iniciar importación de categorías en MLA" attrs="{'invisible':[('mercadolibre_state','=',True)]}"/>
+
 <!--
 								<button name='%(meli_login_action)d' type="action"
 										string="Login en MLA (action)"/>

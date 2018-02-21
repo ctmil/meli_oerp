@@ -323,4 +323,15 @@ class res_company(models.Model):
 
         return {}
 
+    def meli_import_categories(self, context=None ):
+        company = self.env.user.company_id
+
+        category_obj = self.env['mercadolibre.category']
+
+        CATEGORY_ROOT = company.mercadolibre_category_import
+
+        result = category_obj.import_all_categories(category_root=CATEGORY_ROOT )
+
+        return {}
+
 res_company()
