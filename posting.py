@@ -87,8 +87,8 @@ class mercadolibre_posting(models.Model):
         posting_obj = self.env['mercadolibre.posting']
         posting = self
 
-        import pdb
-        pdb.set_trace()
+        #import pdb
+        #pdb.set_trace()
 
         log_msg = 'posting_query_questions: %s' % (posting.meli_id)
         _logger.info(log_msg)
@@ -192,7 +192,7 @@ class mercadolibre_posting(models.Model):
     name = fields.Char('Name');
     meli_id = fields.Char('Id del item asignado por Meli', size=256);
     product_id = fields.Many2one('product.product','product_id');
-    meli_status = fields.Char( string="Estado del producto en MLA", size=256 );
+    meli_status = fields.Char( string="Estado del producto en MLM", size=256 );
     meli_permalink = fields.Char( string="Permalink en MercadoLibre", size=512 );
     meli_price = fields.Char(string='Precio de venta', size=128);
     posting_questions = fields.One2many( 'mercadolibre.questions','posting_id','Questions' );
