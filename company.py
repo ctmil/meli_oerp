@@ -108,6 +108,8 @@ class res_company(models.Model):
     mercadolibre_code = fields.Char( string='Code', size=256);
     mercadolibre_seller_id = fields.Char( string='Vendedor Id', size=256);
     mercadolibre_state = fields.Boolean( compute=get_meli_state, string="Se requiere Iniciar Sesión con MLA", store=False );
+    mercadolibre_category_import = fields.Char( string='Category Code to Import', size=256)
+    mercadolibre_recursive_import = fields.Boolean( string='Import all categories (recursiveness)', size=256)
     #'mercadolibre_login': fields.selection( [ ("unknown", "Desconocida"), ("logged","Abierta"), ("not logged","Cerrada")],string='Estado de la sesión'), )
 
     @api.multi
