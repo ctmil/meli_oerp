@@ -89,7 +89,7 @@ class mercadolibre_category(models.Model):
         if (category_root):
             response = meli.get("/categories/"+str(category_root), {'access_token':meli.access_token} )
 
-            print "response.content:", response.content
+            _logger.info("response.content:" + str(response.content))
 
             rjson = response.json()
             if ("name" in rjson):
