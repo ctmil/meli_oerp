@@ -776,7 +776,7 @@ class product_product(models.Model):
     meli_id = fields.Char( string='Id del item asignado por Meli', size=256);
     meli_permalink = fields.Char( compute=product_get_permalink, size=256, string='PermaLink in MercadoLibre' );
     meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256);
-    meli_description = fields.Html(string='Descripción');
+    meli_description = fields.Text(string='Descripción');
     meli_description_banner_id = fields.Many2one("mercadolibre.banner","Banner");
     meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre");
     meli_listing_type = fields.Selection([("free","Gratuita"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Oro Premium"),("gold_special","Clásica"),("gold_pro","Oro Pro")], string='Tipo de lista');
