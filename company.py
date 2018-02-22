@@ -107,7 +107,7 @@ class res_company(models.Model):
     mercadolibre_refresh_token = fields.Char( string='Refresh Token', size=256);
     mercadolibre_code = fields.Char( string='Code', size=256);
     mercadolibre_seller_id = fields.Char( string='Vendedor Id', size=256);
-    mercadolibre_state = fields.Boolean( compute=get_meli_state, string="Se requiere Iniciar Sesión con MLA", store=False );
+    mercadolibre_state = fields.Boolean( compute=get_meli_state, string="Se requiere Iniciar Sesión con ML", store=False );
     mercadolibre_category_import = fields.Char( string='Category Code to Import', size=256)
     mercadolibre_recursive_import = fields.Boolean( string='Import all categories (recursiveness)', size=256)
     #'mercadolibre_login': fields.selection( [ ("unknown", "Desconocida"), ("logged","Abierta"), ("not logged","Cerrada")],string='Estado de la sesión'), )
@@ -247,7 +247,7 @@ class res_company(models.Model):
                 else:
                     results += rjson2['results']
                     ioff+= rjson['paging']['limit']
-                    condition_last_off = ( ioff>=rjson['paging']['total'])
+                    condition_last_off = ( ioff>=rjson['paging']['total']) or (ioff>1000)
 
 
         _logger.info( rjson )
