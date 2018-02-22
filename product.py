@@ -202,7 +202,7 @@ class product_product(models.Model):
                 imagen_id = rjson['pictures'][0]['id']
 
         meli_fields = {
-            'name': str(rjson['title'].encode("utf-8")),
+            'name': str(rjson['title']),
             #'name': str(rjson['id']),
             'meli_imagen_id': imagen_id,
             'meli_post_required': True,
@@ -229,7 +229,7 @@ class product_product(models.Model):
         }
 
         tmpl_fields = {
-          'name': str(rjson['title'].encode("utf-8")),
+          'name': str(rjson['title']),
           #'name': str(rjson['id']),
           'lst_price': rjson['price']
         }
@@ -591,7 +591,7 @@ class product_product(models.Model):
 
 
     def product_post(self):
-        
+
         product_obj = self.env['product.product']
         product = self
         company = self.env.user.company_id
