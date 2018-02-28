@@ -296,7 +296,7 @@ class product_product(models.Model):
         if ACCESS_TOKEN=='' or ACCESS_TOKEN==False:
             ML_state = True
         else:
-            response = meli.get("/users/me/", {'access_token':meli.access_token} )
+            response = meli.get("/users/me", {'access_token':meli.access_token} )
             rjson = response.json()
             if 'error' in rjson:
                 if rjson['message']=='invalid_token' or rjson['message']=='expired_token':
@@ -595,6 +595,9 @@ class product_product(models.Model):
         #import pdb;pdb.set_trace();
 #        product_ids = context['active_ids']
 #        pdb.set_trace()
+
+	_logger.debug('[DEBUG] product_post')
+
         product_obj = self.env['product.product']
         product = self
         company = self.env.user.company_id
@@ -667,7 +670,7 @@ class product_product(models.Model):
         if (product.meli_id):
             body = {
                 "title": product.meli_title or '',
-                #"description": product.meli_description or '',
+                "description": { 'plain_text': product.meli_description or '' },
                 #"category_id": product.meli_category.meli_category_id,
                 #"listing_type_id": product.meli_listing_type,
                 "buying_mode": product.meli_buying_mode or '',
@@ -709,14 +712,14 @@ class product_product(models.Model):
                     body["pictures"] = [ { 'source': product.meli_imagen_logo} ]
         else:
             imagen_producto = ""
-            if (product.meli_description!="" and product.meli_description!=False and product.meli_imagen_link!=""):
-                imgtag = "<img style='width: 420px; height: auto;' src='%s'/>" % ( product.meli_imagen_link )
-                result = product.meli_description.replace( "[IMAGEN_PRODUCTO]", imgtag )
-                if (result):
-                    _logger.info( "result: %s" % (result) )
-                    product.meli_description = result
-                else:
-                    result = product.meli_description
+            #if (product.meli_description!="" and product.meli_description!=False and product.meli_imagen_link!=""):
+            #    imgtag = "<img style='width: 420px; height: auto;' src='%s'/>" % ( product.meli_imagen_link )
+            #    result = product.meli_description.replace( "[IMAGEN_PRODUCTO]", imgtag )
+            #    if (result):
+            #        _logger.info( "result: %s" % (result) )
+            #        product.meli_description = result
+            #    else:
+            #        result = product.meli_description
 
 
 

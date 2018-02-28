@@ -23,7 +23,7 @@
             <field name="arch" type="xml">
                 <data>
                     <notebook>
-                        <page string="MercadoLibre">
+                        <page string="MercadoLibre" attrs="{'invisible':[('meli_order_id', '=', '')]}">
 							<group>
 								<field name="meli_order_id" invisible="0"/>
 								<field name="meli_status" invisible="0"/>
@@ -150,9 +150,6 @@
           <field name="type">form</field>
           <field name="arch" type="xml">
             <form string="Update Order" version="7.0">
-
-
-
                 <footer>
                     <button name="order_update" string="Update Order"  type="object" class="oe_highlight"  />
 		or
