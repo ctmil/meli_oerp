@@ -274,8 +274,10 @@ class res_company(models.Model):
                         productcreated = False
                         if ("attributes" in rjson3):
                             if len(rjson3["attributes"])==3:
-                                model = rjson3["attributes"][2]
-                                productcreated = iself.env['product.product'].search([('default_code','=',model["value_name"] ) ])
+                                model = rjson3["attributes"][3]
+                                productcreated = self.env['product.product'].search([('default_code','=',model["value_name"] ) ])
+                                if (productcreated):
+                                    productcreated.write({'meli_id': rjson3['id'] })
 
                         if (productcreated==False):
                             productcreated = self.env['product.product'].create({ 'name': rjson3['id'], 'description': rjson3['title'].encode("utf-8"), 'meli_id': rjson3['id'] })
