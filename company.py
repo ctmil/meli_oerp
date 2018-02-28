@@ -266,8 +266,20 @@ class res_company(models.Model):
                     #print "Item already in database: " + str(posting_id[0])
                 else:
                     #idcreated = self.pool.get('product.product').create(cr,uid,{ 'name': rjson3['title'], 'meli_id': rjson3['id'] })
+
+
+                    #_id = self.env['product.product'].search([('default_code','=',)])
+
                     if 'id' in rjson3:
-                        productcreated = self.env['product.product'].create({ 'name': rjson3['id'], 'description': rjson3['title'].encode("utf-8"), 'meli_id': rjson3['id'] })
+                        productcreated = False
+                        if ("attributes" in rjson3):
+                            if len(rjson3["attributes"])==3:
+                                model = rjson3["attributes"][2]
+                                productcreated = iself.env['product.product'].search([('default_code','=',model["value_name"] ) ])
+
+                        if (productcreated==False):
+                            productcreated = self.env['product.product'].create({ 'name': rjson3['id'], 'description': rjson3['title'].encode("utf-8"), 'meli_id': rjson3['id'] })
+
                         if (productcreated):
                             _logger.info( "product created: " + str(productcreated) + " >> meli_id:" + str(rjson3['id']) + "-" + str( rjson3['title'].encode("utf-8")) )
                             #pdb.set_trace()
