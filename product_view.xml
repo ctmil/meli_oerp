@@ -27,6 +27,8 @@
                         <field name="meli_buying_mode" />
                         <field name="meli_warranty" />
                         <field name="meli_condition" />
+                        <field name="meli_listing_type" />
+
                         <!--<field name="meli_description" />-->
                         <!--<field name="product_variant_ids" />-->
                       </group>
