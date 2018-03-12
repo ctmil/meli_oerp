@@ -740,8 +740,8 @@ class product_product(models.Model):
 
 
 
-        if product.meli_category_id==False:
-            product.meli_category_id=product_tmpl.meli_category_id
+        if product.meli_category==False:
+            product.meli_category=product_tmpl.meli_category
         if product.meli_listing_type==False:
             product.meli_listing_type=product_tmpl.meli_listing_type
         if product.meli_buying_mode==False:
