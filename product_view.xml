@@ -15,11 +15,22 @@
             <data>
                 <notebook>
                     <page string="MercadoLibre Plantilla">
-                      <group>
+                      <group name="Basic description">
+                        <field name="meli_title" />
+                        <field name="meli_description" />
                         <field name="meli_category" />
-                        <field name="product_variant_ids" />
+                        <field name="meli_price" />
+                        <field name="meli_dimensions" />
                       </group>
-                      <group>
+                      <group name="ML buying conditions">
+                        <field name="meli_currency" />
+                        <field name="meli_buying_mode" />
+                        <field name="meli_warranty" />
+                        <field name="meli_condition" />
+                        <!--<field name="meli_description" />-->
+                        <!--<field name="product_variant_ids" />-->
+                      </group>
+                      <group name="ML actions">
                         <button name='%(action_product_template_post)d' type="action" string="Actualizar producto en ML"/>
                       </group>
                     </page>

@@ -77,8 +77,16 @@ class product_template(models.Model):
         return {}
 
     name = fields.Char('Name', size=128, required=True, translate=False, select=True)
+    meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
+    meli_description = fields.Text(string='Descripción')
     meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre")
+    meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
+    meli_price = fields.Char(string='Precio de venta', size=128)
+    meli_currency = fields.Selection([("ARS","Peso Argentino (ARS)")],string='Moneda (ARS)')
+    meli_condition = fields.Selection([ ("new", "Nuevo"), ("used", "Usado"), ("not_specified","No especificado")],'Condición del producto')
+    meli_dimensions = fields.Char( string="Dimensiones del producto", size=128)
     meli_pub = fields.Boolean('Meli Publication',help='MELI Product')
+    meli_warranty = fields.Char(string='Garantía', size=256)
     #meli_variants = fields.One2many(string="Meli Variants", related="product_variant_ids")
 
 
@@ -826,31 +834,36 @@ class product_product(models.Model):
 
         return {}
 
-    meli_imagen_id = fields.Char(string='Imagen Id', size=256)
+    #typical values
+    meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
+    meli_description = fields.Text(string='Descripción')
+    meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre")
+    meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
+    meli_price = fields.Char(string='Precio de venta', size=128)
+    meli_currency = fields.Selection([("ARS","Peso Argentino (ARS)")],string='Moneda (ARS)')
+    meli_condition = fields.Selection([ ("new", "Nuevo"), ("used", "Usado"), ("not_specified","No especificado")],'Condición del producto')
+    meli_dimensions = fields.Char( string="Dimensiones del producto", size=128)
+    meli_pub = fields.Boolean('Meli Publication',help='MELI Product')
+    meli_warranty = fields.Char(string='Garantía', size=256)
+
+
+    #post only fields
     meli_post_required = fields.Boolean(string='Este producto es publicable en Mercado Libre')
     meli_id = fields.Char( string='Id del item asignado por Meli', size=256)
     meli_permalink = fields.Char( compute=product_get_permalink, size=256, string='PermaLink in MercadoLibre' )
-    meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
-    meli_description = fields.Text(string='Descripción')
     meli_description_banner_id = fields.Many2one("mercadolibre.banner","Banner")
-    meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre")
     meli_listing_type = fields.Selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special"),("gold_pro","Oro Pro")], string='Tipo de lista')
     meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
     meli_price = fields.Char(string='Precio de venta', size=128)
     meli_price_fixed = fields.Boolean(string='Price is fixed')
-    meli_currency = fields.Selection([("ARS","Peso Argentino (ARS)")],string='Moneda (ARS)')
-    meli_condition = fields.Selection([ ("new", "Nuevo"), ("used", "Usado"), ("not_specified","No especificado")],'Condición del producto')
     meli_available_quantity = fields.Integer(string='Cantidad disponible')
-    meli_warranty = fields.Char(string='Garantía', size=256)
     meli_imagen_logo = fields.Char(string='Imagen Logo', size=256)
     meli_imagen_id = fields.Char(string='Imagen Id', size=256)
     meli_imagen_link = fields.Char(string='Imagen Link', size=256)
     meli_multi_imagen_id = fields.Char(string='Multi Imagen Ids', size=512)
     meli_video = fields.Char( string='Video (id de youtube)', size=256)
     meli_state = fields.Boolean( compute=product_get_meli_loginstate, string="Inicio de sesión requerida", store=False )
-    meli_status = fields.Char( compute=product_get_meli_status, size=128, string="Estado del producto en ML", store=True )
-    meli_dimensions = fields.Char( string="Dimensiones del producto", size=128)
-    meli_pub = fields.Boolean('Meli Publication',help='MELI Product')
+    meli_status = fields.Char( compute=product_get_meli_status, size=128, string="Estado del producto en ML", store=False )
 	### Agregar imagen/archivo uno o mas, y la descripcion en HTML...
 	# TODO Agregar el banner
 
