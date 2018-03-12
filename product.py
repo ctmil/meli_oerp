@@ -559,6 +559,53 @@ class product_product(models.Model):
 
         return { 'value': { 'meli_description' : result } }
 
+
+    @api.one
+    def product_get_meli_update( self ):
+        #self.ensure_one()
+        #pdb.set_trace()
+        company = self.env.user.company_id
+        warningobj = self.env['warning']
+
+        product_obj = self.env['product.product']
+        product = self
+
+        CLIENT_ID = company.mercadolibre_client_id
+        CLIENT_SECRET = company.mercadolibre_secret_key
+        ACCESS_TOKEN = company.mercadolibre_access_token
+        REFRESH_TOKEN = company.mercadolibre_refresh_token
+
+        ML_status = "unknown"
+        ML_permalink = ""
+        ML_state = False
+
+        if (ACCESS_TOKEN=='' or ACCESS_TOKEN==False):
+            ML_status = "unknown"
+            ML_permalink = ""
+            ML_state = True
+        else:
+            meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+            if product.meli_id:
+                response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token} )
+                rjson = response.json()
+                if "status" in rjson:
+                    ML_status = rjson["status"]
+                if "permalink" in rjson:
+                    ML_permalink = rjson["permalink"]
+                if "error" in rjson:
+                    ML_status = rjson["error"]
+                    ML_permalink = ""
+                if "sub_status" in rjson:
+                    if len(rjson["sub_status"]) and rjson["sub_status"][0]=='deleted':
+                        product.write({ 'meli_id': '' })
+                        
+                self.meli_status = ML_status
+                self.meli_permalink = ML_permalink
+
+
+        self.meli_state = ML_state
+
+
     @api.one
     def product_get_meli_status( self ):
         #self.ensure_one()
@@ -850,7 +897,6 @@ class product_product(models.Model):
     #post only fields
     meli_post_required = fields.Boolean(string='Este producto es publicable en Mercado Libre')
     meli_id = fields.Char( string='Id del item asignado por Meli', size=256)
-    meli_permalink = fields.Char( compute=product_get_permalink, size=256, string='PermaLink in MercadoLibre' )
     meli_description_banner_id = fields.Many2one("mercadolibre.banner","Banner")
     meli_listing_type = fields.Selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special"),("gold_pro","Oro Pro")], string='Tipo de lista')
     meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
@@ -862,8 +908,10 @@ class product_product(models.Model):
     meli_imagen_link = fields.Char(string='Imagen Link', size=256)
     meli_multi_imagen_id = fields.Char(string='Multi Imagen Ids', size=512)
     meli_video = fields.Char( string='Video (id de youtube)', size=256)
-    meli_state = fields.Boolean( compute=product_get_meli_loginstate, string="Inicio de sesión requerida", store=False )
-    meli_status = fields.Char( compute=product_get_meli_status, size=128, string="Estado del producto en ML", store=False )
+
+    meli_permalink = fields.Char( compute=product_get_actual, size=256, string='PermaLink in MercadoLibre', store=True )
+    meli_state = fields.Boolean( compute=product_get_actual, string="Inicio de sesión requerida", store=True )
+    meli_status = fields.Char( compute=product_get_actual, size=128, string="Estado del producto en ML", store=True )
 	### Agregar imagen/archivo uno o mas, y la descripcion en HTML...
 	# TODO Agregar el banner
 
