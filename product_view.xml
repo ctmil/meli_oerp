@@ -16,11 +16,11 @@
                 <notebook>
                     <page string="MercadoLibre">
                       <group>
-                        <button name='%(action_product_template_post)d' type="action" string="Actualizar producto en ML"/>
-                        <br/>
                         <field name="meli_category" />
-                        <br/>
                         <field name="meli_variants" />
+                      </group>
+                      <group>
+                        <button name='%(action_product_template_post)d' type="action" string="Actualizar producto en ML"/>
                       </group>
                     </page>
                   </notebook>
