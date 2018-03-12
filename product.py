@@ -551,9 +551,9 @@ class product_product(models.Model):
 
         return { 'value': { 'meli_description' : result } }
 
-    @api.multi
+    @api.one
     def product_get_meli_status( self ):
-        self.ensure_one()
+        #self.ensure_one()
         #pdb.set_trace()
         company = self.env.user.company_id
         warningobj = self.env['warning']

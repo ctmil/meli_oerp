@@ -26,7 +26,7 @@
             </data>
           </field>
         </record>
-        
+
         <record model="ir.ui.view" id="view_meli_variants_tree">
             <field name="name">product.product.tree</field>
             <field name="model">product.product</field>
@@ -36,7 +36,7 @@
                 <field name="default_code" position="before">
                     <field name="meli_pub"/>
                     <field name="meli_id"/>
-                    <field name="meli_state"/>
+                    <field name="meli_status"/>
                 </field>
             </field>
         </record>
