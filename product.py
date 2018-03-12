@@ -41,7 +41,9 @@ from melisdk.meli import Meli
 
 class product_template(models.Model):
     _inherit = "product.template"
-    name = fields.Char('Name', size=128, required=True, translate=False, select=True);
+    name = fields.Char('Name', size=128, required=True, translate=False, select=True)
+    meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre")
+    meli_pub = fields.Boolean('Meli Publication',help='MELI Product')
 
 product_template()
 
