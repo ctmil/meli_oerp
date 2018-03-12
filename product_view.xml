@@ -18,24 +18,26 @@
                       <group>
                         <button name='%(action_product_template_post)d' type="action" string="Actualizar producto en ML"/>
                         <field name="meli_category" />
-                        <field name="product_variant_ids" />
+                        <hr/>
+                        <field name="meli_variants" />
                       </group>
                     </page>
                   </notebook>
             </data>
           </field>
         </record>
-
+        
         <record model="ir.ui.view" id="view_meli_variants_tree">
-            <field name="name">mercadolibre.variants.tree</field>
+            <field name="name">product.product.tree</field>
             <field name="model">product.product</field>
             <field name="type">tree</field>
+            <field name="inherit_id" ref="product.product_product_tree_view"/>
             <field name="arch" type="xml">
-                <tree string="Variants" >
+                <field name="default_code" position="before">
                     <field name="meli_pub"/>
-                    <field name="meli_state"/>
                     <field name="meli_id"/>
-                </tree>
+                    <field name="meli_state"/>
+                </field>
             </field>
         </record>
 
