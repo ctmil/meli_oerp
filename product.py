@@ -630,7 +630,9 @@ class product_product(models.Model):
 
         body = {
             "title": product.meli_title or '',
-            "description": product.meli_description or '',
+            "description": {
+                "plain_text": product.meli_description or '',
+            },
             "category_id": product.meli_category.meli_category_id or '0',
             "listing_type_id": product.meli_listing_type or '0',
             "buying_mode": product.meli_buying_mode or '',
@@ -641,6 +643,10 @@ class product_product(models.Model):
             "warranty": product.meli_warranty or '',
             #"pictures": [ { 'source': product.meli_imagen_logo} ] ,
             "video_id": product.meli_video  or '',
+        }
+
+        bodydescription = {
+            "plain_text": product.meli_description or '',
         }
 
         # print body
@@ -678,6 +684,12 @@ class product_product(models.Model):
                 "video_id": product.meli_video or '',
             }
 
+            #resdescription = meli.get("/items/"+product.meli_id+"/description", {'access_token':meli.access_token})
+            #_logger.info("res description:",resdescription)
+            #rjsondes = resdescription.json()
+
+
+
         #publicando multiples imagenes
         multi_images_ids = {}
         if (product.product_image_ids):
@@ -706,14 +718,14 @@ class product_product(models.Model):
                     body["pictures"] = [ { 'source': product.meli_imagen_logo} ]
         else:
             imagen_producto = ""
-            if (product.meli_description!="" and product.meli_description!=False and product.meli_imagen_link!=""):
-                imgtag = "<img style='width: 420px; height: auto;' src='%s'/>" % ( product.meli_imagen_link )
-                result = product.meli_description.replace( "[IMAGEN_PRODUCTO]", imgtag )
-                if (result):
-                    _logger.info( "result: %s" % (result) )
-                    product.meli_description = result
-                else:
-                    result = product.meli_description
+            #if (product.meli_description!="" and product.meli_description!=False and product.meli_imagen_link!=""):
+            #    imgtag = "<img style='width: 420px; height: auto;' src='%s'/>" % ( product.meli_imagen_link )
+            #    result = product.meli_description.replace( "[IMAGEN_PRODUCTO]", imgtag )
+            #    if (result):
+            #        _logger.info( "result: %s" % (result) )
+            #        product.meli_description = result
+            #    else:
+            #        result = product.meli_description
 
 
 
@@ -726,9 +738,11 @@ class product_product(models.Model):
 
         #put for editing, post for creating
         _logger.info(body)
+        _logger.info(bodydescription)
 
         if product.meli_id:
             response = meli.put("/items/"+product.meli_id, body, {'access_token':meli.access_token})
+            resdescription = meli.put("/items/"+product.meli_id+"/description", bodydescription, {'access_token':meli.access_token})
         else:
             assign_img = True and product.meli_imagen_id
             response = meli.post("/items", body, {'access_token':meli.access_token})
@@ -736,7 +750,9 @@ class product_product(models.Model):
         #check response
         # print response.content
         rjson = response.json()
+        rjsondes = resdescription.json()
         _logger.info(rjson)
+        _logger.info(resdescription)
 
         #check error
         if "error" in rjson:
