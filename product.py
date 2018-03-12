@@ -87,6 +87,7 @@ class product_template(models.Model):
     meli_dimensions = fields.Char( string="Dimensiones del producto", size=128)
     meli_pub = fields.Boolean('Meli Publication',help='MELI Product')
     meli_warranty = fields.Char(string='Garantía', size=256)
+    meli_listing_type = fields.Selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special"),("gold_pro","Oro Pro")], string='Tipo de lista')
     #meli_variants = fields.One2many(string="Meli Variants", related="product_variant_ids")
 
 
@@ -892,13 +893,13 @@ class product_product(models.Model):
     meli_dimensions = fields.Char( string="Dimensiones del producto", size=128)
     meli_pub = fields.Boolean('Meli Publication',help='MELI Product')
     meli_warranty = fields.Char(string='Garantía', size=256)
+    meli_listing_type = fields.Selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special"),("gold_pro","Oro Pro")], string='Tipo de lista')
 
 
     #post only fields
     meli_post_required = fields.Boolean(string='Este producto es publicable en Mercado Libre')
     meli_id = fields.Char( string='Id del item asignado por Meli', size=256)
     meli_description_banner_id = fields.Many2one("mercadolibre.banner","Banner")
-    meli_listing_type = fields.Selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special"),("gold_pro","Oro Pro")], string='Tipo de lista')
     meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
     meli_price = fields.Char(string='Precio de venta', size=128)
     meli_price_fixed = fields.Boolean(string='Price is fixed')
