@@ -79,7 +79,7 @@ class product_template(models.Model):
     name = fields.Char('Name', size=128, required=True, translate=False, select=True)
     meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre")
     meli_pub = fields.Boolean('Meli Publication',help='MELI Product')
-    meli_variants = fields.One2many(string="Meli Variants", related="product_variant_ids")
+    #meli_variants = fields.One2many(string="Meli Variants", related="product_variant_ids")
 
 
 product_template()

@@ -17,7 +17,7 @@
                     <page string="MercadoLibre Plantilla">
                       <group>
                         <field name="meli_category" />
-                        <field name="meli_variants" />
+                        <field name="product_variant_ids" />
                       </group>
                       <group>
                         <button name='%(action_product_template_post)d' type="action" string="Actualizar producto en ML"/>
