@@ -41,9 +41,40 @@ from melisdk.meli import Meli
 
 class product_template(models.Model):
     _inherit = "product.template"
+
+    def product_template_post(self):
+        product_obj = self.env['product.template']
+        product = self
+        company = self.env.user.company_id
+        warningobj = self.env['warning']
+
+        REDIRECT_URI = company.mercadolibre_redirect_uri
+        CLIENT_ID = company.mercadolibre_client_id
+        CLIENT_SECRET = company.mercadolibre_secret_key
+        ACCESS_TOKEN = company.mercadolibre_access_token
+        REFRESH_TOKEN = company.mercadolibre_refresh_token
+
+
+        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+
+        if ACCESS_TOKEN=='':
+            meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
+            url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
+            return {
+                "type": "ir.actions.act_url",
+                "url": url_login_meli,
+                "target": "new",
+            }
+
+        _logger.info("Product Template Post")
+
+        return {}
+
     name = fields.Char('Name', size=128, required=True, translate=False, select=True)
     meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre")
     meli_pub = fields.Boolean('Meli Publication',help='MELI Product')
+
+
 
 product_template()
 

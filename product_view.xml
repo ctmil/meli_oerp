@@ -10,12 +10,14 @@
             <label for="sale_ok" position="after">
                   <field name="meli_pub" />
                   <label for="meli_pub" />
+                  <button name='%(action_product_template_post)d' type="action" string="Actualizar producto en ML"/>
 
               </label>
             <data>
                 <notebook>
                     <page string="MercadoLibre">
                       <group>
+                        <field name="meli_category" />
                       </group>
                     </page>
                   </notebook>
