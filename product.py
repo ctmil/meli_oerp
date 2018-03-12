@@ -68,6 +68,12 @@ class product_template(models.Model):
 
         _logger.info("Product Template Post")
 
+        for variant in product.product_variant_ids:
+            _logger.info("Variant:", variant)
+            if (variant.meli_pub):
+                _logger.info("Posting variant")
+                variant.product_post()
+
         return {}
 
     name = fields.Char('Name', size=128, required=True, translate=False, select=True)

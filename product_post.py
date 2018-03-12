@@ -85,7 +85,10 @@ class product_template_post(models.TransientModel):
         for product_id in product_ids:
             product = product_obj.browse(product_id)
             if (product):
-                product.product_template_post()
+                if (product.meli_pub):
+                    product.product_template_post()
+                #else:
+                #    return {}
             #import pdb;pdb.set_trace();
             #Alta
             #if (product.meli_pub and product.meli_id==False):
