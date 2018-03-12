@@ -598,7 +598,7 @@ class product_product(models.Model):
                 if "sub_status" in rjson:
                     if len(rjson["sub_status"]) and rjson["sub_status"][0]=='deleted':
                         product.write({ 'meli_id': '' })
-                        
+
                 self.meli_status = ML_status
                 self.meli_permalink = ML_permalink
 
@@ -909,9 +909,9 @@ class product_product(models.Model):
     meli_multi_imagen_id = fields.Char(string='Multi Imagen Ids', size=512)
     meli_video = fields.Char( string='Video (id de youtube)', size=256)
 
-    meli_permalink = fields.Char( compute=product_get_actual, size=256, string='PermaLink in MercadoLibre', store=True )
-    meli_state = fields.Boolean( compute=product_get_actual, string="Inicio de sesión requerida", store=True )
-    meli_status = fields.Char( compute=product_get_actual, size=128, string="Estado del producto en ML", store=True )
+    meli_permalink = fields.Char( compute=product_get_meli_update, size=256, string='PermaLink in MercadoLibre', store=True )
+    meli_state = fields.Boolean( compute=product_get_meli_update, string="Inicio de sesión requerida", store=True )
+    meli_status = fields.Char( compute=product_get_meli_update, size=128, string="Estado del producto en ML", store=True )
 	### Agregar imagen/archivo uno o mas, y la descripcion en HTML...
 	# TODO Agregar el banner
 
