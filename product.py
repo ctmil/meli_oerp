@@ -871,6 +871,8 @@ class product_product(models.Model):
         if product.meli_id:
             response = meli.put("/items/"+product.meli_id, body, {'access_token':meli.access_token})
             resdescription = meli.put("/items/"+product.meli_id+"/description", bodydescription, {'access_token':meli.access_token})
+            rjsondes = resdescription.json()
+            #_logger.info(resdescription)
         else:
             assign_img = True and product.meli_imagen_id
             response = meli.post("/items", body, {'access_token':meli.access_token})
@@ -878,9 +880,8 @@ class product_product(models.Model):
         #check response
         # print response.content
         rjson = response.json()
-        rjsondes = resdescription.json()
         _logger.info(rjson)
-        _logger.info(resdescription)
+
 
         #check error
         if "error" in rjson:
