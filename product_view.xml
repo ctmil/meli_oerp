@@ -17,8 +17,9 @@
                     <page string="MercadoLibre">
                       <group>
                         <button name='%(action_product_template_post)d' type="action" string="Actualizar producto en ML"/>
+                        <br/>
                         <field name="meli_category" />
-                        <hr/>
+                        <br/>
                         <field name="meli_variants" />
                       </group>
                     </page>
