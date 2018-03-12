@@ -688,7 +688,9 @@ class product_product(models.Model):
 #        product_ids = context['active_ids']
 #        pdb.set_trace()
         product_obj = self.env['product.product']
+        product_tpl_obj = self.env['product.template']
         product = self
+        product_tmpl = self.product_tmpl_id
         company = self.env.user.company_id
         warningobj = self.env['warning']
 
@@ -715,13 +717,44 @@ class product_product(models.Model):
 
         # print product.meli_category.meli_category_id
 
+        if product_tmpl.meli_title==False:
+            product_tmpl.meli_title = product_tmpl.name
+
+        if product_tmpl.meli_price==False:
+            product_tmpl.meli_price = product_tmpl.standard_price
+
+        if product_tmpl.meli_description==False:
+            product_tmpl.meli_description = product_tmpl.description_sale
+
+
         if product.meli_title==False:
             # print 'Assigning title: product.meli_title: %s name: %s' % (product.meli_title, product.name)
-            product.meli_title = product.name
+            product.meli_title = product_tmpl.meli_title
 
         if product.meli_price==False:
             # print 'Assigning price: product.meli_price: %s standard_price: %s' % (product.meli_price, product.standard_price)
-            product.meli_price = product.standard_price
+            product.meli_price = product_tmpl.standard_price
+
+        if product.meli_description==False:
+            product.meli_description = product_tmpl.meli_description
+
+
+
+        if product.meli_category_id==False:
+            product.meli_category_id=product_tmpl.meli_category_id
+        if product.meli_listing_type==False:
+            product.meli_listing_type=product_tmpl.meli_listing_type
+        if product.meli_buying_mode==False:
+            product.meli_buying_mode=product_tmpl.meli_buying_mode
+        if product.meli_price==False:
+            product.meli_price=product_tmpl.meli_price
+        if product.meli_currency==False:
+            product.meli_currency=product_tmpl.meli_currency
+        if product.meli_condition==False:
+            product.meli_condition=product_tmpl.meli_condition
+        if product.meli_warranty==False:
+            product.meli_warranty=product_tmpl.meli_warranty
+
 
         body = {
             "title": product.meli_title or '',
