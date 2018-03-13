@@ -30,21 +30,11 @@
             <field name="body_html">
                 <![CDATA[
 <div style="font-family: 'Lucida Grande', Ubuntu, Arial, Verdana, sans-serif; font-size: 12px; color: rgb(34, 34, 34); background-color: #FFF; ">
-<p>Odoo tried to run the scheduler <em>${object.name or ''}</em> in the database <em>${ctx.get('dbname')}</em> but it failed. Here is the error message :</p>
+<p>Odoo tried to refresh credentials for <em>${object.name or ''}</em> in the database <em>${ctx.get('dbname')}</em> but it failed. Here is the error message :</p>
 <strong>
 ${ctx.get('job_exception') or 'Failed to get the error message from the context.'}
 </strong>
-<p>You may check the logs of the Odoo server to get more information about this failure.</p>
-<p>Properties of the scheduler <em>${object.name or ''}</em> :</p>
-<ul>
-<li>Model : ${object.model or ''}</li>
-<li>Method : ${object.function or ''}</li>
-<li>Arguments : ${object.args or ''}</li>
-<li>Interval : ${object.interval_number or '0'} ${object.interval_type or ''}</li>
-<li>Number of calls : ${object.numbercall or '0'}</li>
-<li>Repeat missed : ${object.doall}</li>
-<li>User : ${object.user_id.name or ''}</li>
-</ul>
+<p>Log into Odoo then click here: <a href="${object.mercadolibre_redirect_uri}" target="_blank">Meli Login</a></p>
 <p>
 -- <br/>
 Automatic e-mail sent by Odoo. Do not reply.<br/>
