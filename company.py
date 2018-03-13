@@ -65,16 +65,19 @@ class res_company(models.Model):
 
         try:
             _logger.info("access_token:"+str(ACCESS_TOKEN))
-            response = meli.get("/items/MLA1", {'access_token':meli.access_token} )
+            response = meli.get("/users/"+company.mercadolibre_seller_id, {'access_token':meli.access_token} )
             _logger.info("response.content:"+str(response.content))
             rjson = response.json()
             #response = meli.get("/users/")
             if "error" in rjson:
                 ML_state = True
-                if "message" in rjson and rjson["message"]=="expired_token":
-                    ML_state = True
+
                 if rjson["error"]=="not_found":
-                    ML_state = False
+                    ML_state = True
+
+                if "message" in rjson:
+                    if (rjson["message"]=="expired_token" or rjson["message"]=="invalid_token"):
+                        ML_state = True
 
             if ACCESS_TOKEN=='' or ACCESS_TOKEN==False:
                 ML_state = True
