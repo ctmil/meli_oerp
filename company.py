@@ -60,7 +60,7 @@ class res_company(models.Model):
 
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
         ML_state = False
-
+        message = "Login to ML needed in Odoo."
         #pdb.set_trace()
 
         try:
@@ -76,6 +76,7 @@ class res_company(models.Model):
                     ML_state = True
 
                 if "message" in rjson:
+                    message = rjson["message"]
                     if (rjson["message"]=="expired_token" or rjson["message"]=="invalid_token"):
                         ML_state = True
 
@@ -100,7 +101,7 @@ class res_company(models.Model):
                 # we put the job_exception in context to be able to print it inside
                 # the email template
                 context = {
-                    'job_exception': rjson["message"],
+                    'job_exception': message,
                     'dbname': self._cr.dbname,
                 }
 
