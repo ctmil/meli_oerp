@@ -13,7 +13,7 @@
               <field eval="False" name="doall" />
               <field eval="'res.company'" name="model" />
               <field eval="'get_meli_state'" name="function" />
-              <field eval="'(None)'" name="args" />
+              <field eval="'()'" name="args" />
               <field name="priority">1000</field>
       </record>
 
