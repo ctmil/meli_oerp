@@ -96,6 +96,21 @@ class res_company(models.Model):
 
             company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
 
+            if (company.mercadolibre_cron_mail):
+                # we put the job_exception in context to be able to print it inside
+                # the email template
+                context = {
+                    'job_exception': rjson["message"],
+                    'dbname': self._cr.dbname,
+                }
+
+                _logger.debug(
+                    "Sending scheduler error email with context=%s", context)
+
+                self.env['mail.template'].browse(
+                    company.mercadolibre_cron_mail.id
+                ).with_context(context).sudo().send_mail( company.id, force_send=True)
+
         #res = {}
         #for company in self.browse(cr,uid,ids):
         #for company in self:
@@ -114,6 +129,16 @@ class res_company(models.Model):
     mercadolibre_state = fields.Boolean( compute=get_meli_state, string="Se requiere Iniciar Sesión con MLA", store=False )
     mercadolibre_category_import = fields.Char( string='Category Code to Import', size=256)
     mercadolibre_recursive_import = fields.Boolean( string='Import all categories (recursiveness)', size=256)
+
+    mercadolibre_cron_refresh = fields.Boolean(string='Cron Refresh')
+    mercadolibre_cron_mail = fields.Many2one(
+        comodel_name="mail.template",
+        string="Cron Error E-mail Template",
+        help="Select the email template that will be sent when "
+        "cron refresh fails.")
+    mercadolibre_cron_get_orders = fields.Boolean(string='Cron Get Orders')
+    mercadolibre_cron_get_questions = fields.Boolean(string='Cron Get Questions')
+    mercadolibre_cron_get_update_products = fields.Boolean(string='Cron Update Products')
 
     #'mercadolibre_login': fields.selection( [ ("unknown", "Desconocida"), ("logged","Abierta"), ("not logged","Cerrada")],string='Estado de la sesión'), )
 
