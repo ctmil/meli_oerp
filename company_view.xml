@@ -3,7 +3,7 @@
     <data>
 
       <record id="ir_cron_module_get_meli_state" model="ir.cron">
-              <field name="name">Get Active Srs</field>
+              <field name="name">Get Meli State</field>
               <field eval="True" name="active" />
               <field name="user_id" ref="base.user_root" />
               <field name="interval_number">1</field>
