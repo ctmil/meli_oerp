@@ -110,7 +110,7 @@ class res_company(models.Model):
 
                 self.env['mail.template'].browse(
                     company.mercadolibre_cron_mail.id
-                ).with_context(context).sudo().send_mail( company, force_send=True)
+                ).with_context(context).sudo().send_mail( (company.id), force_send=True)
 
         #res = {}
         #for company in self.browse(cr,uid,ids):
