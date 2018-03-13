@@ -79,6 +79,13 @@ Database : ${ctx.get('dbname')}
                 <field name="mercadolibre_category_import" invisible="0"/>
                 <field name="mercadolibre_recursive_import" invisible="0"/>
                 <field name="mercadolibre_seller_id" invisible="0"/>
+                <group name="Cron Job">
+                  <field name="mercadolibre_cron_refresh" invisible="0"/>
+                  <field name="mercadolibre_cron_mail" invisible="0"/>
+                  <field name="mercadolibre_cron_get_orders" invisible="0"/>
+                  <field name="mercadolibre_cron_get_questions" invisible="0"/>
+                  <field name="mercadolibre_cron_get_update_products" invisible="0"/>
+                </group>
 
 
 								<button name='meli_login' type="object"
