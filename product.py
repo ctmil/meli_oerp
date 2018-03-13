@@ -865,8 +865,8 @@ class product_product(models.Model):
             return warningobj.info(title='MELI WARNING', message="Debe completar el campo 'description' (en html)", message_html="")
 
         #put for editing, post for creating
-        _logger.info(body)
-        _logger.info(bodydescription)
+        #_logger.info(body)
+        #_logger.info(bodydescription)
 
         if product.meli_id:
             response = meli.put("/items/"+product.meli_id, body, {'access_token':meli.access_token})
