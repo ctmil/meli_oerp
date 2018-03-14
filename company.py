@@ -80,10 +80,10 @@ class res_company(models.Model):
                     if (rjson["message"]=="expired_token" or rjson["message"]=="invalid_token"):
                         ML_state = True
                         refresh = meli.get_refresh_token()
-                        _logger.info("need to refresh:",refresh)
+                        _logger.info("need to refresh:"+str(refresh))
 
             refresh = meli.get_refresh_token()
-            _logger.info("refresh:",refresh)
+            _logger.info("refresh:"+str(refresh))
 
             if ACCESS_TOKEN=='' or ACCESS_TOKEN==False:
                 ML_state = True
