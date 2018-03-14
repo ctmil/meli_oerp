@@ -79,6 +79,11 @@ class res_company(models.Model):
                     message = rjson["message"]
                     if (rjson["message"]=="expired_token" or rjson["message"]=="invalid_token"):
                         ML_state = True
+                        refresh = meli.get_refresh_token()
+                        _logger.info("need to refresh:",refresh)
+
+            refresh = meli.get_refresh_token()
+            _logger.info("refresh:",refresh)
 
             if ACCESS_TOKEN=='' or ACCESS_TOKEN==False:
                 ML_state = True
@@ -97,7 +102,16 @@ class res_company(models.Model):
 
             company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
 
-            if (company.mercadolibre_cron_mail):
+            if (company.mercadolibre_cron_get_orders):
+                _logger.info("company.mercadolibre_cron_get_orders")
+
+            if (company.mercadolibre_cron_get_questions):
+                _logger.info("company.mercadolibre_cron_get_questions")
+
+            if (company.mercadolibre_cron_get_update_products):
+                _logger.info("company.mercadolibre_cron_get_update_products")
+
+            if (company.mercadolibre_refresh_token and company.mercadolibre_cron_mail):
                 # we put the job_exception in context to be able to print it inside
                 # the email template
                 context = {
