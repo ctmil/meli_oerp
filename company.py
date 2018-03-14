@@ -90,18 +90,6 @@ class res_company(models.Model):
                         except Exception as e:
                             _logger.error(e)
 
-
-            refresh = meli.get_refresh_token()
-            _logger.info("refresh:"+str(refresh))
-            try:
-                if (refresh):
-                    ACCESS_TOKEN = meli.access_token
-                    REFRESH_TOKEN = meli.refresh_token
-                    company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
-                    ML_state = False
-            except Exception as e:
-                _logger.error(e)
-
             if ACCESS_TOKEN=='' or ACCESS_TOKEN==False:
                 ML_state = True
 
