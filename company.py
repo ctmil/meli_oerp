@@ -79,14 +79,32 @@ class res_company(models.Model):
                     message = rjson["message"]
                     if (rjson["message"]=="expired_token" or rjson["message"]=="invalid_token"):
                         ML_state = True
-                        refresh = meli.get_refresh_token()
-                        _logger.info("need to refresh:"+str(refresh))
+                        try:
+                            refresh = meli.get_refresh_token()
+                            _logger.info("need to refresh:"+str(refresh))
+                            if (refresh):
+                                ACCESS_TOKEN = meli.access_token
+                                REFRESH_TOKEN = meli.refresh_token
+                                company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
+                                ML_state = False
+                        except Exception as e:
+                            _logger.error(e)
+
 
             refresh = meli.get_refresh_token()
             _logger.info("refresh:"+str(refresh))
+            try:
+                if (refresh):
+                ACCESS_TOKEN = meli.access_token
+                    REFRESH_TOKEN = meli.refresh_token
+                    company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
+                    ML_state = False
+            except Exception as e:
+                _logger.error(e)
 
             if ACCESS_TOKEN=='' or ACCESS_TOKEN==False:
                 ML_state = True
+
         except requests.exceptions.ConnectionError as e:
             #raise osv.except_osv( _('MELI WARNING'), _('NO INTERNET CONNECTION TO API.MERCADOLIBRE.COM: complete the Cliend Id, and Secret Key and try again'))
             ML_state = True
@@ -101,15 +119,6 @@ class res_company(models.Model):
             REFRESH_TOKEN = ''
 
             company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
-
-            if (company.mercadolibre_cron_get_orders):
-                _logger.info("company.mercadolibre_cron_get_orders")
-
-            if (company.mercadolibre_cron_get_questions):
-                _logger.info("company.mercadolibre_cron_get_questions")
-
-            if (company.mercadolibre_cron_get_update_products):
-                _logger.info("company.mercadolibre_cron_get_update_products")
 
             if (company.mercadolibre_refresh_token and company.mercadolibre_cron_mail):
                 # we put the job_exception in context to be able to print it inside
@@ -131,6 +140,17 @@ class res_company(models.Model):
         #for company in self:
         #    res[company.id] = ML_state
         company.mercadolibre_state = ML_state
+
+        if (company.mercadolibre_cron_get_orders):
+            _logger.info("company.mercadolibre_cron_get_orders")
+
+        if (company.mercadolibre_cron_get_questions):
+            _logger.info("company.mercadolibre_cron_get_questions")
+
+        if (company.mercadolibre_cron_get_update_products):
+            _logger.info("company.mercadolibre_cron_get_update_products")
+
+
         #_logger.info("ML_state:"+str(ML_state))
         #return res
 
