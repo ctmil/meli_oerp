@@ -113,6 +113,9 @@ class mercadolibre_posting(models.Model):
             ML_price = product_json["price"]
             posting.write( { 'meli_status': ML_status, 'meli_permalink': ML_permalink, 'meli_price': ML_price } )
 
+        if (not company.mercadolibre_cron_get_questions):
+            return {}
+
         response = meli.get("/questions/search?item_id="+posting.meli_id, {'access_token':meli.access_token})
         questions_json = response.json()
         #_logger.info( questions_json )

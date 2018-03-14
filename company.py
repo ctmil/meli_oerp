@@ -131,12 +131,11 @@ class res_company(models.Model):
 
         if (company.mercadolibre_cron_get_orders):
             _logger.info("company.mercadolibre_cron_get_orders")
-
-        if (company.mercadolibre_cron_get_questions):
-            _logger.info("company.mercadolibre_cron_get_questions")
+            self.meli_query_orders()
 
         if (company.mercadolibre_cron_get_update_products):
             _logger.info("company.mercadolibre_cron_get_update_products")
+            self.meli_update_products()
 
 
         #_logger.info("ML_state:"+str(ML_state))
@@ -162,6 +161,7 @@ class res_company(models.Model):
     mercadolibre_cron_get_orders = fields.Boolean(string='Cron Get Orders')
     mercadolibre_cron_get_questions = fields.Boolean(string='Cron Get Questions')
     mercadolibre_cron_get_update_products = fields.Boolean(string='Cron Update Products')
+    mercadolibre_create_website_categories = fields.Boolean(string='Create Website Categories')
 
     #'mercadolibre_login': fields.selection( [ ("unknown", "Desconocida"), ("logged","Abierta"), ("not logged","Cerrada")],string='Estado de la sesión'), )
 
