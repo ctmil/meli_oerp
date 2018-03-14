@@ -95,7 +95,7 @@ class res_company(models.Model):
             _logger.info("refresh:"+str(refresh))
             try:
                 if (refresh):
-                ACCESS_TOKEN = meli.access_token
+                    ACCESS_TOKEN = meli.access_token
                     REFRESH_TOKEN = meli.refresh_token
                     company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
                     ML_state = False
