@@ -59,26 +59,27 @@ Database : ${ctx.get('dbname')}
                 <data>
                     <notebook>
                         <page string="MercadoLibre">
-							<group col="4">
-								<field name="mercadolibre_state" invisible="0"/>
-								<field name="mercadolibre_client_id" />
-								<field name="mercadolibre_secret_key" />
-								<field name="mercadolibre_redirect_uri" />
-								<field name="mercadolibre_access_token" invisible="0"/>
-								<field name="mercadolibre_refresh_token" invisible="0"/>
-								<field name="mercadolibre_code" invisible="0"/>
-                <field name="mercadolibre_category_import" invisible="0"/>
-                <field name="mercadolibre_recursive_import" invisible="0"/>
-                <field name="mercadolibre_seller_id" invisible="0"/>
-              </group>
-              <group name="Cron Job"  col="4">
-                <field name="mercadolibre_cron_refresh" invisible="0"/>
-                <field name="mercadolibre_cron_mail" invisible="0"/>
-                <field name="mercadolibre_cron_get_orders" invisible="0"/>
-                <field name="mercadolibre_cron_get_questions" invisible="0"/>
-                <field name="mercadolibre_cron_get_update_products" invisible="0"/>
-                <field name="mercadolibre_create_website_categories" invisible="0"/>
-
+							<group col="2">
+                <group name="Account" col="2">
+  								<field name="mercadolibre_state" invisible="0"/>
+  								<field name="mercadolibre_client_id" />
+  								<field name="mercadolibre_secret_key" />
+  								<field name="mercadolibre_redirect_uri" />
+  								<field name="mercadolibre_access_token" invisible="0"/>
+  								<field name="mercadolibre_refresh_token" invisible="0"/>
+  								<field name="mercadolibre_code" invisible="0"/>
+                  <field name="mercadolibre_category_import" invisible="0"/>
+                  <field name="mercadolibre_recursive_import" invisible="0"/>
+                  <field name="mercadolibre_seller_id" invisible="0"/>
+                </group>
+                <group name="Cron Job"  col="2">
+                  <field name="mercadolibre_cron_refresh" invisible="0"/>
+                  <field name="mercadolibre_cron_mail" invisible="0"/>
+                  <field name="mercadolibre_cron_get_orders" invisible="0"/>
+                  <field name="mercadolibre_cron_get_questions" invisible="0"/>
+                  <field name="mercadolibre_cron_get_update_products" invisible="0"/>
+                  <field name="mercadolibre_create_website_categories" invisible="0"/>
+                </group>
               </group>
               <group name="Actions">
 
