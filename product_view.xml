@@ -2,6 +2,59 @@
 <openerp>
     <data>
 
+        <record model="ir.ui.view" id="product_tpl_ml_form_view">
+          <field name="name">product.tpl.ml.form.inherit</field>
+          <field name="model">product.template</field>
+          <field name="inherit_id" ref="product.product_template_only_form_view" />
+          <field name="arch" type="xml">
+            <label for="sale_ok" position="after">
+                  <field name="meli_pub" />
+                  <label for="meli_pub" />
+
+              </label>
+            <data>
+                <notebook>
+                    <page string="MercadoLibre Plantilla">
+                      <group name="Basic description">
+                        <field name="meli_title" />
+                        <field name="meli_description" />
+                        <field name="meli_category" />
+                        <field name="meli_price" />
+                        <field name="meli_dimensions" />
+                      </group>
+                      <group name="ML buying conditions">
+                        <field name="meli_currency" />
+                        <field name="meli_buying_mode" />
+                        <field name="meli_warranty" />
+                        <field name="meli_condition" />
+                        <field name="meli_listing_type" />
+
+                        <!--<field name="meli_description" />-->
+                        <!--<field name="product_variant_ids" />-->
+                      </group>
+                      <group name="ML actions">
+                        <button name='%(action_product_template_post)d' type="action" string="Actualizar producto en ML"/>
+                      </group>
+                    </page>
+                  </notebook>
+            </data>
+          </field>
+        </record>
+
+        <record model="ir.ui.view" id="view_meli_variants_tree">
+            <field name="name">product.product.tree</field>
+            <field name="model">product.product</field>
+            <field name="type">tree</field>
+            <field name="inherit_id" ref="product.product_product_tree_view"/>
+            <field name="arch" type="xml">
+                <field name="default_code" position="before">
+                    <field name="meli_pub"/>
+                    <field name="meli_id"/>
+                    <field name="meli_status"/>
+                </field>
+            </field>
+        </record>
+
         <record model="ir.ui.view" id="product_nh_ml_form_view">
             <field name="name">product.nh.ml.form.inherit</field>
             <field name="model">product.product</field>
@@ -12,7 +65,7 @@
                     <label for="meli_pub" />
 
                 </label>
-                
+
                 <data>
                     <notebook>
                         <page string="MercadoLibre">

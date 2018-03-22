@@ -41,7 +41,55 @@ from melisdk.meli import Meli
 
 class product_template(models.Model):
     _inherit = "product.template"
-    name = fields.Char('Name', size=128, required=True, translate=False, select=True);
+
+    def product_template_post(self):
+        product_obj = self.env['product.template']
+        product = self
+        company = self.env.user.company_id
+        warningobj = self.env['warning']
+
+        REDIRECT_URI = company.mercadolibre_redirect_uri
+        CLIENT_ID = company.mercadolibre_client_id
+        CLIENT_SECRET = company.mercadolibre_secret_key
+        ACCESS_TOKEN = company.mercadolibre_access_token
+        REFRESH_TOKEN = company.mercadolibre_refresh_token
+
+
+        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+
+        if ACCESS_TOKEN=='':
+            meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
+            url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
+            return {
+                "type": "ir.actions.act_url",
+                "url": url_login_meli,
+                "target": "new",
+            }
+
+        _logger.info("Product Template Post")
+
+        for variant in product.product_variant_ids:
+            _logger.info("Variant:", variant)
+            if (variant.meli_pub):
+                _logger.info("Posting variant")
+                variant.product_post()
+
+        return {}
+
+    name = fields.Char('Name', size=128, required=True, translate=False, select=True)
+    meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
+    meli_description = fields.Text(string='Descripción')
+    meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre")
+    meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
+    meli_price = fields.Char(string='Precio de venta', size=128)
+    meli_currency = fields.Selection([("ARS","Peso Argentino (ARS)")],string='Moneda (ARS)')
+    meli_condition = fields.Selection([ ("new", "Nuevo"), ("used", "Usado"), ("not_specified","No especificado")],'Condición del producto')
+    meli_dimensions = fields.Char( string="Dimensiones del producto", size=128)
+    meli_pub = fields.Boolean('Meli Publication',help='MELI Product')
+    meli_warranty = fields.Char(string='Garantía', size=256)
+    meli_listing_type = fields.Selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special"),("gold_pro","Oro Pro")], string='Tipo de lista')
+    #meli_variants = fields.One2many(string="Meli Variants", related="product_variant_ids")
+
 
 product_template()
 
@@ -163,22 +211,24 @@ class product_product(models.Model):
                     #pdb.set_trace()
                     for path in path_from_root:
                         fullname = fullname + "/" + path["name"]
-                        www_cats = self.env['product.public.category']
-                        if www_cats!=False:
-                            www_cat_id = www_cats.search([('name','=',path["name"])]).id
-                            if www_cat_id==False:
-                                www_cat_fields = {
-                                  'name': path["name"],
-                                  #'parent_id': p_id,
-                                  #'sequence': 1
-                                }
-                                if p_id:
-                                    www_cat_fields['parent_id'] = p_id
-                                www_cat_id = www_cats.create((www_cat_fields)).id
-                                if www_cat_id:
-                                    _logger.info("Website Category created:"+fullname)
+                        
+                        if (company.mercadolibre_create_website_categories):
+                            www_cats = self.env['product.public.category']
+                            if www_cats!=False:
+                                www_cat_id = www_cats.search([('name','=',path["name"])]).id
+                                if www_cat_id==False:
+                                    www_cat_fields = {
+                                      'name': path["name"],
+                                      #'parent_id': p_id,
+                                      #'sequence': 1
+                                    }
+                                    if p_id:
+                                        www_cat_fields['parent_id'] = p_id
+                                    www_cat_id = www_cats.create((www_cat_fields)).id
+                                    if www_cat_id:
+                                        _logger.info("Website Category created:"+fullname)
 
-                            p_id = www_cat_id
+                                p_id = www_cat_id
 
                 #fullname = fullname + "/" + rjson_cat['name']
                 #print "category fullname:" + fullname
@@ -187,8 +237,10 @@ class product_product(models.Model):
                     'meli_category_id': ''+str(category_id),
                     'public_category_id': 0,
                 }
+
                 if www_cat_id:
                     cat_fields['public_category_id'] = www_cat_id
+
                 ml_cat_id = self.env['mercadolibre.category'].create((cat_fields)).id
                 if (ml_cat_id):
                     mlcatid = ml_cat_id
@@ -255,7 +307,10 @@ class product_product(models.Model):
         posting_id = self.env['mercadolibre.posting'].search([('meli_id','=',rjson['id'])]).id
 
         if not posting_id:
-            posting_id = self.env['mercadolibre.posting'].create((posting_fields)).id
+            posting = self.env['mercadolibre.posting'].create((posting_fields))
+            posting_id = posting.id
+            if (posting):
+                posting.posting_query_questions()
 
         return {}
 
@@ -515,7 +570,54 @@ class product_product(models.Model):
 
         return { 'value': { 'meli_description' : result } }
 
-    @api.multi
+
+    @api.one
+    def product_get_meli_update( self ):
+        #self.ensure_one()
+        #pdb.set_trace()
+        company = self.env.user.company_id
+        warningobj = self.env['warning']
+
+        product_obj = self.env['product.product']
+        product = self
+
+        CLIENT_ID = company.mercadolibre_client_id
+        CLIENT_SECRET = company.mercadolibre_secret_key
+        ACCESS_TOKEN = company.mercadolibre_access_token
+        REFRESH_TOKEN = company.mercadolibre_refresh_token
+
+        ML_status = "unknown"
+        ML_permalink = ""
+        ML_state = False
+
+        if (ACCESS_TOKEN=='' or ACCESS_TOKEN==False):
+            ML_status = "unknown"
+            ML_permalink = ""
+            ML_state = True
+        else:
+            meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+            if product.meli_id:
+                response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token} )
+                rjson = response.json()
+                if "status" in rjson:
+                    ML_status = rjson["status"]
+                if "permalink" in rjson:
+                    ML_permalink = rjson["permalink"]
+                if "error" in rjson:
+                    ML_status = rjson["error"]
+                    ML_permalink = ""
+                if "sub_status" in rjson:
+                    if len(rjson["sub_status"]) and rjson["sub_status"][0]=='deleted':
+                        product.write({ 'meli_id': '' })
+
+                self.meli_status = ML_status
+                self.meli_permalink = ML_permalink
+
+
+        self.meli_state = ML_state
+
+
+    @api.one
     def product_get_meli_status( self ):
         #self.ensure_one()
         #pdb.set_trace()
@@ -601,7 +703,9 @@ class product_product(models.Model):
 	_logger.debug('[DEBUG] product_post')
 
         product_obj = self.env['product.product']
+        product_tpl_obj = self.env['product.template']
         product = self
+        product_tmpl = self.product_tmpl_id
         company = self.env.user.company_id
         warningobj = self.env['warning']
 
@@ -628,17 +732,50 @@ class product_product(models.Model):
 
         # print product.meli_category.meli_category_id
 
+        if product_tmpl.meli_title==False:
+            product_tmpl.meli_title = product_tmpl.name
+
+        if product_tmpl.meli_price==False:
+            product_tmpl.meli_price = product_tmpl.standard_price
+
+        if product_tmpl.meli_description==False:
+            product_tmpl.meli_description = product_tmpl.description_sale
+
+
         if product.meli_title==False:
             # print 'Assigning title: product.meli_title: %s name: %s' % (product.meli_title, product.name)
-            product.meli_title = product.name
+            product.meli_title = product_tmpl.meli_title
 
         if product.meli_price==False:
             # print 'Assigning price: product.meli_price: %s standard_price: %s' % (product.meli_price, product.standard_price)
-            product.meli_price = product.standard_price
+            product.meli_price = product_tmpl.standard_price
+
+        if product.meli_description==False:
+            product.meli_description = product_tmpl.meli_description
+
+
+
+        if product.meli_category==False:
+            product.meli_category=product_tmpl.meli_category
+        if product.meli_listing_type==False:
+            product.meli_listing_type=product_tmpl.meli_listing_type
+        if product.meli_buying_mode==False:
+            product.meli_buying_mode=product_tmpl.meli_buying_mode
+        if product.meli_price==False:
+            product.meli_price=product_tmpl.meli_price
+        if product.meli_currency==False:
+            product.meli_currency=product_tmpl.meli_currency
+        if product.meli_condition==False:
+            product.meli_condition=product_tmpl.meli_condition
+        if product.meli_warranty==False:
+            product.meli_warranty=product_tmpl.meli_warranty
+
 
         body = {
             "title": product.meli_title or '',
-            "description": product.meli_description or '',
+            "description": {
+                "plain_text": product.meli_description or '',
+            },
             "category_id": product.meli_category.meli_category_id or '0',
             "listing_type_id": product.meli_listing_type or '0',
             "buying_mode": product.meli_buying_mode or '',
@@ -649,6 +786,10 @@ class product_product(models.Model):
             "warranty": product.meli_warranty or '',
             #"pictures": [ { 'source': product.meli_imagen_logo} ] ,
             "video_id": product.meli_video  or '',
+        }
+
+        bodydescription = {
+            "plain_text": product.meli_description or '',
         }
 
         # print body
@@ -685,6 +826,12 @@ class product_product(models.Model):
                 #"pictures": [ { 'source': product.meli_imagen_logo} ] ,
                 "video_id": product.meli_video or '',
             }
+
+            #resdescription = meli.get("/items/"+product.meli_id+"/description", {'access_token':meli.access_token})
+            #_logger.info("res description:",resdescription)
+            #rjsondes = resdescription.json()
+
+
 
         #publicando multiples imagenes
         multi_images_ids = {}
@@ -733,10 +880,14 @@ class product_product(models.Model):
             return warningobj.info(title='MELI WARNING', message="Debe completar el campo 'description' (en html)", message_html="")
 
         #put for editing, post for creating
-        _logger.info(body)
+        #_logger.info(body)
+        #_logger.info(bodydescription)
 
         if product.meli_id:
             response = meli.put("/items/"+product.meli_id, body, {'access_token':meli.access_token})
+            resdescription = meli.put("/items/"+product.meli_id+"/description", bodydescription, {'access_token':meli.access_token})
+            rjsondes = resdescription.json()
+            #_logger.info(resdescription)
         else:
             assign_img = True and product.meli_imagen_id
             response = meli.post("/items", body, {'access_token':meli.access_token})
@@ -745,6 +896,7 @@ class product_product(models.Model):
         # print response.content
         rjson = response.json()
         _logger.info(rjson)
+
 
         #check error
         if "error" in rjson:
@@ -779,31 +931,37 @@ class product_product(models.Model):
 
         return {}
 
-    meli_imagen_id = fields.Char(string='Imagen Id', size=256)
+    #typical values
+    meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
+    meli_description = fields.Text(string='Descripción')
+    meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre")
+    meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
+    meli_price = fields.Char(string='Precio de venta', size=128)
+    meli_currency = fields.Selection([("ARS","Peso Argentino (ARS)")],string='Moneda (ARS)')
+    meli_condition = fields.Selection([ ("new", "Nuevo"), ("used", "Usado"), ("not_specified","No especificado")],'Condición del producto')
+    meli_dimensions = fields.Char( string="Dimensiones del producto", size=128)
+    meli_pub = fields.Boolean('Meli Publication',help='MELI Product')
+    meli_warranty = fields.Char(string='Garantía', size=256)
+    meli_listing_type = fields.Selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special"),("gold_pro","Oro Pro")], string='Tipo de lista')
+
+
+    #post only fields
     meli_post_required = fields.Boolean(string='Este producto es publicable en Mercado Libre')
     meli_id = fields.Char( string='Id del item asignado por Meli', size=256)
-    meli_permalink = fields.Char( compute=product_get_permalink, size=256, string='PermaLink in MercadoLibre' )
-    meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
-    meli_description = fields.Html(string='Descripción')
     meli_description_banner_id = fields.Many2one("mercadolibre.banner","Banner")
-    meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre")
-    meli_listing_type = fields.Selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special"),("gold_pro","Oro Pro")], string='Tipo de lista')
     meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
     meli_price = fields.Char(string='Precio de venta', size=128)
     meli_price_fixed = fields.Boolean(string='Price is fixed')
-    meli_currency = fields.Selection([("ARS","Peso Argentino (ARS)")],string='Moneda (ARS)')
-    meli_condition = fields.Selection([ ("new", "Nuevo"), ("used", "Usado"), ("not_specified","No especificado")],'Condición del producto')
     meli_available_quantity = fields.Integer(string='Cantidad disponible')
-    meli_warranty = fields.Char(string='Garantía', size=256)
     meli_imagen_logo = fields.Char(string='Imagen Logo', size=256)
     meli_imagen_id = fields.Char(string='Imagen Id', size=256)
     meli_imagen_link = fields.Char(string='Imagen Link', size=256)
     meli_multi_imagen_id = fields.Char(string='Multi Imagen Ids', size=512)
     meli_video = fields.Char( string='Video (id de youtube)', size=256)
-    meli_state = fields.Boolean( compute=product_get_meli_loginstate, string="Inicio de sesión requerida", store=False )
-    meli_status = fields.Char( compute=product_get_meli_status, size=128, string="Estado del producto en MLA", store=False )
-    meli_dimensions = fields.Char( string="Dimensiones del producto", size=128)
-    meli_pub = fields.Boolean('Meli Publication',help='MELI Product')
+
+    meli_permalink = fields.Char( compute=product_get_meli_update, size=256, string='PermaLink in MercadoLibre', store=True )
+    meli_state = fields.Boolean( compute=product_get_meli_update, string="Inicio de sesión requerida", store=True )
+    meli_status = fields.Char( compute=product_get_meli_update, size=128, string="Estado del producto en ML", store=True )
 	### Agregar imagen/archivo uno o mas, y la descripcion en HTML...
 	# TODO Agregar el banner
 

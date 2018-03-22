@@ -2,7 +2,48 @@
 <openerp>
     <data>
 
+      <record id="ir_cron_module_get_meli_state" model="ir.cron">
+              <field name="name">Get Meli State</field>
+              <field eval="True" name="active" />
+              <field name="user_id" ref="base.user_root" />
+              <field name="interval_number">1</field>
+              <!--<field name="nextcall" eval="(DateTime.now() + timedelta(days=1)).strftime('%Y-%m-%d 12:00:00')" />-->
+              <field name="interval_type">minutes</field>
+              <field name="numbercall">-1</field>
+              <field eval="False" name="doall" />
+              <field eval="'res.company'" name="model" />
+              <field eval="'get_meli_state'" name="function" />
+              <field eval="'()'" name="args" />
+              <field name="priority">1000</field>
+      </record>
 
+
+      <!-- Error Email template  -->
+        <record id="meli_cron_error_mailer" model="mail.template">
+            <field name="name">Meli Error</field>
+            <field name="email_from">${object.email or ''}</field>
+            <field name="email_to">${object.email or ''}</field>
+            <field name="subject">[DB ${ctx.get('dbname')}] Scheduler '${object.name or ''}' FAILED</field>
+            <!--<field name="model_id" ref="base.model_ir_cron"/>-->
+            <field name="model_id" ref="account.model_res_company"/>
+            <field name="auto_delete" eval="True"/>
+            <field name="body_html">
+                <![CDATA[
+<div style="font-family: 'Lucida Grande', Ubuntu, Arial, Verdana, sans-serif; font-size: 12px; color: rgb(34, 34, 34); background-color: #FFF; ">
+<p>Meli Odoo tried to refresh credentials for <em>${object.name or ''}</em> in the database <em>${ctx.get('dbname')}</em> but it failed. Here is the error message :</p>
+<strong>
+${ctx.get('job_exception') or 'Failed to get the error message from the context.'}
+</strong>
+<p>Log into Odoo then click here: <a href="${object.mercadolibre_redirect_uri}" target="_blank">Meli Login</a></p>
+<p>
+-- <br/>
+Automatic e-mail sent by Odoo. Do not reply.<br/>
+Database : ${ctx.get('dbname')}
+</p>
+</div>
+    ]]>
+            </field>
+</record>
 
 		<record model="ir.actions.act_url" id="meli_login_action">
 			<field name="name">meli_login_action</field>
@@ -18,18 +59,29 @@
                 <data>
                     <notebook>
                         <page string="MercadoLibre">
-							<group>
-								<field name="mercadolibre_state" invisible="0"/>
-								<field name="mercadolibre_client_id" />
-								<field name="mercadolibre_secret_key" />
-								<field name="mercadolibre_redirect_uri" />
-								<field name="mercadolibre_access_token" invisible="0"/>
-								<field name="mercadolibre_refresh_token" invisible="0"/>
-								<field name="mercadolibre_code" invisible="0"/>
-                <field name="mercadolibre_category_import" invisible="0"/>
-                <field name="mercadolibre_recursive_import" invisible="0"/>
-                <field name="mercadolibre_seller_id" invisible="0"/>
-
+							<group col="2">
+                <group name="Account" col="2">
+  								<field name="mercadolibre_state" invisible="0"/>
+  								<field name="mercadolibre_client_id" />
+  								<field name="mercadolibre_secret_key" />
+  								<field name="mercadolibre_redirect_uri" />
+  								<field name="mercadolibre_access_token" invisible="0"/>
+  								<field name="mercadolibre_refresh_token" invisible="0"/>
+  								<field name="mercadolibre_code" invisible="0"/>
+                  <field name="mercadolibre_seller_id" invisible="0"/>
+                </group>
+                <group name="Cron Job"  col="2">
+                  <field name="mercadolibre_category_import" invisible="0"/>
+                  <field name="mercadolibre_recursive_import" invisible="0"/>
+                  <field name="mercadolibre_cron_refresh" invisible="0"/>
+                  <field name="mercadolibre_cron_mail" invisible="0"/>
+                  <field name="mercadolibre_cron_get_orders" invisible="0"/>
+                  <field name="mercadolibre_cron_get_questions" invisible="0"/>
+                  <field name="mercadolibre_cron_get_update_products" invisible="0"/>
+                  <field name="mercadolibre_create_website_categories" invisible="0"/>
+                </group>
+              </group>
+              <group name="Actions">
 
 								<button name='meli_login' type="object"
 										string="Iniciar sesión en MLA" attrs="{'invisible':[('mercadolibre_state','=',False)]}"/>

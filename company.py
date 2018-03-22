@@ -60,24 +60,39 @@ class res_company(models.Model):
 
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
         ML_state = False
-
+        message = "Login to ML needed in Odoo."
         #pdb.set_trace()
 
         try:
             _logger.info("access_token:"+str(ACCESS_TOKEN))
-            response = meli.get("/items/MLA1", {'access_token':meli.access_token} )
+            response = meli.get("/users/"+company.mercadolibre_seller_id, {'access_token':meli.access_token} )
             _logger.info("response.content:"+str(response.content))
             rjson = response.json()
             #response = meli.get("/users/")
             if "error" in rjson:
                 ML_state = True
-                if "message" in rjson and rjson["message"]=="expired_token":
-                    ML_state = True
+
                 if rjson["error"]=="not_found":
-                    ML_state = False
+                    ML_state = True
+
+                if "message" in rjson:
+                    message = rjson["message"]
+                    if (rjson["message"]=="expired_token" or rjson["message"]=="invalid_token"):
+                        ML_state = True
+                        try:
+                            refresh = meli.get_refresh_token()
+                            _logger.info("need to refresh:"+str(refresh))
+                            if (refresh):
+                                ACCESS_TOKEN = meli.access_token
+                                REFRESH_TOKEN = meli.refresh_token
+                                company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
+                                ML_state = False
+                        except Exception as e:
+                            _logger.error(e)
 
             if ACCESS_TOKEN=='' or ACCESS_TOKEN==False:
                 ML_state = True
+
         except requests.exceptions.ConnectionError as e:
             #raise osv.except_osv( _('MELI WARNING'), _('NO INTERNET CONNECTION TO API.MERCADOLIBRE.COM: complete the Cliend Id, and Secret Key and try again'))
             ML_state = True
@@ -93,11 +108,36 @@ class res_company(models.Model):
 
             company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
 
+            if (company.mercadolibre_refresh_token and company.mercadolibre_cron_mail):
+                # we put the job_exception in context to be able to print it inside
+                # the email template
+                context = {
+                    'job_exception': message,
+                    'dbname': self._cr.dbname,
+                }
+
+                _logger.debug(
+                    "Sending scheduler error email with context=%s", context)
+
+                self.env['mail.template'].browse(
+                    company.mercadolibre_cron_mail.id
+                ).with_context(context).sudo().send_mail( (company.id), force_send=True)
+
         #res = {}
         #for company in self.browse(cr,uid,ids):
         #for company in self:
         #    res[company.id] = ML_state
         company.mercadolibre_state = ML_state
+
+        if (company.mercadolibre_cron_get_orders):
+            _logger.info("company.mercadolibre_cron_get_orders")
+            self.meli_query_orders()
+
+        if (company.mercadolibre_cron_get_update_products):
+            _logger.info("company.mercadolibre_cron_get_update_products")
+            self.meli_update_products()
+
+
         #_logger.info("ML_state:"+str(ML_state))
         #return res
 
@@ -111,6 +151,17 @@ class res_company(models.Model):
     mercadolibre_state = fields.Boolean( compute=get_meli_state, string="Se requiere Iniciar Sesión con MLA", store=False )
     mercadolibre_category_import = fields.Char( string='Category Code to Import', size=256)
     mercadolibre_recursive_import = fields.Boolean( string='Import all categories (recursiveness)', size=256)
+
+    mercadolibre_cron_refresh = fields.Boolean(string='Cron Refresh')
+    mercadolibre_cron_mail = fields.Many2one(
+        comodel_name="mail.template",
+        string="Cron Error E-mail Template",
+        help="Select the email template that will be sent when "
+        "cron refresh fails.")
+    mercadolibre_cron_get_orders = fields.Boolean(string='Cron Get Orders')
+    mercadolibre_cron_get_questions = fields.Boolean(string='Cron Get Questions')
+    mercadolibre_cron_get_update_products = fields.Boolean(string='Cron Update Products')
+    mercadolibre_create_website_categories = fields.Boolean(string='Create Website Categories')
 
     #'mercadolibre_login': fields.selection( [ ("unknown", "Desconocida"), ("logged","Abierta"), ("not logged","Cerrada")],string='Estado de la sesión'), )
 
