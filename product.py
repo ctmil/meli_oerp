@@ -52,14 +52,16 @@ class product_product(models.Model):
     #@api.one
     @api.onchange('lst_price') # if these fields are changed, call method
     def check_change_price(self):
+	# GUS
         #pdb.set_trace();
-        pricelists = self.env['product.pricelist'].search([])
-        if pricelists:
-            if pricelists.id:
-                pricelist = pricelists.id
-            else:
-                pricelist = pricelists[0].id
-        self.meli_price = str(self.lst_price)
+        #pricelists = self.env['product.pricelist'].search([])
+        #if pricelists:
+        #    if pricelists.id:
+        #        pricelist = pricelists.id
+        #    else:
+        #        pricelist = pricelists[0].id
+	for prod in self:
+	        prod.meli_price = str(prod.lst_price)
         #res = {}
         #for id in self:
         #    res[id] = self.lst_price
