@@ -69,13 +69,13 @@ Database : ${ctx.get('dbname')}
   								<field name="mercadolibre_refresh_token" invisible="0" groups="base.group_no_one" />
   								<field name="mercadolibre_code" invisible="0" groups="base.group_no_one" />
                   <field name="mercadolibre_seller_id" invisible="0" groups="base.group_no_one"/>
-                  <field name="mercadolibre_pricelist" invisible="0"/>
+                  <!--<field name="mercadolibre_pricelist" invisible="0"/>
                   <field name="mercadolibre_buying_mode" invisible="0"/>
                   <field name="mercadolibre_currency" invisible="0"/>
                   <field name="mercadolibre_condition" invisible="0"/>
                   <field name="mercadolibre_warranty" invisible="0"/>
                   <field name="mercadolibre_listing_type" invisible="0"/>
-                  <field name="mercadolibre_attributes" invisible="0"/>
+                  <field name="mercadolibre_attributes" invisible="0"/>-->
                 </group>
                 <group name="Cron Job"  col="2">
                   <field name="mercadolibre_category_import" invisible="0"/>

@@ -21,7 +21,7 @@
                         <field name="meli_category" />
                         <field name="meli_price" />
                         <field name="meli_dimensions" />
-                        <field name="meli_attributes" />
+                        <!--<field name="meli_attributes" />-->
                       </group>
                       <group name="ML buying conditions">
                         <field name="meli_currency" />
