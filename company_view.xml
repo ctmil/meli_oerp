@@ -61,14 +61,14 @@ Database : ${ctx.get('dbname')}
                         <page string="MercadoLibre">
 							<group col="2">
                 <group name="Account" col="2">
-  								<field name="mercadolibre_state" invisible="0"/>
-  								<field name="mercadolibre_client_id" />
-  								<field name="mercadolibre_secret_key" />
-  								<field name="mercadolibre_redirect_uri" />
-  								<field name="mercadolibre_access_token" invisible="0"/>
-  								<field name="mercadolibre_refresh_token" invisible="0"/>
-  								<field name="mercadolibre_code" invisible="0"/>
-                  <field name="mercadolibre_seller_id" invisible="0"/>
+  								<field name="mercadolibre_state" invisible="0" groups="base.group_no_one"/>
+  								<field name="mercadolibre_client_id" groups="base.group_no_one" />
+  								<field name="mercadolibre_secret_key" groups="base.group_no_one" />
+  								<field name="mercadolibre_redirect_uri" groups="base.group_no_one" />
+  								<field name="mercadolibre_access_token" invisible="0" groups="base.group_no_one" />
+  								<field name="mercadolibre_refresh_token" invisible="0" groups="base.group_no_one" />
+  								<field name="mercadolibre_code" invisible="0" groups="base.group_no_one" />
+                  <field name="mercadolibre_seller_id" invisible="0" groups="base.group_no_one"/>
                   <field name="mercadolibre_pricelist" invisible="0"/>
                   <field name="mercadolibre_buying_mode" invisible="0"/>
                   <field name="mercadolibre_currency" invisible="0"/>

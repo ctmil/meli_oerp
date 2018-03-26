@@ -234,11 +234,12 @@ class product_product(models.Model):
                 cat_fields = {
                     'name': fullname,
                     'meli_category_id': ''+str(category_id),
-                    'public_category_id': 0,
+                    #'public_category_id': 0,
                 }
 
                 if www_cat_id:
-                    cat_fields['public_category_id'] = www_cat_id
+                    p_cat_id = www_cats.search([('id','=',www_cat_id)])
+                    cat_fields['public_category_id'] = p_cat_id
 
                 ml_cat_id = self.env['mercadolibre.category'].create((cat_fields)).id
                 if (ml_cat_id):
