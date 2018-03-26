@@ -37,8 +37,11 @@ class mercadolibre_category(models.Model):
 
     name = fields.Char('Name');
     meli_category_id = fields.Char('Category Id');
-    public_category_id = fields.Integer('Public Category Id');
-
+    #public_category_id = fields.Integer('Public Category Id');
+    public_category_id = fields.Many2one(
+        comodel_name="product.public.category",
+        string="Product Website category default",
+        help="Select Public Website category for this ML category ")
 
     def import_category(self, category_id ):
         company = self.env.user.company_id
@@ -56,13 +59,13 @@ class mercadolibre_category(models.Model):
         if (category_id):
             ml_cat_id = category_obj.search([('meli_category_id','=',category_id)])
             if (ml_cat_id):
-              print "category exists!" + str(ml_cat_id)
+              _logger.info("category exists!" + str(ml_cat_id))
             else:
-              print "Creating category: " + str(category_id)
+              _logger.info("Creating category: " + str(category_id))
               #https://api.mercadolibre.com/categories/MLA1743
               response_cat = meli.get("/categories/"+str(category_id), {'access_token':meli.access_token})
               rjson_cat = response_cat.json()
-              print "category:" + str(rjson_cat)
+              _logger.info("category:" + str(rjson_cat))
               fullname = ""
               if ("path_from_root" in rjson_cat):
                   path_from_root = rjson_cat["path_from_root"]

@@ -88,6 +88,7 @@ class product_template(models.Model):
     meli_pub = fields.Boolean('Meli Publication',help='MELI Product')
     meli_warranty = fields.Char(string='Garantía', size=256)
     meli_listing_type = fields.Selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special"),("gold_pro","Oro Pro")], string='Tipo de lista')
+    meli_attributes = fields.Text(string='Atributos')
     #meli_variants = fields.One2many(string="Meli Variants", related="product_variant_ids")
 
 
@@ -927,12 +928,13 @@ class product_product(models.Model):
     meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
     meli_description = fields.Text(string='Descripción')
     meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre")
-    meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
     meli_price = fields.Char(string='Precio de venta', size=128)
-    meli_currency = fields.Selection([("ARS","Peso Argentino (ARS)")],string='Moneda (ARS)')
-    meli_condition = fields.Selection([ ("new", "Nuevo"), ("used", "Usado"), ("not_specified","No especificado")],'Condición del producto')
     meli_dimensions = fields.Char( string="Dimensiones del producto", size=128)
     meli_pub = fields.Boolean('Meli Publication',help='MELI Product')
+
+    meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
+    meli_currency = fields.Selection([("ARS","Peso Argentino (ARS)")],string='Moneda (ARS)')
+    meli_condition = fields.Selection([ ("new", "Nuevo"), ("used", "Usado"), ("not_specified","No especificado")],'Condición del producto')
     meli_warranty = fields.Char(string='Garantía', size=256)
     meli_listing_type = fields.Selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special"),("gold_pro","Oro Pro")], string='Tipo de lista')
 
@@ -954,6 +956,8 @@ class product_product(models.Model):
     meli_permalink = fields.Char( compute=product_get_meli_update, size=256, string='PermaLink in MercadoLibre', store=False )
     meli_state = fields.Boolean( compute=product_get_meli_update, string="Inicio de sesión requerida", store=False )
     meli_status = fields.Char( compute=product_get_meli_update, size=128, string="Estado del producto en ML", store=False )
+
+    meli_attributes = fields.Text(string='Atributos')
 	### Agregar imagen/archivo uno o mas, y la descripcion en HTML...
 	# TODO Agregar el banner
 
