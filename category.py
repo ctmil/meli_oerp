@@ -37,11 +37,11 @@ class mercadolibre_category(models.Model):
 
     name = fields.Char('Name');
     meli_category_id = fields.Char('Category Id');
-    public_category_id = fields.Integer('Public Category Id')
-    #public_category_id = fields.Many2one(
-    #    comodel_name="product.public.category",
-    #    string="Product Website category default",
-    #    help="Select Public Website category for this ML category ")
+    #public_category_id = fields.Integer('Public Category Id')
+    public_category_id = fields.Many2one(
+        comodel_name="product.public.category",
+        string="Product Website category default",
+        help="Select Public Website category for this ML category ")
 
     def import_category(self, category_id ):
         company = self.env.user.company_id
