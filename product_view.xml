@@ -34,7 +34,7 @@
                         <!--<field name="product_variant_ids" />-->
                       </group>
                       <group name="ML actions">
-                        <button name='%(action_product_template_post)d' type="action" string="Publicar/actualizar producto en ML"/>
+                        <button name='%(action_product_template_post)d' type="action" string="Publicar-Actualizar producto en ML"/>
                       </group>
                     </page>
                   </notebook>
