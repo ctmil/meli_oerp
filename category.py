@@ -31,6 +31,15 @@ import requests
 import melisdk
 from melisdk.meli import Meli
 
+class product_public_category(models.Model):
+
+    _inherit="product.public.category"
+
+    mercadolibre_category = fields.Many2one( "mercadolibre.category", string="Mercado Libre Category")
+
+product_public_category()
+
+
 class mercadolibre_category(models.Model):
     _name = "mercadolibre.category"
     _description = "Categories of MercadoLibre"
@@ -38,7 +47,7 @@ class mercadolibre_category(models.Model):
     name = fields.Char('Name');
     meli_category_id = fields.Char('Category Id');
     public_category_id = fields.Integer('Public Category Id')
-    public_category = fields.Many2one( "product.category.public", string="Product Website category default", help="Select Public Website category for this ML category ")
+    #public_category = fields.Many2one( "product.category.public", string="Product Website category default", help="Select Public Website category for this ML category ")
 
     def import_category(self, category_id ):
         company = self.env.user.company_id
