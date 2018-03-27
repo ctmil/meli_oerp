@@ -730,14 +730,19 @@ class product_product(models.Model):
         if product_tmpl.meli_title==False:
             product_tmpl.meli_title = product_tmpl.name
 
-        if product_tmpl.meli_price==False:
+        if company.mercadolibre_pricelist:
+            pl = company.mercadolibre_pricelist
+            return_val = pl.price_get(product.id,1.0)
+            product_tmpl.meli_price = return_val[pl.id]
+
+        if product_tmpl.meli_price==False or product_tmpl.meli_price==0:
             product_tmpl.meli_price = product_tmpl.standard_price
 
-        if product_tmpl.meli_description==False:
+        if product_tmpl.meli_description==False or len(product_tmpl.meli_description)==0:
             product_tmpl.meli_description = product_tmpl.description_sale
 
 
-        if product.meli_title==False:
+        if product.meli_title==False or len(product.meli_title)==0:
             # print 'Assigning title: product.meli_title: %s name: %s' % (product.meli_title, product.name)
             product.meli_title = product_tmpl.meli_title
 
@@ -764,6 +769,24 @@ class product_product(models.Model):
             product.meli_condition=product_tmpl.meli_condition
         if product.meli_warranty==False:
             product.meli_warranty=product_tmpl.meli_warranty
+
+        #check from company's default
+        if product.meli_listing_type==False:
+            product.meli_listing_type=company.mercadolibre_listing_type
+        if product.meli_buying_mode==False:
+            product.meli_buying_mode=company.mercadolibre_buying_mode
+        if product.meli_currency==False:
+            product.meli_currency=company.mercadolibre_currency
+        if product.meli_condition==False:
+            product.meli_condition=company.mercadolibre_condition
+        if product.meli_warranty==False:
+            product.meli_warranty=company.mercadolibre_warranty
+
+        if product_tmpl.attribute_line_ids:
+            _logger.info(product_tmpl.attribute_line_ids)
+            for at_line_id in product_tmpl.attribute_line_ids:
+                _logger.info(at_line_id)
+                
 
 
         body = {
