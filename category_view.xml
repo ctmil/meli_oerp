@@ -4,7 +4,7 @@
 
         <record model="ir.ui.view" id="view_meli_product_public_category_form_view">
           <field name="name">mercadolibre.website.category.form</field>
-          <field name="model">website_sale.product.public.category</field>
+          <field name="model">product.public.category</field>
           <field name="inherit_id" ref="website_sale.product_public_category_form_view" />
           <field name="arch" type="xml">
             <xpath expr="//field[@name='parent_id']" position="after">
