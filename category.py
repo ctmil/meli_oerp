@@ -44,12 +44,6 @@ class mercadolibre_category(models.Model):
     _name = "mercadolibre.category"
     _description = "Categories of MercadoLibre"
 
-    name = fields.Char('Name');
-    meli_category_id = fields.Char('Category Id');
-    public_category_id = fields.Integer('Public Category Id')
-    #public_category = fields.Many2one( "product.category.public", string="Product Website category default", help="Select Public Website category for this ML category ")
-    meli_category_attributes = fields.Char(compute=get_attributes,  string="Mercado Libre Category Attributes",)
-
     @api.one
     def get_attributes( self ):
 
@@ -142,6 +136,13 @@ class mercadolibre_category(models.Model):
                             category_obj.import_category(category_id=ml_cat_id)
                             if (RECURSIVE_IMPORT):
                                 category_obj.import_all_categories(category_root=ml_cat_id)
+
+
+    name = fields.Char('Name')
+    meli_category_id = fields.Char('Category Id')
+    public_category_id = fields.Integer('Public Category Id')
+    #public_category = fields.Many2one( "product.category.public", string="Product Website category default", help="Select Public Website category for this ML category ")
+    meli_category_attributes = fields.Char(compute=get_attributes,  string="Mercado Libre Category Attributes")
 
 
 mercadolibre_category()
