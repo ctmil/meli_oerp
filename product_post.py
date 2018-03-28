@@ -158,11 +158,7 @@ class product_post(models.TransientModel):
             product = product_obj.browse(product_id)
             #import pdb;pdb.set_trace();
             #Alta
-            if (product.meli_pub and product.meli_id==False):
-                res = product.product_post()
-
-            #Actualiza
-            if (product.meli_pub and product.meli_id):
+            if (product.meli_pub):
                 res = product.product_post()
 
             #Pausa
