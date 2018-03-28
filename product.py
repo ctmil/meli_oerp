@@ -799,10 +799,10 @@ class product_product(models.Model):
                 atval = at_line_id.value_ids.name
                 _logger.info(atid+":"+atval)
                 if (atid=="MARCA" or atid=="BRAND"):
-                    attribute = { "id": "BRAND", "value": atval }
+                    attribute = { "id": "BRAND", "value_name": atval }
                     attributes.append(attribute)
                 if (atid=="MODELO" or atid=="MODEL"):
-                    attribute = { "id": "MODEL", "value": atval }
+                    attribute = { "id": "MODEL", "value_name": atval }
                     attributes.append(attribute)
 
             _logger.info(attributes)
