@@ -725,6 +725,24 @@ class product_product(models.Model):
         if (product.meli_id):
             response = meli.get("/items/%s" % product.meli_id, {'access_token':meli.access_token})
 
+
+        #check from company's default
+        if company.mercadolibre_listing_type and product_tmpl.meli_listing_type==False:
+            product_tmpl.meli_listing_type = company.mercadolibre_listing_type
+
+        if company.mercadolibre_buying_mode and product_tmpl.meli_buying_mode==False:
+            product_tmpl.meli_buying_mode = company.mercadolibre_buying_mode
+
+        if company.mercadolibre_currency and product_tmpl.meli_currency==False:
+            product_tmpl.meli_currency = company.mercadolibre_currency
+
+        if company.mercadolibre_condition and product_tmpl.meli_condition==False:
+            product_tmpl.meli_condition = company.mercadolibre_condition
+            
+        if company.mercadolibre_warranty and product_tmpl.meli_warranty==False:
+            product_tmpl.meli_warranty = company.mercadolibre_warranty
+
+
         # print product.meli_category.meli_category_id
 
         if product_tmpl.meli_title==False:
@@ -770,23 +788,11 @@ class product_product(models.Model):
         if product.meli_warranty==False:
             product.meli_warranty=product_tmpl.meli_warranty
 
-        #check from company's default
-        if product.meli_listing_type==False:
-            product.meli_listing_type=company.mercadolibre_listing_type
-        if product.meli_buying_mode==False:
-            product.meli_buying_mode=company.mercadolibre_buying_mode
-        if product.meli_currency==False:
-            product.meli_currency=company.mercadolibre_currency
-        if product.meli_condition==False:
-            product.meli_condition=company.mercadolibre_condition
-        if product.meli_warranty==False:
-            product.meli_warranty=company.mercadolibre_warranty
-
         if product_tmpl.attribute_line_ids:
             _logger.info(product_tmpl.attribute_line_ids)
             for at_line_id in product_tmpl.attribute_line_ids:
                 _logger.info(at_line_id)
-                
+
 
 
         body = {
