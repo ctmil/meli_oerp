@@ -102,12 +102,12 @@ class product_product(models.Model):
     @api.onchange('lst_price') # if these fields are changed, call method
     def check_change_price(self):
         #pdb.set_trace();
-        pricelists = self.env['product.pricelist'].search([])
-        if pricelists:
-            if pricelists.id:
-                pricelist = pricelists.id
-            else:
-                pricelist = pricelists[0].id
+        #pricelists = self.env['product.pricelist'].search([])
+        #if pricelists:
+        #    if pricelists.id:
+        #        pricelist = pricelists.id
+        #    else:
+        #        pricelist = pricelists[0].id
         self.meli_price = str(self.lst_price)
         #res = {}
         #for id in self:
@@ -738,7 +738,7 @@ class product_product(models.Model):
 
         if company.mercadolibre_condition and product_tmpl.meli_condition==False:
             product_tmpl.meli_condition = company.mercadolibre_condition
-            
+
         if company.mercadolibre_warranty and product_tmpl.meli_warranty==False:
             product_tmpl.meli_warranty = company.mercadolibre_warranty
 
@@ -764,9 +764,14 @@ class product_product(models.Model):
             # print 'Assigning title: product.meli_title: %s name: %s' % (product.meli_title, product.name)
             product.meli_title = product_tmpl.meli_title
 
-        if product.meli_price==False:
+        if product.meli_price==False or product.meli_price==0.0:
             # print 'Assigning price: product.meli_price: %s standard_price: %s' % (product.meli_price, product.standard_price)
-            product.meli_price = product_tmpl.standard_price
+            if product_tmpl.meli_price:
+                product.meli_price = product_tmpl.meli_price
+            elif product_tmpl.standard_price:
+                product.meli_price = product_tmpl.standard_price
+            elif product_tmpl.lst_price:
+                product.meli_price = product_tmpl.lst_price
 
         if product.meli_description==False:
             product.meli_description = product_tmpl.meli_description
