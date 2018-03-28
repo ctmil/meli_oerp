@@ -694,7 +694,7 @@ class product_product(models.Model):
 
 
     def product_post(self):
-        import pdb;pdb.set_trace();
+#        import pdb;pdb.set_trace();
 #        product_ids = context['active_ids']
 #        pdb.set_trace()
         product_obj = self.env['product.product']
@@ -791,10 +791,22 @@ class product_product(models.Model):
         if product.meli_warranty==False:
             product.meli_warranty=product_tmpl.meli_warranty
 
+        attributes = []
         if product_tmpl.attribute_line_ids:
             _logger.info(product_tmpl.attribute_line_ids)
             for at_line_id in product_tmpl.attribute_line_ids:
-                _logger.info(at_line_id.attribute_id.name+":")
+                atid = at_line_id.attribute_id.name
+                atval = at_line_id.value_ids.name
+                _logger.info(atid+":"+atval)
+                if (atid=="MARCA" || atid=="BRAND"):
+                    attribute = { "id": "BRAND", "value": atval }
+                    attributes.append(attribute)
+                if (atid=="MODELO" or atid=="MODEL"):
+                    attribute = { "id": "MODEL", "value": atval }
+                    attributes.append(attribute)
+
+            _logger.info(attributes)
+
 
         if product.public_categ_ids:
             for cat_id in product.public_categ_ids:
@@ -906,6 +918,8 @@ class product_product(models.Model):
             #    else:
             #        result = product.meli_description
 
+        if len(attributes):
+            body["attributes"] =  attributes
 
 
         #else:
