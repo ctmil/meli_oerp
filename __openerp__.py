@@ -13,7 +13,7 @@
     'author': 'Moldeo Interactive Coop. Ltda.',
     'website': 'http://www.moldeointeractive.com.ar',
     "category": "Sales",
-    "depends": ['base', 'product','sale','website_sale','website'],
+    "depends": ['base', 'product','sale','website_sale','website','stock'],
     'data': [
 	'company_view.xml',
 	'posting_view.xml',
