@@ -124,7 +124,7 @@ class product_post(models.TransientModel):
         return json.dumps( data, sort_keys=False, indent=4 )
 
     def product_post(self, context):
-        #pdb.set_trace()
+        import pdb;pdb.set_trace()
         company = self.env.user.company_id
         product_ids = context['active_ids']
         product_obj = self.env['product.product']

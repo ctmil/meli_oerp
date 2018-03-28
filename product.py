@@ -694,7 +694,7 @@ class product_product(models.Model):
 
 
     def product_post(self):
-        #import pdb;pdb.set_trace();
+        import pdb;pdb.set_trace();
 #        product_ids = context['active_ids']
 #        pdb.set_trace()
         product_obj = self.env['product.product']
