@@ -60,7 +60,7 @@ class mercadolibre_category(models.Model):
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
         if (self.meli_category_id):
-            self.meli_category_attributes = "https://api.mercadolibre.com/category/"+str(self.meli_category_id)+"/attributes"
+            self.meli_category_attributes = "https://api.mercadolibre.com/categories/"+str(self.meli_category_id)+"/attributes"
 
         return {}
 
