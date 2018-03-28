@@ -806,6 +806,7 @@ class product_product(models.Model):
                     attributes.append(attribute)
 
             _logger.info(attributes)
+            product.meli_attributes = str(attributes);
 
 
         if product.public_categ_ids:
