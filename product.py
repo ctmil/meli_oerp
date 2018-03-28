@@ -766,12 +766,10 @@ class product_product(models.Model):
 
         if product.meli_price==False or product.meli_price==0.0:
             # print 'Assigning price: product.meli_price: %s standard_price: %s' % (product.meli_price, product.standard_price)
+
             if product_tmpl.meli_price:
+                _logger.info("Assign tmpl price:"+str(product_tmpl.meli_price))
                 product.meli_price = product_tmpl.meli_price
-            elif product_tmpl.standard_price:
-                product.meli_price = product_tmpl.standard_price
-            elif product_tmpl.lst_price:
-                product.meli_price = product_tmpl.lst_price
 
         if product.meli_description==False:
             product.meli_description = product_tmpl.meli_description
@@ -798,6 +796,8 @@ class product_product(models.Model):
             for at_line_id in product_tmpl.attribute_line_ids:
                 _logger.info(at_line_id)
 
+        if (product.virtual_available):
+            product.meli_available_quantity = product.virtual_available
 
 
         body = {
