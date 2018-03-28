@@ -794,7 +794,7 @@ class product_product(models.Model):
         if product_tmpl.attribute_line_ids:
             _logger.info(product_tmpl.attribute_line_ids)
             for at_line_id in product_tmpl.attribute_line_ids:
-                _logger.info(at_line_id.attribute_id.name+":"+_logger.info(at_line_id.)
+                _logger.info(at_line_id.attribute_id.name+":")
 
         if product.public_categ_ids:
             for cat_id in product.public_categ_ids:
