@@ -48,6 +48,28 @@ class mercadolibre_category(models.Model):
     meli_category_id = fields.Char('Category Id');
     public_category_id = fields.Integer('Public Category Id')
     #public_category = fields.Many2one( "product.category.public", string="Product Website category default", help="Select Public Website category for this ML category ")
+    meli_category_attributes = fields.Char(compute=get_attributes,  string="Mercado Libre Category Attributes",)
+
+    @api.one
+    def get_attributes( self ):
+
+        company = self.env.user.company_id
+
+        warningobj = self.env['warning']
+        category_obj = self.env['mercadolibre.category']
+
+        CLIENT_ID = company.mercadolibre_client_id
+        CLIENT_SECRET = company.mercadolibre_secret_key
+        ACCESS_TOKEN = company.mercadolibre_access_token
+        REFRESH_TOKEN = company.mercadolibre_refresh_token
+
+        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+
+        if (self.meli_category_id):
+            self.meli_category_attributes = "https://api.mercadolibre.com/category/"+str(self.meli_category_id)+"/attributes"
+
+        return {}
+
 
     def import_category(self, category_id ):
         company = self.env.user.company_id
