@@ -10,6 +10,8 @@
             <label for="sale_ok" position="after">
                   <field name="meli_pub" />
                   <label for="meli_pub" />
+                  <field name="meli_publications" readonly="1">
+                  </field>
 
               </label>
             <data>
@@ -30,7 +32,7 @@
                         <field name="meli_condition" />
                         <field name="meli_listing_type" />
 
-    
+
                       </group>
                       <group name="ML actions">
                         <button name='%(action_product_template_post)d' type="action" string="Publicar-Actualizar producto en ML"/>
