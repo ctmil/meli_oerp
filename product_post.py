@@ -86,7 +86,7 @@ class product_template_post(models.TransientModel):
             product = product_obj.browse(product_id)
             if (product):
                 if (product.meli_pub):
-                    product.product_template_post()
+                    res = product.product_template_post()
                 #else:
                 #    return {}
             #import pdb;pdb.set_trace();
