@@ -2,12 +2,12 @@
 <openerp>
     <data>
 
-      <record id="ir_cron_module_get_meli_state" model="ir.cron">
+
+	<record id="ir_cron_module_get_meli_state" model="ir.cron">
               <field name="name">Get Meli State</field>
               <field eval="True" name="active" />
               <field name="user_id" ref="base.user_root" />
               <field name="interval_number">1</field>
-              <!--<field name="nextcall" eval="(DateTime.now() + timedelta(days=1)).strftime('%Y-%m-%d 12:00:00')" />-->
               <field name="interval_type">minutes</field>
               <field name="numbercall">-1</field>
               <field eval="False" name="doall" />

@@ -773,9 +773,9 @@ class product_product(models.Model):
 
         body = {
             "title": product.meli_title or '',
-            "description": {
-                "plain_text": product.meli_description or '',
-            },
+            #"description": {
+            #    "plain_text": product.meli_description or '',
+            #},
             "category_id": product.meli_category.meli_category_id or '0',
             "listing_type_id": product.meli_listing_type or '0',
             "buying_mode": product.meli_buying_mode or '',
@@ -813,7 +813,7 @@ class product_product(models.Model):
         if (product.meli_id):
             body = {
                 "title": product.meli_title or '',
-                "description": { 'plain_text': product.meli_description or '' },
+                #"description": { 'plain_text': product.meli_description or '' },
                 #"category_id": product.meli_category.meli_category_id,
                 #"listing_type_id": product.meli_listing_type,
                 "buying_mode": product.meli_buying_mode or '',
@@ -830,7 +830,9 @@ class product_product(models.Model):
             #resdescription = meli.get("/items/"+product.meli_id+"/description", {'access_token':meli.access_token})
             #_logger.info("res description:",resdescription)
             #rjsondes = resdescription.json()
-
+        else:
+            _logger.info("bodydescription!")
+            body["description"] = bodydescription
 
 
         #publicando multiples imagenes
@@ -884,6 +886,7 @@ class product_product(models.Model):
         #_logger.info(bodydescription)
 
         if product.meli_id:
+            _logger.info(body)
             response = meli.put("/items/"+product.meli_id, body, {'access_token':meli.access_token})
             resdescription = meli.put("/items/"+product.meli_id+"/description", bodydescription, {'access_token':meli.access_token})
             rjsondes = resdescription.json()
@@ -959,9 +962,9 @@ class product_product(models.Model):
     meli_multi_imagen_id = fields.Char(string='Multi Imagen Ids', size=512)
     meli_video = fields.Char( string='Video (id de youtube)', size=256)
 
-    meli_permalink = fields.Char( compute=product_get_meli_update, size=256, string='PermaLink in MercadoLibre', store=True )
-    meli_state = fields.Boolean( compute=product_get_meli_update, string="Inicio de sesión requerida", store=True )
-    meli_status = fields.Char( compute=product_get_meli_update, size=128, string="Estado del producto en ML", store=True )
+    meli_permalink = fields.Char( compute=product_get_meli_update, size=256, string='PermaLink in MercadoLibre', store=False )
+    meli_state = fields.Boolean( compute=product_get_meli_update, string="Inicio de sesión requerida", store=False )
+    meli_status = fields.Char( compute=product_get_meli_update, size=128, string="Estado del producto en ML", store=False )
 	### Agregar imagen/archivo uno o mas, y la descripcion en HTML...
 	# TODO Agregar el banner
 

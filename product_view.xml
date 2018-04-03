@@ -29,8 +29,7 @@
                         <field name="meli_condition" />
                         <field name="meli_listing_type" />
 
-                        <!--<field name="meli_description" />-->
-                        <!--<field name="product_variant_ids" />-->
+    
                       </group>
                       <group name="ML actions">
                         <button name='%(action_product_template_post)d' type="action" string="Actualizar producto en ML"/>
