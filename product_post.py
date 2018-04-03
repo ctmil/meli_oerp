@@ -124,7 +124,7 @@ class product_post(models.TransientModel):
         return json.dumps( data, sort_keys=False, indent=4 )
 
     def product_post(self, context):
-        #pdb.set_trace()
+        #import pdb;pdb.set_trace()
         company = self.env.user.company_id
         product_ids = context['active_ids']
         product_obj = self.env['product.product']
@@ -157,12 +157,7 @@ class product_post(models.TransientModel):
         for product_id in product_ids:
             product = product_obj.browse(product_id)
             #import pdb;pdb.set_trace();
-            #Alta
-            if (product.meli_pub and (product.meli_id==False or product.meli_id=='')):
-                res = product.product_post()
-
-            #Actualiza
-            if (product.meli_pub and product.meli_id):
+            if (product.meli_pub):
                 res = product.product_post()
 
             #Pausa

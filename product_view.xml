@@ -21,6 +21,7 @@
                         <field name="meli_category" />
                         <field name="meli_price" />
                         <field name="meli_dimensions" />
+                        <!--<field name="meli_attributes" />-->
                       </group>
                       <group name="ML buying conditions">
                         <field name="meli_currency" />
@@ -32,7 +33,7 @@
     
                       </group>
                       <group name="ML actions">
-                        <button name='%(action_product_template_post)d' type="action" string="Actualizar producto en ML"/>
+                        <button name='%(action_product_template_post)d' type="action" string="Publicar-Actualizar producto en ML"/>
                       </group>
                     </page>
                   </notebook>
@@ -124,6 +125,7 @@
                                 <field name="meli_imagen_link" />
                                 <field name="meli_multi_imagen_id" />
 								<field name="meli_video" />
+                <field name="meli_attributes" />
 
 
 

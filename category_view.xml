@@ -2,6 +2,17 @@
 <openerp>
     <data>
 
+        <record model="ir.ui.view" id="view_meli_product_public_category_form_view">
+          <field name="name">mercadolibre.website.category.form</field>
+          <field name="model">product.public.category</field>
+          <field name="inherit_id" ref="website_sale.product_public_category_form_view" />
+          <field name="arch" type="xml">
+            <xpath expr="//field[@name='parent_id']" position="after">
+               <field name="mercadolibre_category"/>
+             </xpath>
+          </field>
+        </record>
+
         <record model="ir.ui.view" id="view_meli_category_tree">
             <field name="name">mercadolibre.category.tree</field>
             <field name="model">mercadolibre.category</field>
@@ -10,6 +21,7 @@
                 <tree string="Categories" >
                     <field name="name"/>
                     <field name="meli_category_id"/>
+                    <field name="meli_category_attributes" widget="url"/>
                     <field name="public_category_id"/>
                 </tree>
             </field>

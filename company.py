@@ -162,6 +162,28 @@ class res_company(models.Model):
     mercadolibre_cron_get_questions = fields.Boolean(string='Cron Get Questions')
     mercadolibre_cron_get_update_products = fields.Boolean(string='Cron Update Products')
     mercadolibre_create_website_categories = fields.Boolean(string='Create Website Categories')
+    mercadolibre_pricelist = fields.Many2one( "product.pricelist", "Product Pricelist default", help="Select price list for ML product"
+        "when published from Odoo to ML")
+
+    mercadolibre_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),
+                                                  ("classified","Clasificado")],
+                                                  string='Método de compra predeterminado')
+    mercadolibre_currency = fields.Selection([("ARS","Peso Argentino (ARS)")],
+                                                string='Moneda predeterminada')
+    mercadolibre_condition = fields.Selection([ ("new", "Nuevo"),
+                                                ("used", "Usado"),
+                                                ("not_specified","No especificado")],
+                                                'Condición del producto predeterminado')
+    mercadolibre_warranty = fields.Char(string='Garantía', size=256)
+    mercadolibre_listing_type = fields.Selection([("free","Libre"),
+                                                ("bronze","Bronce"),
+                                                ("silver","Plata"),
+                                                ("gold","Oro"),
+                                                ("gold_premium","Gold Premium"),
+                                                ("gold_special","Gold Special"),
+                                                ("gold_pro","Oro Pro")],
+                                                string='Tipo de lista  predeterminada')
+    mercadolibre_attributes = fields.Boolean(string='Apply product attributes')
 
     #'mercadolibre_login': fields.selection( [ ("unknown", "Desconocida"), ("logged","Abierta"), ("not logged","Cerrada")],string='Estado de la sesión'), )
 

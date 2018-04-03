@@ -88,6 +88,7 @@ class product_template(models.Model):
     meli_pub = fields.Boolean('Meli Publication',help='MELI Product')
     meli_warranty = fields.Char(string='Garantía', size=256)
     meli_listing_type = fields.Selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special"),("gold_pro","Oro Pro")], string='Tipo de lista')
+    meli_attributes = fields.Text(string='Atributos')
     #meli_variants = fields.One2many(string="Meli Variants", related="product_variant_ids")
 
 
@@ -108,8 +109,7 @@ class product_product(models.Model):
         #        pricelist = pricelists.id
         #    else:
         #        pricelist = pricelists[0].id
-	for prod in self:
-	        prod.meli_price = str(prod.lst_price)
+        self.meli_price = str(self.lst_price)
         #res = {}
         #for id in self:
         #    res[id] = self.lst_price
@@ -211,7 +211,7 @@ class product_product(models.Model):
                     #pdb.set_trace()
                     for path in path_from_root:
                         fullname = fullname + "/" + path["name"]
-                        
+
                         if (company.mercadolibre_create_website_categories):
                             www_cats = self.env['product.public.category']
                             if www_cats!=False:
@@ -239,7 +239,9 @@ class product_product(models.Model):
                 }
 
                 if www_cat_id:
+                    p_cat_id = www_cats.search([('id','=',www_cat_id)])
                     cat_fields['public_category_id'] = www_cat_id
+                    #cat_fields['public_category'] = p_cat_id
 
                 ml_cat_id = self.env['mercadolibre.category'].create((cat_fields)).id
                 if (ml_cat_id):
@@ -696,7 +698,7 @@ class product_product(models.Model):
 
 
     def product_post(self):
-        #import pdb;pdb.set_trace();
+#        import pdb;pdb.set_trace();
 #        product_ids = context['active_ids']
 #        pdb.set_trace()
 
@@ -730,25 +732,51 @@ class product_product(models.Model):
         if (product.meli_id):
             response = meli.get("/items/%s" % product.meli_id, {'access_token':meli.access_token})
 
+
+        #check from company's default
+        if company.mercadolibre_listing_type and product_tmpl.meli_listing_type==False:
+            product_tmpl.meli_listing_type = company.mercadolibre_listing_type
+
+        if company.mercadolibre_buying_mode and product_tmpl.meli_buying_mode==False:
+            product_tmpl.meli_buying_mode = company.mercadolibre_buying_mode
+
+        if company.mercadolibre_currency and product_tmpl.meli_currency==False:
+            product_tmpl.meli_currency = company.mercadolibre_currency
+
+        if company.mercadolibre_condition and product_tmpl.meli_condition==False:
+            product_tmpl.meli_condition = company.mercadolibre_condition
+
+        if company.mercadolibre_warranty and product_tmpl.meli_warranty==False:
+            product_tmpl.meli_warranty = company.mercadolibre_warranty
+
+
         # print product.meli_category.meli_category_id
 
         if product_tmpl.meli_title==False:
             product_tmpl.meli_title = product_tmpl.name
 
-        if product_tmpl.meli_price==False:
+        if company.mercadolibre_pricelist:
+            pl = company.mercadolibre_pricelist
+            return_val = pl.price_get(product.id,1.0)
+            product_tmpl.meli_price = return_val[pl.id]
+
+        if product_tmpl.meli_price==False or product_tmpl.meli_price==0:
             product_tmpl.meli_price = product_tmpl.standard_price
 
-        if product_tmpl.meli_description==False:
+        if product_tmpl.meli_description==False or len(product_tmpl.meli_description)==0:
             product_tmpl.meli_description = product_tmpl.description_sale
 
 
-        if product.meli_title==False:
+        if product.meli_title==False or len(product.meli_title)==0:
             # print 'Assigning title: product.meli_title: %s name: %s' % (product.meli_title, product.name)
             product.meli_title = product_tmpl.meli_title
 
-        if product.meli_price==False:
+        if product.meli_price==False or product.meli_price==0.0:
             # print 'Assigning price: product.meli_price: %s standard_price: %s' % (product.meli_price, product.standard_price)
-            product.meli_price = product_tmpl.standard_price
+
+            if product_tmpl.meli_price:
+                _logger.info("Assign tmpl price:"+str(product_tmpl.meli_price))
+                product.meli_price = product_tmpl.meli_price
 
         if product.meli_description==False:
             product.meli_description = product_tmpl.meli_description
@@ -770,12 +798,39 @@ class product_product(models.Model):
         if product.meli_warranty==False:
             product.meli_warranty=product_tmpl.meli_warranty
 
+        attributes = []
+        if product_tmpl.attribute_line_ids:
+            _logger.info(product_tmpl.attribute_line_ids)
+            for at_line_id in product_tmpl.attribute_line_ids:
+                atid = at_line_id.attribute_id.name
+                atval = at_line_id.value_ids.name
+                _logger.info(atid+":"+atval)
+                if (atid=="MARCA" or atid=="BRAND"):
+                    attribute = { "id": "BRAND", "value_name": atval }
+                    attributes.append(attribute)
+                if (atid=="MODELO" or atid=="MODEL"):
+                    attribute = { "id": "MODEL", "value_name": atval }
+                    attributes.append(attribute)
+
+            _logger.info(attributes)
+            product.meli_attributes = str(attributes);
+
+
+        if product.public_categ_ids:
+            for cat_id in product.public_categ_ids:
+                _logger.info(cat_id)
+                if (cat_id.mercadolibre_category):
+                    _logger.info(cat_id.mercadolibre_category)
+                    product.meli_category = cat_id.mercadolibre_category
+
+
+
+        if (product.virtual_available):
+            product.meli_available_quantity = product.virtual_available
+
 
         body = {
             "title": product.meli_title or '',
-            #"description": {
-            #    "plain_text": product.meli_description or '',
-            #},
             "category_id": product.meli_category.meli_category_id or '0',
             "listing_type_id": product.meli_listing_type or '0',
             "buying_mode": product.meli_buying_mode or '',
@@ -810,7 +865,7 @@ class product_product(models.Model):
                     assign_img = True and product.meli_imagen_id
 
         #modificando datos si ya existe el producto en MLA
-        if (product.meli_id):
+        if (len(product.meli_id)>0):
             body = {
                 "title": product.meli_title or '',
                 #"description": { 'plain_text': product.meli_description or '' },
@@ -831,7 +886,6 @@ class product_product(models.Model):
             #_logger.info("res description:",resdescription)
             #rjsondes = resdescription.json()
         else:
-            _logger.info("bodydescription!")
             body["description"] = bodydescription
 
 
@@ -872,6 +926,8 @@ class product_product(models.Model):
             #    else:
             #        result = product.meli_description
 
+        if len(attributes):
+            body["attributes"] =  attributes
 
 
         #else:
@@ -938,12 +994,13 @@ class product_product(models.Model):
     meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
     meli_description = fields.Text(string='Descripción')
     meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre")
-    meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
     meli_price = fields.Char(string='Precio de venta', size=128)
-    meli_currency = fields.Selection([("ARS","Peso Argentino (ARS)")],string='Moneda (ARS)')
-    meli_condition = fields.Selection([ ("new", "Nuevo"), ("used", "Usado"), ("not_specified","No especificado")],'Condición del producto')
     meli_dimensions = fields.Char( string="Dimensiones del producto", size=128)
     meli_pub = fields.Boolean('Meli Publication',help='MELI Product')
+
+    meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
+    meli_currency = fields.Selection([("ARS","Peso Argentino (ARS)")],string='Moneda (ARS)')
+    meli_condition = fields.Selection([ ("new", "Nuevo"), ("used", "Usado"), ("not_specified","No especificado")],'Condición del producto')
     meli_warranty = fields.Char(string='Garantía', size=256)
     meli_listing_type = fields.Selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special"),("gold_pro","Oro Pro")], string='Tipo de lista')
 
@@ -965,6 +1022,9 @@ class product_product(models.Model):
     meli_permalink = fields.Char( compute=product_get_meli_update, size=256, string='PermaLink in MercadoLibre', store=False )
     meli_state = fields.Boolean( compute=product_get_meli_update, string="Inicio de sesión requerida", store=False )
     meli_status = fields.Char( compute=product_get_meli_update, size=128, string="Estado del producto en ML", store=False )
+
+    meli_attributes = fields.Text(string='Atributos')
+
 	### Agregar imagen/archivo uno o mas, y la descripcion en HTML...
 	# TODO Agregar el banner
 

@@ -31,13 +31,38 @@ import requests
 import melisdk
 from melisdk.meli import Meli
 
+class product_public_category(models.Model):
+
+    _inherit="product.public.category"
+
+    mercadolibre_category = fields.Many2one( "mercadolibre.category", string="Mercado Libre Category")
+
+product_public_category()
+
+
 class mercadolibre_category(models.Model):
     _name = "mercadolibre.category"
     _description = "Categories of MercadoLibre"
 
-    name = fields.Char('Name');
-    meli_category_id = fields.Char('Category Id');
-    public_category_id = fields.Integer('Public Category Id');
+    @api.one
+    def get_attributes( self ):
+
+        company = self.env.user.company_id
+
+        warningobj = self.env['warning']
+        category_obj = self.env['mercadolibre.category']
+
+        CLIENT_ID = company.mercadolibre_client_id
+        CLIENT_SECRET = company.mercadolibre_secret_key
+        ACCESS_TOKEN = company.mercadolibre_access_token
+        REFRESH_TOKEN = company.mercadolibre_refresh_token
+
+        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+
+        if (self.meli_category_id):
+            self.meli_category_attributes = "https://api.mercadolibre.com/categories/"+str(self.meli_category_id)+"/attributes"
+
+        return {}
 
 
     def import_category(self, category_id ):
@@ -56,13 +81,13 @@ class mercadolibre_category(models.Model):
         if (category_id):
             ml_cat_id = category_obj.search([('meli_category_id','=',category_id)])
             if (ml_cat_id):
-              print "category exists!" + str(ml_cat_id)
+              _logger.info("category exists!" + str(ml_cat_id))
             else:
-              print "Creating category: " + str(category_id)
+              _logger.info("Creating category: " + str(category_id))
               #https://api.mercadolibre.com/categories/MLA1743
               response_cat = meli.get("/categories/"+str(category_id), {'access_token':meli.access_token})
               rjson_cat = response_cat.json()
-              print "category:" + str(rjson_cat)
+              _logger.info("category:" + str(rjson_cat))
               fullname = ""
               if ("path_from_root" in rjson_cat):
                   path_from_root = rjson_cat["path_from_root"]
@@ -111,6 +136,13 @@ class mercadolibre_category(models.Model):
                             category_obj.import_category(category_id=ml_cat_id)
                             if (RECURSIVE_IMPORT):
                                 category_obj.import_all_categories(category_root=ml_cat_id)
+
+
+    name = fields.Char('Name')
+    meli_category_id = fields.Char('Category Id')
+    public_category_id = fields.Integer('Public Category Id')
+    #public_category = fields.Many2one( "product.category.public", string="Product Website category default", help="Select Public Website category for this ML category ")
+    meli_category_attributes = fields.Char(compute=get_attributes,  string="Mercado Libre Category Attributes")
 
 
 mercadolibre_category()
