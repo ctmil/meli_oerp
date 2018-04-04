@@ -11,6 +11,7 @@
                   <field name="meli_pub" />
                   <label for="meli_pub" />
                   <field name="meli_publications" readonly="1"></field>
+                  <field name="meli_variants_status" readonly="1"></field>
               </label>
             <data>
                 <notebook>
