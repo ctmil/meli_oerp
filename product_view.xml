@@ -10,6 +10,7 @@
             <label for="sale_ok" position="after">
                   <field name="meli_pub" />
                   <label for="meli_pub" />
+                  <field name="meli_publications" readonly="1"></field>
               </label>
             <data>
                 <notebook>
@@ -52,9 +53,9 @@
                         <button type="object"
                             name="action_meli_update"
                             attrs="{'invisible':[('meli_publications', '=', '')]}"
-                            class="oe_stat_button" icon="fa-archive">
+                            class="oe_stat_button" icon="fa-none">
                             <img src="/meli_oerp/static/src/img/logo_ML.png" class="img-rounded"/>
-                            <field name="meli_publications" readonly="1"></field>
+                            Publicado en ML
                         </button>
                     </div>
                 </data>
