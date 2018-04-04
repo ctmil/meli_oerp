@@ -52,21 +52,27 @@
                     <div name="button_box" position="inside">
                         <button type="object"
                             name="action_meli_pause"
-                            attrs="{'invisible':[('active', 'in', 'meli_publications')]}"
+                            attrs="{'invisible':[('meli_variants_status', 'in', '[active]')]}"
                             class="oe_stat_button" icon="fa-none">
                             <img src="/meli_oerp/static/src/img/logo_ML.png" class="img-rounded"/>
                             <span>Pausar en ML</span>
                         </button>
                         <button type="object"
                             name="action_meli_activate"
-                            attrs="{'invisible':[('paused', 'in', 'meli_publications')]}"
+                            attrs="{'invisible':[('meli_variants_status', 'in', '[paused]')]}"
                             class="oe_stat_button" icon="fa-none">
                             <img src="/meli_oerp/static/src/img/logo_ML.png" class="img-rounded"/>
                             <span>Activar en ML</span>
                         </button>
                         <button type="object"
+                            name="action_meli_close"
+                            attrs="{'invisible':[('meli_variants_status', 'in', '[paused]')]}"
+                            class="oe_stat_button" icon="fa-none">
+                            <span>Cerrar en ML</span>
+                        </button>
+                        <button type="object"
                             name="action_meli_delete"
-                            attrs="{'invisible':[('closed', 'in', 'meli_publications')]}"
+                            attrs="{'invisible':[('meli_variants_status', 'in', '[closed]')]}"
                             class="oe_stat_button" icon="fa-none">
                             <img src="/meli_oerp/static/src/img/logo_ML.png" class="img-rounded"/>
                             <span>Eliminar de ML</span>

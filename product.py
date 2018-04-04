@@ -77,9 +77,10 @@ class product_template(models.Model):
         return {}
 
     @api.one
-    def product_template_get_meli_pubs(self):
+    def product_template_stats(self):
 
         _pubs = ""
+        _stats = ""
         product = self
         for variant in product.product_variant_ids:
             if (variant.meli_pub):
@@ -89,9 +90,17 @@ class product_template(models.Model):
                     else:
                         _pubs = variant.meli_id + ":" + variant.meli_status
 
+                    if (variant.meli_status=="active"):
+                        _stats = "active"
+                        
+                    if (_stats == "" ):
+                        _stats = "paused"
+
         self.meli_publications = _pubs
+        self.meli_variants_status = _stats
 
         return {}
+
 
     @api.multi
     def action_meli_pause(self):
@@ -122,6 +131,7 @@ class product_template(models.Model):
         return {}
 
 
+
     name = fields.Char('Name', size=128, required=True, translate=False, select=True)
     meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
     meli_description = fields.Text(string='Descripción')
@@ -136,8 +146,8 @@ class product_template(models.Model):
     meli_listing_type = fields.Selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special"),("gold_pro","Oro Pro")], string='Tipo de lista')
     meli_attributes = fields.Text(string='Atributos')
 
-    meli_publications = fields.Text(compute=product_template_get_meli_pubs,string='Publicaciones en ML')
-    #meli_variants = fields.One2many(string="Meli Variants", related="product_variant_ids")
+    meli_publications = fields.Text(compute=product_template_stats,string='Publicaciones en ML')
+    meli_variants_status = fields.Text(compute=product_template_stats,string='Meli Variant Status')
 
 
 product_template()
