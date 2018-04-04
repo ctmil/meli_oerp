@@ -15,6 +15,9 @@
             <data>
                 <notebook>
                     <page string="MercadoLibre Plantilla">
+                      <group name="ML actions">
+                        <button name='%(action_product_template_post)d' type="action" string="Publicar-Actualizar producto en ML"/>
+                      </group>
                       <group name="Basic description">
                         <field name="meli_title" />
                         <field name="meli_description" />
@@ -32,9 +35,7 @@
 
 
                       </group>
-                      <group name="ML actions">
-                        <button name='%(action_product_template_post)d' type="action" string="Publicar-Actualizar producto en ML"/>
-                      </group>
+
                     </page>
                   </notebook>
             </data>

@@ -92,8 +92,8 @@ class product_template(models.Model):
 
                     if (variant.meli_status=="active"):
                         _stats = "active"
-                        
-                    if (_stats == "" ):
+
+                    if (_stats == "" and variant.meli_status=="paused"):
                         _stats = "paused"
 
         self.meli_publications = _pubs
