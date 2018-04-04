@@ -47,18 +47,13 @@
             <field name="inherit_id" ref="product.product_template_only_form_view"/>
             <field name="arch" type="xml">
                 <data>
-                  <!--
-                    <header position="inside" >
-                        <button name="%(action_view_change_product_quantity)d" string="Update Qty On Hand" type="action" attrs="{'invisible': [('type', '!=', 'product')]}"/>
-                        <button string="Procurement Request" name="%(stock.act_make_procurement)d" type="action" attrs="{'invisible': [('type', '!=', 'product')]}"/>
-                    </header>-->
+
                     <div name="button_box" position="inside">
                         <img src="/meli_oerp/static/src/img/logo_ML.png" class="img-rounded"/>
                         <button type="object"
                             name="action_meli_update"
                             attrs="{'invisible':[('meli_publications', '=', '')]}"
                             class="oe_stat_button" icon="fa-archive-o">
-                            <!--<field name="qty_available" widget="statinfo" string="On Hand"/>-->
                             <field name="meli_publications" readonly="1"></field>
                         </button>
                     </div>
