@@ -93,6 +93,10 @@ class product_template(models.Model):
 
         return {}
 
+    @api.multi
+    def action_meli_update(self):
+        return {}
+
     name = fields.Char('Name', size=128, required=True, translate=False, select=True)
     meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
     meli_description = fields.Text(string='Descripción')
