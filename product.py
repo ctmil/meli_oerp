@@ -94,8 +94,33 @@ class product_template(models.Model):
         return {}
 
     @api.multi
-    def action_meli_update(self):
+    def action_meli_pause(self):
+        for variant in product.product_variant_ids:
+            if (variant.meli_pub):
+                variant.product_meli_status_pause()
         return {}
+
+    @api.multi
+    def action_meli_activate(self):
+        for variant in product.product_variant_ids:
+            if (variant.meli_pub):
+                variant.product_meli_status_active()
+        return {}
+
+    @api.multi
+    def action_meli_close(self):
+        for variant in product.product_variant_ids:
+            if (variant.meli_pub):
+                variant.product_meli_status_close()
+        return {}
+
+    @api.multi
+    def action_meli_delete(self):
+        for variant in product.product_variant_ids:
+            if (variant.meli_pub):
+                variant.product_meli_delete()
+        return {}
+
 
     name = fields.Char('Name', size=128, required=True, translate=False, select=True)
     meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
