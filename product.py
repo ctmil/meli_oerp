@@ -104,6 +104,7 @@ class product_template(models.Model):
 
     @api.multi
     def action_meli_pause(self):
+        product = self
         for variant in product.product_variant_ids:
             if (variant.meli_pub):
                 variant.product_meli_status_pause()
@@ -111,6 +112,7 @@ class product_template(models.Model):
 
     @api.multi
     def action_meli_activate(self):
+        product = self
         for variant in product.product_variant_ids:
             if (variant.meli_pub):
                 variant.product_meli_status_active()
@@ -118,6 +120,7 @@ class product_template(models.Model):
 
     @api.multi
     def action_meli_close(self):
+        product = self
         for variant in product.product_variant_ids:
             if (variant.meli_pub):
                 variant.product_meli_status_close()
@@ -125,11 +128,18 @@ class product_template(models.Model):
 
     @api.multi
     def action_meli_delete(self):
+        product = self
         for variant in product.product_variant_ids:
             if (variant.meli_pub):
                 variant.product_meli_delete()
         return {}
 
+    @api.onchange('meli_pub') # if these fields are changed, call method
+    def change_meli_pub(self):
+        product = self
+        for variant in product.product_variant_ids:
+            variant.meli_pub = product.meli_pub
+        return {}
 
 
     name = fields.Char('Name', size=128, required=True, translate=False, select=True)
