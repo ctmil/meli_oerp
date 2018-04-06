@@ -590,7 +590,7 @@ class product_product(osv.osv):
 
 
     def product_post(self, cr, uid, ids, context=None):
-        import pdb;pdb.set_trace();
+#        import pdb;pdb.set_trace();
 #        product_ids = context['active_ids']
         product_ids = ids
         product_obj = self.pool.get('product.product')
