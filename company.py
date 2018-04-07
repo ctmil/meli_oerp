@@ -65,8 +65,8 @@ class res_company(models.Model):
 
         try:
             #_logger.info(ACCESS_TOKEN)
-            if len(company.mercadolibre_seller_id):
-                response = meli.get("/users/"+company.mercadolibre_seller_id, {'access_token':meli.access_token} )
+            if len(company.mercadolibre_seller_id)>0:
+                response = meli.get("/users/"+str(company.mercadolibre_seller_id), {'access_token':meli.access_token} )
                 _logger.info("response.content:"+str(response.content))
                 rjson = response.json()
                 #response = meli.get("/users/")
