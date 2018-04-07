@@ -61,7 +61,7 @@ class res_company(models.Model):
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
         ML_state = False
         message = "Login to ML needed in Odoo."
-        pdb.set_trace()
+        #pdb.set_trace()
 
         try:
             if not (company.mercadolibre_seller_id==False):
