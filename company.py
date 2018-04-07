@@ -65,30 +65,33 @@ class res_company(models.Model):
 
         try:
             _logger.info("access_token:"+str(ACCESS_TOKEN))
-            response = meli.get("/users/"+company.mercadolibre_seller_id, {'access_token':meli.access_token} )
-            _logger.info("response.content:"+str(response.content))
-            rjson = response.json()
-            #response = meli.get("/users/")
-            if "error" in rjson:
-                ML_state = True
-
-                if rjson["error"]=="not_found":
+            if (company.mercadolibre_seller_id):
+                response = meli.get("/users/"+company.mercadolibre_seller_id, {'access_token':meli.access_token} )
+                _logger.info("response.content:"+str(response.content))
+                rjson = response.json()
+                #response = meli.get("/users/")
+                if "error" in rjson:
                     ML_state = True
 
-                if "message" in rjson:
-                    message = rjson["message"]
-                    if (rjson["message"]=="expired_token" or rjson["message"]=="invalid_token"):
+                    if rjson["error"]=="not_found":
                         ML_state = True
-                        try:
-                            refresh = meli.get_refresh_token()
-                            _logger.info("need to refresh:"+str(refresh))
-                            if (refresh):
-                                ACCESS_TOKEN = meli.access_token
-                                REFRESH_TOKEN = meli.refresh_token
-                                company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
-                                ML_state = False
-                        except Exception as e:
-                            _logger.error(e)
+
+                    if "message" in rjson:
+                        message = rjson["message"]
+                        if (rjson["message"]=="expired_token" or rjson["message"]=="invalid_token"):
+                            ML_state = True
+                            try:
+                                refresh = meli.get_refresh_token()
+                                _logger.info("need to refresh:"+str(refresh))
+                                if (refresh):
+                                    ACCESS_TOKEN = meli.access_token
+                                    REFRESH_TOKEN = meli.refresh_token
+                                    company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
+                                    ML_state = False
+                            except Exception as e:
+                                _logger.error(e)
+            else:
+                ML_state = True
 
             if ACCESS_TOKEN=='' or ACCESS_TOKEN==False:
                 ML_state = True
