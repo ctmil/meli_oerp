@@ -64,8 +64,8 @@ class res_company(models.Model):
         #pdb.set_trace()
 
         try:
-            _logger.info("access_token:"+str(ACCESS_TOKEN))
-            if (company.mercadolibre_seller_id):
+            #_logger.info(ACCESS_TOKEN)
+            if len(company.mercadolibre_seller_id):
                 response = meli.get("/users/"+company.mercadolibre_seller_id, {'access_token':meli.access_token} )
                 _logger.info("response.content:"+str(response.content))
                 rjson = response.json()
