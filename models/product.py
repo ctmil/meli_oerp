@@ -27,7 +27,6 @@ import logging
 _logger = logging.getLogger(__name__)
 
 import requests
-import melisdk
 import base64
 import mimetypes
 import urllib2
