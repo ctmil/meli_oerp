@@ -1,50 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <openerp>
     <data>
-
-
-	<record id="ir_cron_module_get_meli_state" model="ir.cron">
-              <field name="name">Get Meli State</field>
-              <field eval="True" name="active" />
-              <field name="user_id" ref="base.user_root" />
-              <field name="interval_number">5</field>
-              <field name="interval_type">minutes</field>
-              <field name="numbercall">-1</field>
-              <field eval="False" name="doall" />
-              <field eval="'res.company'" name="model" />
-              <field eval="'get_meli_state'" name="function" />
-              <field eval="'()'" name="args" />
-              <field name="priority">1000</field>
-      </record>
-
-
-      <!-- Error Email template  -->
-        <record id="meli_cron_error_mailer" model="mail.template">
-            <field name="name">Meli Error</field>
-            <field name="email_from">${object.email or ''}</field>
-            <field name="email_to">${object.email or ''}</field>
-            <field name="subject">[DB ${ctx.get('dbname')}] Scheduler '${object.name or ''}' FAILED</field>
-            <!--<field name="model_id" ref="base.model_ir_cron"/>-->
-            <field name="model_id" ref="account.model_res_company"/>
-            <field name="auto_delete" eval="True"/>
-            <field name="body_html">
-                <![CDATA[
-<div style="font-family: 'Lucida Grande', Ubuntu, Arial, Verdana, sans-serif; font-size: 12px; color: rgb(34, 34, 34); background-color: #FFF; ">
-<p>Meli Odoo tried to refresh credentials for <em>${object.name or ''}</em> in the database <em>${ctx.get('dbname')}</em> but it failed. Here is the error message :</p>
-<strong>
-${ctx.get('job_exception') or 'Failed to get the error message from the context.'}
-</strong>
-<p>Log into Odoo then click here: <a href="${object.mercadolibre_redirect_uri}" target="_blank">Meli Login</a></p>
-<p>
--- <br/>
-Automatic e-mail sent by Odoo. Do not reply.<br/>
-Database : ${ctx.get('dbname')}
-</p>
-</div>
-    ]]>
-            </field>
-</record>
-
+      
 		<record model="ir.actions.act_url" id="meli_login_action">
 			<field name="name">meli_login_action</field>
 			<field name="url">/meli_login</field>
