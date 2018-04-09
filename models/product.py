@@ -36,7 +36,7 @@ from datetime import datetime
 
 from meli_oerp_config import *
 
-from melisdk.meli import Meli
+from ..melisdk.meli import Meli
 
 
 class product_template(models.Model):

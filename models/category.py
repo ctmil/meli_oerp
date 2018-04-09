@@ -28,8 +28,7 @@ from meli_oerp_config import *
 from warning import warning
 
 import requests
-import melisdk
-from melisdk.meli import Meli
+from ..melisdk.meli import Meli
 
 class product_public_category(models.Model):
 

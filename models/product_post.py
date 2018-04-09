@@ -34,9 +34,7 @@ from meli_oerp_config import *
 
 from warning import warning
 
-import melisdk
-from melisdk.meli import Meli
-
+from ..melisdk.meli import Meli
 
 class product_template_post(models.TransientModel):
     _name = "mercadolibre.product.template.post"
