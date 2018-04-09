@@ -6,7 +6,7 @@ from odoo import fields, osv
 from odoo.http import request
 
 
-from meli_oerp_config import *
+from ..models.meli_oerp_config import *
 
 class MercadoLibre(http.Controller):
     @http.route('/meli/', auth='public')
