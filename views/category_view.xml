@@ -18,7 +18,7 @@
             <field name="model">mercadolibre.category</field>
             <field name="type">tree</field>
             <field name="arch" type="xml">
-                <tree string="Categories" >
+                <tree string="Categorías" >
                     <field name="name"/>
                     <field name="meli_category_id"/>
                     <field name="meli_category_attributes" widget="url"/>

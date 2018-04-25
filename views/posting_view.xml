@@ -7,7 +7,7 @@
             <field name="model">mercadolibre.posting</field>
             <field name="type">tree</field>
             <field name="arch" type="xml">
-                <tree string="Postings" >
+                <tree string="Ventas" >
                     <field name="name"/>
                     <field name="posting_date"/>
                     <field name="product_id"/>
@@ -26,7 +26,7 @@
             <field name="model">mercadolibre.posting</field>
             <field name="type">form</field>
             <field name="arch" type="xml">
-				      <form string="ML Posting">
+				      <form string="Venta en ML">
                 <group>
                     <field name="name"/>
                     <field name="posting_date"/>
