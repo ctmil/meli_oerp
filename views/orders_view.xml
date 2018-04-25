@@ -23,7 +23,7 @@
             <field name="arch" type="xml">
                 <data>
                     <notebook>
-                        <page string="MercadoLibre" attrs="{'invisible':[('meli_order_id', '=', '')]}">
+                        <page string="MercadoLibre" attrs="{'invisible':[('meli_order_id', '=', False)]}">
 							<group>
 								<field name="meli_order_id" invisible="0"/>
 								<field name="meli_status" invisible="0"/>
