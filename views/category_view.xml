@@ -29,7 +29,7 @@
 
 
         <record model="ir.actions.act_window" id="action_meli_categories_tree">
-            <field name="name">Categories</field>
+            <field name="name">Categorías</field>
             <field name="type">ir.actions.act_window</field>
             <field name="res_model">mercadolibre.category</field>
             <field name="view_type">form</field>
@@ -39,7 +39,7 @@
         <menuitem id="menu_meli_categories"
             action="action_meli_categories_tree"
             parent="menu_meli"
-            name="Categories" />
+            name="Categorías" />
 
     </data>
 </openerp>

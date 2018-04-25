@@ -91,7 +91,7 @@
 
 
         <record model="ir.actions.act_window" id="action_meli_postings_tree">
-            <field name="name">Postings</field>
+            <field name="name">Ventas</field>
             <field name="type">ir.actions.act_window</field>
             <field name="res_model">mercadolibre.posting</field>
             <field name="view_type">form</field>
@@ -105,7 +105,7 @@
         <menuitem id="menu_meli_postings"
             action="action_meli_postings_tree"
             parent="menu_meli"
-            name="Postings" />
+            name="Ventas" />
 
     </data>
 </openerp>

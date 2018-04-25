@@ -15,7 +15,7 @@
 
 
         <record model="ir.actions.act_window" id="action_meli_banners_tree">
-            <field name="name">Banners</field>
+            <field name="name">Descripciones</field>
             <field name="type">ir.actions.act_window</field>
             <field name="res_model">mercadolibre.banner</field>
             <field name="view_type">form</field>
@@ -25,7 +25,7 @@
         <menuitem id="menu_meli_banners"
             action="action_meli_banners_tree"
             parent="menu_meli"
-            name="Banners" />
+            name="Descripciones" />
 
     </data>
 </openerp>

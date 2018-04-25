@@ -46,7 +46,7 @@
             <field name="arch" type="xml">
                 <data>
                     <notebook>
-                        <page string="MercadoLibre">
+                        <page string="MercadoLibre" attrs="{'invisible':[('meli_buyer_id', '=', False)]}">
 							<group>
 								<field name="meli_buyer_id" invisible="0"/>
                             </group>
@@ -62,7 +62,7 @@
             <field name="model">mercadolibre.buyers</field>
             <field name="type">tree</field>
             <field name="arch" type="xml">
-                <tree string="Buyers" >
+                <tree string="Compradores" >
                     <field name="buyer_id"/>
                     <field name="nickname"/>
                     <field name="email"/>
@@ -75,7 +75,7 @@
             <field name="model">mercadolibre.orders</field>
             <field name="type">form</field>
             <field name="arch" type="xml">
-				      <form string="Order">
+				      <form string="Orden">
                     <field name="seller"/>
                     <field name="order_id"/>
                     <field name="status"/>
@@ -96,7 +96,7 @@
             <field name="model">mercadolibre.order_items</field>
             <field name="type">tree</field>
             <field name="arch" type="xml">
-                <tree string="Order Items" >
+                <tree string="Lineas de la Orden" >
                     <field name="posting_id"/>
                     <field name="order_id"/>
                     <field name="order_item_id"/>
@@ -111,7 +111,7 @@
             <field name="model">mercadolibre.payments</field>
             <field name="type">tree</field>
             <field name="arch" type="xml">
-                <tree string="Payments" >
+                <tree string="Pagos" >
                     <field name="payment_id"/>
                     <field name="transaction_amount"/>
                     <field name="currency_id"/>
@@ -124,7 +124,7 @@
 
 
     <record id="meli_orders_search_view" model="ir.ui.view">
-        <field name="name">MercadoLibre Orders - Search</field>
+        <field name="name">Ordenes de ML - Buscar</field>
         <field name="model">mercadolibre.orders</field>
         <field name="arch" type="xml">
 	    <search string="Search MercadoLibre Orders Information">
@@ -134,7 +134,7 @@
     </record>
 
     <record id="meli_buyers_search_view" model="ir.ui.view">
-        <field name="name">MercadoLibre Buyers - Search</field>
+        <field name="name">Compradores de ML - Buscar</field>
         <field name="model">mercadolibre.buyers</field>
         <field name="arch" type="xml">
 	    <search string="Search MercadoLibre Buyers Information">
@@ -145,7 +145,7 @@
 
 
     <record id="view_orders_update" model="ir.ui.view">
-          <field name="name">Update Meli Order</field>
+          <field name="name">Actualizar Orden de ML</field>
           <field name="model">mercadolibre.orders.update</field>
           <field name="type">form</field>
           <field name="arch" type="xml">
@@ -160,7 +160,7 @@
     </record>
 
         <record model="ir.actions.act_window" id="action_meli_orders_tree">
-            <field name="name">Orders</field>
+            <field name="name">Ordenes</field>
             <field name="type">ir.actions.act_window</field>
             <field name="res_model">mercadolibre.orders</field>
             <field name="view_type">form</field>
@@ -169,7 +169,7 @@
         </record>
 
         <record model="ir.actions.act_window" id="action_meli_buyers_tree">
-            <field name="name">Buyers</field>
+            <field name="name">Compradores</field>
             <field name="type">ir.actions.act_window</field>
             <field name="res_model">mercadolibre.buyers</field>
             <field name="view_type">form</field>
@@ -178,7 +178,7 @@
         </record>
 
         <record id="action_update_meli_orders" model="ir.actions.act_window">
-            <field name="name">Update Meli Orders</field>
+            <field name="name">Actualizar Ordenes de ML</field>
             <field name="type">ir.actions.act_window</field>
             <field name="src_model">mercadolibre.orders</field>
             <field name="res_model">mercadolibre.orders.update</field>
@@ -188,7 +188,7 @@
         </record>
 
         <record model="ir.values" id="update_meli_orders">
-            <field name="name">Update Order</field>
+            <field name="name">Actualizar Ordenes</field>
             <field name="key2">client_action_multi</field>
             <field name="value" eval="'ir.actions.act_window,' +str(ref('action_update_meli_orders'))" />
             <field name="key">action</field>
@@ -200,12 +200,12 @@
         <menuitem id="menu_meli_orders"
             action="action_meli_orders_tree"
             parent="menu_meli"
-            name="Orders" />
+            name="Ordenes" />
 
         <menuitem id="menu_meli_buyers"
             action="action_meli_buyers_tree"
             parent="menu_meli"
-            name="Buyers" />
+            name="Compradores" />
 
     </data>
 </openerp>

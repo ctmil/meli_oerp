@@ -35,7 +35,7 @@
 
 
         <record model="ir.actions.act_window" id="action_meli_questions_tree">
-            <field name="name">Questions</field>
+            <field name="name">Preguntas</field>
             <field name="type">ir.actions.act_window</field>
             <field name="res_model">mercadolibre.questions</field>
             <field name="view_type">form</field>
@@ -49,7 +49,7 @@
         <menuitem id="menu_meli_questions"
             action="action_meli_questions_tree"
             parent="menu_meli"
-            name="Questions" />
+            name="Preguntas" />
 
     </data>
 </openerp>
