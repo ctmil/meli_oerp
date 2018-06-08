@@ -643,6 +643,10 @@ class product_product(models.Model):
             "video_id": product.meli_video  or '',
         }
 
+        bodydescription = {
+            "plain_text": product.meli_description or '',
+        }
+
         # print body
 
         assign_img = False and product.meli_id
@@ -677,6 +681,8 @@ class product_product(models.Model):
                 #"pictures": [ { 'source': product.meli_imagen_logo} ] ,
                 "video_id": product.meli_video or '',
             }
+        else:
+            body["description"] = bodydescription
 
         #publicando multiples imagenes
         multi_images_ids = {}
@@ -729,6 +735,8 @@ class product_product(models.Model):
 
         if product.meli_id:
             response = meli.put("/items/"+product.meli_id, body, {'access_token':meli.access_token})
+            resdescription = meli.put("/items/"+product.meli_id+"/description", bodydescription, {'access_token':meli.access_token})
+            rjsondes = resdescription.json()
         else:
             assign_img = True and product.meli_imagen_id
             response = meli.post("/items", body, {'access_token':meli.access_token})

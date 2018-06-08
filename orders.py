@@ -297,7 +297,7 @@ class mercadolibre_orders(models.Model):
                 post_related_obj = ''
                 product_related_obj = ''
                 product_related_obj_id = False
-                if (post_related):
+                if len(post_related):
                     post_related_obj = post_related
                     _logger.info( post_related_obj )
                     #if (post_related[0]):
@@ -305,7 +305,7 @@ class mercadolibre_orders(models.Model):
                 else:
                     return {}
 
-                if (product_related):
+                if len(product_related):
                     product_related_obj = product_related
                     _logger.info( product_related_obj )
                     #if (product_related[0]):
@@ -315,7 +315,7 @@ class mercadolibre_orders(models.Model):
                     #    _logger.info( product_related_obj )
                 else:
                     return {}
-                    
+
                 order_item_fields = {
                     'order_id': order.id,
                     'posting_id': post_related_obj.id,
