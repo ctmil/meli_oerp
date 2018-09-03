@@ -20,15 +20,10 @@
 ##############################################################################
 
 from odoo import fields, osv, models, api
-import logging
 
-
-class mercadolibre_banner(models.Model):
+class MercadolibreBanner(models.Model):
     _name = "mercadolibre.banner"
     _description = "Banners for MercadoLibre descriptions"
 
-    name = fields.Char('Name');
-    description = fields.Html(string='Description');
-
-
-mercadolibre_banner()
+    name = fields.Char('Name')
+    description = fields.Html(string='Description')

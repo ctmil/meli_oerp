@@ -816,7 +816,7 @@ class product_product(models.Model):
                     assign_img = True and product.meli_imagen_id
 
         #modificando datos si ya existe el producto en MLA
-        if (len(product.meli_id)>0):
+        if (product.meli_id):
             body = {
                 "title": product.meli_title or '',
                 #"description": { 'plain_text': product.meli_description or '' },
