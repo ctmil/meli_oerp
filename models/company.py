@@ -252,14 +252,17 @@ class res_company(models.Model):
 
     @api.multi
     def meli_query_get_questions(self):
+
+        _logger.info("meli_query_get_questions")
         posting_obj = self.env['mercadolibre.posting']
         posting_ids = posting_obj.search([])
+        _logger.info(posting_ids)
         if (posting_ids):
-            for posting_id in posting_ids:
-                posting = posting_obj.browse(posting_id)
+            for posting in posting_ids:
+                _logger.info(posting)
                 posting.posting_query_questions()
         return {}
-        
+
     @api.multi
     def meli_query_orders(self):
 
