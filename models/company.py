@@ -130,15 +130,28 @@ class res_company(models.Model):
         #    res[company.id] = ML_state
         company.mercadolibre_state = ML_state
 
+
+    @api.multi
+    def cron_meli_process( self ):
+
+        _logger.info('company cron_meli_process() ')
+
+        company = self.env.user.company_id
+        warningobj = self.pool.get('warning')
+
+        self.get_meli_state()
+
         if (company.mercadolibre_cron_get_orders):
             _logger.info("company.mercadolibre_cron_get_orders")
             self.meli_query_orders()
 
         if (company.mercadolibre_cron_get_update_products):
             _logger.info("company.mercadolibre_cron_get_update_products")
-            self.meli_update_products()
+            self.meli_update_local_products()
 
-
+        if (company.mercadolibre_cron_post_update_products):
+            _logger.info("company.mercadolibre_cron_post_update_products")
+            self.meli_update_remote_products()
         #_logger.info("ML_state:"+str(ML_state))
         #return res
 
@@ -401,7 +414,7 @@ class res_company(models.Model):
                         #idcreated = self.pool.get('product.product').create(cr,uid,{ 'name': rjson3['title'], 'meli_id': rjson3['id'] })
                         if 'id' in rjson3:
                             prod_fields = {
-                                'name': rjson3['id'],
+                                'name': rjson3['title'].encode("utf-8"),
                                 'description': rjson3['title'].encode("utf-8"),
                                 'meli_id': rjson3['id']
                             }
