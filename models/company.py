@@ -303,11 +303,59 @@ class res_company(models.Model):
             results = rjson['results']
 
         #download?
-        if (rjson['paging']['total']>rjson['paging']['limit']):
+        totalmax = rjson['paging']['total']
+        scroll_id = False
+        if (totalmax>1000):
+            #USE SCAN METHOD....
+            response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search",
+                                {'access_token':meli.access_token,
+                                'search_type': 'scan',
+                                'limit': '100' })
+            rjson = response.json()
+            _logger.info( rjson )
+            condition_last_off = True
+            if ('scroll_id' in rjson):
+                scroll_id = rjson['scroll_id']
+                ioff = rjson['paging']['limit']
+                results = rjson['results']
+                condition_last_off = False
+            while (condition_last_off!=True):
+                _logger.info( "Prefetch products ("+str(ioff)+"/"+str(rjson['paging']['total'])+")" )
+                response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search",
+                    {
+                    'access_token':meli.access_token,
+                    'search_type': 'scan',
+                    'scroll_id': scroll_id,
+                    'limit': '100'
+                    })
+                rjson2 = response.json()
+                if 'error' in rjson2:
+                    if rjson2['message']=='invalid_token' or rjson2['message']=='expired_token':
+                        ACCESS_TOKEN = ''
+                        REFRESH_TOKEN = ''
+                        company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
+                        condition = True
+                        return {
+                        "type": "ir.actions.act_url",
+                        "url": url_login_meli,
+                        "target": "new",}
+                    condition_last_off = True
+                else:
+                    results += rjson2['results']
+                    ioff+= rjson2['paging']['limit']
+                    if ('scroll_id' in rjson2):
+                        scroll_id = rjson2['scroll_id']
+                        condition_last_off = False
+                    else:
+                        condition_last_off = True
+
+
+        if (totalmax<=1000 and totalmax>rjson['paging']['limit']):
             pages = rjson['paging']['total']/rjson['paging']['limit']
             ioff = rjson['paging']['limit']
             condition_last_off = False
             while (condition_last_off!=True):
+                _logger.info( "Prefetch products ("+str(ioff)+"/"+str(rjson['paging']['total'])+")" )
                 response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token,'offset': ioff })
                 rjson2 = response.json()
                 if 'error' in rjson2:
@@ -315,51 +363,61 @@ class res_company(models.Model):
                         ACCESS_TOKEN = ''
                         REFRESH_TOKEN = ''
                         company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
-                    condition = True
-                    return {
-                    "type": "ir.actions.act_url",
-                    "url": url_login_meli,
-                    "target": "new",}
+                        return {
+                        "type": "ir.actions.act_url",
+                        "url": url_login_meli,
+                        "target": "new",}
+                    condition_last_off = True
                 else:
                     results += rjson2['results']
                     ioff+= rjson['paging']['limit']
-                    condition_last_off = ( ioff>=rjson['paging']['total'])
+                    condition_last_off = ( ioff>=totalmax)
 
 
-        _logger.info( rjson )
+        _logger.info( results )
+        _logger.info( "FULL RESULTS: " + str(len(results)) )
         _logger.info( "("+str(rjson['paging']['total'])+") products to check...")
         iitem = 0
+        icommit = 0
+        micom = 5
         if (results):
-            for item_id in results:
-                print item_id
-                iitem+= 1
-                _logger.info( item_id + "("+str(iitem)+"/"+str(rjson['paging']['total'])+")" )
-                posting_id = self.env['product.product'].search([('meli_id','=',item_id)])
-                response = meli.get("/items/"+item_id, {'access_token':meli.access_token})
-                rjson3 = response.json()
-                if (posting_id):
-                    _logger.info( "Item already in database: " + str(posting_id[0]) )
-                    #print "Item already in database: " + str(posting_id[0])
-                else:
-                    #idcreated = self.pool.get('product.product').create(cr,uid,{ 'name': rjson3['title'], 'meli_id': rjson3['id'] })
-                    if 'id' in rjson3:
-                        prod_fields = {
-                            'name': rjson3['id'],
-                            'description': rjson3['title'].encode("utf-8"),
-                            'meli_id': rjson3['id']
-                        }
-                        prod_fields['default_code'] = rjson3['id']
-                        productcreated = self.env['product.product'].create((prod_fields))
-                        if (productcreated):
-                            _logger.info( "product created: " + str(productcreated) + " >> meli_id:" + str(rjson3['id']) + "-" + str( rjson3['title'].encode("utf-8")) )
-                            #pdb.set_trace()
-                            _logger.info(productcreated)
-                            productcreated.product_meli_get_product()
-                        else:
-                            _logger.info( "product couldnt be created")
+            self._cr.autocommit(False)
+            try:
+                for item_id in results:
+                    _logger.info(item_id)
+                    iitem+= 1
+                    icommit+= 1
+                    if (icommit>=micom):
+                        self._cr.commit()
+                        icommit = 0
+                    _logger.info( item_id + "("+str(iitem)+"/"+str(rjson['paging']['total'])+")" )
+                    posting_id = self.env['product.product'].search([('meli_id','=',item_id)])
+                    response = meli.get("/items/"+item_id, {'access_token':meli.access_token})
+                    rjson3 = response.json()
+                    if (posting_id):
+                        _logger.info( "Item already in database: " + str(posting_id[0]) )
+                        #print "Item already in database: " + str(posting_id[0])
                     else:
-                        _logger.info( "product error: " + str(rjson3) )
-
+                        #idcreated = self.pool.get('product.product').create(cr,uid,{ 'name': rjson3['title'], 'meli_id': rjson3['id'] })
+                        if 'id' in rjson3:
+                            prod_fields = {
+                                'name': rjson3['id'],
+                                'description': rjson3['title'].encode("utf-8"),
+                                'meli_id': rjson3['id']
+                            }
+                            prod_fields['default_code'] = rjson3['id']
+                            productcreated = self.env['product.product'].create((prod_fields))
+                            if (productcreated):
+                                _logger.info( "product created: " + str(productcreated) + " >> meli_id:" + str(rjson3['id']) + "-" + str( rjson3['title'].encode("utf-8")) )
+                                #pdb.set_trace()
+                                _logger.info(productcreated)
+                                productcreated.product_meli_get_product()
+                            else:
+                                _logger.info( "product couldnt be created")
+                        else:
+                            _logger.info( "product error: " + str(rjson3) )
+            except:
+                self._cr.rollback()
         return {}
 
     @api.multi
