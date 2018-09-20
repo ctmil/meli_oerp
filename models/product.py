@@ -147,7 +147,7 @@ class product_template(models.Model):
     meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre")
     meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
     meli_price = fields.Char(string='Precio de venta', size=128)
-    meli_currency = fields.Selection([("ARS","Peso Argentino (ARS)"),,("MXN","Peso Mexicano (MXN)")],string='Moneda')
+    meli_currency = fields.Selection([("ARS","Peso Argentino (ARS)"),("MXN","Peso Mexicano (MXN)")],string='Moneda')
     meli_condition = fields.Selection([ ("new", "Nuevo"), ("used", "Usado"), ("not_specified","No especificado")],'Condición del producto')
     meli_dimensions = fields.Char( string="Dimensiones del producto", size=128)
     meli_pub = fields.Boolean('Meli Publication',help='MELI Product')
