@@ -169,7 +169,7 @@ class res_company(models.Model):
     mercadolibre_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),
                                                   ("classified","Clasificado")],
                                                   string='Método de compra predeterminado')
-    mercadolibre_currency = fields.Selection([("ARS","Peso Argentino (ARS)")],
+    mercadolibre_currency = fields.Selection([("ARS","Peso Argentino (ARS)"),("MXN","Peso Mexicano (MXN)")],
                                                 string='Moneda predeterminada')
     mercadolibre_condition = fields.Selection([ ("new", "Nuevo"),
                                                 ("used", "Usado"),
@@ -181,7 +181,7 @@ class res_company(models.Model):
                                                 ("silver","Plata"),
                                                 ("gold","Oro"),
                                                 ("gold_premium","Gold Premium"),
-                                                ("gold_special","Gold Special"),
+                                                ("gold_special","Gold Special/Clásica"),
                                                 ("gold_pro","Oro Pro")],
                                                 string='Tipo de lista  predeterminada')
     mercadolibre_attributes = fields.Boolean(string='Apply product attributes')
