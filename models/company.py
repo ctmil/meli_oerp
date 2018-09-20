@@ -145,6 +145,10 @@ class res_company(models.Model):
             _logger.info("company.mercadolibre_cron_get_orders")
             self.meli_query_orders()
 
+        if (company.mercadolibre_cron_get_questions):
+            _logger.info("company.mercadolibre_cron_get_questions")
+            self.meli_query_get_questions()
+
         if (company.mercadolibre_cron_get_update_products):
             _logger.info("company.mercadolibre_cron_get_update_products")
             self.meli_update_local_products()
@@ -246,6 +250,16 @@ class res_company(models.Model):
             "target": "self",
         }
 
+    @api.multi
+    def meli_query_get_questions(self):
+        posting_obj = self.env['mercadolibre.posting']
+        posting_ids = posting_obj.search([])
+        if (posting_ids):
+            for posting_id in posting_ids:
+                posting = posting_obj.browse(posting_id)
+                posting.posting_query_questions()
+        return {}
+        
     @api.multi
     def meli_query_orders(self):
 
