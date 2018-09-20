@@ -194,5 +194,6 @@ class mercadolibre_posting(models.Model):
     meli_price = fields.Char(string='Precio de venta', size=128);
     posting_questions = fields.One2many( 'mercadolibre.questions','posting_id','Questions' );
     posting_update = fields.Char( compute=posting_update, string="Posting Update", store=False );
+    meli_seller_custom_field = fields.Char('Sellect Custom Field or SKU',size=256);
 
 mercadolibre_posting()

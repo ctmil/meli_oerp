@@ -285,16 +285,39 @@ class mercadolibre_orders(models.Model):
         #update internal fields (items, payments, buyers)
         if 'order_items' in order_json:
             items = order_json['order_items']
-            _logger.info( items )
-            print "order items" + str(items)
+            _logger.info("order items" + str(items))
             cn = 0
             for Item in items:
                 cn = cn + 1
                 _logger.info(cn)
                 _logger.info(Item )
 
-                product_related = product_obj.search([('meli_id','=',Item['item']['id'])])
                 post_related = posting_obj.search([('meli_id','=',Item['item']['id'])])
+                if (post_related):
+                    _logger.info("order post related by meli_id:",post_related)
+                else:
+                    #create post!
+                    posting_fields = {
+                        'posting_date': str(datetime.now()),
+                        'meli_id':Item['item']['id'],
+                        'name': 'Order: ' + Item['item']['title'] }
+
+                    post_related = self.env['mercadolibre.posting'].create((posting_fields))
+
+
+                product_related = product_obj.search([('meli_id','=',Item['item']['id'])])
+                if (product_related):
+                    _logger.info("order product related by meli_id:",product_related)
+                else:
+                    if ('seller_custom_field' in Item['item']):
+                        product_related = product_obj.search([('default_code','=',Item['item']['seller_custom_field'])])
+                        if (product_related):
+                            _logger.info("order product related by seller_custom_field and default_code:",product_related)
+
+                if (post_related and product_related):
+                    if (post_related.product_id==False):
+                        post_related.product_id = product_related;
+
                 post_related_obj = ''
                 product_related_obj = ''
                 product_related_obj_id = False
@@ -340,12 +363,13 @@ class mercadolibre_orders(models.Model):
                     'order_id': sorder.id,
                     'meli_order_item_id': Item['item']['id'],
                     'price_unit': float(Item['unit_price']),
-#                    'price_total': float(Item['unit_price']) * float(Item['quantity']),
+        #                    'price_total': float(Item['unit_price']) * float(Item['quantity']),
+                    'tax_id': None,
                     'product_id': product_related_obj.id,
                     'product_uom_qty': Item['quantity'],
                     'product_uom': 1,
                     'name': Item['item']['title'],
-#                    'customer_lead': float(0)
+        #                    'customer_lead': float(0)
                 }
                 saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
                 _logger.info( saleorderline_item_fields )
