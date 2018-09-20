@@ -139,7 +139,7 @@ class mercadolibre_orders(models.Model):
         if company.mercadolibre_pricelist:
             plistid = company.mercadolibre_pricelist
         else:
-            plistids = pricelist_obj.search([('currency_id','=','ARS')] )
+            plistids = pricelist_obj.search([])[0]
             if plistids:
                 plistid = plistids
 
