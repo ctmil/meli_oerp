@@ -6,13 +6,13 @@
 #
 ##############################################################################
 
-import warning
-import company
-import product
-import category
-import banner
-import posting
-import product_post
-import questions
-import orders
-import currency
+from . import warning
+from . import company
+from . import product
+from . import category
+from . import banner
+from . import posting
+from . import product_post
+from . import questions
+from . import orders
+from . import currency

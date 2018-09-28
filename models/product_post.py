@@ -30,9 +30,9 @@ from datetime import datetime
 
 #from bottle import Bottle, run, template, route, request
 #import json
-from meli_oerp_config import *
+from .meli_oerp_config import *
 
-from warning import warning
+from .warning import warning
 
 from ..melisdk.meli import Meli
 

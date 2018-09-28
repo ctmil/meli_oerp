@@ -26,8 +26,8 @@ _logger = logging.getLogger(__name__)
 import urllib2
 import pdb
 
-from meli_oerp_config import *
-from warning import warning
+from .meli_oerp_config import *
+from .warning import warning
 
 import requests
 from ..melisdk.meli import Meli
