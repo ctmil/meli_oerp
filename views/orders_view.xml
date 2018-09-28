@@ -187,6 +187,7 @@
             <field name="target">new</field>
         </record>
 
+<!--
         <record model="ir.values" id="update_meli_orders">
             <field name="name">Actualizar Ordenes</field>
             <field name="key2">client_action_multi</field>
@@ -194,8 +195,9 @@
             <field name="key">action</field>
             <field name="model">mercadolibre.orders</field>
         </record>
+-->
 
-        <menuitem id="menu_meli" name="MercadoLibre" parent="sales_team.menu_base_partner" sequence="9"/>
+        <menuitem id="menu_meli" name="MercadoLibre" parent="sale.sale_menu_root" sequence="9"/>
 
         <menuitem id="menu_meli_orders"
             action="action_meli_orders_tree"

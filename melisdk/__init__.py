@@ -1,1 +1,1 @@
-import meli
+from . import meli

@@ -4,8 +4,15 @@
 import re
 import os
 import requests
-from urllib import urlencode
-from ConfigParser import SafeConfigParser
+try:
+    from urllib import urlencode
+except ImportError:
+    from urllib.parse import urlencode
+try:
+    from ConfigParser import SafeConfigParser
+except ImportError:
+    import configparser
+    from configparser import SafeConfigParser
 import json
 
 class Meli(object):
@@ -74,7 +81,7 @@ class Meli(object):
                 # response code isn't a 200; raise an exception
                 response.raise_for_status()
         else:
-            raise Exception, "Offline-Access is not allowed."
+            raise Exception("Offline-Access is not allowed.")
 
     # REQUEST METHODS
     def get(self, path, params={}):

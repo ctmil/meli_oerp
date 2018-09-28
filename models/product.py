@@ -29,7 +29,7 @@ _logger = logging.getLogger(__name__)
 import requests
 import base64
 import mimetypes
-import urllib2
+from urllib.request import urlopen
 
 from datetime import datetime
 
@@ -208,10 +208,10 @@ class product_product(models.Model):
             rjson = response.json()
             _logger.info(response)
         except IOError as e:
-            print "I/O error({0}): {1}".format(e.errno, e.strerror)
+            _logger.info( "I/O error({0}): {1}".format(e.errno, e.strerror) )
             return {}
         except:
-            print "Rare error"
+            _logger.info( "Rare error" )
             return {}
 
 
@@ -224,7 +224,7 @@ class product_product(models.Model):
 
         if "content" in response:
             _logger.info(response.content)
-        #    print "product_meli_get_product > response.content: " + response.content
+        #    _logger.info( "product_meli_get_product > response.content: " + response.content )
 
         #TODO: traer la descripcion: con
         #https://api.mercadolibre.com/items/{ITEM_ID}/description?access_token=$ACCESS_TOKEN
@@ -247,7 +247,7 @@ class product_product(models.Model):
         pictures = rjson['pictures']
         if pictures and len(pictures):
             thumbnail_url = pictures[0]['url']
-            image = urllib2.urlopen(thumbnail_url).read()
+            image = urlopen(thumbnail_url).read()
             image_base64 = base64.encodestring(image)
             product.image_medium = image_base64
             #if (len(pictures)>1):
@@ -262,15 +262,15 @@ class product_product(models.Model):
             ml_cat = self.env['mercadolibre.category'].search([('meli_category_id','=',category_id)])
             ml_cat_id = ml_cat.id
             if (ml_cat_id):
-                print "category exists!" + str(ml_cat_id)
+                _logger.info( "category exists!" + str(ml_cat_id) )
                 mlcatid = ml_cat_id
                 www_cat_id = ml_cat.public_category_id
             else:
-                print "Creating category: " + str(category_id)
+                _logger.info( "Creating category: " + str(category_id) )
                 #https://api.mercadolibre.com/categories/MLA1743
                 response_cat = meli.get("/categories/"+str(category_id), {'access_token':meli.access_token})
                 rjson_cat = response_cat.json()
-                print "category:" + str(rjson_cat)
+                _logger.info( "category:" + str(rjson_cat) )
                 fullname = ""
                 if ("path_from_root" in rjson_cat):
                     path_from_root = rjson_cat["path_from_root"]
@@ -298,7 +298,7 @@ class product_product(models.Model):
                                 p_id = www_cat_id
 
                 #fullname = fullname + "/" + rjson_cat['name']
-                #print "category fullname:" + fullname
+                #_logger.info( "category fullname:" + fullname )
                 cat_fields = {
                     'name': fullname,
                     'meli_category_id': ''+str(category_id),
@@ -417,7 +417,7 @@ class product_product(models.Model):
 
         response = meli.put("/items/"+product.meli_id, { 'status': 'closed' }, {'access_token':meli.access_token})
 
-        #print "product_meli_status_close: " + response.content
+        #_logger.info( "product_meli_status_close: " + response.content )
 
         return {}
 
@@ -435,7 +435,7 @@ class product_product(models.Model):
 
         response = meli.put("/items/"+product.meli_id, { 'status': 'paused' }, {'access_token':meli.access_token})
 
-        #print "product_meli_status_pause: " + response.content
+        #_logger.info( "product_meli_status_pause: " + response.content )
 
         return {}
 
@@ -453,7 +453,7 @@ class product_product(models.Model):
 
         response = meli.put("/items/"+product.meli_id, { 'status': 'active' }, {'access_token':meli.access_token})
 
-        #print "product_meli_status_active: " + response.content
+        #_logger.info( "product_meli_status_active: " + response.content )
 
         return {}
 
@@ -475,7 +475,7 @@ class product_product(models.Model):
 
         response = meli.put("/items/"+product.meli_id, { 'deleted': 'true' }, {'access_token':meli.access_token})
 
-        #print "product_meli_delete: " + response.content
+        #_logger.info( "product_meli_delete: " + response.content )
         rjson = response.json()
         ML_status = rjson["status"]
         if "error" in rjson:
@@ -504,16 +504,16 @@ class product_product(models.Model):
         if product.image==None or product.image==False:
             return { 'status': 'error', 'message': 'no image to upload' }
 
-        # print "product_meli_upload_image"
-        #print "product_meli_upload_image: " + response.content
+        # _logger.info( "product_meli_upload_image" )
+        #_logger.info( "product_meli_upload_image: " + response.content )
         imagebin = base64.b64decode(product.image)
         imageb64 = product.image
-#       print "data:image/png;base64,"+imageb64
+#       _logger.info( "data:image/png;base64,"+imageb64 )
 #       files = [ ('images', ('image_medium', imagebin, "image/png")) ]
         files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
-        #print  files
+        #_logger.info(  files )
         response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
-       # print response.content
+       # _logger.info( response.content )
 
         rjson = response.json()
         if ("error" in rjson):
@@ -557,12 +557,12 @@ class product_product(models.Model):
         #loop over images
         for product_image in product.product_image_ids:
             if (product_image.image):
-                print "product_image.image:" + str(product_image.image)
+                _logger.info( "product_image.image:" + str(product_image.image) )
                 imagebin = base64.b64decode( product_image.image )
                 #files = { 'file': ('image.png', imagebin, "image/png"), }
                 files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
                 response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
-                print "meli upload:" + response.content
+                _logger.info( "meli upload:" + response.content )
                 rjson = response.json()
                 if ("error" in rjson):
                     raise osv.except_osv( _('MELI WARNING'), _('No se pudo cargar la imagen en MELI! Error: %s , Mensaje: %s, Status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
@@ -570,7 +570,7 @@ class product_product(models.Model):
                 else:
                     image_ids+= [ { 'id': rjson['id'] }]
                     c = c + 1
-                    print "image_ids:" + str(image_ids)
+                    _logger.info( "image_ids:" + str(image_ids) )
 
         product.write( { "meli_multi_imagen_id": "%s" % (image_ids) } )
 
@@ -701,7 +701,7 @@ class product_product(models.Model):
             product_tmpl.meli_warranty = company.mercadolibre_warranty
 
 
-        # print product.meli_category.meli_category_id
+        # _logger.info( product.meli_category.meli_category_id )
 
         if product_tmpl.meli_title==False:
             product_tmpl.meli_title = product_tmpl.name
@@ -719,11 +719,11 @@ class product_product(models.Model):
 
 
         if product.meli_title==False or len(product.meli_title)==0:
-            # print 'Assigning title: product.meli_title: %s name: %s' % (product.meli_title, product.name)
+            # _logger.info( 'Assigning title: product.meli_title: %s name: %s' % (product.meli_title, product.name) )
             product.meli_title = product_tmpl.meli_title
 
         if product.meli_price==False or product.meli_price==0.0:
-            # print 'Assigning price: product.meli_price: %s standard_price: %s' % (product.meli_price, product.standard_price)
+            # _logger.info( 'Assigning price: product.meli_price: %s standard_price: %s' % (product.meli_price, product.standard_price) )
 
             if product_tmpl.meli_price:
                 _logger.info("Assign tmpl price:"+str(product_tmpl.meli_price))
@@ -798,7 +798,7 @@ class product_product(models.Model):
             "plain_text": product.meli_description or '',
         }
 
-        # print body
+        # _logger.info( body )
 
         assign_img = False and product.meli_id
 
@@ -806,7 +806,7 @@ class product_product(models.Model):
         if product.image==None:
             return warningobj.info( title='MELI WARNING', message="Debe cargar una imagen de base en el producto.", message_html="" )
         elif product.meli_imagen_id==False:
-            # print "try uploading image..."
+            # _logger.info( "try uploading image..." )
             resim = product.product_meli_upload_image()
             if "status" in resim:
                 if (resim["status"]=="error" or resim["status"]=="warning"):
@@ -843,7 +843,7 @@ class product_product(models.Model):
         #publicando multiples imagenes
         multi_images_ids = {}
         if (product.product_image_ids):
-            # print 'website_multi_images presente:   ', product.images
+            # _logger.info( 'website_multi_images presente:   ', product.images )
             #recorrer las imagenes y publicarlas
             multi_images_ids = product.product_meli_upload_multi_images()
 
@@ -903,14 +903,14 @@ class product_product(models.Model):
             response = meli.post("/items", body, {'access_token':meli.access_token})
 
         #check response
-        # print response.content
+        # _logger.info( response.content )
         rjson = response.json()
         _logger.info(rjson)
 
 
         #check error
         if "error" in rjson:
-            #print "Error received: %s " % rjson["error"]
+            #_logger.info( "Error received: %s " % rjson["error"] )
             error_msg = 'MELI: mensaje de error:  %s , mensaje: %s, status: %s, cause: %s ' % (rjson["error"], rjson["message"], rjson["status"], rjson["cause"])
             _logger.error(error_msg)
 
@@ -920,7 +920,7 @@ class product_product(models.Model):
             if "message" in rjson and (rjson["message"]=='invalid_token' or rjson["message"]=="expired_token"):
                 meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
                 url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
-                #print "url_login_meli:", url_login_meli
+                #_logger.info( "url_login_meli:", url_login_meli )
                 #raise osv.except_osv( _('MELI WARNING'), _('INVALID TOKEN or EXPIRED TOKEN (must login, go to Edit Company and login):  error: %s, message: %s, status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
                 return warningobj.info( title='MELI WARNING', message="Debe iniciar sesión en MELI.  ", message_html="")
             else:

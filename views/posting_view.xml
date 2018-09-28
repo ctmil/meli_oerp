@@ -81,6 +81,7 @@
         <field name="target">new</field>
     </record>
 
+<!--
     <record model="ir.values" id="update_meli_postings">
         <field name="name">Update questions</field>
         <field name="key2">client_action_multi</field>
@@ -88,7 +89,7 @@
         <field name="key">action</field>
         <field name="model">mercadolibre.posting</field>
     </record>
-
+-->
 
 
         <record model="ir.actions.act_window" id="action_meli_postings_tree">
@@ -101,7 +102,7 @@
         </record>
 
 
-        <menuitem id="menu_meli" name="MercadoLibre" parent="sales_team.menu_base_partner" sequence="9"/>
+        <menuitem id="menu_meli" name="MercadoLibre" parent="sale.sale_menu_root" sequence="9"/>
 
         <menuitem id="menu_meli_postings"
             action="action_meli_postings_tree"

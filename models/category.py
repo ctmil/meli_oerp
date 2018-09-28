@@ -22,7 +22,6 @@
 from odoo import fields, osv, models, api
 import logging
 _logger = logging.getLogger(__name__)
-import urllib2
 
 from .meli_oerp_config import *
 from .warning import warning
@@ -94,7 +93,7 @@ class mercadolibre_category(models.Model):
                     fullname = fullname + "/" + path["name"]
 
               #fullname = fullname + "/" + rjson_cat['name']
-              #print "category fullname:" + str(fullname)
+              #_logger.info( "category fullname:" + str(fullname) )
               _logger.info(fullname)
               cat_fields = {
                 'name': fullname,
@@ -121,7 +120,7 @@ class mercadolibre_category(models.Model):
         if (category_root):
             response = meli.get("/categories/"+str(category_root), {'access_token':meli.access_token} )
 
-            print "response.content:", response.content
+            _logger.info( "response.content:", response.content )
 
             rjson = response.json()
             if ("name" in rjson):

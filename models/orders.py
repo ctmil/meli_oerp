@@ -30,8 +30,8 @@ import json
 import logging
 _logger = logging.getLogger(__name__)
 
-import posting
-import product
+from . import posting
+from . import product
 #https://api.mercadolibre.com/questions/search?item_id=MLA508223205
 
 class sale_order_line(models.Model):
@@ -124,7 +124,7 @@ class mercadolibre_orders(models.Model):
         _logger.info("orders_update_order_json > data: " + str(data) )
         oid = data["id"]
         order_json = data["order_json"]
-        #print "data:" + str(data)
+        #_logger.info( "data:" + str(data) )
         #_logger.info("orders_update_order_json > data[id]: " + oid + " order_json:" + order_json )
         company = self.env.user.company_id
 
@@ -182,7 +182,7 @@ class mercadolibre_orders(models.Model):
             'date_closed': order_json["date_closed"] or '',
         }
 
-        #print "order:" + str(order)
+        #_logger.info( "order:" + str(order) )
 
         if 'buyer' in order_json:
             Buyer = order_json['buyer']
@@ -208,7 +208,7 @@ class mercadolibre_orders(models.Model):
             buyer_ids = buyers_obj.search([  ('buyer_id','=',buyer_fields['buyer_id'] ) ] )
             buyer_id = 0
             if not buyer_ids:
-                print "creating buyer:" + str(buyer_fields)
+                _logger.info( "creating buyer:" + str(buyer_fields) )
                 buyer_id = buyers_obj.create(( buyer_fields ))
             else:
                 if (buyer_ids):
@@ -219,7 +219,7 @@ class mercadolibre_orders(models.Model):
             partner_ids = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ] )
             partner_id = 0
             if not partner_ids:
-                #print "creating partner:" + str(meli_buyer_fields)
+                #_logger.info( "creating partner:" + str(meli_buyer_fields) )
                 partner_id = respartner_obj.create(( meli_buyer_fields ))
             else:
                 partner_id = partner_ids
@@ -258,7 +258,7 @@ class mercadolibre_orders(models.Model):
         else:
             _logger.info("Adding new order: " )
             _logger.info(order_fields)
-            print "creating order:" + str(order_fields)
+            _logger.info( "creating order:" + str(order_fields) )
             order = order_obj.create( (order_fields))
 
         if (sorder and sorder.id):
@@ -267,19 +267,19 @@ class mercadolibre_orders(models.Model):
         else:
             _logger.info("Adding new sale.order: " )
             _logger.info(meli_order_fields)
-            #print "creating sale order:" + str(meli_order_fields)
+            #_logger.info( "creating sale order:" + str(meli_order_fields) )
             sorder = saleorder_obj.create((meli_order_fields))
 
         #check error
         if not order:
             _logger.error("Error adding order. " )
-            print "Error adding order"
+            _logger.info( "Error adding order" )
             return {}
 
         #check error
         if not sorder:
             _logger.error("Error adding sale.order. " )
-            print "Error adding sale.order"
+            _logger.info( "Error adding sale.order" )
             return {}
 
         #update internal fields (items, payments, buyers)
@@ -353,7 +353,7 @@ class mercadolibre_orders(models.Model):
                 order_item_ids = order_items_obj.search( [('order_item_id','=',order_item_fields['order_item_id']),('order_id','=',order.id)] )
                 _logger.info( order_item_fields )
                 if not order_item_ids:
-                    #print "order_item_fields: " + str(order_item_fields)
+                    #_logger.info( "order_item_fields: " + str(order_item_fields) )
                     order_item_ids = order_items_obj.create( ( order_item_fields ))
                 else:
                     order_item_ids.write( ( order_item_fields ) )
@@ -375,7 +375,7 @@ class mercadolibre_orders(models.Model):
                 _logger.info( saleorderline_item_fields )
 
                 if not saleorderline_item_ids:
-                    #print "saleorderline_item_fields: " + str(saleorderline_item_fields)
+                    #_logger.info( "saleorderline_item_fields: " + str(saleorderline_item_fields) )
                     saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
                 else:
                     saleorderline_item_ids.write( ( saleorderline_item_fields ) )
@@ -551,18 +551,18 @@ mercadolibre_orders()
 
 
 class mercadolibre_order_items(models.Model):
-	_name = "mercadolibre.order_items"
-	_description = "Producto pedido en MercadoLibre"
+    _name = "mercadolibre.order_items"
+    _description = "Producto pedido en MercadoLibre"
 
- 	posting_id = fields.Many2one("mercadolibre.posting","Posting");
-	order_id = fields.Many2one("mercadolibre.orders","Order");
- 	order_item_id = fields.Char('Item Id');
-	order_item_title = fields.Char('Item Title');
-	order_item_category_id = fields.Char('Item Category Id');
-	unit_price = fields.Char(string='Unit price');
-	quantity = fields.Integer(string='Quantity');
-	#       'total_price': fields.char(string='Total price'),
-	currency_id = fields.Char(string='Currency');
+    posting_id = fields.Many2one("mercadolibre.posting","Posting");
+    order_id = fields.Many2one("mercadolibre.orders","Order");
+    order_item_id = fields.Char('Item Id');
+    order_item_title = fields.Char('Item Title');
+    order_item_category_id = fields.Char('Item Category Id');
+    unit_price = fields.Char(string='Unit price');
+    quantity = fields.Integer(string='Quantity');
+    #       'total_price': fields.char(string='Total price'),
+    currency_id = fields.Char(string='Currency');
 
 mercadolibre_order_items()
 
@@ -582,17 +582,17 @@ class mercadolibre_payments(models.Model):
 mercadolibre_payments()
 
 class mercadolibre_buyers(models.Model):
-	_name = "mercadolibre.buyers"
-	_description = "Compradores en MercadoLibre"
+    _name = "mercadolibre.buyers"
+    _description = "Compradores en MercadoLibre"
 
-	buyer_id = fields.Char(string='Buyer ID');
-	nickname = fields.Char(string='Nickname');
-	email = fields.Char(string='Email');
-	phone = fields.Char( string='Phone');
-	alternative_phone = fields.Char( string='Alternative Phone');
-	first_name = fields.Char( string='First Name');
-	last_name = fields.Char( string='Last Name');
- 	billing_info = fields.Char( string='Billing Info');
+    buyer_id = fields.Char(string='Buyer ID');
+    nickname = fields.Char(string='Nickname');
+    email = fields.Char(string='Email');
+    phone = fields.Char( string='Phone');
+    alternative_phone = fields.Char( string='Alternative Phone');
+    first_name = fields.Char( string='First Name');
+    last_name = fields.Char( string='Last Name');
+    billing_info = fields.Char( string='Billing Info');
 
 mercadolibre_buyers()
 

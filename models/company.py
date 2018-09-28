@@ -23,7 +23,7 @@ from odoo import fields, osv, models, api
 from odoo.tools.translate import _
 import logging
 _logger = logging.getLogger(__name__)
-import urllib2
+
 import pdb
 
 from .meli_oerp_config import *
@@ -101,7 +101,7 @@ class res_company(models.Model):
             _logger.error(error_msg)
 
 #        except requests.exceptions.HTTPError as e:
-#            print "And you get an HTTPError:", e.message
+#            _logger.info( "And you get an HTTPError:", e.message )
 
         if ML_state:
             ACCESS_TOKEN = ''
@@ -110,7 +110,7 @@ class res_company(models.Model):
             company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
 
             if (company.mercadolibre_refresh_token and company.mercadolibre_cron_mail):
-                # we put the job_exception in context to be able to print it inside
+                # we put the job_exception in context to be able to _logger.info( it inside )
                 # the email template
                 context = {
                     'job_exception': message,
@@ -220,7 +220,7 @@ class res_company(models.Model):
 
         company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
         url_logout_meli = '/web?debug=#view_type=kanban&model=product.template&action=150'
-        print url_logout_meli
+        _logger.info( url_logout_meli )
         return {
             "type": "ir.actions.act_url",
             "url": url_logout_meli,
@@ -242,7 +242,7 @@ class res_company(models.Model):
         url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
         #url_login_oerp = "/meli_login"
 
-        print "OK company.meli_login() called: url is ", url_login_meli
+        _logger.info( "OK company.meli_login() called: url is ", url_login_meli )
 
         return {
             "type": "ir.actions.act_url",
@@ -426,7 +426,7 @@ class res_company(models.Model):
                     rjson3 = response.json()
                     if (posting_id):
                         _logger.info( "Item already in database: " + str(posting_id[0]) )
-                        #print "Item already in database: " + str(posting_id[0])
+                        #_logger.info( "Item already in database: " + str(posting_id[0]) )
                     else:
                         #idcreated = self.pool.get('product.product').create(cr,uid,{ 'name': rjson3['title'], 'meli_id': rjson3['id'] })
                         if 'id' in rjson3:
@@ -494,7 +494,7 @@ class res_company(models.Model):
                 #_logger.info( "Product to update name: " + str(obj.name)  )
                 #obj.product_meli_get_product()
                 #import pdb; pdb.set_trace()
-                #print "Product " + obj.name
+                #_logger.info( "Product " + obj.name )
                 obj.product_meli_get_product()
 
         return {}

@@ -64,7 +64,7 @@ class MercadoLibreLogin(http.Controller):
             return "<h1>"+message+"</h1><br/><a href='"+meli.auth_url(redirect_URI=REDIRECT_URI)+"'>Login</a>"
 
         if codes['code']!='none':
-            print "Meli: Authorize: REDIRECT_URI: %s, code: %s" % ( REDIRECT_URI, codes['code'] )
+            _logger.info( "Meli: Authorize: REDIRECT_URI: %s, code: %s" % ( REDIRECT_URI, codes['code'] ) )
             meli.authorize( codes['code'], REDIRECT_URI)
             ACCESS_TOKEN = meli.access_token
             REFRESH_TOKEN = meli.refresh_token
