@@ -186,7 +186,9 @@ class res_company(models.Model):
     mercadolibre_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),
                                                   ("classified","Clasificado")],
                                                   string='Método de compra predeterminado')
-    mercadolibre_currency = fields.Selection([("ARS","Peso Argentino (ARS)"),("MXN","Peso Mexicano (MXN)")],
+    mercadolibre_currency = fields.Selection([("ARS","Peso Argentino (ARS)"),
+    ("MXN","Peso Mexicano (MXN)"),
+    ("COP","Peso Colombiano (COP)")],
                                                 string='Moneda predeterminada')
     mercadolibre_condition = fields.Selection([ ("new", "Nuevo"),
                                                 ("used", "Usado"),
