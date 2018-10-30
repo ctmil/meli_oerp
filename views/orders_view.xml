@@ -76,6 +76,7 @@
             <field name="type">form</field>
             <field name="arch" type="xml">
 				      <form string="Orden">
+                <group>
                     <field name="seller"/>
                     <field name="order_id"/>
                     <field name="status"/>
@@ -87,6 +88,7 @@
                     <field name="currency_id"/>
                     <field name="buyer"/>
                     <field name="payments"/>
+                  </group>
                 </form>
             </field>
         </record>
