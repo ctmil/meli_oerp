@@ -941,6 +941,61 @@ class product_product(models.Model):
 
         return {}
 
+    def product_post_stock(self):
+        company = self.env.user.company_id
+        warningobj = self.env['warning']
+
+        product_obj = self.env['product.product']
+        product = self
+        product_tmpl = self.product_tmpl_id
+
+        CLIENT_ID = company.mercadolibre_client_id
+        CLIENT_SECRET = company.mercadolibre_secret_key
+        ACCESS_TOKEN = company.mercadolibre_access_token
+        REFRESH_TOKEN = company.mercadolibre_refresh_token
+        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+
+        if (product.virtual_available):
+            product.meli_available_quantity = product.virtual_available
+
+        fields = {
+            "available_quantity": product.meli_available_quantity
+        }
+        response = meli.put("/items/"+product.meli_id, fields, {'access_token':meli.access_token})
+
+    def product_post_price(self):
+        company = self.env.user.company_id
+        warningobj = self.env['warning']
+
+        product_obj = self.env['product.product']
+        product = self
+        product_tmpl = self.product_tmpl_id
+
+        CLIENT_ID = company.mercadolibre_client_id
+        CLIENT_SECRET = company.mercadolibre_secret_key
+        ACCESS_TOKEN = company.mercadolibre_access_token
+        REFRESH_TOKEN = company.mercadolibre_refresh_token
+        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+
+        if company.mercadolibre_pricelist:
+            pl = company.mercadolibre_pricelist
+            return_val = pl.price_get(product.id,1.0)
+            product_tmpl.meli_price = return_val[pl.id]
+
+        if product_tmpl.meli_price==False or product_tmpl.meli_price==0:
+            product_tmpl.meli_price = product_tmpl.standard_price
+
+        if product.meli_price==False or product.meli_price==0.0:
+            if product_tmpl.meli_price:
+                product.meli_price = product_tmpl.meli_price
+
+        fields = {
+            "available_quantity": product.meli_available_quantity
+        }
+        response = meli.put("/items/"+product.meli_id, fields, {'access_token':meli.access_token})
+
+
+
     #typical values
     meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
     meli_description = fields.Text(string='Descripción')
