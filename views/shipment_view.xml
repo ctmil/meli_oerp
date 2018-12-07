@@ -81,6 +81,18 @@
             <field name="target">new</field>
         </record>
 
+        <act_window id="action_mercadolibre_shipment_print"
+
+            name="Print (Etiquetas)"
+
+            src_model="mercadolibre.shipment"
+
+            res_model="mercadolibre.shipment.print"
+
+            view_type="form" view_mode="form"
+
+            key2="client_action_multi" target="new"/>
+
 
 
     </data>
