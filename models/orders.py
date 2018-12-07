@@ -32,6 +32,7 @@ _logger = logging.getLogger(__name__)
 
 from . import posting
 from . import product
+from . import shipment
 #https://api.mercadolibre.com/questions/search?item_id=MLA508223205
 
 class sale_order_line(models.Model):
