@@ -60,10 +60,12 @@ class mercadolibre_shipment_print(models.TransientModel):
 
 		#https://api.mercadolibre.com/shipment_labels?shipment_ids=20178600648,20182100995&response_type=pdf&
 		full_ids = ""
+		comma = ""
 		for shipid in shipment_ids:
 			shipment = shipment_obj.browse(shipid)
 			if (shipment):
 				full_ids = full_ids + comma + shipment.shipping_id
+				comma = ","
 
 		_logger.info(full_ids)
 		_logger.info("https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_ids+"&response_type=pdf&access_token="+meli.access_token)
