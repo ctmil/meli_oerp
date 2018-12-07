@@ -19,11 +19,16 @@
 #
 ##############################################################################
 
-from odoo import fields, osv, models
+from odoo import fields, osv, models, api
 import logging
 from .meli_oerp_config import *
 
 from ..melisdk.meli import Meli
+
+import json
+
+import logging
+_logger = logging.getLogger(__name__)
 #
 # https://api.mercadolibre.com/shipment_labels?shipment_ids=20178600648,20182100995&response_type=pdf&access_token=
 
@@ -74,29 +79,29 @@ class mercadolibre_shipment(models.Model):
 
 
 
-		return {}
+	return {}
 
 	def shipment_query( self ):
 
-        company = self.env.user.company_id
+		company = self.env.user.company_id
 
-        orders_obj = self.env['mercadolibre.orders']
+		orders_obj = self.env['mercadolibre.orders']
 		shipment_obj = self.env['mercadolibre.shipment']
 
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
+		CLIENT_ID = company.mercadolibre_client_id
+		CLIENT_SECRET = company.mercadolibre_secret_key
+		ACCESS_TOKEN = company.mercadolibre_access_token
+		REFRESH_TOKEN = company.mercadolibre_refresh_token
 
-        #
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN )
+		#
+		meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN )
 
-        #orders_query = "/orders/search?seller="+company.mercadolibre_seller_id+"&sort=date_desc"
+		#orders_query = "/orders/search?seller="+company.mercadolibre_seller_id+"&sort=date_desc"
 
 		# https://api.mercadolibre.com/shipment_labels?shipment_ids=20178600648,20182100995&response_type=pdf&access_token=
 		# https://api.mercadolibre.com/shipments/27693158904?access_token=APP_USR-3069131366650174-120509-8746c1a831468e99f84105cd631ff206-246057399
 
 
-        return {}
+		return {}
 
 mercadolibre_shipment()
