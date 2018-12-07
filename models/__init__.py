@@ -16,3 +16,4 @@ from . import product_post
 from . import questions
 from . import orders
 from . import currency
+from . import shipment
