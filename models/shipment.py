@@ -78,7 +78,7 @@ class mercadolibre_shipment(models.Model):
 	def create_shipment( self ):
 		return {}
 
-	def fetch( self, ship_id ):
+	def fetch( self, order ):
 
 		company = self.env.user.company_id
 
@@ -92,6 +92,11 @@ class mercadolibre_shipment(models.Model):
 
 		#
 		meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN )
+
+		if (order):
+			ship_id = order.shipping_id
+		else:
+			return {}
 
 		ships = shipment_obj.search([('shipping_id','=', ship_id)])
 		_logger.info(ships)
@@ -107,8 +112,41 @@ class mercadolibre_shipment(models.Model):
 				    _logger.error( ship_json["message"] )
 				else:
 				    _logger.info("Saving shipment fields")
+					ship_fields = {
+						"shipping_id": ship_json["id"],
+						"site_id": ship_json["site_id"],
+						"order_id": ship_json["order_id"],
+						"order": order,
+						"mode": ship_json["mode"],
+						"shipping_mode": ship_json["shipping_mode"],
+						"date_created": ship_json["date_created"],
+						"last_updated": ship_json["last_updated"],
+						"order_cost": ship_json["order_cost"],
+						"base_cost": ship_json["base_cost"],
+						"status": ship_json["status"],
+						"status_history": ship_json["status_history"],
+						"tracking_number": ship_json["tracking_number"],
+						"tracking_method": ship_json["tracking_method"],
+						"date_first_printed": ship_json["date_first_printed"],
+						"receiver_id": ship_json["receiver_id"],
+						"receiver_address_id": ship_json["receiver_address_id"],
+						"receiver_address_phone": ship_json["receiver_address_phone"],
+						"receiver_address_name": ship_json["receiver_address_name"],
+						"receiver_street_name": ship_json["receiver_street_name"],
+						"receiver_street_number": ship_json["receiver_street_number"],
+						"receiver_city": ship_json["receiver_city"],
+						"receiver_state": ship_json["receiver_state"],
+						"receiver_pais": ship_json["receiver_pais"],
+						"receiver_latitude": ship_json["receiver_latitude"],
+						"receiver_longitude": ship_json["receiver_longitude"],
+						"sender_id": ship_json["sender_id"],
+						"logistic_type": ship_json["logistic_type"]
+					}
+					ship = shipment_obj.create((ship_fields))
+					if (ship):
+						_logger.info("Created shipment ok!")
 		else:
-			_logger.info("Updating shipment: " + str(ship_id))
+			_logger.info("Updating shipment: "ship_fields + str(ship_id))
 
 		return {}
 

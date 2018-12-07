@@ -420,7 +420,7 @@ class mercadolibre_orders(models.Model):
         if company.mercadolibre_cron_get_orders_shipment:
             _logger.info("Updating order: Shipment")
             if (order.shipping_id):
-                shipment_obj.fetch( order.shipping_id )
+                shipment_obj.fetch( order )
 
 
         return {}
