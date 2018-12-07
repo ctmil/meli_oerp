@@ -40,7 +40,7 @@ class mercadolibre_shipment(models.Model):
 	posting_id = fields.Many2one("mercadolibre.posting","Posting")
 	shipment_id = fields.Char('Envío Id')
 	order_id =  fields.Char('Order Id')
-	order = field.Many2one("mercadolibre.orders","Order");
+	order = fields.Many2one("mercadolibre.orders","Order");
 
 	mode = fields.Char('Mode')
 	shipping_mode = fields.Char('Shipping mode')
