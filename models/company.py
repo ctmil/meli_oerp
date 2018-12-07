@@ -177,8 +177,13 @@ class res_company(models.Model):
         help="Select the email template that will be sent when "
         "cron refresh fails.")
     mercadolibre_cron_get_orders = fields.Boolean(string='Cron Get Orders')
+    mercadolibre_cron_get_orders_shipment = fields.Boolean(string='Cron Get Orders Shipment')
+    mercadolibre_cron_get_orders_shipment_client = fields.Boolean(string='Cron Get Orders Shipment Client')
     mercadolibre_cron_get_questions = fields.Boolean(string='Cron Get Questions')
     mercadolibre_cron_get_update_products = fields.Boolean(string='Cron Update Products')
+    mercadolibre_cron_post_update_products = fields.Boolean(string='Cron Post Products')
+    mercadolibre_cron_post_update_stock = fields.Boolean(string='Cron Post Updated Stock')
+    mercadolibre_cron_post_update_price = fields.Boolean(string='Cron Post Updated Price')
     mercadolibre_create_website_categories = fields.Boolean(string='Create Website Categories')
     mercadolibre_pricelist = fields.Many2one( "product.pricelist", "Product Pricelist default", help="Select price list for ML product"
         "when published from Odoo to ML")
@@ -188,7 +193,8 @@ class res_company(models.Model):
                                                   string='Método de compra predeterminado')
     mercadolibre_currency = fields.Selection([("ARS","Peso Argentino (ARS)"),
     ("MXN","Peso Mexicano (MXN)"),
-    ("COP","Peso Colombiano (COP)")],
+    ("COP","Peso Colombiano (COP)"),
+    ("PEN","Sol Peruano (PEN)")],
                                                 string='Moneda predeterminada')
     mercadolibre_condition = fields.Selection([ ("new", "Nuevo"),
                                                 ("used", "Usado"),
@@ -204,6 +210,8 @@ class res_company(models.Model):
                                                 ("gold_pro","Oro Pro")],
                                                 string='Tipo de lista  predeterminada')
     mercadolibre_attributes = fields.Boolean(string='Apply product attributes')
+    mercadolibre_update_local_stock = fields.Boolean(string='Cron Get Products and take Stock from ML')
+    mercadolibre_product_template_override_variant = fields.Boolean(string='Product template override Variant')
 
     #'mercadolibre_login': fields.selection( [ ("unknown", "Desconocida"), ("logged","Abierta"), ("not logged","Cerrada")],string='Estado de la sesión'), )
 
