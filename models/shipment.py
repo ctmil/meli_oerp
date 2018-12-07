@@ -69,7 +69,7 @@ class mercadolibre_shipment(models.Model):
 	receiver_street_number = fields.Char('Nro')
 	receiver_city = fields.Char('Ciudad')
 	receiver_state = fields.Char('Estado')
-	receiver_pais = fields.Char('Pais')
+	receiver_country = fields.Char('Pais')
 	receiver_latitude = fields.Char('Latitud')
 	receiver_longitude = fields.Char('Longitud')
 
@@ -140,9 +140,9 @@ class mercadolibre_shipment(models.Model):
 						"receiver_street_number": ship_json["receiver_address"]["street_number"],
 						"receiver_city": ship_json["receiver_address"]["city"]["name"],
 						"receiver_state": ship_json["receiver_address"]["state"]["name"],
-						"receiver_pais": ship_json["receiver_pais"],
-						"receiver_latitude": ship_json["receiver_latitude"],
-						"receiver_longitude": ship_json["receiver_longitude"],
+						"receiver_country": ship_json["receiver_address"]["country"]["name"],
+						"receiver_latitude": ship_json["receiver_address"]["latitude"],
+						"receiver_longitude": ship_json["receiver_address"]["longitude"],
 						"sender_id": ship_json["sender_id"],
 						"logistic_type": ship_json["logistic_type"]
 					}
