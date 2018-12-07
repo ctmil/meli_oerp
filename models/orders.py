@@ -150,6 +150,7 @@ class mercadolibre_orders(models.Model):
         posting_obj = self.env['mercadolibre.posting']
         order_items_obj = self.env['mercadolibre.order_items']
         payments_obj = self.env['mercadolibre.payments']
+        shipment_obj = self.env['mercadolibre.shipment']
 
 
         order = None
