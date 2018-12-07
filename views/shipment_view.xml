@@ -8,6 +8,7 @@
             <field name="type">tree</field>
             <field name="arch" type="xml">
                 <tree string="Shipment" >
+                    <field name="shipping_id"/>
                     <field name="mode"/>
                     <field name="shipping_mode"/>
                     <field name="date_created"/>
