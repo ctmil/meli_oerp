@@ -146,7 +146,7 @@ class mercadolibre_shipment(models.Model):
 					if (ship):
 						_logger.info("Created shipment ok!")
 		else:
-			_logger.info("Updating shipment: "ship_fields + str(ship_id))
+			_logger.info("Updating shipment: " + str(ship_id))
 
 		return {}
 
