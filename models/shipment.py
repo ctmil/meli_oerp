@@ -105,7 +105,7 @@ class mercadolibre_shipment(models.Model):
 				    _logger.error( ship_json["error"] )
 				    _logger.error( ship_json["message"] )
 				else:
-				    _logger.info("Saving shipment fields
+				    _logger.info("Saving shipment fields")
 		else:
 			_logger.info("Updating shipment: " + str(ship_id))
 
