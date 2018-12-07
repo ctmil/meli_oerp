@@ -92,8 +92,8 @@ class mercadolibre_shipment(models.Model):
 
 		#
 		meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN )
-
-		if (order):
+		ship_id = False
+		if (order and order.shipping_id):
 			ship_id = order.shipping_id
 		else:
 			return {}
