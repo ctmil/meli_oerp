@@ -52,6 +52,7 @@ class mercadolibre_shipment(models.Model):
 	base_cost = fields.Char('Base Cost')
 
 	status = fields.Char("Status")
+	substatus = fields.Char("Sub Status")
 	status_history = fields.Text("status_history")
 	tracking_number = fields.Char("Tracking number")
 	tracking_method = fields.Char("Tracking method")
@@ -63,6 +64,7 @@ class mercadolibre_shipment(models.Model):
 	receiver_address_id = fields.Char('Receiver address id')
 	receiver_address_phone = fields.Char('Teléfono')
 	receiver_address_name = fields.Char('Nombre')
+	receiver_address_comment = fields.Char('Comment')
 	receiver_street_name = fields.Char('Calle')
 	receiver_street_number = fields.Char('Nro')
 	receiver_city = fields.Char('Ciudad')
@@ -118,24 +120,26 @@ class mercadolibre_shipment(models.Model):
 						"order_id": ship_json["order_id"],
 						"order": order,
 						"mode": ship_json["mode"],
-						"shipping_mode": ship_json["shipping_mode"],
+						"shipping_mode": ship_json["shipping_option"]["name"],
 						"date_created": ship_json["date_created"],
 						"last_updated": ship_json["last_updated"],
 						"order_cost": ship_json["order_cost"],
 						"base_cost": ship_json["base_cost"],
 						"status": ship_json["status"],
-						"status_history": ship_json["status_history"],
+						"substatus": ship_json["substatus"],
+						#"status_history": ship_json["status_history"],
 						"tracking_number": ship_json["tracking_number"],
 						"tracking_method": ship_json["tracking_method"],
 						"date_first_printed": ship_json["date_first_printed"],
 						"receiver_id": ship_json["receiver_id"],
-						"receiver_address_id": ship_json["receiver_address_id"],
-						"receiver_address_phone": ship_json["receiver_address_phone"],
-						"receiver_address_name": ship_json["receiver_address_name"],
-						"receiver_street_name": ship_json["receiver_street_name"],
-						"receiver_street_number": ship_json["receiver_street_number"],
-						"receiver_city": ship_json["receiver_city"],
-						"receiver_state": ship_json["receiver_state"],
+						"receiver_address_id": ship_json["receiver_address"]["id"],
+						"receiver_address_phone": ship_json["receiver_address"]["receiver_phone"],
+						"receiver_address_name": ship_json["receiver_address"]["receiver_name"],
+						"receiver_address_comment": ship_json["receiver_address"]["comment"],
+						"receiver_street_name": ship_json["receiver_address"]["street_name"],
+						"receiver_street_number": ship_json["receiver_address"]["street_number"],
+						"receiver_city": ship_json["receiver_address"]["city"]["name"],
+						"receiver_state": ship_json["receiver_address"]["state"]["name"],
 						"receiver_pais": ship_json["receiver_pais"],
 						"receiver_latitude": ship_json["receiver_latitude"],
 						"receiver_longitude": ship_json["receiver_longitude"],
