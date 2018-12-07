@@ -40,6 +40,15 @@ class mercadolibre_shipment_print(models.TransientModel):
 		company = self.env.user.company_id
 		shipment_ids = context['active_ids']
 		#product_obj = self.env['product.template']
+		shipment_obj = self.env['mercadolibre.shipment']
+
+		CLIENT_ID = company.mercadolibre_client_id
+		CLIENT_SECRET = company.mercadolibre_secret_key
+		ACCESS_TOKEN = company.mercadolibre_access_token
+		REFRESH_TOKEN = company.mercadolibre_refresh_token
+
+		#
+		meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN )
 
 		#user_obj = self.pool.get('res.users').browse(cr, uid, uid)
 		#user_obj.company_id.meli_login()
@@ -47,6 +56,18 @@ class mercadolibre_shipment_print(models.TransientModel):
 		#warningobj = self.env['warning']
 		_logger.info("shipment_print")
 		_logger.info(shipment_ids)
+
+
+		#https://api.mercadolibre.com/shipment_labels?shipment_ids=20178600648,20182100995&response_type=pdf&
+		full_ids = ""
+		for shipid in shipment_ids:
+			shipment = shipment_obj.browse(shipid)
+			if (shipment):
+				full_ids = full_ids + comma + shipment.shipping_id
+
+		_logger.info(full_ids)
+		_logger.info("https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_ids+"&response_type=pdf&access_token="+meli.access_token)
+
 
 mercadolibre_shipment_print()
 
