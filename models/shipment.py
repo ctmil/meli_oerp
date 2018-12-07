@@ -31,6 +31,24 @@ import logging
 _logger = logging.getLogger(__name__)
 #
 # https://api.mercadolibre.com/shipment_labels?shipment_ids=20178600648,20182100995&response_type=pdf&access_token=
+class mercadolibre_shipment_print(models.TransientModel):
+	_name = "mercadolibre.shipment.print"
+	_description = "Impresión de etiquetas"
+
+	def shipment_print(self, context):
+		#pdb.set_trace()
+		company = self.env.user.company_id
+		shipment_ids = context['active_ids']
+		#product_obj = self.env['product.template']
+
+		#user_obj = self.pool.get('res.users').browse(cr, uid, uid)
+		#user_obj.company_id.meli_login()
+		#company = user_obj.company_id
+		#warningobj = self.env['warning']
+		_logger.info("shipment_print")
+		_logger.info(shipment_ids)
+
+mercadolibre_shipment_print()
 
 class mercadolibre_shipment(models.Model):
 	_name = "mercadolibre.shipment"
