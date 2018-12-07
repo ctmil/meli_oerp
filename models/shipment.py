@@ -94,7 +94,8 @@ class mercadolibre_shipment(models.Model):
 		meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN )
 
 		ships = shipment_obj.search([('shipping_id','=', ship_id)])
-		if (len(ships)>0):
+		_logger.info(ships)
+		if (len(ships)==0):
 			_logger.info("Importing shipment: " + str(ship_id))
 			response = meli.get("/shipments/"+ str(ship_id),  {'access_token':meli.access_token})
 			if (response):
