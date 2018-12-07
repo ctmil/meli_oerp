@@ -412,6 +412,11 @@ class mercadolibre_orders(models.Model):
         if order:
             return_id = self.env['mercadolibre.orders'].update
 
+
+        if company.mercadolibre_cron_get_orders_shipment:
+            _logger.info("Updating order: Shipment")
+
+
         return {}
 
     def orders_update_order( self, context=None ):
@@ -540,6 +545,9 @@ class mercadolibre_orders(models.Model):
     order_items = fields.One2many('mercadolibre.order_items','order_id','Order Items' );
     payments = fields.One2many('mercadolibre.payments','order_id','Payments' );
     shipping = fields.Text(string="Shipping");
+    shipping_id = fields.Char(string="Shipping id");
+    shipment = fields.One2many('mercadolibre.shipment','shipping_id','Shipment')
+
 
     total_amount = fields.Char(string='Total amount');
     currency_id = fields.Char(string='Currency');
