@@ -76,8 +76,38 @@ class mercadolibre_shipment(models.Model):
 	logistic_type = fields.Char('Logistic type')
 
 	def create_shipment( self ):
+		return {}
 
+	def fetch( self, ship_id ):
 
+		company = self.env.user.company_id
+
+		orders_obj = self.env['mercadolibre.orders']
+		shipment_obj = self.env['mercadolibre.shipment']
+
+		CLIENT_ID = company.mercadolibre_client_id
+		CLIENT_SECRET = company.mercadolibre_secret_key
+		ACCESS_TOKEN = company.mercadolibre_access_token
+		REFRESH_TOKEN = company.mercadolibre_refresh_token
+
+		#
+		meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN )
+
+		ships = shipment_obj.search([('shipping_id','=', ship_id)])
+		if (len(ships)>0):
+			_logger.info("Importing shipment: " + str(ship_id))
+			response = meli.get("/shipments/"+ str(ship_id),  {'access_token':meli.access_token})
+			if (response):
+				ship_json = response.json()
+				_logger.info( ship_json )
+
+				if "error" in ship_json:
+				    _logger.error( ship_json["error"] )
+				    _logger.error( ship_json["message"] )
+				else:
+				    _logger.info("Saving shipment fields
+		else:
+			_logger.info("Updating shipment: " + str(ship_id))
 
 		return {}
 
