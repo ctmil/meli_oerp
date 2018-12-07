@@ -118,7 +118,7 @@ class mercadolibre_shipment(models.Model):
 						"shipping_id": ship_json["id"],
 						"site_id": ship_json["site_id"],
 						"order_id": ship_json["order_id"],
-						"order": order,
+						"order": order.id,
 						"mode": ship_json["mode"],
 						"shipping_mode": ship_json["shipping_option"]["name"],
 						"date_created": ship_json["date_created"],
