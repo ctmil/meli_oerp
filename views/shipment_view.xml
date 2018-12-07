@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<openerp>
+    <data>
+
+        <record model="ir.ui.view" id="view_meli_shipment_tree">
+            <field name="name">mercadolibre.shipment.tree</field>
+            <field name="model">mercadolibre.shipment</field>
+            <field name="type">tree</field>
+            <field name="arch" type="xml">
+                <tree string="Shipment" >
+                    <field name="mode"/>
+                    <field name="shipping_mode"/>
+                    <field name="date_created"/>
+                    <field name="last_updated"/>
+                    <field name="order_cost"/>
+                    <field name="base_cost"/>
+                    <field name="status"/>
+                    <field name="tracking_number"/>
+                    <field name="receiver_id"/>
+                    <field name="sender_id"/>
+                </tree>
+            </field>
+        </record>
+
+
+    <record id="meli_shipment_search_view" model="ir.ui.view">
+        <field name="name">MercadoLibre Shipment - Search</field>
+        <field name="model">mercadolibre.shipment</field>
+        <field name="arch" type="xml">
+	    <search string="Search MercadoLibre Shipments Information">
+                <filter string='Status' icon="terp-mrp" domain="[]" context="{'group_by' : 'status'}"/>
+	    </search>
+        </field>
+    </record>
+
+
+        <record model="ir.actions.act_window" id="action_meli_shipment_tree">
+            <field name="name">Envíos</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">mercadolibre.shipment</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">tree,form</field>
+            <field name="search_view_id" ref="meli_shipment_search_view"/>
+        </record>
+
+
+        <menuitem id="menu_meli" name="MercadoLibre" parent="sales_team.menu_base_partner" sequence="9"/>
+
+        <menuitem id="menu_meli_shipment"
+            action="action_meli_shipment_tree"
+            parent="menu_meli"
+            name="Envíos" />
+
+    </data>
+</openerp>
