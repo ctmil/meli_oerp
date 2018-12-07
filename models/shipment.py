@@ -29,6 +29,7 @@ import json
 
 import logging
 _logger = logging.getLogger(__name__)
+
 #
 # https://api.mercadolibre.com/shipment_labels?shipment_ids=20178600648,20182100995&response_type=pdf&access_token=
 class mercadolibre_shipment_print(models.TransientModel):
@@ -41,6 +42,7 @@ class mercadolibre_shipment_print(models.TransientModel):
 		shipment_ids = context['active_ids']
 		#product_obj = self.env['product.template']
 		shipment_obj = self.env['mercadolibre.shipment']
+		warningobj = self.env['warning']
 
 		CLIENT_ID = company.mercadolibre_client_id
 		CLIENT_SECRET = company.mercadolibre_secret_key
@@ -63,12 +65,15 @@ class mercadolibre_shipment_print(models.TransientModel):
 		comma = ""
 		for shipid in shipment_ids:
 			shipment = shipment_obj.browse(shipid)
-			if (shipment):
+			if (shipment and shipment.status=="ready_to_ship"):
 				full_ids = full_ids + comma + shipment.shipping_id
+				#full_str_ids = full_str_ids + comma + shipment
 				comma = ","
 
 		_logger.info(full_ids)
 		_logger.info("https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_ids+"&response_type=pdf&access_token="+meli.access_token)
+		if (full_ids):
+			return warningobj.info( title='Impresión de etiquetas', message="Abrir este link para descargar el PDF", message_html=""+full_ids )
 
 
 mercadolibre_shipment_print()
