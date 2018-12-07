@@ -92,8 +92,7 @@
                     <field name="shipping_id"/>
                     <field name="shipment"/>
                   </group>
-                </form>
-            </field>
+                </form>            
             </field>
         </record>
 
