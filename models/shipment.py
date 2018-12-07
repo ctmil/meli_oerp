@@ -71,9 +71,10 @@ class mercadolibre_shipment_print(models.TransientModel):
 				comma = ","
 
 		_logger.info(full_ids)
-		_logger.info("https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_ids+"&response_type=pdf&access_token="+meli.access_token)
+		full_url_link_pdf = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_ids+"&response_type=pdf&access_token="+meli.access_token
+		_logger.info(full_url_link_pdf)
 		if (full_ids):
-			return warningobj.info( title='Impresión de etiquetas', message="Abrir este link para descargar el PDF", message_html=""+full_ids )
+			return warningobj.info( title='Impresión de etiquetas', message="Abrir este link para descargar el PDF", message_html=""+full_ids+'<a href="'+full_url_link_pdf+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>' )
 
 
 mercadolibre_shipment_print()
