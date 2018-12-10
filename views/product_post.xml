@@ -49,6 +49,13 @@
             <field name="target">new</field>
         </record>
 
+        <act_window id="action_product_template_post"
+            name="Publicar/Actualizar en ML"
+            src_model="product.template"
+            res_model="mercadolibre.product.template.post"
+            view_type="form" view_mode="form"
+            key2="client_action_multi" target="new"/>
+
     <record id="action_product_post" model="ir.actions.act_window">
         <field name="name">MELI Post</field>
         <field name="type">ir.actions.act_window</field>
@@ -58,6 +65,14 @@
         <field name="view_mode">form</field>
         <field name="target">new</field>
     </record>
+
+
+    <act_window id="action_product_post"
+        name="Publicar/Actualizar en ML"
+        src_model="product.product"
+        res_model="mercadolibre.product.post"
+        view_type="form" view_mode="form"
+        key2="client_action_multi" target="new"/>
 <!--
     <record model="ir.values" id="action_product_template_post_values">
         <field name="name">MELI Post</field>
