@@ -109,5 +109,12 @@
             parent="menu_meli"
             name="Ventas" />
 
+        <act_window id="action_update_meli_postings"
+            name="Update ML Post"
+            src_model="mercadolibre.posting"
+            res_model="mercadolibre.posting.update"
+            view_type="form" view_mode="form"
+            key2="client_action_multi" target="new"/>
+
     </data>
 </openerp>
