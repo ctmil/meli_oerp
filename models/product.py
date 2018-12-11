@@ -641,6 +641,74 @@ class product_product(models.Model):
 
         return {}
 
+    def set_bom(self, has_sku=True):
+        #generar lista de materiales si y ssi existe un producto CON ENVIO/SIN ENVIO
+        # CONDICION: tener un
+        variant = self
+        product_template = self.product_tmpl_id
+        bom = self.env["mrp.bom"]
+        bom_l = self.env["mrp.bom.line"]
+        _logger.info("set bom: " + str(has_sku))
+
+        product_uom_id = self.env['product.uom'].search([('name','=','Unidad(es)')])
+        if (product_uom_id.id==False):
+            product_uom_id = 1
+        else:
+            product_uom_id = product_uom_id.id
+
+        if (has_sku):
+            E_S = variant.default_code[-2:]
+            #_logger.info("check sin envio code")
+            #_logger.info(E_S)
+            if (E_S=="CE"):
+                #buscamos el sin envio
+                #_logger.info("buscamos sin envio")
+                sin_envio = variant.default_code[0:-2] + 'SE'
+                _logger.info(sin_envio)
+                pse = self.env["product.product"].search([('default_code','=',sin_envio),('name','=',variant.name)])
+                if (len(pse)>1):
+                    pse = pse[0]
+                if (pse):
+                    _logger.info("SE encontrado: " + sin_envio)
+                    # igualar stock
+                    variant.meli_available_quantity = pse.meli_available_quantity
+                    _logger.info("SE meli_available_quantity: " + str(pse.meli_available_quantity))
+                    bom_list = bom.search([('product_tmpl_id','=',product_template.id),('product_id','=',variant.id)])
+                    if (bom_list):
+                        #_logger.info("bom_list:")
+                        #_logger.info(bom_list)
+                        pass
+                    else:
+                        #lista de materiales: KIT (phantom)
+                        bl_fields = {
+                            "product_tmpl_id": product_template.id,
+                            "product_id": variant.id,
+                            "type": "phantom",
+                            "product_qty": 1,
+                            "product_uom_id": product_uom_id
+                        }
+                        bom_list = bom.create(bl_fields)
+                        _logger.info("bom_list created:")
+                        #_logger.info(bom_list)
+
+                    if (bom_list):
+                        #check line ids
+                        lineids = bom_l.search([('bom_id','=',bom_list.id)])
+                        if (lineids):
+                            #check if lineids is ok
+                            pass;
+                        else:
+                            bomline_fields = {
+                                'bom_id': bom_list.id,
+                                'product_id': pse.id,
+                                'product_uom_id': product_uom_id,
+                                'product_qty': 1.0
+                            }
+                            lineids = bom_l.create(bomline_fields)
+                            #_logger.info("bom_list line created")
+                else:
+                    _logger.info("SE no existe?")
+
     def product_meli_login(self ):
 
         company = self.env.user.company_id
