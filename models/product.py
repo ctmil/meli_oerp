@@ -386,7 +386,7 @@ class product_product(models.Model):
             txtotal = 0
             _logger.info("Adjust taxes")
             for txid in product_template.taxes_id:
-                if (txid.tax_type_use=="sale"):
+                if (txid.type_tax_use=="sale"):
                     txtotal = txtotal + txid.amount
                     _logger.info(txid.amount)
             if (txtotal>0):
