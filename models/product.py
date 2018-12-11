@@ -192,7 +192,7 @@ class product_product(models.Model):
         product = self
 
         _logger.info("product_meli_get_product")
-        _logger.info(product)
+        #_logger.info(product)
 
         product_template_obj = self.env['product.template']
         product_template = product_template_obj.browse(product.product_tmpl_id.id)
@@ -208,7 +208,7 @@ class product_product(models.Model):
             response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token})
             #_logger.info(response)
             rjson = response.json()
-            _logger.info(rjson)
+            #_logger.info(rjson)
         except IOError as e:
             _logger.info( "I/O error({0}): {1}".format(e.errno, e.strerror) )
             return {}
@@ -224,8 +224,8 @@ class product_product(models.Model):
         if 'error' in rjson:
             return {}
 
-        if "content" in response:
-            _logger.info(response.content)
+        #if "content" in response:
+        #    _logger.info(response.content)
         #    _logger.info( "product_meli_get_product > response.content: " + response.content )
 
         #TODO: traer la descripcion: con
@@ -264,15 +264,15 @@ class product_product(models.Model):
             ml_cat = self.env['mercadolibre.category'].search([('meli_category_id','=',category_id)])
             ml_cat_id = ml_cat.id
             if (ml_cat_id):
-                _logger.info( "category exists!" + str(ml_cat_id) )
+                #_logger.info( "category exists!" + str(ml_cat_id) )
                 mlcatid = ml_cat_id
                 www_cat_id = ml_cat.public_category_id
             else:
-                _logger.info( "Creating category: " + str(category_id) )
+                #_logger.info( "Creating category: " + str(category_id) )
                 #https://api.mercadolibre.com/categories/MLA1743
                 response_cat = meli.get("/categories/"+str(category_id), {'access_token':meli.access_token})
                 rjson_cat = response_cat.json()
-                _logger.info( "category:" + str(rjson_cat) )
+                #_logger.info( "category:" + str(rjson_cat) )
                 fullname = ""
                 if ("path_from_root" in rjson_cat):
                     path_from_root = rjson_cat["path_from_root"]
@@ -327,7 +327,7 @@ class product_product(models.Model):
                 imagen_id = rjson['pictures'][0]['id']
 
         meli_fields = {
-            'name': str(rjson['title'].encode("utf-8")),
+            'name': rjson['title'].encode("utf-8"),
             'default_code': rjson['id'],
             #'name': str(rjson['id']),
             'meli_imagen_id': imagen_id,
@@ -354,10 +354,22 @@ class product_product(models.Model):
             'meli_dimensions': meli_dim_str,
         }
 
+        ml_price_convert = rjson['price']
+
         tmpl_fields = {
-          'name': str(rjson['title'].encode("utf-8")),
+          'name': meli_fields["name"],
           #'name': str(rjson['id']),
-          'lst_price': rjson['price']
+          'lst_price': ,
+          'meli_title': meli_fields["meli_title"],
+          'meli_description': meli_fields["meli_description"],
+          'meli_category': meli_fields["meli_category"],
+          'meli_listing_type': meli_fields["meli_listing_type"],
+          'meli_buying_mode': meli_fields["meli_buying_mode"],
+          'meli_price': meli_fields["meli_price"],
+          'meli_currency': meli_fields["meli_currency"],
+          'meli_condition': meli_fields["meli_condition"],
+          'meli_warranty': meli_fields["meli_warranty"],
+          'meli_dimensions': meli_fields["meli_dimensions"]
         }
         #pdb.set_trace()
         if www_cat_id!=False:
@@ -371,7 +383,6 @@ class product_product(models.Model):
             product_template.website_published = True
         else:
             product_template.website_published = False
-#{"id":"MLA639109219","site_id":"MLA","title":"Disco Vinilo Queen - Rock - A Kind Of Magic","subtitle":null,"seller_id":171329758,"category_id":"MLA2038","official_store_id":null,"price":31,"base_price":31,"original_price":null,"currency_id":"ARS","initial_quantity":5,"available_quantity":5,"sold_quantity":0,"buying_mode":"buy_it_now","listing_type_id":"free","start_time":"2016-10-17T20:36:22.000Z","stop_time":"2016-12-16T20:36:22.000Z","end_time":"2016-12-16T20:36:22.000Z","expiration_time":null,"condition":"used","permalink":"http://articulo.mercadolibre.com.ar/MLA-639109219-disco-vinilo-queen-rock-a-kind-of-magic-_JM","thumbnail":"http://mla-s1-p.mlstatic.com/256905-MLA25108641321_102016-I.jpg","secure_thumbnail":"https://mla-s1-p.mlstatic.com/256905-MLA25108641321_102016-I.jpg","pictures":[{"id":"256905-MLA25108641321_102016","url":"http://mla-s1-p.mlstatic.com/256905-MLA25108641321_102016-O.jpg","secure_url":"https://mla-s1-p.mlstatic.com/256905-MLA25108641321_102016-O.jpg","size":"500x400","max_size":"960x768","quality":""},{"id":"185215-MLA25150338489_112016","url":"http://www.mercadolibre.com/jm/img?s=STC&v=O&f=proccesing_image_es.jpg","secure_url":"https://www.mercadolibre.com/jm/img?s=STC&v=O&f=proccesing_image_es.jpg","size":"500x500","max_size":"500x500","quality":""}],"video_id":null,"descriptions":[{"id":"MLA639109219-1196717922"}],"accepts_mercadopago":true,"non_mercado_pago_payment_methods":[],"shipping":{"mode":"not_specified","local_pick_up":false,"free_shipping":false,"methods":[],"dimensions":null,"tags":[]},"international_delivery_mode":"none","seller_address":{"id":193196973,"comment":"3B","address_line":"Billinghurst 1711","zip_code":"1425","city":{"id":"TUxBQlBBTDI1MTVa","name":"Palermo"},"state":{"id":"AR-C","name":"Capital Federal"},"country":{"id":"AR","name":"Argentina"},"latitude":-34.5906131,"longitude":-58.4101982,"search_location":{"neighborhood":{"id":"TUxBQlBBTDI1MTVa","name":"Palermo"},"city":{"id":"TUxBQ0NBUGZlZG1sYQ","name":"Capital Federal"},"state":{"id":"TUxBUENBUGw3M2E1","name":"Capital Federal"}}},"seller_contact":null,"location":{},"geolocation":{"latitude":-34.5906131,"longitude":-58.4101982},"coverage_areas":[],"attributes":[],"warnings":[],"listing_source":"","variations":[],"status":"active","sub_status":[],"tags":[],"warranty":null,"catalog_product_id":null,"domain_id":null,"seller_custom_field":null,"parent_item_id":null,"differential_pricing":null,"deal_ids":[],"automatic_relist":false,"date_created":"2016-10-17T20:36:22.000Z","last_updated":"2016-11-07T21:38:10.000Z"}
 
         posting_fields = {'posting_date': str(datetime.now()),'meli_id':rjson['id'],'product_id':product.id,'name': 'Post (ML): ' + product.meli_title }
 
@@ -382,6 +393,251 @@ class product_product(models.Model):
             posting_id = posting.id
             if (posting):
                 posting.posting_query_questions()
+
+
+        b_search_nonfree_ship = False
+        if ('shipping' in rjson):
+            att_shipping = {
+                'name': 'Con envío',
+                'create_variant': False
+            }
+            if ('variations' in rjson):
+                #_logger.info("has variations")
+                pass
+            else:
+                rjson['variations'] = []
+
+            if ('free_methods' in rjson['shipping']):
+                att_shipping['value_name'] = 'Sí'
+                #buscar referencia del template correspondiente
+                b_search_nonfree_ship = True
+            else:
+                att_shipping['value_name'] = 'No'
+
+            rjson['variations'].append({'attribute_combinations': [ att_shipping ]})
+
+        published_att_variants = False
+        if ('variations' in rjson):
+            #recorrer los variations>attribute_combinations y agregarlos como atributos de las variantes
+            #_logger.info(rjson['variations'])
+            vindex = -1
+            for variation in rjson['variations']:
+                vindex = vindex + 1
+                if ('attribute_combinations' in variation):
+                    _attcomb_str = ""
+                    rjson['variations'][vindex]["default_code"] = ""
+                    for attcomb in variation['attribute_combinations']:
+                        att = {
+                            'name': attcomb['name'],
+                            'value_name': attcomb['value_name'],
+                            'create_variant': True
+                        }
+                        if ('create_variant' in attcomb):
+                            att['create_variant'] = attcomb['create_variant']
+                        else:
+                            rjson['variations'][vindex]["default_code"] = rjson['variations'][vindex]["default_code"]+attcomb['name']+":"+attcomb['value_name']+";"
+                        #_logger.info(att)
+                        attribute_id = self.env['product.attribute'].search([('name','=',att['name'])]).id
+                        #_logger.info(attribute_id)
+                        if attribute_id:
+                            #_logger.info(attribute_id)
+                            pass
+                        else:
+                            #_logger.info("Creating attribute:")
+                            attribute_id = self.env['product.attribute'].create({ 'name': att['name'],'create_variant': att['create_variant'] }).id
+                        if (att['create_variant']==True):
+                            published_att_variants = True
+                        if (attribute_id):
+                            #_logger.info("Publishing attribute")
+                            attribute_value_id = self.env['product.attribute.value'].search([('attribute_id','=',attribute_id),('name','=',att['value_name'])]).id
+                            #_logger.info(_logger.info(attribute_id))
+                            if attribute_value_id:
+                                #_logger.info(attribute_value_id)
+                                pass
+                            else:
+                                _logger.info("Creating attribute value:")
+                                attribute_value_id = self.env['product.attribute.value'].create({'attribute_id': attribute_id,'name': att['value_name']}).id
+                            if (attribute_value_id):
+                                #_logger.info("attribute_value_id:")
+                                #_logger.info(attribute_value_id)
+                                #search for line ids.
+                                attribute_line =  self.env['product.attribute.line'].search([('attribute_id','=',attribute_id),('product_tmpl_id','=',product_template.id)])
+                                #_logger.info(attribute_line)
+                                if (attribute_line and attribute_line.id):
+                                    #_logger.info(attribute_line)
+                                    pass
+                                else:
+                                    #_logger.info("Creating att line id:")
+                                    attribute_line =  self.env['product.attribute.line'].create( { 'attribute_id': attribute_id,'product_tmpl_id': product_template.id } )
+
+                                if (attribute_line):
+                                    #_logger.info("Check attribute line values id.")
+                                    #_logger.info("attribute_line:")
+                                    #_logger.info(attribute_line)
+                                    if (attribute_line.value_ids):
+                                        #check if values
+                                        #_logger.info("Has value ids:")
+                                        #_logger.info(attribute_line.value_ids.ids)
+                                        if (attribute_value_id in attribute_line.value_ids.ids):
+                                            #_logger.info(attribute_line.value_ids.ids)
+                                            pass
+                                        else:
+                                            #_logger.info("Adding value id")
+                                            attribute_line.value_ids = [(4,attribute_value_id)]
+                                    else:
+                                        #_logger.info("Adding value id")
+                                        attribute_line.value_ids = [(4,attribute_value_id)]
+
+        #_logger.info("product_uom_id")
+        product_uom_id = self.env['product.uom'].search([('name','=','Unidad(es)')])
+        if (product_uom_id.id==False):
+            product_uom_id = 1
+        else:
+            product_uom_id = product_uom_id.id
+
+        _product_id = product.id
+        _product_name = product.name
+        _product_meli_id = product.meli_id
+
+        #this write pull the trigger for create_variant_ids()...
+        #_logger.info("rewrite to create variants")
+        product_template.write({ 'attribute_line_ids': product_template.attribute_line_ids  })
+
+        if (published_att_variants):
+            product_template.meli_pub_as_variant = True
+
+            #_logger.info("Auto check product.template meli attributes to publish")
+            for line in  product_template.attribute_line_ids:
+                if (line.id not in product_template.meli_pub_variant_attributes.ids):
+                    if (line.attribute_id.create_variant):
+                        product_template.meli_pub_variant_attributes = [(4,line.id)]
+
+            #_logger.info("check variants")
+            for variant in product_template.product_variant_ids:
+                #_logger.info("Created variant:")
+                #_logger.info(variant)
+                variant.meli_pub = product_template.meli_pub
+                variant.meli_id = rjson['id']
+                variant.default_code = rjson['id']
+                variant.name = str(rjson['title'].encode("utf-8"))
+                has_sku = False
+
+                _v_default_code = ""
+                for att in variant.attribute_value_ids:
+                    _v_default_code = _v_default_code + att.attribute_id.name+':'+att.name+';'
+        #                _logger.info("_v_default_code: " + _v_default_code)
+                for variation in rjson['variations']:
+        #                    _logger.info("variation[default_code]: " + variation["default_code"])
+                    if (_v_default_code==variation["default_code"]):
+                        if (variation["seller_custom_field"]):
+                            #_logger.info("has_sku")
+                            #_logger.info(variation["seller_custom_field"])
+                            variant.default_code = variation["seller_custom_field"]
+                            has_sku = True
+                        else:
+                            variant.default_code = variant.meli_id+'-'+_v_default_code
+                        variant.meli_available_quantity = variation["available_quantity"]
+
+                if (has_sku):
+                    variant.set_bom()
+
+                if (product_template.meli_pub_principal_variant is None):
+                    product_template.meli_pub_principal_variant = variant
+                    product = variant
+
+                if (_product_id==variant.id):
+                    product = variant
+        else:
+            #NO TIENE variantes
+            if (rjson["seller_custom_field"]):
+                product.default_code = rjson["seller_custom_field"]
+                product.set_bom()
+
+
+        if (company.mercadolibre_update_local_stock):
+            product_template.type = 'product'
+            wh = self.env['stock.location'].search([('usage','=','internal')]).id
+            ##product_uom_cat_id = sock.execute(dbname,uid,pwd,'product.uom.categ','search',[('name','=',"Unit")])
+            #print "product_uom_cat_id:",product_uom_cat_id
+
+            for variant in product_template.product_variant_ids:
+
+                _product_id = variant.id
+                _product_name = variant.name
+                _product_meli_id = variant.meli_id
+
+                stock_inventory_fields = {
+                    "product_id": _product_id,
+                    "filter": "product",
+                    "location_id": wh,
+                    "name": "INV: "+ variant.name
+                }
+                if (variant.meli_available_quantity != variant.virtual_available):
+                    _logger.info("Updating stock for variant." + str(variant.meli_available_quantity) )
+        #                _logger.info("stock_inventory_fields:")
+        #                _logger.info(stock_inventory_fields)
+                    StockInventory = self.env['stock.inventory'].create(stock_inventory_fields)
+        #                _logger.info("StockInventory:")
+        #                _logger.info(StockInventory)
+                    if (StockInventory):
+                        stock_inventory_field_line = {
+                            "product_qty": variant.meli_available_quantity,
+                            'theoretical_qty': 0,
+                            "product_id": _product_id,
+                            "product_uom_id": product_uom_id,
+                            "location_id": wh,
+                            'inventory_location_id': wh,
+                            "inventory_id": StockInventory.id,
+                            #"name": "INV "+ nombre
+                            #"state": "confirm",
+                        }
+                        StockInventoryLine = self.env['stock.inventory.line'].create(stock_inventory_field_line)
+                        #print "StockInventoryLine:", StockInventoryLine, stock_inventory_field_line
+        #                    _logger.info("StockInventoryLine:")
+        #                    _logger.info(StockInventoryLine)
+                        if (StockInventoryLine):
+                            return_id = StockInventory.action_done()
+        #                        _logger.info("action_done:"+str(return_id))
+
+        #assign envio/sin envio
+        #si es (Con envio: Sí): asigna el meli_default_stock_product al producto sin envio (Con evio: No)
+        if (b_search_nonfree_ship):
+            ptemp_nfree = False
+            ptpl_same_name = self.env['product.template'].search([('name','=',product_template.name)])
+            #_logger.info("ptpl_same_name:"+product_template.name)
+            #_logger.info(ptpl_same_name)
+            if len(ptpl_same_name):
+                for ptemp in ptpl_same_name:
+                    #check if sin envio
+                    _logger.info(ptemp.name)
+                    for line in ptemp.attribute_line_ids:
+                        #_logger.info(line.attribute_id.name)
+                        #_logger.info(line.value_ids)
+                        es_con_envio = False
+                        try:
+                            line.attribute_id.name.index('Con env')
+                            es_con_envio = True
+                        except ValueError:
+                            pass
+                            #_logger.info("not con envio")
+                        if (es_con_envio==True):
+                            for att in line.value_ids:
+                                #_logger.info(att.name)
+                                if (att.name=='No'):
+                                    #_logger.info("Founded")
+                                    if (ptemp.meli_pub_principal_variant):
+                                        #_logger.info("has meli_pub_principal_variant!")
+                                        ptemp_nfree = ptemp.meli_pub_principal_variant
+                                        if (ptemp_nfree.meli_default_stock_product):
+                                            #_logger.info("has meli_default_stock_product!!!")
+                                            ptemp_nfree = ptemp_nfree.meli_default_stock_product
+                                    else:
+                                        ptemp_nfree = ptemp.product_variant_ids[0]
+
+            if (ptemp_nfree):
+                #_logger.info("Founded ptemp_nfree, assign to all variants")
+                for variant in product_template.product_variant_ids:
+                    variant.meli_default_stock_product = ptemp_nfree
 
         return {}
 
