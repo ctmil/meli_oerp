@@ -326,6 +326,8 @@ class product_product(models.Model):
             if (len(rjson['pictures'])>0):
                 imagen_id = rjson['pictures'][0]['id']
 
+        ml_price_convert = rjson['price']
+
         meli_fields = {
             'name': rjson['title'].encode("utf-8"),
             'default_code': rjson['id'],
@@ -354,12 +356,11 @@ class product_product(models.Model):
             'meli_dimensions': meli_dim_str,
         }
 
-        ml_price_convert = rjson['price']
 
         tmpl_fields = {
           'name': meli_fields["name"],
           #'name': str(rjson['id']),
-          'lst_price': ,
+          'lst_price': ml_price_convert,
           'meli_title': meli_fields["meli_title"],
           'meli_description': meli_fields["meli_description"],
           'meli_category': meli_fields["meli_category"],
