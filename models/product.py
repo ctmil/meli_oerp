@@ -358,7 +358,8 @@ class product_product(models.Model):
 
 
         tmpl_fields = {
-          'name': meli_fields["name"],
+          'name': meli_fields["name
+          'description_sale': desplain,
           #'name': str(rjson['id']),
           'lst_price': ml_price_convert,
           'meli_title': meli_fields["meli_title"],
@@ -380,6 +381,20 @@ class product_product(models.Model):
 
         product.write( meli_fields )
         product_template.write( tmpl_fields )
+
+        if (product_template.taxes_id):
+            txtotal = 0
+            _logger.info("Adjust taxes")
+            for txid in product_template.taxes_id:
+                if (txid.tax_type_use=="sale"):
+                    txtotal = txtotal + txid.amount
+                    _logger.info(txid.amount)
+            if (txtotal>0):
+                _logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_convert))
+                ml_price_convert = ml_price_convert / (1.0 + txtotal*0.01)
+                _logger.info("Price converted:"+str(ml_price_convert))
+                product_template.write({ 'lst_price': ml_price_convert})
+
         if (rjson['available_quantity']>0):
             product_template.website_published = True
         else:
