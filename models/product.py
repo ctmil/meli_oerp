@@ -649,7 +649,7 @@ class product_product(models.Model):
         product_template = self.product_tmpl_id
         bom = self.env["mrp.bom"]
         bom_l = self.env["mrp.bom.line"]
-        _logger.info("set bom: " + str(has_sku))
+        #_logger.info("set bom: " + str(has_sku))
 
         product_uom_id = self.env['product.uom'].search([('name','=','Unidad(es)')])
         if (product_uom_id.id==False):

@@ -441,7 +441,7 @@ class res_company(models.Model):
                         #idcreated = self.pool.get('product.product').create(cr,uid,{ 'name': rjson3['title'], 'meli_id': rjson3['id'] })
                         if 'id' in rjson3:
                             prod_fields = {
-                                'name': rjson3['title'].encode("utf-8"),
+                                'name': str(rjson3['title'].encode("utf-8")),
                                 'description': rjson3['title'].encode("utf-8"),
                                 'meli_id': rjson3['id'],
                                 'meli_pub': True,
@@ -460,6 +460,7 @@ class res_company(models.Model):
                         else:
                             _logger.info( "product error: " + str(rjson3) )
             except:
+                _logger.info("Exception!")
                 self._cr.rollback()
         return {}
 
