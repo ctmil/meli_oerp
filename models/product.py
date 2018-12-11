@@ -647,6 +647,10 @@ class product_product(models.Model):
         # CONDICION: tener un
         variant = self
         product_template = self.product_tmpl_id
+        if (not ("mrp.bom" in self.env)):
+            _logger.info("mrp.bom not found")
+            _logger.error("Must install Manufacturing Module")
+            return {}
         bom = self.env["mrp.bom"]
         bom_l = self.env["mrp.bom.line"]
         #_logger.info("set bom: " + str(has_sku))
