@@ -304,7 +304,7 @@ class product_product(models.Model):
             for ix in range(1,len(pictures)-1):
                 pic = pictures[ix]
 
-                resimage = meli.get("/pitcures/"+pic['id'], {'access_token':meli.access_token})
+                resimage = meli.get("/pictures/"+pic['id'], {'access_token':meli.access_token})
                 imgjson = resimage.json()
 
                 thumbnail_url = pic['secure_url']
