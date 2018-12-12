@@ -462,8 +462,14 @@ class mercadolibre_orders(models.Model):
             _logger.error( order_json["error"] )
             _logger.error( order_json["message"] )
         else:
-            self.orders_update_order_json( {"id": id, "order_json": order_json } )
-
+            try:
+                self.orders_update_order_json( {"id": id, "order_json": order_json } )
+            except Exception as e:
+                _logger.info("Error actualizando ORDEN")
+                _logger.info(order_json)
+                _logger.info(e)
+                _logger.error(e)
+                pass
 
         return {}
 
