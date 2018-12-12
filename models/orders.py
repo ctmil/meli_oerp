@@ -292,12 +292,15 @@ class mercadolibre_orders(models.Model):
         #update internal fields (items, payments, buyers)
         if 'order_items' in order_json:
             items = order_json['order_items']
-            _logger.info("order items" + str(items))
+            #_logger.info( items )
             cn = 0
             for Item in items:
                 cn = cn + 1
-                _logger.info(cn)
+                #_logger.info(cn)
                 _logger.info(Item )
+                post_related_obj = ''
+                product_related_obj = ''
+                product_related_obj_id = False
 
                 post_related = posting_obj.search([('meli_id','=',Item['item']['id'])])
                 if (post_related):
@@ -311,6 +314,14 @@ class mercadolibre_orders(models.Model):
 
                     post_related = self.env['mercadolibre.posting'].create((posting_fields))
 
+                if len(post_related):
+                    post_related_obj = post_related
+                    _logger.info( post_related_obj )
+                    #if (post_related[0]):
+                    #    post_related_obj = post_related[0]
+                else:
+                    _logger.info( "No post related, exiting" )
+                    return {}
 
                 product_related = product_obj.search([('meli_id','=',Item['item']['id'])])
                 if (product_related):
@@ -321,31 +332,26 @@ class mercadolibre_orders(models.Model):
                         if (product_related):
                             _logger.info("order product related by seller_custom_field and default_code:",product_related)
 
+                if len(product_related):
+                    if len(product_related)>1:
+                        last_p = False
+                        for p in product_related:
+                            last_p = p
+                            if (p.product_tmpl_id.meli_pub_principal_variant):
+                                product_related_obj = p.product_tmpl_id.meli_pub_principal_variant
+                            if (p.meli_default_stock_product):
+                                product_related_obj = p.meli_default_stock_product
+
+                        if (product_related_obj):
+                            product_related_obj = product_related_obj
+                        else:
+                            product_related_obj = last_p
+                    else:
+                        product_related_obj = product_related
+
                 if (post_related and product_related):
                     if (post_related.product_id==False):
-                        post_related.product_id = product_related;
-
-                post_related_obj = ''
-                product_related_obj = ''
-                product_related_obj_id = False
-                if len(post_related):
-                    post_related_obj = post_related
-                    _logger.info( post_related_obj )
-                    #if (post_related[0]):
-                    #    post_related_obj = post_related[0]
-                else:
-                    return {}
-
-                if len(product_related):
-                    product_related_obj = product_related
-                    _logger.info( product_related_obj )
-                    #if (product_related[0]):
-                    #    product_related_obj_id = product_related[0]
-                    #    product_related_obj = product_obj.browse( product_related_obj_id)
-                    #    _logger.info("product_related:")
-                    #    _logger.info( product_related_obj )
-                else:
-                    return {}
+                        post_related.product_id = product_related
 
                 order_item_fields = {
                     'order_id': order.id,
