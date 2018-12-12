@@ -35,6 +35,9 @@ from . import product
 from . import shipment
 #https://api.mercadolibre.com/questions/search?item_id=MLA508223205
 
+from dateutil.parser import *
+from datetime import *
+
 class sale_order_line(models.Model):
     _inherit = "sale.order.line"
 
