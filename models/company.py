@@ -499,14 +499,13 @@ class res_company(models.Model):
         url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
         #url_login_oerp = "/meli_login"
 
-        product_ids = self.env['product.product'].search([])
+        product_ids = self.env['product.product'].search([('meli_id','!=',False)])
         if product_ids:
+            cn = 0
+            ct = len(product_ids)
             for obj in product_ids:
-                _logger.info( "Product to update: " + str(obj.id)  )
-                #_logger.info( "Product to update name: " + str(obj.name)  )
-                #obj.product_meli_get_product()
-                #import pdb; pdb.set_trace()
-                #_logger.info( "Product " + obj.name )
+                cn = cn + 1
+                _logger.info( "Product to update: " + str(obj.id) + str(cn)+"/"+str(ct))
                 obj.product_meli_get_product()
 
         return {}
