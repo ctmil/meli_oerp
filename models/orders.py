@@ -456,7 +456,7 @@ class mercadolibre_orders(models.Model):
 
         response = meli.get("/orders/"+order.order_id, {'access_token':meli.access_token})
         order_json = response.json()
-        _logger.info( order_json )
+        #_logger.info( order_json )
 
         if "error" in order_json:
             _logger.error( order_json["error"] )
@@ -655,6 +655,7 @@ class mercadolibre_orders_update(models.TransientModel):
                 _logger.info("order_update: %s " % (order_id) )
 
                 order = orders_obj.browse( order_id )
+                _logger.info(object)
                 order.orders_update_order()
 
         except Exception as e:
