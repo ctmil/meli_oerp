@@ -125,7 +125,7 @@ class mercadolibre_orders(models.Model):
 
     def orders_update_order_json( self, data, context=None ):
 
-        _logger.info("orders_update_order_json > data: " + str(data) )
+        _logger.info("orders_update_order_json > data "+str(data['id']) )
         oid = data["id"]
         order_json = data["order_json"]
         #_logger.info( "data:" + str(data) )
@@ -265,7 +265,7 @@ class mercadolibre_orders(models.Model):
         else:
             _logger.info("Adding new order: " )
             _logger.info(order_fields)
-            _logger.info( "creating order:" + str(order_fields) )
+            #_logger.info( "creating order:" + str(order_fields) )
             order = order_obj.create( (order_fields))
 
         if (sorder and sorder.id):
@@ -280,13 +280,11 @@ class mercadolibre_orders(models.Model):
         #check error
         if not order:
             _logger.error("Error adding order. " )
-            _logger.info( "Error adding order" )
             return {}
 
         #check error
         if not sorder:
             _logger.error("Error adding sale.order. " )
-            _logger.info( "Error adding sale.order" )
             return {}
 
         #update internal fields (items, payments, buyers)
@@ -325,7 +323,6 @@ class mercadolibre_orders(models.Model):
 
                 _logger.info( "Search product related." )
                 product_related = product_obj.search([('meli_id','=',Item['item']['id'])])
-                _logger.info( product_related )
                 if (product_related):
                     _logger.info("order product related by meli_id:",product_related)
                 else:
@@ -517,17 +514,6 @@ class mercadolibre_orders(models.Model):
             return {}
 
 
-
-        _logger.info( orders_json )
-
-        #testing with json:
-        if (True==False):
-            with open('/home/fabricio/envOdoo8/sources/meli_oerp/orders.json') as json_data:
-                _logger.info( json_data )
-                orders_json = json.load(json_data)
-                _logger.info( orders_json )
-
-
         if "paging" in orders_json:
             if "total" in orders_json["paging"]:
                 if (orders_json["paging"]["total"]==0):
@@ -539,7 +525,7 @@ class mercadolibre_orders(models.Model):
         if "results" in orders_json:
             for order_json in orders_json["results"]:
                 if order_json:
-                    _logger.info( order_json )
+                    #_logger.info( order_json )
                     pdata = {"id": False, "order_json": order_json}
                     try:
                         self.orders_update_order_json( pdata )
@@ -665,8 +651,7 @@ class mercadolibre_orders_update(models.TransientModel):
 
                 _logger.info("order_update: %s " % (order_id) )
 
-                order = orders_obj.search( [('id','=',order_id)] )
-                _logger.info(object)
+                order = orders_obj.browse(order_id)
                 order.orders_update_order()
 
         except Exception as e:
