@@ -303,13 +303,17 @@ class product_product(models.Model):
                     'meli_imagen_link': pic["secure_url"],
                     'product_tmpl_id': product_template.id
                 }
+                _logger.info(pimg_fields)
                 if (product.product_image_ids):
                     pimage = self.env["product.image"].search([('meli_imagen_id','=',pic["id"]),('product_tmpl_id','=',product_template.id)])
+                    _logger.info(pimage)
 
                 if (pimage==False):
+                    _logger.info("Creating new image")
                     pimage = self.env["product.image"].create(pimg_fields)
 
                 if (pimage):
+                    _logger.info("Updating image")
                     pimage.write(pimg_fields)
                     pimage.image = image_base64
 
