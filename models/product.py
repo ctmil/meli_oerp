@@ -305,7 +305,8 @@ class product_product(models.Model):
                 }
                 if (product.product_image_ids):
                     pimage = self.env["product.image"].search([('meli_imagen_id','=',pic["id"]),('product_tmpl_id','=',product_template.id)])
-                else:
+
+                if (pimage==False):
                     pimage = self.env["product.image"].create(pimg_fields)
 
                 if (pimage):
