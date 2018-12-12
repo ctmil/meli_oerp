@@ -503,10 +503,22 @@ class res_company(models.Model):
         if product_ids:
             cn = 0
             ct = len(product_ids)
-            for obj in product_ids:
-                cn = cn + 1
-                _logger.info( "Product to update: " + str(obj.id) + str(cn)+"/"+str(ct))
-                obj.product_meli_get_product()
+            self._cr.autocommit(False)
+            try:
+                for obj in product_ids:
+                    cn = cn + 1
+                    _logger.info( "Product to update: [" + str(obj.id) + "] " + str(cn)+"/"+str(ct))
+                    try:
+                        obj.product_meli_get_product()
+                    except Exception as e:
+                        _logger.info("updating product > Exception error.")
+                        _logger.error(e, exc_info=True)
+                        pass
+
+            except Exception as e:
+                _logger.info("product_meli_update_products > Exception error.")
+                _logger.error(e, exc_info=True)
+                self._cr.rollback()
 
         return {}
 

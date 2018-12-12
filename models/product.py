@@ -308,7 +308,7 @@ class product_product(models.Model):
             #complete product images:
             #delete all images...
             _logger.info("Importing all images...")
-            _logger.info(pictures)
+            #_logger.info(pictures)
             for ix in range(1,len(pictures)-1):
                 pic = pictures[ix]
 
@@ -333,10 +333,10 @@ class product_product(models.Model):
                     'meli_imagen_max_size': pic["max_size"],
                     'product_tmpl_id': product_template.id
                 }
-                _logger.info(pimg_fields)
+                #_logger.info(pimg_fields)
                 if (product.product_image_ids):
                     pimage = self.env["product.image"].search([('meli_imagen_id','=',pic["id"]),('product_tmpl_id','=',product_template.id)])
-                    _logger.info(pimage)
+                    #_logger.info(pimage)
 
                 if (pimage==False or len(pimage)==0):
                     _logger.info("Creating new image")
