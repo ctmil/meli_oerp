@@ -212,13 +212,13 @@ class mercadolibre_orders(models.Model):
 
             buyer_ids = buyers_obj.search([  ('buyer_id','=',buyer_fields['buyer_id'] ) ] )
             buyer_id = 0
-            if not buyer_ids:
+            if (buyer_ids==False or len(buyer_ids)==0):
                 _logger.info( "creating buyer")
-                #_logger.info(buyer_fields)
+                _logger.info(buyer_fields)
                 buyer_id = buyers_obj.create(( buyer_fields ))
             else:
-                if (buyer_ids):
-                    buyer_id = buyer_ids
+                buyer_id = buyer_ids
+                buyer_id.write( ( buyer_fields ) )
                 #if (len(buyer_ids)>0):
                 #      buyer_id = buyer_ids[0]
 
@@ -229,14 +229,11 @@ class mercadolibre_orders(models.Model):
                 partner_id = respartner_obj.create(( meli_buyer_fields ))
             else:
                 partner_id = partner_ids
-                #if (len(partner_ids)>0):
-                #    partner_id = partner_ids[0]
-
-            if order:
-                return_id = order.write({'buyer':buyer_id.id})
-            else:
                 _logger.info("Updating partner")
-                partner_id.write( ( buyer_fields ) )
+                partner_id.write(meli_buyer_fields)
+
+            if order and buyer_id:
+                return_id = order.write({'buyer':buyer_id.id})
 
         if (len(partner_ids)>0):
             partner_id = partner_ids[0]
@@ -612,7 +609,7 @@ class mercadolibre_payments(models.Model):
 	_description = "Pagos en MercadoLibre"
 
 	order_id = fields.Many2one("mercadolibre.orders","Order");
-	payment_id = fields.Char('Payment Id');
+	payment_id = fields.Char('Payment Id',index=True);
 	transaction_amount = fields.Char('Transaction Amount');
 	currency_id = fields.Char(string='Currency');
 	status = fields.Char(string='Payment Status');
@@ -625,7 +622,7 @@ class mercadolibre_buyers(models.Model):
     _name = "mercadolibre.buyers"
     _description = "Compradores en MercadoLibre"
 
-    buyer_id = fields.Char(string='Buyer ID');
+    buyer_id = fields.Char(string='Buyer ID',index=True);
     nickname = fields.Char(string='Nickname');
     email = fields.Char(string='Email');
     phone = fields.Char( string='Phone');
