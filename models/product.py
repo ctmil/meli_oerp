@@ -180,7 +180,7 @@ class product_product(models.Model):
     #@api.one
     @api.onchange('lst_price') # if these fields are changed, call method
     def check_change_price(self):
-	# GUS
+        # GUS
         #pdb.set_trace();
         #pricelists = self.env['product.pricelist'].search([])
         #if pricelists:
@@ -338,9 +338,6 @@ class product_product(models.Model):
                     _logger.info("Updating image")
                     pimage.write(pimg_fields)
                     pimage.image = image_base64
-
-
-
 
     def product_meli_get_product( self ):
         company = self.env.user.company_id
@@ -824,7 +821,6 @@ class product_product(models.Model):
 	        "target": "new",
         }
 
-
     def product_meli_status_close( self ):
         company = self.env.user.company_id
         product_obj = self.env['product.product']
@@ -930,12 +926,12 @@ class product_product(models.Model):
         #_logger.info( "product_meli_upload_image: " + response.content )
         imagebin = base64.b64decode(product.image)
         imageb64 = product.image
-#       _logger.info( "data:image/png;base64,"+imageb64 )
-#       files = [ ('images', ('image_medium', imagebin, "image/png")) ]
+        #logger.info( "data:image/png;base64,"+imageb64 )
+        #files = [ ('images', ('image_medium', imagebin, "image/png")) ]
         files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
         #_logger.info(  files )
         response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
-       # _logger.info( response.content )
+        #_logger.info( response.content )
 
         rjson = response.json()
         if ("error" in rjson):
@@ -993,6 +989,10 @@ class product_product(models.Model):
                     image_ids+= [ { 'id': rjson['id'] }]
                     c = c + 1
                     _logger.info( "image_ids:" + str(image_ids) )
+                    product_image.meli_imagen_id = rjson['id']
+                    product_image.meli_imagen_link = rjson['secure_url']
+                    product_image.meli_imagen_size = rjson['size']
+                    product_image.meli_imagen_max_size = rjson['max_size']
 
         product.write( { "meli_multi_imagen_id": "%s" % (image_ids) } )
 

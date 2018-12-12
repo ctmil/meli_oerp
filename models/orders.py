@@ -366,15 +366,21 @@ class mercadolibre_orders(models.Model):
                     'company_id': company.id,
                     'order_id': sorder.id,
                     'meli_order_item_id': Item['item']['id'],
-                    'price_unit': float(Item['unit_price']),
-        #                    'price_total': float(Item['unit_price']) * float(Item['quantity']),
-                    'tax_id': None,
+                    #'price_unit': float(Item['unit_price']),
+                    ####'price_total': float(Item['unit_price']) * float(Item['quantity']),
+                    #'tax_id': None,
                     'product_id': product_related_obj.id,
                     'product_uom_qty': Item['quantity'],
                     'product_uom': 1,
                     'name': Item['item']['title'],
-        #                    'customer_lead': float(0)
+                    #'customer_lead': float(0)
                 }
+                if (float(Item['unit_price'])==product_related_obj.product_tmpl_id.lst_price):
+                    saleorderline_item_fields['price_unit'] = float(Item['unit_price'])
+                    saleorderline_item_fields['tax_id'] = None
+                else:
+                    saleorderline_item_fields['price_unit'] = product_related_obj.product_tmpl_id.lst_price
+
                 saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
                 _logger.info( saleorderline_item_fields )
 
