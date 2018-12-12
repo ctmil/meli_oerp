@@ -178,7 +178,8 @@ class product_image(models.Model):
     meli_imagen_link = fields.Char(string='Imagen Link')
     meli_imagen_size = fields.Char(string='Size')
     meli_imagen_max_size = fields.Char(string='Max Size')
-    meli_imagen_bytes = fields.Integer(string='Size bytes')
+    meli_imagen_bytes = fields.Integer(string='Size bytes
+    meli_pub = fields.Boolean(string='Publicar en ML')
 
 product_image()
 
@@ -334,7 +335,8 @@ class product_product(models.Model):
                     'meli_imagen_size': pic["size"],
                     'meli_imagen_max_size': pic["max_size"],
                     'meli_imagen_bytes': meli_imagen_bytes,
-                    'product_tmpl_id': product_template.id
+                    'product_tmpl_id': product_template.id,
+                    'meli_pub': True
                 }
                 #_logger.info(pimg_fields)
                 if (product.product_image_ids):
