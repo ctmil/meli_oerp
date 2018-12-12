@@ -166,8 +166,10 @@ product_template()
 class product_image(models.Model):
     _inherit = "product.image"
 
-    meli_imagen_id = fields.Char(string='Imagen Id', size=256)
-    meli_imagen_link = fields.Char(string='Imagen Link', size=256)
+    meli_imagen_id = fields.Char(string='Imagen Id',index=True)
+    meli_imagen_link = fields.Char(string='Imagen Link')
+    meli_imagen_size = fields.Char(string='Size')
+    meli_imagen_max_size = fields.Char(string='Max Size')
 
 product_image()
 
@@ -319,6 +321,8 @@ class product_product(models.Model):
                     'name': pic["secure_url"]+' - '+pic["size"]+' - '+pic["max_size"],
                     'meli_imagen_id': pic["id"],
                     'meli_imagen_link': pic["secure_url"],
+                    'meli_imagen_size': pic["size"],
+                    'meli_imagen_max_size': pic["max_size"],
                     'product_tmpl_id': product_template.id
                 }
                 _logger.info(pimg_fields)
