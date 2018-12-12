@@ -525,7 +525,15 @@ class mercadolibre_orders(models.Model):
                 if order_json:
                     _logger.info( order_json )
                     pdata = {"id": False, "order_json": order_json}
-                    self.orders_update_order_json( pdata )
+                    try:
+                        self.orders_update_order_json( pdata )
+                        self._cr.commit()
+                    except Exception as e:
+                        _logger.info("Error actualizando ORDEN")
+                        _logger.info(order_json)
+                        _logger.info(e)
+                        _logger.error(e)
+                        pass
 
 
         if (offset_next>0):
@@ -535,7 +543,15 @@ class mercadolibre_orders(models.Model):
 
     def orders_query_recent( self ):
 
-        self.orders_query_iterate( 0 )
+        self._cr.autocommit(False)
+
+        try:
+            self.orders_query_iterate( 0 )
+        except Exception as e:
+            _logger.info("Error iterando ordenes")
+            _logger.info(e)
+            _logger.error(e)
+            self._cr.rollback()
 
         return {}
 
