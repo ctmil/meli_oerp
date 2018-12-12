@@ -464,6 +464,7 @@ class mercadolibre_orders(models.Model):
         else:
             try:
                 self.orders_update_order_json( {"id": id, "order_json": order_json } )
+                self._cr.commit()
             except Exception as e:
                 _logger.info("Error actualizando ORDEN")
                 _logger.info(order_json)
@@ -651,12 +652,21 @@ class mercadolibre_orders_update(models.TransientModel):
         orders_ids = context['active_ids']
         orders_obj = self.env['mercadolibre.orders']
 
-        for order_id in orders_ids:
+        self._cr.autocommit(False)
+        try:
 
-            _logger.info("order_update: %s " % (order_id) )
+            for order_id in orders_ids:
 
-            order = orders_obj.browse( order_id)
-            order.orders_update_order()
+                _logger.info("order_update: %s " % (order_id) )
+
+                order = orders_obj.browse( order_id)
+                order.orders_update_order()
+
+        except Exception as e:
+            _logger.info("Error actualizando ordenes")
+            _logger.info(e)
+            _logger.error(e)
+            self._cr.rollback()
 
         return {}
 
