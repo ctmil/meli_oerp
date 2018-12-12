@@ -271,6 +271,18 @@ class product_product(models.Model):
             #assign
             product_template.public_categ_ids = [(4,www_cat_id)]
 
+    def _meli_set_images( self, pictures ):
+        product = self
+        thumbnail_url = pictures[0]['url']
+        image = urlopen(thumbnail_url).read()
+        image_base64 = base64.encodestring(image)
+        product.image_medium = image_base64
+        if (len(pictures)>1):
+            #complete product images:
+            #delete all images...
+            _logger.info("Importing all images...")
+            _logger.info(pictures)
+
     def product_meli_get_product( self ):
         company = self.env.user.company_id
         product_obj = self.env['product.product']
@@ -334,15 +346,7 @@ class product_product(models.Model):
         #TODO:
         pictures = rjson['pictures']
         if pictures and len(pictures):
-            thumbnail_url = pictures[0]['url']
-            image = urlopen(thumbnail_url).read()
-            image_base64 = base64.encodestring(image)
-            product.image_medium = image_base64
-            if (len(pictures)>1):
-                #complete product images:
-                #delete all images...
-                _logger.info("Importing all images...")
-                _logger.info(pictures)
+            product._meli_set_images(pictures)
 
         #categories
         product._meli_set_category( product_template, rjson['category_id'] )
