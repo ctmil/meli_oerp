@@ -338,8 +338,9 @@ class product_product(models.Model):
                     pimage = self.env["product.image"].search([('meli_imagen_id','=',pic["id"]),('product_tmpl_id','=',product_template.id)])
                     #_logger.info(pimage)
                     if (pimage and pimage.image):
-                        _logger.info("Image:"+str(len(pimage.image))+" vs ImageB64:"+str(len(image_base64)) )
-                        bin_updating = (len(pimage.image) == len(image_base64))
+                        bin_diff = len(image_base64) - len(pimage.image)
+                        _logger.info("Image:"+str(len(pimage.image))+" vs ImageB64:"+str(len(image_base64))+" diff:"+str(bin_diff) )
+                        bin_updating = (abs(bin_diff)>5000)
 
                 if (pimage==False or len(pimage)==0):
                     _logger.info("Creating new image")
