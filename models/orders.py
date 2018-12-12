@@ -320,7 +320,7 @@ class mercadolibre_orders(models.Model):
                     #    post_related_obj = post_related[0]
                 else:
                     _logger.info( "No post related, exiting" )
-                    return {}
+                    return { 'error': 'No post related, exiting'}
 
                 #_logger.info( "Search product related." )
                 product_related = product_obj.search([('meli_id','=',Item['item']['id'])])
@@ -533,7 +533,7 @@ class mercadolibre_orders(models.Model):
                         self._cr.commit()
                     except Exception as e:
                         _logger.info("orders_query_iterate > Error actualizando ORDEN")
-                        _logger.error(e)
+                        _logger.error(e, exc_info=True)
                         pass
 
 
@@ -550,7 +550,7 @@ class mercadolibre_orders(models.Model):
             self.orders_query_iterate( 0 )
         except Exception as e:
             _logger.info("orders_query_recent > Error iterando ordenes")
-            _logger.error(e)
+            _logger.error(e, exc_info=True)
             self._cr.rollback()
 
         return {}
@@ -657,7 +657,7 @@ class mercadolibre_orders_update(models.TransientModel):
 
         except Exception as e:
             _logger.info("order_update > Error actualizando ordenes")
-            _logger.error(e)
+            _logger.error(e, exc_info=True)
             self._cr.rollback()
 
         return {}
