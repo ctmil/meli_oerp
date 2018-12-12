@@ -181,7 +181,7 @@ class product_product(models.Model):
         self.meli_price = str(self.lst_price)
         #res = {}
         #for id in self:
-        #    res[id] = self.lst_price
+        #    res[id] = selfmlcatid.lst_price
         #return res
 
     def _meli_set_price( self, product_template, meli_price ):
@@ -370,7 +370,7 @@ class product_product(models.Model):
             'meli_title': rjson['title'].encode("utf-8"),
             'meli_description': desplain,
             #'meli_description_banner_id': ,
-            'meli_category': mlcatid,
+            #'meli_category': mlcatid,
             'meli_listing_type': rjson['listing_type_id'],
             'meli_buying_mode':rjson['buying_mode'],
             'meli_price': str(rjson['price']),
