@@ -308,7 +308,7 @@ class product_product(models.Model):
                     pimage = self.env["product.image"].search([('meli_imagen_id','=',pic["id"]),('product_tmpl_id','=',product_template.id)])
                     _logger.info(pimage)
 
-                if (pimage==False):
+                if (pimage==False or len(pimage)==0):
                     _logger.info("Creating new image")
                     pimage = self.env["product.image"].create(pimg_fields)
 
