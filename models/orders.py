@@ -323,7 +323,9 @@ class mercadolibre_orders(models.Model):
                     _logger.info( "No post related, exiting" )
                     return {}
 
+                _logger.info( "Search product related." )
                 product_related = product_obj.search([('meli_id','=',Item['item']['id'])])
+                _logger.info( product_related )
                 if (product_related):
                     _logger.info("order product related by meli_id:",product_related)
                 else:
@@ -370,6 +372,10 @@ class mercadolibre_orders(models.Model):
                     order_item_ids = order_items_obj.create( ( order_item_fields ))
                 else:
                     order_item_ids.write( ( order_item_fields ) )
+
+                if (product_related_obj == False or len(product_related_obj)==0):
+                    _logger.error("No product related to meli_id:"+str(Item['item']['id']))
+                    return { 'error': 'No product related to meli_id' }
 
                 saleorderline_item_fields = {
                     'company_id': company.id,
