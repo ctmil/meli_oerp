@@ -106,17 +106,26 @@ class mercadolibre_orders(models.Model):
 
     def state(self, Receiver ):
         full_state = ''
+        state_id = False
         if (Receiver and 'state' in Receiver):
             full_state = Receiver['state']['name']
+            state = self.env['res.state'].search([('name','like',full_state])
+            if (len(state)):
+                state_id = state.id
 
-        return full_state
+        return state_id
 
     def country(self, Receiver ):
         full_country = ''
+        country_id = False
         if (Receiver and 'country' in Receiver):
             full_country = Receiver['country']['name']
+            country = self.env['res.country'].search([('name','like',full_country])
+            if (len(country)):
+                country_id = country.id
 
-        return full_country
+
+        return country_id
 
     def billing_info( self, billing_json, context=None ):
         billinginfo = ''
@@ -227,8 +236,8 @@ class mercadolibre_orders(models.Model):
                 'name': Buyer['first_name']+' '+Buyer['last_name'],
                 'street': self.street(Receiver),
                 'city': self.city(Receiver),
-                'state': self.state(Receiver),
-                'country': self.country(Receiver),
+                'state_id': self.state(Receiver),
+                'country_id': self.country(Receiver),
                 'phone': self.full_phone( Buyer['phone']),
                 'email': Buyer['email'],
                 'meli_buyer_id': Buyer['id']
