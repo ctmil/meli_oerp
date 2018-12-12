@@ -81,7 +81,7 @@ class res_partner(models.Model):
 
 
     meli_buyer_id = fields.Char('Meli Buyer Id')
-    meli_buyer = fields.Many2one( "mercadolibre.buyers","Buyer")
+#    meli_buyer = fields.Many2one( "mercadolibre.buyers","Buyer")
 
 
 res_partner()
