@@ -280,6 +280,14 @@ class product_product(models.Model):
             product_template.public_categ_ids = [(4,www_cat_id)]
 
     def _meli_set_images( self, product_template, pictures ):
+        company = self.env.user.company_id
+        CLIENT_ID = company.mercadolibre_client_id
+        CLIENT_SECRET = company.mercadolibre_secret_key
+        ACCESS_TOKEN = company.mercadolibre_access_token
+        REFRESH_TOKEN = company.mercadolibre_refresh_token
+
+        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+
         product = self
         thumbnail_url = pictures[0]['url']
         image = urlopen(thumbnail_url).read()
@@ -293,12 +301,22 @@ class product_product(models.Model):
             _logger.info(pictures)
             for ix in range(1,len(pictures)-1):
                 pic = pictures[ix]
-                thumbnail_url = pic['url']
+
+                resimage = meli.get("/pitcures/"+pic['id'], {'access_token':meli.access_token})
+                imgjson = resimage.json()
+
+                thumbnail_url = pic['secure_url']
+                if 'error' in imgjson:
+                    pass;
+                else:
+                    if (len(imgjson['variations'])>0):
+                        thumbnail_url = imgjson['variations'][0]['secure_url']
+
                 image = urlopen(thumbnail_url).read()
                 image_base64 = base64.encodestring(image)
                 pimage = False
                 pimg_fields = {
-                    'name': pic["secure_url"]+'-'+pic["size"]+'-'+pic["max_size"],
+                    'name': pic["secure_url"]+' - '+pic["size"]+' - '+pic["max_size"],
                     'meli_imagen_id': pic["id"],
                     'meli_imagen_link': pic["secure_url"],
                     'product_tmpl_id': product_template.id
