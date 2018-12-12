@@ -47,9 +47,10 @@
                 <data>
                     <notebook>
                         <page string="MercadoLibre" attrs="{'invisible':[('meli_buyer_id', '=', False)]}">
-							<group>
-								<field name="meli_buyer_id" invisible="0"/>
-                            </group>
+                          <group>
+                            <field name="meli_buyer_id" invisible="0"/>
+                            <field name="meli_buyer" invisible="0"/>
+                          </group>
                         </page>
                     </notebook>
                 </data>
