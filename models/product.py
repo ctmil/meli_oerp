@@ -325,7 +325,7 @@ class product_product(models.Model):
 
                 image = urlopen(thumbnail_url).read()
                 image_base64 = base64.encodestring(image)
-                meli_imagen_bytes = len(image_base64)
+                meli_imagen_bytes = len(image)
                 pimage = False
                 pimg_fields = {
                     'name': thumbnail_url+' - '+pic["size"]+' - '+pic["max_size"],
@@ -341,12 +341,10 @@ class product_product(models.Model):
                     pimage = self.env["product.image"].search([('meli_imagen_id','=',pic["id"]),('product_tmpl_id','=',product_template.id)])
                     #_logger.info(pimage)
                     if (pimage and pimage.image):
-                        bin_diff = len(image_base64) - len(pimage.image)
                         imagebin = base64.b64decode( pimage.image )
-                        _logger.info("ImageBinDecoded:"+str(len(imagebin)))
-                        _logger.info("Image:"+str(len(pimage.image))+" vs URLImageB64:"+str(meli_imagen_bytes)+" diff:"+str(bin_diff) )
-                        _logger.info("URLImageBin:"+str(len(image)))
-                        bin_updating = (abs(bin_diff)>5000)
+                        bin_diff = meli_imagen_bytes - len(imagebin)
+                        _logger.info("Image:"+str(len(imagebin))+" vs URLImage:"+str(meli_imagen_bytes)+" diff:"+str(bin_diff) )
+                        bin_updating = (abs(bin_diff)>0)
 
                 if (pimage==False or len(pimage)==0):
                     _logger.info("Creating new image")
@@ -354,10 +352,10 @@ class product_product(models.Model):
                     pimage = self.env["product.image"].create(pimg_fields)
 
                 if (pimage):
+                    pimage.write(pimg_fields)
                     if (bin_updating):
                         _logger.info("Updating image data.")
                         _logger.info("Image:"+str(meli_imagen_bytes) )
-                        pimage.write(pimg_fields)
                         pimage.image = image_base64
 
     def product_meli_get_product( self ):
