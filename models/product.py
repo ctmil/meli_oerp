@@ -311,7 +311,7 @@ class product_product(models.Model):
             #_logger.info(pictures)
             for ix in range(1,len(pictures)-1):
                 pic = pictures[ix]
-
+                bin_updating = False
                 resimage = meli.get("/pictures/"+pic['id'], {'access_token':meli.access_token})
                 imgjson = resimage.json()
 
@@ -337,15 +337,21 @@ class product_product(models.Model):
                 if (product.product_image_ids):
                     pimage = self.env["product.image"].search([('meli_imagen_id','=',pic["id"]),('product_tmpl_id','=',product_template.id)])
                     #_logger.info(pimage)
+                    if (pimage and pimage.image):
+                        _logger.info("Image:"+str(len(pimage.image))+" vs ImageB64:"+str(len(image_base64)) )
+                        bin_updating = (len(pimage.image) == len(image_base64))
 
                 if (pimage==False or len(pimage)==0):
                     _logger.info("Creating new image")
+                    bin_updating = True
                     pimage = self.env["product.image"].create(pimg_fields)
 
                 if (pimage):
-                    _logger.info("Updating image")
-                    pimage.write(pimg_fields)
-                    pimage.image = image_base64
+                    if (bin_updating):
+                        _logger.info("Updating image data.")
+                        _logger.info("Image:"+str(len(image_base64)))
+                        pimage.write(pimg_fields)
+                        pimage.image = image_base64
 
     def product_meli_get_product( self ):
         company = self.env.user.company_id
