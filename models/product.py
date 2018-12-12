@@ -141,7 +141,7 @@ class product_template(models.Model):
         return {}
 
 
-    name = fields.Char('Name', size=128, required=True, translate=False, select=True)
+    name = fields.Char('Name', size=128, required=True, translate=False, index=True)
     meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
     meli_description = fields.Text(string='Descripción')
     meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre")
@@ -152,7 +152,7 @@ class product_template(models.Model):
     ("COP","Peso Colombiano (COP)")],string='Moneda')
     meli_condition = fields.Selection([ ("new", "Nuevo"), ("used", "Usado"), ("not_specified","No especificado")],'Condición del producto')
     meli_dimensions = fields.Char( string="Dimensiones del producto", size=128)
-    meli_pub = fields.Boolean('Meli Publication',help='MELI Product')
+    meli_pub = fields.Boolean('Meli Publication',help='MELI Product',index=True)
     meli_warranty = fields.Char(string='Garantía', size=256)
     meli_listing_type = fields.Selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special/Clásica"),("gold_pro","Oro Pro")], string='Tipo de lista')
     meli_attributes = fields.Text(string='Atributos')
@@ -1377,7 +1377,7 @@ class product_product(models.Model):
     meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre")
     meli_price = fields.Char(string='Precio de venta', size=128)
     meli_dimensions = fields.Char( string="Dimensiones del producto", size=128)
-    meli_pub = fields.Boolean('Meli Publication',help='MELI Product')
+    meli_pub = fields.Boolean('Meli Publication',help='MELI Product',index=True)
 
     meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
     meli_currency = fields.Selection([("ARS","Peso Argentino (ARS)"),
@@ -1390,7 +1390,7 @@ class product_product(models.Model):
 
     #post only fields
     meli_post_required = fields.Boolean(string='Este producto es publicable en Mercado Libre')
-    meli_id = fields.Char( string='Id del item asignado por Meli', size=256)
+    meli_id = fields.Char( string='Id del item asignado por Meli', size=256, index=True)
     meli_description_banner_id = fields.Many2one("mercadolibre.banner","Banner")
     meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
     meli_price = fields.Char(string='Precio de venta', size=128)

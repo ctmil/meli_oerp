@@ -235,6 +235,7 @@ class mercadolibre_orders(models.Model):
             if order:
                 return_id = order.write({'buyer':buyer_id.id})
             else:
+                _logger.info("Updating partner")
                 partner_id.write( ( buyer_fields ) )
 
         if (len(partner_ids)>0):
