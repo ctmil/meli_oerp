@@ -472,7 +472,7 @@ class mercadolibre_orders(models.Model):
                 self._cr.commit()
             except Exception as e:
                 _logger.info("orders_update_order > Error actualizando ORDEN")
-                _logger.error(e)
+                _logger.error(e, exc_info=True)
                 pass
 
         return {}
