@@ -654,7 +654,7 @@ class mercadolibre_orders_update(models.TransientModel):
 
                 _logger.info("order_update: %s " % (order_id) )
 
-                order = orders_obj.browse( order_id )
+                order = orders_obj.search( [('id','=',order_id)] )
                 _logger.info(object)
                 order.orders_update_order()
 
