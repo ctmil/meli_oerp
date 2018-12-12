@@ -281,12 +281,12 @@ class mercadolibre_orders(models.Model):
         #check error
         if not order:
             _logger.error("Error adding order. " )
-            return {}
+            return {'error': 'Error adding order' }
 
         #check error
         if not sorder:
             _logger.error("Error adding sale.order. " )
-            return {}
+            return {'error': 'Error adding sale.order' }
 
         #update internal fields (items, payments, buyers)
         if 'order_items' in order_json:
