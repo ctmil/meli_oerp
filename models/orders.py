@@ -536,7 +536,7 @@ class mercadolibre_orders(models.Model):
                         self.orders_update_order_json( pdata )
                         self._cr.commit()
                     except Exception as e:
-                        _logger.info("Error actualizando ORDEN")
+                        _logger.info("orders_query_iterate > Error actualizando ORDEN")
                         _logger.info(order_json)
                         _logger.info(e)
                         _logger.error(e)
@@ -555,7 +555,7 @@ class mercadolibre_orders(models.Model):
         try:
             self.orders_query_iterate( 0 )
         except Exception as e:
-            _logger.info("Error iterando ordenes")
+            _logger.info("orders_query_recent > Error iterando ordenes")
             _logger.info(e)
             _logger.error(e)
             self._cr.rollback()
@@ -663,7 +663,7 @@ class mercadolibre_orders_update(models.TransientModel):
                 order.orders_update_order()
 
         except Exception as e:
-            _logger.info("Error actualizando ordenes")
+            _logger.info("order_update > Error actualizando ordenes")
             _logger.info(e)
             _logger.error(e)
             self._cr.rollback()
