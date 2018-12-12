@@ -184,6 +184,92 @@ class product_product(models.Model):
         #    res[id] = self.lst_price
         #return res
 
+    def _meli_set_price( self, product_template, meli_price ):
+        company = self.env.user.company_id
+        ml_price_converted = meli_price
+        if (product_template.taxes_id):
+            txtotal = 0
+            _logger.info("Adjust taxes")
+            for txid in product_template.taxes_id:
+                if (txid.type_tax_use=="sale"):
+                    txtotal = txtotal + txid.amount
+                    _logger.info(txid.amount)
+            if (txtotal>0):
+                _logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_converted))
+                ml_price_converted = meli_price / (1.0 + txtotal*0.01)
+                _logger.info("Price converted:"+str(ml_price_converted))
+
+        product_template.write({'lst_price': ml_price_converted})
+
+    def _meli_set_category( self, product_template, category_id ):
+
+        product = self
+
+        mlcatid = False
+        www_cat_id = False
+
+        ml_cat = self.env['mercadolibre.category'].search([('meli_category_id','=',category_id)])
+        ml_cat_id = ml_cat.id
+        if (ml_cat_id):
+            #_logger.info( "category exists!" + str(ml_cat_id) )
+            mlcatid = ml_cat_id
+            www_cat_id = ml_cat.public_category_id
+        else:
+            #_logger.info( "Creating category: " + str(category_id) )
+            #https://api.mercadolibre.com/categories/MLA1743
+            response_cat = meli.get("/categories/"+str(category_id), {'access_token':meli.access_token})
+            rjson_cat = response_cat.json()
+            #_logger.info( "category:" + str(rjson_cat) )
+            fullname = ""
+            if ("path_from_root" in rjson_cat):
+                path_from_root = rjson_cat["path_from_root"]
+                p_id = False
+                #pdb.set_trace()
+                for path in path_from_root:
+                    fullname = fullname + "/" + path["name"]
+
+                    if (company.mercadolibre_create_website_categories):
+                        www_cats = self.env['product.public.category']
+                        if www_cats!=False:
+                            www_cat_id = www_cats.search([('name','=',path["name"])]).id
+                            if www_cat_id==False:
+                                www_cat_fields = {
+                                  'name': path["name"],
+                                  #'parent_id': p_id,
+                                  #'sequence': 1
+                                }
+                                if p_id:
+                                    www_cat_fields['parent_id'] = p_id
+                                www_cat_id = www_cats.create((www_cat_fields)).id
+                                if www_cat_id:
+                                    _logger.info("Website Category created:"+fullname)
+
+                            p_id = www_cat_id
+
+            #fullname = fullname + "/" + rjson_cat['name']
+            #_logger.info( "category fullname:" + fullname )
+            cat_fields = {
+                'name': fullname,
+                'meli_category_id': ''+str(category_id),
+                'public_category_id': 0,
+            }
+
+            if www_cat_id:
+                p_cat_id = www_cats.search([('id','=',www_cat_id)])
+                cat_fields['public_category_id'] = www_cat_id
+                #cat_fields['public_category'] = p_cat_id
+
+            ml_cat_id = self.env['mercadolibre.category'].create((cat_fields)).id
+            if (ml_cat_id):
+                mlcatid = ml_cat_id
+
+        if (mlcatid):
+            product.write( {'meli_category': mlcatid} )
+            product_template.write( {'meli_category': mlcatid} )
+
+        if www_cat_id!=False:
+            #assign
+            product_template.public_categ_ids = [(4,www_cat_id)]
 
     def product_meli_get_product( self ):
         company = self.env.user.company_id
@@ -252,69 +338,14 @@ class product_product(models.Model):
             image = urlopen(thumbnail_url).read()
             image_base64 = base64.encodestring(image)
             product.image_medium = image_base64
-            #if (len(pictures)>1):
+            if (len(pictures)>1):
                 #complete product images:
                 #delete all images...
+                _logger.info("Importing all images...")
+                _logger.info(pictures)
 
         #categories
-        mlcatid = ""
-        www_cat_id = False
-        if ('category_id' in rjson):
-            category_id = rjson['category_id']
-            ml_cat = self.env['mercadolibre.category'].search([('meli_category_id','=',category_id)])
-            ml_cat_id = ml_cat.id
-            if (ml_cat_id):
-                #_logger.info( "category exists!" + str(ml_cat_id) )
-                mlcatid = ml_cat_id
-                www_cat_id = ml_cat.public_category_id
-            else:
-                #_logger.info( "Creating category: " + str(category_id) )
-                #https://api.mercadolibre.com/categories/MLA1743
-                response_cat = meli.get("/categories/"+str(category_id), {'access_token':meli.access_token})
-                rjson_cat = response_cat.json()
-                #_logger.info( "category:" + str(rjson_cat) )
-                fullname = ""
-                if ("path_from_root" in rjson_cat):
-                    path_from_root = rjson_cat["path_from_root"]
-                    p_id = False
-                    #pdb.set_trace()
-                    for path in path_from_root:
-                        fullname = fullname + "/" + path["name"]
-
-                        if (company.mercadolibre_create_website_categories):
-                            www_cats = self.env['product.public.category']
-                            if www_cats!=False:
-                                www_cat_id = www_cats.search([('name','=',path["name"])]).id
-                                if www_cat_id==False:
-                                    www_cat_fields = {
-                                      'name': path["name"],
-                                      #'parent_id': p_id,
-                                      #'sequence': 1
-                                    }
-                                    if p_id:
-                                        www_cat_fields['parent_id'] = p_id
-                                    www_cat_id = www_cats.create((www_cat_fields)).id
-                                    if www_cat_id:
-                                        _logger.info("Website Category created:"+fullname)
-
-                                p_id = www_cat_id
-
-                #fullname = fullname + "/" + rjson_cat['name']
-                #_logger.info( "category fullname:" + fullname )
-                cat_fields = {
-                    'name': fullname,
-                    'meli_category_id': ''+str(category_id),
-                    'public_category_id': 0,
-                }
-
-                if www_cat_id:
-                    p_cat_id = www_cats.search([('id','=',www_cat_id)])
-                    cat_fields['public_category_id'] = www_cat_id
-                    #cat_fields['public_category'] = p_cat_id
-
-                ml_cat_id = self.env['mercadolibre.category'].create((cat_fields)).id
-                if (ml_cat_id):
-                    mlcatid = ml_cat_id
+        product._meli_set_category( product_template, rjson['category_id'] )
 
         imagen_id = ''
         meli_dim_str = ''
@@ -326,7 +357,7 @@ class product_product(models.Model):
             if (len(rjson['pictures'])>0):
                 imagen_id = rjson['pictures'][0]['id']
 
-        ml_price_convert = rjson['price']
+        product._meli_set_price( product_template, rjson['price'] )
 
         meli_fields = {
             'name': rjson['title'].encode("utf-8"),
@@ -338,7 +369,7 @@ class product_product(models.Model):
             'meli_permalink': rjson['permalink'],
             'meli_title': rjson['title'].encode("utf-8"),
             'meli_description': desplain,
-#            'meli_description_banner_id': ,
+            #'meli_description_banner_id': ,
             'meli_category': mlcatid,
             'meli_listing_type': rjson['listing_type_id'],
             'meli_buying_mode':rjson['buying_mode'],
@@ -348,10 +379,10 @@ class product_product(models.Model):
             'meli_condition': rjson['condition'],
             'meli_available_quantity': rjson['available_quantity'],
             'meli_warranty': rjson['warranty'],
-##            'meli_imagen_logo': fields.char(string='Imagen Logo', size=256),
-##            'meli_imagen_id': fields.char(string='Imagen Id', size=256),
+            ##'meli_imagen_logo': fields.char(string='Imagen Logo', size=256),
+            ##'meli_imagen_id': fields.char(string='Imagen Id', size=256),
             'meli_imagen_link': rjson['thumbnail'],
-##            'meli_multi_imagen_id': fields.char(string='Multi Imagen Ids', size=512),
+            ##'meli_multi_imagen_id': fields.char(string='Multi Imagen Ids', size=512),
             'meli_video': str(vid),
             'meli_dimensions': meli_dim_str,
         }
@@ -361,10 +392,10 @@ class product_product(models.Model):
           'name': meli_fields["name"],
           'description_sale': desplain,
           #'name': str(rjson['id']),
-          'lst_price': ml_price_convert,
+          #'lst_price': ml_price_convert,
           'meli_title': meli_fields["meli_title"],
           'meli_description': meli_fields["meli_description"],
-          'meli_category': meli_fields["meli_category"],
+          #'meli_category': meli_fields["meli_category"],
           'meli_listing_type': meli_fields["meli_listing_type"],
           'meli_buying_mode': meli_fields["meli_buying_mode"],
           'meli_price': meli_fields["meli_price"],
@@ -373,27 +404,9 @@ class product_product(models.Model):
           'meli_warranty': meli_fields["meli_warranty"],
           'meli_dimensions': meli_fields["meli_dimensions"]
         }
-        #pdb.set_trace()
-        if www_cat_id!=False:
-            #assign
-            product_template.public_categ_ids = [(4,www_cat_id)]
-            #tmpl_fields["public_categ_ids"] = [(4,www_cat_id)]
 
         product.write( meli_fields )
         product_template.write( tmpl_fields )
-
-        if (product_template.taxes_id):
-            txtotal = 0
-            _logger.info("Adjust taxes")
-            for txid in product_template.taxes_id:
-                if (txid.type_tax_use=="sale"):
-                    txtotal = txtotal + txid.amount
-                    _logger.info(txid.amount)
-            if (txtotal>0):
-                _logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_convert))
-                ml_price_convert = ml_price_convert / (1.0 + txtotal*0.01)
-                _logger.info("Price converted:"+str(ml_price_convert))
-                product_template.write({ 'lst_price': ml_price_convert})
 
         if (rjson['available_quantity']>0):
             product_template.website_published = True
