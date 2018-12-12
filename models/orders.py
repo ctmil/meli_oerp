@@ -80,7 +80,8 @@ class res_partner(models.Model):
     _inherit = "res.partner"
 
 
-    meli_buyer_id = fields.Char('Meli Buyer Id');
+    meli_buyer_id = fields.Char('Meli Buyer Id')
+    meli_buyer = fields.Many2one( "mercadolibre.buyers","Buyer")
 
 
 res_partner()
@@ -89,6 +90,33 @@ class mercadolibre_orders(models.Model):
     _name = "mercadolibre.orders"
     _description = "Pedidos en MercadoLibre"
 
+    def street(self, Receiver ):
+        full_street = 'no street'
+        if (Receiver and 'address_line' in Receiver):
+            full_street = Receiver['address_line']
+
+        return full_street
+
+    def city(self, Receiver ):
+        full_city = ''
+        if (Receiver and 'city' in Receiver):
+            full_city = Receiver['city']['name']
+
+        return full_city
+
+    def state(self, Receiver ):
+        full_state = ''
+        if (Receiver and 'state' in Receiver):
+            full_state = Receiver['state']['name']
+
+        return full_state
+
+    def country(self, Receiver ):
+        full_country = ''
+        if (Receiver and 'country' in Receiver):
+            full_country = Receiver['country']['name']
+
+        return full_country
 
     def billing_info( self, billing_json, context=None ):
         billinginfo = ''
@@ -191,12 +219,19 @@ class mercadolibre_orders(models.Model):
 
         if 'buyer' in order_json:
             Buyer = order_json['buyer']
+            Receiver = False
+            if ('shipping' in order_json):
+                if ('receiver_address' in order_json['shipping']):
+                    Receiver = order_json['shipping']['receiver_address']
             meli_buyer_fields = {
                 'name': Buyer['first_name']+' '+Buyer['last_name'],
-                'street': 'no street',
+                'street': self.street(Receiver),
+                'city': self.city(Receiver),
+                'state': self.state(Receiver),
+                'country': self.country(Receiver),
                 'phone': self.full_phone( Buyer['phone']),
                 'email': Buyer['email'],
-                'meli_buyer_id': Buyer['id'],
+                'meli_buyer_id': Buyer['id']
             }
 
             buyer_fields = {
@@ -221,6 +256,8 @@ class mercadolibre_orders(models.Model):
                 buyer_id.write( ( buyer_fields ) )
                 #if (len(buyer_ids)>0):
                 #      buyer_id = buyer_ids[0]
+            if (buyer_id):
+                meli_buyer_fields['meli_buyer'] = buyer_id.id
 
             partner_ids = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ] )
             partner_id = 0
