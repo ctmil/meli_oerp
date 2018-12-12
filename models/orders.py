@@ -440,7 +440,6 @@ class mercadolibre_orders(models.Model):
         company = self.env.user.company_id
 
         order_obj = self.env['mercadolibre.orders']
-        order_items_obj = self.env['mercadolibre.order_items']
         order = self
 
         log_msg = 'orders_update_order: %s' % (order.order_id)
@@ -463,7 +462,7 @@ class mercadolibre_orders(models.Model):
             _logger.error( order_json["message"] )
         else:
             try:
-                self.orders_update_order_json( {"id": id, "order_json": order_json } )
+                self.orders_update_order_json( {"id": order.id, "order_json": order_json } )
                 self._cr.commit()
             except Exception as e:
                 _logger.info("orders_update_order > Error actualizando ORDEN")
