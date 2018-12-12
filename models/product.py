@@ -163,6 +163,14 @@ class product_template(models.Model):
 
 product_template()
 
+class product_image(models.Model):
+    _inherit = "product.image"
+
+    meli_imagen_id = fields.Char(string='Imagen Id', size=256)
+    meli_imagen_link = fields.Char(string='Imagen Link', size=256)
+
+product_image()
+
 class product_product(models.Model):
 
     _inherit = "product.product"
@@ -271,17 +279,41 @@ class product_product(models.Model):
             #assign
             product_template.public_categ_ids = [(4,www_cat_id)]
 
-    def _meli_set_images( self, pictures ):
+    def _meli_set_images( self, product_template, pictures ):
         product = self
         thumbnail_url = pictures[0]['url']
         image = urlopen(thumbnail_url).read()
         image_base64 = base64.encodestring(image)
         product.image_medium = image_base64
+
         if (len(pictures)>1):
             #complete product images:
             #delete all images...
             _logger.info("Importing all images...")
             _logger.info(pictures)
+            for ix in range(1,len(pictures)-1):
+                pic = pictures[ix]
+                thumbnail_url = pic['url']
+                image = urlopen(thumbnail_url).read()
+                image_base64 = base64.encodestring(image)
+                pimage = False
+                pimg_fields = {
+                    'name': pic["secure_url"]+'-'+pic["size"]+'-'+pic["max_size"],
+                    'meli_imagen_id': pic["id"],
+                    'meli_imagen_link': pic["secure_url"],
+                    'product_tmpl_id': product_template.id
+                }
+                if (product.product_image_ids):
+                    pimage = self.env["product.image"].search([('meli_imagen_id','=',pic["id"]),('product_tmpl_id','=',product_template.id)])
+                else:
+                    pimage = self.env["product.image"].create(pimg_fields)
+
+                if (pimage):
+                    pimage.write(pimg_fields)
+                    pimage.image = image_base64
+
+
+
 
     def product_meli_get_product( self ):
         company = self.env.user.company_id
@@ -346,7 +378,7 @@ class product_product(models.Model):
         #TODO:
         pictures = rjson['pictures']
         if pictures and len(pictures):
-            product._meli_set_images(pictures)
+            product._meli_set_images(product_template, pictures)
 
         #categories
         product._meli_set_category( product_template, rjson['category_id'] )
