@@ -318,9 +318,9 @@ class product_product(models.Model):
                 image_base64 = base64.encodestring(image)
                 pimage = False
                 pimg_fields = {
-                    'name': pic["secure_url"]+' - '+pic["size"]+' - '+pic["max_size"],
+                    'name': thumbnail_url+' - '+pic["size"]+' - '+pic["max_size"],
                     'meli_imagen_id': pic["id"],
-                    'meli_imagen_link': pic["secure_url"],
+                    'meli_imagen_link': thumbnail_url,
                     'meli_imagen_size': pic["size"],
                     'meli_imagen_max_size': pic["max_size"],
                     'product_tmpl_id': product_template.id
