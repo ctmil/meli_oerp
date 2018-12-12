@@ -341,7 +341,7 @@ class product_product(models.Model):
                     pimage = self.env["product.image"].search([('meli_imagen_id','=',pic["id"]),('product_tmpl_id','=',product_template.id)])
                     #_logger.info(pimage)
                     if (pimage and pimage.image):
-                        bin_diff = len(image_base64) - len(pimage.image
+                        bin_diff = len(image_base64) - len(pimage.image)
                         imagebin = base64.b64decode( pimage.image )
                         _logger.info("ImageBinDecoded:"+str(len(imagebin)))
                         _logger.info("Image:"+str(len(pimage.image))+" vs URLImageB64:"+str(meli_imagen_bytes)+" diff:"+str(bin_diff) )
