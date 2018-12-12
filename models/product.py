@@ -178,6 +178,7 @@ class product_image(models.Model):
     meli_imagen_link = fields.Char(string='Imagen Link')
     meli_imagen_size = fields.Char(string='Size')
     meli_imagen_max_size = fields.Char(string='Max Size')
+    meli_imagen_bytes = fields.Integer(string='Size bytes')
 
 product_image()
 
@@ -331,6 +332,7 @@ class product_product(models.Model):
                     'meli_imagen_link': thumbnail_url,
                     'meli_imagen_size': pic["size"],
                     'meli_imagen_max_size': pic["max_size"],
+                    'meli_imagen_bytes': len(image),
                     'product_tmpl_id': product_template.id
                 }
                 #_logger.info(pimg_fields)
@@ -338,8 +340,8 @@ class product_product(models.Model):
                     pimage = self.env["product.image"].search([('meli_imagen_id','=',pic["id"]),('product_tmpl_id','=',product_template.id)])
                     #_logger.info(pimage)
                     if (pimage and pimage.image):
-                        bin_diff = len(image_base64) - len(pimage.image)
-                        _logger.info("Image:"+str(len(pimage.image))+" vs ImageB64:"+str(len(image_base64))+" diff:"+str(bin_diff) )
+                        bin_diff = len(image) - len(pimage.image)
+                        _logger.info("Image:"+str(len(pimage.image))+" vs ImageB64:"+str(len(image))+" diff:"+str(bin_diff) )
                         bin_updating = (abs(bin_diff)>5000)
 
                 if (pimage==False or len(pimage)==0):
@@ -350,7 +352,7 @@ class product_product(models.Model):
                 if (pimage):
                     if (bin_updating):
                         _logger.info("Updating image data.")
-                        _logger.info("Image:"+str(len(image_base64)))
+                        _logger.info("Image:"+str(len(image)))
                         pimage.write(pimg_fields)
                         pimage.image = image_base64
 
