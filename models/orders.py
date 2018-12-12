@@ -213,7 +213,8 @@ class mercadolibre_orders(models.Model):
             buyer_ids = buyers_obj.search([  ('buyer_id','=',buyer_fields['buyer_id'] ) ] )
             buyer_id = 0
             if not buyer_ids:
-                _logger.info( "creating buyer:" + str(buyer_fields) )
+                _logger.info( "creating buyer")
+                #_logger.info(buyer_fields)
                 buyer_id = buyers_obj.create(( buyer_fields ))
             else:
                 if (buyer_ids):
@@ -295,7 +296,7 @@ class mercadolibre_orders(models.Model):
             for Item in items:
                 cn = cn + 1
                 #_logger.info(cn)
-                _logger.info(Item )
+                #_logger.info(Item )
                 post_related_obj = ''
                 product_related_obj = ''
                 product_related_obj_id = False
@@ -314,14 +315,14 @@ class mercadolibre_orders(models.Model):
 
                 if len(post_related):
                     post_related_obj = post_related
-                    _logger.info( post_related_obj )
+                    #_logger.info( post_related_obj )
                     #if (post_related[0]):
                     #    post_related_obj = post_related[0]
                 else:
                     _logger.info( "No post related, exiting" )
                     return {}
 
-                _logger.info( "Search product related." )
+                #_logger.info( "Search product related." )
                 product_related = product_obj.search([('meli_id','=',Item['item']['id'])])
                 if (product_related):
                     _logger.info("order product related by meli_id:",product_related)
@@ -363,7 +364,7 @@ class mercadolibre_orders(models.Model):
                     'currency_id': Item['currency_id']
                 }
                 order_item_ids = order_items_obj.search( [('order_item_id','=',order_item_fields['order_item_id']),('order_id','=',order.id)] )
-                _logger.info( order_item_fields )
+                #_logger.info( order_item_fields )
                 if not order_item_ids:
                     #_logger.info( "order_item_fields: " + str(order_item_fields) )
                     order_item_ids = order_items_obj.create( ( order_item_fields ))
@@ -394,7 +395,7 @@ class mercadolibre_orders(models.Model):
                     saleorderline_item_fields['price_unit'] = product_related_obj.product_tmpl_id.lst_price
 
                 saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
-                _logger.info( saleorderline_item_fields )
+                #_logger.info( saleorderline_item_fields )
 
                 if not saleorderline_item_ids:
                     #_logger.info( "saleorderline_item_fields: " + str(saleorderline_item_fields) )
@@ -405,12 +406,12 @@ class mercadolibre_orders(models.Model):
 
         if 'payments' in order_json:
             payments = order_json['payments']
-            _logger.info( payments )
+            #_logger.info( payments )
             cn = 0
             for Payment in payments:
                 cn = cn + 1
-                _logger.info(cn)
-                _logger.info(Payment )
+                #_logger.info(cn)
+                #_logger.info(Payment )
 
                 payment_fields = {
                     'order_id': order.id,
