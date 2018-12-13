@@ -20,10 +20,10 @@
         <record model="ir.ui.view" id="view_meli_orders_search">
             <field name="name">mercadolibre.orders.search</field>
             <field name="model">mercadolibre.orders</field>
-            <field name="type">search</field>
             <field name="arch" type="xml">
               <search string="Ordenes">
-                <field name="name" string="Order" filter_domain="['|','|',('order_id','ilike',self),('status','ilike',self),('buyer','ilike',self)]"/>
+                <field name="order_id" string="Order ID"/>
+                <field name="status" string="Status"/>
               </search>
             </field>
         </record>
