@@ -10,11 +10,24 @@
                 <tree string="Ordenes" >
                     <field name="order_id"/>
                     <field name="status"/>
+                    <field name="buyer"/>
                     <field name="date_created"/>
                     <field name="date_closed"/>
                 </tree>
             </field>
         </record>
+
+        <record model="ir.ui.view" id="view_meli_orders_search">
+            <field name="name">mercadolibre.orders.search</field>
+            <field name="model">mercadolibre.orders</field>
+            <field name="type">search</field>
+            <field name="arch" type="xml">
+              <search string="Ordenes">
+                <field name="name" string="Order" filter_domain="['|','|',('order_id','ilike',self),('status','ilike',self),('buyer','ilike',self)]"/>
+              </search>
+            </field>
+        </record>
+
 
         <record model="ir.ui.view" id="view_sale_order_form_meli">
             <field name="name">sale.order.form.meli</field>
