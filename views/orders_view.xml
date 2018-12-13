@@ -2,10 +2,22 @@
 <openerp>
     <data>
 
-        <record model="ir.ui.view" id="view_meli_orders_tree">
+      <record model="ir.ui.view" id="view_meli_orders_search">
+          <field name="name">mercadolibre.orders.search</field>
+          <field name="model">mercadolibre.orders</field>
+          <field name="arch" type="xml">
+            <search string="Ordenes">
+              <field name="order_id" string="Order ID"/>
+              <field name="status" string="Status"/>
+            </search>
+          </field>
+      </record>
+
+      <record model="ir.ui.view" id="view_meli_orders_tree">
             <field name="name">mercadolibre.orders.tree</field>
             <field name="model">mercadolibre.orders</field>
             <field name="type">tree</field>
+            <field name="search_view_id" ref="view_meli_orders_search"/>
             <field name="arch" type="xml">
                 <tree string="Ordenes" >
                     <field name="order_id"/>
@@ -17,16 +29,7 @@
             </field>
         </record>
 
-        <record model="ir.ui.view" id="view_meli_orders_search">
-            <field name="name">mercadolibre.orders.search</field>
-            <field name="model">mercadolibre.orders</field>
-            <field name="arch" type="xml">
-              <search string="Ordenes">
-                <field name="order_id" string="Order ID"/>
-                <field name="status" string="Status"/>
-              </search>
-            </field>
-        </record>
+
 
 
         <record model="ir.ui.view" id="view_sale_order_form_meli">
