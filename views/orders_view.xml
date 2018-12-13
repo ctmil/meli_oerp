@@ -140,6 +140,8 @@
 	         <search string="Search MercadoLibre Orders Information">
              <field name="order_id" string="Order ID"/>
              <field name="status" string="Status"/>
+             <field name="buyer" string="Comprador"/>
+             <field name="seller" string="Vendedor"/>
 	         </search>
         </field>
     </record>
