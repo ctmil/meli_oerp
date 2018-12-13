@@ -95,8 +95,8 @@
                         string="Shipment Report"
                         model="mercadolibre.shipment"
                         report_type="qweb-pdf"
-                        file="mercadolibre.report_shipment"
-                        name="mercadolibre.report_shipment"
+                        file="meli_oerp.report_shipment"
+                        name="meli_oerp.report_shipment"
                         menu="True"
                         print_report_name="Reporte de etiquetas"
                     />
