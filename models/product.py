@@ -494,7 +494,12 @@ class product_product(models.Model):
         else:
             product_template.website_published = False
 
-        posting_fields = {'posting_date': str(datetime.now()),'meli_id':rjson['id'],'product_id':product.id,'name': 'Post (ML): ' + product.meli_title }
+        posting_fields = {
+            'posting_date': str(datetime.now()),
+            'meli_id':rjson['id'],
+            'product_id':product.id,
+            'name': 'Post (ML): ' + product.meli_title
+        }
 
         posting_id = self.env['mercadolibre.posting'].search([('meli_id','=',rjson['id'])]).id
 
@@ -503,6 +508,9 @@ class product_product(models.Model):
             posting_id = posting.id
             if (posting):
                 posting.posting_query_questions()
+        else:
+            posting_id.write({'product_id':product.id })
+            posting.posting_query_questions()
 
 
         b_search_nonfree_ship = False

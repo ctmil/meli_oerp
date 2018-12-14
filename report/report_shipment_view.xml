@@ -116,7 +116,11 @@
 														</tr>
 														<tr>
 															<td><b>Producto(s):</b></td>
-															<td></td>
+															<td>
+															  <span t-foreach="o.order.order_items" t-as="item">
+															    <span t-field="item.quantity"/> x <span t-field="item.posting_id.product_id.name"/>,
+															 </span>
+															 </td>
 														</tr>
 													</table>
 												</td>
