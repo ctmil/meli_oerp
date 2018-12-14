@@ -110,8 +110,12 @@ class mercadolibre_orders(models.Model):
         if (Receiver and 'state' in Receiver):
             full_state = Receiver['state']['name']
             state = self.env['res.country.state'].search([('name','like',full_state),('country_id','=',country_id)])
-            if (len(state)):
+            if (len(state)==1):
                 state_id = state.id
+            else:
+                if (len(state)>1):
+                    state_id = state[0].id
+
 
         return state_id
 
