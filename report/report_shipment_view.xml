@@ -18,7 +18,7 @@
 
 						<div class="page">
 							<t t-foreach="docs" t-as="o">
-										<table>
+										<table width="100%">
 											<tr>
 												<td>
 													<table>
@@ -43,7 +43,7 @@
 															</td>
 														</tr>
 														<tr>
-															<td>
+															<td style="background-color: #99FF99;">
 																<p>Tipo de envío <span t-field="o.tracking_method"/></p>
 															</td>
 														</tr>
