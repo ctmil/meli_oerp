@@ -96,6 +96,35 @@
             view_type="form" view_mode="form"
             key2="client_action_multi" target="new"/>
 
+
+            <record id="view_mercadolibre_shipment_update" model="ir.ui.view">
+                  <field name="name">Actualizar datos de envío</field>
+                  <field name="model">mercadolibre.shipment.update</field>
+                  <field name="type">form</field>
+                  <field name="arch" type="xml">
+                    <form string="Actualizar envio" version="7.0">
+
+
+
+                        <footer>
+                            <button name="shipment_update" string="Actualizar datos de envío"  type="object" class="oe_highlight"  />
+            or
+                            <button string="Cancel" class="oe_link" special="cancel" />
+                        </footer>
+                    </form>
+                  </field>
+            </record>
+
+            <record id="action_mercadolibre_shipment_update" model="ir.actions.act_window">
+                <field name="name">Update Shipment</field>
+                <field name="type">ir.actions.act_window</field>
+                <field name="src_model">mercadolibre.shipment</field>
+                <field name="res_model">mercadolibre.shipment.update</field>
+                <field name="view_type">form</field>
+                <field name="view_mode">form</field>
+                <field name="target">new</field>
+            </record>
+
             <act_window id="action_mercadolibre_shipment_update"
                 name="Update"
                 src_model="mercadolibre.shipment"

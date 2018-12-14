@@ -79,6 +79,30 @@ class mercadolibre_shipment_print(models.TransientModel):
 
 mercadolibre_shipment_print()
 
+
+class mercadolibre_shipment_update(models.TransientModel):
+	_name = "mercadolibre.shipment.update"
+	_description = "Actualizar datos de envío"
+
+	def shipment_update(self, context):
+		#pdb.set_trace()
+		company = self.env.user.company_id
+		shipment_ids = context['active_ids']
+		#product_obj = self.env['product.template']
+		shipment_obj = self.env['mercadolibre.shipment']
+		warningobj = self.env['warning']
+
+		_logger.info("shipment_update")
+		_logger.info(shipment_ids)
+
+		for shipid in shipment_ids:
+			shipment = shipment_obj.browse(shipid)
+			if (shipment):
+				shipment.shipment_update()
+
+
+mercadolibre_shipment_update()
+
 class mercadolibre_shipment(models.Model):
 	_name = "mercadolibre.shipment"
 	_description = "Envío de MercadoLibre"
