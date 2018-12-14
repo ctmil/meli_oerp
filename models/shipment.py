@@ -98,7 +98,7 @@ class mercadolibre_shipment_update(models.TransientModel):
 		for shipid in shipment_ids:
 			shipment = shipment_obj.browse(shipid)
 			if (shipment):
-				shipment.shipment_update()
+				shipment.update()
 
 
 mercadolibre_shipment_update()
@@ -111,7 +111,7 @@ class mercadolibre_shipment(models.Model):
 	posting_id = fields.Many2one("mercadolibre.posting","Posting")
 	shipping_id = fields.Char('Envío Id')
 	order_id =  fields.Char('Order Id')
-	order = fields.Many2one("mercadolibre.orders","Order");
+	order = fields.Many2one("mercadolibre.orders","Order")
 
 	mode = fields.Char('Mode')
 	shipping_mode = fields.Char('Shipping mode')
@@ -160,8 +160,6 @@ class mercadolibre_shipment(models.Model):
 	sender_longitude = fields.Char('Sender Address Longitude')
 
 	logistic_type = fields.Char('Logistic type')
-
-	order = fields.Many2one("mercadolibre.orders","Orden")
 
 	def create_shipment( self ):
 		return {}
@@ -244,19 +242,21 @@ class mercadolibre_shipment(models.Model):
 
 					"logistic_type": ship_json["logistic_type"]
 				}
+				ships = shipment_obj.search([('shipping_id','=', ship_id)])
+				_logger.info(ships)
+				if (len(ships)==0):
+					_logger.info("Importing shipment: " + str(ship_id))
+					ship = shipment_obj.create((ship_fields))
+					if (ship):
+						_logger.info("Created shipment ok!")
+				else:
+					_logger.info("Updating shipment: " + str(ship_id))
+					ships.write((ship_fields))
 
+	def update( self ):
 
-		ships = shipment_obj.search([('shipping_id','=', ship_id)])
-		_logger.info(ships)
-		if (len(ships)==0):
-			_logger.info("Importing shipment: " + str(ship_id))
-			ship = shipment_obj.create((ship_fields))
-			if (ship):
-				_logger.info("Created shipment ok!")
-		else:
-			_logger.info("Updating shipment: " + str(ship_id))
-			ships.write((ship_fields))
-
+		self.fetch( self.order )
+		
 		return {}
 
 	def shipment_query( self ):
