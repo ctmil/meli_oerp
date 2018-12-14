@@ -20,39 +20,39 @@
 							<t t-foreach="docs" t-as="o">
 										<table style="width: 100%">
 											<tr>
-												<td style="width: 60%">
+												<td style="width: 64.5%">
 													<table style="width: 100%">
 														<tr>
-															<td style="width: 20%">Destinatario:</td>
+															<td style="width: 20%"><b>Destinatario:</b></td>
 															<td><span t-field="o.receiver_address_name"/></td>
 														</tr>
 														<tr>
-															<td>Dirección:</td>
+															<td><b>Dirección:</b></td>
 															<td><span t-field="o.receiver_address_line"/></td>
 														</tr>
 														<tr>
-															<td colspan="2">
+															<td><b>Teléfono:</b></td>
+															<td>
 																<table style="width: 100%">
 																	<tr>
-																		<td style="width: 20%">Teléfono</td>
-																		<td style="width: 30%"><span t-field="o.receiver_address_phone"/></td>
-																		<td style="width: 20%">Destino</td>
-																		<td style="width: 30%"><span t-field="o.receiver_city"/>,<span t-field="o.receiver_state"/>,<span t-field="o.receiver_country"/></td>
+																		<td style="width: 42.5%"><span t-field="o.receiver_address_phone"/></td>
+																		<td style="width: 15%"><b>Destino:</b></td>
+																		<td style="width: 42.5%"><span t-field="o.receiver_city"/>,<span t-field="o.receiver_state"/>,<span t-field="o.receiver_country"/></td>
 																	</tr>
 																</table>
 															</td>
 														</tr>
 														<tr>
-															<td>Tipo de envío</td>
+															<td><b>Tipo de envío:</b></td>
 															<td style="background-color: #99FF99;"><span t-field="o.tracking_method"/></td>
 														</tr>
 														<tr>
-															<td>Productos:</td>
+															<td><b>Productos:</b></td>
 															<td></td>
 														</tr>
 													</table>
 												</td>
-												<td style="width: 40%">
+												<td style="width: 35.5%">
 													Remitente:
 												</td>
 											</tr>
