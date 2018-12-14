@@ -112,7 +112,7 @@ class mercadolibre_shipment(models.Model):
 	receiver_address_phone = fields.Char('Teléfono')
 	receiver_address_name = fields.Char('Nombre')
 	receiver_address_comment = fields.Char('Comment')
-	
+
 	receiver_address_line = fields.Char('Receiver Address Line')
 	receiver_street_name = fields.Char('Calle')
 	receiver_street_number = fields.Char('Nro')
@@ -136,6 +136,8 @@ class mercadolibre_shipment(models.Model):
 	sender_longitude = fields.Char('Sender Address Longitude')
 
 	logistic_type = fields.Char('Logistic type')
+
+	order = fields.Many2one("mercadolibre.orders","Orden")
 
 	def create_shipment( self ):
 		return {}
@@ -172,6 +174,7 @@ class mercadolibre_shipment(models.Model):
 			else:
 				_logger.info("Saving shipment fields")
 				ship_fields = {
+					"order": order.id,
 					"shipping_id": ship_json["id"],
 					"site_id": ship_json["site_id"],
 					"order_id": ship_json["order_id"],
