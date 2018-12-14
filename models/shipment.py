@@ -141,63 +141,67 @@ class mercadolibre_shipment(models.Model):
 
 		#
 		meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN )
+
 		ship_id = False
 		if (order and order.shipping_id):
 			ship_id = order.shipping_id
 		else:
 			return {}
 
+		response = meli.get("/shipments/"+ str(ship_id),  {'access_token':meli.access_token})
+		if (response):
+			ship_json = response.json()
+			_logger.info( ship_json )
+
+			if "error" in ship_json:
+				_logger.error( ship_json["error"] )
+				_logger.error( ship_json["message"] )
+			else:
+				_logger.info("Saving shipment fields")
+				ship_fields = {
+					"shipping_id": ship_json["id"],
+					"site_id": ship_json["site_id"],
+					"order_id": ship_json["order_id"],
+					"order": order.id,
+					"mode": ship_json["mode"],
+					"shipping_mode": ship_json["shipping_option"]["name"],
+					"date_created": ship_json["date_created"],
+					"last_updated": ship_json["last_updated"],
+					"order_cost": ship_json["order_cost"],
+					"base_cost": ship_json["base_cost"],
+					"status": ship_json["status"],
+					"substatus": ship_json["substatus"],
+					#"status_history": ship_json["status_history"],
+					"tracking_number": ship_json["tracking_number"],
+					"tracking_method": ship_json["tracking_method"],
+					"date_first_printed": ship_json["date_first_printed"],
+					"receiver_id": ship_json["receiver_id"],
+					"receiver_address_id": ship_json["receiver_address"]["id"],
+					"receiver_address_phone": ship_json["receiver_address"]["receiver_phone"],
+					"receiver_address_name": ship_json["receiver_address"]["receiver_name"],
+					"receiver_address_comment": ship_json["receiver_address"]["comment"],
+					"receiver_street_name": ship_json["receiver_address"]["street_name"],
+					"receiver_street_number": ship_json["receiver_address"]["street_number"],
+					"receiver_city": ship_json["receiver_address"]["city"]["name"],
+					"receiver_state": ship_json["receiver_address"]["state"]["name"],
+					"receiver_country": ship_json["receiver_address"]["country"]["name"],
+					"receiver_latitude": ship_json["receiver_address"]["latitude"],
+					"receiver_longitude": ship_json["receiver_address"]["longitude"],
+					"sender_id": ship_json["sender_id"],
+					"logistic_type": ship_json["logistic_type"]
+				}
+
+
 		ships = shipment_obj.search([('shipping_id','=', ship_id)])
 		_logger.info(ships)
 		if (len(ships)==0):
 			_logger.info("Importing shipment: " + str(ship_id))
-			response = meli.get("/shipments/"+ str(ship_id),  {'access_token':meli.access_token})
-			if (response):
-				ship_json = response.json()
-				_logger.info( ship_json )
-
-				if "error" in ship_json:
-					_logger.error( ship_json["error"] )
-					_logger.error( ship_json["message"] )
-				else:
-					_logger.info("Saving shipment fields")
-					ship_fields = {
-						"shipping_id": ship_json["id"],
-						"site_id": ship_json["site_id"],
-						"order_id": ship_json["order_id"],
-						"order": order.id,
-						"mode": ship_json["mode"],
-						"shipping_mode": ship_json["shipping_option"]["name"],
-						"date_created": ship_json["date_created"],
-						"last_updated": ship_json["last_updated"],
-						"order_cost": ship_json["order_cost"],
-						"base_cost": ship_json["base_cost"],
-						"status": ship_json["status"],
-						"substatus": ship_json["substatus"],
-						#"status_history": ship_json["status_history"],
-						"tracking_number": ship_json["tracking_number"],
-						"tracking_method": ship_json["tracking_method"],
-						"date_first_printed": ship_json["date_first_printed"],
-						"receiver_id": ship_json["receiver_id"],
-						"receiver_address_id": ship_json["receiver_address"]["id"],
-						"receiver_address_phone": ship_json["receiver_address"]["receiver_phone"],
-						"receiver_address_name": ship_json["receiver_address"]["receiver_name"],
-						"receiver_address_comment": ship_json["receiver_address"]["comment"],
-						"receiver_street_name": ship_json["receiver_address"]["street_name"],
-						"receiver_street_number": ship_json["receiver_address"]["street_number"],
-						"receiver_city": ship_json["receiver_address"]["city"]["name"],
-						"receiver_state": ship_json["receiver_address"]["state"]["name"],
-						"receiver_country": ship_json["receiver_address"]["country"]["name"],
-						"receiver_latitude": ship_json["receiver_address"]["latitude"],
-						"receiver_longitude": ship_json["receiver_address"]["longitude"],
-						"sender_id": ship_json["sender_id"],
-						"logistic_type": ship_json["logistic_type"]
-					}
 					ship = shipment_obj.create((ship_fields))
 					if (ship):
 						_logger.info("Created shipment ok!")
 		else:
 			_logger.info("Updating shipment: " + str(ship_id))
+			ships.write((ship_fields))
 
 		return {}
 
