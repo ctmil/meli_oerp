@@ -9,7 +9,7 @@
 													<h2>Shipment</h2>
 													<p>Destinatario <span t-field="o.receiver_address_name"/></p>
 													<p>Dirección <span t-field="o.receiver_street_name"/></p>
-													<p>Teléfono <span t-field="o.receiver_phone"/>; Destino <span t-field="o.receiver_city"/>,<span t-field="o.receiver_state"/>,<span t-field="o.receiver_country"/></p>
+													<p>Teléfono <span t-field="o.receiver_address_phone"/>; Destino <span t-field="o.receiver_city"/>,<span t-field="o.receiver_state"/>,<span t-field="o.receiver_country"/></p>
 													<p>Tipo de envío <span t-field="o.tracking_method"/></p>
 													<p>Productos ,,,</p>
 													<p>Remitente SLTSLC xxxx, yyy ,zzz</p>
