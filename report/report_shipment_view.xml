@@ -3,6 +3,7 @@
     <data>
         <template id="report_shipment">
 					<t t-call="web.html_container">
+						<t t-call="web.html_layout">
 						<div class="page">
 							<t t-foreach="docs" t-as="o">
 										<table>
@@ -46,6 +47,7 @@
 							</t>
 						</div>
 					</t>
+				</t>
         </template>
     </data>
 </odoo>

@@ -256,7 +256,7 @@ class mercadolibre_shipment(models.Model):
 	def update( self ):
 
 		self.fetch( self.order )
-		
+
 		return {}
 
 	def shipment_query( self ):
