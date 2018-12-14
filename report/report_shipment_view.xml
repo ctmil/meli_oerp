@@ -3,6 +3,8 @@
     <data>
         <template id="report_shipment">
 					<t t-call="web.html_container">
+						<t t-call="web.internal_layout">
+						<!--
 						<t t-if="not o and doc">
             	<t t-set="o" t-value="doc"/>
 		        </t>
@@ -12,7 +14,7 @@
 		        </t>
 		        <t t-if="not o or not 'company_id' in o">
 		            <t t-set="company" t-value="res_company"/>
-		        </t>
+		        </t>-->
 
 						<div class="page">
 							<t t-foreach="docs" t-as="o">
@@ -55,7 +57,8 @@
 											</tr>
 										</table>
 							</t>
-						</div>					
+						</div>
+						</t>
 				</t>
         </template>
     </data>
