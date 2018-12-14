@@ -13,7 +13,7 @@
                     <field name="substatus"/>
                     <field name="date_created"/>
                     <field name="last_updated"/>
-                    <filter name="tracking_method" />
+                    <field name="tracking_method" />
                     <field name="receiver_address_name"/>
                     <field name="mode"/>
                     <field name="shipping_mode"/>
@@ -32,10 +32,10 @@
         <field name="model">mercadolibre.shipment</field>
         <field name="arch" type="xml">
     	    <search string="Search MercadoLibre Shipments Information">
-                <filter name="shipping_id" />
+                <field name="shipping_id" />
                 <field name="status"/>
                 <field name="substatus"/>
-                <filter name="tracking_method" />
+                <field name="tracking_method" />
                 <field name="receiver_address_name"/>
                 <field name="tracking_number"/>
     	    </search>
