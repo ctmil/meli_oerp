@@ -13,6 +13,7 @@
                     <field name="substatus"/>
                     <field name="date_created"/>
                     <field name="last_updated"/>
+                    <filter name="tracking_method" />
                     <field name="receiver_address_name"/>
                     <field name="mode"/>
                     <field name="shipping_mode"/>
@@ -30,9 +31,14 @@
         <field name="name">MercadoLibre Shipment - Search</field>
         <field name="model">mercadolibre.shipment</field>
         <field name="arch" type="xml">
-	    <search string="Search MercadoLibre Shipments Information">
-                <filter string='Status' icon="terp-mrp" domain="[]" context="{'group_by' : 'status'}"/>
-	    </search>
+    	    <search string="Search MercadoLibre Shipments Information">
+                <filter name="shipping_id" />
+                <field name="status"/>
+                <field name="substatus"/>
+                <filter name="tracking_method" />
+                <field name="receiver_address_name"/>
+                <field name="tracking_number"/>
+    	    </search>
         </field>
     </record>
 
