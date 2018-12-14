@@ -47,8 +47,42 @@
 			        </html>
 			    </template>
 
+
+					<template id="internal_layout">
+					        <!-- Multicompany -->
+					        <t t-if="o and 'company_id' in o">
+					            <t t-set="company" t-value="o.company_id"/>
+					        </t>
+					        <t t-if="not o or not 'company_id' in o">
+					            <t t-set="company" t-value="res_company"/>
+					        </t>
+									<!--
+					        <div class="header">
+					            <div class="row">
+					                <div class="col-xs-3">
+					                    <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d %H:%M')"/>
+					                </div>
+					                <div class="col-xs-2 col-xs-offset-2 text-center">
+					                    <span t-esc="company.name"/>
+					                </div>
+					                <div class="col-xs-2 col-xs-offset-3 text-right">
+					                    <ul class="list-inline">
+					                        <li><span class="page"/></li>
+					                        <li>/</li>
+					                        <li><span class="topage"/></li>
+					                    </ul>
+					                </div>
+					            </div>
+					        </div>-->
+					        <div class="article">
+					          <t t-raw="0" />
+					        </div>
+					    </template>
+
+
         <template id="report_shipment">
 						<t t-call="meli_oerp.report_layout">
+							<t t-call="meli_oerp.internal_layout">
 						<div class="page">
 							<t t-foreach="docs" t-as="o">
 										<table style="width: 100%">
@@ -93,6 +127,7 @@
 										</table>
 							</t>
 						</div>
+						</t>
 						</t>
         </template>
     </data>
