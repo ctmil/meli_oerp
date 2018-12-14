@@ -112,6 +112,8 @@ class mercadolibre_shipment(models.Model):
 	receiver_address_phone = fields.Char('Teléfono')
 	receiver_address_name = fields.Char('Nombre')
 	receiver_address_comment = fields.Char('Comment')
+	
+	receiver_address_line = fields.Char('Receiver Address Line')
 	receiver_street_name = fields.Char('Calle')
 	receiver_street_number = fields.Char('Nro')
 	receiver_city = fields.Char('Ciudad')
@@ -121,6 +123,17 @@ class mercadolibre_shipment(models.Model):
 	receiver_longitude = fields.Char('Longitud')
 
 	sender_id = fields.Char('Sender Id')
+	sender_address_id = fields.Char('Sender Address Id')
+	sender_address_line = fields.Char('Sender Address Line')
+	sender_address_comment = fields.Text('Sender Address Comment')
+
+	sender_street_name = fields.Char('Sender Address Street Name')
+	sender_street_number = fields.Char('Sender Address Street Number')
+	sender_city = fields.Char('Sender Address City')
+	sender_state = fields.Char('Sender Address State')
+	sender_country = fields.Char('Sender Address Country')
+	sender_latitude = fields.Char('Sender Address Latitude')
+	sender_longitude = fields.Char('Sender Address Longitude')
 
 	logistic_type = fields.Char('Logistic type')
 
@@ -179,6 +192,7 @@ class mercadolibre_shipment(models.Model):
 					"receiver_address_id": ship_json["receiver_address"]["id"],
 					"receiver_address_phone": ship_json["receiver_address"]["receiver_phone"],
 					"receiver_address_name": ship_json["receiver_address"]["receiver_name"],
+					"receiver_address_line": ship_json["receiver_address"]["address_line"],
 					"receiver_address_comment": ship_json["receiver_address"]["comment"],
 					"receiver_street_name": ship_json["receiver_address"]["street_name"],
 					"receiver_street_number": ship_json["receiver_address"]["street_number"],
@@ -187,7 +201,20 @@ class mercadolibre_shipment(models.Model):
 					"receiver_country": ship_json["receiver_address"]["country"]["name"],
 					"receiver_latitude": ship_json["receiver_address"]["latitude"],
 					"receiver_longitude": ship_json["receiver_address"]["longitude"],
+
 					"sender_id": ship_json["sender_id"],
+					"sender_address_id": ship_json["sender_address"]["id"],
+					"sender_address_line": ship_json["sender_address"]["address_line"],
+					"sender_address_comment": ship_json["sender_address"]["comment"],
+					"sender_street_name": ship_json["sender_address"]["street_name"],
+					"sender_street_number": ship_json["sender_address"]["street_number"],
+					"sender_city": ship_json["sender_address"]["city"]["name"],
+					"sender_state": ship_json["sender_address"]["state"]["name"],
+					"sender_country": ship_json["sender_address"]["country"]["name"],
+					"sender_latitude": ship_json["sender_address"]["latitude"],
+					"sender_longitude": ship_json["sender_address"]["longitude"],
+
+
 					"logistic_type": ship_json["logistic_type"]
 				}
 
