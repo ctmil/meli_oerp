@@ -196,9 +196,9 @@ class mercadolibre_shipment(models.Model):
 		_logger.info(ships)
 		if (len(ships)==0):
 			_logger.info("Importing shipment: " + str(ship_id))
-					ship = shipment_obj.create((ship_fields))
-					if (ship):
-						_logger.info("Created shipment ok!")
+			ship = shipment_obj.create((ship_fields))
+			if (ship):
+				_logger.info("Created shipment ok!")
 		else:
 			_logger.info("Updating shipment: " + str(ship_id))
 			ships.write((ship_fields))
