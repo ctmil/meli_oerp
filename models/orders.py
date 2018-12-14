@@ -104,12 +104,12 @@ class mercadolibre_orders(models.Model):
 
         return full_city
 
-    def state(self, Receiver ):
+    def state(self, country_id, Receiver ):
         full_state = ''
         state_id = False
         if (Receiver and 'state' in Receiver):
             full_state = Receiver['state']['name']
-            state = self.env['res.country.state'].search([('name','like',full_state)])
+            state = self.env['res.country.state'].search([('name','like',full_state),('country_id','=',country_id)])
             if (len(state)):
                 state_id = state.id
 
@@ -236,8 +236,8 @@ class mercadolibre_orders(models.Model):
                 'name': Buyer['first_name']+' '+Buyer['last_name'],
                 'street': self.street(Receiver),
                 'city': self.city(Receiver),
-                'state_id': self.state(Receiver),
                 'country_id': self.country(Receiver),
+                'state_id': self.state(self.country(Receiver),Receiver),
                 'phone': self.full_phone( Buyer['phone']),
                 'email': Buyer['email'],
                 'meli_buyer_id': Buyer['id']

@@ -3,19 +3,48 @@
     <data>
         <template id="report_shipment">
 					<t t-call="web.html_container">
+						<div class="page">
 							<t t-foreach="docs" t-as="o">
-									<t t-call="web.external_layout">
-											<div class="page">
-													<h2>Shipment</h2>
-													<p>Destinatario <span t-field="o.receiver_address_name"/></p>
-													<p>Dirección <span t-field="o.receiver_street_name"/></p>
-													<p>Teléfono <span t-field="o.receiver_address_phone"/>; Destino <span t-field="o.receiver_city"/>,<span t-field="o.receiver_state"/>,<span t-field="o.receiver_country"/></p>
-													<p>Tipo de envío <span t-field="o.tracking_method"/></p>
-													<p>Productos ,,,</p>
-													<p>Remitente SLTSLC xxxx, yyy ,zzz</p>
-											</div>
+										<table>
+											<tr>
+												<td>
+													<table>
+														<tr>
+															<td>
+																<p>Destinatario <span t-field="o.receiver_address_name"/></p>
+															</td>
+														</tr>
+														<tr>
+															<td>
+																<p>Dirección <span t-field="o.receiver_street_name"/></p>
+															</td>
+														</tr>
+														<tr>
+															<td>
+																<table>
+																	<tr>
+																		<td>Teléfono <span t-field="o.receiver_address_phone"/></td>
+																		<td>Destino <span t-field="o.receiver_city"/>,<span t-field="o.receiver_state"/>,<span t-field="o.receiver_country"/></td>
+																	</tr>
+																</table>
+															</td>
+														</tr>
+														<tr>
+															<td>
+																<p>Tipo de envío <span t-field="o.tracking_method"/></p>
+															</td>
+														</tr>
+														<tr>
+															<td>
+																<p>Productos ,,,</p>
+															</td>
+														</tr>
+													</table>
+												</td>
+											</tr>
+										<table>
 									</t>
-							</t>
+						</div>
 					</t>
         </template>
     </data>
