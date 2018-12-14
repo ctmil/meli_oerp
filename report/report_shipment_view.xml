@@ -1,9 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
+
+
+					<template id="internal_layout">
+			        <!-- Multicompany -->
+			        <t t-if="o and 'company_id' in o">
+			            <t t-set="company" t-value="o.company_id"/>
+			        </t>
+			        <t t-if="not o or not 'company_id' in o">
+			            <t t-set="company" t-value="res_company"/>
+			        </t>
+
+			        <div class="article">
+			          <t t-raw="0" />
+			        </div>
+			    </template>
+
+
         <template id="report_shipment">
 					<t t-call="web.html_container">
-						<t t-call="web.internal_layout">
+						<t t-call="meli_oerp.internal_layout">
 						<!--
 						<t t-if="not o and doc">
             	<t t-set="o" t-value="doc"/>
@@ -35,9 +52,10 @@
 															<td>
 																<table style="width: 100%">
 																	<tr>
-																		<td style="width: 42.5%"><span t-field="o.receiver_address_phone"/></td>
+																		<td style="width: 22.5%"><span t-field="o.receiver_address_phone"/></td>
 																		<td style="width: 15%"><b>Destino:</b></td>
-																		<td style="width: 42.5%"><span t-field="o.receiver_city"/>,<span t-field="o.receiver_state"/>,<span t-field="o.receiver_country"/></td>
+																		<td style="width: 62.5%"><span t-field="o.receiver_city"/>,<span t-field="o.receiver_state"/>
+																		<!--,<span t-field="o.receiver_country"/>--></td>
 																	</tr>
 																</table>
 															</td>
@@ -47,7 +65,7 @@
 															<td style="background-color: #99FF99;"><span t-field="o.tracking_method"/></td>
 														</tr>
 														<tr>
-															<td><b>Productos:</b></td>
+															<td><b>Producto(s):</b></td>
 															<td></td>
 														</tr>
 													</table>
