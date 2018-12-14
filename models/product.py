@@ -501,7 +501,8 @@ class product_product(models.Model):
             'name': 'Post (ML): ' + product.meli_title
         }
 
-        posting_id = self.env['mercadolibre.posting'].search([('meli_id','=',rjson['id'])]).id
+        posting = self.env['mercadolibre.posting'].search([('meli_id','=',rjson['id'])])
+        posting_id = posting.id
 
         if not posting_id:
             posting = self.env['mercadolibre.posting'].create((posting_fields))
@@ -509,7 +510,7 @@ class product_product(models.Model):
             if (posting):
                 posting.posting_query_questions()
         else:
-            posting_id.write({'product_id':product.id })
+            posting.write({'product_id':product.id })
             posting.posting_query_questions()
 
 
