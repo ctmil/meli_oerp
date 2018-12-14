@@ -98,7 +98,7 @@
                         file="meli_oerp.report_shipment"
                         name="meli_oerp.report_shipment"
                         menu="True"
-                        print_report_name="Reporte de etiquetas"
+                        print_report_name="reporte_de_etiquetas"
                     />
     </data>
 </openerp>
