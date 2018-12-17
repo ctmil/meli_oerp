@@ -64,11 +64,8 @@
               <field name="type">form</field>
               <field name="arch" type="xml">
                 <form string="PO Merge" version="7.0">
-
-
-
                     <footer>
-                        <button name="shipment_print" string="Imprimir Etiqueta"  type="object" class="oe_highlight"  />or
+                        <button name="shipment_print" string="Imprimir Etiqueta"  type="object" class="oe_highlight"  />
                         <button string="Cancel" class="oe_link" special="cancel" />
                     </footer>
                 </form>
@@ -92,7 +89,7 @@
               <field name="arch" type="xml">
                 <form string="Actualizar envio" version="7.0">
                     <footer>
-                        <button name="shipment_update" string="Actualizar datos"  type="object" class="oe_highlight"  />or
+                        <button name="shipment_update" string="Actualizar datos"  type="object" class="oe_highlight"  />
                         <button string="Cancel" class="oe_link" special="cancel" />
                     </footer>
                 </form>

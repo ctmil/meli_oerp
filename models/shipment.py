@@ -82,7 +82,7 @@ mercadolibre_shipment_print()
 
 class mercadolibre_shipment_update(models.TransientModel):
 	_name = "mercadolibre.shipment.update"
-	_description = "Actualizar datos de envío"
+	_description = "Actualizar datos de envio"
 
 	def shipment_update(self, context):
 		#pdb.set_trace()
@@ -105,11 +105,11 @@ mercadolibre_shipment_update()
 
 class mercadolibre_shipment(models.Model):
 	_name = "mercadolibre.shipment"
-	_description = "Envío de MercadoLibre"
+	_description = "Envio de MercadoLibre"
 
 	site_id = fields.Char('Site id')
 	posting_id = fields.Many2one("mercadolibre.posting","Posting")
-	shipping_id = fields.Char('Envío Id')
+	shipping_id = fields.Char('Envio Id')
 	order_id =  fields.Char('Order Id')
 	order = fields.Many2one("mercadolibre.orders","Order")
 
@@ -133,7 +133,7 @@ class mercadolibre_shipment(models.Model):
 
 	receiver_id = fields.Char('Receiver Id')
 	receiver_address_id = fields.Char('Receiver address id')
-	receiver_address_phone = fields.Char('Teléfono')
+	receiver_address_phone = fields.Char('Phone')
 	receiver_address_name = fields.Char('Nombre')
 	receiver_address_comment = fields.Char('Comment')
 
