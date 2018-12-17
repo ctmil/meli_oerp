@@ -327,74 +327,74 @@ class product_product(models.Model):
             #assign
             product_template.public_categ_ids = [(4,www_cat_id)]
 
-def _meli_set_images( self, product_template, pictures ):
-    company = self.env.user.company_id
-    CLIENT_ID = company.mercadolibre_client_id
-    CLIENT_SECRET = company.mercadolibre_secret_key
-    ACCESS_TOKEN = company.mercadolibre_access_token
-    REFRESH_TOKEN = company.mercadolibre_refresh_token
+    def _meli_set_images( self, product_template, pictures ):
+        company = self.env.user.company_id
+        CLIENT_ID = company.mercadolibre_client_id
+        CLIENT_SECRET = company.mercadolibre_secret_key
+        ACCESS_TOKEN = company.mercadolibre_access_token
+        REFRESH_TOKEN = company.mercadolibre_refresh_token
 
-    meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
-    product = self
-    thumbnail_url = pictures[0]['url']
-    image = urlopen(thumbnail_url).read()
-    image_base64 = base64.encodestring(image)
-    product.image_medium = image_base64
+        product = self
+        thumbnail_url = pictures[0]['url']
+        image = urlopen(thumbnail_url).read()
+        image_base64 = base64.encodestring(image)
+        product.image_medium = image_base64
 
-    if (len(pictures)>1):
-        #complete product images:
-        #delete all images...
-        _logger.info("Importing all images...")
-        #_logger.info(pictures)
-        for ix in range(1,len(pictures)-1):
-            pic = pictures[ix]
-            bin_updating = False
-            resimage = meli.get("/pictures/"+pic['id'], {'access_token':meli.access_token})
-            imgjson = resimage.json()
+        if (len(pictures)>1):
+            #complete product images:
+            #delete all images...
+            _logger.info("Importing all images...")
+            #_logger.info(pictures)
+            for ix in range(1,len(pictures)-1):
+                pic = pictures[ix]
+                bin_updating = False
+                resimage = meli.get("/pictures/"+pic['id'], {'access_token':meli.access_token})
+                imgjson = resimage.json()
 
-            thumbnail_url = pic['secure_url']
-            if 'error' in imgjson:
-                pass;
-            else:
-                if (len(imgjson['variations'])>0):
-                    thumbnail_url = imgjson['variations'][0]['secure_url']
+                thumbnail_url = pic['secure_url']
+                if 'error' in imgjson:
+                    pass;
+                else:
+                    if (len(imgjson['variations'])>0):
+                        thumbnail_url = imgjson['variations'][0]['secure_url']
 
-            image = urlopen(thumbnail_url).read()
-            image_base64 = base64.encodestring(image)
-            meli_imagen_bytes = len(image)
-            pimage = False
-            pimg_fields = {
-                'name': thumbnail_url+' - '+pic["size"]+' - '+pic["max_size"],
-                'meli_imagen_id': pic["id"],
-                'meli_imagen_link': thumbnail_url,
-                'meli_imagen_size': pic["size"],
-                'meli_imagen_max_size': pic["max_size"],
-                'meli_imagen_bytes': meli_imagen_bytes,
-                'product_tmpl_id': product_template.id,
-                'meli_pub': True
-            }
-            #_logger.info(pimg_fields)
-            if (product.product_image_ids):
-                pimage = self.env["product.image"].search([('meli_imagen_id','=',pic["id"]),('product_tmpl_id','=',product_template.id)])
-                #_logger.info(pimage)
-                if (pimage and pimage.image):
-                    imagebin = base64.b64decode( pimage.image )
-                    bin_diff = meli_imagen_bytes - len(imagebin)
-                    _logger.info("Image:"+str(len(imagebin))+" vs URLImage:"+str(meli_imagen_bytes)+" diff:"+str(bin_diff) )
-                    bin_updating = (abs(bin_diff)>0)
+                image = urlopen(thumbnail_url).read()
+                image_base64 = base64.encodestring(image)
+                meli_imagen_bytes = len(image)
+                pimage = False
+                pimg_fields = {
+                    'name': thumbnail_url+' - '+pic["size"]+' - '+pic["max_size"],
+                    'meli_imagen_id': pic["id"],
+                    'meli_imagen_link': thumbnail_url,
+                    'meli_imagen_size': pic["size"],
+                    'meli_imagen_max_size': pic["max_size"],
+                    'meli_imagen_bytes': meli_imagen_bytes,
+                    'product_tmpl_id': product_template.id,
+                    'meli_pub': True
+                }
+                #_logger.info(pimg_fields)
+                if (product.product_image_ids):
+                    pimage = self.env["product.image"].search([('meli_imagen_id','=',pic["id"]),('product_tmpl_id','=',product_template.id)])
+                    #_logger.info(pimage)
+                    if (pimage and pimage.image):
+                        imagebin = base64.b64decode( pimage.image )
+                        bin_diff = meli_imagen_bytes - len(imagebin)
+                        _logger.info("Image:"+str(len(imagebin))+" vs URLImage:"+str(meli_imagen_bytes)+" diff:"+str(bin_diff) )
+                        bin_updating = (abs(bin_diff)>0)
 
-            if (pimage==False or len(pimage)==0):
-                _logger.info("Creating new image")
-                bin_updating = True
-                pimage = self.env["product.image"].create(pimg_fields)
+                if (pimage==False or len(pimage)==0):
+                    _logger.info("Creating new image")
+                    bin_updating = True
+                    pimage = self.env["product.image"].create(pimg_fields)
 
-            if (pimage):
-                pimage.write(pimg_fields)
-                if (bin_updating):
-                    _logger.info("Updating image data.")
-                    _logger.info("Image:"+str(meli_imagen_bytes) )
-                    pimage.image = image_base64
+                if (pimage):
+                    pimage.write(pimg_fields)
+                    if (bin_updating):
+                        _logger.info("Updating image data.")
+                        _logger.info("Image:"+str(meli_imagen_bytes) )
+                        pimage.image = image_base64
 
     def product_meli_get_product( self ):
         company = self.env.user.company_id
@@ -680,9 +680,9 @@ def _meli_set_images( self, product_template, pictures ):
                 _v_default_code = ""
                 for att in variant.attribute_value_ids:
                     _v_default_code = _v_default_code + att.attribute_id.name+':'+att.name+';'
-#                _logger.info("_v_default_code: " + _v_default_code)
+                    #_logger.info("_v_default_code: " + _v_default_code)
                 for variation in rjson['variations']:
-#                    _logger.info("variation[default_code]: " + variation["default_code"])
+                    #_logger.info("variation[default_code]: " + variation["default_code"])
                     if (_v_default_code==variation["default_code"]):
                         if (variation["seller_custom_field"]):
                             #_logger.info("has_sku")
@@ -729,11 +729,11 @@ def _meli_set_images( self, product_template, pictures ):
                 }
                 if (variant.meli_available_quantity != variant.virtual_available):
                     _logger.info("Updating stock for variant." + str(variant.meli_available_quantity) )
-    #                _logger.info("stock_inventory_fields:")
-    #                _logger.info(stock_inventory_fields)
+                    #_logger.info("stock_inventory_fields:")
+                    #_logger.info(stock_inventory_fields)
                     StockInventory = self.env['stock.inventory'].create(stock_inventory_fields)
-    #                _logger.info("StockInventory:")
-    #                _logger.info(StockInventory)
+                    #_logger.info("StockInventory:")
+                    #_logger.info(StockInventory)
                     if (StockInventory):
                         stock_inventory_field_line = {
                             "product_qty": variant.meli_available_quantity,
@@ -748,11 +748,11 @@ def _meli_set_images( self, product_template, pictures ):
                         }
                         StockInventoryLine = self.env['stock.inventory.line'].create(stock_inventory_field_line)
                         #print "StockInventoryLine:", StockInventoryLine, stock_inventory_field_line
-    #                    _logger.info("StockInventoryLine:")
-    #                    _logger.info(StockInventoryLine)
+                        #_logger.info("StockInventoryLine:")
+                        #_logger.info(StockInventoryLine)
                         if (StockInventoryLine):
                             return_id = StockInventory.action_done()
-    #                        _logger.info("action_done:"+str(return_id))
+                            #_logger.info("action_done:"+str(return_id))
 
         #assign envio/sin envio
         #si es (Con envio: Sí): asigna el meli_default_stock_product al producto sin envio (Con evio: No)
