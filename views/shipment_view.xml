@@ -84,14 +84,6 @@
             <field name="view_mode">form</field>
             <field name="target">new</field>
         </record>
-<!--
-        <act_window id="action_mercadolibre_shipment_print"
-            name="Meli Print (Guías/Etiquetas PDF ML)"
-            src_model="mercadolibre.shipment"
-            res_model="mercadolibre.shipment.print"
-            view_type="form" view_mode="form"
-            key2="client_action_multi" target="new"/>
-
 
         <record id="view_mercadolibre_shipment_update" model="ir.ui.view">
               <field name="name">Actualizar datos de envío</field>
@@ -117,6 +109,28 @@
             <field name="target">new</field>
         </record>
 
+
+<!--
+
+<report
+            id="report_shipment_view"
+            string="Shipment Report"
+            model="mercadolibre.shipment"
+            report_type="qweb-pdf"
+            file="meli_oerp.report_shipment"
+            name="meli_oerp.report_shipment"
+            menu="True"
+            print_report_name="'Reporte de etiquetas'"
+        />
+        <act_window id="action_mercadolibre_shipment_print"
+            name="Meli Print (Guías/Etiquetas PDF ML)"
+            src_model="mercadolibre.shipment"
+            res_model="mercadolibre.shipment.print"
+            view_type="form" view_mode="form"
+            key2="client_action_multi" target="new"/>
+
+
+
         <act_window id="action_mercadolibre_shipment_update"
             name="Update"
             src_model="mercadolibre.shipment"
@@ -124,15 +138,6 @@
             view_type="form" view_mode="form"
             key2="client_action_multi" target="new"/>
 
-        <report
-                    id="report_shipment_view"
-                    string="Shipment Report"
-                    model="mercadolibre.shipment"
-                    report_type="qweb-pdf"
-                    file="meli_oerp.report_shipment"
-                    name="meli_oerp.report_shipment"
-                    menu="True"
-                    print_report_name="'Reporte de etiquetas'"
-                />-->
+-->
     </data>
 </openerp>
