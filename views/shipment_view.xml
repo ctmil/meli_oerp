@@ -57,7 +57,7 @@
         <menuitem id="menu_meli_shipment" action="action_meli_shipment_tree"
             parent="menu_meli"
             name="Envíos" />
-<!--
+
         <record id="view_mercadolibre_shipment_print" model="ir.ui.view">
               <field name="name">Imprimir Etiquetas</field>
               <field name="model">mercadolibre.shipment.print</field>
@@ -84,7 +84,7 @@
             <field name="view_mode">form</field>
             <field name="target">new</field>
         </record>
-
+<!--
         <act_window id="action_mercadolibre_shipment_print"
             name="Meli Print (Guías/Etiquetas PDF ML)"
             src_model="mercadolibre.shipment"
