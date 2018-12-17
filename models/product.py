@@ -184,7 +184,14 @@ class product_template(models.Model):
     meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre")
     meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
     meli_price = fields.Char(string='Precio de venta', size=128)
-    meli_currency = fields.Selection([("ARS","Peso Argentino (ARS)"),("MXN","Peso Mexicano (MXN)"), ("COP","Peso Colombiano (COP)"), ("PEN","Sol Peruano (PEN)"), ("BOB","Boliviano (BOB)"), ("BRL","Real (BRL)"),("CLP","Peso Chileno (CLP)")], string='Moneda')
+    meli_currency = fields.Selection([("ARS","Peso Argentino (ARS)"),
+    ("MXN","Peso Mexicano (MXN)"),
+    ("COP","Peso Colombiano (COP)"),
+    ("PEN","Sol Peruano (PEN)"),
+    ("BOB","Boliviano (BOB)"),
+    ("BRL","Real (BRL)"),
+    ("CLP","Peso Chileno (CLP)")],
+                                    string='Moneda')
     meli_condition = fields.Selection([ ("new", "Nuevo"),
                                         ("used", "Usado"),
                                         ("not_specified","No especificado")],
@@ -704,7 +711,7 @@ class product_product(models.Model):
                     product = variant
         else:
             #NO TIENE variantes
-            if (rjson["seller_custom_field"]):
+            if ("seller_custom_field" in rjson):
                 product.default_code = rjson["seller_custom_field"]
                 product.set_bom()
 
