@@ -712,7 +712,7 @@ class product_product(models.Model):
                     product = variant
         else:
             #NO TIENE variantes
-            if (rjson["seller_custom_field"]):
+            if ("seller_custom_field" in rjson):
                 product.default_code = rjson["seller_custom_field"]
                 product.set_bom()
 
