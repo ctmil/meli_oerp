@@ -30,7 +30,7 @@ import requests
 import base64
 import mimetypes
 import urllib2
-
+from urllib2 import urlopen
 from datetime import datetime
 
 from meli_oerp_config import *
