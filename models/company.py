@@ -445,7 +445,7 @@ class res_company(models.Model):
                                 _logger.info( "product couldnt be created")
                         else:
                             _logger.info( "product error: " + str(rjson3) )
-            except Exception as e
+            except Exception as e:
                 _logger.info("Exception!")
                 _logger.info(e, exc_info=True)
                 self._cr.rollback()
