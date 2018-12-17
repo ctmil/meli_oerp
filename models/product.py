@@ -528,7 +528,7 @@ def _meli_set_images( self, product_template, pictures ):
           'meli_condition': meli_fields["meli_condition"],
           'meli_warranty': meli_fields["meli_warranty"],
           'meli_dimensions': meli_fields["meli_dimensions"]
-
+        }
 
         product.write( meli_fields )
         product_template.write( tmpl_fields )
