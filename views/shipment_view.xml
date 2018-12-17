@@ -57,7 +57,7 @@
         <menuitem id="menu_meli_shipment" action="action_meli_shipment_tree"
             parent="menu_meli"
             name="Envíos" />
-
+<!--
         <record id="view_mercadolibre_shipment_print" model="ir.ui.view">
               <field name="name">Imprimir Etiquetas</field>
               <field name="model">mercadolibre.shipment.print</field>
@@ -133,6 +133,6 @@
                     name="meli_oerp.report_shipment"
                     menu="True"
                     print_report_name="'Reporte de etiquetas'"
-                />
+                />-->
     </data>
 </openerp>
