@@ -27,7 +27,8 @@
         'views/warning_view.xml',
         'views/questions_view.xml',
         'views/orders_view.xml',
-        'views/shipment_view.xml'
+        'views/shipment_view.xml',
+        'report/report_shipment_view.xml',
     ],
     'demo_xml': [],
     'active': False,
