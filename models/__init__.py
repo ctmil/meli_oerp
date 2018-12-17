@@ -16,3 +16,7 @@ import product_post
 import questions
 import orders
 import currency
+import shipment
+import stock_inventory
+import stock_move
+#import stock_warehouse

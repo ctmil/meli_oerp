@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<openerp>
+    <data>
+
+        <record model="ir.ui.view" id="view_meli_shipment_tree">
+            <field name="name">mercadolibre.shipment.tree</field>
+            <field name="model">mercadolibre.shipment</field>
+            <field name="type">tree</field>
+            <field name="arch" type="xml">
+              <tree string="Shipment" >
+                  <field name="shipping_id"/>
+                  <field name="status"/>
+                  <field name="substatus"/>
+                  <field name="date_created"/>
+                  <field name="last_updated"/>
+                  <field name="tracking_method" />
+                  <field name="receiver_address_name"/>
+                  <field name="mode"/>
+                  <field name="shipping_mode"/>
+                  <field name="order_cost"/>
+                  <field name="base_cost"/>
+                  <field name="tracking_number"/>
+                  <field name="receiver_id"/>
+                  <field name="sender_id"/>
+              </tree>
+            </field>
+        </record>
+
+
+    <record id="meli_shipment_search_view" model="ir.ui.view">
+        <field name="name">MercadoLibre Shipment - Search</field>
+        <field name="model">mercadolibre.shipment</field>
+        <field name="arch" type="xml">
+          <search string="Search MercadoLibre Shipments Information">
+                <field name="shipping_id" />
+                <field name="status"/>
+                <field name="substatus"/>
+                <field name="tracking_method" />
+                <field name="receiver_address_name"/>
+                <field name="tracking_number"/>
+          </search>
+        </field>
+    </record>
+
+
+        <record model="ir.actions.act_window" id="action_meli_shipment_tree">
+            <field name="name">Envíos</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">mercadolibre.shipment</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">tree,form</field>
+            <field name="search_view_id" ref="meli_shipment_search_view"/>
+        </record>
+
+
+        <menuitem id="menu_meli" name="MercadoLibre" parent="sales_team.menu_base_partner" sequence="9"/>
+
+        <menuitem id="menu_meli_shipment"
+            action="action_meli_shipment_tree"
+            parent="menu_meli"
+            name="Envíos" />
+
+
+            <record id="view_mercadolibre_shipment_print" model="ir.ui.view">
+                  <field name="name">Imprimir Etiquetas</field>
+                  <field name="model">mercadolibre.shipment.print</field>
+                  <field name="type">form</field>
+                  <field name="arch" type="xml">
+                    <form string="PO Merge" version="7.0">
+
+
+
+                        <footer>
+                            <button name="shipment_print" string="Imprimir Etiqueta"  type="object" class="oe_highlight"  />
+            or
+                            <button string="Cancel" class="oe_link" special="cancel" />
+                        </footer>
+                    </form>
+                  </field>
+            </record>
+
+            <record id="action_mercadolibre_shipment_print" model="ir.actions.act_window">
+                <field name="name">Print (Etiquetas)</field>
+                <field name="type">ir.actions.act_window</field>
+                <field name="src_model">mercadolibre.shipment</field>
+                <field name="res_model">mercadolibre.shipment.print</field>
+                <field name="view_type">form</field>
+                <field name="view_mode">form</field>
+                <field name="target">new</field>
+            </record>
+
+            <act_window id="action_mercadolibre_shipment_print"
+                name="Meli Print (Guías/Etiquetas PDF ML)"
+                src_model="mercadolibre.shipment"
+                res_model="mercadolibre.shipment.print"
+                view_type="form" view_mode="form"
+                key2="client_action_multi" target="new"/>
+
+
+                <record id="view_mercadolibre_shipment_update" model="ir.ui.view">
+                      <field name="name">Actualizar datos de envío</field>
+                      <field name="model">mercadolibre.shipment.update</field>
+                      <field name="type">form</field>
+                      <field name="arch" type="xml">
+                        <form string="Actualizar envio" version="7.0">
+
+
+
+                            <footer>
+                                <button name="shipment_update" string="Actualizar datos de envío"  type="object" class="oe_highlight"  />
+                or
+                                <button string="Cancel" class="oe_link" special="cancel" />
+                            </footer>
+                        </form>
+                      </field>
+                </record>
+
+                <record id="action_mercadolibre_shipment_update" model="ir.actions.act_window">
+                    <field name="name">Update Shipment</field>
+                    <field name="type">ir.actions.act_window</field>
+                    <field name="src_model">mercadolibre.shipment</field>
+                    <field name="res_model">mercadolibre.shipment.update</field>
+                    <field name="view_type">form</field>
+                    <field name="view_mode">form</field>
+                    <field name="target">new</field>
+                </record>
+
+                <act_window id="action_mercadolibre_shipment_update"
+                    name="Update"
+                    src_model="mercadolibre.shipment"
+                    res_model="mercadolibre.shipment.update"
+                    view_type="form" view_mode="form"
+                    key2="client_action_multi" target="new"/>
+
+                <report
+                            id="report_shipment_view"
+                            string="Shipment Report"
+                            model="mercadolibre.shipment"
+                            report_type="qweb-pdf"
+                            file="meli_oerp.report_shipment"
+                            name="meli_oerp.report_shipment"
+                            menu="True"
+                            print_report_name="'Reporte de etiquetas'"
+                        />
+
+
+
+    </data>
+</openerp>
