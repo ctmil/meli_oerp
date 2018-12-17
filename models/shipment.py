@@ -31,6 +31,11 @@ import logging
 _logger = logging.getLogger(__name__)
 
 #
+#     https://www.odoo.com/fr_FR/forum/aide-1/question/solved-call-report-and-save-result-to-attachment-133244
+#
+
+
+#
 # https://api.mercadolibre.com/shipment_labels?shipment_ids=20178600648,20182100995&response_type=pdf&access_token=
 class mercadolibre_shipment_print(models.TransientModel):
 	_name = "mercadolibre.shipment.print"

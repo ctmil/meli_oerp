@@ -33,8 +33,6 @@ _logger = logging.getLogger(__name__)
 from . import posting
 from . import product
 from . import shipment
-#https://api.mercadolibre.com/questions/search?item_id=MLA508223205
-
 from dateutil.parser import *
 from datetime import *
 
@@ -73,6 +71,37 @@ class sale_order(models.Model):
 #        'buyer': fields.many2one( "mercadolibre.buyers","Buyer"),
 #       'meli_seller': fields.text( string='Seller' ),
 
+    def confirm_ml(self):
+
+        company = self.env.user.company_id
+        stock_picking = self.env["stock.picking"]
+
+        if (company.mercadolibre_order_confirmation=="paid_confirm"):
+
+            if ( (self.state=="draft" or self.state=="sent") and self.meli_status=="paid"):
+                _logger.info("paid_confirm ok! confirming sale")
+                self.action_confirm()
+
+        if (company.mercadolibre_order_confirmation=="paid_delivered"):
+
+            if ( (self.state=="draft" or self.state=="sent") and self.meli_status=="paid"):
+                _logger.info("paid_delivered ok! confirming sale")
+                self.action_confirm()
+
+            if (self.state=="sale" or self.state=="done"):
+                #spick = stock_picking.search([('order_id','=',self.id)])
+                _logger.info("paid_delivered ok! delivering")
+                for spick in self.picking_ids:
+                    _logger.info(spick)
+                    if (spick.pack_operation_product_ids):
+                        _logger.info(spick.pack_operation_product_ids)
+                        if (len(spick.pack_operation_product_ids)>=1):
+                            for pop in spick.pack_operation_product_ids:
+                                _logger.info(pop)
+                                if (pop.qty_done==0.0 and pop.product_qty>=0.0):
+                                    pop.qty_done = pop.product_qty
+                            _logger.info("do_new_transfer")
+                            spick.do_new_transfer()
 
 sale_order()
 
@@ -170,7 +199,6 @@ class mercadolibre_orders(models.Model):
         oid = data["id"]
         order_json = data["order_json"]
         #_logger.info( "data:" + str(data) )
-        #_logger.info("orders_update_order_json > data[id]: " + oid + " order_json:" + order_json )
         company = self.env.user.company_id
 
         saleorder_obj = self.env['sale.order']
@@ -188,7 +216,6 @@ class mercadolibre_orders(models.Model):
             if plistids:
                 plistid = plistids
 
-
         order_obj = self.env['mercadolibre.orders']
         buyers_obj = self.env['mercadolibre.buyers']
         posting_obj = self.env['mercadolibre.posting']
@@ -196,25 +223,37 @@ class mercadolibre_orders(models.Model):
         payments_obj = self.env['mercadolibre.payments']
         shipment_obj = self.env['mercadolibre.shipment']
 
-
         order = None
         sorder = None
 
         # if id is defined, we are updating existing one
         if (oid):
             order = order_obj.browse(oid )
-            ##sorder = order_obj.browse(
-            sorder = saleorder_obj.browse(oid )
+            if (order):
+                _logger.info(order)
+                sorder_s = saleorder_obj.search([ ('meli_order_id','=',order.order_id) ] )
+                if (sorder_s):
+                    _logger.info(sorder_s)
+                    if (len(sorder_s)>1):
+                        sorder = sorder_s[0]
+                    else:
+                        sorder = sorder_s
         else:
         #we search for existing order with same order_id => "id"
             order_s = order_obj.search([ ('order_id','=',order_json['id']) ] )
             if (order_s):
-                order = order_s
+                if (len(order_s)>1):
+                    order = order_s[0]
+                else:
+                    order = order_s
             #    order = order_obj.browse(order_s[0] )
 
             sorder_s = saleorder_obj.search([ ('meli_order_id','=',order_json['id']) ] )
             if (sorder_s):
-                sorder = sorder_s
+                if (len(sorder_s)>1):
+                    sorder = sorder_s[0]
+                else:
+                    sorder = sorder_s
             #if (sorder_s and len(sorder_s)>0):
             #    sorder = saleorder_obj.browse(sorder_s[0] )
 
@@ -227,8 +266,6 @@ class mercadolibre_orders(models.Model):
             'date_created': order_json["date_created"] or '',
             'date_closed': order_json["date_closed"] or '',
         }
-
-        #_logger.info( "order:" + str(order) )
 
         if 'buyer' in order_json:
             Buyer = order_json['buyer']
@@ -247,7 +284,8 @@ class mercadolibre_orders(models.Model):
                 'meli_buyer_id': Buyer['id']
             }
 
-            buyer_fields = {
+            buyer_fields =
+                'name': Buyer['first_name']+' '+Buyer['last_name'],
                 'buyer_id': Buyer['id'],
                 'nickname': Buyer['nickname'],
                 'email': Buyer['email'],
@@ -306,7 +344,6 @@ class mercadolibre_orders(models.Model):
             if ("id" in order_json["shipping"]):
                 order_fields['shipping_id'] = order_json["shipping"]["id"]
 
-
         #create or update order
         if (order and order.id):
             _logger.info("Updating order: %s" % (order.id))
@@ -314,7 +351,6 @@ class mercadolibre_orders(models.Model):
         else:
             _logger.info("Adding new order: " )
             _logger.info(order_fields)
-            #_logger.info( "creating order:" + str(order_fields) )
             order = order_obj.create( (order_fields))
 
         if (sorder and sorder.id):
@@ -323,13 +359,12 @@ class mercadolibre_orders(models.Model):
         else:
             _logger.info("Adding new sale.order: " )
             _logger.info(meli_order_fields)
-            #_logger.info( "creating sale order:" + str(meli_order_fields) )
             sorder = saleorder_obj.create((meli_order_fields))
 
         #check error
         if not order:
-            _logger.error("Error adding order. " )
-            return {'error': 'Error adding order' }
+            _logger.error("Error adding mercadolibre.order. " )
+            return {'error': 'Error adding mercadolibre.order' }
 
         #check error
         if not sorder:
@@ -363,14 +398,10 @@ class mercadolibre_orders(models.Model):
 
                 if len(post_related):
                     post_related_obj = post_related
-                    #_logger.info( post_related_obj )
-                    #if (post_related[0]):
-                    #    post_related_obj = post_related[0]
                 else:
                     _logger.info( "No post related, exiting" )
                     return { 'error': 'No post related, exiting'}
 
-                #_logger.info( "Search product related." )
                 product_related = product_obj.search([('meli_id','=',Item['item']['id'])])
                 if (product_related):
                     _logger.info("order product related by meli_id:",product_related)
@@ -427,14 +458,10 @@ class mercadolibre_orders(models.Model):
                     'company_id': company.id,
                     'order_id': sorder.id,
                     'meli_order_item_id': Item['item']['id'],
-                    #'price_unit': float(Item['unit_price']),
-                    ####'price_total': float(Item['unit_price']) * float(Item['quantity']),
-                    #'tax_id': None,
                     'product_id': product_related_obj.id,
                     'product_uom_qty': Item['quantity'],
                     'product_uom': 1,
                     'name': Item['item']['title'],
-                    #'customer_lead': float(0)
                 }
                 if (float(Item['unit_price'])==product_related_obj.product_tmpl_id.lst_price):
                     saleorderline_item_fields['price_unit'] = float(Item['unit_price'])
@@ -443,23 +470,17 @@ class mercadolibre_orders(models.Model):
                     saleorderline_item_fields['price_unit'] = product_related_obj.product_tmpl_id.lst_price
 
                 saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
-                #_logger.info( saleorderline_item_fields )
 
                 if not saleorderline_item_ids:
-                    #_logger.info( "saleorderline_item_fields: " + str(saleorderline_item_fields) )
                     saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
                 else:
                     saleorderline_item_ids.write( ( saleorderline_item_fields ) )
 
-
         if 'payments' in order_json:
             payments = order_json['payments']
-            #_logger.info( payments )
             cn = 0
             for Payment in payments:
                 cn = cn + 1
-                #_logger.info(cn)
-                #_logger.info(Payment )
 
                 payment_fields = {
                     'order_id': order.id,
@@ -483,12 +504,14 @@ class mercadolibre_orders(models.Model):
         if order:
             return_id = self.env['mercadolibre.orders'].update
 
-
         if company.mercadolibre_cron_get_orders_shipment:
             _logger.info("Updating order: Shipment")
             if (order.shipping_id):
                 shipment_obj.fetch( order )
 
+        if sorder:
+            if (company.mercadolibre_order_confirmation!="manual"):
+                sorder.confirm_ml()
 
         return {}
 
@@ -532,7 +555,6 @@ class mercadolibre_orders(models.Model):
 
     def orders_query_iterate( self, offset=0, context=None ):
 
-
         offset_next = 0
 
         company = self.env.user.company_id
@@ -562,7 +584,6 @@ class mercadolibre_orders(models.Model):
                 _logger.error( orders_json["message"] )
             return {}
 
-
         if "paging" in orders_json:
             if "total" in orders_json["paging"]:
                 if (orders_json["paging"]["total"]==0):
@@ -583,7 +604,6 @@ class mercadolibre_orders(models.Model):
                         _logger.info("orders_query_iterate > Error actualizando ORDEN")
                         _logger.error(e, exc_info=True)
                         pass
-
 
         if (offset_next>0):
             self.orders_query_iterate(offset_next)
@@ -627,12 +647,10 @@ class mercadolibre_orders(models.Model):
     shipping_id = fields.Char(string="Shipping id");
     shipment = fields.One2many('mercadolibre.shipment','shipping_id','Shipment')
 
-
     total_amount = fields.Char(string='Total amount');
     currency_id = fields.Char(string='Currency');
     buyer =  fields.Many2one( "mercadolibre.buyers","Buyer");
     seller = fields.Text( string='Seller' );
-
 
 mercadolibre_orders()
 
@@ -648,7 +666,6 @@ class mercadolibre_order_items(models.Model):
     order_item_category_id = fields.Char('Item Category Id');
     unit_price = fields.Char(string='Unit price');
     quantity = fields.Integer(string='Quantity');
-    #       'total_price': fields.char(string='Total price'),
     currency_id = fields.Char(string='Currency');
 
 mercadolibre_order_items()

@@ -32,8 +32,6 @@ from .warning import warning
 import requests
 from ..melisdk.meli import Meli
 
-#REDIRECT_URI = 'http://127.0.0.1:8069/meli_login'
-
 class res_company(models.Model):
     _name = "res.company"
     _inherit = "res.company"
@@ -156,8 +154,14 @@ class res_company(models.Model):
         if (company.mercadolibre_cron_post_update_products):
             _logger.info("company.mercadolibre_cron_post_update_products")
             self.meli_update_remote_products()
-        #_logger.info("ML_state:"+str(ML_state))
-        #return res
+
+        if (company.mercadolibre_cron_post_update_stock):
+            _logger.info("company.mercadolibre_cron_post_update_stock")
+            self.meli_update_remote_stock()
+
+        if (company.mercadolibre_cron_post_update_price):
+            _logger.info("company.mercadolibre_cron_post_update_price")
+            self.meli_update_remote_price()
 
     mercadolibre_client_id = fields.Char(string='Client ID para ingresar a MercadoLibre',size=128)
     mercadolibre_secret_key = fields.Char(string='Secret Key para ingresar a MercadoLibre',size=128)
@@ -194,7 +198,10 @@ class res_company(models.Model):
     mercadolibre_currency = fields.Selection([("ARS","Peso Argentino (ARS)"),
     ("MXN","Peso Mexicano (MXN)"),
     ("COP","Peso Colombiano (COP)"),
-    ("PEN","Sol Peruano (PEN)")],
+    ("PEN","Sol Peruano (PEN)"),
+    ("BOB","Boliviano (BOB)"),
+    ("BRL","Real (BRL)"),
+    ("CLP","Peso Chileno (CLP)")],
                                                 string='Moneda predeterminada')
     mercadolibre_condition = fields.Selection([ ("new", "Nuevo"),
                                                 ("used", "Usado"),
@@ -212,7 +219,10 @@ class res_company(models.Model):
     mercadolibre_attributes = fields.Boolean(string='Apply product attributes')
     mercadolibre_update_local_stock = fields.Boolean(string='Cron Get Products and take Stock from ML')
     mercadolibre_product_template_override_variant = fields.Boolean(string='Product template override Variant')
-
+    mercadolibre_order_confirmation = fields.Selection([ ("manual", "Manual"),
+                                                ("paid_confirm", "Pagado>Confirmado"),
+                                                ("paid_delivered", "Pagado>Entregado")],
+                                                'Order confirmation')
     #'mercadolibre_login': fields.selection( [ ("unknown", "Desconocida"), ("logged","Abierta"), ("not logged","Cerrada")],string='Estado de la sesión'), )
 
     @api.multi
@@ -229,7 +239,7 @@ class res_company(models.Model):
         REFRESH_TOKEN = ''
 
         company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
-        url_logout_meli = '/web?debug=#view_type=kanban&model=product.template&action=150'
+        url_logout_meli = '/web?debug=#'
         _logger.info( url_logout_meli )
         return {
             "type": "ir.actions.act_url",
@@ -269,48 +279,28 @@ class res_company(models.Model):
         _logger.info(posting_ids)
         if (posting_ids):
             for posting in posting_ids:
-                _logger.info(posting)
                 posting.posting_query_questions()
         return {}
 
     @api.multi
     def meli_query_orders(self):
-
         _logger.info('company.meli_query_orders() ')
-        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        #company = user_obj.company_id
         company = self.env.user.company_id
-
         orders_obj = self.env['mercadolibre.orders']
-
         result = orders_obj.orders_query_recent()
-#"type": "ir.actions.act_window",
-#"id": "action_meli_orders_tree",
         return {}
 
     @api.multi
     def meli_query_products(self):
         _logger.info('company.meli_query_products() ')
-        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        #company = user_obj.company_id
         company = self.env.user.company_id
-
-        #products_obj = self.pool.get('product.product')
-
-        #result = products_obj.product_meli_get_products(products_obj)
-        #"type": "ir.actions.act_window",
-        #"id": "action_meli_orders_tree",
         self.product_meli_get_products()
-
         return {}
 
     def product_meli_get_products( self ):
         _logger.info('company.product_meli_get_products() ')
-        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        #company = user_obj.company_id
         company = self.env.user.company_id
         product_obj = self.pool.get('product.product')
-        #product = product_obj.browse(cr, uid, ids[0])
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
@@ -320,11 +310,9 @@ class res_company(models.Model):
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
         url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
-        #url_login_oerp = "/meli_login"
 
         results = []
         response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token,'offset': 0 })
-        #response = meli.get("/sites/MLA/search?seller_id="+company.mercadolibre_seller_id+"&limit=0", {'access_token':meli.access_token})
         rjson = response.json()
         _logger.info( rjson )
 
@@ -389,7 +377,6 @@ class res_company(models.Model):
                     else:
                         condition_last_off = True
 
-
         if (totalmax<=1000 and totalmax>rjson['paging']['limit']):
             pages = rjson['paging']['total']/rjson['paging']['limit']
             ioff = rjson['paging']['limit']
@@ -412,7 +399,6 @@ class res_company(models.Model):
                     results += rjson2['results']
                     ioff+= rjson['paging']['limit']
                     condition_last_off = ( ioff>=totalmax)
-
 
         _logger.info( results )
         _logger.info( "FULL RESULTS: " + str(len(results)) )
@@ -459,35 +445,28 @@ class res_company(models.Model):
                                 _logger.info( "product couldnt be created")
                         else:
                             _logger.info( "product error: " + str(rjson3) )
-            except Exception as e:
+            except Exception as e
                 _logger.info("Exception!")
-                _logger.info(e)
+                _logger.info(e, exc_info=True)
                 self._cr.rollback()
         return {}
 
     @api.multi
-    def meli_update_products(self):
-        _logger.info('company.meli_update_products() ')
-        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        #company = user_obj.company_id
-        company = self.env.user.company_id
-
-        #products_obj = self.pool.get('product.product')
-
-        #result = products_obj.product_meli_get_products(products_obj)
-        #"type": "ir.actions.act_window",
-        #"id": "action_meli_orders_tree",
-        self.product_meli_update_products()
-
+    def meli_update_local_products(self):
+        _logger.info('company.meli_update_local_products() ')
+        self.product_meli_update_local_products()
         return {}
 
-    def product_meli_update_products( self ):
-        _logger.info('company.product_meli_update_products() ')
-        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        #company = user_obj.company_id
+    @api.multi
+    def meli_update_remote_products(self):
+        _logger.info('company.meli_update_remote_products() ')
+        self.product_meli_update_remote_products()
+        return {}
+
+    def product_meli_update_local_products( self ):
+        _logger.info('company.product_meli_update_local_products() ')
         company = self.env.user.company_id
         product_obj = self.env['product.product']
-        #product = product_obj.browse(cr, uid, ids[0])
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
@@ -497,7 +476,6 @@ class res_company(models.Model):
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
         url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
-        #url_login_oerp = "/meli_login"
 
         product_ids = self.env['product.product'].search([('meli_id','!=',False)])
         if product_ids:
@@ -522,15 +500,69 @@ class res_company(models.Model):
 
         return {}
 
+    def product_meli_update_remote_products( self ):
+        _logger.info('company.product_meli_update_remote_products() ')
+        company = self.env.user.company_id
+        product_obj = self.env['product.product']
+
+        CLIENT_ID = company.mercadolibre_client_id
+        CLIENT_SECRET = company.mercadolibre_secret_key
+        ACCESS_TOKEN = company.mercadolibre_access_token
+        REFRESH_TOKEN = company.mercadolibre_refresh_token
+
+        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+
+        url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
+        product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False)])
+        _logger.info("product_ids to update:" + str(product_ids))
+        if product_ids:
+            for obj in product_ids:
+                _logger.info( "Product remote to update: " + str(obj.id)  )
+                if (obj.meli_id and (obj.meli_status=='active')):
+                    obj.product_post()
+
     def meli_import_categories(self, context=None ):
         company = self.env.user.company_id
-
         category_obj = self.env['mercadolibre.category']
-
         CATEGORY_ROOT = company.mercadolibre_category_import
-
         result = category_obj.import_all_categories(category_root=CATEGORY_ROOT )
-
         return {}
+
+    @api.multi
+    def meli_update_remote_stock(self):
+        company = self.env.user.company_id
+        if (company.mercadolibre_cron_post_update_stock):
+            product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False)])
+            _logger.info("product_ids stock to update:" + str(product_ids))
+            self._cr.autocommit(False)
+            icommit = 0
+            micom = 5
+            try:
+                for obj in product_ids:
+                    _logger.info( "Product check if active: " + str(obj.id)+ ' meli_id:'+str(obj.meli_id)+ ' meli_pub:'+str(obj.meli_pub)+ ' status:'+str(obj.meli_status)  )
+                    if (obj.meli_id and (obj.meli_status=='active')):
+                        icommit+= 1
+                        if (icommit>=micom):
+                            self._cr.commit()
+                            icommit = 0
+                            return {}
+                        _logger.info( "Product remote to update Stock: " + str(obj.id)+ ' meli_id:'+str(obj.meli_id)  )
+                        obj.product_post_stock()
+            except Exception as e:
+                _logger.info("Exception founded!")
+                _logger.info(e)
+                self._cr.rollback()
+        return {}
+
+    @api.multi
+    def meli_update_remote_price(self):
+        if (self.mercadolibre_cron_post_update_price):
+            product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False)])
+            _logger.info("product_ids stock to update:" + str(product_ids))
+            if product_ids:
+                for obj in product_ids:
+                    _logger.info( "Product remote to update: " + str(obj.id)  )
+                    if (obj.meli_id and (obj.meli_status=='active')):
+                        obj.product_post_price()
 
 res_company()
