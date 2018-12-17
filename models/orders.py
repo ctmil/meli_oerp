@@ -284,7 +284,7 @@ class mercadolibre_orders(models.Model):
                 'meli_buyer_id': Buyer['id']
             }
 
-            buyer_fields =
+            buyer_fields = {
                 'name': Buyer['first_name']+' '+Buyer['last_name'],
                 'buyer_id': Buyer['id'],
                 'nickname': Buyer['nickname'],
