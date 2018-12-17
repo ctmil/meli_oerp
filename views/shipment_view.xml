@@ -43,7 +43,7 @@
 
 
         <record model="ir.actions.act_window" id="action_meli_shipment_tree">
-            <field name="name">Envíos</field>
+            <field name="name">Envios</field>
             <field name="type">ir.actions.act_window</field>
             <field name="res_model">mercadolibre.shipment</field>
             <field name="view_type">form</field>
@@ -86,13 +86,13 @@
         </record>
 
         <record id="view_mercadolibre_shipment_update" model="ir.ui.view">
-              <field name="name">Actualizar datos de envío</field>
+              <field name="name">Actualizar</field>
               <field name="model">mercadolibre.shipment.update</field>
               <field name="type">form</field>
               <field name="arch" type="xml">
                 <form string="Actualizar envio" version="7.0">
                     <footer>
-                        <button name="shipment_update" string="Actualizar datos de envío"  type="object" class="oe_highlight"  />or
+                        <button name="shipment_update" string="Actualizar datos"  type="object" class="oe_highlight"  />or
                         <button string="Cancel" class="oe_link" special="cancel" />
                     </footer>
                 </form>
@@ -129,7 +129,7 @@
 
 
         <act_window id="action_mercadolibre_shipment_print"
-            name="Meli Print (Guías/Etiquetas PDF ML)"
+            name="Meli Print (Etiquetas PDF ML)"
             src_model="mercadolibre.shipment"
             res_model="mercadolibre.shipment.print"
             view_type="form" view_mode="form"
