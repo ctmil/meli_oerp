@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <openerp>
     <data>
-      <!--
         <record model="ir.ui.view" id="view_meli_shipment_tree">
             <field name="name">mercadolibre.shipment.tree</field>
             <field name="model">mercadolibre.shipment</field>
@@ -134,6 +133,6 @@
                     name="meli_oerp.report_shipment"
                     menu="True"
                     print_report_name="'Reporte de etiquetas'"
-                />-->
+                />
     </data>
 </openerp>
