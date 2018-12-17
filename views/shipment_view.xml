@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <openerp>
     <data>
+      <!--
         <record model="ir.ui.view" id="view_meli_shipment_tree">
             <field name="name">mercadolibre.shipment.tree</field>
             <field name="model">mercadolibre.shipment</field>
@@ -85,12 +86,12 @@
             <field name="target">new</field>
         </record>
 
-        <!--<act_window id="action_mercadolibre_shipment_print"
+        <act_window id="action_mercadolibre_shipment_print"
             name="Meli Print (Guías/Etiquetas PDF ML)"
             src_model="mercadolibre.shipment"
             res_model="mercadolibre.shipment.print"
             view_type="form" view_mode="form"
-            key2="client_action_multi" target="new"/>-->
+            key2="client_action_multi" target="new"/>
 
 
         <record id="view_mercadolibre_shipment_update" model="ir.ui.view">
@@ -117,12 +118,12 @@
             <field name="target">new</field>
         </record>
 
-        <!--<act_window id="action_mercadolibre_shipment_update"
+        <act_window id="action_mercadolibre_shipment_update"
             name="Update"
             src_model="mercadolibre.shipment"
             res_model="mercadolibre.shipment.update"
             view_type="form" view_mode="form"
-            key2="client_action_multi" target="new"/>-->
+            key2="client_action_multi" target="new"/>
 
         <report
                     id="report_shipment_view"
@@ -133,6 +134,6 @@
                     name="meli_oerp.report_shipment"
                     menu="True"
                     print_report_name="'Reporte de etiquetas'"
-                />
+                />-->
     </data>
 </openerp>
