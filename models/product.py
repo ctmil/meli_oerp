@@ -184,14 +184,7 @@ class product_template(models.Model):
     meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre")
     meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
     meli_price = fields.Char(string='Precio de venta', size=128)
-    meli_currency = fields.Selection([("ARS","Peso Argentino (ARS)"),
-    ("MXN","Peso Mexicano (MXN)"),
-    ("COP","Peso Colombiano (COP)"),
-    ("PEN","Sol Peruano (PEN)"),
-    ("BOB","Boliviano (BOB)"),
-    ("BRL","Real (BRL)"),
-    ("CLP","Peso Chileno (CLP)")],
-                                    string='Moneda')
+    meli_currency = fields.Selection([("ARS","Peso Argentino (ARS)"),("MXN","Peso Mexicano (MXN)"), ("COP","Peso Colombiano (COP)"), ("PEN","Sol Peruano (PEN)"), ("BOB","Boliviano (BOB)"), ("BRL","Real (BRL)"),("CLP","Peso Chileno (CLP)")], string='Moneda')
     meli_condition = fields.Selection([ ("new", "Nuevo"),
                                         ("used", "Usado"),
                                         ("not_specified","No especificado")],
@@ -206,8 +199,7 @@ class product_template(models.Model):
     meli_variants_status = fields.Text(compute=product_template_stats,string='Meli Variant Status')
 
     meli_pub_as_variant = fields.Boolean('Publicar variantes como variantes en ML',help='Publicar variantes como variantes de la misma publicación, no como publicaciones independientes.')
-    meli_pub_variant_attributes = fields.Many2many('product.attribute.line',
-    string='Atributos a publicar en ML',help='Seleccionar los atributos a publicar')
+    meli_pub_variant_attributes = fields.Many2many('product.attribute.line', string='Atributos a publicar en ML',help='Seleccionar los atributos a publicar')
     meli_pub_principal_variant = fields.Many2one( 'product.product',string='Variante principal',help='Variante principal')
 
     meli_model = fields.Char(string="Modelo",size=256)
@@ -234,7 +226,7 @@ class product_product(models.Model):
     #@api.one
     @api.onchange('lst_price') # if these fields are changed, call method
     def check_change_price(self):
-	# GUS
+        # GUS
         #pdb.set_trace();
         #pricelists = self.env['product.pricelist'].search([])
         #if pricelists:
