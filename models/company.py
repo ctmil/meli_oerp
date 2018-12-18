@@ -283,7 +283,13 @@ class res_company(models.Model):
 
         _logger.info("meli_query_get_questions")
         posting_obj = self.env['mercadolibre.posting']
-        posting_ids = posting_obj.search([])
+        posting_ids = posting_obj.search(['|',('meli_status','=','active'),('meli_status','=','under_review')])
+        _logger.info(posting_ids)
+        if (posting_ids):
+            for posting in posting_ids:
+                posting.posting_query_questions()
+
+        posting_ids = posting_obj.search(['&',('meli_status','!=','active'),('meli_status','!=','under_review')])
         _logger.info(posting_ids)
         if (posting_ids):
             for posting in posting_ids:
