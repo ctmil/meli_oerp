@@ -32,5 +32,21 @@
 												<field name="priority">1000</field>
 								</record>
 
+								<record id="ir_cron_module_cron_meli_orders" model="ir.cron">
+														<field name="name">Cron Meli Orders</field>
+														<field eval="True" name="active" />
+														<field name="user_id" ref="base.user_root" />
+														<field name="interval_number">2</field>
+														<field name="interval_type">minutes</field>
+														<field name="numbercall">-1</field>
+														<field eval="False" name="doall" />
+														<field eval="'res.company'" name="model" />
+														<field eval="'cron_meli_orders'" name="function" />
+														<field eval="'()'" name="args" />
+														<field name="priority">1000</field>
+										</record>
+
+
+
 	</data>
 </odoo>

@@ -139,14 +139,6 @@ class res_company(models.Model):
 
         self.get_meli_state()
 
-        if (company.mercadolibre_cron_get_orders):
-            _logger.info("company.mercadolibre_cron_get_orders")
-            self.meli_query_orders()
-
-        if (company.mercadolibre_cron_get_questions):
-            _logger.info("company.mercadolibre_cron_get_questions")
-            self.meli_query_get_questions()
-
         if (company.mercadolibre_cron_get_update_products):
             _logger.info("company.mercadolibre_cron_get_update_products")
             self.meli_update_local_products()
@@ -162,6 +154,22 @@ class res_company(models.Model):
         if (company.mercadolibre_cron_post_update_price):
             _logger.info("company.mercadolibre_cron_post_update_price")
             self.meli_update_remote_price()
+
+    def cron_meli_orders(self):
+        _logger.info('company cron_meli_orders() ')
+
+        company = self.env.user.company_id
+        warningobj = self.pool.get('warning')
+
+        self.get_meli_state()
+
+        if (company.mercadolibre_cron_get_orders):
+            _logger.info("company.mercadolibre_cron_get_orders")
+            self.meli_query_orders()
+
+        if (company.mercadolibre_cron_get_questions):
+            _logger.info("company.mercadolibre_cron_get_questions")
+            self.meli_query_get_questions()
 
     mercadolibre_client_id = fields.Char(string='Client ID para ingresar a MercadoLibre',size=128)
     mercadolibre_secret_key = fields.Char(string='Secret Key para ingresar a MercadoLibre',size=128)
