@@ -18,6 +18,7 @@
                     <page string="MercadoLibre Plantilla">
                       <group name="ML actions">
                         <button name='%(action_product_template_post)d' type="action" string="Publicar-Actualizar producto en ML"/>
+                        <button name='%(action_product_template_update)d' type="action" string="Cargar desde ML"/>
                       </group>
                       <group name="Basic description">
                         <field name="meli_title" />
