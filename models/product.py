@@ -860,7 +860,7 @@ class product_product(models.Model):
         else:
             product_uom_id = product_uom_id.id
 
-        if (has_sku):
+        if (has_sku and variant.default_code and len(variant.default_code)>2):
             E_S = variant.default_code[-2:]
             #_logger.info("check sin envio code")
             #_logger.info(E_S)
