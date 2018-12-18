@@ -386,7 +386,8 @@ class mercadolibre_orders(models.Model):
 
                 post_related = posting_obj.search([('meli_id','=',Item['item']['id'])])
                 if (post_related):
-                    _logger.info("order post related by meli_id:",post_related)
+                    pass;
+                    #_logger.info("order post related by meli_id:",post_related)
                 else:
                     #create post!
                     posting_fields = {
@@ -404,7 +405,8 @@ class mercadolibre_orders(models.Model):
 
                 product_related = product_obj.search([('meli_id','=',Item['item']['id'])])
                 if (product_related):
-                    _logger.info("order product related by meli_id:",product_related)
+                    pass;
+                    #_logger.info("order product related by meli_id:",product_related)
                 else:
                     if ('seller_custom_field' in Item['item']):
                         product_related = product_obj.search([('default_code','=',Item['item']['seller_custom_field'])])
