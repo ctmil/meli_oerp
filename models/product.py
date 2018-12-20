@@ -1548,9 +1548,13 @@ class product_product(models.Model):
             _logger.info(e, exc_info=True)
             pass
 
-    def product_update_stock(self, stock):
+    def product_update_stock(self, stock=False):
 
-        _stock = stock
+        _stock = product.virtual_available
+
+        if (stock!=False):
+            _stock = stock
+
         if (self.meli_default_stock_product):
             _stock = self.meli_default_stock_product.virtual_available
 
