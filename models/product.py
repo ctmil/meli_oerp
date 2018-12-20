@@ -1527,15 +1527,15 @@ class product_product(models.Model):
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
 
-        self.product_update_stock()
-
-        if (product.virtual_available):
-            product.meli_available_quantity = product.virtual_available
-
-        fields = {
-            "available_quantity": product.meli_available_quantity
-        }
         try:
+            self.product_update_stock()
+
+            if (product.virtual_available):
+                product.meli_available_quantity = product.virtual_available
+
+            fields = {
+                "available_quantity": product.meli_available_quantity
+            }
         #if (product.meli_available_quantity<=0):
         #    product.meli_available_quantity = 50
 
@@ -1543,6 +1543,12 @@ class product_product(models.Model):
             response = meli.put("/items/"+product.meli_id, fields, {'access_token':meli.access_token})
             if (response.content):
                 _logger.info( response.content )
+
+            if (product.meli_available_quantity<=0 and product.meli_status=="active"):
+                product.product_meli_status_pause()
+            elif (product.meli_available_quantity>0 and product.meli_status=="pause"):
+                product.product_meli_status_active()
+
         except Exception as e:
             _logger.info("product_post_stock > exception error")
             _logger.info(e, exc_info=True)
