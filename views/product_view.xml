@@ -129,6 +129,9 @@
                                 <br/>
                                 <button name='%(action_product_post)d' type="action"
 										string="Actualizar producto en ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
+                                <br/>
+                                <button name='product_post_stock' type="object"
+        string="Actualizar Stock en ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
 <!-- ,('meli_status','=','active'), -->
                                 <br/>
 								<button name='product_meli_status_active' type="object"
