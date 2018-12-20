@@ -232,6 +232,8 @@ class res_company(models.Model):
                                                 ("paid_delivered", "Pagado>Entregado")],
                                                 'Order confirmation')
     #'mercadolibre_login': fields.selection( [ ("unknown", "Desconocida"), ("logged","Abierta"), ("not logged","Cerrada")],string='Estado de la sesión'), )
+    #mercadolibre_import_product_file = fields.Many2one(comodel_name="ir.attachment", string="Product Import File")
+    #mercadolibre_import_price_stock_file = fields.Many2one(comodel_name="ir.attachment", string="Product Price and Stock")
 
     @api.multi
     def	meli_logout(self):
@@ -563,8 +565,8 @@ class res_company(models.Model):
                         _logger.info( "Product remote to update Stock: " + str(obj.id)+ ' meli_id:'+str(obj.meli_id)  )
                         obj.product_post_stock()
             except Exception as e:
-                _logger.info("Exception founded!")
-                _logger.info(e)
+                _logger.info("meli_update_remote_stock > Exception founded!")
+                _logger.info(e, exc_info=True)
                 self._cr.rollback()
         return {}
 

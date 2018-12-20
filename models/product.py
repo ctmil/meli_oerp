@@ -1570,7 +1570,8 @@ class product_product(models.Model):
 
         _logger.info("post stock:"+str(product.meli_available_quantity))
         response = meli.put("/items/"+product.meli_id, fields, {'access_token':meli.access_token})
-        _logger.info( response )
+        if (response.content):
+            _logger.info( response.content )
 
     def product_post_price(self):
         company = self.env.user.company_id
