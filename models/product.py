@@ -1565,13 +1565,18 @@ class product_product(models.Model):
         fields = {
             "available_quantity": product.meli_available_quantity
         }
-        if (product.meli_available_quantity<=0):
-            product.meli_available_quantity = 50
+        try:
+        #if (product.meli_available_quantity<=0):
+        #    product.meli_available_quantity = 50
 
-        _logger.info("post stock:"+str(product.meli_available_quantity))
-        response = meli.put("/items/"+product.meli_id, fields, {'access_token':meli.access_token})
-        if (response.content):
-            _logger.info( response.content )
+            _logger.info("post stock:"+str(product.meli_available_quantity))
+            response = meli.put("/items/"+product.meli_id, fields, {'access_token':meli.access_token})
+            if (response.content):
+                _logger.info( response.content )
+        except Exception as e:
+            _logger.info("product_post_stock > exception error")
+            _logger.info(e, exc_info=True)
+            pass
 
     def product_post_price(self):
         company = self.env.user.company_id
