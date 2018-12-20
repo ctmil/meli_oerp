@@ -1549,16 +1549,16 @@ class product_product(models.Model):
             pass
 
     def product_update_stock(self, stock=False):
-
+        product = self
         _stock = product.virtual_available
 
         if (stock!=False):
             _stock = stock
 
-        if (self.meli_default_stock_product):
-            _stock = self.meli_default_stock_product.virtual_available
+        if (product.meli_default_stock_product):
+            _stock = product.meli_default_stock_product.virtual_available
 
-        if (self.virtual_available!=_stock):
+        if (product.virtual_available!=_stock):
             _logger.info("Updating stock for variant." + str(_stock) )
             wh = self.env['stock.location'].search([('usage','=','internal')]).id
             product_uom_id = self.env['product.uom'].search([('name','=','Unidad(es)')])
@@ -1568,10 +1568,10 @@ class product_product(models.Model):
                 product_uom_id = product_uom_id.id
 
             stock_inventory_fields = {
-                "product_id": self.id,
+                "product_id": product.id,
                 "filter": "product",
                 "location_id": wh,
-                "name": "INV: "+ self.name
+                "name": "INV: "+ product.name
             }
             #_logger.info("stock_inventory_fields:")
             #_logger.info(stock_inventory_fields)
@@ -1582,7 +1582,7 @@ class product_product(models.Model):
                 stock_inventory_field_line = {
                     "product_qty": _stock,
                     'theoretical_qty': 0,
-                    "product_id": self.id,
+                    "product_id": product.id,
                     "product_uom_id": product_uom_id,
                     "location_id": wh,
                     'inventory_location_id': wh,
@@ -1593,7 +1593,7 @@ class product_product(models.Model):
                 StockInventoryLine = self.env['stock.inventory.line'].create(stock_inventory_field_line)
                 #print "StockInventoryLine:", StockInventoryLine, stock_inventory_field_line
                 #_logger.info("StockInventoryLine:")
-                #_logger.info(StockInventoryLine)
+                #_logger.info(stock_inventory_field_line)
                 if (StockInventoryLine):
                     return_id = StockInventory.action_done()
                     #_logger.info("action_done:"+str(return_id))
