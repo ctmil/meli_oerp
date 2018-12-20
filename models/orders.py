@@ -411,7 +411,7 @@ class mercadolibre_orders(models.Model):
                     if ('seller_custom_field' in Item['item']):
                         product_related = product_obj.search([('default_code','=',Item['item']['seller_custom_field'])])
                         if (product_related):
-                            _logger.info("order product related by seller_custom_field and default_code:",product_related)
+                            _logger.info("order product related by seller_custom_field and default_code:")
 
                 if len(product_related):
                     if len(product_related)>1:
