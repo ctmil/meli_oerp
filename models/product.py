@@ -1206,7 +1206,8 @@ class product_product(models.Model):
 
         if 'attribute_combinations' in _self_combinations:
             for att in _self_combinations['attribute_combinations']:
-                _map_combinations[att.name] = att.value_name
+                _logger.info(att)
+                _map_combinations[att["name"]] = att["value_name"]
 
         _logger.info('_map_combinations')
         _logger.info(_map_combinations)
