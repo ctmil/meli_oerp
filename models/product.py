@@ -1131,6 +1131,7 @@ class product_product(models.Model):
 
         self.meli_state = ML_state
 
+    #conditions met to post this variant as ml variant
     def _conditions_ok(self):
         conditionok = False
         product = self
@@ -1147,6 +1148,7 @@ class product_product(models.Model):
 
         return conditionok
 
+    #return all combinations for this product variants, based on tamplate attributes selected
     def _combination(self):
         var_comb = False
         product = self
@@ -1184,6 +1186,44 @@ class product_product(models.Model):
                 var_comb["attribute_combinations"].append(att_combination)
 
         return var_comb
+
+    def _is_product_combination(self, variation ):
+
+        var_comb = False
+        product = self
+        product_tmpl = self.product_tmpl_id
+
+        _logger.info("_is_product_combination:")
+        _logger.info(variation)
+
+        _self_combinations = product._combination()
+        _map_combinations = {}
+        _logger.info('_self_combinations')
+        _logger.info(_self_combinations)
+
+        if 'attribute_combinations' in _self_combinations:
+            for att in _self_combinations['attribute_combinations']:
+                _map_combinations[att.name] = att.value_name
+
+        _logger.info('_map_combinations')
+        _logger.info(_map_combinations)
+
+        _is_p_comb = True
+
+        if ('attribute_combinations' in variation):
+            #check if every att combination exist in this product
+            for att in variation['attribute_combinations']:
+                if ( att.name in _map_combinations):
+                    if (_map_combinations[att.name]==att.value_name):
+                        _is_p_comb = True
+                    else:
+                        _is_p_comb = False
+                        break
+                else:
+                    _is_p_comb = False
+                    break
+
+        return _is_p_comb
 
     def product_post_variant(self,variant_principal):
 
@@ -1223,8 +1263,11 @@ class product_product(models.Model):
                 "target": "new",
             }
 
+        productjson = False
         if (product.meli_id):
             response = meli.get("/items/%s" % product.meli_id, {'access_token':meli.access_token})
+            if (response):
+                productjson = response.json()
 
         #check from company's default
         if company.mercadolibre_listing_type and product_tmpl.meli_listing_type==False:
@@ -1540,9 +1583,38 @@ class product_product(models.Model):
         #    product.meli_available_quantity = 50
 
             _logger.info("post stock:"+str(product.meli_available_quantity))
-            response = meli.put("/items/"+product.meli_id, fields, {'access_token':meli.access_token})
-            if (response.content):
-                _logger.info( response.content )
+
+            if (product_tmpl.meli_pub_as_variant):
+                if (product_tmpl.meli_pub_principal_variant):
+                    productjson = False
+                    base_meli_id = product_tmpl.meli_pub_principal_variant.meli_id
+                    if (base_meli_id):
+                        response = meli.get("/items/%s" % base_meli_id, {'access_token':meli.access_token})
+                        if (response):
+                            productjson = response.json()
+
+                #chequeamos la variacion de este producto
+                if ( productjson and len(productjson["variations"]) ):
+                    varias = {
+                        "variations": []
+                    }
+                    _logger.info("product_post_stock > Update variations stock")
+                    for ix in range(len(productjson["variations"]) ):
+                        #check if combination is related to this product
+                        if (self._is_product_combination(productjson["variations"][ix])):
+                            product.meli_id_variation = productjson["variations"][ix]["id"]
+                            var = {
+                                "id": str( product.meli_id_variation ),
+                                "available_quantity": product.meli_available_quantity,
+                            }
+                            varias["variations"].append(var)
+                            _logger.info(varias)
+                            responsevar = meli.put("/items/"+product.meli_id, varias, {'access_token':meli.access_token})
+                            _logger.debug(responsevar.json())
+            else:
+                response = meli.put("/items/"+product.meli_id, fields, {'access_token':meli.access_token})
+                if (response.content):
+                    _logger.info( response.content )
 
             if (product.meli_available_quantity<=0 and product.meli_status=="active"):
                 product.product_meli_status_pause()
@@ -1560,6 +1632,8 @@ class product_product(models.Model):
 
         if (stock!=False):
             _stock = stock
+            if (_stock<0):
+                _stock = 0
 
         if (product.meli_default_stock_product):
             _stock = product.meli_default_stock_product.virtual_available
@@ -1679,6 +1753,7 @@ class product_product(models.Model):
     meli_model = fields.Char(string="Modelo",size=256)
     meli_brand = fields.Char(string="Marca",size=256)
     meli_default_stock_product = fields.Many2one("product.product","Producto de referencia para stock")
+    meli_id_variation = fields.Char( string='Id de Variante de Meli', size=256)
 
     _defaults = {
         'meli_imagen_logo': 'None',

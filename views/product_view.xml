@@ -100,6 +100,7 @@
                 <field name="default_code" position="before">
                     <field name="meli_pub"/>
                     <field name="meli_id"/>
+                    <field name="meli_id_variation"/>
                     <field name="meli_status"/>
                 </field>
             </field>
@@ -119,71 +120,72 @@
                 <data>
                     <notebook>
                         <page string="MercadoLibre">
-							<group>
+                          <group>
 
-                                <button name='product_meli_get_product' type="object"
-										string="Cargar desde ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
-                                <br/>
-								<button name='%(action_product_post)d' type="action"
-										string="Publicar producto en ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','!=',False)]}"/>
-                                <br/>
-                                <button name='%(action_product_post)d' type="action"
-										string="Actualizar producto en ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
-                                <br/>
-                                <button name='product_post_stock' type="object"
-        string="Actualizar Stock en ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
-<!-- ,('meli_status','=','active'), -->
-                                <br/>
-								<button name='product_meli_status_active' type="object"
-										string="Activar producto en ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
-                                <br/>
-                                <button name='product_meli_status_pause' type="object"
-										string="Pausar producto en ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
-                                <br/>
-                                <button name='product_meli_status_close' type="object"
-										string="Cerrar producto en ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
-                                <br/>
-                                <button name='product_meli_delete' type="object"
-										string="Eliminar producto de ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
-                                <br/>
-                                <button name='product_meli_upload_image' type="object"
-										string="Subir imagen a ML" attrs="{'invisible':[('meli_state','=',True)]}"/>
-                                <br/>
-                                <button name='product_meli_login' type="object"
-										string="Se requiere Iniciar Sesión en ML" attrs="{'invisible':[('meli_state','=',False)]}"/>
-                                <br/>
-                                <field name="meli_post_required" />
-                                <field name="meli_state" />
-                                <field name="meli_status" />
-                                <field name="meli_permalink" widget="url"/>
-								<field name="meli_id" />
-                                <br/>
-                                <br/>
-								<field name="meli_title" />
-                                <field name="meli_description_banner_id" on_change="product_on_change_meli_banner( meli_description_banner_id)" />
-								<field name="meli_description" />
-                <field name="meli_brand"/>
-                <field name="meli_model"/>
+                            <button name='product_meli_get_product' type="object"
+                            string="Cargar desde ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
+                            <br/>
+                            <button name='%(action_product_post)d' type="action"
+                            string="Publicar producto en ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','!=',False)]}"/>
+                            <br/>
+                            <button name='%(action_product_post)d' type="action"
+                            string="Actualizar producto en ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
+                            <br/>
+                            <button name='product_post_stock' type="object"
+                            string="Actualizar Stock en ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
+                            <!-- ,('meli_status','=','active'), -->
+                            <br/>
+                            <button name='product_meli_status_active' type="object"
+                            string="Activar producto en ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
+                            <br/>
+                            <button name='product_meli_status_pause' type="object"
+                            string="Pausar producto en ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
+                            <br/>
+                            <button name='product_meli_status_close' type="object"
+                            string="Cerrar producto en ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
+                            <br/>
+                            <button name='product_meli_delete' type="object"
+                            string="Eliminar producto de ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
+                            <br/>
+                            <button name='product_meli_upload_image' type="object"
+                            string="Subir imagen a ML" attrs="{'invisible':[('meli_state','=',True)]}"/>
+                            <br/>
+                            <button name='product_meli_login' type="object"
+                            string="Se requiere Iniciar Sesión en ML" attrs="{'invisible':[('meli_state','=',False)]}"/>
+                            <br/>
+                            <field name="meli_post_required" />
+                            <field name="meli_state" />
+                            <field name="meli_status" />
+                            <field name="meli_permalink" widget="url"/>
+                            <field name="meli_id" />
+                            <field name="meli_id_variation"/>
+                            <br/>
+                            <br/>
+                            <field name="meli_title" />
+                            <field name="meli_description_banner_id" on_change="product_on_change_meli_banner( meli_description_banner_id)" />
+                            <field name="meli_description" />
+                            <field name="meli_brand"/>
+                            <field name="meli_model"/>
 
-								<field name="meli_category" />
-								<field name="meli_listing_type" />
-								<field name="meli_buying_mode" />
+                            <field name="meli_category" />
+                            <field name="meli_listing_type" />
+                            <field name="meli_buying_mode" />
 
-								<field name="meli_price_fixed" />
-								<field name="meli_price" />
-								<field name="meli_currency" />
+                            <field name="meli_price_fixed" />
+                            <field name="meli_price" />
+                            <field name="meli_currency" />
 
-								<field name="meli_condition" />
-								<field name="meli_available_quantity" />
-								<field name="meli_warranty" />
-								<field name="meli_imagen_logo" />
-                                <field name="meli_imagen_id" />
-                                <field name="meli_imagen_link" />
-                                <field name="meli_multi_imagen_id" />
-								<field name="meli_video" />
-                <field name="meli_attributes" />
-                <field name="meli_default_stock_product"/>
-							</group>
+                            <field name="meli_condition" />
+                            <field name="meli_available_quantity" />
+                            <field name="meli_warranty" />
+                            <field name="meli_imagen_logo" />
+                            <field name="meli_imagen_id" />
+                            <field name="meli_imagen_link" />
+                            <field name="meli_multi_imagen_id" />
+                            <field name="meli_video" />
+                            <field name="meli_attributes" />
+                            <field name="meli_default_stock_product"/>
+                          </group>
                         </page>
                     </notebook>
                 </data>
