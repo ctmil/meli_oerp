@@ -1595,6 +1595,9 @@ class product_product(models.Model):
             _logger.info(product_tmpl.meli_pub_principal_variant.id)
             if (product_tmpl.meli_pub_as_variant):
                 productjson = False
+                if (product_tmpl.meli_pub_principal_variant.id==False and len(product_tmpl.product_variant_ids)):
+                    product_tmpl.meli_pub_principal_variant = product_tmpl.product_variant_ids[0]
+
                 if (product_tmpl.meli_pub_principal_variant.id):
                     base_meli_id = product_tmpl.meli_pub_principal_variant.meli_id
                     if (base_meli_id):
