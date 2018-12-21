@@ -741,7 +741,10 @@ class product_product(models.Model):
                 if (has_sku):
                     variant.set_bom()
 
+                _logger.info('meli_pub_principal_variant')
+                _logger.info(product_template.meli_pub_principal_variant)
                 if (product_template.meli_pub_principal_variant is None):
+                    _logger.info("meli_pub_principal_variant set!")
                     product_template.meli_pub_principal_variant = variant
                     product = variant
 
