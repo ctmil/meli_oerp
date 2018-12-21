@@ -1583,7 +1583,8 @@ class product_product(models.Model):
         #    product.meli_available_quantity = 50
 
             _logger.info("post stock:"+str(product.meli_available_quantity))
-
+            _logger.info("product_tmpl.meli_pub_as_variant:"+str(product_tmpl.meli_pub_as_variant))
+            _logger.info(product_tmpl.meli_pub_principal_variant)
             if (product_tmpl.meli_pub_as_variant):
                 productjson = False
                 if (product_tmpl.meli_pub_principal_variant):
