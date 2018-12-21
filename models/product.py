@@ -1585,8 +1585,8 @@ class product_product(models.Model):
             _logger.info("post stock:"+str(product.meli_available_quantity))
 
             if (product_tmpl.meli_pub_as_variant):
+                productjson = False
                 if (product_tmpl.meli_pub_principal_variant):
-                    productjson = False
                     base_meli_id = product_tmpl.meli_pub_principal_variant.meli_id
                     if (base_meli_id):
                         response = meli.get("/items/%s" % base_meli_id, {'access_token':meli.access_token})
