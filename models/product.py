@@ -124,7 +124,7 @@ class product_template(models.Model):
 
         _logger.info("Product Template Update")
 
-        if (product.meli_pub_as_variant and product.meli_pub_principal_variant):
+        if (product.meli_pub_as_variant and product.meli_pub_principal_variant.id):
             _logger.info("Updating principal variant")
             product.meli_pub_principal_variant.product_meli_get_product()
         else:
@@ -795,7 +795,7 @@ class product_product(models.Model):
                                 #_logger.info(att.name)
                                 if (att.name=='No'):
                                     #_logger.info("Founded")
-                                    if (ptemp.meli_pub_principal_variant):
+                                    if (ptemp.meli_pub_principal_variant.id):
                                         #_logger.info("has meli_pub_principal_variant!")
                                         ptemp_nfree = ptemp.meli_pub_principal_variant
                                         if (ptemp_nfree.meli_default_stock_product):
@@ -1168,10 +1168,10 @@ class product_product(models.Model):
                     price = product.meli_price
                     qty = product.meli_available_quantity
 
-                    if (product_tmpl.meli_pub_principal_variant and price==False):
+                    if (product_tmpl.meli_pub_principal_variant.id and price==False):
                         price = product_tmpl.meli_pub_principal_variant.meli_price
 
-                    if (product_tmpl.meli_pub_principal_variant and (qty==False or qty==0)):
+                    if (product_tmpl.meli_pub_principal_variant.id and (qty==False or qty==0)):
                         qty = product_tmpl.meli_pub_principal_variant.meli_available_quantity
 
                     var_comb = {
@@ -1459,7 +1459,7 @@ class product_product(models.Model):
 
         if (product_tmpl.meli_pub_as_variant):
             #es probablemente la variante principal
-            if (product_tmpl.meli_pub_principal_variant):
+            if (product_tmpl.meli_pub_principal_variant.id):
                 #esta definida la variante principal, veamos si es esta
                 if (product_tmpl.meli_pub_principal_variant.id == product.id):
                     #esta es la variante principal, si aun el producto no se publico
@@ -1587,10 +1587,10 @@ class product_product(models.Model):
 
             _logger.info("post stock:"+str(product.meli_available_quantity))
             _logger.info("product_tmpl.meli_pub_as_variant:"+str(product_tmpl.meli_pub_as_variant))
-            _logger.info(product_tmpl.meli_pub_principal_variant)
+            _logger.info(product_tmpl.meli_pub_principal_variant.id)
             if (product_tmpl.meli_pub_as_variant):
                 productjson = False
-                if (product_tmpl.meli_pub_principal_variant):
+                if (product_tmpl.meli_pub_principal_variant.id):
                     base_meli_id = product_tmpl.meli_pub_principal_variant.meli_id
                     if (base_meli_id):
                         response = meli.get("/items/%s" % base_meli_id, {'access_token':meli.access_token})
