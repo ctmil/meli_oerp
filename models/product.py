@@ -1217,8 +1217,8 @@ class product_product(models.Model):
         if ('attribute_combinations' in variation):
             #check if every att combination exist in this product
             for att in variation['attribute_combinations']:
-                if ( att.name in _map_combinations):
-                    if (_map_combinations[att.name]==att.value_name):
+                if ( att["name"] in _map_combinations):
+                    if (_map_combinations[att["name"]]==att["value_name"]):
                         _is_p_comb = True
                     else:
                         _is_p_comb = False
