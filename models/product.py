@@ -743,7 +743,7 @@ class product_product(models.Model):
 
                 _logger.info('meli_pub_principal_variant')
                 _logger.info(product_template.meli_pub_principal_variant.id)
-                if (product_template.meli_pub_principal_variant is None):
+                if (product_template.meli_pub_principal_variant.id is False):
                     _logger.info("meli_pub_principal_variant set!")
                     product_template.meli_pub_principal_variant = variant
                     product = variant
