@@ -1217,14 +1217,18 @@ class product_product(models.Model):
         if ('attribute_combinations' in variation):
             #check if every att combination exist in this product
             for att in variation['attribute_combinations']:
+                _logger.info("chech att:"+str(att["name"]))
                 if ( att["name"] in _map_combinations):
                     if (_map_combinations[att["name"]]==att["value_name"]):
                         _is_p_comb = True
+                        _logger.info(_is_p_comb)
                     else:
                         _is_p_comb = False
+                        _logger.info(_is_p_comb)
                         break
                 else:
                     _is_p_comb = False
+                    _logger.info(_is_p_comb)
                     break
 
         return _is_p_comb
@@ -1607,6 +1611,8 @@ class product_product(models.Model):
                     for ix in range(len(productjson["variations"]) ):
                         #check if combination is related to this product
                         if (self._is_product_combination(productjson["variations"][ix])):
+                            _logger.info("_is_product_combination! Post stock to variation")
+                            _logger.info(productjson["variations"][ix])
                             product.meli_id_variation = productjson["variations"][ix]["id"]
                             var = {
                                 "id": str( product.meli_id_variation ),
