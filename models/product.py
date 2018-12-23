@@ -1628,7 +1628,12 @@ class product_product(models.Model):
             else:
                 response = meli.put("/items/"+product.meli_id, fields, {'access_token':meli.access_token})
                 if (response.content):
-                    _logger.info( response.content )
+                    rjson = response.json()
+                    if ('available_quantity' in rjson):
+                        _logger.info( "Posted ok:" + str(rjson['available_quantity']) )
+                    else:
+                        _logger.info( "Error posting stock" )
+                        _logger.info(response.content)
 
             if (product.meli_available_quantity<=0 and product.meli_status=="active"):
                 product.product_meli_status_pause()
