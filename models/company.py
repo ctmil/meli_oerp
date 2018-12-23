@@ -555,7 +555,7 @@ class res_company(models.Model):
             micom = 5
             try:
                 for obj in product_ids:
-                    _logger.info( "Product check if active: " + str(obj.id)+ ' meli_id:'+str(obj.meli_id)+ ' meli_pub:'+str(obj.meli_pub)+ ' status:'+str(obj.meli_status)  )
+                    _logger.info( "Product check if active: " + str(obj.id)+ ' meli_id:'+str(obj.meli_id)  )
                     if (obj.meli_id):
                         icommit+= 1
                         if (icommit>=micom):
