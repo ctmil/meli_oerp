@@ -404,14 +404,14 @@ class mercadolibre_orders(models.Model):
                     return { 'error': 'No post related, exiting'}
 
                 product_related = product_obj.search([('meli_id','=',Item['item']['id'])])
-                if (product_related):
-                    pass;
-                    #_logger.info("order product related by meli_id:",product_related)
-                else:
-                    if ('seller_custom_field' in Item['item']):
-                        product_related = product_obj.search([('default_code','=',Item['item']['seller_custom_field'])])
-                        if (product_related):
-                            _logger.info("order product related by seller_custom_field and default_code:")
+                if ('seller_custom_field' in Item['item']):
+                    product_related = product_obj.search([('default_code','=',Item['item']['seller_custom_field'])])
+                    if (len(product_related)):
+                        _logger.info("order product related by seller_custom_field and default_code:"+str(Item['item']['seller_custom_field']) )
+                    else:
+                        product_related = product_obj.search([('meli_id','=',Item['item']['id'])])
+                        if ('variation_attributes' in Item['item']):
+                            _logger.info("TODO: search by attributes")
 
                 if len(product_related):
                     if len(product_related)>1:
