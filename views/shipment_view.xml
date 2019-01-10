@@ -25,7 +25,7 @@
             </field>
         </record>
 
-
+<!--
     <record id="meli_shipment_search_view" model="ir.ui.view">
         <field name="name">MercadoLibre Shipment - Search</field>
         <field name="model">mercadolibre.shipment</field>
@@ -34,7 +34,7 @@
                 <filter string='Status' icon="terp-mrp" domain="[]" context="{'group_by' : 'status'}"/>
 	    </search>
         </field>
-    </record>
+    </record>-->
 
 
         <record model="ir.actions.act_window" id="action_meli_shipment_tree">
@@ -43,7 +43,7 @@
             <field name="res_model">mercadolibre.shipment</field>
             <field name="view_type">form</field>
             <field name="view_mode">tree,form</field>
-            <field name="search_view_id" ref="meli_shipment_search_view"/>
+            <!--<field name="search_view_id" ref="meli_shipment_search_view"/>-->
         </record>
 
 
