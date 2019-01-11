@@ -30,8 +30,7 @@ import json
 import logging
 _logger = logging.getLogger(__name__)
 
-import urllib
-
+from urllib.request import urlopen
 
 #
 #     https://www.odoo.com/fr_FR/forum/aide-1/question/solved-call-report-and-save-result-to-attachment-133244
@@ -83,7 +82,7 @@ class mercadolibre_shipment_print(models.TransientModel):
 				shipment.pdf_link = download_url
 
 				if (shipment.substatus=="printed"):
-					data = urllib.urlopen(shipment.pdf_link)
+					data = urlopen(shipment.pdf_link)
 					_logger.info(data)
 					shipment.pdf_file = base64.encodestring(data)
 
