@@ -31,6 +31,9 @@ import logging
 _logger = logging.getLogger(__name__)
 
 from urllib.request import urlopen
+import requests
+import base64
+import mimetypes
 
 #
 #     https://www.odoo.com/fr_FR/forum/aide-1/question/solved-call-report-and-save-result-to-attachment-133244
@@ -74,6 +77,7 @@ class mercadolibre_shipment_print(models.TransientModel):
 		sep = ""
 		for shipid in shipment_ids:
 			shipment = shipment_obj.browse(shipid)
+			shipment.
 			if (shipment and shipment.status=="ready_to_ship"):
 				full_ids = full_ids + comma + shipment.shipping_id
 				#full_str_ids = full_str_ids + comma + shipment
@@ -89,7 +93,7 @@ class mercadolibre_shipment_print(models.TransientModel):
 					except Exception as e:
 						_logger.info("Exception!")
 						_logger.info(e, exc_info=True)
-						return warningobj.info( title='Impresión de etiquetas: Error descargando guias', message=download_url )
+						#return warningobj.info( title='Impresión de etiquetas: Error descargando guias', message=download_url )
 
 			else:
 				reporte = reporte + sep + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)
