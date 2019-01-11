@@ -281,6 +281,23 @@ class mercadolibre_shipment(models.Model):
 
 					"logistic_type": ship_json["logistic_type"]
 				}
+
+				response2 = meli.get("/shipments/"+ str(ship_id)+"/items",  {'access_token':meli.access_token})
+				if (response2):
+					items_json = response2.json()
+					if "error" in items_json:
+						_logger.error( items_json["error"] )
+						_logger.error( items_json["message"] )
+					else:
+						if (len(items_json)>1):
+							_logger.info("Es carrito")
+
+						for item in items_json:
+							if item["order_id"]:
+								#search order, if not present import order...
+								_logger.info(item)
+
+
 				ships = shipment_obj.search([('shipping_id','=', ship_id)])
 				_logger.info(ships)
 				if (len(ships)==0):
@@ -291,6 +308,7 @@ class mercadolibre_shipment(models.Model):
 				else:
 					_logger.info("Updating shipment: " + str(ship_id))
 					ships.write((ship_fields))
+
 
 	def update( self ):
 

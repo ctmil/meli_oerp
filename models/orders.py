@@ -266,6 +266,8 @@ class mercadolibre_orders(models.Model):
             'date_created': order_json["date_created"] or '',
             'date_closed': order_json["date_closed"] or '',
         }
+        if 'tags' in order_json:
+            order_fields["tags"] = order_json["tags"]
 
         if 'buyer' in order_json:
             Buyer = order_json['buyer']
@@ -623,7 +625,7 @@ class mercadolibre_orders(models.Model):
 
         return {}
 
-    order_id = fields.Char('Order Id');
+    order_id = fields.Char('Order Id')
 
     status = fields.Selection( [
         #Initial state of an order, and it has no payment yet.
@@ -635,22 +637,23 @@ class mercadolibre_orders(models.Model):
         #The order has a related payment and it has been accredited.
                                     ("paid","Pagado"),
         #The order has not completed by some reason.
-                                    ("cancelled","Cancelado")], string='Order Status');
+                                    ("cancelled","Cancelado")], string='Order Status')
 
-    status_detail = fields.Text(string='Status detail, in case the order was cancelled.');
-    date_created = fields.Date('Creation date');
-    date_closed = fields.Date('Closing date');
+    status_detail = fields.Text(string='Status detail, in case the order was cancelled.')
+    date_created = fields.Date('Creation date')
+    date_closed = fields.Date('Closing date')
 
-    order_items = fields.One2many('mercadolibre.order_items','order_id','Order Items' );
-    payments = fields.One2many('mercadolibre.payments','order_id','Payments' );
-    shipping = fields.Text(string="Shipping");
-    shipping_id = fields.Char(string="Shipping id");
-    shipment = fields.One2many('mercadolibre.shipment','shipping_id','Shipment')
+    order_items = fields.One2many('mercadolibre.order_items','order_id',string='Order Items' )
+    payments = fields.One2many('mercadolibre.payments','order_id',string='Payments' )
+    shipping = fields.Text(string="Shipping")
+    shipping_id = fields.Char(string="Shipping id")
+    shipment = fields.One2many('mercadolibre.shipment','shipping_id',string='Shipment')
 
-    total_amount = fields.Char(string='Total amount');
-    currency_id = fields.Char(string='Currency');
-    buyer =  fields.Many2one( "mercadolibre.buyers","Buyer");
-    seller = fields.Text( string='Seller' );
+    total_amount = fields.Char(string='Total amount')
+    currency_id = fields.Char(string='Currency')
+    buyer =  fields.Many2one( "mercadolibre.buyers","Buyer")
+    seller = fields.Text( string='Seller' )
+    tags = fields.Text(string="Tags")
 
 mercadolibre_orders()
 
