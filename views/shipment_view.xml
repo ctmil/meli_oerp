@@ -23,6 +23,7 @@
                   <field name="sender_id"/>
                   <field name="pdf_file"/>
                   <field name="pdf_link" invisible="1"/>
+                  <field name="pack_order" invisible="1"/>
               </tree>
             </field>
         </record>
@@ -48,12 +49,13 @@
                     <field name="shipping_mode"/>
                     <field name="order_cost"/>
                     <field name="base_cost"/>
-                    <field name="logistic_type"/>                    
+                    <field name="logistic_type"/>
                   </group>
                   <group>
                     <field name="posting_id" invisible="1"/>
                     <field name="order_id" />
                     <field name="order" />
+                    <field name="pack_order" />
                     <field name="orders" />
                   </group>
                   <group>
