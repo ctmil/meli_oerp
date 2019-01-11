@@ -141,11 +141,11 @@ class mercadolibre_shipment(models.Model):
 	_description = "Envío de MercadoLibre"
 
 	site_id = fields.Char('Site id')
-	posting_id = fields.Many2one("mercadolibre.posting","Posting")
+	posting_id = fields.Many2one("mercadolibre.posting",string="Posting")
 	shipping_id = fields.Char('Envío Id')
 	order_id =  fields.Char('Order Id')
-	order = fields.Many2one("mercadolibre.orders","Order")
-	orders = fields.Many2many("mercadolibre.orders","Orders (carrito)")
+	order = fields.Many2one("mercadolibre.orders",string="Order")
+	orders = fields.Many2many("mercadolibre.orders",string="Orders (carrito)")
 
 	mode = fields.Char('Mode')
 	shipping_mode = fields.Char('Shipping mode')
