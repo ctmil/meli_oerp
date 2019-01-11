@@ -13,6 +13,7 @@
                     <field name="buyer"/>
                     <field name="date_created"/>
                     <field name="date_closed"/>
+                    <field name="tags" invisible="1"/>
                 </tree>
             </field>
         </record>
@@ -113,7 +114,6 @@
                     <field name="order_item_id"/>
                     <field name="unit_price"/>
                     <field name="quantity"/>
-                    <field name="tags" invisible="1"/>
                 </tree>
             </field>
         </record>
