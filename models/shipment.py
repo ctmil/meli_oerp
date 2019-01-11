@@ -89,6 +89,7 @@ class mercadolibre_shipment_print(models.TransientModel):
 					try:
 						data = urlopen(shipment.pdf_link).read()
 						_logger.info(data)
+						shipment.pdf_filename = "Shipment_"+shipment.shipping_id+".pdf"
 						shipment.pdf_file = base64.encodestring(data)
 					except Exception as e:
 						_logger.info("Exception!")
