@@ -77,7 +77,7 @@ class mercadolibre_shipment_print(models.TransientModel):
 		sep = ""
 		for shipid in shipment_ids:
 			shipment = shipment_obj.browse(shipid)
-			shipment.
+			shipment.update()
 			if (shipment and shipment.status=="ready_to_ship"):
 				full_ids = full_ids + comma + shipment.shipping_id
 				#full_str_ids = full_str_ids + comma + shipment
@@ -94,6 +94,8 @@ class mercadolibre_shipment_print(models.TransientModel):
 						_logger.info("Exception!")
 						_logger.info(e, exc_info=True)
 						#return warningobj.info( title='Impresión de etiquetas: Error descargando guias', message=download_url )
+						reporte = reporte + sep + "Error descargando pdf:" + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)+'<a href="'+download_url+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'
+						sep = "<br>"+"\n"
 
 			else:
 				reporte = reporte + sep + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)
