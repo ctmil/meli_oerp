@@ -27,12 +27,69 @@
                 </tree>
             </field>
         </record>
-<!--
+
+
         <record model="ir.ui.view" id="view_meli_shipment_form">
-          <field name="pdf_file"/>
-          <field name="pdf_link"  widget="url"/>
+            <field name="name">mercadolibre.shipment.form</field>
+            <field name="model">mercadolibre.shipment</field>
+            <field name="type">form</field>
+            <field name="arch" type="xml">
+              <form string="Shipment">
+                  <group>
+                    <field name="shipping_id"/>
+                    <field name="status"/>
+                    <field name="substatus"/>
+                    <field name="date_created"/>
+                    <field name="last_updated"/>
+                  </group>
+                  <group>
+                    <field name="tracking_method" />
+                    <field name="tracking_number"/>
+                    <field name="mode"/>
+                    <field name="shipping_mode"/>
+                    <field name="order_cost"/>
+                    <field name="base_cost"/>
+                  </group>
+                  <group>
+                    <field name="order_id" />
+                    <field name="order" />
+                    <field name="orders" />
+                  </group>
+                  <group>
+                    <field name="receiver_id"/>
+                    <field name="receiver_address_id"/>
+                    <field name="receiver_address_phone"/>
+                    <field name="receiver_address_name"/>
+                    <field name="receiver_address_comment"/>
+                    <field name="receiver_address_line"/>
+                    <field name="receiver_street_number"/>
+                    <field name="receiver_city"/>
+                    <field name="receiver_state"/>
+                    <field name="receiver_country"/>
+                    <field name="receiver_latitude"/>
+                    <field name="receiver_longitude"/>
+                  </group>
+                  <group>
+                    <field name="sender_id"/>
+                    <field name="sender_address_id"/>
+                    <field name="sender_address_line"/>
+                    <field name="sender_address_comment"/>
+                    <field name="sender_street_name"/>
+                    <field name="sender_street_number"/>
+                    <field name="sender_city"/>
+                    <field name="sender_state"/>
+                    <field name="sender_country"/>
+                    <field name="sender_latitude"/>
+                    <field name="sender_longitude"/>
+                  </group>
+                  <group>
+                    <field name="pdf_file"/>
+                    <field name="pdf_link" widget="url"/>
+                  </group>
+                </form>
+            </field>
         </record>
--->
+
     <record id="meli_shipment_search_view" model="ir.ui.view">
         <field name="name">MercadoLibre Shipment - Search</field>
         <field name="model">mercadolibre.shipment</field>

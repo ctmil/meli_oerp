@@ -145,6 +145,7 @@ class mercadolibre_shipment(models.Model):
 	shipping_id = fields.Char('Envío Id')
 	order_id =  fields.Char('Order Id')
 	order = fields.Many2one("mercadolibre.orders","Order")
+	orders = fields.Many2many("mercadolibre.orders","Orders (carrito)")
 
 	mode = fields.Char('Mode')
 	shipping_mode = fields.Char('Shipping mode')
