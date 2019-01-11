@@ -77,7 +77,7 @@ class mercadolibre_shipment_print(models.TransientModel):
 				#full_str_ids = full_str_ids + comma + shipment
 				comma = ","
 			else:
-				reporte = reporte + sep + shipment.shipping_id + " - Status: " + shipment.status + " - SubStatus: " + shipment.substatus
+				reporte = reporte + sep + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)
 				sep = "<br>"+"\n"
 
 		_logger.info(full_ids)
