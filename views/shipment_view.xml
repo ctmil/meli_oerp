@@ -14,16 +14,16 @@
                     <field name="date_created"/>
                     <field name="last_updated"/>
                     <field name="tracking_method" />
-                    <field name="receiver_address_name"/>
+                    <field name="receiver_address_name" />
                     <field name="mode"/>
                     <field name="shipping_mode"/>
-                    <field name="order_cost"/>
-                    <field name="base_cost"/>
+                    <field name="order_cost" />
+                    <field name="base_cost" invisible="1"/>
                     <field name="tracking_number"/>
-                    <field name="receiver_id"/>
-                    <field name="sender_id"/>
+                    <field name="receiver_id" invisible="1"/>
+                    <field name="sender_id" invisible="1"/>
                     <field name="pdf_file"/>
-                    <field name="pdf_link"/>
+                    <field name="pdf_link" invisible="1"/>
                 </tree>
             </field>
         </record>
