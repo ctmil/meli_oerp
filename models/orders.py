@@ -266,6 +266,8 @@ class mercadolibre_orders(models.Model):
             'date_created': order_json["date_created"] or '',
             'date_closed': order_json["date_closed"] or '',
         }
+        if 'tags' in order_json:
+            order_fields["tags"] = order_json["tags"]
 
         if 'buyer' in order_json:
             Buyer = order_json['buyer']
@@ -653,6 +655,7 @@ class mercadolibre_orders(models.Model):
     currency_id = fields.Char(string='Currency')
     buyer =  fields.Many2one( "mercadolibre.buyers","Buyer")
     seller = fields.Text( string='Seller' )
+    tags = fields.Text(string="Tags")
 
 mercadolibre_orders()
 

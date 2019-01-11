@@ -12,6 +12,7 @@
                     <field name="status"/>
                     <field name="date_created"/>
                     <field name="date_closed"/>
+                    <field name="tags" invisible="1"/>
                 </tree>
             </field>
         </record>
@@ -78,6 +79,7 @@
             <field name="arch" type="xml">
 				      <form string="Orden">
                 <group>
+                    <field name="tags"/>
                     <field name="seller"/>
                     <field name="order_id"/>
                     <field name="status"/>
