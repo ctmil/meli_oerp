@@ -82,7 +82,7 @@ class mercadolibre_shipment_print(models.TransientModel):
 				shipment.pdf_link = download_url
 
 				if (shipment.substatus=="printed"):
-					data = urlopen(shipment.pdf_link)
+					data = urlopen(shipment.pdf_link).read()
 					_logger.info(data)
 					shipment.pdf_file = base64.encodestring(data)
 
