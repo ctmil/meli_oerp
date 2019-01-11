@@ -200,6 +200,8 @@ class mercadolibre_shipment(models.Model):
 	pdf_file = fields.Binary(string='Pdf File',attachment=True)
 	pdf_filename = fields.Char(string='Pdf Filename')
 
+	pack_order = fields.Boolean(string="Carrito de compra")
+
 	def create_shipment( self ):
 		return {}
 
@@ -291,12 +293,15 @@ class mercadolibre_shipment(models.Model):
 					else:
 						if (len(items_json)>1):
 							_logger.info("Es carrito")
+							ship_fields["pack_order"] = True
+						else:
+							ship_fields["pack_order"] = False
 
 						for item in items_json:
 							if item["order_id"]:
 								#search order, if not present import order...
 								_logger.info(item)
-				
+
 				ships = shipment_obj.search([('shipping_id','=', ship_id)])
 				_logger.info(ships)
 				if (len(ships)==0):
