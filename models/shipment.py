@@ -30,6 +30,16 @@ import json
 import logging
 _logger = logging.getLogger(__name__)
 
+from urllib import urlopen
+import requests
+import base64
+import mimetypes
+
+#
+#     https://www.odoo.com/fr_FR/forum/aide-1/question/solved-call-report-and-save-result-to-attachment-133244
+#
+
+
 #
 # https://api.mercadolibre.com/shipment_labels?shipment_ids=20178600648,20182100995&response_type=pdf&access_token=
 class mercadolibre_shipment_print(models.TransientModel):
@@ -63,18 +73,42 @@ class mercadolibre_shipment_print(models.TransientModel):
 		#https://api.mercadolibre.com/shipment_labels?shipment_ids=20178600648,20182100995&response_type=pdf&
 		full_ids = ""
 		comma = ""
+		reporte = ""
+		sep = ""
 		for shipid in shipment_ids:
 			shipment = shipment_obj.browse(shipid)
+			shipment.update()
 			if (shipment and shipment.status=="ready_to_ship"):
 				full_ids = full_ids + comma + shipment.shipping_id
 				#full_str_ids = full_str_ids + comma + shipment
 				comma = ","
+				download_url = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+shipment.shipping_id+"&response_type=pdf&access_token="+meli.access_token
+				shipment.pdf_link = download_url
+
+				if (shipment.substatus=="printed"):
+					try:
+						data = urlopen(shipment.pdf_link).read()
+						_logger.info(data)
+						shipment.pdf_filename = "Shipment_"+shipment.shipping_id+".pdf"
+						shipment.pdf_file = base64.encodestring(data)
+					except Exception as e:
+						_logger.info("Exception!")
+						_logger.info(e, exc_info=True)
+						#return warningobj.info( title='Impresión de etiquetas: Error descargando guias', message=download_url )
+						reporte = reporte + sep + "Error descargando pdf:" + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)+'<a href="'+download_url+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'
+						sep = "<br>"+"\n"
+
+			else:
+				reporte = reporte + sep + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)
+				sep = "<br>"+"\n"
 
 		_logger.info(full_ids)
 		full_url_link_pdf = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_ids+"&response_type=pdf&access_token="+meli.access_token
 		_logger.info(full_url_link_pdf)
 		if (full_ids):
-			return warningobj.info( title='Impresión de etiquetas', message="Abrir este link para descargar el PDF", message_html=""+full_ids+'<br><br><a href="'+full_url_link_pdf+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>' )
+			return warningobj.info( title='Impresión de etiquetas', message="Abrir este link para descargar el PDF", message_html=""+full_ids+'<br><br><a href="'+full_url_link_pdf+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'+"<br><br>Reporte de no impresas:<br>"+reporte )
+		else:
+			return warningobj.info( title='Impresión de etiquetas: Estas etiquetas ya fueron todas impresas.', message=reporte )
 
 
 mercadolibre_shipment_print()
@@ -108,10 +142,11 @@ class mercadolibre_shipment(models.Model):
 	_description = "Envio de MercadoLibre"
 
 	site_id = fields.Char('Site id')
-	posting_id = fields.Many2one("mercadolibre.posting","Posting")
+	posting_id = fields.Many2one("mercadolibre.posting",string="Posting")
 	shipping_id = fields.Char('Envio Id')
 	order_id =  fields.Char('Order Id')
-	order = fields.Many2one("mercadolibre.orders","Order")
+	order = fields.Many2one("mercadolibre.orders",string="Order")
+	orders = fields.Many2many("mercadolibre.orders",string="Orders (carrito)")
 
 	mode = fields.Char('Mode')
 	shipping_mode = fields.Char('Shipping mode')
@@ -160,6 +195,10 @@ class mercadolibre_shipment(models.Model):
 	sender_longitude = fields.Char('Sender Address Longitude')
 
 	logistic_type = fields.Char('Logistic type')
+
+	pdf_link = fields.Char('Pdf link')
+	pdf_file = fields.Binary(string='Pdf File',attachment=True)
+	pdf_filename = fields.Char(string='Pdf Filename')
 
 	def create_shipment( self ):
 		return {}
@@ -242,6 +281,22 @@ class mercadolibre_shipment(models.Model):
 
 					"logistic_type": ship_json["logistic_type"]
 				}
+
+				response2 = meli.get("/shipments/"+ str(ship_id)+"/items",  {'access_token':meli.access_token})
+				if (response2):
+					items_json = response2.json()
+					if "error" in items_json:
+						_logger.error( items_json["error"] )
+						_logger.error( items_json["message"] )
+					else:
+						if (len(items_json)>1):
+							_logger.info("Es carrito")
+
+						for item in items_json:
+							if item["order_id"]:
+								#search order, if not present import order...
+								_logger.info(item)
+				
 				ships = shipment_obj.search([('shipping_id','=', ship_id)])
 				_logger.info(ships)
 				if (len(ships)==0):
