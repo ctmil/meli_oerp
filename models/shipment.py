@@ -87,8 +87,8 @@ class mercadolibre_shipment_print(models.TransientModel):
 						_logger.info(data)
 						shipment.pdf_file = base64.encodestring(data)
 					except Exception as e:
-		                _logger.info("Exception!")
-		                _logger.info(e, exc_info=True)
+						_logger.info("Exception!")
+						_logger.info(e, exc_info=True)
 						return warningobj.info( title='Impresión de etiquetas: Error descargando guias', message=download_url )
 
 			else:
