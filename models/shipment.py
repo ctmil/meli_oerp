@@ -82,9 +82,14 @@ class mercadolibre_shipment_print(models.TransientModel):
 				shipment.pdf_link = download_url
 
 				if (shipment.substatus=="printed"):
-					data = urlopen(shipment.pdf_link).read()
-					_logger.info(data)
-					shipment.pdf_file = base64.encodestring(data)
+					try:
+						data = urlopen(shipment.pdf_link).read()
+						_logger.info(data)
+						shipment.pdf_file = base64.encodestring(data)
+					except Exception as e:
+		                _logger.info("Exception!")
+		                _logger.info(e, exc_info=True)
+						return warningobj.info( title='Impresión de etiquetas: Error descargando guias', message=download_url )
 
 			else:
 				reporte = reporte + sep + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)
