@@ -45,7 +45,7 @@ sale_order_line()
 class sale_order(models.Model):
     _inherit = "sale.order"
 
-    meli_order_id =  fields.Char('Meli Order Id');
+    meli_order_id =  fields.Char('Meli Order Id')
     meli_status = fields.Selection( [
         #Initial state of an order, and it has no payment yet.
                                         ("confirmed","Confirmado"),
@@ -58,9 +58,9 @@ class sale_order(models.Model):
         #The order has not completed by some reason.
                                     ("cancelled","Cancelado")], string='Order Status');
 
-    meli_status_detail = fields.Text(string='Status detail, in case the order was cancelled.');
-    meli_date_created = fields.Datetime('Creation date');
-    meli_date_closed = fields.Datetime('Closing date');
+    meli_status_detail = fields.Text(string='Status detail, in case the order was cancelled.')
+    meli_date_created = fields.Datetime('Creation date')
+    meli_date_closed = fields.Datetime('Closing date')
 
 #        'meli_order_items': fields.one2many('mercadolibre.order_items','order_id','Order Items' ),
 #        'meli_payments': fields.one2many('mercadolibre.payments','order_id','Payments' ),
@@ -70,6 +70,7 @@ class sale_order(models.Model):
     meli_currency_id = fields.Char(string='Currency');
 #        'buyer': fields.many2one( "mercadolibre.buyers","Buyer"),
 #       'meli_seller': fields.text( string='Seller' ),
+    meli_shipping_id =  fields.Char('Meli Shipping Id')
 
     def confirm_ml(self):
 
@@ -265,9 +266,12 @@ class mercadolibre_orders(models.Model):
             'currency_id': order_json["currency_id"],
             'date_created': order_json["date_created"] or '',
             'date_closed': order_json["date_closed"] or '',
+            'pack_order': False
         }
         if 'tags' in order_json:
             order_fields["tags"] = order_json["tags"]
+            if 'pack_order' in order_json["tags"]:
+                order_fields["pack_order"] = True
 
         if 'buyer' in order_json:
             Buyer = order_json['buyer']
@@ -656,6 +660,7 @@ class mercadolibre_orders(models.Model):
     buyer =  fields.Many2one( "mercadolibre.buyers","Buyer")
     seller = fields.Text( string='Seller' )
     tags = fields.Text(string="Tags")
+    pack_order = fields.Boolean(string="Order Pack (Carrito)")
 
 mercadolibre_orders()
 
