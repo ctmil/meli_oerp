@@ -8,20 +8,30 @@
             <field name="type">tree</field>
             <field name="arch" type="xml">
                 <tree string="Shipment" >
+                  <group>
                     <field name="shipping_id"/>
                     <field name="status"/>
                     <field name="substatus"/>
                     <field name="date_created"/>
                     <field name="last_updated"/>
+                  </group>
+                  <group>
+                    <field name="pdf_file"/>
+                    <field name="pdf_link"  widget="url"/>
+                  </group>
+                  <group>
                     <field name="tracking_method" />
                     <field name="receiver_address_name"/>
                     <field name="mode"/>
                     <field name="shipping_mode"/>
+                  </group>
+                  <group>
                     <field name="order_cost"/>
                     <field name="base_cost"/>
                     <field name="tracking_number"/>
                     <field name="receiver_id"/>
                     <field name="sender_id"/>
+                  </group>
                 </tree>
             </field>
         </record>

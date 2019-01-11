@@ -30,6 +30,9 @@ import json
 import logging
 _logger = logging.getLogger(__name__)
 
+import urllib
+
+
 #
 #     https://www.odoo.com/fr_FR/forum/aide-1/question/solved-call-report-and-save-result-to-attachment-133244
 #
@@ -76,6 +79,14 @@ class mercadolibre_shipment_print(models.TransientModel):
 				full_ids = full_ids + comma + shipment.shipping_id
 				#full_str_ids = full_str_ids + comma + shipment
 				comma = ","
+				download_url = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+shipment.shipping_id+"&response_type=pdf&access_token="+meli.access_token
+				shipment.pdf_link = download_url
+
+				if (shipment.substatus=="printed"):
+					data = urllib.urlopen(shipment.pdf_link)
+					_logger.info(data)
+					shipment.pdf_file = base64.encodestring(data)
+
 			else:
 				reporte = reporte + sep + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)
 				sep = "<br>"+"\n"
@@ -172,6 +183,9 @@ class mercadolibre_shipment(models.Model):
 	sender_longitude = fields.Char('Sender Address Longitude')
 
 	logistic_type = fields.Char('Logistic type')
+
+	pdf_link = fields.Char('Pdf link')
+	pdf_file = fields.Binary('Pdf File')
 
 	def create_shipment( self ):
 		return {}
