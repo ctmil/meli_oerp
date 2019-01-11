@@ -68,18 +68,25 @@ class mercadolibre_shipment_print(models.TransientModel):
 		#https://api.mercadolibre.com/shipment_labels?shipment_ids=20178600648,20182100995&response_type=pdf&
 		full_ids = ""
 		comma = ""
+		reporte = ""
+		sep = ""
 		for shipid in shipment_ids:
 			shipment = shipment_obj.browse(shipid)
 			if (shipment and shipment.status=="ready_to_ship"):
 				full_ids = full_ids + comma + shipment.shipping_id
 				#full_str_ids = full_str_ids + comma + shipment
 				comma = ","
+			else:
+				reporte = reporte + sep + shipment.shipping_id + " - Status: " + shipment.status + " - SubStatus: " + shipment.substatus
+				sep = "<br>"+"\n"
 
 		_logger.info(full_ids)
 		full_url_link_pdf = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_ids+"&response_type=pdf&access_token="+meli.access_token
 		_logger.info(full_url_link_pdf)
 		if (full_ids):
-			return warningobj.info( title='Impresión de etiquetas', message="Abrir este link para descargar el PDF", message_html=""+full_ids+'<br><br><a href="'+full_url_link_pdf+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>' )
+			return warningobj.info( title='Impresión de etiquetas', message="Abrir este link para descargar el PDF", message_html=""+full_ids+'<br><br><a href="'+full_url_link_pdf+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'+"<br><br>Reporte de no impresas:<br>"+reporte )
+		else:
+			return warningobj.info( title='Impresión de etiquetas: Estas etiquetas ya fueron todas impresas.', message=reporte )
 
 
 mercadolibre_shipment_print()

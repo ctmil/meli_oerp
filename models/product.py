@@ -1256,8 +1256,11 @@ class product_product(models.Model):
                 "target": "new",
             }
 
+        productjson = False
         if (product.meli_id):
             response = meli.get("/items/%s" % product.meli_id, {'access_token':meli.access_token})
+            if (response):
+                productjson = response.json()
 
         #check from company's default
         if company.mercadolibre_listing_type and product_tmpl.meli_listing_type==False:
