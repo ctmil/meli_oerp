@@ -38,13 +38,12 @@ class MercadoLibre(http.Controller):
 
         return "MercadoLibre for Odoo 8/9/10/11 - Moldeo Interactive: %s " % response.content
 
-    @http.route(['/meli_notify'], type='http', auth="public")
+    @http.route(['/meli_notify'], type='json', methods=['POST'])
     def meli_notify(self,**kwargs):
-        _logger.info("meli_notify2")
+        _logger.info("meli_notify post")
         _logger.info(kwargs.keys())
         #for arg in kwargs:
         return ""
-
 
 class MercadoLibreLogin(http.Controller):
 
