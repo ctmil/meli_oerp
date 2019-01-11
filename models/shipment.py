@@ -196,7 +196,8 @@ class mercadolibre_shipment(models.Model):
 	logistic_type = fields.Char('Logistic type')
 
 	pdf_link = fields.Char('Pdf link')
-	pdf_file = fields.Binary('Pdf File')
+	pdf_file = fields.Binary(string='Pdf File',attachment=True)
+	pdf_filename = fields.Char(string='Pdf Filename')
 
 	def create_shipment( self ):
 		return {}
