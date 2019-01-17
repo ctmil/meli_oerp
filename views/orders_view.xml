@@ -2,7 +2,7 @@
 <openerp>
     <data>
 
-        <record model="ir.ui.view" id="view_meli_orders_tree">
+      <record model="ir.ui.view" id="view_meli_orders_tree">
             <field name="name">mercadolibre.orders.tree</field>
             <field name="model">mercadolibre.orders</field>
             <field name="type">tree</field>
@@ -10,8 +10,10 @@
                 <tree string="Ordenes" >
                     <field name="order_id"/>
                     <field name="status"/>
+                    <field name="buyer"/>
                     <field name="date_created"/>
                     <field name="date_closed"/>
+                    <field name="tags" invisible="1"/>
                 </tree>
             </field>
         </record>
@@ -47,9 +49,10 @@
                 <data>
                     <notebook>
                         <page string="MercadoLibre" attrs="{'invisible':[('meli_buyer_id', '=', False)]}">
-							<group>
-								<field name="meli_buyer_id" invisible="0"/>
-                            </group>
+                          <group>
+                            <field name="meli_buyer_id" invisible="0"/>
+                            <field name="meli_buyer" invisible="0"/>
+                          </group>
                         </page>
                     </notebook>
                 </data>
@@ -77,6 +80,7 @@
             <field name="arch" type="xml">
               <form string="Orden">
                 <group>
+                    <field name="tags"/>
                     <field name="seller"/>
                     <field name="order_id"/>
                     <field name="status"/>
@@ -92,7 +96,7 @@
                     <field name="shipping_id"/>
                     <field name="shipment"/>
                   </group>
-                </form>            
+                </form>
             </field>
         </record>
 
@@ -129,12 +133,15 @@
 
 
     <record id="meli_orders_search_view" model="ir.ui.view">
-        <field name="name">Ordenes de ML - Buscar</field>
+        <field name="name">mercadolibre.orders.search</field>
         <field name="model">mercadolibre.orders</field>
         <field name="arch" type="xml">
-	    <search string="Search MercadoLibre Orders Information">
-                <filter string='Status' icon="terp-mrp" domain="[]" context="{'group_by' : 'status'}"/>
-	    </search>
+	         <search string="Search MercadoLibre Orders Information">
+             <field name="order_id" string="Order ID"/>
+             <field name="status" string="Status"/>
+             <field name="buyer" string="Comprador"/>
+             <field name="seller" string="Vendedor"/>
+	         </search>
         </field>
     </record>
 
@@ -142,9 +149,15 @@
         <field name="name">Compradores de ML - Buscar</field>
         <field name="model">mercadolibre.buyers</field>
         <field name="arch" type="xml">
-	    <search string="Search MercadoLibre Buyers Information">
-                <filter string='Status' icon="terp-mrp" domain="[]" context="{'group_by' : 'nickname'}"/>
-	    </search>
+    	    <search string="Search MercadoLibre Buyers Information">
+              <field name="nickname" string="Usuario ML"/>
+              <field name="first_name" string="Nombre ML"/>
+              <field name="last_name" string="Apellido ML"/>
+              <field name="email" string="Email ML"/>
+              <field name="phone" string="Phone ML"/>
+              <field name="alternative_phone" string="Alternative Phone ML"/>
+              <field name="billing_info" string="Documento Id ML"/>
+    	    </search>
         </field>
     </record>
 
@@ -213,6 +226,16 @@
             action="action_meli_buyers_tree"
             parent="menu_meli"
             name="Compradores" />
+
+            <act_window id="action_update_meli_orders"
+                name="Update ML Orders"
+                src_model="mercadolibre.orders"
+                res_model="mercadolibre.orders.update"
+                view_type="form" view_mode="form"
+                key2="client_action_multi" target="new"/>
+
+
+
 
     </data>
 </openerp>

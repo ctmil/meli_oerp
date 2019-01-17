@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <openerp>
     <data>
-
         <record model="ir.ui.view" id="view_meli_shipment_tree">
             <field name="name">mercadolibre.shipment.tree</field>
             <field name="model">mercadolibre.shipment</field>
@@ -13,26 +12,98 @@
                     <field name="substatus"/>
                     <field name="date_created"/>
                     <field name="last_updated"/>
-                    <field name="receiver_address_name"/>
+                    <field name="tracking_method" />
+                    <field name="receiver_address_name" />
                     <field name="mode"/>
                     <field name="shipping_mode"/>
-                    <field name="order_cost"/>
-                    <field name="base_cost"/>
+                    <field name="order_cost" />
+                    <field name="base_cost" invisible="1"/>
                     <field name="tracking_number"/>
-                    <field name="receiver_id"/>
-                    <field name="sender_id"/>
+                    <field name="receiver_id" invisible="1"/>
+                    <field name="sender_id" invisible="1"/>
+                    <field name="pdf_file"/>
+                    <field name="pdf_link" invisible="1"/>
                 </tree>
             </field>
         </record>
 
 
+        <record model="ir.ui.view" id="view_meli_shipment_form">
+            <field name="name">mercadolibre.shipment.form</field>
+            <field name="model">mercadolibre.shipment</field>
+            <field name="type">form</field>
+            <field name="arch" type="xml">
+              <form string="Shipment">
+                  <group>
+                    <field name="shipping_id"/>
+                    <field name="status"/>
+                    <field name="substatus"/>
+                    <field name="date_created"/>
+                    <field name="last_updated"/>
+                  </group>
+                  <group>
+                    <field name="tracking_method" />
+                    <field name="tracking_number"/>
+                    <field name="mode"/>
+                    <field name="shipping_mode"/>
+                    <field name="order_cost"/>
+                    <field name="base_cost"/>
+                    <field name="logistic_type"/>
+                  </group>
+                  <group>
+                    <field name="posting_id" invisible="1"/>
+                    <field name="order_id" />
+                    <field name="order" />
+                    <field name="orders" />
+                  </group>
+                  <group>
+                    <field name="receiver_id"/>
+                    <field name="receiver_address_id"/>
+                    <field name="receiver_address_phone"/>
+                    <field name="receiver_address_name"/>
+                    <field name="receiver_address_comment"/>
+                    <field name="receiver_address_line"/>
+                    <field name="receiver_street_number"/>
+                    <field name="receiver_city"/>
+                    <field name="receiver_state"/>
+                    <field name="receiver_country"/>
+                    <field name="receiver_latitude"/>
+                    <field name="receiver_longitude"/>
+                  </group>
+                  <group>
+                    <field name="sender_id"/>
+                    <field name="sender_address_id"/>
+                    <field name="sender_address_line"/>
+                    <field name="sender_address_comment"/>
+                    <field name="sender_street_name"/>
+                    <field name="sender_street_number"/>
+                    <field name="sender_city"/>
+                    <field name="sender_state"/>
+                    <field name="sender_country"/>
+                    <field name="sender_latitude"/>
+                    <field name="sender_longitude"/>
+                  </group>
+                  <group>
+                    <field name="pdf_file" filename="pdf_filename"/>
+                    <field name="pdf_filename"/>
+                    <field name="pdf_link" widget="url"/>
+                  </group>
+                </form>
+            </field>
+        </record>
+
     <record id="meli_shipment_search_view" model="ir.ui.view">
         <field name="name">MercadoLibre Shipment - Search</field>
         <field name="model">mercadolibre.shipment</field>
         <field name="arch" type="xml">
-	    <search string="Search MercadoLibre Shipments Information">
-                <filter string='Status' icon="terp-mrp" domain="[]" context="{'group_by' : 'status'}"/>
-	    </search>
+    	    <search string="Search MercadoLibre Shipments Information">
+                <field name="shipping_id" />
+                <field name="status"/>
+                <field name="substatus"/>
+                <field name="tracking_method" />
+                <field name="receiver_address_name"/>
+                <field name="tracking_number"/>
+    	    </search>
         </field>
     </record>
 
@@ -84,18 +155,57 @@
         </record>
 
         <act_window id="action_mercadolibre_shipment_print"
-
-            name="Print (Etiquetas)"
-
+            name="Meli Print (Guías/Etiquetas PDF ML)"
             src_model="mercadolibre.shipment"
-
             res_model="mercadolibre.shipment.print"
-
             view_type="form" view_mode="form"
-
             key2="client_action_multi" target="new"/>
 
 
+            <record id="view_mercadolibre_shipment_update" model="ir.ui.view">
+                  <field name="name">Actualizar datos de envío</field>
+                  <field name="model">mercadolibre.shipment.update</field>
+                  <field name="type">form</field>
+                  <field name="arch" type="xml">
+                    <form string="Actualizar envio" version="7.0">
 
+
+
+                        <footer>
+                            <button name="shipment_update" string="Actualizar datos de envío"  type="object" class="oe_highlight"  />
+            or
+                            <button string="Cancel" class="oe_link" special="cancel" />
+                        </footer>
+                    </form>
+                  </field>
+            </record>
+
+            <record id="action_mercadolibre_shipment_update" model="ir.actions.act_window">
+                <field name="name">Update Shipment</field>
+                <field name="type">ir.actions.act_window</field>
+                <field name="src_model">mercadolibre.shipment</field>
+                <field name="res_model">mercadolibre.shipment.update</field>
+                <field name="view_type">form</field>
+                <field name="view_mode">form</field>
+                <field name="target">new</field>
+            </record>
+
+            <act_window id="action_mercadolibre_shipment_update"
+                name="Update"
+                src_model="mercadolibre.shipment"
+                res_model="mercadolibre.shipment.update"
+                view_type="form" view_mode="form"
+                key2="client_action_multi" target="new"/>
+
+            <report
+                        id="report_shipment_view"
+                        string="Shipment Report"
+                        model="mercadolibre.shipment"
+                        report_type="qweb-pdf"
+                        file="meli_oerp.report_shipment"
+                        name="meli_oerp.report_shipment"
+                        menu="True"
+                        print_report_name="'Reporte de etiquetas'"
+                    />
     </data>
 </openerp>
