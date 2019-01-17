@@ -131,7 +131,7 @@
             </field>
         </record>
 
-
+<!--
     <record id="meli_orders_search_view" model="ir.ui.view">
         <field name="name">mercadolibre.orders.search</field>
         <field name="model">mercadolibre.orders</field>
@@ -160,7 +160,7 @@
     	    </search>
         </field>
     </record>
-
+-->
 
     <record id="view_orders_update" model="ir.ui.view">
           <field name="name">Actualizar Orden de ML</field>
@@ -183,7 +183,7 @@
             <field name="res_model">mercadolibre.orders</field>
             <field name="view_type">form</field>
             <field name="view_mode">tree,form</field>
-            <field name="search_view_id" ref="meli_orders_search_view"/>
+            <!--<field name="search_view_id" ref="meli_orders_search_view"/>-->
         </record>
 
         <record model="ir.actions.act_window" id="action_meli_buyers_tree">
@@ -192,7 +192,7 @@
             <field name="res_model">mercadolibre.buyers</field>
             <field name="view_type">form</field>
             <field name="view_mode">tree,form</field>
-            <field name="search_view_id" ref="meli_buyers_search_view"/>
+            <!--<field name="search_view_id" ref="meli_buyers_search_view"/>-->
         </record>
 
         <record id="action_update_meli_orders" model="ir.actions.act_window">

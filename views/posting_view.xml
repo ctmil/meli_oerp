@@ -43,6 +43,7 @@
             </field>
         </record>
 
+<!--
     <record id="meli_posting_search_view" model="ir.ui.view">
         <field name="name">MercadoLibre Posting - Search</field>
         <field name="model">mercadolibre.posting</field>
@@ -51,7 +52,7 @@
                 <filter string='Status' icon="terp-mrp" domain="[]" context="{'group_by' : 'meli_status'}"/>
 	    </search>
         </field>
-    </record>
+    </record>-->
 
     <record id="view_posting_update" model="ir.ui.view">
           <field name="name">Update Meli Posting</field>
@@ -98,7 +99,7 @@
             <field name="res_model">mercadolibre.posting</field>
             <field name="view_type">form</field>
             <field name="view_mode">tree,form</field>
-            <field name="search_view_id" ref="meli_posting_search_view"/>
+            <!--<field name="search_view_id" ref="meli_posting_search_view"/>-->
         </record>
 
 
@@ -108,6 +109,13 @@
             action="action_meli_postings_tree"
             parent="menu_meli"
             name="Ventas" />
+
+        <act_window id="action_update_meli_postings"
+            name="Update ML Post"
+            src_model="mercadolibre.posting"
+            res_model="mercadolibre.posting.update"
+            view_type="form" view_mode="form"
+            key2="client_action_multi" target="new"/>
 
     </data>
 </openerp>

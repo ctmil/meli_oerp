@@ -22,7 +22,7 @@
             </field>
         </record>
 
-
+<!--
     <record id="meli_questions_search_view" model="ir.ui.view">
         <field name="name">MercadoLibre Questions - Search</field>
         <field name="model">mercadolibre.questions</field>
@@ -32,7 +32,7 @@
 	    </search>
         </field>
     </record>
-
+-->
 
         <record model="ir.actions.act_window" id="action_meli_questions_tree">
             <field name="name">Preguntas</field>
@@ -40,7 +40,7 @@
             <field name="res_model">mercadolibre.questions</field>
             <field name="view_type">form</field>
             <field name="view_mode">tree,form</field>
-            <field name="search_view_id" ref="meli_questions_search_view"/>
+            <!--<field name="search_view_id" ref="meli_questions_search_view"/>-->
         </record>
 
 
