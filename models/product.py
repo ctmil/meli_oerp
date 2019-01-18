@@ -626,7 +626,8 @@ class product_product(models.Model):
                             'create_variant': True
                         }
                         if ('create_variant' in attcomb):
-                            att['create_variant'] = attcomb['create_variant']
+                            if (attcomb['create_variant']==False or attcomb['create_variant']==True):
+                                att['create_variant'] = attcomb['create_variant']
                         else:
                             rjson['variations'][vindex]["default_code"] = rjson['variations'][vindex]["default_code"]+attcomb['name']+":"+attcomb['value_name']+";"
                         #_logger.info(att)
