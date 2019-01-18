@@ -637,7 +637,8 @@ class product_product(models.Model):
                             #_logger.info(attribute_id)
                             pass
                         else:
-                            #_logger.info("Creating attribute:")
+                            _logger.info("Creating attribute:")
+                            _logger.info(att)
                             attribute_id = self.env['product.attribute'].create({ 'name': att['name'],'create_variant': att['create_variant'] }).id
                         if (att['create_variant']==True):
                             published_att_variants = True
