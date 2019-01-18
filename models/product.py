@@ -631,7 +631,8 @@ class product_product(models.Model):
                         else:
                             rjson['variations'][vindex]["default_code"] = rjson['variations'][vindex]["default_code"]+attcomb['name']+":"+attcomb['value_name']+";"
                         #_logger.info(att)
-                        attribute_id = self.env['product.attribute'].search([('name','=',att['name'])]).id
+                        attribute = self.env['product.attribute'].search([('name','=',att['name'])])
+                        attribute_id = attribute.id
                         #_logger.info(attribute_id)
                         if attribute_id:
                             #_logger.info(attribute_id)
@@ -639,9 +640,12 @@ class product_product(models.Model):
                         else:
                             _logger.info("Creating attribute:")
                             _logger.info(att)
-                            attribute_id = self.env['product.attribute'].create({ 'name': att['name'],'create_variant': att['create_variant'] }).id
+                            attribute = self.env['product.attribute'].create({ 'name': att['name'],'create_variant': True })
+                            attribute_id = attribute.id
                         if (att['create_variant']==True):
                             published_att_variants = True
+                        else:
+                            attribute.create_variant = False
                         if (attribute_id):
                             #_logger.info("Publishing attribute")
                             attribute_value_id = self.env['product.attribute.value'].search([('attribute_id','=',attribute_id),('name','=',att['value_name'])]).id
