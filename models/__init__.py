@@ -17,3 +17,4 @@ from . import questions
 from . import orders
 from . import currency
 from . import shipment
+from . import stock_move
