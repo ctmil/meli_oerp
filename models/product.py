@@ -664,7 +664,9 @@ class product_product(models.Model):
                                     pass
                                 else:
                                     #_logger.info("Creating att line id:")
-                                    attribute_line =  self.env['product.template.attribute.line'].create( { 'attribute_id': attribute_id,'product_tmpl_id': product_template.id } )
+                                    attline = { 'attribute_id': attribute_id,'product_tmpl_id': product_template.id }
+                                    _logger.info(attline)
+                                    attribute_line =  self.env['product.template.attribute.line'].create( attline )
 
                                 if (attribute_line):
                                     #_logger.info("Check attribute line values id.")
