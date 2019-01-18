@@ -741,7 +741,7 @@ class product_product(models.Model):
                     product_template.meli_pub_principal_variant = variant
                     product = variant
 
-                if (_product_id==variant.id):attcomb
+                if (_product_id==variant.id):
                     product = variant
         else:
             #NO TIENE variantes
