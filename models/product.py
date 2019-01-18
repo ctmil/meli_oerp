@@ -592,7 +592,7 @@ class product_product(models.Model):
         if ('shipping' in rjson):
             att_shipping = {
                 'name': 'Con envío',
-                'create_variant': False
+                'create_variant': 'no_variant'
             }
             if ('variations' in rjson):
                 #_logger.info("has variations")
@@ -623,11 +623,10 @@ class product_product(models.Model):
                         att = {
                             'name': attcomb['name'],
                             'value_name': attcomb['value_name'],
-                            'create_variant': True
+                            'create_variant': 'always'
                         }
                         if ('create_variant' in attcomb):
-                            if (attcomb['create_variant']==False or attcomb['create_variant']==True):
-                                att['create_variant'] = attcomb['create_variant']
+                            att['create_variant'] = attcomb['create_variant']
                         else:
                             rjson['variations'][vindex]["default_code"] = rjson['variations'][vindex]["default_code"]+attcomb['name']+":"+attcomb['value_name']+";"
                         #_logger.info(att)
@@ -640,12 +639,10 @@ class product_product(models.Model):
                         else:
                             _logger.info("Creating attribute:")
                             _logger.info(att)
-                            attribute = self.env['product.attribute'].create({ 'name': att['name'],'create_variant': True })
+                            attribute = self.env['product.attribute'].create({ 'name': att['name'],'create_variant': att['create_variant']  })
                             attribute_id = attribute.id
-                        if (att['create_variant']==True):
-                            published_att_variants = True
-                        else:
-                            attribute.create_variant = False
+                        if (att['create_variant']=='always'):
+                            published_att_variants = True                        
                         if (attribute_id):
                             #_logger.info("Publishing attribute")
                             attribute_value_id = self.env['product.attribute.value'].search([('attribute_id','=',attribute_id),('name','=',att['value_name'])]).id
@@ -744,7 +741,7 @@ class product_product(models.Model):
                     product_template.meli_pub_principal_variant = variant
                     product = variant
 
-                if (_product_id==variant.id):
+                if (_product_id==variant.id):attcomb
                     product = variant
         else:
             #NO TIENE variantes
