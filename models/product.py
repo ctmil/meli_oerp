@@ -444,6 +444,7 @@ class product_product(models.Model):
     def product_meli_get_product( self ):
         company = self.env.user.company_id
         product_obj = self.env['product.product']
+        uomobj = self.env['uom.uom']
         #pdb.set_trace()
         product = self
 
@@ -687,7 +688,7 @@ class product_product(models.Model):
                                         attribute_line.value_ids = [(4,attribute_value_id)]
 
         #_logger.info("product_uom_id")
-        product_uom_id = self.env['product.uom'].search([('name','=','Unidad(es)')])
+        product_uom_id = uomobj.search([('name','=','Unidad(es)')])
         if (product_uom_id.id==False):
             product_uom_id = 1
         else:
@@ -755,8 +756,6 @@ class product_product(models.Model):
         if (company.mercadolibre_update_local_stock):
             product_template.type = 'product'
             wh = self.env['stock.location'].search([('usage','=','internal')]).id
-            ##product_uom_cat_id = sock.execute(dbname,uid,pwd,'product.uom.categ','search',[('name','=',"Unit")])
-            #print "product_uom_cat_id:",product_uom_cat_id
 
             for variant in product_template.product_variant_ids:
 
@@ -844,6 +843,7 @@ class product_product(models.Model):
         # CONDICION: tener un
         variant = self
         product_template = self.product_tmpl_id
+        uomobj = self.env['uom.uom']
         if (not ("mrp.bom" in self.env)):
             _logger.info("mrp.bom not found")
             _logger.error("Must install Manufacturing Module")
@@ -852,7 +852,7 @@ class product_product(models.Model):
         bom_l = self.env["mrp.bom.line"]
         #_logger.info("set bom: " + str(has_sku))
 
-        product_uom_id = self.env['product.uom'].search([('name','=','Unidad(es)')])
+        product_uom_id = uomobj.search([('name','=','Unidad(es)')])
         if (product_uom_id.id==False):
             product_uom_id = 1
         else:
