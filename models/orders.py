@@ -45,7 +45,7 @@ sale_order_line()
 class sale_order(models.Model):
     _inherit = "sale.order"
 
-    meli_order_id =  fields.Char('Meli Order Id');
+    meli_order_id =  fields.Char('Meli Order Id')
     meli_status = fields.Selection( [
         #Initial state of an order, and it has no payment yet.
                                         ("confirmed","Confirmado"),
@@ -58,9 +58,9 @@ class sale_order(models.Model):
         #The order has not completed by some reason.
                                     ("cancelled","Cancelado")], string='Order Status');
 
-    meli_status_detail = fields.Text(string='Status detail, in case the order was cancelled.');
-    meli_date_created = fields.Date('Creation date');
-    meli_date_closed = fields.Date('Closing date');
+    meli_status_detail = fields.Text(string='Status detail, in case the order was cancelled.')
+    meli_date_created = fields.Datetime('Creation date')
+    meli_date_closed = fields.Datetime('Closing date')
 
 #        'meli_order_items': fields.one2many('mercadolibre.order_items','order_id','Order Items' ),
 #        'meli_payments': fields.one2many('mercadolibre.payments','order_id','Payments' ),
@@ -70,6 +70,7 @@ class sale_order(models.Model):
     meli_currency_id = fields.Char(string='Currency ML');
 #        'buyer': fields.many2one( "mercadolibre.buyers","Buyer"),
 #       'meli_seller': fields.text( string='Seller' ),
+    meli_shipping_id =  fields.Char('Meli Shipping Id')
 
     def confirm_ml(self):
 
@@ -205,7 +206,7 @@ class mercadolibre_orders(models.Model):
         posting_obj = self.env['mercadolibre.posting']
         order_items_obj = self.env['mercadolibre.order_items']
         payments_obj = self.env['mercadolibre.payments']
-        shipment_obj = self.env['mercadolibre.shipment']
+        shipment_obj = self.env["mercadolibre.shipment"]
 
         order = None
         sorder = None
@@ -249,9 +250,12 @@ class mercadolibre_orders(models.Model):
             'currency_id': order_json["currency_id"],
             'date_created': order_json["date_created"] or '',
             'date_closed': order_json["date_closed"] or '',
+            'pack_order': False
         }
         if 'tags' in order_json:
             order_fields["tags"] = order_json["tags"]
+            if 'pack_order' in order_json["tags"]:
+                order_fields["pack_order"] = True
 
         if 'buyer' in order_json:
             Buyer = order_json['buyer']
@@ -372,7 +376,8 @@ class mercadolibre_orders(models.Model):
 
                 post_related = posting_obj.search([('meli_id','=',Item['item']['id'])])
                 if (post_related):
-                    _logger.info("order post related by meli_id:",post_related)
+                    pass;
+                    #_logger.info("order post related by meli_id:",post_related)
                 else:
                     #create post!
                     posting_fields = {
@@ -389,13 +394,14 @@ class mercadolibre_orders(models.Model):
                     return { 'error': 'No post related, exiting'}
 
                 product_related = product_obj.search([('meli_id','=',Item['item']['id'])])
-                if (product_related):
-                    _logger.info("order product related by meli_id:",product_related)
-                else:
-                    if ('seller_custom_field' in Item['item']):
-                        product_related = product_obj.search([('default_code','=',Item['item']['seller_custom_field'])])
-                        if (product_related):
-                            _logger.info("order product related by seller_custom_field and default_code:",product_related)
+                if ('seller_custom_field' in Item['item']):
+                    product_related = product_obj.search([('default_code','=',Item['item']['seller_custom_field'])])
+                    if (len(product_related)):
+                        _logger.info("order product related by seller_custom_field and default_code:"+str(Item['item']['seller_custom_field']) )
+                    else:
+                        product_related = product_obj.search([('meli_id','=',Item['item']['id'])])
+                        if ('variation_attributes' in Item['item']):
+                            _logger.info("TODO: search by attributes")
 
                 if len(product_related):
                     if len(product_related)>1:
@@ -431,7 +437,6 @@ class mercadolibre_orders(models.Model):
                 order_item_ids = order_items_obj.search( [('order_item_id','=',order_item_fields['order_item_id']),('order_id','=',order.id)] )
                 #_logger.info( order_item_fields )
                 if not order_item_ids:
-                    #_logger.info( "order_item_fields: " + str(order_item_fields) )
                     order_item_ids = order_items_obj.create( ( order_item_fields ))
                 else:
                     order_item_ids.write( ( order_item_fields ) )
@@ -444,6 +449,7 @@ class mercadolibre_orders(models.Model):
                     'company_id': company.id,
                     'order_id': sorder.id,
                     'meli_order_item_id': Item['item']['id'],
+                    'price_unit': float(Item['unit_price']),
                     'product_id': product_related_obj.id,
                     'product_uom_qty': Item['quantity'],
                     'product_uom': 1,
@@ -624,8 +630,8 @@ class mercadolibre_orders(models.Model):
                                     ("cancelled","Cancelado")], string='Order Status')
 
     status_detail = fields.Text(string='Status detail, in case the order was cancelled.')
-    date_created = fields.Date('Creation date')
-    date_closed = fields.Date('Closing date')
+    date_created = fields.Datetime('Creation date')
+    date_closed = fields.Datetime('Closing date')
 
     order_items = fields.One2many('mercadolibre.order_items','order_id',string='Order Items' )
     payments = fields.One2many('mercadolibre.payments','order_id',string='Payments' )
@@ -638,22 +644,23 @@ class mercadolibre_orders(models.Model):
     buyer =  fields.Many2one( "mercadolibre.buyers","Buyer")
     seller = fields.Text( string='Seller' )
     tags = fields.Text(string="Tags")
+    pack_order = fields.Boolean(string="Order Pack (Carrito)")
 
 mercadolibre_orders()
 
 
 class mercadolibre_order_items(models.Model):
-    _name = "mercadolibre.order_items"
-    _description = "Producto pedido en MercadoLibre"
+	_name = "mercadolibre.order_items"
+	_description = "Producto pedido en MercadoLibre"
 
-    posting_id = fields.Many2one("mercadolibre.posting","Posting");
-    order_id = fields.Many2one("mercadolibre.orders","Order");
-    order_item_id = fields.Char('Item Id');
-    order_item_title = fields.Char('Item Title');
-    order_item_category_id = fields.Char('Item Category Id');
-    unit_price = fields.Char(string='Unit price');
-    quantity = fields.Integer(string='Quantity');
-    currency_id = fields.Char(string='Currency');
+ 	posting_id = fields.Many2one("mercadolibre.posting","Posting")
+	order_id = fields.Many2one("mercadolibre.orders","Order")
+ 	order_item_id = fields.Char('Item Id')
+	order_item_title = fields.Char('Item Title')
+	order_item_category_id = fields.Char('Item Category Id')
+	unit_price = fields.Char(string='Unit price')
+	quantity = fields.Integer(string='Quantity')
+	currency_id = fields.Char(string='Currency')
 
 mercadolibre_order_items()
 
@@ -662,28 +669,29 @@ class mercadolibre_payments(models.Model):
 	_name = "mercadolibre.payments"
 	_description = "Pagos en MercadoLibre"
 
-	order_id = fields.Many2one("mercadolibre.orders","Order");
-	payment_id = fields.Char('Payment Id',index=True);
-	transaction_amount = fields.Char('Transaction Amount');
-	currency_id = fields.Char(string='Currency');
-	status = fields.Char(string='Payment Status');
-	date_created = fields.Date('Creation date');
-	date_last_modified = fields.Date('Modification date');
+	order_id = fields.Many2one("mercadolibre.orders","Order")
+	payment_id = fields.Char('Payment Id')
+	transaction_amount = fields.Char('Transaction Amount')
+	currency_id = fields.Char(string='Currency')
+	status = fields.Char(string='Payment Status')
+	date_created = fields.Datetime('Creation date')
+	date_last_modified = fields.Datetime('Modification date')
 
 mercadolibre_payments()
 
 class mercadolibre_buyers(models.Model):
-    _name = "mercadolibre.buyers"
-    _description = "Compradores en MercadoLibre"
+	_name = "mercadolibre.buyers"
+	_description = "Compradores en MercadoLibre"
 
-    buyer_id = fields.Char(string='Buyer ID',index=True);
-    nickname = fields.Char(string='Nickname');
-    email = fields.Char(string='Email');
-    phone = fields.Char( string='Phone');
-    alternative_phone = fields.Char( string='Alternative Phone');
-    first_name = fields.Char( string='First Name');
-    last_name = fields.Char( string='Last Name');
-    billing_info = fields.Char( string='Billing Info');
+	name = fields.Char(string='Name')
+	buyer_id = fields.Char(string='Buyer ID')
+	nickname = fields.Char(string='Nickname')
+	email = fields.Char(string='Email')
+	phone = fields.Char( string='Phone')
+	alternative_phone = fields.Char( string='Alternative Phone')
+	first_name = fields.Char( string='First Name')
+	last_name = fields.Char( string='Last Name')
+	billing_info = fields.Char( string='Billing Info')
 
 mercadolibre_buyers()
 
