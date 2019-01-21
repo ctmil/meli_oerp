@@ -643,7 +643,7 @@ class product_product(models.Model):
                             attribute = self.env['product.attribute'].create({ 'name': att['name'],'create_variant': att['create_variant']  })
                             attribute_id = attribute.id
                         if (att['create_variant']=='always'):
-                            published_att_variants = True                        
+                            published_att_variants = True
                         if (attribute_id):
                             #_logger.info("Publishing attribute")
                             attribute_value_id = self.env['product.attribute.value'].search([('attribute_id','=',attribute_id),('name','=',att['value_name'])]).id
@@ -792,8 +792,8 @@ class product_product(models.Model):
                         #print "StockInventoryLine:", StockInventoryLine, stock_inventory_field_line
         #                    _logger.info("StockInventoryLine:")
         #                    _logger.info(StockInventoryLine)
-                        if (StockInventoryLine):
-                            return_id = StockInventory.action_done()
+                        if (StockInventoryLine):                            
+                            return_id = StockInventory.post_inventory()
         #                        _logger.info("action_done:"+str(return_id))
 
         #assign envio/sin envio
