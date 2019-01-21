@@ -244,7 +244,7 @@ class product_template(models.Model):
     meli_variants_status = fields.Text(compute=product_template_stats,string='Meli Variant Status')
 
     meli_pub_as_variant = fields.Boolean('Publicar variantes como variantes en ML',help='Publicar variantes como variantes de la misma publicación, no como publicaciones independientes.')
-    meli_pub_variant_attributes = fields.Many2many('product.attribute.line', string='Atributos a publicar en ML',help='Seleccionar los atributos a publicar')
+    meli_pub_variant_attributes = fields.Many2many('product.template.attribute.line', string='Atributos a publicar en ML',help='Seleccionar los atributos a publicar')
     meli_pub_principal_variant = fields.Many2one( 'product.product',string='Variante principal',help='Variante principal')
 
     meli_model = fields.Char(string="Modelo",size=256)
@@ -444,6 +444,7 @@ class product_product(models.Model):
     def product_meli_get_product( self ):
         company = self.env.user.company_id
         product_obj = self.env['product.product']
+        uomobj = self.env['uom.uom']
         #pdb.set_trace()
         product = self
 
@@ -592,7 +593,7 @@ class product_product(models.Model):
         if ('shipping' in rjson):
             att_shipping = {
                 'name': 'Con envío',
-                'create_variant': False
+                'create_variant': 'no_variant'
             }
             if ('variations' in rjson):
                 #_logger.info("has variations")
@@ -623,23 +624,26 @@ class product_product(models.Model):
                         att = {
                             'name': attcomb['name'],
                             'value_name': attcomb['value_name'],
-                            'create_variant': True
+                            'create_variant': 'always'
                         }
                         if ('create_variant' in attcomb):
                             att['create_variant'] = attcomb['create_variant']
                         else:
                             rjson['variations'][vindex]["default_code"] = rjson['variations'][vindex]["default_code"]+attcomb['name']+":"+attcomb['value_name']+";"
                         #_logger.info(att)
-                        attribute_id = self.env['product.attribute'].search([('name','=',att['name'])]).id
+                        attribute = self.env['product.attribute'].search([('name','=',att['name'])])
+                        attribute_id = attribute.id
                         #_logger.info(attribute_id)
                         if attribute_id:
                             #_logger.info(attribute_id)
                             pass
                         else:
-                            #_logger.info("Creating attribute:")
-                            attribute_id = self.env['product.attribute'].create({ 'name': att['name'],'create_variant': att['create_variant'] }).id
-                        if (att['create_variant']==True):
-                            published_att_variants = True
+                            _logger.info("Creating attribute:")
+                            _logger.info(att)
+                            attribute = self.env['product.attribute'].create({ 'name': att['name'],'create_variant': att['create_variant']  })
+                            attribute_id = attribute.id
+                        if (att['create_variant']=='always'):
+                            published_att_variants = True                        
                         if (attribute_id):
                             #_logger.info("Publishing attribute")
                             attribute_value_id = self.env['product.attribute.value'].search([('attribute_id','=',attribute_id),('name','=',att['value_name'])]).id
@@ -654,14 +658,16 @@ class product_product(models.Model):
                                 #_logger.info("attribute_value_id:")
                                 #_logger.info(attribute_value_id)
                                 #search for line ids.
-                                attribute_line =  self.env['product.attribute.line'].search([('attribute_id','=',attribute_id),('product_tmpl_id','=',product_template.id)])
+                                attribute_line =  self.env['product.template.attribute.line'].search([('attribute_id','=',attribute_id),('product_tmpl_id','=',product_template.id)])
                                 #_logger.info(attribute_line)
                                 if (attribute_line and attribute_line.id):
                                     #_logger.info(attribute_line)
                                     pass
                                 else:
                                     #_logger.info("Creating att line id:")
-                                    attribute_line =  self.env['product.attribute.line'].create( { 'attribute_id': attribute_id,'product_tmpl_id': product_template.id } )
+                                    attline = { 'attribute_id': attribute_id,'product_tmpl_id': product_template.id, 'value_ids': [(4,attribute_value_id)] }
+                                    _logger.info(attline)
+                                    attribute_line =  self.env['product.template.attribute.line'].create( attline )
 
                                 if (attribute_line):
                                     #_logger.info("Check attribute line values id.")
@@ -682,7 +688,7 @@ class product_product(models.Model):
                                         attribute_line.value_ids = [(4,attribute_value_id)]
 
         #_logger.info("product_uom_id")
-        product_uom_id = self.env['product.uom'].search([('name','=','Unidad(es)')])
+        product_uom_id = uomobj.search([('name','=','Unidad(es)')])
         if (product_uom_id.id==False):
             product_uom_id = 1
         else:
@@ -750,8 +756,6 @@ class product_product(models.Model):
         if (company.mercadolibre_update_local_stock):
             product_template.type = 'product'
             wh = self.env['stock.location'].search([('usage','=','internal')]).id
-            ##product_uom_cat_id = sock.execute(dbname,uid,pwd,'product.uom.categ','search',[('name','=',"Unit")])
-            #print "product_uom_cat_id:",product_uom_cat_id
 
             for variant in product_template.product_variant_ids:
 
@@ -839,6 +843,7 @@ class product_product(models.Model):
         # CONDICION: tener un
         variant = self
         product_template = self.product_tmpl_id
+        uomobj = self.env['uom.uom']
         if (not ("mrp.bom" in self.env)):
             _logger.info("mrp.bom not found")
             _logger.error("Must install Manufacturing Module")
@@ -847,7 +852,7 @@ class product_product(models.Model):
         bom_l = self.env["mrp.bom.line"]
         #_logger.info("set bom: " + str(has_sku))
 
-        product_uom_id = self.env['product.uom'].search([('name','=','Unidad(es)')])
+        product_uom_id = uomobj.search([('name','=','Unidad(es)')])
         if (product_uom_id.id==False):
             product_uom_id = 1
         else:
