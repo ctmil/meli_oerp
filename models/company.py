@@ -108,7 +108,7 @@ class res_company(models.Model):
             company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
 
             if (company.mercadolibre_refresh_token and company.mercadolibre_cron_mail):
-                # we put the job_exception in context to be able to _logger.info( it inside )
+                # we put the job_exception in context to be able to print it inside
                 # the email template
                 context = {
                     'job_exception': message,
@@ -283,7 +283,13 @@ class res_company(models.Model):
 
         _logger.info("meli_query_get_questions")
         posting_obj = self.env['mercadolibre.posting']
-        posting_ids = posting_obj.search([])
+        posting_ids = posting_obj.search(['|',('meli_status','=','active'),('meli_status','=','under_review')])
+        _logger.info(posting_ids)
+        if (posting_ids):
+            for posting in posting_ids:
+                posting.posting_query_questions()
+
+        posting_ids = posting_obj.search(['&',('meli_status','!=','active'),('meli_status','!=','under_review')])
         _logger.info(posting_ids)
         if (posting_ids):
             for posting in posting_ids:
@@ -430,12 +436,11 @@ class res_company(models.Model):
                     rjson3 = response.json()
                     if (posting_id):
                         _logger.info( "Item already in database: " + str(posting_id[0]) )
-                        #_logger.info( "Item already in database: " + str(posting_id[0]) )
                     else:
                         #idcreated = self.pool.get('product.product').create(cr,uid,{ 'name': rjson3['title'], 'meli_id': rjson3['id'] })
                         if 'id' in rjson3:
                             prod_fields = {
-                                'name': str(rjson3['title'].encode("utf-8")),
+                                'name': rjson3['title'].encode("utf-8"),
                                 'description': rjson3['title'].encode("utf-8"),
                                 'meli_id': rjson3['id'],
                                 'meli_pub': True,

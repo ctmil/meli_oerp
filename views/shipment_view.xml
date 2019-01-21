@@ -6,24 +6,25 @@
             <field name="model">mercadolibre.shipment</field>
             <field name="type">tree</field>
             <field name="arch" type="xml">
-                <tree string="Shipment" >
-                    <field name="shipping_id"/>
-                    <field name="status"/>
-                    <field name="substatus"/>
-                    <field name="date_created"/>
-                    <field name="last_updated"/>
-                    <field name="tracking_method" />
-                    <field name="receiver_address_name" />
-                    <field name="mode"/>
-                    <field name="shipping_mode"/>
-                    <field name="order_cost" />
-                    <field name="base_cost" invisible="1"/>
-                    <field name="tracking_number"/>
-                    <field name="receiver_id" invisible="1"/>
-                    <field name="sender_id" invisible="1"/>
-                    <field name="pdf_file"/>
-                    <field name="pdf_link" invisible="1"/>
-                </tree>
+              <tree string="Shipment" >
+                  <field name="shipping_id"/>
+                  <field name="status"/>
+                  <field name="substatus"/>
+                  <field name="date_created"/>
+                  <field name="last_updated"/>
+                  <field name="tracking_method" />
+                  <field name="receiver_address_name"/>
+                  <field name="mode"/>
+                  <field name="shipping_mode"/>
+                  <field name="order_cost"/>
+                  <field name="base_cost"  invisible="1"/>
+                  <field name="tracking_number"/>
+                  <field name="receiver_id"  invisible="1"/>
+                  <field name="sender_id"  invisible="1"/>
+                  <field name="pdf_file"/>
+                  <field name="pdf_link" invisible="1"/>
+                  <field name="pack_order" invisible="1"/>
+              </tree>
             </field>
         </record>
 
@@ -54,6 +55,7 @@
                     <field name="posting_id" invisible="1"/>
                     <field name="order_id" />
                     <field name="order" />
+                    <field name="pack_order" />
                     <field name="orders" />
                   </group>
                   <group>
@@ -109,7 +111,7 @@
 
 
         <record model="ir.actions.act_window" id="action_meli_shipment_tree">
-            <field name="name">Envíos</field>
+            <field name="name">Envios</field>
             <field name="type">ir.actions.act_window</field>
             <field name="res_model">mercadolibre.shipment</field>
             <field name="view_type">form</field>
@@ -125,19 +127,14 @@
             parent="menu_meli"
             name="Envíos" />
 
-
         <record id="view_mercadolibre_shipment_print" model="ir.ui.view">
               <field name="name">Imprimir Etiquetas</field>
               <field name="model">mercadolibre.shipment.print</field>
               <field name="type">form</field>
               <field name="arch" type="xml">
                 <form string="PO Merge" version="7.0">
-
-
-
                     <footer>
                         <button name="shipment_print" string="Imprimir Etiqueta"  type="object" class="oe_highlight"  />
-        or
                         <button string="Cancel" class="oe_link" special="cancel" />
                     </footer>
                 </form>

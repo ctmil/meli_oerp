@@ -85,20 +85,6 @@ class product_template_post(models.TransientModel):
             if (product):
                 if (product.meli_pub):
                     res = product.product_template_post()
-                #else:
-                #    return {}
-            #import pdb;pdb.set_trace();
-            #Alta
-            #if (product.meli_pub and product.meli_id==False):
-            #    res = product.product_post()
-
-            #Actualiza
-            #if (product.meli_pub and product.meli_id):
-            #    res = product.product_post()
-
-            #Pausa
-            #if (product.meli_pub==False and product.meli_id):
-            #    res = product.product_meli_status_pause()
 
             if 'name' in res:
                 return res

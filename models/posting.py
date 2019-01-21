@@ -103,6 +103,7 @@ class mercadolibre_posting(models.Model):
 
         response = meli.get("/items/"+posting.meli_id, {'access_token':meli.access_token})
         product_json = response.json()
+        #_logger.info( product_json )
 
         if "error" in product_json:
             ML_status = product_json["error"]
@@ -124,12 +125,12 @@ class mercadolibre_posting(models.Model):
 
         if 'questions' in questions_json:
             questions = questions_json['questions']
-            _logger.info( questions )
+            #_logger.info( questions )
             cn = 0
             for Question in questions:
                 cn = cn + 1
-                _logger.info(cn)
-                _logger.info(Question )
+                #_logger.info(cn)
+                #_logger.info(Question )
 
 #{
 #   'status': u'UNANSWERED',

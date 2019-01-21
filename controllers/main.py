@@ -44,7 +44,6 @@ class MercadoLibre(http.Controller):
         _logger.info(kw)
         return ""
 
-
 class MercadoLibreLogin(http.Controller):
 
     @http.route(['/meli_login'], type='http', auth="user", methods=['GET'], website=True)
