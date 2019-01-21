@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <openerp>
     <data>
-
         <record model="ir.ui.view" id="view_meli_shipment_tree">
             <field name="name">mercadolibre.shipment.tree</field>
             <field name="model">mercadolibre.shipment</field>
@@ -49,6 +48,7 @@
                     <field name="shipping_mode"/>
                     <field name="order_cost"/>
                     <field name="base_cost"/>
+                    <field name="logistic_type"/>
                   </group>
                   <group>
                     <field name="posting_id" invisible="1"/>

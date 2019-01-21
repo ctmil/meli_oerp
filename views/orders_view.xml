@@ -18,9 +18,6 @@
             </field>
         </record>
 
-
-
-
         <record model="ir.ui.view" id="view_sale_order_form_meli">
             <field name="name">sale.order.form.meli</field>
             <field name="model">sale.order</field>

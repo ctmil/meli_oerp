@@ -103,7 +103,6 @@ class mercadolibre_posting(models.Model):
 
         response = meli.get("/items/"+posting.meli_id, {'access_token':meli.access_token})
         product_json = response.json()
-        _logger.info( product_json )
 
         if "error" in product_json:
             ML_status = product_json["error"]

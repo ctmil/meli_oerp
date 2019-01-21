@@ -67,7 +67,7 @@ class sale_order(models.Model):
     meli_shipping = fields.Text(string="Shipping");
 
     meli_total_amount = fields.Char(string='Total amount');
-    meli_currency_id = fields.Char(string='Currency');
+    meli_currency_id = fields.Char(string='Currency ML');
 #        'buyer': fields.many2one( "mercadolibre.buyers","Buyer"),
 #       'meli_seller': fields.text( string='Seller' ),
 

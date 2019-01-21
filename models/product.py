@@ -524,15 +524,12 @@ class product_product(models.Model):
         meli_fields = {
             'name': rjson['title'].encode("utf-8"),
             'default_code': rjson['id'],
-            #'name': str(rjson['id']),
             'meli_imagen_id': imagen_id,
             'meli_post_required': True,
             'meli_id': rjson['id'],
             'meli_permalink': rjson['permalink'],
             'meli_title': rjson['title'].encode("utf-8"),
             'meli_description': desplain,
-            #'meli_description_banner_id': ,
-            #'meli_category': mlcatid,
             'meli_listing_type': rjson['listing_type_id'],
             'meli_buying_mode':rjson['buying_mode'],
             'meli_price': str(rjson['price']),
@@ -541,14 +538,10 @@ class product_product(models.Model):
             'meli_condition': rjson['condition'],
             'meli_available_quantity': rjson['available_quantity'],
             'meli_warranty': rjson['warranty'],
-            ##'meli_imagen_logo': fields.char(string='Imagen Logo', size=256),
-            ##'meli_imagen_id': fields.char(string='Imagen Id', size=256),
             'meli_imagen_link': rjson['thumbnail'],
-            ##'meli_multi_imagen_id': fields.char(string='Multi Imagen Ids', size=512),
             'meli_video': str(vid),
             'meli_dimensions': meli_dim_str,
         }
-
 
         tmpl_fields = {
           'name': meli_fields["name"],
@@ -1095,7 +1088,6 @@ class product_product(models.Model):
 
         return image_ids
 
-
     def product_on_change_meli_banner(self, banner_id ):
 
         banner_obj = self.env['mercadolibre.banner']
@@ -1117,7 +1109,6 @@ class product_product(models.Model):
                 result = banner.description
 
         return { 'value': { 'meli_description' : result } }
-
 
     @api.one
     def product_get_meli_update( self ):

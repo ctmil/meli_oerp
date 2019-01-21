@@ -139,14 +139,6 @@ class res_company(models.Model):
 
         self.get_meli_state()
 
-        if (company.mercadolibre_cron_get_orders):
-            _logger.info("company.mercadolibre_cron_get_orders")
-            self.meli_query_orders()
-
-        if (company.mercadolibre_cron_get_questions):
-            _logger.info("company.mercadolibre_cron_get_questions")
-            self.meli_query_get_questions()
-
         if (company.mercadolibre_cron_get_update_products):
             _logger.info("company.mercadolibre_cron_get_update_products")
             self.meli_update_local_products()
@@ -162,6 +154,22 @@ class res_company(models.Model):
         if (company.mercadolibre_cron_post_update_price):
             _logger.info("company.mercadolibre_cron_post_update_price")
             self.meli_update_remote_price()
+
+    def cron_meli_orders(self):
+        _logger.info('company cron_meli_orders() ')
+
+        company = self.env.user.company_id
+        warningobj = self.pool.get('warning')
+
+        self.get_meli_state()
+
+        if (company.mercadolibre_cron_get_orders):
+            _logger.info("company.mercadolibre_cron_get_orders")
+            self.meli_query_orders()
+
+        if (company.mercadolibre_cron_get_questions):
+            _logger.info("company.mercadolibre_cron_get_questions")
+            self.meli_query_get_questions()
 
     mercadolibre_client_id = fields.Char(string='Client ID para ingresar a MercadoLibre',size=128)
     mercadolibre_secret_key = fields.Char(string='Secret Key para ingresar a MercadoLibre',size=128)
@@ -446,7 +454,7 @@ class res_company(models.Model):
                         else:
                             _logger.info( "product error: " + str(rjson3) )
             except Exception as e:
-                _logger.info("Exception!")
+                _logger.info("product_meli_get_products Exception!")
                 _logger.info(e, exc_info=True)
                 self._cr.rollback()
         return {}
@@ -539,18 +547,18 @@ class res_company(models.Model):
             micom = 5
             try:
                 for obj in product_ids:
-                    _logger.info( "Product check if active: " + str(obj.id)+ ' meli_id:'+str(obj.meli_id)+ ' meli_pub:'+str(obj.meli_pub)+ ' status:'+str(obj.meli_status)  )
-                    if (obj.meli_id and (obj.meli_status=='active')):
+                    _logger.info( "Product check if active: " + str(obj.id)+ ' meli_id:'+str(obj.meli_id)  )
+                    if (obj.meli_id):
                         icommit+= 1
                         if (icommit>=micom):
                             self._cr.commit()
                             icommit = 0
-                            return {}
+                            #return {}
                         _logger.info( "Product remote to update Stock: " + str(obj.id)+ ' meli_id:'+str(obj.meli_id)  )
                         obj.product_post_stock()
             except Exception as e:
-                _logger.info("Exception founded!")
-                _logger.info(e)
+                _logger.info("meli_update_remote_stock > Exception founded!")
+                _logger.info(e, exc_info=True)
                 self._cr.rollback()
         return {}
 

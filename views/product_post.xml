@@ -100,7 +100,6 @@
         <field name="target">new</field>
     </record>
 
-
     <act_window id="action_product_post"
         name="Publicar/Actualizar en ML"
         src_model="product.product"
@@ -112,13 +111,6 @@
         <field name="name">MELI Post</field>
         <field name="key2">client_action_multi</field>
         <field name="value" eval="'ir.actions.act_window,' +str(ref('action_product_template_post'))" />
-        <field name="key">action</field>
-        <field name="model">product.template</field>
-    </record>
-    <record model="ir.values" id="action_product_template_update_values">
-        <field name="name">MELI Update</field>
-        <field name="key2">client_action_multi</field>
-        <field name="value" eval="'ir.actions.act_window,' +str(ref('action_product_template_update'))" />
         <field name="key">action</field>
         <field name="model">product.template</field>
     </record>

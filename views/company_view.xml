@@ -67,7 +67,7 @@
 								<button name='meli_query_products' type="object"
 										string="Iniciar búsqueda de productos en ML" attrs="{'invisible':[('mercadolibre_state','=',True)]}"/>
 
-                    <button name='meli_update_products' type="object"
+                    <button name='meli_update_local_products' type="object"
     										string="Iniciar actualización de productos y stock desde ML" attrs="{'invisible':[('mercadolibre_state','=',True)]}"/>
 
                         <button name='meli_import_categories' type="object"

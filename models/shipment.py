@@ -297,7 +297,6 @@ class mercadolibre_shipment(models.Model):
 								#search order, if not present import order...
 								_logger.info(item)
 
-
 				ships = shipment_obj.search([('shipping_id','=', ship_id)])
 				_logger.info(ships)
 				if (len(ships)==0):
@@ -308,7 +307,6 @@ class mercadolibre_shipment(models.Model):
 				else:
 					_logger.info("Updating shipment: " + str(ship_id))
 					ships.write((ship_fields))
-
 
 	def update( self ):
 
