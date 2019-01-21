@@ -305,6 +305,12 @@ class product_product(models.Model):
     def _meli_set_category( self, product_template, category_id ):
 
         product = self
+        company = self.env.user.company_id
+        CLIENT_ID = company.mercadolibre_client_id
+        CLIENT_SECRET = company.mercadolibre_secret_key
+        ACCESS_TOKEN = company.mercadolibre_access_token
+        REFRESH_TOKEN = company.mercadolibre_refresh_token
+        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
         mlcatid = False
         www_cat_id = False
@@ -792,7 +798,7 @@ class product_product(models.Model):
                         #print "StockInventoryLine:", StockInventoryLine, stock_inventory_field_line
         #                    _logger.info("StockInventoryLine:")
         #                    _logger.info(StockInventoryLine)
-                        if (StockInventoryLine):                            
+                        if (StockInventoryLine):
                             return_id = StockInventory.post_inventory()
         #                        _logger.info("action_done:"+str(return_id))
 
