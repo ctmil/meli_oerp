@@ -651,17 +651,17 @@ mercadolibre_orders()
 
 
 class mercadolibre_order_items(models.Model):
-	_name = "mercadolibre.order_items"
-	_description = "Producto pedido en MercadoLibre"
+    _name = "mercadolibre.order_items"
+    _description = "Producto pedido en MercadoLibre"
 
- 	posting_id = fields.Many2one("mercadolibre.posting","Posting")
-	order_id = fields.Many2one("mercadolibre.orders","Order")
- 	order_item_id = fields.Char('Item Id')
-	order_item_title = fields.Char('Item Title')
-	order_item_category_id = fields.Char('Item Category Id')
-	unit_price = fields.Char(string='Unit price')
-	quantity = fields.Integer(string='Quantity')
-	currency_id = fields.Char(string='Currency')
+    posting_id = fields.Many2one("mercadolibre.posting","Posting")
+    order_id = fields.Many2one("mercadolibre.orders","Order")
+    order_item_id = fields.Char('Item Id')
+    order_item_title = fields.Char('Item Title')
+    order_item_category_id = fields.Char('Item Category Id')
+    unit_price = fields.Char(string='Unit price')
+    quantity = fields.Integer(string='Quantity')
+    currency_id = fields.Char(string='Currency')
 
 mercadolibre_order_items()
 
