@@ -63,14 +63,14 @@
                             name="action_meli_pause"
                             attrs="{'invisible':[('meli_variants_status', '!=', 'active')]}"
                             class="oe_stat_button">
-                            <img src="/meli_oerp/static/src/img/logo_ML.png" width="48"/>
+                            <img src="/meli_oerp/static/src/img/logo_ML.png" width="48" alt="logo ml"/>
                             <span>Pausar en ML</span>
                         </button>
                         <button type="object"
                             name="action_meli_activate"
                             attrs="{'invisible':[('meli_variants_status', '!=', 'paused')]}"
                             class="oe_stat_button">
-                            <img src="/meli_oerp/static/src/img/logo_ML.png" width="48"/>
+                            <img src="/meli_oerp/static/src/img/logo_ML.png" width="48"  alt="logo ml"/>
                             <span>Activar en ML</span>
                         </button>
                         <button type="object"
@@ -83,7 +83,7 @@
                             name="action_meli_delete"
                             attrs="{'invisible':[('meli_variants_status', '!=', 'closed')]}"
                             class="oe_stat_button">
-                            <img src="/meli_oerp/static/src/img/logo_ML.png"  width="48"/>
+                            <img src="/meli_oerp/static/src/img/logo_ML.png"  width="48"  alt="logo ml"/>
                             <span>Eliminar de ML</span>
                         </button>
                     </div>

@@ -67,7 +67,7 @@ class sale_order(models.Model):
     meli_shipping = fields.Text(string="Shipping");
 
     meli_total_amount = fields.Char(string='Total amount');
-    meli_currency_id = fields.Char(string='Currency');
+    meli_currency_id = fields.Char(string='Currency ML');
 #        'buyer': fields.many2one( "mercadolibre.buyers","Buyer"),
 #       'meli_seller': fields.text( string='Seller' ),
     meli_shipping_id =  fields.Char('Meli Shipping Id')
@@ -106,16 +106,6 @@ class sale_order(models.Model):
 
 sale_order()
 
-class res_partner(models.Model):
-    _inherit = "res.partner"
-
-
-    meli_buyer_id = fields.Char('Meli Buyer Id')
-    meli_buyer = fields.Many2one( "mercadolibre.buyers","Buyer")
-
-
-res_partner()
-
 class mercadolibre_orders(models.Model):
     _name = "mercadolibre.orders"
     _description = "Pedidos en MercadoLibre"
@@ -124,14 +114,12 @@ class mercadolibre_orders(models.Model):
         full_street = 'no street'
         if (Receiver and 'address_line' in Receiver):
             full_street = Receiver['address_line']
-
         return full_street
 
     def city(self, Receiver ):
         full_city = ''
         if (Receiver and 'city' in Receiver):
             full_city = Receiver['city']['name']
-
         return full_city
 
     def state(self, country_id, Receiver ):
@@ -145,8 +133,6 @@ class mercadolibre_orders(models.Model):
             else:
                 if (len(state)>1):
                     state_id = state[0].id
-
-
         return state_id
 
     def country(self, Receiver ):
@@ -157,8 +143,6 @@ class mercadolibre_orders(models.Model):
             country = self.env['res.country'].search([('name','like',full_country)])
             if (len(country)):
                 country_id = country.id
-
-
         return country_id
 
     def billing_info( self, billing_json, context=None ):
@@ -196,10 +180,10 @@ class mercadolibre_orders(models.Model):
 
     def orders_update_order_json( self, data, context=None ):
 
-        _logger.info("orders_update_order_json: "+str(data["id"]) )
+        _logger.info("orders_update_order_json > data "+str(data['id']) )
         oid = data["id"]
         order_json = data["order_json"]
-        #_logger.info(data)
+        #_logger.info( "data:" + str(data) )
         company = self.env.user.company_id
 
         saleorder_obj = self.env['sale.order']
@@ -385,7 +369,7 @@ class mercadolibre_orders(models.Model):
             for Item in items:
                 cn = cn + 1
                 #_logger.info(cn)
-                _logger.info(Item )
+                #_logger.info(Item )
                 post_related_obj = ''
                 product_related_obj = ''
                 product_related_obj_id = False
@@ -649,11 +633,11 @@ class mercadolibre_orders(models.Model):
     date_created = fields.Datetime('Creation date')
     date_closed = fields.Datetime('Closing date')
 
-    order_items = fields.One2many('mercadolibre.order_items','order_id','Order Items' )
-    payments = fields.One2many('mercadolibre.payments','order_id','Payments' )
+    order_items = fields.One2many('mercadolibre.order_items','order_id',string='Order Items' )
+    payments = fields.One2many('mercadolibre.payments','order_id',string='Payments' )
     shipping = fields.Text(string="Shipping")
     shipping_id = fields.Char(string="Shipping id")
-    shipment = fields.One2many('mercadolibre.shipment','shipping_id','Shipment')
+    shipment = fields.One2many('mercadolibre.shipment','shipping_id',string='Shipment')
 
     total_amount = fields.Char(string='Total amount')
     currency_id = fields.Char(string='Currency')
@@ -710,6 +694,16 @@ class mercadolibre_buyers(models.Model):
 	billing_info = fields.Char( string='Billing Info')
 
 mercadolibre_buyers()
+
+class res_partner(models.Model):
+    _inherit = "res.partner"
+
+
+    meli_buyer_id = fields.Char('Meli Buyer Id')
+    meli_buyer = fields.Many2one('mercadolibre.buyers','Buyer')
+
+
+res_partner()
 
 
 class mercadolibre_orders_update(models.TransientModel):

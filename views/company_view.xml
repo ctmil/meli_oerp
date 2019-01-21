@@ -51,10 +51,6 @@
                   <field name="mercadolibre_update_local_stock" invisible="0"/>
                   <field name="mercadolibre_product_template_override_variant" invisible="0"/>
                   <field name="mercadolibre_order_confirmation" invisible="0"/>
-                  <!--
-                  <field name="mercadolibre_import_product_file" invisible="0"/>
-                  <field name="mercadolibre_import_price_stock_file" invisible="0"/>
-                  -->
                 </group>
               </group>
               <group name="Actions">

@@ -10,6 +10,7 @@
                 <tree string="Ordenes" >
                     <field name="order_id"/>
                     <field name="status"/>
+                    <field name="buyer"/>
                     <field name="date_created"/>
                     <field name="date_closed"/>
                     <field name="tags" invisible="1"/>
@@ -77,7 +78,7 @@
             <field name="model">mercadolibre.orders</field>
             <field name="type">form</field>
             <field name="arch" type="xml">
-				      <form string="Orden">
+              <form string="Orden">
                 <group>
                     <field name="tags"/>
                     <field name="seller"/>

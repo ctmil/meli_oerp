@@ -150,7 +150,6 @@ class product_template_update(models.TransientModel):
 
 product_template_update()
 
-
 class product_post(models.TransientModel):
     _name = "mercadolibre.product.post"
     _description = "Wizard de Product Posting en MercadoLibre"

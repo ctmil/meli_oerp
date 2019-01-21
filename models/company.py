@@ -36,7 +36,7 @@ class res_company(models.Model):
     _name = "res.company"
     _inherit = "res.company"
 
-    def meli_get_object( self, cr, uid, ids, field_name, attributes, context=None ):
+    def meli_get_object( self ):
         return True
 
     @api.multi
@@ -99,7 +99,7 @@ class res_company(models.Model):
             _logger.error(error_msg)
 
 #        except requests.exceptions.HTTPError as e:
-#            print "And you get an HTTPError:", e.message
+#            _logger.info( "And you get an HTTPError:", e.message )
 
         if ML_state:
             ACCESS_TOKEN = ''
@@ -232,8 +232,6 @@ class res_company(models.Model):
                                                 ("paid_delivered", "Pagado>Entregado")],
                                                 'Order confirmation')
     #'mercadolibre_login': fields.selection( [ ("unknown", "Desconocida"), ("logged","Abierta"), ("not logged","Cerrada")],string='Estado de la sesión'), )
-    #mercadolibre_import_product_file = fields.Many2one(comodel_name="ir.attachment", string="Product Import File")
-    #mercadolibre_import_price_stock_file = fields.Many2one(comodel_name="ir.attachment", string="Product Price and Stock")
 
     @api.multi
     def	meli_logout(self):
@@ -438,7 +436,6 @@ class res_company(models.Model):
                     rjson3 = response.json()
                     if (posting_id):
                         _logger.info( "Item already in database: " + str(posting_id[0]) )
-                        #print "Item already in database: " + str(posting_id[0])
                     else:
                         #idcreated = self.pool.get('product.product').create(cr,uid,{ 'name': rjson3['title'], 'meli_id': rjson3['id'] })
                         if 'id' in rjson3:

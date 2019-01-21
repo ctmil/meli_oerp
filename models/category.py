@@ -34,7 +34,7 @@ class product_public_category(models.Model):
 
     _inherit="product.public.category"
 
-    mercadolibre_category = fields.Many2one( "mercadolibre.category", string="MercadoLibre Category")
+    mercadolibre_category = fields.Many2one( "mercadolibre.category", string="Mercado Libre Category")
 
 product_public_category()
 
@@ -42,7 +42,6 @@ product_public_category()
 class mercadolibre_category_attribute(models.Model):
     _name = "mercadolibre.category.attribute"
     _description = "MercadoLibre Attribute"
-
 
     id = fields.Char(string="Attribute Id (ML)")
     name = fields.Char(string="Attribute Name (ML)")
@@ -92,7 +91,7 @@ class mercadolibre_category(models.Model):
             rjs = resp.json()
             for att in rjs:
                 _logger.info(att)
-                
+
 
         return {}
 
@@ -127,7 +126,7 @@ class mercadolibre_category(models.Model):
                     fullname = fullname + "/" + path["name"]
 
               #fullname = fullname + "/" + rjson_cat['name']
-              #print "category fullname:" + str(fullname)
+              #_logger.info( "category fullname:" + str(fullname) )
               _logger.info(fullname)
               cat_fields = {
                 'name': fullname,
@@ -154,7 +153,7 @@ class mercadolibre_category(models.Model):
         if (category_root):
             response = meli.get("/categories/"+str(category_root), {'access_token':meli.access_token} )
 
-            print "response.content:", response.content
+            _logger.info( "response.content:", response.content )
 
             rjson = response.json()
             if ("name" in rjson):
@@ -171,8 +170,11 @@ class mercadolibre_category(models.Model):
 
 
     name = fields.Char('Name')
+    tree = field.Boolean('Arbol (no hoja)')
     meli_category_id = fields.Char('Category Id')
+    meli_father_category = fields.Many2one('mercadolibre.category',string="Padre")
     public_category_id = fields.Integer('Public Category Id')
+
     #public_category = fields.Many2one( "product.category.public", string="Product Website category default", help="Select Public Website category for this ML category ")
     meli_category_attributes = fields.Char(compute=get_attributes,  string="Mercado Libre Category Attributes")
     meli_category_attribute_ids = fields.Many2many("mercadolibre.category.attribute",string="Attributes")

@@ -38,11 +38,10 @@ class MercadoLibre(http.Controller):
 
         return "MercadoLibre for Odoo 8/9/10/11 - Moldeo Interactive: %s " % response.content
 
-    @http.route(['/meli_notify'], type='json',methods=['POST','GET'], auth='public', website=True, csrf=False)
-    def meli_notify(self,**kwargs):
-        _logger.info("meli_notify post")
-        _logger.info(kwargs.keys())
-        #for arg in kwargs:
+    @http.route(['/meli_notify'], type='json', auth="none")
+    def meli_notify(self,**kw):
+        _logger.info("meli_notify")
+        _logger.info(kw)
         return ""
 
 class MercadoLibreLogin(http.Controller):
@@ -65,7 +64,7 @@ class MercadoLibreLogin(http.Controller):
             return "<h1>"+message+"</h1><br/><a href='"+meli.auth_url(redirect_URI=REDIRECT_URI)+"'>Login</a>"
 
         if codes['code']!='none':
-            print "Meli: Authorize: REDIRECT_URI: %s, code: %s" % ( REDIRECT_URI, codes['code'] )
+            _logger.info( "Meli: Authorize: REDIRECT_URI: %s, code: %s" % ( REDIRECT_URI, codes['code'] ) )
             meli.authorize( codes['code'], REDIRECT_URI)
             ACCESS_TOKEN = meli.access_token
             REFRESH_TOKEN = meli.refresh_token

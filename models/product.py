@@ -216,7 +216,7 @@ class product_template(models.Model):
         return {}
 
 
-    name = fields.Char('Name', size=128, required=True, translate=False, select=True)
+    name = fields.Char('Name', size=128, required=True, translate=False, index=True)
     meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
     meli_description = fields.Text(string='Descripción')
     meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre")
@@ -235,7 +235,7 @@ class product_template(models.Model):
                                         ("not_specified","No especificado")],
                                         'Condición del producto')
     meli_dimensions = fields.Char( string="Dimensiones del producto", size=128)
-    meli_pub = fields.Boolean('Meli Publication',help='MELI Product')
+    meli_pub = fields.Boolean('Meli Publication',help='MELI Product',index=True)
     meli_warranty = fields.Char(string='Garantía', size=256)
     meli_listing_type = fields.Selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special/Clásica"),("gold_pro","Oro Pro")], string='Tipo de lista')
     meli_attributes = fields.Text(string='Atributos')
@@ -305,6 +305,12 @@ class product_product(models.Model):
     def _meli_set_category( self, product_template, category_id ):
 
         product = self
+        company = self.env.user.company_id
+        CLIENT_ID = company.mercadolibre_client_id
+        CLIENT_SECRET = company.mercadolibre_secret_key
+        ACCESS_TOKEN = company.mercadolibre_access_token
+        REFRESH_TOKEN = company.mercadolibre_refresh_token
+        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
         mlcatid = False
         www_cat_id = False
@@ -444,6 +450,7 @@ class product_product(models.Model):
     def product_meli_get_product( self ):
         company = self.env.user.company_id
         product_obj = self.env['product.product']
+        uomobj = self.env['product.uom']
         #pdb.set_trace()
         product = self
 
@@ -464,7 +471,7 @@ class product_product(models.Model):
             response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token})
             #_logger.info(response)
             rjson = response.json()
-            #_logger.info(response)
+            #_logger.info(rjson)
         except IOError as e:
             _logger.info( "I/O error({0}): {1}".format(e.errno, e.strerror) )
             return {}
@@ -481,8 +488,8 @@ class product_product(models.Model):
             return {}
 
         #if "content" in response:
-            #_logger.info(response.content)
-        #    print "product_meli_get_product > response.content: " + response.content
+        #    _logger.info(response.content)
+        #    _logger.info( "product_meli_get_product > response.content: " + response.content )
 
         #TODO: traer la descripcion: con
         #https://api.mercadolibre.com/items/{ITEM_ID}/description?access_token=$ACCESS_TOKEN
@@ -524,15 +531,12 @@ class product_product(models.Model):
         meli_fields = {
             'name': rjson['title'].encode("utf-8"),
             'default_code': rjson['id'],
-            #'name': str(rjson['id']),
             'meli_imagen_id': imagen_id,
             'meli_post_required': True,
             'meli_id': rjson['id'],
             'meli_permalink': rjson['permalink'],
             'meli_title': rjson['title'].encode("utf-8"),
             'meli_description': desplain,
-            #'meli_description_banner_id': ,
-            #'meli_category': mlcatid,
             'meli_listing_type': rjson['listing_type_id'],
             'meli_buying_mode':rjson['buying_mode'],
             'meli_price': str(rjson['price']),
@@ -541,14 +545,10 @@ class product_product(models.Model):
             'meli_condition': rjson['condition'],
             'meli_available_quantity': rjson['available_quantity'],
             'meli_warranty': rjson['warranty'],
-            ##'meli_imagen_logo': fields.char(string='Imagen Logo', size=256),
-            ##'meli_imagen_id': fields.char(string='Imagen Id', size=256),
             'meli_imagen_link': rjson['thumbnail'],
-            ##'meli_multi_imagen_id': fields.char(string='Multi Imagen Ids', size=512),
             'meli_video': str(vid),
             'meli_dimensions': meli_dim_str,
         }
-
 
         tmpl_fields = {
           'name': meli_fields["name"],
@@ -689,7 +689,7 @@ class product_product(models.Model):
                                         attribute_line.value_ids = [(4,attribute_value_id)]
 
         #_logger.info("product_uom_id")
-        product_uom_id = self.env['product.uom'].search([('name','=','Unidad(es)')])
+        product_uom_id = uomobj.search([('name','=','Unidad(es)')])
         if (product_uom_id.id==False):
             product_uom_id = 1
         else:
@@ -725,9 +725,9 @@ class product_product(models.Model):
                 _v_default_code = ""
                 for att in variant.attribute_value_ids:
                     _v_default_code = _v_default_code + att.attribute_id.name+':'+att.name+';'
-                    #_logger.info("_v_default_code: " + _v_default_code)
+        #                _logger.info("_v_default_code: " + _v_default_code)
                 for variation in rjson['variations']:
-                    #_logger.info("variation[default_code]: " + variation["default_code"])
+        #                    _logger.info("variation[default_code]: " + variation["default_code"])
                     if (_v_default_code==variation["default_code"]):
                         if (variation["seller_custom_field"]):
                             #_logger.info("has_sku")
@@ -816,6 +816,7 @@ class product_product(models.Model):
         # CONDICION: tener un
         variant = self
         product_template = self.product_tmpl_id
+        uomobj = self.env['product.uom']
         if (not ("mrp.bom" in self.env)):
             _logger.info("mrp.bom not found")
             _logger.error("Must install Manufacturing Module")
@@ -824,7 +825,7 @@ class product_product(models.Model):
         bom_l = self.env["mrp.bom.line"]
         #_logger.info("set bom: " + str(has_sku))
 
-        product_uom_id = self.env['product.uom'].search([('name','=','Unidad(es)')])
+        product_uom_id = uomobj.search([('name','=','Unidad(es)')])
         if (product_uom_id.id==False):
             product_uom_id = 1
         else:
@@ -852,7 +853,7 @@ class product_product(models.Model):
                     if (bom_list):
                         #_logger.info("bom_list:")
                         #_logger.info(bom_list)
-                        pass;
+                        pass
                     else:
                         #lista de materiales: KIT (phantom)
                         bl_fields = {
@@ -971,7 +972,7 @@ class product_product(models.Model):
 
         response = meli.put("/items/"+product.meli_id, { 'deleted': 'true' }, {'access_token':meli.access_token})
 
-        #print "product_meli_delete: " + response.content
+        #_logger.info( "product_meli_delete: " + response.content )
         rjson = response.json()
         ML_status = rjson["status"]
         if "error" in rjson:
@@ -1070,7 +1071,6 @@ class product_product(models.Model):
 
         return image_ids
 
-
     def product_on_change_meli_banner(self, banner_id ):
 
         banner_obj = self.env['mercadolibre.banner']
@@ -1092,7 +1092,6 @@ class product_product(models.Model):
                 result = banner.description
 
         return { 'value': { 'meli_description' : result } }
-
 
     @api.one
     def product_get_meli_update( self ):
@@ -1306,7 +1305,7 @@ class product_product(models.Model):
             product_tmpl.meli_warranty = company.mercadolibre_warranty
 
 
-        # print product.meli_category.meli_category_id
+        # _logger.info( product.meli_category.meli_category_id )
 
         if product_tmpl.meli_title==False:
             product_tmpl.meli_title = product_tmpl.name
@@ -1324,11 +1323,11 @@ class product_product(models.Model):
 
 
         if product.meli_title==False or len(product.meli_title)==0:
-            # print 'Assigning title: product.meli_title: %s name: %s' % (product.meli_title, product.name)
+            # _logger.info( 'Assigning title: product.meli_title: %s name: %s' % (product.meli_title, product.name) )
             product.meli_title = product_tmpl.meli_title
 
         if product.meli_price==False or product.meli_price==0.0:
-            # print 'Assigning price: product.meli_price: %s standard_price: %s' % (product.meli_price, product.standard_price)
+            # _logger.info( 'Assigning price: product.meli_price: %s standard_price: %s' % (product.meli_price, product.standard_price) )
 
             if product_tmpl.meli_price:
                 _logger.info("Assign tmpl price:"+str(product_tmpl.meli_price))
@@ -1415,14 +1414,14 @@ class product_product(models.Model):
         bodydescription = {
             "plain_text": product.meli_description or '',
         }
-        # print body
+        # _logger.info( body )
         assign_img = False and product.meli_id
 
         #publicando imagen cargada en OpenERP
         if product.image==None:
             return warningobj.info( title='MELI WARNING', message="Debe cargar una imagen de base en el producto.", message_html="" )
         elif product.meli_imagen_id==False:
-            # print "try uploading image..."
+            # _logger.info( "try uploading image..." )
             resim = product.product_meli_upload_image()
             if "status" in resim:
                 if (resim["status"]=="error" or resim["status"]=="warning"):
@@ -1544,7 +1543,7 @@ class product_product(models.Model):
 
         #check error
         if "error" in rjson:
-            #print "Error received: %s " % rjson["error"]
+            #_logger.info( "Error received: %s " % rjson["error"] )
             error_msg = 'MELI: mensaje de error:  %s , mensaje: %s, status: %s, cause: %s ' % (rjson["error"], rjson["message"], rjson["status"], rjson["cause"])
             _logger.error(error_msg)
 
@@ -1792,7 +1791,7 @@ class product_product(models.Model):
     meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre")
     meli_price = fields.Char(string='Precio de venta', size=128)
     meli_dimensions = fields.Char( string="Dimensiones del producto", size=128)
-    meli_pub = fields.Boolean('Meli Publication',help='MELI Product')
+    meli_pub = fields.Boolean('Meli Publication',help='MELI Product',index=True)
 
     meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
     meli_currency = fields.Selection([("ARS","Peso Argentino (ARS)"),
@@ -1808,7 +1807,7 @@ class product_product(models.Model):
 
     #post only fields
     meli_post_required = fields.Boolean(string='Este producto es publicable en Mercado Libre')
-    meli_id = fields.Char( string='Id del item asignado por Meli', size=256)
+    meli_id = fields.Char( string='Id del item asignado por Meli', size=256, index=True)
     meli_description_banner_id = fields.Many2one("mercadolibre.banner","Banner")
     meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
     meli_price = fields.Char(string='Precio de venta', size=128)

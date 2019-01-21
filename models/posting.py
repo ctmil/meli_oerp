@@ -111,6 +111,7 @@ class mercadolibre_posting(models.Model):
             ML_status = product_json["status"]
             ML_permalink = product_json["permalink"]
             ML_price = product_json["price"]
+            #ML_sku = product_json["seller_custom_field"]
             posting.write( { 'meli_status': ML_status, 'meli_permalink': ML_permalink, 'meli_price': ML_price } )
 
         if (not company.mercadolibre_cron_get_questions):
