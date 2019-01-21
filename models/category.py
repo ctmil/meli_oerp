@@ -110,6 +110,8 @@ class mercadolibre_category(models.Model):
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
         if (category_id):
+            is_branch = False
+            father = None
             ml_cat_id = category_obj.search([('meli_category_id','=',category_id)])
             if (ml_cat_id):
               _logger.info("category exists!" + str(ml_cat_id))
@@ -120,10 +122,18 @@ class mercadolibre_category(models.Model):
               rjson_cat = response_cat.json()
               _logger.info("category:" + str(rjson_cat))
               fullname = ""
+
+              if ("children_categories" in rjson_cat):
+                  is_branch = True
+
               if ("path_from_root" in rjson_cat):
                   path_from_root = rjson_cat["path_from_root"]
                   for path in path_from_root:
                     fullname = fullname + "/" + path["name"]
+                  if (len(rjson_cat["path_from_root"])>1):
+                      father_ml_id = rjson_cat["path_from_root"][len(rjson_cat["path_from_root"])-2]["id"]
+                      father = category_obj.search([('meli_category_id','=',father_ml_id)]).id
+
 
               #fullname = fullname + "/" + rjson_cat['name']
               #_logger.info( "category fullname:" + str(fullname) )
@@ -131,6 +141,8 @@ class mercadolibre_category(models.Model):
               cat_fields = {
                 'name': fullname,
                 'meli_category_id': ''+str(category_id),
+                'is_branch': is_branch,
+                'meli_father_category': father
               }
               ml_cat_id = category_obj.create((cat_fields))
 
@@ -169,11 +181,11 @@ class mercadolibre_category(models.Model):
                                 category_obj.import_all_categories(category_root=ml_cat_id)
 
 
-    name = fields.Char('Name')
-    tree = field.Boolean('Arbol (no hoja)')
-    meli_category_id = fields.Char('Category Id')
-    meli_father_category = fields.Many2one('mercadolibre.category',string="Padre")
-    public_category_id = fields.Integer('Public Category Id')
+    name = fields.Char('Name',index=True)
+    is_branch = fields.Boolean('Rama (no hoja)',index=True)
+    meli_category_id = fields.Char('Category Id',index=True)
+    meli_father_category = fields.Many2one('mercadolibre.category',string="Padre",index=True)
+    public_category_id = fields.Integer('Public Category Id',index=True)
 
     #public_category = fields.Many2one( "product.category.public", string="Product Website category default", help="Select Public Website category for this ML category ")
     meli_category_attributes = fields.Char(compute=get_attributes,  string="Mercado Libre Category Attributes")

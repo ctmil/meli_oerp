@@ -23,6 +23,7 @@
                     <field name="meli_category_id"/>
                     <field name="meli_category_attributes" widget="url"/>
                     <field name="public_category_id"/>
+                    <field name="is_branch"/>
                 </tree>
             </field>
         </record>
