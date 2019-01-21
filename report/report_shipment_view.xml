@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+
+			<template id="report_layout" name="Report layout">&lt;!DOCTYPE html&gt;
+			        <html t-att-lang="lang and lang.replace('_', '-')"
+			              t-att-data-editable="'1' if editable else None"
+			              t-att-data-translatable="'1' if translatable else None"
+			              t-att-data-edit_translations="'1' if edit_translations else None"
+			              t-att-data-main-object="repr(main_object) if editable else None"
+			              t-att-data-report-margin-top="data_report_margin_top"
+			              t-att-data-report-header-spacing="data_report_header_spacing"
+			              t-att-data-report-dpi="data_report_dpi"
+			              t-att-web-base-url="web_base_url">
+			            <head>
+			                <meta charset="utf-8" />
+			                <meta name="viewport" content="initial-scale=1"/>
+			                <title><t t-esc="title or 'Odoo Report'"/></title>
+			                <t t-call-assets="web.assets_common" t-js="false"/>
+			                <t t-call-assets="web.report_assets_common" t-js="false"/>
+			                <t t-if="editable">
+			                    <t t-call-assets="web_editor.summernote" t-js="false"/>
+			                    <t t-call-assets="web_editor.assets_editor" t-js="false"/>
+			                    <t t-call-assets="web.report_assets_editor" t-js="false"/>
+			                </t>
+			                <t t-if="editable">
+			                    <t t-call-assets="web.assets_common" t-css="false"/>
+			                    <t t-call-assets="web_editor.summernote" t-css="false"/>
+			                    <t t-call-assets="web_editor.assets_editor" t-css="false"/>
+			                    <t t-call-assets="web.report_assets_editor" t-css="false"/>
+
+			                    <script type="text/javascript" src="/web/static/src/js/services/session.js"></script>
+			                    <script type="text/javascript" src="/web_editor/static/src/js/content/body_manager.js"/>
+			                    <script type="text/javascript" src="/web_editor/static/src/js/root_widget.js"/>
+			                    <script type="text/javascript" src="/web_editor/static/src/js/iframe.js"></script>
+			                    <script t-if="enable_editor and inline_mode" type="text/javascript" src="/web_editor/static/src/js/inline.js"></script>
+			                </t>
+			            </head>
+			            <body class="container">
+			                <div id="wrapwrap">
+			                    <main>
+			                        <t t-raw="0"/>
+			                    </main>
+			                </div>
+			            </body>
+			        </html>
+			    </template>
+
+
+					<template id="internal_layout">
+					        <!-- Multicompany -->
+					        <t t-if="o and 'company_id' in o">
+					            <t t-set="company" t-value="o.company_id"/>
+					        </t>
+					        <t t-if="not o or not 'company_id' in o">
+					            <t t-set="company" t-value="res_company"/>
+					        </t>
+									<!--
+					        <div class="header">
+					            <div class="row">
+					                <div class="col-xs-3">
+					                    <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d %H:%M')"/>
+					                </div>
+					                <div class="col-xs-2 col-xs-offset-2 text-center">
+					                    <span t-esc="company.name"/>
+					                </div>
+					                <div class="col-xs-2 col-xs-offset-3 text-right">
+					                    <ul class="list-inline">
+					                        <li><span class="page"/></li>
+					                        <li>/</li>
+					                        <li><span class="topage"/></li>
+					                    </ul>
+					                </div>
+					            </div>
+					        </div>-->
+					        <div class="article">
+					          <t t-raw="0" />
+					        </div>
+					    </template>
+
+
+        <template id="report_shipment">
+						<t t-call="meli_oerp.report_layout">
+							<t t-call="meli_oerp.internal_layout">
+						<div class="page">
+							<t t-foreach="docs" t-as="o">
+										<table style="width: 100%">
+											<tr>
+												<td style="width: 64.5%">
+													<table style="width: 100%">
+														<tr>
+															<td style="width: 20%"><b>Destinatario:</b></td>
+															<td><span t-field="o.receiver_address_name"/></td>
+														</tr>
+														<tr>
+															<td><b>Dirección:</b></td>
+															<td><span t-field="o.receiver_address_line"/></td>
+														</tr>
+														<tr>
+															<td><b>Teléfono:</b></td>
+															<td>
+																<table style="width: 100%">
+																	<tr>
+																		<td style="width: 22.5%"><span t-field="o.receiver_address_phone"/></td>
+																		<td style="width: 15%"><b>Destino:</b></td>
+																		<td style="width: 62.5%"><span t-field="o.receiver_city"/>,<span t-field="o.receiver_state"/>
+																		<!--,<span t-field="o.receiver_country"/>--></td>
+																	</tr>
+																</table>
+															</td>
+														</tr>
+														<tr>
+															<td><b>Tipo de envío:</b></td>
+															<td style="background-color: #99FF99;"><span t-field="o.tracking_method"/></td>
+														</tr>
+														<tr>
+															<td><b>Producto(s):</b></td>
+															<td>
+															  <span t-foreach="o.order.order_items" t-as="item">
+															    <span t-field="item.quantity"/> x <span t-field="item.posting_id.product_id.name"/>,
+															 </span>
+															 </td>
+														</tr>
+													</table>
+												</td>
+												<td style="width: 35.5%">
+													Remitente:
+												</td>
+											</tr>
+										</table>
+							</t>
+						</div>
+						</t>
+						</t>
+        </template>
+    </data>
+</odoo>

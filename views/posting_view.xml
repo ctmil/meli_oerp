@@ -32,6 +32,7 @@
                     <field name="name"/>
                     <field name="posting_date"/>
                     <field name="meli_id"/>
+                    <field name="meli_seller_custom_field"/>
                     <field name="product_id"/>
                     <field name="meli_permalink" widget="url"/>
                     <field name="meli_status"/>
@@ -43,16 +44,19 @@
             </field>
         </record>
 
-<!--
     <record id="meli_posting_search_view" model="ir.ui.view">
         <field name="name">MercadoLibre Posting - Search</field>
         <field name="model">mercadolibre.posting</field>
         <field name="arch" type="xml">
-	    <search string="Search MercadoLibre Posting Information">
-                <filter string='Status' icon="terp-mrp" domain="[]" context="{'group_by' : 'meli_status'}"/>
-	    </search>
+    	    <search string="Search MercadoLibre Posting Information">
+            <field name="name" string="Nombre publicación"/>
+            <field name="meli_id" string="Meli ID"/>
+            <field name="meli_status" string="Status"/>
+            <field name="product_id" string="Producto"/>
+            <field name="meli_price" string="Precio"/>
+    	    </search>
         </field>
-    </record>-->
+    </record>
 
     <record id="view_posting_update" model="ir.ui.view">
           <field name="name">Update Meli Posting</field>
@@ -99,7 +103,7 @@
             <field name="res_model">mercadolibre.posting</field>
             <field name="view_type">form</field>
             <field name="view_mode">tree,form</field>
-            <!--<field name="search_view_id" ref="meli_posting_search_view"/>-->
+            <field name="search_view_id" ref="meli_posting_search_view"/>
         </record>
 
 
