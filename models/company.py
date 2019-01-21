@@ -46,7 +46,7 @@ class res_company(models.Model):
         #True if need login
         _logger.info('company get_meli_state() ')
         #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        #company = user_obj.company_id
+        #company = user_obj.company_id        
         company = self.env.user.company_id
         warningobj = self.pool.get('warning')
 
