@@ -839,7 +839,8 @@ class product_product(models.Model):
                 #_logger.info("buscamos sin envio")
                 sin_envio = variant.default_code[0:-2] + 'SE'
                 _logger.info(sin_envio)
-                pse = self.env["product.product"].search([('default_code','=',sin_envio),('name','=',variant.name)])
+                #pse = self.env["product.product"].search([('default_code','=',sin_envio),('name','=',variant.name)])
+                pse = self.env["product.product"].search([('default_code','=',sin_envio)])
                 if (len(pse)>1):
                     pse = pse[0]
                 if (pse):
@@ -851,7 +852,7 @@ class product_product(models.Model):
                     if (bom_list):
                         #_logger.info("bom_list:")
                         #_logger.info(bom_list)
-                        pass
+                        pass;
                     else:
                         #lista de materiales: KIT (phantom)
                         bl_fields = {
@@ -870,7 +871,10 @@ class product_product(models.Model):
                         lineids = bom_l.search([('bom_id','=',bom_list.id)])
                         if (lineids):
                             #check if lineids is ok
-                            pass;
+                            bomline_fields = {
+                                'product_id': pse.id
+                            }
+                            lineids.write(bomline_fields)
                         else:
                             bomline_fields = {
                                 'bom_id': bom_list.id,
@@ -880,6 +884,7 @@ class product_product(models.Model):
                             }
                             lineids = bom_l.create(bomline_fields)
                             #_logger.info("bom_list line created")
+                        variant.meli_default_stock_product = pse
                 else:
                     _logger.info("SE no existe?")
 
@@ -1164,8 +1169,9 @@ class product_product(models.Model):
         for att in product.attribute_value_ids:
             if (att.attribute_id.name in att_to_pub):
                 if (var_comb==False):
-
-                    price = product.meli_price
+                    price = False
+                    if (product.meli_price):
+                        price = product.meli_price
                     qty = product.meli_available_quantity
 
                     if (product_tmpl.meli_pub_principal_variant.id and price==False):
@@ -1173,6 +1179,12 @@ class product_product(models.Model):
 
                     if (product_tmpl.meli_pub_principal_variant.id and (qty==False or qty==0)):
                         qty = product_tmpl.meli_pub_principal_variant.meli_available_quantity
+
+                    if price==False:
+                        price = product.lst_price
+
+                    if (qty<0):
+                        qty = 0
 
                     var_comb = {
                         "attribute_combinations": [],
@@ -1581,8 +1593,12 @@ class product_product(models.Model):
         try:
             self.product_update_stock()
 
-            if (product.virtual_available):
-                product.meli_available_quantity = product.virtual_available
+            #if (product.virtual_available>=0):
+            product.meli_available_quantity = product.virtual_available
+
+
+            if product.meli_available_quantity<0:
+                product.meli_available_quantity = 0
 
             fields = {
                 "available_quantity": product.meli_available_quantity
@@ -1611,20 +1627,56 @@ class product_product(models.Model):
                         "variations": []
                     }
                     _logger.info("product_post_stock > Update variations stock")
+                    found_comb = False
+                    pictures_v = []
+                    same_price = False
                     for ix in range(len(productjson["variations"]) ):
                         #check if combination is related to this product
+                        if 'picture_ids' in productjson["variations"][ix]:
+                            if (len(productjson["variations"][ix]["picture_ids"])>len(pictures_v)):
+                                pictures_v = productjson["variations"][ix]["picture_ids"]
+                        same_price = productjson["variations"][ix]["price"]
                         if (self._is_product_combination(productjson["variations"][ix])):
                             _logger.info("_is_product_combination! Post stock to variation")
                             _logger.info(productjson["variations"][ix])
+                            found_comb = True
                             product.meli_id_variation = productjson["variations"][ix]["id"]
                             var = {
-                                "id": str( product.meli_id_variation ),
+                                #"id": str( product.meli_id_variation ),
                                 "available_quantity": product.meli_available_quantity,
+                                #"picture_ids": ['806634-MLM28112717071_092018', '928808-MLM28112717068_092018', '643737-MLM28112717069_092018', '934652-MLM28112717070_092018']
                             }
                             varias["variations"].append(var)
-                            _logger.info(varias)
-                            responsevar = meli.put("/items/"+product.meli_id, varias, {'access_token':meli.access_token})
-                            _logger.debug(responsevar.json())
+                            #_logger.info(varias)
+                            _logger.info(var)
+                            responsevar = meli.put("/items/"+product.meli_id+'/variations/'+str( product.meli_id_variation ), var, {'access_token':meli.access_token})
+                            _logger.info(responsevar.json())
+
+                    if found_comb==False:
+                        #add combination!!
+                        addvar = self._combination()
+                        if ('picture_ids' in addvar):
+                            if len(pictures_v)>=len(addvar["picture_ids"]):
+                                addvar["picture_ids"] = pictures_v
+                        addvar["seller_custom_field"] = product.default_code
+                        addvar["price"] = same_price
+                        _logger.info("Add variation!")
+                        _logger.info(addvar)
+                        responsevar = meli.post("/items/"+product.meli_id+"/variations", addvar, {'access_token':meli.access_token})
+                        _logger.info(responsevar.json())
+                _logger.info("Available:"+str(product_tmpl.virtual_available))
+                best_available = 0
+                for vr in product_tmpl.product_variant_ids:
+                    sum = vr.virtual_available
+                    if (sum<0):
+                        sum = 0
+                    best_available+= sum
+                if (best_available>0 and product.meli_status=="paused"):
+                    _logger.info("Active!")
+                    product.product_meli_status_active()
+                elif (best_available<=0 and product.meli_status=="active"):
+                    _logger.info("Pause!")
+                    product.product_meli_status_pause()
             else:
                 response = meli.put("/items/"+product.meli_id, fields, {'access_token':meli.access_token})
                 if (response.content):
@@ -1635,10 +1687,10 @@ class product_product(models.Model):
                         _logger.info( "Error posting stock" )
                         _logger.info(response.content)
 
-            if (product.meli_available_quantity<=0 and product.meli_status=="active"):
-                product.product_meli_status_pause()
-            elif (product.meli_available_quantity>0 and product.meli_status=="pause"):
-                product.product_meli_status_active()
+                if (product.meli_available_quantity<=0 and product.meli_status=="active"):
+                    product.product_meli_status_pause()
+                elif (product.meli_available_quantity>0 and product.meli_status=="paused"):
+                    product.product_meli_status_active()
 
         except Exception as e:
             _logger.info("product_post_stock > exception error")
@@ -1654,10 +1706,15 @@ class product_product(models.Model):
             if (_stock<0):
                 _stock = 0
 
+        if (product.default_code):
+            product.set_bom()
+
         if (product.meli_default_stock_product):
             _stock = product.meli_default_stock_product.virtual_available
+            if (_stock<0):
+                _stock = 0
 
-        if (product.virtual_available!=_stock):
+        if (_stock>=0 and product.virtual_available!=_stock):
             _logger.info("Updating stock for variant." + str(_stock) )
             wh = self.env['stock.location'].search([('usage','=','internal')]).id
             product_uom_id = self.env['product.uom'].search([('name','=','Unidad(es)')])

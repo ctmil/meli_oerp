@@ -469,7 +469,7 @@ class res_company(models.Model):
 
     @api.multi
     def meli_update_local_products(self):
-        _logger.info('company.meli_update_products() ')
+        _logger.info('company.meli_update_local_products() ')
         self.product_meli_update_local_products()
         return {}
 
@@ -561,7 +561,7 @@ class res_company(models.Model):
                         if (icommit>=micom):
                             self._cr.commit()
                             icommit = 0
-                            return {}
+                            #return {}
                         _logger.info( "Product remote to update Stock: " + str(obj.id)+ ' meli_id:'+str(obj.meli_id)  )
                         obj.product_post_stock()
             except Exception as e:
