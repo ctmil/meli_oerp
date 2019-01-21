@@ -36,7 +36,7 @@ class res_company(models.Model):
     _name = "res.company"
     _inherit = "res.company"
 
-    def meli_get_object( self, cr, uid, ids, field_name, attributes, context=None ):
+    def meli_get_object( self ):
         return True
 
     @api.multi
