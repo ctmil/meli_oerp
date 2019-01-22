@@ -29,6 +29,7 @@ from warning import warning
 
 import requests
 from ..melisdk.meli import Meli
+import json
 
 class product_public_category(models.Model):
 
@@ -98,12 +99,18 @@ class mercadolibre_category(models.Model):
                     'value_type': att['value_type'],
                     'hidden': ('hidden' in att['tags']),
                     'multivalued': ( 'multivalued' in att['tags']),
-                    'variation_attribute': ('variation_attribute' in att['tags']),
-                    'values': att['values'],
-                    'type': att['type']
+                    'variation_attribute': ('variation_attribute' in att['tags'])
                 }
+
                 if ('tooltip' in att):
                     attrs_field['tooltip'] = att['tooltip']
+
+                if ('values' in att):
+                    attrs_field['values'] = json.dumps(att['values'])
+
+                if ('type' in att):
+                    attrs_field['type'] = att['type']
+
                 if (len(attrs)):
                     attrs[0].write(attrs_field)
                 else:
