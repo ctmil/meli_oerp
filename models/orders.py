@@ -667,32 +667,32 @@ mercadolibre_order_items()
 
 
 class mercadolibre_payments(models.Model):
-	_name = "mercadolibre.payments"
-	_description = "Pagos en MercadoLibre"
+    _name = "mercadolibre.payments"
+    _description = "Pagos en MercadoLibre"
 
-	order_id = fields.Many2one("mercadolibre.orders","Order")
-	payment_id = fields.Char('Payment Id')
-	transaction_amount = fields.Char('Transaction Amount')
-	currency_id = fields.Char(string='Currency')
-	status = fields.Char(string='Payment Status')
-	date_created = fields.Datetime('Creation date')
-	date_last_modified = fields.Datetime('Modification date')
+    order_id = fields.Many2one("mercadolibre.orders","Order")
+    payment_id = fields.Char('Payment Id')
+    transaction_amount = fields.Char('Transaction Amount')
+    currency_id = fields.Char(string='Currency')
+    status = fields.Char(string='Payment Status')
+    date_created = fields.Datetime('Creation date')
+    date_last_modified = fields.Datetime('Modification date')
 
 mercadolibre_payments()
 
 class mercadolibre_buyers(models.Model):
-	_name = "mercadolibre.buyers"
-	_description = "Compradores en MercadoLibre"
+    _name = "mercadolibre.buyers"
+    _description = "Compradores en MercadoLibre"
 
-	name = fields.Char(string='Name')
-	buyer_id = fields.Char(string='Buyer ID')
-	nickname = fields.Char(string='Nickname')
-	email = fields.Char(string='Email')
-	phone = fields.Char( string='Phone')
-	alternative_phone = fields.Char( string='Alternative Phone')
-	first_name = fields.Char( string='First Name')
-	last_name = fields.Char( string='Last Name')
-	billing_info = fields.Char( string='Billing Info')
+    name = fields.Char(string='Name')
+    buyer_id = fields.Char(string='Buyer ID')
+    nickname = fields.Char(string='Nickname')
+    email = fields.Char(string='Email')
+    phone = fields.Char( string='Phone')
+    alternative_phone = fields.Char( string='Alternative Phone')
+    first_name = fields.Char( string='First Name')
+    last_name = fields.Char( string='Last Name')
+    billing_info = fields.Char( string='Billing Info')
 
 mercadolibre_buyers()
 

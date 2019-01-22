@@ -225,12 +225,18 @@ class res_company(models.Model):
                                                 ("gold_pro","Oro Pro")],
                                                 string='Tipo de lista  predeterminada')
     mercadolibre_attributes = fields.Boolean(string='Apply product attributes')
+    mercadolibre_exclude_attributes = fields.Many2many('product.attribute.value',
+        string='Valores excluidos para automatizar la publicación de variantes',help='Seleccionar valores que serán excluidos para las publicaciones')
     mercadolibre_update_local_stock = fields.Boolean(string='Cron Get Products and take Stock from ML')
     mercadolibre_product_template_override_variant = fields.Boolean(string='Product template override Variant')
     mercadolibre_order_confirmation = fields.Selection([ ("manual", "Manual"),
                                                 ("paid_confirm", "Pagado>Confirmado"),
                                                 ("paid_delivered", "Pagado>Entregado")],
                                                 'Order confirmation')
+    mercadolibre_product_attribute_creation = fields.Selection([ ("manual", "Manual"),
+                                                ("full", "Sincronizado completo (uno a uno, sin importar si se usa o no)"),
+                                                ("dynamic", "Dinámico (cuando se asocia un producto a una categoría (ML) con atributos (ML))") ],
+                                                'Create Product Attributes')
     #'mercadolibre_login': fields.selection( [ ("unknown", "Desconocida"), ("logged","Abierta"), ("not logged","Cerrada")],string='Estado de la sesión'), )
 
     @api.multi

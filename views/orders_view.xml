@@ -2,7 +2,7 @@
 <openerp>
     <data>
 
-      <record model="ir.ui.view" id="view_meli_orders_tree">
+        <record model="ir.ui.view" id="view_meli_orders_tree">
             <field name="name">mercadolibre.orders.tree</field>
             <field name="model">mercadolibre.orders</field>
             <field name="type">tree</field>
