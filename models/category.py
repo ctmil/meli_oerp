@@ -145,7 +145,7 @@ class mercadolibre_category(models.Model):
 
                             prod_att = {
                                 'name': att['name'],
-                                'create_variant': True,
+                                'create_variant': 'always',
                                 'meli_default_id_attribute': attrs[0].id,
                                 #'meli_id': attrs[0].att_id
                             }
