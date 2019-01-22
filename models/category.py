@@ -94,7 +94,6 @@ class mercadolibre_category(models.Model):
                 _logger.info(att)
                 attrs = att_obj.search( [ ('id','=',att['id']) ] )
                 attrs_field = {
-                    'id': att['id'],
                     'name': att['name'],
                     'value_type': att['value_type'],
                     'hidden': ('hidden' in att['tags']),
@@ -107,7 +106,7 @@ class mercadolibre_category(models.Model):
                 if (len(attrs)):
                     attrs[0].write(attrs_field)
                 else:
-                    attrs_field['id'] = att['id']                }
+                    attrs_field['id'] = att['id']
                     attrs = att_obj.create(attrs_field)
 
 
