@@ -1297,7 +1297,7 @@ class product_product(models.Model):
                 "target": "new",
             }
 
-        description_sale =  product_tmpl.description_sale
+        #description_sale =  product_tmpl.description_sale
         translation = self.env['ir.translation'].search([('res_id','=',product_tmpl.id),
                                                         ('name','=','product.template,description_sale'),
                                                         ('lang','=','es_AR')])
@@ -1463,13 +1463,13 @@ class product_product(models.Model):
 
         # Chequea si es fabricable
 
-        if (product.meli_available_quantity<=0 and product.route_ids):
+        if (1==2 and product.meli_available_quantity<=0 and product.route_ids):
             for route in product.route_ids:
                 if (route.name in ['Fabricar','Manufacture']):
                     #raise ValidationError("Fabricar")
                     product.meli_available_quantity = 1
 
-        if (product.meli_available_quantity<=10000):
+        if (1==2 and product.meli_available_quantity<=10000):
             bom_id = self.env['mrp.bom'].search([('product_id','=',product.id)],limit=1)
             if bom_id and bom_id.type == 'phantom':
                 _logger.info(bom_id.type)
