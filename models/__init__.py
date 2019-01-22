@@ -19,4 +19,5 @@ import currency
 import shipment
 import stock_inventory
 import stock_move
+import product_attribute
 #import stock_warehouse
