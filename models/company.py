@@ -225,6 +225,8 @@ class res_company(models.Model):
                                                 ("gold_pro","Oro Pro")],
                                                 string='Tipo de lista  predeterminada')
     mercadolibre_attributes = fields.Boolean(string='Apply product attributes')
+    mercadolibre_exclude_attributes = fields.Many2many('product.attribute.value',
+        string='Valores excluidos para automatizar la publicación de variantes',help='Seleccionar valores que serán excluidos para las publicaciones')
     mercadolibre_update_local_stock = fields.Boolean(string='Cron Get Products and take Stock from ML')
     mercadolibre_product_template_override_variant = fields.Boolean(string='Product template override Variant')
     mercadolibre_order_confirmation = fields.Selection([ ("manual", "Manual"),
