@@ -93,6 +93,7 @@ class mercadolibre_category(models.Model):
             rjs = resp.json()
             for att in rjs:
                 _logger.info(att)
+                _logger.info(att['id'])
                 attrs = att_obj.search( [ ('att_id','like',str(att['id'])) ] )
                 attrs_field = {
                     'name': att['name'],
