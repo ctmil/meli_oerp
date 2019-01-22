@@ -99,10 +99,11 @@ class mercadolibre_category(models.Model):
                     'hidden': ('hidden' in att['tags']),
                     'multivalued': ( 'multivalued' in att['tags']),
                     'variation_attribute': ('variation_attribute' in att['tags']),
-                    'tooltip': att['tooltip'],
                     'values': att['values'],
                     'type': att['type']
                 }
+                if ('tooltip' in att):
+                    attrs_field['tooltip'] = att['tooltip']
                 if (len(attrs)):
                     attrs[0].write(attrs_field)
                 else:
