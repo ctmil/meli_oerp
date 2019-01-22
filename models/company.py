@@ -46,7 +46,7 @@ class res_company(models.Model):
         #True if need login
         _logger.info('company get_meli_state() ')
         #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        #company = user_obj.company_id        
+        #company = user_obj.company_id
         company = self.env.user.company_id
         warningobj = self.pool.get('warning')
 
@@ -231,6 +231,10 @@ class res_company(models.Model):
                                                 ("paid_confirm", "Pagado>Confirmado"),
                                                 ("paid_delivered", "Pagado>Entregado")],
                                                 'Order confirmation')
+    mercadolibre_product_attribute_creation = fields.Selection([ ("manual", "Manual"),
+                                                ("full", "Sincronizado completo (uno a uno, sin importar si se usa o no)"),
+                                                ("dynamic", "Dinámico (cuando se asocia un producto a una categoría (ML) con atributos (ML))") ],
+                                                'Create Product Attributes')
     #'mercadolibre_login': fields.selection( [ ("unknown", "Desconocida"), ("logged","Abierta"), ("not logged","Cerrada")],string='Estado de la sesión'), )
 
     @api.multi
