@@ -13,6 +13,20 @@
           </field>
         </record>
 
+        <record model="ir.ui.view" id="view_meli_product_attribute_view">
+          <field name="name">mercadolibre.category.attribute.tree</field>
+          <field name="model">product.attribute</field>
+          <field name="inherit_id" ref="product.attribute_tree_view" />
+          <field name="arch" type="xml">
+            <!--<xpath expr="//field[@name='create_variant']" position="after">
+               <field name="meli_default_id_attribute"/>
+             </xpath>-->
+             <field name="create_variant" position="after">
+               <field name="meli_default_id_attribute"/>
+             </field>
+          </field>
+        </record>
+
         <record model="ir.ui.view" id="view_meli_category_tree">
             <field name="name">mercadolibre.category.tree</field>
             <field name="model">mercadolibre.category</field>
@@ -23,6 +37,7 @@
                     <field name="meli_category_id"/>
                     <field name="meli_category_attributes" widget="url"/>
                     <field name="public_category_id"/>
+                    <field name="is_branch"/>
                 </tree>
             </field>
         </record>

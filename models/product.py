@@ -1138,7 +1138,16 @@ class product_product(models.Model):
 
         self.meli_state = ML_state
 
-    #conditions met to post this variant as ml variant
+    def _is_value_excluded(self, att_value ):
+        company = self.env.user.company_id
+        if (company.mercadolibre_exclude_attributes):
+            for att in company.mercadolibre_exclude_attributes:
+                if (att.attribute_id.name == att_value.attribute_id.name):
+                    if (att.name == att_value.name):
+                        return True
+        return False
+
+
     def _conditions_ok(self):
         conditionok = False
         product = self
@@ -1152,6 +1161,12 @@ class product_product(models.Model):
         for att in product.attribute_value_ids:
             if (att.attribute_id.name in att_to_pub):
                 conditionok = True
+            if (self._is_value_excluded(att)):
+                product.meli_pub = False
+                return False
+
+        if (conditionok):
+            product.meli_pub = True
 
         return conditionok
 
@@ -1282,6 +1297,15 @@ class product_product(models.Model):
                 "target": "new",
             }
 
+        #description_sale =  product_tmpl.description_sale
+        translation = self.env['ir.translation'].search([('res_id','=',product_tmpl.id),
+                                                        ('name','=','product.template,description_sale'),
+                                                        ('lang','=','es_AR')])
+        if translation:
+            _logger.info("translation")
+            _logger.info(translation.value)
+            description_sale = translation.value
+
         productjson = False
         if (product.meli_id):
             response = meli.get("/items/%s" % product.meli_id, {'access_token':meli.access_token})
@@ -1313,10 +1337,16 @@ class product_product(models.Model):
         if company.mercadolibre_pricelist:
             pl = company.mercadolibre_pricelist
             return_val = pl.price_get(product.id,1.0)
+
+        if product_tmpl.taxes_id:
+            new_price = return_val[pl.id]
+            new_price = new_price * ( 1 + ( product_tmpl.taxes_id[0].amount / 100) )
+            return_val[pl.id] = round(new_price,2)
             product_tmpl.meli_price = return_val[pl.id]
 
         if product_tmpl.meli_price==False or product_tmpl.meli_price==0:
             product_tmpl.meli_price = product_tmpl.standard_price
+        product.meli_price=product_tmpl.meli_price
 
         if product_tmpl.meli_description==False or len(product_tmpl.meli_description)==0:
             product_tmpl.meli_description = product_tmpl.description_sale
@@ -1325,6 +1355,12 @@ class product_product(models.Model):
         if product.meli_title==False or len(product.meli_title)==0:
             # _logger.info( 'Assigning title: product.meli_title: %s name: %s' % (product.meli_title, product.name) )
             product.meli_title = product_tmpl.meli_title
+
+        if (product_tmpl.meli_title):
+            product.meli_title = product_tmpl.meli_title
+
+        if ( product.meli_title and len(product.meli_title)>60 ):
+            return warningobj.info( title='MELI WARNING', message="La longitud del título ("+str(len(product.meli_title))+") es superior a 60 caracteres.", message_html=product.meli_title )
 
         if product.meli_price==False or product.meli_price==0.0:
             # _logger.info( 'Assigning price: product.meli_price: %s standard_price: %s' % (product.meli_price, product.standard_price) )
@@ -1336,14 +1372,24 @@ class product_product(models.Model):
         if product.meli_description==False:
             product.meli_description = product_tmpl.meli_description
 
+        if product_tmpl.meli_description:
+            product.meli_description = product_tmpl.meli_description
 
 
         if product.meli_category==False:
             product.meli_category=product_tmpl.meli_category
         if product.meli_listing_type==False:
             product.meli_listing_type=product_tmpl.meli_listing_type
+
+        if product_tmpl.meli_listing_type:
+            product.meli_listing_type=product_tmpl.meli_listing_type
+
         if product.meli_buying_mode==False:
             product.meli_buying_mode=product_tmpl.meli_buying_mode
+
+        if product_tmpl.meli_buying_mode:
+            product.meli_buying_mode=product_tmpl.meli_buying_mode
+
         if product.meli_price==False:
             product.meli_price=product_tmpl.meli_price
         if product.meli_currency==False:
@@ -1352,6 +1398,18 @@ class product_product(models.Model):
             product.meli_condition=product_tmpl.meli_condition
         if product.meli_warranty==False:
             product.meli_warranty=product_tmpl.meli_warranty
+
+        if product_tmpl.meli_warranty:
+            product.meli_warranty=product_tmpl.meli_warranty
+
+        if product.meli_brand==False or len(product.meli_brand)==0:
+            product.meli_brand = product_tmpl.meli_brand
+        if product.meli_model==False or len(product.meli_model)==0:
+            product.meli_model = product_tmpl.meli_model
+        if (product_tmpl.meli_brand):
+            product.meli_brand = product_tmpl.meli_brand
+        if (product_tmpl.meli_model):
+            product.meli_model = product_tmpl.meli_model
 
         attributes = []
         if product_tmpl.attribute_line_ids:
@@ -1393,6 +1451,11 @@ class product_product(models.Model):
                 if (cat_id.mercadolibre_category):
                     _logger.info(cat_id.mercadolibre_category)
                     product.meli_category = cat_id.mercadolibre_category
+                    product_tmpl.meli_category = cat_id.mercadolibre_category
+
+        if product_tmpl.meli_category:
+            product.meli_category=product_tmpl.meli_category
+
 
         if (product.virtual_available):
             product.meli_available_quantity = product.virtual_available
