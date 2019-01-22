@@ -116,7 +116,7 @@ class mercadolibre_category(models.Model):
                         attrs_field['type'] = att['type']
 
                     if (len(attrs)):
-                        attrs[0].write(attrs_field
+                        attrs[0].write(attrs_field)
                         att_ids.append(attrs[0].id)
                     else:
                         _logger.info("Add attribute")
