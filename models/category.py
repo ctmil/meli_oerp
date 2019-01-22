@@ -91,8 +91,10 @@ class mercadolibre_category(models.Model):
             self.meli_category_attributes = "https://api.mercadolibre.com/categories/"+str(self.meli_category_id)+"/attributes"
             resp = meli.get("/categories/"+str(self.meli_category_id)+"/attributes", {'access_token':meli.access_token})
             rjs = resp.json()
+            att_ids = []
             for att in rjs:
                 try:
+                    _logger.info("att:")
                     _logger.info(att)
                     _logger.info(att['id'])
                     attrs = att_obj.search( [ ('att_id','like',str(att['id'])) ] )
@@ -114,16 +116,21 @@ class mercadolibre_category(models.Model):
                         attrs_field['type'] = att['type']
 
                     if (len(attrs)):
-                        attrs[0].write(attrs_field)
+                        attrs[0].write(attrs_field
+                        att_ids.append(attrs[0].id)
                     else:
                         _logger.info("Add attribute")
                         attrs_field['att_id'] = att['id']
                         _logger.info(attrs_field)
                         attrs = att_obj.create(attrs_field)
+                        att_ids.append(attrs[0].id)
                 except Exception as e:
+                    _logger.info("att:")
                     _logger.info(att)
-                    _logger.info(Exception)
+                    _logger.info("Exception")
                     _logger.info(e, exc_info=True)
+
+            self.meli_category_attribute_ids = [(6, 0, att_ids)]
 
         return {}
 
