@@ -92,32 +92,38 @@ class mercadolibre_category(models.Model):
             resp = meli.get("/categories/"+str(self.meli_category_id)+"/attributes", {'access_token':meli.access_token})
             rjs = resp.json()
             for att in rjs:
-                _logger.info(att)
-                _logger.info(att['id'])
-                attrs = att_obj.search( [ ('att_id','like',str(att['id'])) ] )
-                attrs_field = {
-                    'name': att['name'],
-                    'value_type': att['value_type'],
-                    'hidden': ('hidden' in att['tags']),
-                    'multivalued': ( 'multivalued' in att['tags']),
-                    'variation_attribute': ('variation_attribute' in att['tags'])
-                }
+                try:
+                    _logger.info(att)
+                    _logger.info(att['id'])
+                    attrs = att_obj.search( [ ('att_id','like',str(att['id'])) ] )
+                    attrs_field = {
+                        'name': att['name'],
+                        'value_type': att['value_type'],
+                        'hidden': ('hidden' in att['tags']),
+                        'multivalued': ( 'multivalued' in att['tags']),
+                        'variation_attribute': ('variation_attribute' in att['tags'])
+                    }
 
-                if ('tooltip' in att):
-                    attrs_field['tooltip'] = att['tooltip']
+                    if ('tooltip' in att):
+                        attrs_field['tooltip'] = att['tooltip']
 
-                if ('values' in att):
-                    attrs_field['values'] = json.dumps(att['values'])
+                    if ('values' in att):
+                        attrs_field['values'] = json.dumps(att['values'])
 
-                if ('type' in att):
-                    attrs_field['type'] = att['type']
+                    if ('type' in att):
+                        attrs_field['type'] = att['type']
 
-                if (len(attrs)):
-                    attrs[0].write(attrs_field)
-                else:
-                    attrs_field['att_id'] = att['id']
-                    attrs = att_obj.create(attrs_field)
-
+                    if (len(attrs)):
+                        attrs[0].write(attrs_field)
+                    else:
+                        _logger.info("Add attribute")
+                        attrs_field['att_id'] = att['id']
+                        _logger.info(attrs_field)
+                        attrs = att_obj.create(attrs_field)
+                except Exception as e:
+                    _logger.info(att)
+                    _logger.info(Exception)
+                    _logger.info(e, exc_info=True)
 
         return {}
 
