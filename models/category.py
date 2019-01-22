@@ -77,6 +77,7 @@ class mercadolibre_category(models.Model):
 
         warningobj = self.env['warning']
         category_obj = self.env['mercadolibre.category']
+        att_obj = self.env['mercadolibre.category.attribute']
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
@@ -91,6 +92,23 @@ class mercadolibre_category(models.Model):
             rjs = resp.json()
             for att in rjs:
                 _logger.info(att)
+                attrs = att_obj.search( [ ('id','=',att['id']) ] )
+                attrs_field = {
+                    'id': att['id'],
+                    'name': att['name'],
+                    'value_type': att['value_type'],
+                    'hidden': ('hidden' in att['tags']),
+                    'multivalued': ( 'multivalued' in att['tags']),
+                    'variation_attribute': ('variation_attribute' in att['tags']),
+                    'tooltip': att['tooltip'],
+                    'values': att['values'],
+                    'type': att['type']
+                }
+                if (len(attrs)):
+                    attrs[0].write(attrs_field)
+                else:
+                    attrs_field['id'] = att['id']                }
+                    attrs = att_obj.create(attrs_field)
 
 
         return {}
@@ -113,8 +131,9 @@ class mercadolibre_category(models.Model):
             is_branch = False
             father = None
             ml_cat_id = category_obj.search([('meli_category_id','=',category_id)])
-            if (ml_cat_id):
+            if (ml_cat_id.id):
               _logger.info("category exists!" + str(ml_cat_id))
+              ml_cat_id.get_attributes()
             else:
               _logger.info("Creating category: " + str(category_id))
               #https://api.mercadolibre.com/categories/MLA1743
@@ -145,6 +164,8 @@ class mercadolibre_category(models.Model):
                 'meli_father_category': father
               }
               ml_cat_id = category_obj.create((cat_fields))
+              if (ml_cat_id.id):
+                  ml_cat_id.get_attributes()
 
 
     def import_all_categories(self, category_root ):
