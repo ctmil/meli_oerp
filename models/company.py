@@ -23,7 +23,7 @@ from odoo import fields, osv, models, api
 from odoo.tools.translate import _
 import logging
 _logger = logging.getLogger(__name__)
-import urllib2
+
 import pdb
 
 from .meli_oerp_config import *

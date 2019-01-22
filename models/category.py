@@ -22,7 +22,6 @@
 from odoo import fields, osv, models, api
 import logging
 _logger = logging.getLogger(__name__)
-import urllib2
 
 from meli_oerp_config import *
 from warning import warning
