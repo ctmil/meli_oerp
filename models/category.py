@@ -43,7 +43,7 @@ class mercadolibre_category_attribute(models.Model):
     _name = "mercadolibre.category.attribute"
     _description = "MercadoLibre Attribute"
 
-    id = fields.Char(string="Attribute Id (ML)")
+    att_id = fields.Char(string="Attribute Id (ML)")
     name = fields.Char(string="Attribute Name (ML)")
 
     value_type = fields.Char(string="Value Type")
@@ -92,7 +92,7 @@ class mercadolibre_category(models.Model):
             rjs = resp.json()
             for att in rjs:
                 _logger.info(att)
-                attrs = att_obj.search( [ ('id','=',att['id']) ] )
+                attrs = att_obj.search( [ ('att_id','=',att['id']) ] )
                 attrs_field = {
                     'name': att['name'],
                     'value_type': att['value_type'],
@@ -106,7 +106,7 @@ class mercadolibre_category(models.Model):
                 if (len(attrs)):
                     attrs[0].write(attrs_field)
                 else:
-                    attrs_field['id'] = att['id']
+                    attrs_field['att_id'] = att['id']
                     attrs = att_obj.create(attrs_field)
 
 
