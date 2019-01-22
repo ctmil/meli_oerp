@@ -132,7 +132,7 @@ class mercadolibre_category(models.Model):
 
             _logger.info("Add att_ids")
             _logger.info(att_ids)
-            self.meli_category_attribute_ids = [(6, 0, att_ids)]
+            self.write({'meli_category_attribute_ids': [(6, 0, att_ids)] })
 
         return {}
 
