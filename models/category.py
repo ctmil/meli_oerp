@@ -118,49 +118,51 @@ class mercadolibre_category(models.Model):
 
                     if (len(attrs)):
                         attrs[0].write(attrs_field)
-                        att_ids.append(attrs[0].id)
+                        attrs = attrs[0]
+                        att_ids.append(attrs.id)
                     else:
                         _logger.info("Add attribute")
                         attrs_field['att_id'] = att['id']
                         _logger.info(attrs_field)
                         attrs = att_obj.create(attrs_field)
                         att_ids.append(attrs[0].id)
-                        if (attrs.id):
-                            if (company.mercadolibre_product_attribute_creation!='manual'):
-                                #primero que coincida todo
-                                prod_attrs = prod_att_obj.search( [ ('name','like',att['name']),
-                                                                    ('meli_default_id_attribute','=',attrs[0].id) ] )
-                                if (len(prod_attrs)==0):
-                                    #que solo coincida el id
-                                    prod_attrs = prod_att_obj.search( [ ('meli_default_id_attribute','=',attrs[0].id) ] )
 
-                                if (len(prod_attrs)==0):
-                                    #que coincida el nombre al menos
-                                    prod_att_obj.search( [ ('name','like',att['name']) ] )
+                    if (attrs.id):
+                        if (company.mercadolibre_product_attribute_creation!='manual'):
+                            #primero que coincida todo
+                            prod_attrs = prod_att_obj.search( [ ('name','like',att['name']),
+                                                                ('meli_default_id_attribute','=',attrs[0].id) ] )
+                            if (len(prod_attrs)==0):
+                                #que solo coincida el id
+                                prod_attrs = prod_att_obj.search( [ ('meli_default_id_attribute','=',attrs[0].id) ] )
 
-                                #if (len(prod_attrs)==0):
-                                    #que coincida el meli_id!!
-                                    #prod_att_obj.search( [ ('meli_id','like',att['id']) ] )
+                            if (len(prod_attrs)==0):
+                                #que coincida el nombre al menos
+                                prod_att_obj.search( [ ('name','like',att['name']) ] )
 
-                                prod_att = {
-                                    'name': att['name'],
-                                    'create_variant': True,
-                                    'meli_default_id_attribute': attrs[0].id,
-                                    #'meli_id': attrs[0].att_id
-                                }
-                                if (len(prod_attrs)>=1):
-                                    #tomamos el primero
-                                    _logger.error("Atención multiples atributos asignados!")
-                                    #prod_attrs = prod_attrs[0]
-                                    for prod_attr in prod_attrs:
-                                        prod_att['create_variant'] = prod_attr.create_variant
-                                        prod_attr.write(prod_att)
-                                    #if (len(prod_attrs)==1):
-                                    #    if (prod_attrs.id):
-                                    #        prod_att['create_variant'] = prod_attrs.create_variant
-                                    #        prod_att_obj.write(prod_att)
-                                else:
-                                    prod_attrs = prod_att_obj.create(prod_att)
+                            #if (len(prod_attrs)==0):
+                                #que coincida el meli_id!!
+                                #prod_att_obj.search( [ ('meli_id','like',att['id']) ] )
+
+                            prod_att = {
+                                'name': att['name'],
+                                'create_variant': True,
+                                'meli_default_id_attribute': attrs[0].id,
+                                #'meli_id': attrs[0].att_id
+                            }
+                            if (len(prod_attrs)>=1):
+                                #tomamos el primero
+                                _logger.error("Atención multiples atributos asignados!")
+                                #prod_attrs = prod_attrs[0]
+                                for prod_attr in prod_attrs:
+                                    prod_att['create_variant'] = prod_attr.create_variant
+                                    prod_attr.write(prod_att)
+                                #if (len(prod_attrs)==1):
+                                #    if (prod_attrs.id):
+                                #        prod_att['create_variant'] = prod_attrs.create_variant
+                                #        prod_att_obj.write(prod_att)
+                            else:
+                                prod_attrs = prod_att_obj.create(prod_att)
 
                 except Exception as e:
                     _logger.info("att:")
