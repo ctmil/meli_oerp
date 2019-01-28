@@ -496,7 +496,8 @@ class res_company(models.Model):
 
         url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
 
-        product_ids = self.env['product.product'].search([('meli_id','!=',False)])
+        #product_ids = self.env['product.product'].search([('meli_id','!=',False)])
+        product_ids = self.env['product.product'].search([('meli_id','!=',False),('default_code','like','T'),('categ_id','>',200)])
         if product_ids:
             cn = 0
             ct = len(product_ids)
@@ -507,6 +508,7 @@ class res_company(models.Model):
                     _logger.info( "Product to update: [" + str(obj.id) + "] " + str(cn)+"/"+str(ct))
                     try:
                         obj.product_meli_get_product()
+                        self._cr.commit()
                     except Exception as e:
                         _logger.info("updating product > Exception error.")
                         _logger.error(e, exc_info=True)

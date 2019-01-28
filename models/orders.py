@@ -349,7 +349,10 @@ class mercadolibre_orders(models.Model):
         else:
             _logger.info("Adding new sale.order: " )
             _logger.info(meli_order_fields)
-            sorder = saleorder_obj.create((meli_order_fields))
+            if 'pack_order' in order_json["tags"]:
+                _logger.info("Pack Order, dont create order")
+            else:
+                sorder = saleorder_obj.create((meli_order_fields))
 
         #check error
         if not order:

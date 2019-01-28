@@ -43,10 +43,10 @@ class mercadolibre_category_attribute(models.Model):
     _name = "mercadolibre.category.attribute"
     _description = "MercadoLibre Attribute"
 
-    att_id = fields.Char(string="Attribute Id (ML)")
-    name = fields.Char(string="Attribute Name (ML)")
+    att_id = fields.Char(string="Attribute Id (ML)",index=True)
+    name = fields.Char(string="Attribute Name (ML)",index=True)
 
-    value_type = fields.Char(string="Value Type")
+    value_type = fields.Char(string="Value Type",index=True)
 
     hidden = fields.Boolean(string="Hidden")
     variation_attribute = fields.Boolean(string="Variation Attribute")
