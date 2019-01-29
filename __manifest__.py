@@ -16,7 +16,7 @@
     "depends": ['base', 'product','sale','website_sale','stock'],
     'data': [
         'security/meli_oerp_security.xml',
-        'security/ir.model.access.csv',
+        #'security/ir.model.access.csv',
         'views/company_view.xml',
     	'views/posting_view.xml',
         'views/product_post.xml',
