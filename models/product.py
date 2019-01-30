@@ -1370,8 +1370,8 @@ class product_product(models.Model):
                 if (not att.attribute_id.meli_default_id_attribute.id):
                     customs.append(att.attribute_id)
                     custom_name = custom_name + sep + att.attribute_id.name
-                    custom_values = custom_values + sep + att.name
-                    sep = ""
+                    custom_values = custom_values + sep + att.name[0]
+                    sep = "."
 
         if (len(customs)):
             att_combination = {
