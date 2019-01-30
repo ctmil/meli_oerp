@@ -946,7 +946,12 @@ class product_product(models.Model):
                 #_logger.info(sin_envio)
                 #pse = self.env["product.product"].search([('default_code','=',sin_envio),('name','=',variant.name)])
                 pse = self.env["product.product"].search([  ('default_code','=',sin_envio),
-                                                            ('product_tmpl_id','!=',product_template.id)])
+                                                            ('product_tmpl_id','!=',product_template.id),
+                                                            ('meli_master','!=',False)])
+                if (len(pse)==0):
+                    pse = self.env["product.product"].search([  ('default_code','=',sin_envio),
+                                                                ('product_tmpl_id','!=',product_template.id)])
+
                 if (len(pse)>1):
                     #pse = pse[0]
                     pse_master = False
