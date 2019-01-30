@@ -1396,7 +1396,7 @@ class product_product(models.Model):
 
     def product_post(self):
         #import pdb;pdb.set_trace();
-        _logger.debug('[DEBUG] product_post')
+        _logger.info('[DEBUG] product_post')
 
         product_obj = self.env['product.product']
         product_tpl_obj = self.env['product.template']
@@ -1422,7 +1422,7 @@ class product_product(models.Model):
                 "url": url_login_meli,
                 "target": "new",
             }
-        return {}
+        #return {}
         #description_sale =  product_tmpl.description_sale
         translation = self.env['ir.translation'].search([('res_id','=',product_tmpl.id),
                                                         ('name','=','product.template,description_sale'),
