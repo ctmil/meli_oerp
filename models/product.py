@@ -211,6 +211,7 @@ class product_template(models.Model):
 
     @api.onchange('meli_pub') # if these fields are changed, call method
     def change_meli_pub(self):
+        _logger.info("onchange meli_pub")
         product = self
         for variant in product.product_variant_ids:
             variant.meli_pub = product.meli_pub
@@ -1135,8 +1136,9 @@ class product_product(models.Model):
 
         rjson = response.json()
         if ("error" in rjson):
-            raise osv.except_osv( _('MELI WARNING'), _('No se pudo cargar la imagen en MELI! Error: %s , Mensaje: %s, Status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
-            return { 'status': 'error', 'message': 'not uploaded'}
+            #raise osv.except_osv( _('MELI WARNING'), _('No se pudo cargar la imagen en MELI! Error: %s , Mensaje: %s, Status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
+            return rjson
+            #return { 'status': 'error', 'message': 'not uploaded'}
 
         _logger.info( rjson )
 
@@ -1719,7 +1721,7 @@ class product_product(models.Model):
 
         if (not variations_candidates):
             #SKU ?
-            if (len(str(product.default_code))>0):
+            if (product.default_code):
                 #TODO: flag for publishing SKU as attribute in single variant mode?? maybe
                 #attribute = { "id": "SELLER_SKU", "value_name": product.default_code }
                 #attributes.append(attribute)
