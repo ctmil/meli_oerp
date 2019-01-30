@@ -1362,18 +1362,18 @@ class product_product(models.Model):
 
         #customized attrs:
         customs = []
-        custom_name = ""
-        custom_values = ""
-        sep = ""
         for att in product.attribute_value_ids:
             if (att.attribute_id.name in att_to_pub):
                 if (not att.attribute_id.meli_default_id_attribute.id):
                     customs.append(att)
 
-        sortedCustoms = customs.sort(key=lambda x: x.attribute_id.name, reverse=True)
-        for custom in sortedCustoms:
-            custom_name = custom_name + sep + custom.attribute_id.name
-            custom_values = custom_values + sep + custom.name[0]
+        customs.sort(key=lambda x: x.attribute_id.name, reverse=True)
+        sep = ""
+        custom_name = ""
+        custom_values = ""
+        for att in customs:
+            custom_name = custom_name + sep + att.attribute_id.name
+            custom_values = custom_values + sep + att.name[0]
             sep = "."
 
         if (len(customs)):
