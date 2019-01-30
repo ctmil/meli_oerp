@@ -149,7 +149,8 @@ class product_template(models.Model):
 
         variations = False
         for variant in product_tmpl.product_variant_ids:
-            if (variant.meli_pub and variant._conditions_ok() ):
+            if ( variant._conditions_ok() ):
+                variant.meli_pub = True
                 var = variant._combination()
                 if (var):
                     if (variations==False):
