@@ -766,7 +766,7 @@ class product_product(models.Model):
                 #_logger.info(variant)
                 variant.meli_pub = product_template.meli_pub
                 variant.meli_id = rjson['id']
-                variant.default_code = rjson['id']
+                #variant.default_code = rjson['id']
                 variant.name = str(rjson['title'].encode("utf-8"))
                 has_sku = False
 
