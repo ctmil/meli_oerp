@@ -1576,7 +1576,7 @@ class product_product(models.Model):
             _logger.info(attributes)
             product.meli_attributes = str(attributes)
 
-        if (!variations_candidates):
+        if (not variations_candidates):
             #SKU ?
             if (len(str(product.default_code))>0):
                 attribute = { "id": "SELLER_SKU", "value_name": product.default_code }
