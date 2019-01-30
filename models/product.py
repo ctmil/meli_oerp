@@ -1174,7 +1174,7 @@ class product_product(models.Model):
         #loop over images
         for product_image in product.product_image_ids:
             if (product_image.image):
-                _logger.info( "product_image.image:" + str(product_image.image) )
+                #_logger.info( "product_image.image:" + str(product_image.image) )
                 imagebin = base64.b64decode( product_image.image )
                 #files = { 'file': ('image.png', imagebin, "image/png"), }
                 files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
@@ -1548,6 +1548,7 @@ class product_product(models.Model):
             product.meli_model = product_tmpl.meli_model
 
         attributes = []
+        variations_candidates = False
         if product_tmpl.attribute_line_ids:
             _logger.info(product_tmpl.attribute_line_ids)
             for at_line_id in product_tmpl.attribute_line_ids:
@@ -1569,9 +1570,18 @@ class product_product(models.Model):
                             "value_name": atval
                         }
                         attributes.append(attribute)
+                elif (len(at_line_id.value_ids)>1):
+                    variations_candidates = True
 
             _logger.info(attributes)
             product.meli_attributes = str(attributes)
+
+        if (!variations_candidates):
+            #SKU ?
+            if (len(str(product.default_code))>0):
+                attribute = { "id": "SELLER_SKU", "value_name": product.default_code }
+                attributes.append(attribute)
+                product.meli_attributes = str(attributes)
 
         if product.meli_brand==False or len(product.meli_brand)==0:
             product.meli_brand = product_tmpl.meli_brand
