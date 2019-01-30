@@ -88,6 +88,7 @@ class product_template(models.Model):
                             variant.product_post_variant(variant_principal)
                 else:
                     _logger.info("No condition met for:"+variant.display_name)
+                    _logger.info(product.meli_pub_variant_attributes)
 
 
         else:
