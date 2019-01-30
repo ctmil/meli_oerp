@@ -65,7 +65,7 @@ class product_template(models.Model):
             }
 
         _logger.info("Product Template Post")
-
+        ret = False
         if (product.meli_pub_as_variant):
             _logger.info("Posting as variants")
             #filtrar las variantes que tengan esos atributos que definimos
