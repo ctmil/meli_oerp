@@ -1785,6 +1785,8 @@ class product_product(models.Model):
                                 "available_quantity": product.meli_available_quantity,
                             }
                             varias["variations"].append(var)
+                        variations = product_tmpl._variations()
+                        varias["variations"] = variations
 
                         _logger.info(varias)
                         responsevar = meli.put("/items/"+product.meli_id, varias, {'access_token':meli.access_token})
