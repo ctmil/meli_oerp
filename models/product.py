@@ -1369,7 +1369,7 @@ class product_product(models.Model):
                     customs.append(att.attribute_id)
                     custom_name = custom_name + sep + att.attribute_id.name
                     custom_values = custom_values + sep + att.name
-                    sep = " "
+                    sep = ""
 
         if (len(customs)):
             att_combination = {
