@@ -255,7 +255,7 @@ class product_template(models.Model):
     meli_variants_status = fields.Text(compute=product_template_stats,string='Meli Variant Status')
 
     meli_pub_as_variant = fields.Boolean('Publicar variantes como variantes en ML',help='Publicar variantes como variantes de la misma publicación, no como publicaciones independientes.')
-    meli_pub_variant_attributes = fields.Many2many('product.attribute.line', string='Atributos a publicar en ML',help='Seleccionar los atributos a publicar')
+    meli_pub_variant_attributes = fields.Many2many('product.template.attribute.line', string='Atributos a publicar en ML',help='Seleccionar los atributos a publicar')
     meli_pub_principal_variant = fields.Many2one( 'product.product',string='Variante principal',help='Variante principal')
 
     meli_model = fields.Char(string="Modelo",size=256)
