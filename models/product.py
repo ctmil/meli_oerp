@@ -1373,7 +1373,7 @@ class product_product(models.Model):
         custom_values = ""
         for att in customs:
             custom_name = custom_name + sep + att.attribute_id.name
-            custom_values = custom_values + sep + att.name[0]
+            custom_values = custom_values + sep + att.name
             sep = "."
 
         if (len(customs)):
