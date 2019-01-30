@@ -1369,9 +1369,12 @@ class product_product(models.Model):
             if (att.attribute_id.name in att_to_pub):
                 if (not att.attribute_id.meli_default_id_attribute.id):
                     customs.append(att.attribute_id)
-                    custom_name = custom_name + sep + att.attribute_id.name
-                    custom_values = custom_values + sep + att.name[0]
-                    sep = "."
+
+        sortedCustoms = customs.sort(key=lambda x: x.attribute_id.name, reverse=True)
+        for custom in sortedCustoms:
+            custom_name = custom_name + sep + custom.attribute_id.name
+            custom_values = custom_values + sep + custom.name[0]
+            sep = "."
 
         if (len(customs)):
             att_combination = {
