@@ -1577,15 +1577,6 @@ class product_product(models.Model):
             _logger.info(attributes)
             product.meli_attributes = str(attributes)
 
-        if (not variations_candidates):
-            #SKU ?
-            if (len(str(product.default_code))>0):
-                #TODO: flag for publishing SKU as attribute in single variant mode?? maybe
-                #attribute = { "id": "SELLER_SKU", "value_name": product.default_code }
-                #attributes.append(attribute)
-                #product.meli_attributes = str(attributes)
-                rjson["seller_custom_field"] = product.default_code
-
         if product.meli_brand==False or len(product.meli_brand)==0:
             product.meli_brand = product_tmpl.meli_brand
         if product.meli_model==False or len(product.meli_model)==0:
@@ -1722,6 +1713,16 @@ class product_product(models.Model):
 
         if len(attributes):
             body["attributes"] =  attributes
+
+        if (not variations_candidates):
+            #SKU ?
+            if (len(str(product.default_code))>0):
+                #TODO: flag for publishing SKU as attribute in single variant mode?? maybe
+                #attribute = { "id": "SELLER_SKU", "value_name": product.default_code }
+                #attributes.append(attribute)
+                #product.meli_attributes = str(attributes)
+                body["seller_custom_field"] = product.default_code
+
 
         if (product_tmpl.meli_pub_as_variant):
             #es probablemente la variante principal
