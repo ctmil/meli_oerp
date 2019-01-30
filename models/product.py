@@ -1188,10 +1188,24 @@ class product_product(models.Model):
                     image_ids+= [ { 'id': rjson['id'] }]
                     c = c + 1
                     _logger.info( "image_ids:" + str(image_ids) )
+                    image_uploaded = {}
+                    ilink = ""
+                    isize = ""
+                    if ('variations' in rjson):
+                        if (len(rjson['variations'])):
+                            #big one, first one XXX-F
+                            image_uploaded = rjson['variations'][0]
+                    else:
+                        image_uploaded = rjson
+
+                    if 'secure_url' in image_uploaded:
+                        ilink = image_uploaded['secure_url']
+                    if 'size' in image_uploaded:
+                        isize = image_uploaded['size']
                     product_image.meli_imagen_id = rjson['id']
-                    product_image.meli_imagen_link = rjson['secure_url']
-                    product_image.meli_imagen_size = rjson['size']
                     product_image.meli_imagen_max_size = rjson['max_size']
+                    product_image.meli_imagen_link = ilink
+                    product_image.meli_imagen_size = isize
 
         product.write( { "meli_multi_imagen_id": "%s" % (image_ids) } )
 
@@ -1442,9 +1456,6 @@ class product_product(models.Model):
         if company.mercadolibre_listing_type and product_tmpl.meli_listing_type==False:
             product_tmpl.meli_listing_type = company.mercadolibre_listing_type
 
-        if company.mercadolibre_buying_mode and product_tmpl.meli_buying_mode==False:
-            product_tmpl.meli_buying_mode = company.mercadolibre_buying_mode
-
         if company.mercadolibre_currency and product_tmpl.meli_currency==False:
             product_tmpl.meli_currency = company.mercadolibre_currency
 
@@ -1454,9 +1465,6 @@ class product_product(models.Model):
         if company.mercadolibre_warranty and product_tmpl.meli_warranty==False:
             product_tmpl.meli_warranty = company.mercadolibre_warranty
 
-
-        # _logger.info( product.meli_category.meli_category_id )
-
         if product_tmpl.meli_title==False:
             product_tmpl.meli_title = product_tmpl.name
 
@@ -1465,14 +1473,19 @@ class product_product(models.Model):
             return_val = pl.price_get(product.id,1.0)
 
         if product_tmpl.taxes_id:
-            new_price = return_val[pl.id]
+            new_price = product_tmpl.meli_price
+            if pl.id in return_val:
+                new_price = return_val[pl.id]
             new_price = new_price * ( 1 + ( product_tmpl.taxes_id[0].amount / 100) )
-            return_val[pl.id] = round(new_price,2)
-            product_tmpl.meli_price = return_val[pl.id]
+            new_price = round(new_price,2)
+            product_tmpl.meli_price = new_price
+            product.meli_price=product_tmpl.meli_price
+
+        if company.mercadolibre_buying_mode and product_tmpl.meli_buying_mode==False:
+            product_tmpl.meli_buying_mode = company.mercadolibre_buying_mode
 
         if product_tmpl.meli_price==False or product_tmpl.meli_price==0:
             product_tmpl.meli_price = product_tmpl.standard_price
-        product.meli_price=product_tmpl.meli_price
 
         if product_tmpl.meli_description==False or len(product_tmpl.meli_description)==0:
             product_tmpl.meli_description = product_tmpl.description_sale
@@ -1489,8 +1502,6 @@ class product_product(models.Model):
             return warningobj.info( title='MELI WARNING', message="La longitud del título ("+str(len(product.meli_title))+") es superior a 60 caracteres.", message_html=product.meli_title )
 
         if product.meli_price==False or product.meli_price==0.0:
-            # _logger.info( 'Assigning price: product.meli_price: %s standard_price: %s' % (product.meli_price, product.standard_price) )
-
             if product_tmpl.meli_price:
                 _logger.info("Assign tmpl price:"+str(product_tmpl.meli_price))
                 product.meli_price = product_tmpl.meli_price
@@ -1500,7 +1511,6 @@ class product_product(models.Model):
 
         if product_tmpl.meli_description:
             product.meli_description = product_tmpl.meli_description
-
 
         if product.meli_category==False:
             product.meli_category=product_tmpl.meli_category
@@ -1541,15 +1551,24 @@ class product_product(models.Model):
         if product_tmpl.attribute_line_ids:
             _logger.info(product_tmpl.attribute_line_ids)
             for at_line_id in product_tmpl.attribute_line_ids:
-                atid = at_line_id.attribute_id.name
-                atval = at_line_id.value_ids.name
-                _logger.info(atid+":"+atval)
-                if (atid=="MARCA" or atid=="BRAND"):
-                    attribute = { "id": "BRAND", "value_name": atval }
-                    attributes.append(attribute)
-                if (atid=="MODELO" or atid=="MODEL"):
-                    attribute = { "id": "MODEL", "value_name": atval }
-                    attributes.append(attribute)
+                atname = at_line_id.attribute_id.name
+                #atributos, no variantes! solo con un valor...
+                if (len(at_line_id.value_ids)==1):
+                    atval = at_line_id.value_ids.name
+                    _logger.info(atname+":"+atval)
+                    if (atname=="MARCA" or atname=="BRAND"):
+                        attribute = { "id": "BRAND", "value_name": atval }
+                        attributes.append(attribute)
+                    if (atname=="MODELO" or atname=="MODEL"):
+                        attribute = { "id": "MODEL", "value_name": atval }
+                        attributes.append(attribute)
+
+                    if (at_line_id.attribute_id.meli_default_id_attribute.id):
+                        attribute = {
+                            "id": at_line_id.attribute_id.meli_default_id_attribute.att_id,
+                            "value_name": atval
+                        }
+                        attributes.append(attribute)
 
             _logger.info(attributes)
             product.meli_attributes = str(attributes)
