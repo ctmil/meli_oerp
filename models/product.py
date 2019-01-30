@@ -1184,7 +1184,7 @@ class product_product(models.Model):
                 rjson = response.json()
                 if ("error" in rjson):
                     #raise osv.except_osv( _('MELI WARNING'), _('No se pudo cargar la imagen en MELI! Error: %s , Mensaje: %s, Status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
-                    return { 'status': 'error', 'message': rjson["error"]+rjson["message"]+rjson["status"]}
+                    return rjson
                 else:
                     image_ids+= [ { 'id': rjson['id'] }]
                     c = c + 1
