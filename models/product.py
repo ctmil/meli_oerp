@@ -1183,8 +1183,8 @@ class product_product(models.Model):
                 _logger.info( "meli upload:" + response.content )
                 rjson = response.json()
                 if ("error" in rjson):
-                    raise osv.except_osv( _('MELI WARNING'), _('No se pudo cargar la imagen en MELI! Error: %s , Mensaje: %s, Status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
-                    #return { 'status': 'error', 'message': 'not uploaded'}
+                    #raise osv.except_osv( _('MELI WARNING'), _('No se pudo cargar la imagen en MELI! Error: %s , Mensaje: %s, Status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
+                    return { 'status': 'error', 'message': rjson["error"]+rjson["message"]+rjson["status"]}
                 else:
                     image_ids+= [ { 'id': rjson['id'] }]
                     c = c + 1
@@ -1690,6 +1690,9 @@ class product_product(models.Model):
         multi_images_ids = {}
         if (product.product_image_ids):
             multi_images_ids = product.product_meli_upload_multi_images()
+            if 'status' in multi_images_ids:
+                _logger.error(multi_images_ids)
+                return warningobj.info( title='MELI WARNING', message="Error publicando imagenes", message_html=""+str(multi_images_ids))
 
         if product.meli_imagen_id:
             if 'pictures' in body.keys():
