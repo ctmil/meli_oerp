@@ -88,7 +88,7 @@ class product_template(models.Model):
                             variant.product_post_variant(variant_principal)
                 else:
                     _logger.info("No condition met for:"+variant.display_name)
-                    _logger.info(product.meli_pub_variant_attributes)
+            _logger.info(product.meli_pub_variant_attributes)
 
 
         else:
@@ -151,9 +151,10 @@ class product_template(models.Model):
         for variant in product_tmpl.product_variant_ids:
             if (variant.meli_pub and variant._conditions_ok() ):
                 var = variant._combination()
-                if (variations==False):
-                    variations = []
-                variations.append(var)
+                if (var):
+                    if (variations==False):
+                        variations = []
+                    variations.append(var)
 
         return variations
 
@@ -1328,39 +1329,64 @@ class product_product(models.Model):
         for line in product_tmpl.meli_pub_variant_attributes:
             att_to_pub.append(line.attribute_id.name)
 
+        if (len(att_to_pub)==0):
+            return False
+
+        price = False
+        if (product.meli_price):
+            price = product.meli_price
+        qty = product.meli_available_quantity
+
+        if (product_tmpl.meli_pub_principal_variant.id and price==False):
+            price = product_tmpl.meli_pub_principal_variant.meli_price
+
+        if (product_tmpl.meli_pub_principal_variant.id and (qty==False or qty==0)):
+            qty = product_tmpl.meli_pub_principal_variant.meli_available_quantity
+
+        if price==False:
+            price = product.lst_price
+
+        if (qty<0):
+            qty = 0
+
+        var_comb = {
+            "attribute_combinations": [],
+            "price": price,
+            "available_quantity": qty,
+        }
+        if (product_tmpl.meli_pub_principal_variant.meli_imagen_id):
+            if (len(product_tmpl.meli_pub_principal_variant.meli_imagen_id)):
+               var_comb["picture_ids"] = [ product_tmpl.meli_pub_principal_variant.meli_imagen_id]
+
+        #customized attrs:
+        customs = []
+        custom_name = ""
+        custom_values = ""
+        sep = ""
         for att in product.attribute_value_ids:
             if (att.attribute_id.name in att_to_pub):
-                if (var_comb==False):
-                    price = False
-                    if (product.meli_price):
-                        price = product.meli_price
-                    qty = product.meli_available_quantity
+                if (not att.attribute_id.meli_default_id_attribute.id):
+                    customs.append(att.attribute_id)
+                    custom_name = custom_name + sep + att.attribute_id.name
+                    custom_values = custom_values + sep + att.name
+                    sep = " / "
 
-                    if (product_tmpl.meli_pub_principal_variant.id and price==False):
-                        price = product_tmpl.meli_pub_principal_variant.meli_price
+        if (len(customs)):
+            att_combination = {
+                "name": custom_name,
+                "value_name": custom_values,
+            }
+            var_comb["attribute_combinations"].append(att_combination)
 
-                    if (product_tmpl.meli_pub_principal_variant.id and (qty==False or qty==0)):
-                        qty = product_tmpl.meli_pub_principal_variant.meli_available_quantity
-
-                    if price==False:
-                        price = product.lst_price
-
-                    if (qty<0):
-                        qty = 0
-
-                    var_comb = {
-                        "attribute_combinations": [],
-                        "price": price,
-                        "available_quantity": qty,
-                        "picture_ids": [
-                            product_tmpl.meli_pub_principal_variant.meli_imagen_id
-                        ]
+        for att in product.attribute_value_ids:
+            if (att.attribute_id.name in att_to_pub):
+                if (att.attribute_id.meli_default_id_attribute.id):
+                    att_combination = {
+                        "name":att.attribute_id.meli_default_id_attribute.name,
+                        "id": att.attribute_id.meli_default_id_attribute.att_id,
+                        "value_name": att.name,
                     }
-                att_combination = {
-                    "name":att.attribute_id.name,
-                    "value_name": att.name,
-                }
-                var_comb["attribute_combinations"].append(att_combination)
+                    var_comb["attribute_combinations"].append(att_combination)
 
         return var_comb
 
@@ -1748,10 +1774,10 @@ class product_product(models.Model):
                             "pictures": body["pictures"],
                             "variations": []
                         }
-                        _logger.debug("Variations already posted, must update them only")
+                        _logger.info("Variations already posted, must update them only")
                         for ix in range(len(productjson["variations"]) ):
-                            _logger.debug("Variation to update!!")
-                            _logger.debug(productjson["variations"][ix])
+                            _logger.info("Variation to update!!")
+                            _logger.info(productjson["variations"][ix])
                             var = {
                                 "id": str(productjson["variations"][ix]["id"]),
                                 "price": str(product_tmpl.meli_price),
@@ -1759,9 +1785,9 @@ class product_product(models.Model):
                             }
                             varias["variations"].append(var)
 
-                        _logger.debug(varias)
+                        _logger.info(varias)
                         responsevar = meli.put("/items/"+product.meli_id, varias, {'access_token':meli.access_token})
-                        _logger.debug(responsevar.json())
+                        _logger.info(responsevar.json())
                         #_logger.debug(responsevar.json())
                         resdes = meli.put("/items/"+product.meli_id+"/description", bodydescription, {'access_token':meli.access_token})
                         #_logger.debug(resdes.json())
