@@ -86,6 +86,8 @@ class product_template(models.Model):
                     else:
                         if (variant_principal):
                             variant.product_post_variant(variant_principal)
+                else:
+                    _logger.info("No condition met for:"+variant.display_name)
 
 
         else:
@@ -96,6 +98,8 @@ class product_template(models.Model):
                     ret = variant.product_post()
                     if ('name' in ret):
                         return ret
+                else:
+                    _logger.info("No meli_pub for:"+variant.display_name)
 
         return ret
 
