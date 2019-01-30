@@ -1801,6 +1801,8 @@ class product_product(models.Model):
                         return {}
                     else:
                         variations = product_tmpl._variations()
+                        _logger.info("Variations:")
+                        _logger.info(variations)
                         if (variations):
                             body["variations"] = variations
                 else:
