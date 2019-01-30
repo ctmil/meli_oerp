@@ -298,9 +298,17 @@ class mercadolibre_shipment(models.Model):
 							ship_fields["pack_order"] = False
 
 						for item in items_json:
+							#check mercadolibre_orders for full pack
+							full_orders = True
 							if item["order_id"]:
-								#search order, if not present import order...
+								#search order, if not present search orders...
+								#search by meli_order_id in mercadolibre.orders
 								_logger.info(item)
+								pass
+						if (full_orders == True):
+							#create order with all items...
+							pass
+
 
 				ships = shipment_obj.search([('shipping_id','=', ship_id)])
 				_logger.info(ships)
