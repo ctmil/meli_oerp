@@ -801,9 +801,10 @@ class product_product(models.Model):
                 if (_product_id==variant.id):
                     product = variant
         else:
-            #NO TIENE variantes
+            #NO TIENE variantes pero tiene SKU
             if ("seller_custom_field" in rjson):
-                product.default_code = rjson["seller_custom_field"]
+                if (rjson["seller_custom_field"])
+                    product.default_code = rjson["seller_custom_field"]
                 product.set_bom()
 
 
@@ -1579,9 +1580,11 @@ class product_product(models.Model):
         if (not variations_candidates):
             #SKU ?
             if (len(str(product.default_code))>0):
-                attribute = { "id": "SELLER_SKU", "value_name": product.default_code }
-                attributes.append(attribute)
-                product.meli_attributes = str(attributes)
+                #TODO: flag for publishing SKU as attribute in single variant mode?? maybe
+                #attribute = { "id": "SELLER_SKU", "value_name": product.default_code }
+                #attributes.append(attribute)
+                #product.meli_attributes = str(attributes)
+                rjson["seller_custom_field"] = product.default_code
 
         if product.meli_brand==False or len(product.meli_brand)==0:
             product.meli_brand = product_tmpl.meli_brand
