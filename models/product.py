@@ -803,7 +803,7 @@ class product_product(models.Model):
         else:
             #NO TIENE variantes pero tiene SKU
             if ("seller_custom_field" in rjson):
-                if (rjson["seller_custom_field"])
+                if (rjson["seller_custom_field"]):
                     product.default_code = rjson["seller_custom_field"]
                 product.set_bom()
 
