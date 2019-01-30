@@ -1780,6 +1780,10 @@ class product_product(models.Model):
                             "pictures": body["pictures"],
                             "variations": []
                         }
+                        var_pics = []
+                        if (len(body["pictures"])):
+                            for pic in body["pictures"]:
+                                var_pics.append(pic['id'])
                         _logger.info("Variations already posted, must update them only")
                         for ix in range(len(productjson["variations"]) ):
                             _logger.info("Variation to update!!")
@@ -1788,6 +1792,7 @@ class product_product(models.Model):
                                 "id": str(productjson["variations"][ix]["id"]),
                                 "price": str(product_tmpl.meli_price),
                                 "available_quantity": product.meli_available_quantity,
+                                "picture_ids": var_pics
                             }
                             varias["variations"].append(var)
                         #variations = product_tmpl._variations()
