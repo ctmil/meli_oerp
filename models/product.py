@@ -1368,7 +1368,7 @@ class product_product(models.Model):
         for att in product.attribute_value_ids:
             if (att.attribute_id.name in att_to_pub):
                 if (not att.attribute_id.meli_default_id_attribute.id):
-                    customs.append(att.attribute_id)
+                    customs.append(att)
 
         sortedCustoms = customs.sort(key=lambda x: x.attribute_id.name, reverse=True)
         for custom in sortedCustoms:
