@@ -1386,12 +1386,13 @@ class product_product(models.Model):
         for att in product.attribute_value_ids:
             if (att.attribute_id.name in att_to_pub):
                 if (att.attribute_id.meli_default_id_attribute.id):
-                    att_combination = {
-                        "name":att.attribute_id.meli_default_id_attribute.name,
-                        "id": att.attribute_id.meli_default_id_attribute.att_id,
-                        "value_name": att.name,
-                    }
-                    var_comb["attribute_combinations"].append(att_combination)
+                    if (att.attribute_id.meli_default_id_attribute.variation_attribute):
+                        att_combination = {
+                            "name":att.attribute_id.meli_default_id_attribute.name,
+                            "id": att.attribute_id.meli_default_id_attribute.att_id,
+                            "value_name": att.name,
+                        }
+                        var_comb["attribute_combinations"].append(att_combination)
 
         return var_comb
 
