@@ -74,7 +74,8 @@ class product_template(models.Model):
             #las condiciones es que los atributos de la variante
             conditions_ok = True
             for variant in product.product_variant_ids:
-                if (variant.meli_pub and variant._conditions_ok() ):
+                if (variant._conditions_ok() ):
+                    variant.meli_pub = True
                     if (variant_principal==False):
                         _logger.info("Posting variant principal:")
                         _logger.info(variant)
