@@ -1692,7 +1692,7 @@ class product_product(models.Model):
             multi_images_ids = product.product_meli_upload_multi_images()
             if 'status' in multi_images_ids:
                 _logger.error(multi_images_ids)
-                return warningobj.info( title='MELI WARNING', message="Error publicando imagenes", message_html="Error: "+multi_images_ids["error"]+" Status:"+multi_images_ids["status"])
+                return warningobj.info( title='MELI WARNING', message="Error publicando imagenes", message_html="Error: "+str(multi_images_ids["error"])+" Status:"+str(multi_images_ids["status"]) )
 
         if product.meli_imagen_id:
             if 'pictures' in body.keys():
