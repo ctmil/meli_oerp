@@ -13,7 +13,7 @@
     'author': 'Moldeo Interactive Coop. Ltda.',
     'website': 'http://www.moldeointeractive.com.ar',
     "category": "Sales",
-    "depends": ['base', 'product','sale','website_sale','stock'],
+    "depends": ['base', 'product','sale','website_sale','stock','mrp'],
     'data': [
         'security/meli_oerp_security.xml',
         'security/ir.model.access.csv',
