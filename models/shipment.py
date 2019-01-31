@@ -34,6 +34,11 @@ from urllib.request import urlopen
 import requests
 import base64
 import mimetypes
+import orders
+import product
+import product_post
+import posting
+import res_partner
 
 #
 #     https://www.odoo.com/fr_FR/forum/aide-1/question/solved-call-report-and-save-result-to-attachment-133244
@@ -209,6 +214,12 @@ class mercadolibre_shipment(models.Model):
 
 		company = self.env.user.company_id
 
+		saleorder_obj = self.env['sale.order']
+		saleorderline_obj = self.env['sale.order.line']
+		product_obj = self.env['product.product']
+		pricelist_obj = self.env['product.pricelist']
+		respartner_obj = self.env['res.partner']
+
 		orders_obj = self.env['mercadolibre.orders']
 		shipment_obj = self.env['mercadolibre.shipment']
 
@@ -297,17 +308,30 @@ class mercadolibre_shipment(models.Model):
 						else:
 							ship_fields["pack_order"] = False
 
+						full_orders = False
+						all_orders = []
+						all_orders_ids = []
+						coma = ""
+						packed_order_ids =""
 						for item in items_json:
 							#check mercadolibre_orders for full pack
-							full_orders = True
 							if item["order_id"]:
 								#search order, if not present search orders...
 								#search by meli_order_id in mercadolibre.orders
 								_logger.info(item)
-								pass
-						if (full_orders == True):
-							#create order with all items...
-							pass
+								item_order = orders_obj.search( [("order_id",'=',item["order_id"])] )
+								if (len(item_order)==1):
+									all_orders.append(item_order)
+									all_orders_ids.append(item_order.id)
+									packed_order_ids+= coma+item["order_id"]
+									coma = ","
+						full_orders = ( len(items_json) == len(all_orders) )
+						_logger.info(items_json)
+						_logger.info(full_orders)
+						if (full_orders):
+							#We can create order with all items now
+							ship_fields["orders"] = [(6, 0, all_orders_ids)]
+
 
 
 				ships = shipment_obj.search([('shipping_id','=', ship_id)])
@@ -320,6 +344,67 @@ class mercadolibre_shipment(models.Model):
 				else:
 					_logger.info("Updating shipment: " + str(ship_id))
 					ships.write((ship_fields))
+					if (full_orders):
+						plistid = None
+						if company.mercadolibre_pricelist:
+							plistid = company.mercadolibre_pricelist
+						else:
+							plistids = pricelist_obj.search([])[0]
+							if plistids:
+								plistid = plistids
+
+						#buyer_ids = buyers_obj.search([  ('buyer_id','=',buyer_fields['buyer_id'] ) ] )
+						partner_id = respartner_obj.search([  ('meli_buyer_id','=',ship_fields['receiver_id'] ) ] )
+						if (partner_id.id):
+							meli_order_fields = {
+								'partner_id': partner_id.id,
+								'pricelist_id': plistid.id,
+								#'meli_order_id': '%i' % (order_json["id"]),
+								'meli_order_id': packed_order_ids,
+								'meli_shipping_id': ships.id,
+								'meli_shipping': ships,
+								'meli_status': all_orders[0]["status"],
+								'meli_status_detail': all_orders[0]["status_detail"] or '' ,
+								'meli_total_amount': ship_fields["order_cost"],
+								'meli_currency_id': all_orders[0]["currency_id"],
+								'meli_date_created': all_orders[0]["date_created"] or '',
+								'meli_date_closed': all_orders[0]["date_closed"] or '',
+							}
+							sorder = self.env["sale.order"].search( [ ('meli_order_id','=',meli_order_fields["meli_order_id"]) ] )
+							if (len(sorder)):
+								sorder = sorder[0]
+								sorder.write(meli_order_fields)
+							else:
+								sorder = self.env["sale.order"].create(meli_order_fields)
+
+							if (sorder.id):
+								for mOrder in all_orders:
+									#Each Order one product with one price and one quantity
+
+									product_related_obj = mOrder.order_items[0].posting_id.product_id
+									unit_price = mOrder.order_items[0]["unit_price"]
+									saleorderline_item_fields = {
+										'company_id': company.id,
+										'order_id': sorder.id,
+										'meli_order_item_id': mOrder.order_items[0]["order_item_id"],
+										'price_unit': float(unit_price),
+										'product_id': product_related_obj.id,
+										'product_uom_qty': mOrder.order_items[0]["quantity"],
+										'product_uom': 1,
+										'name': mOrder.order_items[0]["order_item_title"],
+									}
+									if (float(unit_price)==product_related_obj.product_tmpl_id.lst_price):
+										saleorderline_item_fields['price_unit'] = float(unit_price)
+										saleorderline_item_fields['tax_id'] = None
+									else:
+										saleorderline_item_fields['price_unit'] = product_related_obj.product_tmpl_id.lst_price
+
+									saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
+
+									if not saleorderline_item_ids:
+										saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
+									else:
+										saleorderline_item_ids.write( ( saleorderline_item_fields ) )
 
 	def update( self ):
 
