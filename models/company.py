@@ -496,8 +496,7 @@ class res_company(models.Model):
 
         url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
 
-        #product_ids = self.env['product.product'].search([('meli_id','!=',False)])
-        product_ids = self.env['product.product'].search([('meli_id','!=',False),('default_code','like','T3L'),('categ_id','>',200)])
+        product_ids = self.env['product.product'].search([('meli_id','!=',False)])
         if product_ids:
             cn = 0
             ct = len(product_ids)

@@ -361,8 +361,8 @@ class mercadolibre_orders(models.Model):
 
         #check error
         if not sorder:
-            _logger.error("Error adding sale.order. " )
-            return {'error': 'Error adding sale.order' }
+            _logger.warning("Warning adding sale.order. Normally a pack order." )
+            #return {'error': 'Error adding sale.order' }
 
         #update internal fields (items, payments, buyers)
         if 'order_items' in order_json:
@@ -449,28 +449,29 @@ class mercadolibre_orders(models.Model):
                     _logger.error("No product related to meli_id:"+str(Item['item']['id']))
                     return { 'error': 'No product related to meli_id' }
 
-                saleorderline_item_fields = {
-                    'company_id': company.id,
-                    'order_id': sorder.id,
-                    'meli_order_item_id': Item['item']['id'],
-                    'price_unit': float(Item['unit_price']),
-                    'product_id': product_related_obj.id,
-                    'product_uom_qty': Item['quantity'],
-                    'product_uom': 1,
-                    'name': Item['item']['title'],
-                }
-                if (float(Item['unit_price'])==product_related_obj.product_tmpl_id.lst_price):
-                    saleorderline_item_fields['price_unit'] = float(Item['unit_price'])
-                    saleorderline_item_fields['tax_id'] = None
-                else:
-                    saleorderline_item_fields['price_unit'] = product_related_obj.product_tmpl_id.lst_price
+                if (sorder):
+                    saleorderline_item_fields = {
+                        'company_id': company.id,
+                        'order_id': sorder.id,
+                        'meli_order_item_id': Item['item']['id'],
+                        'price_unit': float(Item['unit_price']),
+                        'product_id': product_related_obj.id,
+                        'product_uom_qty': Item['quantity'],
+                        'product_uom': 1,
+                        'name': Item['item']['title'],
+                    }
+                    if (float(Item['unit_price'])==product_related_obj.product_tmpl_id.lst_price):
+                        saleorderline_item_fields['price_unit'] = float(Item['unit_price'])
+                        saleorderline_item_fields['tax_id'] = None
+                    else:
+                        saleorderline_item_fields['price_unit'] = product_related_obj.product_tmpl_id.lst_price
 
-                saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
+                    saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
 
-                if not saleorderline_item_ids:
-                    saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
-                else:
-                    saleorderline_item_ids.write( ( saleorderline_item_fields ) )
+                    if not saleorderline_item_ids:
+                        saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
+                    else:
+                        saleorderline_item_ids.write( ( saleorderline_item_fields ) )
 
         if 'payments' in order_json:
             payments = order_json['payments']
@@ -496,9 +497,8 @@ class mercadolibre_orders(models.Model):
                 else:
                     payment_ids.write( ( payment_fields ) )
 
-
-        if order:
-            return_id = self.env['mercadolibre.orders'].update
+        #if order:
+        #    return_id = self.env['mercadolibre.orders'].update
 
         if company.mercadolibre_cron_get_orders_shipment:
             _logger.info("Updating order: Shipment")
