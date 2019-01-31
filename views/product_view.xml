@@ -20,6 +20,7 @@
                         <button name='%(action_product_template_post)d' type="action" string="Publicar-Actualizar producto en ML"/>
                         <button name='%(action_product_template_update)d' type="action" string="Cargar desde ML"/>
                       </group>
+                      <separator string="Descripcion del producto en ML" colspan="1"/>
                       <group name="Basic description">
                         <field name="meli_title" />
                         <field name="meli_description" />
@@ -30,6 +31,7 @@
                         <field name="meli_brand"/>
                         <field name="meli_model"/>
                       </group>
+                      <separator string="Condiciones de venta" colspan="1"/>
                       <group name="ML buying conditions">
                         <field name="meli_currency" />
                         <field name="meli_buying_mode" />
@@ -37,10 +39,20 @@
                         <field name="meli_condition" />
                         <field name="meli_listing_type" />
                       </group>
+                      <separator string="Variantes" colspan="1"/>
                       <group name="variantes">
                         <field name="meli_pub_as_variant" />
                         <field name="meli_pub_variant_attributes"  widget="many2many_checkboxes"  options="{'no_create': True}" domain="[('product_tmpl_id','=',id)]"/>
                         <field name="meli_pub_principal_variant" invisible="0"/>
+                      </group>
+                      <separator string="Import fields" colspan="1"/>
+                      <group name="Import fields">
+                        <field name="meli_stock" invisible="1"/>
+                        <field name="meli_product_bom" invisible="1"/>
+                        <field name="meli_product_price" invisible="1"/>
+                        <field name="meli_product_cost" invisible="1"/>
+                        <field name="meli_product_code" invisible="1"/>
+                        <field name="meli_product_supplier" invisible="1"/>
                       </group>
                     </page>
                   </notebook>
