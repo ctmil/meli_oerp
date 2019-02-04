@@ -197,22 +197,21 @@ class mercadolibre_category(models.Model):
         if (category_id):
             is_branch = False
             father = None
+            response_cat = meli.get("/categories/"+str(category_id), {'access_token':meli.access_token})
+            rjson_cat = response_cat.json()
+            if ("children_categories" in rjson_cat):
+                is_branch = True
+
             ml_cat_id = category_obj.search([('meli_category_id','=',category_id)])
-            if (ml_cat_id.id):
-              _logger.info("category exists!" + str(ml_cat_id))
-              ml_cat_id.get_attributes()
+            if (ml_cat_id.id and is_branch==False):
+                #_logger.info("category exists!" + str(ml_cat_id))
+                ml_cat_id.get_attributes()
             else:
-              _logger.info("Creating category: " + str(category_id))
-              #https://api.mercadolibre.com/categories/MLA1743
-              response_cat = meli.get("/categories/"+str(category_id), {'access_token':meli.access_token})
-              rjson_cat = response_cat.json()
-              _logger.info("category:" + str(rjson_cat))
-              fullname = ""
-
-              if ("children_categories" in rjson_cat):
-                  is_branch = True
-
-              if ("path_from_root" in rjson_cat):
+                _logger.info("Creating category: " + str(category_id))
+                #https://api.mercadolibre.com/categories/MLA1743
+                #_logger.info("category:" + str(rjson_cat))
+                fullname = ""
+                if ("path_from_root" in rjson_cat):
                   path_from_root = rjson_cat["path_from_root"]
                   for path in path_from_root:
                     fullname = fullname + "/" + path["name"]
@@ -221,17 +220,17 @@ class mercadolibre_category(models.Model):
                       father = category_obj.search([('meli_category_id','=',father_ml_id)]).id
 
 
-              #fullname = fullname + "/" + rjson_cat['name']
-              #_logger.info( "category fullname:" + str(fullname) )
-              _logger.info(fullname)
-              cat_fields = {
-                'name': fullname,
-                'meli_category_id': ''+str(category_id),
-                'is_branch': is_branch,
-                'meli_father_category': father
-              }
-              ml_cat_id = category_obj.create((cat_fields))
-              if (ml_cat_id.id):
+                #fullname = fullname + "/" + rjson_cat['name']
+                #_logger.info( "category fullname:" + str(fullname) )
+                _logger.info(fullname)
+                cat_fields = {
+                    'name': fullname,
+                    'meli_category_id': ''+str(category_id),
+                    'is_branch': is_branch,
+                    'meli_father_category': father
+                }
+                ml_cat_id = category_obj.create((cat_fields))
+                if (ml_cat_id.id and is_branch==False):
                   ml_cat_id.get_attributes()
 
 
