@@ -16,14 +16,14 @@ class StockMove(models.Model):
     def action_assign(self, no_prepare=False):
         company = self.env.user.company_id
         for mov in self:
-            _logger.info("StockMove action_assign")
+            #_logger.info("StockMove action_assign")
             #_logger.info(self)
-            _logger.info("Before: virtual av:" + str(mov.product_id.virtual_available))
+            #_logger.info("Before: virtual av:" + str(mov.product_id.virtual_available))
             res = super(StockMove, mov).action_assign()
-            _logger.info("After: virtual av:" + str(mov.product_id.virtual_available))
+            #_logger.info("After: virtual av:" + str(mov.product_id.virtual_available))
 
 
-            if mov.product_id:
+            if mov.product_id and 1==2:
                 bomlines = self.env['mrp.bom.line'].search([('product_id','=',mov.product_id.id)])
                 if (bomlines):
                     for bomline in bomlines:
@@ -60,14 +60,14 @@ class StockMove(models.Model):
         #import pdb; pdb.set_trace()
         company = self.env.user.company_id
         for mov in self:
-            _logger.info("StockMove action_done")
+            #_logger.info("StockMove action_done")
             #_logger.info(self)
-            _logger.info("Before: virtual av:" + str(mov.product_id.virtual_available))
+            #_logger.info("Before: virtual av:" + str(mov.product_id.virtual_available))
             res = super(StockMove, mov).action_done()
-            _logger.info("After: virtual av:" + str(mov.product_id.virtual_available))
+            #_logger.info("After: virtual av:" + str(mov.product_id.virtual_available))
 
 
-            if mov.product_id:
+            if mov.product_id and 1==2:
                 bomlines = self.env['mrp.bom.line'].search([('product_id','=',mov.product_id.id)])
                 if (bomlines):
                     for bomline in bomlines:
