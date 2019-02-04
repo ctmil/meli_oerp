@@ -1700,13 +1700,15 @@ class product_product(models.Model):
         #publicando imagen cargada en OpenERP
         if product.image==None:
             return warningobj.info( title='MELI WARNING', message="Debe cargar una imagen de base en el producto.", message_html="" )
-        elif product.meli_imagen_id==False:
+        else:
             # _logger.info( "try uploading image..." )
             resim = product.product_meli_upload_image()
             if "status" in resim:
                 if (resim["status"]=="error" or resim["status"]=="warning"):
                     error_msg = 'MELI: mensaje de error:   ', resim
                     _logger.error(error_msg)
+                    if (resim["status"]=="error"):
+                        return warningobj.info( title='MELI WARNING', message="Problemas cargando la imagen principal.", message_html=error_msg )
                 else:
                     assign_img = True and product.meli_imagen_id
 
