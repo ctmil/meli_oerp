@@ -2003,6 +2003,7 @@ class product_product(models.Model):
 
     def product_update_stock(self, stock=False):
         product = self
+        uomobj = self.env['uom.uom']
         _stock = product.virtual_available
 
         if (stock!=False):
@@ -2021,7 +2022,7 @@ class product_product(models.Model):
         if (_stock>=0 and product.virtual_available!=_stock):
             _logger.info("Updating stock for variant." + str(_stock) )
             wh = self.env['stock.location'].search([('usage','=','internal')]).id
-            product_uom_id = self.env['product.uom'].search([('name','=','Unidad(es)')])
+            product_uom_id = uomobj.search([('name','=','Unidad(es)')])
             if (product_uom_id.id==False):
                 product_uom_id = 1
             else:
