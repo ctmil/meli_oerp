@@ -258,8 +258,16 @@ class product_template(models.Model):
     meli_pub_variant_attributes = fields.Many2many('product.template.attribute.line', string='Atributos a publicar en ML',help='Seleccionar los atributos a publicar')
     meli_pub_principal_variant = fields.Many2one( 'product.product',string='Variante principal',help='Variante principal')
 
-    meli_model = fields.Char(string="Modelo",size=256)
-    meli_brand = fields.Char(string="Marca",size=256)
+    meli_model = fields.Char(string="Modelo [meli]",size=256)
+    meli_brand = fields.Char(string="Marca [meli]",size=256)
+    meli_stock = fields.Float(string="Cantidad inicial (Solo para actualizar stock)[meli]")
+
+    meli_product_bom = fields.Char(string="Lista de materiales (skux:1,skuy:2,skuz:4) [meli]")
+
+    meli_product_price = fields.Float(string="Precio [meli]")
+    meli_product_cost = fields.Float(string="Costo del proveedor [meli]")
+    meli_product_code = fields.Char(string="Codigo de proveedor [meli]")
+    meli_product_supplier = fields.Char(string="Proveedor del producto [meli]")
 
 product_template()
 
@@ -542,7 +550,7 @@ class product_product(models.Model):
                 imagen_id = rjson['pictures'][0]['id']
 
         product._meli_set_price( product_template, rjson['price'] )
-        _logger.info(rjson['title'])
+
         meli_fields = {
             'name': rjson['title'].encode("utf-8"),
             #'default_code': rjson['id'],

@@ -60,9 +60,9 @@ class res_company(models.Model):
         message = "Login to ML needed in Odoo."
         #pdb.set_trace()
         try:
-            if not (company.mercadolibre_seller_id==False) and not (company.mercadolibre_access_token==False) and not (company.mercadolibre_access_token==''):
+            if not (company.mercadolibre_seller_id==False):
                 response = meli.get("/users/"+str(company.mercadolibre_seller_id), {'access_token':meli.access_token} )
-                #_logger.info("response.content:"+str(response.content))
+                _logger.info("response.content:"+str(response.content))
                 rjson = response.json()
                 #response = meli.get("/users/")
                 if "error" in rjson:

@@ -22,7 +22,6 @@ class StockMove(models.Model):
             res = super(StockMove, mov).action_assign()
             #_logger.info("After: virtual av:" + str(mov.product_id.virtual_available))
 
-
             if mov.product_id:
                 bomlines = self.env['mrp.bom.line'].search([('product_id','=',mov.product_id.id)])
                 if (bomlines and 1==2):
