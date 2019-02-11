@@ -59,11 +59,10 @@ class res_company(models.Model):
         ML_state = False
         message = "Login to ML needed in Odoo."
         #pdb.set_trace()
-
         try:
-            if not (company.mercadolibre_seller_id==False):
+            if not (company.mercadolibre_seller_id==False) and not (company.mercadolibre_access_token==False) and not (company.mercadolibre_access_token==''):
                 response = meli.get("/users/"+str(company.mercadolibre_seller_id), {'access_token':meli.access_token} )
-                _logger.info("response.content:"+str(response.content))
+                #_logger.info("response.content:"+str(response.content))
                 rjson = response.json()
                 #response = meli.get("/users/")
                 if "error" in rjson:
@@ -122,12 +121,9 @@ class res_company(models.Model):
                     company.mercadolibre_cron_mail.id
                 ).with_context(context).sudo().send_mail( (company.id), force_send=True)
 
-        #res = {}
-        #for company in self.browse(cr,uid,ids):
-        #for company in self:
-        #    res[company.id] = ML_state
-        company.mercadolibre_state = ML_state
-
+        #_logger.info("ML_state: need login? "+str(ML_state))
+        for comp in self:
+            comp.mercadolibre_state = ML_state
 
     @api.multi
     def cron_meli_process( self ):
