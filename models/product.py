@@ -784,7 +784,7 @@ class product_product(models.Model):
                 variant.meli_pub = product_template.meli_pub
                 variant.meli_id = rjson['id']
                 #variant.default_code = rjson['id']
-                variant.name = str(rjson['title'].encode("utf-8"))
+                #variant.name = rjson['title'].encode("utf-8")
                 has_sku = False
 
                 _v_default_code = ""
@@ -1490,8 +1490,8 @@ class product_product(models.Model):
                                                         ('name','=','product.template,description_sale'),
                                                         ('lang','=','es_AR')])
         if translation:
-            _logger.info("translation")
-            _logger.info(translation.value)
+            #_logger.info("translation")
+            #_logger.info(translation.value)
             description_sale = translation.value
 
         productjson = False
@@ -1643,9 +1643,9 @@ class product_product(models.Model):
 
         if product.public_categ_ids:
             for cat_id in product.public_categ_ids:
-                _logger.info(cat_id)
+                #_logger.info(cat_id)
                 if (cat_id.mercadolibre_category):
-                    _logger.info(cat_id.mercadolibre_category)
+                    #_logger.info(cat_id.mercadolibre_category)
                     product.meli_category = cat_id.mercadolibre_category
                     product_tmpl.meli_category = cat_id.mercadolibre_category
 
@@ -1724,14 +1724,17 @@ class product_product(models.Model):
         if (product.meli_id):
             body = {
                 "title": product.meli_title or '',
-                "buying_mode": product.meli_buying_mode or '',
+                #"buying_mode": product.meli_buying_mode or '',
                 "price": product.meli_price or '0',
-                "condition": product.meli_condition or '',
+                #"condition": product.meli_condition or '',
                 "available_quantity": product.meli_available_quantity or '0',
                 "warranty": product.meli_warranty or '',
                 "pictures": [],
                 "video_id": product.meli_video or '',
             }
+            if ("attributes" in productjson):
+                attributes =  productjson["attributes"]
+                body["attributes"] =  attributes
         else:
             body["description"] = bodydescription
 

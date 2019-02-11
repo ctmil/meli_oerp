@@ -22,10 +22,9 @@ class StockMove(models.Model):
             res = super(StockMove, mov).action_assign()
             #_logger.info("After: virtual av:" + str(mov.product_id.virtual_available))
 
-
-            if mov.product_id and 1==2:
+            if mov.product_id:
                 bomlines = self.env['mrp.bom.line'].search([('product_id','=',mov.product_id.id)])
-                if (bomlines):
+                if (bomlines and 1==2):
                     for bomline in bomlines:
                         _logger.info("Clone stock: " + str(bomline.bom_id.product_id.virtual_available))
                         if (bomline.bom_id.product_id.virtual_available !=mov.product_id.virtual_available):
@@ -67,9 +66,9 @@ class StockMove(models.Model):
             #_logger.info("After: virtual av:" + str(mov.product_id.virtual_available))
 
 
-            if mov.product_id and 1==2:
+            if mov.product_id:
                 bomlines = self.env['mrp.bom.line'].search([('product_id','=',mov.product_id.id)])
-                if (bomlines):
+                if (bomlines and 1==2):
                     for bomline in bomlines:
                         _logger.info("Clone stock: " + str(bomline.bom_id.product_id.virtual_available))
                         if (bomline.bom_id.product_id.virtual_available !=mov.product_id.virtual_available):
