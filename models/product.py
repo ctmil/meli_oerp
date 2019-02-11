@@ -542,7 +542,7 @@ class product_product(models.Model):
                 imagen_id = rjson['pictures'][0]['id']
 
         product._meli_set_price( product_template, rjson['price'] )
-
+        _logger.info(rjson['title'])
         meli_fields = {
             'name': rjson['title'].encode("utf-8"),
             #'default_code': rjson['id'],
@@ -776,7 +776,7 @@ class product_product(models.Model):
                 variant.meli_pub = product_template.meli_pub
                 variant.meli_id = rjson['id']
                 #variant.default_code = rjson['id']
-                variant.name = str(rjson['title'].encode("utf-8"))
+                #variant.name = rjson['title'].encode("utf-8")
                 has_sku = False
 
                 _v_default_code = ""
