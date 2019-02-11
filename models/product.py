@@ -2056,7 +2056,8 @@ class product_product(models.Model):
                 #_logger.info("StockInventoryLine:")
                 #_logger.info(stock_inventory_field_line)
                 if (StockInventoryLine):
-                    return_id = StockInventory.action_done()
+                    #return_id = StockInventory.action_done()
+                    return_id = StockInventory.post_inventory()
                     #_logger.info("action_done:"+str(return_id))
 
 
