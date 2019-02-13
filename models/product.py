@@ -841,7 +841,7 @@ class product_product(models.Model):
         #si es (Con envio: Sí): asigna el meli_default_stock_product al producto sin envio (Con evio: No)
         if (b_search_nonfree_ship):
             ptemp_nfree = False
-            ptpl_same_name = self.env['product.template'].search([('name','=',product_template.name)])
+            ptpl_same_name = self.env['product.template'].search([('name','=',product_template.name),('id','!=',product_template.id)])
             #_logger.info("ptpl_same_name:"+product_template.name)
             #_logger.info(ptpl_same_name)
             if len(ptpl_same_name):
@@ -870,7 +870,9 @@ class product_product(models.Model):
                                             #_logger.info("has meli_default_stock_product!!!")
                                             ptemp_nfree = ptemp_nfree.meli_default_stock_product
                                     else:
-                                        ptemp_nfree = ptemp.product_variant_ids[0]
+                                        if (ptemp.product_variant_ids):
+                                            if (len(ptemp.product_variant_ids)):
+                                                ptemp_nfree = ptemp.product_variant_ids[0]
 
             if (ptemp_nfree):
                 #_logger.info("Founded ptemp_nfree, assign to all variants")
