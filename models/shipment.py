@@ -34,11 +34,11 @@ from urllib.request import urlopen
 import requests
 import base64
 import mimetypes
-import orders
-import product
-import product_post
-import posting
-import res_partner
+from . import orders
+from . import product
+from . import product_post
+from . import posting
+from . import res_partner
 
 #
 #     https://www.odoo.com/fr_FR/forum/aide-1/question/solved-call-report-and-save-result-to-attachment-133244
