@@ -2071,6 +2071,8 @@ class product_product(models.Model):
                 if (StockInventoryLine):
                     #return_id = StockInventory.action_done()
                     return_id = StockInventory.post_inventory()
+                    return_id = StockInventory.action_start()
+                    return_id = StockInventory.action_validate()
                     #_logger.info("action_done:"+str(return_id))
 
 
