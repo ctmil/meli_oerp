@@ -828,14 +828,17 @@ class product_product(models.Model):
         if (company.mercadolibre_update_local_stock):
             product_template.type = 'product'
 
-            for variant in product_template.product_variant_ids:
+            if (len(product_template.product_variant_ids)):
+                for variant in product_template.product_variant_ids:
 
-                _product_id = variant.id
-                _product_name = variant.name
-                _product_meli_id = variant.meli_id
+                    _product_id = variant.id
+                    _product_name = variant.name
+                    _product_meli_id = variant.meli_id
 
-                if (variant.meli_available_quantity != variant.virtual_available):
-                    variant.product_update_stock(variant.meli_available_quantity)
+                    if (variant.meli_available_quantity != variant.virtual_available):
+                        variant.product_update_stock(variant.meli_available_quantity)
+            else:
+                product.product_update_stock(product.meli_available_quantity)
 
         #assign envio/sin envio
         #si es (Con envio: Sí): asigna el meli_default_stock_product al producto sin envio (Con evio: No)
