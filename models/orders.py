@@ -460,11 +460,6 @@ class mercadolibre_orders(models.Model):
                         'product_uom': 1,
                         'name': Item['item']['title'],
                     }
-                    if (float(Item['unit_price'])==product_related_obj.product_tmpl_id.lst_price and 1==2):
-                        saleorderline_item_fields['price_unit'] = float(Item['unit_price'])
-                        saleorderline_item_fields['tax_id'] = None
-                    else:
-                        saleorderline_item_fields['price_unit'] = product_related_obj.product_tmpl_id.lst_price
 
                     product_template = product_related_obj.product_tmpl_id
                     if (product_template.taxes_id):
@@ -480,6 +475,12 @@ class mercadolibre_orders(models.Model):
                             ml_price_converted = ml_price_converted / (1.0 + txtotal*0.01)
                             _logger.info("Price converted:"+str(ml_price_converted))
                             saleorderline_item_fields['price_unit'] = ml_price_converted
+                    else:
+                        if (float(Item['unit_price'])==product_related_obj.product_tmpl_id.lst_price):
+                            saleorderline_item_fields['price_unit'] = float(Item['unit_price'])
+                            saleorderline_item_fields['tax_id'] = None
+                        else:
+                            saleorderline_item_fields['price_unit'] = product_related_obj.product_tmpl_id.lst_price
 
 
                     saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
