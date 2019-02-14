@@ -285,6 +285,14 @@ class mercadolibre_orders(models.Model):
                 'last_name': Buyer['last_name'],
                 'billing_info': self.billing_info(Buyer['billing_info']),
             }
+            if ('doc_type' in Buyer['billing_info']):
+                buyer_fields['billing_info_doc_type'] = Buyer['billing_info']['doc_type']
+                if ('doc_number' in Buyer['billing_info']):
+                    buyer_fields['billing_info_doc_number'] = Buyer['billing_info']['doc_number']
+            else:
+                buyer_fields['billing_info_doc_type'] = ''
+                buyer_fields['billing_info_doc_number'] = ''
+
 
             buyer_ids = buyers_obj.search([  ('buyer_id','=',buyer_fields['buyer_id'] ) ] )
             buyer_id = 0
@@ -299,6 +307,22 @@ class mercadolibre_orders(models.Model):
                 #      buyer_id = buyer_ids[0]
             if (buyer_id):
                 meli_buyer_fields['meli_buyer'] = buyer_id.id
+                if (('doc_type' in Buyer['billing_info']) and ('afip.responsability.type' in self.env)):
+                    doctypeid = self.env['res.partner.id_category'].search([('code','=',Buyer['billing_info']['doc_type'])]).id
+                    if (doctypeid):
+                        meli_buyer_fields['main_id_category_id'] = doctypeid
+                        meli_buyer_fields['main_id_number'] = Buyer['billing_info']['doc_number']
+                        if (Buyer['billing_info']['doc_type']=="CUIT"):
+                            #IVA Responsable Inscripto
+                            afipid = self.env['afip.responsability.type'].search([('code','=',1)]).id
+                            meli_buyer_fields["afip_responsability_type_id"] = afipid
+                        else:
+                            #if (Buyer['billing_info']['doc_type']=="DNI"):
+                            #Consumidor Final
+                            afipid = self.env['afip.responsability.type'].search([('code','=',5)]).id
+                            meli_buyer_fields["afip_responsability_type_id"] = afipid
+                    else:
+                        _logger.error("res.partner.id_category:" + str(Buyer['billing_info']['doc_type']))
 
             partner_ids = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ] )
             partner_id = 0
@@ -308,6 +332,7 @@ class mercadolibre_orders(models.Model):
             else:
                 partner_id = partner_ids
                 _logger.info("Updating partner")
+                _logger.info(meli_buyer_fields)
                 partner_id.write(meli_buyer_fields)
 
             if order and buyer_id:
@@ -713,6 +738,8 @@ class mercadolibre_buyers(models.Model):
     first_name = fields.Char( string='First Name')
     last_name = fields.Char( string='Last Name')
     billing_info = fields.Char( string='Billing Info')
+    billing_info_doc_type = fields.Char( string='Billing Info Doc Type')
+    billing_info_doc_number = fields.Char( string='Billing Info Doc Number')
 
 mercadolibre_buyers()
 
@@ -754,3 +781,12 @@ class mercadolibre_orders_update(models.TransientModel):
         return {}
 
 mercadolibre_orders_update()
+
+#class account_invoice(models.Model):
+#
+#    def account_invoice_open(self):
+#        for inv in self:
+#            if (inv.partner_id):
+#                if (inv.partner_id.main_id_number and inv.partner_id.main_id_category_id):
+#                    inv.
+#account_invoice()

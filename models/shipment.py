@@ -344,7 +344,7 @@ class mercadolibre_shipment(models.Model):
 				else:
 					_logger.info("Updating shipment: " + str(ship_id))
 					ships.write((ship_fields))
-					if (full_orders):
+					if (full_orders and ship_fields["pack_order"]):
 						plistid = None
 						if company.mercadolibre_pricelist:
 							plistid = company.mercadolibre_pricelist
