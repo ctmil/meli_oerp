@@ -122,12 +122,9 @@ class res_company(models.Model):
                     company.mercadolibre_cron_mail.id
                 ).with_context(context).sudo().send_mail( (company.id), force_send=True)
 
-        #res = {}
-        #for company in self.browse(cr,uid,ids):
-        #for company in self:
-        #    res[company.id] = ML_state
-        company.mercadolibre_state = ML_state
-
+        #_logger.info("ML_state: need login? "+str(ML_state))
+        for comp in self:
+            comp.mercadolibre_state = ML_state
 
     @api.multi
     def cron_meli_process( self ):

@@ -8,7 +8,7 @@
 			<field name="target">new</field>
 		</record>
 
-        <record model="ir.ui.view" id="view_company_page_mercadolibreb">
+        <record model="ir.ui.view" id="view_company_page_mercadolibre">
             <field name="name">res.company.form.meli</field>
             <field name="model">res.company</field>
             <field name="inherit_id" ref="base.view_company_form"/>

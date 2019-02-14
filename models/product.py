@@ -828,20 +828,23 @@ class product_product(models.Model):
         if (company.mercadolibre_update_local_stock):
             product_template.type = 'product'
 
-            for variant in product_template.product_variant_ids:
+            if (len(product_template.product_variant_ids)):
+                for variant in product_template.product_variant_ids:
 
-                _product_id = variant.id
-                _product_name = variant.name
-                _product_meli_id = variant.meli_id
+                    _product_id = variant.id
+                    _product_name = variant.name
+                    _product_meli_id = variant.meli_id
 
-                if (variant.meli_available_quantity != variant.virtual_available):
-                    variant.product_update_stock(variant.meli_available_quantity)
+                    if (variant.meli_available_quantity != variant.virtual_available):
+                        variant.product_update_stock(variant.meli_available_quantity)
+            else:
+                product.product_update_stock(product.meli_available_quantity)
 
         #assign envio/sin envio
         #si es (Con envio: Sí): asigna el meli_default_stock_product al producto sin envio (Con evio: No)
         if (b_search_nonfree_ship):
             ptemp_nfree = False
-            ptpl_same_name = self.env['product.template'].search([('name','=',product_template.name)])
+            ptpl_same_name = self.env['product.template'].search([('name','=',product_template.name),('id','!=',product_template.id)])
             #_logger.info("ptpl_same_name:"+product_template.name)
             #_logger.info(ptpl_same_name)
             if len(ptpl_same_name):
@@ -870,7 +873,9 @@ class product_product(models.Model):
                                             #_logger.info("has meli_default_stock_product!!!")
                                             ptemp_nfree = ptemp_nfree.meli_default_stock_product
                                     else:
-                                        ptemp_nfree = ptemp.product_variant_ids[0]
+                                        if (ptemp.product_variant_ids):
+                                            if (len(ptemp.product_variant_ids)):
+                                                ptemp_nfree = ptemp.product_variant_ids[0]
 
             if (ptemp_nfree):
                 #_logger.info("Founded ptemp_nfree, assign to all variants")
@@ -2012,6 +2017,7 @@ class product_product(models.Model):
 
     def product_update_stock(self, stock=False):
         product = self
+        uomobj = self.env['product.uom']
         _stock = product.virtual_available
 
         if (stock!=False):
@@ -2030,7 +2036,7 @@ class product_product(models.Model):
         if (_stock>=0 and product.virtual_available!=_stock):
             _logger.info("Updating stock for variant." + str(_stock) )
             wh = self.env['stock.location'].search([('usage','=','internal')]).id
-            product_uom_id = self.env['product.uom'].search([('name','=','Unidad(es)')])
+            product_uom_id = uomobj.search([('name','=','Unidad(es)')])
             if (product_uom_id.id==False):
                 product_uom_id = 1
             else:
