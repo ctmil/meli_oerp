@@ -1647,9 +1647,9 @@ class product_product(models.Model):
 
         if product.public_categ_ids:
             for cat_id in product.public_categ_ids:
-                _logger.info(cat_id)
+                #_logger.info(cat_id)
                 if (cat_id.mercadolibre_category):
-                    _logger.info(cat_id.mercadolibre_category)
+                    #_logger.info(cat_id.mercadolibre_category)
                     product.meli_category = cat_id.mercadolibre_category
                     product_tmpl.meli_category = cat_id.mercadolibre_category
 
