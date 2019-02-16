@@ -781,12 +781,3 @@ class mercadolibre_orders_update(models.TransientModel):
         return {}
 
 mercadolibre_orders_update()
-
-#class account_invoice(models.Model):
-#
-#    def account_invoice_open(self):
-#        for inv in self:
-#            if (inv.partner_id):
-#                if (inv.partner_id.main_id_number and inv.partner_id.main_id_category_id):
-#                    inv.
-#account_invoice()
