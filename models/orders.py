@@ -285,6 +285,14 @@ class mercadolibre_orders(models.Model):
                 'last_name': Buyer['last_name'],
                 'billing_info': self.billing_info(Buyer['billing_info']),
             }
+            if ('doc_type' in Buyer['billing_info']):
+                buyer_fields['billing_info_doc_type'] = Buyer['billing_info']['doc_type']
+                if ('doc_number' in Buyer['billing_info']):
+                    buyer_fields['billing_info_doc_number'] = Buyer['billing_info']['doc_number']
+            else:
+                buyer_fields['billing_info_doc_type'] = ''
+                buyer_fields['billing_info_doc_number'] = ''
+
 
             buyer_ids = buyers_obj.search([  ('buyer_id','=',buyer_fields['buyer_id'] ) ] )
             buyer_id = 0
@@ -299,6 +307,22 @@ class mercadolibre_orders(models.Model):
                 #      buyer_id = buyer_ids[0]
             if (buyer_id):
                 meli_buyer_fields['meli_buyer'] = buyer_id.id
+                if (('doc_type' in Buyer['billing_info']) and ('afip.responsability.type' in self.env)):
+                    doctypeid = self.env['res.partner.id_category'].search([('code','=',Buyer['billing_info']['doc_type'])]).id
+                    if (doctypeid):
+                        meli_buyer_fields['main_id_category_id'] = doctypeid
+                        meli_buyer_fields['main_id_number'] = Buyer['billing_info']['doc_number']
+                        if (Buyer['billing_info']['doc_type']=="CUIT"):
+                            #IVA Responsable Inscripto
+                            afipid = self.env['afip.responsability.type'].search([('code','=',1)]).id
+                            meli_buyer_fields["afip_responsability_type_id"] = afipid
+                        else:
+                            #if (Buyer['billing_info']['doc_type']=="DNI"):
+                            #Consumidor Final
+                            afipid = self.env['afip.responsability.type'].search([('code','=',5)]).id
+                            meli_buyer_fields["afip_responsability_type_id"] = afipid
+                    else:
+                        _logger.error("res.partner.id_category:" + str(Buyer['billing_info']['doc_type']))
 
             partner_ids = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ] )
             partner_id = 0
@@ -308,6 +332,7 @@ class mercadolibre_orders(models.Model):
             else:
                 partner_id = partner_ids
                 _logger.info("Updating partner")
+                _logger.info(meli_buyer_fields)
                 partner_id.write(meli_buyer_fields)
 
             if order and buyer_id:
@@ -460,11 +485,28 @@ class mercadolibre_orders(models.Model):
                         'product_uom': 1,
                         'name': Item['item']['title'],
                     }
-                    if (float(Item['unit_price'])==product_related_obj.product_tmpl_id.lst_price):
-                        saleorderline_item_fields['price_unit'] = float(Item['unit_price'])
-                        saleorderline_item_fields['tax_id'] = None
+
+                    product_template = product_related_obj.product_tmpl_id
+                    if (product_template.taxes_id):
+                        txtotal = 0
+                        ml_price_converted = float(Item['unit_price'])
+                        _logger.info("Adjust taxes")
+                        for txid in product_template.taxes_id:
+                            if (txid.type_tax_use=="sale"):
+                                txtotal = txtotal + txid.amount
+                                _logger.info(txid.amount)
+                        if (txtotal>0):
+                            _logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_converted))
+                            ml_price_converted = ml_price_converted / (1.0 + txtotal*0.01)
+                            _logger.info("Price converted:"+str(ml_price_converted))
+                            saleorderline_item_fields['price_unit'] = ml_price_converted
                     else:
-                        saleorderline_item_fields['price_unit'] = product_related_obj.product_tmpl_id.lst_price
+                        if (float(Item['unit_price'])==product_related_obj.product_tmpl_id.lst_price):
+                            saleorderline_item_fields['price_unit'] = float(Item['unit_price'])
+                            saleorderline_item_fields['tax_id'] = None
+                        else:
+                            saleorderline_item_fields['price_unit'] = product_related_obj.product_tmpl_id.lst_price
+
 
                     saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
 
@@ -696,6 +738,8 @@ class mercadolibre_buyers(models.Model):
     first_name = fields.Char( string='First Name')
     last_name = fields.Char( string='Last Name')
     billing_info = fields.Char( string='Billing Info')
+    billing_info_doc_type = fields.Char( string='Billing Info Doc Type')
+    billing_info_doc_number = fields.Char( string='Billing Info Doc Number')
 
 mercadolibre_buyers()
 
