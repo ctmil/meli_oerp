@@ -59,7 +59,6 @@ class res_company(models.Model):
         ML_state = False
         message = "Login to ML needed in Odoo."
         #pdb.set_trace()
-
         try:
             if not (company.mercadolibre_seller_id==False):
                 response = meli.get("/users/"+str(company.mercadolibre_seller_id), {'access_token':meli.access_token} )
