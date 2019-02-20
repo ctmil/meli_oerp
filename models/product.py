@@ -1494,8 +1494,8 @@ class product_product(models.Model):
                                                         ('name','=','product.template,description_sale'),
                                                         ('lang','=','es_AR')])
         if translation:
-            _logger.info("translation")
-            _logger.info(translation.value)
+            #_logger.info("translation")
+            #_logger.info(translation.value)
             description_sale = translation.value
 
         productjson = False
