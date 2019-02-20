@@ -428,6 +428,35 @@ class mercadolibre_orders(models.Model):
                         _logger.info("order product related by seller_custom_field and default_code:"+str(Item['item']['seller_custom_field']) )
                     else:
                         product_related = product_obj.search([('meli_id','=',Item['item']['id'])])
+                        if len(product_related):
+                            _logger.info("Product founded:"+str(Item['item']['id']))
+                        else:
+                            #optional, get product
+                            try:
+                                response3 = meli.get("/items/"+str(Item['item']['id']), {'access_token':meli.access_token})
+                                rjson3 = response3.json()
+                                prod_fields = {
+                                    'name': rjson3['title'].encode("utf-8"),
+                                    'description': rjson3['title'].encode("utf-8"),
+                                    'meli_id': rjson3['id'],
+                                    'meli_pub': True,
+                                }
+                                #prod_fields['default_code'] = rjson3['id']
+                                productcreated = self.env['product.product'].create((prod_fields))
+                                if (productcreated):
+                                    if (productcreated.product_tmpl_id):
+                                        productcreated.product_tmpl_id.meli_pub = True
+                                    _logger.info( "product created: " + str(productcreated) + " >> meli_id:" + str(rjson3['id']) + "-" + str( rjson3['title'].encode("utf-8")) )
+                                    #pdb.set_trace()
+                                    _logger.info(productcreated)
+                                    productcreated.product_meli_get_product()
+                                else:
+                                    _logger.info( "product couldnt be created")
+                                product_related = productcreated
+                            except:
+                                _logger.info( "product couldnt be created")
+                                pass;
+
                         if ('variation_attributes' in Item['item']):
                             _logger.info("TODO: search by attributes")
 
