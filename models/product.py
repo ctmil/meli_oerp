@@ -897,14 +897,14 @@ class product_product(models.Model):
 
                         if (len(attribute) and attribute.id):
                             attribute_id = attribute.id
-                            attribute_value_id = self.env['product.attribute.value'].search([('attribute_id','=',attribute_id), ('name','=',att['value_name'].encode("utf-8"))]).id
+                            attribute_value_id = self.env['product.attribute.value'].search([('attribute_id','=',attribute_id), ('name','=',att['value_name'])]).id
                             #_logger.info(_logger.info(attribute_id))
                             if attribute_value_id:
                                 #_logger.info(attribute_value_id)
                                 pass
                             else:
                                 #_logger.info("Creating attribute value:")
-                                attribute_value_id = self.env['product.attribute.value'].create({'attribute_id': attribute_id, 'name': att['value_name'].encode("utf-8") }).id
+                                attribute_value_id = self.env['product.attribute.value'].create({'attribute_id': attribute_id, 'name': att['value_name'] }).id
 
                             if (attribute_value_id):
                                 attribute_line =  self.env['product.template.attribute.line'].search([('attribute_id','=',attribute_id),('product_tmpl_id','=',product_template.id)])
