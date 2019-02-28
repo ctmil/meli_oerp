@@ -23,6 +23,7 @@
                   <field name="sender_id"  invisible="1"/>
                   <field name="pdf_file"/>
                   <field name="pdf_link" invisible="1"/>
+                  <field name="pdfimage_file"/>
                   <field name="pack_order" invisible="1"/>
               </tree>
             </field>
@@ -88,6 +89,8 @@
                   <group>
                     <field name="pdf_file" filename="pdf_filename"/>
                     <field name="pdf_filename"/>
+                    <field name="pdfimage_file" filename="pdfimage_filename"/>
+                    <field name="pdfimage_filename"/>
                     <field name="pdf_link" widget="url"/>
                   </group>
                 </form>
@@ -204,5 +207,17 @@
                         menu="True"
                         print_report_name="'Reporte de etiquetas'"
                     />
+
+
+                    <report
+                                id="report_invoice_shipment_view"
+                                string="Shipment Report"
+                                model="account.invoice"
+                                report_type="qweb-pdf"
+                                file="meli_oerp.report_invoice_shipment"
+                                name="meli_oerp.report_invoice_shipment"
+                                menu="True"
+                                print_report_name="'Reporte de facturas con etiquetas'"
+                            />
     </data>
 </openerp>
