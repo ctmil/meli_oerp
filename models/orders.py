@@ -442,7 +442,8 @@ class mercadolibre_orders(models.Model):
                                     'meli_pub': True,
                                 }
                                 #prod_fields['default_code'] = rjson3['id']
-                                productcreated = self.env['product.product'].create((prod_fields))
+                                productcreated = False
+                                #productcreated = self.env['product.product'].create((prod_fields))
                                 if (productcreated):
                                     if (productcreated.product_tmpl_id):
                                         productcreated.product_tmpl_id.meli_pub = True
