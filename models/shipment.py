@@ -39,7 +39,7 @@ from . import product
 from . import product_post
 from . import posting
 from . import res_partner
-
+#from pdf2image import convert_from_path, convert_from_bytes
 #
 #     https://www.odoo.com/fr_FR/forum/aide-1/question/solved-call-report-and-save-result-to-attachment-133244
 #
@@ -96,6 +96,13 @@ class mercadolibre_shipment_print(models.TransientModel):
 						_logger.info(data)
 						shipment.pdf_filename = "Shipment_"+shipment.shipping_id+".pdf"
 						shipment.pdf_file = base64.encodestring(data)
+						#images = convert_from_bytes(data, 300)
+						if (1==2 and len(images)>1):
+							#for image in images:
+							#base64.b64decode( pimage.image )
+							image = images[1]
+							shipment.pdfimage_file = base64.encodestring(image)
+							shipment.pdfimage_filename = "Shipment_"+shipment.shipping_id+".jpg"
 					except Exception as e:
 						_logger.info("Exception!")
 						_logger.info(e, exc_info=True)
@@ -344,6 +351,35 @@ class mercadolibre_shipment(models.Model):
 				else:
 					_logger.info("Updating shipment: " + str(ship_id))
 					ships.write((ship_fields))
+
+					try:
+						_logger.info("ships.pdf_filename:")
+						_logger.info(ships.pdf_filename)
+						if (1==2 and ships.pdf_filename):
+							_logger.info("We have a pdf file")
+							if (ships.pdfimage_filename==False):
+								_logger.info("Try create a pdf image file")
+								data = base64.b64decode( ships.pdf_file )
+								images = convert_from_bytes(data, dpi=300,fmt='jpg')
+								for image in images:
+									image.save("/tmp/%s-page%d.jpg" % ("Shipment_"+ships.shipping_id,images.index(image)), "JPEG")
+									if (images.index(image)==1):
+										imgdata = urlopen("file:///tmp/Shipment_"+ships.shipping_id+"-page1.jpg").read()
+										ships.pdfimage_file = base64.encodestring(imgdata)
+										ships.pdfimage_filename = "Shipment_"+ships.shipping_id+".jpg"
+								#if (len(images)):
+								#	_logger.info(images)
+									#for image in images:
+									#base64.b64decode( pimage.image )
+								#	image = images[1]
+								#	ships.pdfimage_file = base64.encodestring(image.tobytes())
+								#	ships.pdfimage_filename = "Shipment_"+ships.shipping_id+".jpg"
+					except Exception as e:
+						_logger.info("Error converting pdf to jpg: try installing pdf2image and poppler-utils, like this:")
+						_logger.info("sudo apt install poppler-utils && sudo pip install pdf2image")
+						_logger.info(e, exc_info=True)
+						pass;
+
 					if (full_orders and ship_fields["pack_order"]):
 						plistid = None
 						if company.mercadolibre_pricelist:
@@ -436,3 +472,31 @@ class mercadolibre_shipment(models.Model):
 		return {}
 
 mercadolibre_shipment()
+
+
+class AccountInvoice(models.Model):
+	_inherit = "account.invoice"
+
+	@api.model
+	def _get_shipment(self):
+		ret = {}
+		ret["shipping_id"] = 'x'
+		ret["pdfimage_filename"] = 'x'
+		ret["pdfimage_file"] = 'x'
+		if (self.origin):
+			order = self.env["sale.order"].search([('name','=',self.origin)])
+			if (order.id):
+				_logger.info("Order found:"+str(order.name))
+				#if (order.meli_order_id)
+				if (order.meli_shipping_id):
+					shipment = self.env["mercadolibre.shipment"].search([('shipping_id','=',order.meli_shipping_id)])
+					ret["shipping_id"] = order.meli_shipping_id
+					ret["pdfimage_filename"] = shipment.pdfimage_filename
+					ret["pdfimage_file"] = shipment.pdfimage_file
+				else:
+					_logger.info("No meli_shipping_id found for:"+str(order.meli_shipping_id))
+			else:
+				_logger.info("No order found for:"+str(self.origin))
+		return ret
+
+AccountInvoice()

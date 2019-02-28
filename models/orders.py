@@ -358,6 +358,7 @@ class mercadolibre_orders(models.Model):
             meli_order_fields['meli_shipping'] = self.pretty_json( id, order_json["shipping"] )
             if ("id" in order_json["shipping"]):
                 order_fields['shipping_id'] = order_json["shipping"]["id"]
+                meli_order_fields['meli_shipping_id'] = order_json["shipping"]["id"]
 
         #create or update order
         if (order and order.id):
