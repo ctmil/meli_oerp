@@ -219,11 +219,11 @@ class product_template(models.Model):
 
     @api.onchange('meli_pub') # if these fields are changed, call method
     def change_meli_pub(self):
-        _logger.info("onchange meli_pub")
-        product = self
+        _logger.info("onchange meli_pub:"+str(self.meli_pub))
+        product = self._origin
         for variant in product.product_variant_ids:
-            variant.meli_pub = product.meli_pub
-        return {}
+            _logger.info("onchange meli_pub variant before::"+str(variant.meli_pub))
+            variant.write({'meli_pub':self.meli_pub})
 
 
     name = fields.Char('Name', size=128, required=True, translate=False, index=True)
@@ -1520,14 +1520,24 @@ class product_product(models.Model):
         if product_tmpl.meli_title==False:
             product_tmpl.meli_title = product_tmpl.name
 
+        pl = False
         if company.mercadolibre_pricelist:
             pl = company.mercadolibre_pricelist
-            return_val = pl.price_get(product.id,1.0)
+
+        if product_tmpl.meli_price==False or product_tmpl.meli_price==0:
+            product_tmpl.meli_price = product_tmpl.list_price
 
         if product_tmpl.taxes_id:
             new_price = product_tmpl.meli_price
-            if pl.id in return_val:
-                new_price = return_val[pl.id]
+            if (pl):
+                return_val = pl.price_get(product.id,1.0)
+                if pl.id in return_val:
+                    new_price = return_val[pl.id]
+            else:
+                new_price = product_tmpl.list_price
+                if (product.lst_price):
+                    new_price = product.lst_price
+
             new_price = new_price * ( 1 + ( product_tmpl.taxes_id[0].amount / 100) )
             new_price = round(new_price,2)
             product_tmpl.meli_price = new_price
@@ -1535,9 +1545,6 @@ class product_product(models.Model):
 
         if company.mercadolibre_buying_mode and product_tmpl.meli_buying_mode==False:
             product_tmpl.meli_buying_mode = company.mercadolibre_buying_mode
-
-        if product_tmpl.meli_price==False or product_tmpl.meli_price==0:
-            product_tmpl.meli_price = product_tmpl.standard_price
 
         if product_tmpl.meli_description==False or len(product_tmpl.meli_description)==0:
             product_tmpl.meli_description = product_tmpl.description_sale
@@ -1737,8 +1744,23 @@ class product_product(models.Model):
                 "video_id": product.meli_video or '',
             }
             if ("attributes" in productjson):
-                attributes =  productjson["attributes"]
-                body["attributes"] =  attributes
+                if (len(attributes)):
+                    dicatts = {}
+                    for att in attributes:
+                        dicatts[att["id"]] = att
+                    attributes_ml =  productjson["attributes"]
+                    x = 0
+                    for att in attributes_ml:
+                        if (att["id"] in dicatts):
+                            attributes_ml[x] = dicatts[att["id"]]
+                        else:
+                            attributes.append(att)
+                        x = x + 1
+
+                    body["attributes"] =  attributes
+                else:
+                    attributes =  productjson["attributes"]
+                    body["attributes"] =  attributes
         else:
             body["description"] = bodydescription
 
