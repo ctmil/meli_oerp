@@ -1741,12 +1741,12 @@ class product_product(models.Model):
                 if (len(attributes)):
                     dicatts = {}
                     for att in attributes:
-                        dicatts[att.id] = att
+                        dicatts[att["id"]] = att
                     attributes_ml =  productjson["attributes"]
                     x = 0
                     for att in attributes_ml:
-                        if (dicatts[att.id]):
-                            attributes_ml[x] = dicatts[att.id]
+                        if (dicatts[att["id"]]):
+                            attributes_ml[x] = dicatts[att["id"]]
                         else:
                             attributes.append(att)
                         x = x + 1
