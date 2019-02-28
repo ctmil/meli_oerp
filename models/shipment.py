@@ -97,7 +97,7 @@ class mercadolibre_shipment_print(models.TransientModel):
 						shipment.pdf_filename = "Shipment_"+shipment.shipping_id+".pdf"
 						shipment.pdf_file = base64.encodestring(data)
 						images = convert_from_bytes(data, 300)
-						if (len(images)>1):
+						if (1==1 and len(images)>1):
 							#for image in images:
 							#base64.b64decode( pimage.image )
 							image = images[1]
@@ -357,9 +357,9 @@ class mercadolibre_shipment(models.Model):
 					try:
 						_logger.info("ships.pdf_filename:")
 						_logger.info(ships.pdf_filename)
-						if (ships.pdf_filename):
+						if (1==1 and ships.pdf_filename):
 							_logger.info("We have a pdf file")
-							if (ships.pdfimage_filename or ships.pdfimage_filename==False):
+							if (ships.pdfimage_filename==False):
 								_logger.info("Try create a pdf image file")
 								data = base64.b64decode( ships.pdf_file )
 								images = convert_from_bytes(data, dpi=300,fmt='jpg')
