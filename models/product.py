@@ -1745,7 +1745,7 @@ class product_product(models.Model):
                     attributes_ml =  productjson["attributes"]
                     x = 0
                     for att in attributes_ml:
-                        if (dicatts[att["id"]]):
+                        if (att["id"] in dicatts):
                             attributes_ml[x] = dicatts[att["id"]]
                         else:
                             attributes.append(att)
