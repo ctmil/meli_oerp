@@ -219,11 +219,11 @@ class product_template(models.Model):
 
     @api.onchange('meli_pub') # if these fields are changed, call method
     def change_meli_pub(self):
-        _logger.info("onchange meli_pub")
-        product = self
+        _logger.info("onchange meli_pub:"+str(self.meli_pub))
+        product = self._origin
         for variant in product.product_variant_ids:
-            variant.meli_pub = product.meli_pub
-        return {}
+            _logger.info("onchange meli_pub variant before::"+str(variant.meli_pub))
+            variant.write({'meli_pub':self.meli_pub})
 
 
     name = fields.Char('Name', size=128, required=True, translate=False, index=True)
@@ -1738,8 +1738,23 @@ class product_product(models.Model):
                 "video_id": product.meli_video or '',
             }
             if ("attributes" in productjson):
-                attributes =  productjson["attributes"]
-                body["attributes"] =  attributes
+                if (len(attributes)):
+                    dicatts = {}
+                    for att in attributes:
+                        dicatts[att["id"]] = att
+                    attributes_ml =  productjson["attributes"]
+                    x = 0
+                    for att in attributes_ml:
+                        if (att["id"] in dicatts):
+                            attributes_ml[x] = dicatts[att["id"]]
+                        else:
+                            attributes.append(att)
+                        x = x + 1
+
+                    body["attributes"] =  attributes
+                else:
+                    attributes =  productjson["attributes"]
+                    body["attributes"] =  attributes
         else:
             body["description"] = bodydescription
 
