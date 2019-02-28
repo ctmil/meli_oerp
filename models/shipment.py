@@ -102,8 +102,8 @@ class mercadolibre_shipment_print(models.TransientModel):
 								image.save("/tmp/%s-page%d.jpg" % ("Shipment_"+shipment.shipping_id,images.index(image)), "JPEG")
 								if (images.index(image)==1):
 									imgdata = urlopen("file:///tmp/Shipment_"+shipment.shipping_id+"-page1.jpg").read()
-									ships.pdfimage_file = base64.encodestring(imgdata)
-									ships.pdfimage_filename = "Shipment_"+shipment.shipping_id+".jpg"
+									shipment.pdfimage_file = base64.encodestring(imgdata)
+									shipment.pdfimage_filename = "Shipment_"+shipment.shipping_id+".jpg"
 					except Exception as e:
 						_logger.info("Exception!")
 						_logger.info(e, exc_info=True)
