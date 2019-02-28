@@ -1524,6 +1524,9 @@ class product_product(models.Model):
         if company.mercadolibre_pricelist:
             pl = company.mercadolibre_pricelist
 
+        if product_tmpl.meli_price==False or product_tmpl.meli_price==0:
+            product_tmpl.meli_price = product_tmpl.list_price
+
         if product_tmpl.taxes_id:
             new_price = product_tmpl.meli_price
             if (pl):
@@ -1542,9 +1545,6 @@ class product_product(models.Model):
 
         if company.mercadolibre_buying_mode and product_tmpl.meli_buying_mode==False:
             product_tmpl.meli_buying_mode = company.mercadolibre_buying_mode
-
-        if product_tmpl.meli_price==False or product_tmpl.meli_price==0:
-            product_tmpl.meli_price = product_tmpl.list_price
 
         if product_tmpl.meli_description==False or len(product_tmpl.meli_description)==0:
             product_tmpl.meli_description = product_tmpl.description_sale
