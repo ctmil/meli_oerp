@@ -1876,6 +1876,7 @@ class product_product(models.Model):
             rjsondes = resdescription.json()
         else:
             assign_img = True and product.meli_imagen_id
+            _logger.info(body)
             response = meli.post("/items", body, {'access_token':meli.access_token})
 
         #check response
