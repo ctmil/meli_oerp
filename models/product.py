@@ -666,6 +666,7 @@ class product_product(models.Model):
                             if (att["att_id"]==False):
                                 namecap = namecap.strip()
                                 namecap = namecap[0].upper()+namecap[1:]
+                                att["name"] = namecap
                             if ('create_variant' in attcomb):
                                 att['create_variant'] = attcomb['create_variant']
                             else:
