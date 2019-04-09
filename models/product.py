@@ -688,7 +688,8 @@ class product_product(models.Model):
                                 _logger.info("Atributo customizado:"+str(namecap))
                                 attribute = self.env['product.attribute'].search([('name','=',namecap),('meli_default_id_attribute','=',False)])
                                 attribute_duplicates = self.env['product.attribute'].search([('name','=',attcomb['name']),('meli_default_id_attribute','=',False)])
-                                _logger.info("attribute_duplicates:",attribute_duplicates)
+                                _logger.info("attribute_duplicates:")
+                                _logger.info(attribute_duplicates)
                                 if (len(attribute_duplicates)>=1):
                                     #archive
                                     _logger.info("attribute_duplicates:",len(attribute_duplicates))
