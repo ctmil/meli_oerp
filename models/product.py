@@ -687,6 +687,13 @@ class product_product(models.Model):
                                 #customizado
                                 _logger.info("Attributo customizado:"+str(namecap))
                                 attribute = self.env['product.attribute'].search([('name','=',namecap),('meli_default_id_attribute','=',False)])
+                                attribute_duplicates = self.env['product.attribute'].search([('name','=',attcomb['name']),('meli_default_id_attribute','=',False)])
+                                if (len(attribute_duplicates)>1):
+                                    #archive
+                                    for attdup in attribute_duplicates:
+                                        _logger.info("duplicate:",attdup.name,attdup.id)
+                                        #attdup.unlink()                                        
+
                                 _logger.info(attribute)
                                 #buscar en las lineas existentes
                                 if (len(attribute)>1):
@@ -703,6 +710,7 @@ class product_product(models.Model):
                                 _logger.error("Attributes duplicated names!!!")
                                 attribute_id = attribute[0].id
 
+
                             #_logger.info(attribute_id)
                             if attribute_id:
                                 #_logger.info(attribute_id)
@@ -710,9 +718,11 @@ class product_product(models.Model):
                             else:
                                 #_logger.info("Creating attribute:")
                                 attribute_id = self.env['product.attribute'].create({ 'name': att['name'],'create_variant': att['create_variant'] }).id
+
                             if (att['create_variant']=='always'):
                                 #_logger.info("published_att_variants")
                                 published_att_variants = True
+
                             if (attribute_id):
                                 #_logger.info("Publishing attribute")
                                 attribute_value_id = self.env['product.attribute.value'].search([('attribute_id','=',attribute_id),('name','=',att['value_name'])]).id
@@ -723,6 +733,7 @@ class product_product(models.Model):
                                 else:
                                     _logger.info("Creating attribute value:")
                                     attribute_value_id = self.env['product.attribute.value'].create({'attribute_id': attribute_id,'name': att['value_name']}).id
+
                                 if (attribute_value_id):
                                     #_logger.info("attribute_value_id:")
                                     #_logger.info(attribute_value_id)
