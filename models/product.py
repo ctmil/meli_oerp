@@ -691,7 +691,7 @@ class product_product(models.Model):
                                     attribute_duplicates = self.env['product.attribute'].search([('name','=',attcomb['name']),('meli_default_id_attribute','=',False)])
                                     _logger.info("attribute_duplicates:")
                                     _logger.info(attribute_duplicates)
-                                    if (len(attribute_duplicates)>1):
+                                    if (len(attribute_duplicates)>=1):
                                         #archive
                                         _logger.info("attribute_duplicates:",len(attribute_duplicates))
                                         for attdup in attribute_duplicates:
@@ -786,6 +786,8 @@ class product_product(models.Model):
 
         #this write pull the trigger for create_variant_ids()...
         #_logger.info("rewrite to create variants")
+        _logger.info("product_template.attribute_line_ids")
+        _logger.info(product_template.attribute_line_ids)
         product_template.write({ 'attribute_line_ids': product_template.attribute_line_ids  })
         #_logger.info("published_att_variants:"+str(published_att_variants))
         if (published_att_variants):
