@@ -690,6 +690,7 @@ class product_product(models.Model):
                                 attribute_duplicates = self.env['product.attribute'].search([('name','=',attcomb['name']),('meli_default_id_attribute','=',False)])
                                 if (len(attribute_duplicates)>=1):
                                     #archive
+                                    _logger.info("attribute_duplicates:",attdup.name)
                                     for attdup in attribute_duplicates:
                                         _logger.info("duplicate:",attdup.name,attdup.id)
                                         #attdup.unlink()
