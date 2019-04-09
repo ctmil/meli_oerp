@@ -688,11 +688,11 @@ class product_product(models.Model):
                                 _logger.info("Attributo customizado:"+str(namecap))
                                 attribute = self.env['product.attribute'].search([('name','=',namecap),('meli_default_id_attribute','=',False)])
                                 attribute_duplicates = self.env['product.attribute'].search([('name','=',attcomb['name']),('meli_default_id_attribute','=',False)])
-                                if (len(attribute_duplicates)>1):
+                                if (len(attribute_duplicates)>=1):
                                     #archive
                                     for attdup in attribute_duplicates:
                                         _logger.info("duplicate:",attdup.name,attdup.id)
-                                        #attdup.unlink()                                        
+                                        #attdup.unlink()
 
                                 _logger.info(attribute)
                                 #buscar en las lineas existentes
