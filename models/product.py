@@ -666,6 +666,7 @@ class product_product(models.Model):
                             if (att["att_id"]==False):
                                 namecap = namecap.strip()
                                 namecap = namecap[0].upper()+namecap[1:]
+                                att["name"] = namecap
                             if ('create_variant' in attcomb):
                                 att['create_variant'] = attcomb['create_variant']
                             else:
@@ -687,6 +688,21 @@ class product_product(models.Model):
                                 _logger.info("Attributo customizado:"+str(namecap))
                                 attribute = self.env['product.attribute'].search([('name','=',namecap),('meli_default_id_attribute','=',False)])
                                 _logger.info(attribute)
+
+                                if (attcomb['name']!=namecap):
+                                    attribute_duplicates = self.env['product.attribute'].search([('name','=',attcomb['name']),('meli_default_id_attribute','=',False)])
+                                    _logger.info("attribute_duplicates:")
+                                    _logger.info(attribute_duplicates)
+                                    if (len(attribute_duplicates)>=1):
+                                        #archive
+                                        _logger.info("attribute_duplicates:",len(attribute_duplicates))
+                                        for attdup in attribute_duplicates:
+                                            _logger.info("duplicate:"+attdup.name+":"+str(attdup.id))
+                                            attdup_line =  self.env['product.attribute.line'].search([('attribute_id','=',attdup.id),('product_tmpl_id','=',product_template.id)])
+                                            if (len(attdup_line)):
+                                                for attline in attdup_line:
+                                                    attline.unlink()
+
                                 #buscar en las lineas existentes
                                 if (len(attribute)>1):
                                     att_line = self.env['product.attribute.line'].search([('attribute_id','in',attribute.ids),('product_tmpl_id','=',product_template.id)])
