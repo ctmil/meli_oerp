@@ -687,15 +687,20 @@ class product_product(models.Model):
                                 #customizado
                                 _logger.info("Atributo customizado:"+str(namecap))
                                 attribute = self.env['product.attribute'].search([('name','=',namecap),('meli_default_id_attribute','=',False)])
-                                attribute_duplicates = self.env['product.attribute'].search([('name','=',attcomb['name']),('meli_default_id_attribute','=',False)])
-                                _logger.info("attribute_duplicates:")
-                                _logger.info(attribute_duplicates)
-                                if (len(attribute_duplicates)>=1):
-                                    #archive
-                                    _logger.info("attribute_duplicates:",len(attribute_duplicates))
-                                    for attdup in attribute_duplicates:
-                                        _logger.info("duplicate:",attdup.name,attdup.id)
-                                        #attdup.unlink()
+                                if (attcomb['name']!=namecap):
+                                    attribute_duplicates = self.env['product.attribute'].search([('name','=',attcomb['name']),('meli_default_id_attribute','=',False)])
+                                    _logger.info("attribute_duplicates:")
+                                    _logger.info(attribute_duplicates)
+                                    if (len(attribute_duplicates)>1):
+                                        #archive
+                                        _logger.info("attribute_duplicates:",len(attribute_duplicates))
+                                        for attdup in attribute_duplicates:
+                                            _logger.info("duplicate:"+attdup.name+":"+str(attdup.id))
+                                            attdup_line =  self.env['product.template.attribute.line'].search([('attribute_id','=',attdup.id),('product_tmpl_id','=',product_template.id)])
+                                            if (len(attdup_line)):
+                                                for attline in attdup_line:
+                                                    attline.unlink()
+                                            #attdup.unlink()
 
                                 _logger.info(attribute)
                                 #buscar en las lineas existentes
