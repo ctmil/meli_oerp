@@ -36,7 +36,7 @@ from datetime import datetime
 from .meli_oerp_config import *
 
 from ..melisdk.meli import Meli
-
+import string
 
 class product_template(models.Model):
     _inherit = "product.template"
@@ -1570,8 +1570,20 @@ class product_product(models.Model):
         if product.meli_title==False or len(product.meli_title)==0:
             # _logger.info( 'Assigning title: product.meli_title: %s name: %s' % (product.meli_title, product.name) )
             product.meli_title = product_tmpl.meli_title
+            if len(product_tmpl.meli_pub_variant_attributes):
+                values = ""
+                for line in product_tmpl.meli_pub_variant_attributes:
+                    for value in product.attribute_value_ids:
+                        if (value.attribute_id.id==line.attribute_id.id):
+                            values+= " "+value.name
 
-        if (product_tmpl.meli_title):
+                product.meli_title = string.replace(product.meli_title,product.name,product.name+" "+values)
+
+
+
+
+        force_template_title = False
+        if (product_tmpl.meli_title and force_template_title):
             product.meli_title = product_tmpl.meli_title
 
         if ( product.meli_title and len(product.meli_title)>60 ):
