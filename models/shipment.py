@@ -212,6 +212,8 @@ class mercadolibre_shipment(models.Model):
 	pdf_link = fields.Char('Pdf link')
 	pdf_file = fields.Binary(string='Pdf File',attachment=True)
 	pdf_filename = fields.Char(string='Pdf Filename')
+	pdfimage_file = fields.Binary(string='Pdf Image File',attachment=True)
+	pdfimage_filename = fields.Char(string='Pdf Image Filename')
 
 	pack_order = fields.Boolean(string="Carrito de compra")
 
@@ -481,9 +483,15 @@ class AccountInvoice(models.Model):
 	@api.model
 	def _get_shipment(self):
 		ret = {}
-		ret["shipping_id"] = 'x'
-		ret["pdfimage_filename"] = 'x'
-		ret["pdfimage_file"] = 'x'
+		ret["shipping_id"] = ''
+		ret["pdfimage_filename"] = ''
+		ret["pdfimage_file"] = ''
+		ret["receiver_address_name"] = ''
+		ret["receiver_address_line"] = ''
+		ret["receiver_address_phone"] = ''
+		ret["receiver_city"] = ''
+		ret["receiver_state"] = ''
+		ret["tracking_method"] = ''
 		if (self.origin):
 			order = self.env["sale.order"].search([('name','=',self.origin)])
 			if (order.id):
@@ -494,6 +502,18 @@ class AccountInvoice(models.Model):
 					ret["shipping_id"] = order.meli_shipping_id
 					ret["pdfimage_filename"] = shipment.pdfimage_filename
 					ret["pdfimage_file"] = shipment.pdfimage_file
+					ret["receiver_address_name"] = shipment.receiver_address_name
+					ret["receiver_address_line"] = shipment.receiver_address_line
+					ret["receiver_address_phone"] = shipment.receiver_address_phone
+					ret["receiver_city"] = shipment.receiver_city
+					ret["receiver_state"] = shipment.receiver_state
+					ret["tracking_method"] = "Mercadoenvios (" + shipment.tracking_method +")"
+					#ret["tracking_method_color"] = ""
+					#if (shipment.tracking_method=="Deprisa "):
+					ret["items"] = []
+					for order_item in shipment.order.order_items:
+						ret["items"].append({'quantity':order_item.quantity, 'name': order_item.posting_id.product_id.name})
+
 				else:
 					_logger.info("No meli_shipping_id found for:"+str(order.meli_shipping_id))
 			else:
