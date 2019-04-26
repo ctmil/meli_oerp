@@ -533,9 +533,13 @@ class res_company(models.Model):
         _logger.info("product_ids to update:" + str(product_ids))
         if product_ids:
             for obj in product_ids:
-                _logger.info( "Product remote to update: " + str(obj.id)  )
-                if (obj.meli_id and (obj.meli_status=='active')):
-                    obj.product_post()
+                try:
+                    _logger.info( "Product remote to update: " + str(obj.id)  )
+                    if (obj.meli_id and (obj.meli_status=='active')):
+                        obj.product_post()
+                except Exception as e:
+                    _logger.info("product_meli_update_remote_products > Exception founded!")
+                    _logger.info(e, exc_info=True)
 
     def meli_import_categories(self, context=None ):
         company = self.env.user.company_id
@@ -562,8 +566,13 @@ class res_company(models.Model):
                             self._cr.commit()
                             icommit = 0
                             #return {}
-                        _logger.info( "Product remote to update Stock: " + str(obj.id)+ ' meli_id:'+str(obj.meli_id)  )
-                        obj.product_post_stock()
+                        try:
+                            _logger.info( "Product remote to update Stock: " + str(obj.id)+ ' meli_id:'+str(obj.meli_id)  )
+                            obj.product_post_stock()
+                        except Exception as e:
+                            _logger.info("meli_update_remote_stock > Exception founded!")
+                            _logger.info(e, exc_info=True)
+
             except Exception as e:
                 _logger.info("meli_update_remote_stock > Exception founded!")
                 _logger.info(e, exc_info=True)
@@ -584,6 +593,5 @@ class res_company(models.Model):
                     except Exception as e:
                         _logger.info("meli_update_remote_price > Exception founded!")
                         _logger.info(e, exc_info=True)
-                        self._cr.rollback()
 
 res_company()
