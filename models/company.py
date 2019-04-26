@@ -577,8 +577,13 @@ class res_company(models.Model):
             _logger.info("product_ids stock to update:" + str(product_ids))
             if product_ids:
                 for obj in product_ids:
-                    _logger.info( "Product remote to update: " + str(obj.id)  )
-                    if (obj.meli_id and (obj.meli_status=='active')):
-                        obj.product_post_price()
+                    try:
+                        _logger.info( "Product remote to update: " + str(obj.id)  )
+                        if (obj.meli_id and (obj.meli_status=='active')):
+                            obj.product_post_price()
+                    except Exception as e:
+                        _logger.info("meli_update_remote_price > Exception founded!")
+                        _logger.info(e, exc_info=True)
+                        self._cr.rollback()
 
 res_company()
