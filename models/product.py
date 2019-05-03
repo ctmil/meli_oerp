@@ -899,7 +899,7 @@ class product_product(models.Model):
                     variant.meli_default_stock_product = ptemp_nfree
 
         if ('attributes' in rjson):
-            if (len(rjson['attributes']) and 1==1):
+            if (len(rjson['attributes']) and 1==2):
                 for att in rjson['attributes']:
                     try:
                         _logger.info(att)
