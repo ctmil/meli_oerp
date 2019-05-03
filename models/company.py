@@ -531,15 +531,48 @@ class res_company(models.Model):
         url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
         product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False)])
         _logger.info("product_ids to update:" + str(product_ids))
+
+        ret_messages = []
         if product_ids:
             for obj in product_ids:
                 try:
                     _logger.info( "Product remote to update: " + str(obj.id)  )
                     if (obj.meli_id and (obj.meli_status=='active')):
-                        obj.product_post()
+                        res = obj.product_post()
+
+                        #we have a message
+                        if 'name' in res:
+                            ret_messages.append( { 'obj': obj, 'message': res  } )
+
                 except Exception as e:
                     _logger.info("product_meli_update_remote_products > Exception founded!")
                     _logger.info(e, exc_info=True)
+
+        self.meli_send_report( ret_messages )
+
+    def meli_send_report(self, report_messages ):
+        company = self.env.user.company_id
+        thread_obj = self.env['mail.thread']
+
+        if (len(report_messages)):
+
+            report_body = ""
+
+            for msg in report_messages:
+                report_body+= msg["obj"].name+": "+msg["obj"].meli_id+"\n"
+                report_body+= "Mensaje: " + msg["message"] + "\n"
+                report_body+= "\n"
+
+            post_vars = {
+             'subject': "Meli Notification - Update Remote Products",
+             'body': report_body,
+             'partner_ids': [(4, 1)],
+             'type': "notification",
+             'subtype': "mt_comment"
+             }
+
+            thread_obj.message_post( **post_vars )
+
 
     def meli_import_categories(self, context=None ):
         company = self.env.user.company_id

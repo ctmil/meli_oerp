@@ -2138,10 +2138,29 @@ class product_product(models.Model):
         REFRESH_TOKEN = company.mercadolibre_refresh_token
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
+
+        pl = False
         if company.mercadolibre_pricelist:
             pl = company.mercadolibre_pricelist
-            return_val = pl.price_get(product.id,1.0)
-            product_tmpl.meli_price = return_val[pl.id]
+
+        if product_tmpl.meli_price==False or product_tmpl.meli_price==0:
+            product_tmpl.meli_price = product_tmpl.list_price
+
+        if product_tmpl.taxes_id:
+            new_price = product_tmpl.meli_price
+            if (pl):
+                return_val = pl.price_get(product.id,1.0)
+                if pl.id in return_val:
+                    new_price = return_val[pl.id]
+            else:
+                new_price = product_tmpl.list_price
+                if (product.lst_price):
+                    new_price = product.lst_price
+
+            new_price = new_price * ( 1 + ( product_tmpl.taxes_id[0].amount / 100) )
+            new_price = round(new_price,2)
+            product_tmpl.meli_price = new_price
+            product.meli_price=product_tmpl.meli_price
 
         if product_tmpl.meli_price==False or product_tmpl.meli_price==0:
             product_tmpl.meli_price = product_tmpl.standard_price
