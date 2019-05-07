@@ -234,6 +234,9 @@ class res_company(models.Model):
                                                 ("dynamic", "Dinámico (cuando se asocia un producto a una categoría (ML) con atributos (ML))") ],
                                                 'Create Product Attributes')
     #'mercadolibre_login': fields.selection( [ ("unknown", "Desconocida"), ("logged","Abierta"), ("not logged","Cerrada")],string='Estado de la sesión'), )
+    mercadolibre_overwrite_template = fields.Boolean(string='Do no overwrite product template values as Name, Description if already defined')
+    mercadolibre_overwrite_variant = fields.Boolean(string='Do no overwrite product variant values as Name, Description if already defined')
+
 
     @api.multi
     def	meli_logout(self):

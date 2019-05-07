@@ -590,6 +590,13 @@ class product_product(models.Model):
           'meli_dimensions': meli_fields["meli_dimensions"]
         }
 
+        if (product.name and not company.mercadolibre_overwrite_variant):
+            del meli_fields['name']
+        if (product_template.name and not company.mercadolibre_overwrite_template):
+            del tmpl_fields['name']
+        if (product_template.description_sale and not company.mercadolibre_overwrite_template):
+            del tmpl_fields['description_sale']
+
         product.write( meli_fields )
         product_template.write( tmpl_fields )
 
