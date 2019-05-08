@@ -24,16 +24,25 @@ class StockMove(models.Model):
 
             if mov.product_id:
                 bomlines = self.env['mrp.bom.line'].search([('product_id','=',mov.product_id.id)])
-                if (bomlines and 1==2):
+                if (bomlines and 1==1):
                     for bomline in bomlines:
                         _logger.info("Clone stock: " + str(bomline.bom_id.product_id.virtual_available))
                         if (bomline.bom_id.product_id.virtual_available !=mov.product_id.virtual_available):
                             _logger.info("Trigger stock equivalence function:")
                             movs = self.env['stock.move']
                             qty = mov.ordered_qty
-                            qtydiff = bomline.bom_id.product_id.virtual_available - mov.product_id.virtual_available
+                            _logger.info("ordered_qty:"+str(qty))
+                            _logger.info("bomline.product_qty:"+str(bomline.product_qty))
+                            if (bomline.product_qty>0):
+                                qty_base = mov.product_id.virtual_available * (1.0 / bomline.product_qty)
+                            else:
+                                qty_base = mov.product_id.virtual_available
+                            _logger.info("qty_base:"+str(qty_base))
+                            qtydiff =  qty_base - bomline.bom_id.product_id.virtual_available
+                            _logger.info("qtydiff:"+str(qtydiff))
                             if (qtydiff>qty):
                                 qty = qtydiff
+                            _logger.info("qty:"+str(qty))
                             movfields = {
                                 "name": mov.name+str(' (clone)'),
                                 "product_id": bomline.bom_id.product_id.id,
@@ -68,16 +77,25 @@ class StockMove(models.Model):
 
             if mov.product_id:
                 bomlines = self.env['mrp.bom.line'].search([('product_id','=',mov.product_id.id)])
-                if (bomlines and 1==2):
+                if (bomlines and 1==1):
                     for bomline in bomlines:
                         _logger.info("Clone stock: " + str(bomline.bom_id.product_id.virtual_available))
                         if (bomline.bom_id.product_id.virtual_available !=mov.product_id.virtual_available):
                             _logger.info("Trigger stock equivalence function:")
                             movs = self.env['stock.move']
                             qty = mov.ordered_qty
-                            qtydiff = bomline.bom_id.product_id.virtual_available - mov.product_id.virtual_available
+                            _logger.info("ordered_qty:"+str(qty))
+                            _logger.info("bomline.product_qty:"+str(bomline.product_qty))
+                            if (bomline.product_qty>0):
+                                qty_base = mov.product_id.virtual_available * (1.0 / bomline.product_qty)
+                            else:
+                                qty_base = mov.product_id.virtual_available
+                            _logger.info("qty_base:"+str(qty_base))
+                            qtydiff = qty_base - bomline.bom_id.product_id.virtual_available
+                            _logger.info("qtydiff:"+str(qtydiff))
                             if (qtydiff>qty):
                                 qty = qtydiff
+                            _logger.info("qty:"+str(qty))
                             movfields = {
                                 "name": mov.name+str(' (clone)'),
                                 "product_id": bomline.bom_id.product_id.id,

@@ -234,6 +234,9 @@ class res_company(models.Model):
                                                 ("dynamic", "Dinámico (cuando se asocia un producto a una categoría (ML) con atributos (ML))") ],
                                                 'Create Product Attributes')
     #'mercadolibre_login': fields.selection( [ ("unknown", "Desconocida"), ("logged","Abierta"), ("not logged","Cerrada")],string='Estado de la sesión'), )
+    mercadolibre_overwrite_template = fields.Boolean(string='Overwrite product template',help='Sobreescribir siempre Nombre y Descripción de la plantilla.')
+    mercadolibre_overwrite_variant = fields.Boolean(string='Overwrite product variant',help='Sobreescribir siempre Nombre y Descripción de la variante.')
+
 
     @api.multi
     def	meli_logout(self):
@@ -531,11 +534,48 @@ class res_company(models.Model):
         url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
         product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False)])
         _logger.info("product_ids to update:" + str(product_ids))
+
+        ret_messages = []
         if product_ids:
             for obj in product_ids:
-                _logger.info( "Product remote to update: " + str(obj.id)  )
-                if (obj.meli_id and (obj.meli_status=='active')):
-                    obj.product_post()
+                try:
+                    _logger.info( "Product remote to update: " + str(obj.id)  )
+                    if (obj.meli_id and (obj.meli_status=='active')):
+                        res = obj.product_post()
+
+                        #we have a message
+                        if 'name' in res:
+                            ret_messages.append( { 'obj': obj, 'message': res  } )
+
+                except Exception as e:
+                    _logger.info("product_meli_update_remote_products > Exception founded!")
+                    _logger.info(e, exc_info=True)
+
+        self.meli_send_report( ret_messages )
+
+    def meli_send_report(self, report_messages ):
+        company = self.env.user.company_id
+        thread_obj = self.env['mail.thread']
+
+        if (len(report_messages)):
+
+            report_body = ""
+
+            for msg in report_messages:
+                report_body+= msg["obj"].name+": "+msg["obj"].meli_id+"\n"
+                report_body+= "Mensaje: " + msg["message"] + "\n"
+                report_body+= "\n"
+
+            post_vars = {
+             'subject': "Meli Notification - Update Remote Products",
+             'body': report_body,
+             'partner_ids': [(4, 1)],
+             'type': "notification",
+             'subtype': "mt_comment"
+             }
+
+            thread_obj.message_post( **post_vars )
+
 
     def meli_import_categories(self, context=None ):
         company = self.env.user.company_id
@@ -562,8 +602,13 @@ class res_company(models.Model):
                             self._cr.commit()
                             icommit = 0
                             #return {}
-                        _logger.info( "Product remote to update Stock: " + str(obj.id)+ ' meli_id:'+str(obj.meli_id)  )
-                        obj.product_post_stock()
+                        try:
+                            _logger.info( "Product remote to update Stock: " + str(obj.id)+ ' meli_id:'+str(obj.meli_id)  )
+                            obj.product_post_stock()
+                        except Exception as e:
+                            _logger.info("meli_update_remote_stock > Exception founded!")
+                            _logger.info(e, exc_info=True)
+
             except Exception as e:
                 _logger.info("meli_update_remote_stock > Exception founded!")
                 _logger.info(e, exc_info=True)
@@ -577,8 +622,12 @@ class res_company(models.Model):
             _logger.info("product_ids stock to update:" + str(product_ids))
             if product_ids:
                 for obj in product_ids:
-                    _logger.info( "Product remote to update: " + str(obj.id)  )
-                    if (obj.meli_id and (obj.meli_status=='active')):
-                        obj.product_post_price()
+                    try:
+                        _logger.info( "Product remote to update: " + str(obj.id)  )
+                        if (obj.meli_id and (obj.meli_status=='active')):
+                            obj.product_post_price()
+                    except Exception as e:
+                        _logger.info("meli_update_remote_price > Exception founded!")
+                        _logger.info(e, exc_info=True)
 
 res_company()
