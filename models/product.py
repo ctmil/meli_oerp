@@ -1919,7 +1919,7 @@ class product_product(models.Model):
                     var = {
                         "id": str(productjson["variations"][ix]["id"]),
                         "price": str(product_tmpl.meli_price),
-                        "available_quantity": products.meli_available_quantity,
+                        "available_quantity": product.meli_available_quantity,
                         "picture_ids": var_pics
                     }
                     varias["variations"].append(var)
