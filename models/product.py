@@ -1923,6 +1923,9 @@ class product_product(models.Model):
                         "picture_ids": var_pics
                     }
                     varias["variations"].append(var)
+
+                    #WARNING: only for single variation
+                    product.meli_id_variation = productjson["variations"][ix]["id"]
                 #variations = product_tmpl._variations()
                 #varias["variations"] = variations
 
