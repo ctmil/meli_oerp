@@ -692,7 +692,7 @@ class product_product(models.Model):
                                     attribute = self.env['product.attribute'].search([('name','=',att['name'])])
                             else:
                                 #customizado
-                                _logger.info("Attributo customizado:"+str(namecap))
+                                #_logger.info("Atributo customizado:"+str(namecap))
                                 attribute = self.env['product.attribute'].search([('name','=',namecap),('meli_default_id_attribute','=',False)])
                                 _logger.info(attribute)
 
@@ -735,6 +735,7 @@ class product_product(models.Model):
                             if (att['create_variant']==True):
                                 #_logger.info("published_att_variants")
                                 published_att_variants = True
+
                             if (attribute_id):
                                 #_logger.info("Publishing attribute")
                                 attribute_value_id = self.env['product.attribute.value'].search([('attribute_id','=',attribute_id),('name','=',att['value_name'])]).id
@@ -745,6 +746,7 @@ class product_product(models.Model):
                                 else:
                                     _logger.info("Creating attribute value:")
                                     attribute_value_id = self.env['product.attribute.value'].create({'attribute_id': attribute_id,'name': att['value_name']}).id
+
                                 if (attribute_value_id):
                                     #_logger.info("attribute_value_id:")
                                     #_logger.info(attribute_value_id)
@@ -1898,6 +1900,41 @@ class product_product(models.Model):
                     return {}
             else:
                 _logger.debug("Variant principal not defined yet. Cannot post.")
+                return {}
+        else:
+            if ( productjson and len(productjson["variations"])==1 ):
+                varias = {
+                    "title": body["title"],
+                    "pictures": body["pictures"],
+                    "variations": []
+                }
+                var_pics = []
+                if (len(body["pictures"])):
+                    for pic in body["pictures"]:
+                        var_pics.append(pic['id'])
+                _logger.info("Singl variation already posted, must update it")
+                for ix in range(len(productjson["variations"]) ):
+                    _logger.info("Variation to update!!")
+                    _logger.info(productjson["variations"][ix])
+                    var = {
+                        "id": str(productjson["variations"][ix]["id"]),
+                        "price": str(product_tmpl.meli_price),
+                        "available_quantity": products.meli_available_quantity,
+                        "picture_ids": var_pics
+                    }
+                    varias["variations"].append(var)
+                #variations = product_tmpl._variations()
+                #varias["variations"] = variations
+
+                _logger.info(varias)
+                responsevar = meli.put("/items/"+product.meli_id, varias, {'access_token':meli.access_token})
+                _logger.info(responsevar.json())
+                #_logger.debug(responsevar.json())
+                resdes = meli.put("/items/"+product.meli_id+"/description", bodydescription, {'access_token':meli.access_token})
+                #_logger.debug(resdes.json())
+                del body['price']
+                del body['available_quantity']
+                resbody = meli.put("/items/"+product.meli_id, body, {'access_token':meli.access_token})
                 return {}
 
         #check fields

@@ -39,7 +39,7 @@ from . import product
 from . import product_post
 from . import posting
 from . import res_partner
-
+#from pdf2image import convert_from_path, convert_from_bytes
 #
 #     https://www.odoo.com/fr_FR/forum/aide-1/question/solved-call-report-and-save-result-to-attachment-133244
 #
@@ -96,6 +96,14 @@ class mercadolibre_shipment_print(models.TransientModel):
 						_logger.info(data)
 						shipment.pdf_filename = "Shipment_"+shipment.shipping_id+".pdf"
 						shipment.pdf_file = base64.encodestring(data)
+						#images = convert_from_bytes(data, dpi=300,fmt='jpg')
+						if (1==2 and len(images)>1):
+							for image in images:
+								image.save("/tmp/%s-page%d.jpg" % ("Shipment_"+shipment.shipping_id,images.index(image)), "JPEG")
+								if (images.index(image)==1):
+									imgdata = urlopen("file:///tmp/Shipment_"+shipment.shipping_id+"-page1.jpg").read()
+									shipment.pdfimage_file = base64.encodestring(imgdata)
+									shipment.pdfimage_filename = "Shipment_"+shipment.shipping_id+".jpg"
 					except Exception as e:
 						_logger.info("Exception!")
 						_logger.info(e, exc_info=True)
@@ -204,6 +212,8 @@ class mercadolibre_shipment(models.Model):
 	pdf_link = fields.Char('Pdf link')
 	pdf_file = fields.Binary(string='Pdf File',attachment=True)
 	pdf_filename = fields.Char(string='Pdf Filename')
+	pdfimage_file = fields.Binary(string='Pdf Image File',attachment=True)
+	pdfimage_filename = fields.Char(string='Pdf Image Filename')
 
 	pack_order = fields.Boolean(string="Carrito de compra")
 
@@ -344,6 +354,35 @@ class mercadolibre_shipment(models.Model):
 				else:
 					_logger.info("Updating shipment: " + str(ship_id))
 					ships.write((ship_fields))
+
+					try:
+						_logger.info("ships.pdf_filename:")
+						_logger.info(ships.pdf_filename)
+						if (1==2 and ships.pdf_filename):
+							_logger.info("We have a pdf file")
+							if (ships.pdfimage_filename==False):
+								_logger.info("Try create a pdf image file")
+								data = base64.b64decode( ships.pdf_file )
+								images = convert_from_bytes(data, dpi=300,fmt='jpg')
+								for image in images:
+									image.save("/tmp/%s-page%d.jpg" % ("Shipment_"+ships.shipping_id,images.index(image)), "JPEG")
+									if (images.index(image)==1):
+										imgdata = urlopen("file:///tmp/Shipment_"+ships.shipping_id+"-page1.jpg").read()
+										ships.pdfimage_file = base64.encodestring(imgdata)
+										ships.pdfimage_filename = "Shipment_"+ships.shipping_id+".jpg"
+								#if (len(images)):
+								#	_logger.info(images)
+									#for image in images:
+									#base64.b64decode( pimage.image )
+								#	image = images[1]
+								#	ships.pdfimage_file = base64.encodestring(image.tobytes())
+								#	ships.pdfimage_filename = "Shipment_"+ships.shipping_id+".jpg"
+					except Exception as e:
+						_logger.info("Error converting pdf to jpg: try installing pdf2image and poppler-utils, like this:")
+						_logger.info("sudo apt install poppler-utils && sudo pip install pdf2image")
+						_logger.info(e, exc_info=True)
+						pass;
+
 					if (full_orders and ship_fields["pack_order"]):
 						plistid = None
 						if company.mercadolibre_pricelist:
@@ -436,3 +475,49 @@ class mercadolibre_shipment(models.Model):
 		return {}
 
 mercadolibre_shipment()
+
+
+class AccountInvoice(models.Model):
+	_inherit = "account.invoice"
+
+	@api.model
+	def _get_shipment(self):
+		ret = {}
+		ret["shipping_id"] = ''
+		ret["pdfimage_filename"] = ''
+		ret["pdfimage_file"] = ''
+		ret["receiver_address_name"] = ''
+		ret["receiver_address_line"] = ''
+		ret["receiver_address_phone"] = ''
+		ret["receiver_city"] = ''
+		ret["receiver_state"] = ''
+		ret["tracking_method"] = ''
+		if (self.origin):
+			order = self.env["sale.order"].search([('name','=',self.origin)])
+			if (order.id):
+				_logger.info("Order found:"+str(order.name))
+				#if (order.meli_order_id)
+				if (order.meli_shipping_id):
+					shipment = self.env["mercadolibre.shipment"].search([('shipping_id','=',order.meli_shipping_id)])
+					ret["shipping_id"] = order.meli_shipping_id
+					ret["pdfimage_filename"] = shipment.pdfimage_filename
+					ret["pdfimage_file"] = shipment.pdfimage_file
+					ret["receiver_address_name"] = shipment.receiver_address_name
+					ret["receiver_address_line"] = shipment.receiver_address_line
+					ret["receiver_address_phone"] = shipment.receiver_address_phone
+					ret["receiver_city"] = shipment.receiver_city
+					ret["receiver_state"] = shipment.receiver_state
+					ret["tracking_method"] = "Mercadoenvios (" + shipment.tracking_method +")"
+					#ret["tracking_method_color"] = ""
+					#if (shipment.tracking_method=="Deprisa "):
+					ret["items"] = []
+					for order_item in shipment.order.order_items:
+						ret["items"].append({'quantity':order_item.quantity, 'name': order_item.posting_id.product_id.name})
+
+				else:
+					_logger.info("No meli_shipping_id found for:"+str(order.meli_shipping_id))
+			else:
+				_logger.info("No order found for:"+str(self.origin))
+		return ret
+
+AccountInvoice()
