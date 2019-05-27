@@ -36,7 +36,7 @@ from datetime import datetime
 from .meli_oerp_config import *
 
 from ..melisdk.meli import Meli
-
+import string
 
 class product_template(models.Model):
     _inherit = "product.template"
@@ -590,6 +590,13 @@ class product_product(models.Model):
           'meli_dimensions': meli_fields["meli_dimensions"]
         }
 
+        if (product.name and not company.mercadolibre_overwrite_variant):
+            del meli_fields['name']
+        if (product_template.name and not company.mercadolibre_overwrite_template):
+            del tmpl_fields['name']
+        if (product_template.description_sale and not company.mercadolibre_overwrite_template):
+            del tmpl_fields['description_sale']
+
         product.write( meli_fields )
         product_template.write( tmpl_fields )
 
@@ -685,7 +692,7 @@ class product_product(models.Model):
                                     attribute = self.env['product.attribute'].search([('name','=',att['name'])])
                             else:
                                 #customizado
-                                _logger.info("Atributo customizado:"+str(namecap))
+                                #_logger.info("Atributo customizado:"+str(namecap))
                                 attribute = self.env['product.attribute'].search([('name','=',namecap),('meli_default_id_attribute','=',False)])
                                 _logger.info(attribute)
                                 
@@ -1577,8 +1584,20 @@ class product_product(models.Model):
         if product.meli_title==False or len(product.meli_title)==0:
             # _logger.info( 'Assigning title: product.meli_title: %s name: %s' % (product.meli_title, product.name) )
             product.meli_title = product_tmpl.meli_title
+            if len(product_tmpl.meli_pub_variant_attributes):
+                values = ""
+                for line in product_tmpl.meli_pub_variant_attributes:
+                    for value in product.attribute_value_ids:
+                        if (value.attribute_id.id==line.attribute_id.id):
+                            values+= " "+value.name
 
-        if (product_tmpl.meli_title):
+                product.meli_title = string.replace(product.meli_title,product.name,product.name+" "+values)
+
+
+
+
+        force_template_title = False
+        if (product_tmpl.meli_title and force_template_title):
             product.meli_title = product_tmpl.meli_title
 
         if ( product.meli_title and len(product.meli_title)>60 ):
@@ -1767,24 +1786,25 @@ class product_product(models.Model):
                 "pictures": [],
                 "video_id": product.meli_video or '',
             }
-            if ("attributes" in productjson):
-                if (len(attributes)):
-                    dicatts = {}
-                    for att in attributes:
-                        dicatts[att["id"]] = att
-                    attributes_ml =  productjson["attributes"]
-                    x = 0
-                    for att in attributes_ml:
-                        if (att["id"] in dicatts):
-                            attributes_ml[x] = dicatts[att["id"]]
-                        else:
-                            attributes.append(att)
-                        x = x + 1
+            if (productjson):
+                if ("attributes" in productjson):
+                    if (len(attributes)):
+                        dicatts = {}
+                        for att in attributes:
+                            dicatts[att["id"]] = att
+                        attributes_ml =  productjson["attributes"]
+                        x = 0
+                        for att in attributes_ml:
+                            if (att["id"] in dicatts):
+                                attributes_ml[x] = dicatts[att["id"]]
+                            else:
+                                attributes.append(att)
+                            x = x + 1
 
-                    body["attributes"] =  attributes
-                else:
-                    attributes =  productjson["attributes"]
-                    body["attributes"] =  attributes
+                        body["attributes"] =  attributes
+                    else:
+                        attributes =  productjson["attributes"]
+                        body["attributes"] =  attributes
         else:
             body["description"] = bodydescription
 
@@ -1886,6 +1906,44 @@ class product_product(models.Model):
                     return {}
             else:
                 _logger.debug("Variant principal not defined yet. Cannot post.")
+                return {}
+        else:
+            if ( productjson and len(productjson["variations"])==1 ):
+                varias = {
+                    "title": body["title"],
+                    "pictures": body["pictures"],
+                    "variations": []
+                }
+                var_pics = []
+                if (len(body["pictures"])):
+                    for pic in body["pictures"]:
+                        var_pics.append(pic['id'])
+                _logger.info("Singl variation already posted, must update it")
+                for ix in range(len(productjson["variations"]) ):
+                    _logger.info("Variation to update!!")
+                    _logger.info(productjson["variations"][ix])
+                    var = {
+                        "id": str(productjson["variations"][ix]["id"]),
+                        "price": str(product_tmpl.meli_price),
+                        "available_quantity": product.meli_available_quantity,
+                        "picture_ids": var_pics
+                    }
+                    varias["variations"].append(var)
+
+                    #WARNING: only for single variation
+                    product.meli_id_variation = productjson["variations"][ix]["id"]
+                #variations = product_tmpl._variations()
+                #varias["variations"] = variations
+
+                _logger.info(varias)
+                responsevar = meli.put("/items/"+product.meli_id, varias, {'access_token':meli.access_token})
+                _logger.info(responsevar.json())
+                #_logger.debug(responsevar.json())
+                resdes = meli.put("/items/"+product.meli_id+"/description", bodydescription, {'access_token':meli.access_token})
+                #_logger.debug(resdes.json())
+                del body['price']
+                del body['available_quantity']
+                resbody = meli.put("/items/"+product.meli_id, body, {'access_token':meli.access_token})
                 return {}
 
         #check fields
@@ -2136,10 +2194,29 @@ class product_product(models.Model):
         REFRESH_TOKEN = company.mercadolibre_refresh_token
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
+
+        pl = False
         if company.mercadolibre_pricelist:
             pl = company.mercadolibre_pricelist
-            return_val = pl.price_get(product.id,1.0)
-            product_tmpl.meli_price = return_val[pl.id]
+
+        if product_tmpl.meli_price==False or product_tmpl.meli_price==0:
+            product_tmpl.meli_price = product_tmpl.list_price
+
+        if product_tmpl.taxes_id:
+            new_price = product_tmpl.meli_price
+            if (pl):
+                return_val = pl.price_get(product.id,1.0)
+                if pl.id in return_val:
+                    new_price = return_val[pl.id]
+            else:
+                new_price = product_tmpl.list_price
+                if (product.lst_price):
+                    new_price = product.lst_price
+
+            new_price = new_price * ( 1 + ( product_tmpl.taxes_id[0].amount / 100) )
+            new_price = round(new_price,2)
+            product_tmpl.meli_price = new_price
+            product.meli_price=product_tmpl.meli_price
 
         if product_tmpl.meli_price==False or product_tmpl.meli_price==0:
             product_tmpl.meli_price = product_tmpl.standard_price
