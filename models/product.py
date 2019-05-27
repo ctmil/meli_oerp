@@ -1781,24 +1781,25 @@ class product_product(models.Model):
                 "pictures": [],
                 "video_id": product.meli_video or '',
             }
-            if ("attributes" in productjson):
-                if (len(attributes)):
-                    dicatts = {}
-                    for att in attributes:
-                        dicatts[att["id"]] = att
-                    attributes_ml =  productjson["attributes"]
-                    x = 0
-                    for att in attributes_ml:
-                        if (att["id"] in dicatts):
-                            attributes_ml[x] = dicatts[att["id"]]
-                        else:
-                            attributes.append(att)
-                        x = x + 1
+            if (productjson):
+                if ("attributes" in productjson):
+                    if (len(attributes)):
+                        dicatts = {}
+                        for att in attributes:
+                            dicatts[att["id"]] = att
+                        attributes_ml =  productjson["attributes"]
+                        x = 0
+                        for att in attributes_ml:
+                            if (att["id"] in dicatts):
+                                attributes_ml[x] = dicatts[att["id"]]
+                            else:
+                                attributes.append(att)
+                            x = x + 1
 
-                    body["attributes"] =  attributes
-                else:
-                    attributes =  productjson["attributes"]
-                    body["attributes"] =  attributes
+                        body["attributes"] =  attributes
+                    else:
+                        attributes =  productjson["attributes"]
+                        body["attributes"] =  attributes
         else:
             body["description"] = bodydescription
 
