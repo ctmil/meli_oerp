@@ -1,6 +1,6 @@
 #meli_oerp_config
 
-REDIRECT_URI = 'https://odoo.fabriciocosta.com.ar/meli_login'
+REDIRECT_URI = 'http://localhost:8069/meli_login'
 ACCESS_TOKEN = ''
 REFRESH_TOKEN = ''
 CLIENT_ID = ''

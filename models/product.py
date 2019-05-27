@@ -1779,24 +1779,25 @@ class product_product(models.Model):
                 "pictures": [],
                 "video_id": product.meli_video or '',
             }
-            if ("attributes" in productjson):
-                if (len(attributes)):
-                    dicatts = {}
-                    for att in attributes:
-                        dicatts[att["id"]] = att
-                    attributes_ml =  productjson["attributes"]
-                    x = 0
-                    for att in attributes_ml:
-                        if (att["id"] in dicatts):
-                            attributes_ml[x] = dicatts[att["id"]]
-                        else:
-                            attributes.append(att)
-                        x = x + 1
+            if (productjson):
+                if ("attributes" in productjson):
+                    if (len(attributes)):
+                        dicatts = {}
+                        for att in attributes:
+                            dicatts[att["id"]] = att
+                        attributes_ml =  productjson["attributes"]
+                        x = 0
+                        for att in attributes_ml:
+                            if (att["id"] in dicatts):
+                                attributes_ml[x] = dicatts[att["id"]]
+                            else:
+                                attributes.append(att)
+                            x = x + 1
 
-                    body["attributes"] =  attributes
-                else:
-                    attributes =  productjson["attributes"]
-                    body["attributes"] =  attributes
+                        body["attributes"] =  attributes
+                    else:
+                        attributes =  productjson["attributes"]
+                        body["attributes"] =  attributes
         else:
             body["description"] = bodydescription
 
@@ -1898,6 +1899,44 @@ class product_product(models.Model):
                     return {}
             else:
                 _logger.debug("Variant principal not defined yet. Cannot post.")
+                return {}
+        else:
+            if ( productjson and len(productjson["variations"])==1 ):
+                varias = {
+                    "title": body["title"],
+                    "pictures": body["pictures"],
+                    "variations": []
+                }
+                var_pics = []
+                if (len(body["pictures"])):
+                    for pic in body["pictures"]:
+                        var_pics.append(pic['id'])
+                _logger.info("Singl variation already posted, must update it")
+                for ix in range(len(productjson["variations"]) ):
+                    _logger.info("Variation to update!!")
+                    _logger.info(productjson["variations"][ix])
+                    var = {
+                        "id": str(productjson["variations"][ix]["id"]),
+                        "price": str(product_tmpl.meli_price),
+                        "available_quantity": product.meli_available_quantity,
+                        "picture_ids": var_pics
+                    }
+                    varias["variations"].append(var)
+
+                    #WARNING: only for single variation
+                    product.meli_id_variation = productjson["variations"][ix]["id"]
+                #variations = product_tmpl._variations()
+                #varias["variations"] = variations
+
+                _logger.info(varias)
+                responsevar = meli.put("/items/"+product.meli_id, varias, {'access_token':meli.access_token})
+                _logger.info(responsevar.json())
+                #_logger.debug(responsevar.json())
+                resdes = meli.put("/items/"+product.meli_id+"/description", bodydescription, {'access_token':meli.access_token})
+                #_logger.debug(resdes.json())
+                del body['price']
+                del body['available_quantity']
+                resbody = meli.put("/items/"+product.meli_id, body, {'access_token':meli.access_token})
                 return {}
 
         #check fields
