@@ -218,6 +218,7 @@
                                 name="meli_oerp.report_invoice_shipment"
                                 menu="True"
                                 print_report_name="'Reporte de facturas con etiquetas'"
+                                paperformat="meli_oerp.paperformat_invoice_shipment"
                             />
     </data>
 </openerp>

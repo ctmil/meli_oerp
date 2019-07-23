@@ -324,6 +324,18 @@ class mercadolibre_orders(models.Model):
                     else:
                         _logger.error("res.partner.id_category:" + str(Buyer['billing_info']['doc_type']))
 
+                #Colombia
+                if ( ('doc_type' in Buyer['billing_info']) and ('l10n_co_document_type' in self.env['res.partner']._fields) ):
+                    if (Buyer['billing_info']['doc_type']=="CC"):
+                        meli_buyer_fields['l10n_co_document_type'] = 'national_citizen_id'
+                    if (Buyer['billing_info']['doc_type']=="NIT"):
+                        meli_buyer_fields['l10n_co_document_type'] = 'rut'
+                    if (Buyer['billing_info']['doc_type']=="CE"):
+                        meli_buyer_fields['l10n_co_document_type'] = 'foreign_id_card'
+
+                    meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
+
+
             partner_ids = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ] )
             partner_id = 0
             if not partner_ids:

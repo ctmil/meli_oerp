@@ -47,37 +47,28 @@
 			        </html>
 			    </template>
 
+        <template id="internal_layout">
+            <t t-if="not o" t-set="o" t-value="doc"/>
 
-					<template id="internal_layout">
-					        <!-- Multicompany -->
-					        <t t-if="o and 'company_id' in o">
-					            <t t-set="company" t-value="o.company_id"/>
-					        </t>
-					        <t t-if="not o or not 'company_id' in o">
-					            <t t-set="company" t-value="res_company"/>
-					        </t>
-									<!--
-					        <div class="header">
-					            <div class="row">
-					                <div class="col-xs-3">
-					                    <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d %H:%M')"/>
-					                </div>
-					                <div class="col-xs-2 col-xs-offset-2 text-center">
-					                    <span t-esc="company.name"/>
-					                </div>
-					                <div class="col-xs-2 col-xs-offset-3 text-right">
-					                    <ul class="list-inline">
-					                        <li><span class="page"/></li>
-					                        <li>/</li>
-					                        <li><span class="topage"/></li>
-					                    </ul>
-					                </div>
-					            </div>
-					        </div>-->
-					        <div class="article">
-					          <t t-raw="0" />
-					        </div>
-					    </template>
+            <t t-if="not company">
+                <!-- Multicompany -->
+                <t t-if="company_id">
+                    <t t-set="company" t-value="company_id"/>
+                </t>
+                <t t-elif="o and 'company_id' in o">
+                    <t t-set="company" t-value="o.company_id.sudo()"/>
+                </t>
+                <t t-else="else">
+                    <t t-set="company" t-value="res_company"/>
+                </t>
+            </t>
+            <div class="header">
+              <div class="row"><pre> </pre></div>
+            </div>
+            <div class="article" t-att-data-oe-model="o and o._name" t-att-data-oe-id="o and o.id" t-att-data-oe-lang="o and o.env.context.get('lang')">
+              <t t-raw="0"/>
+            </div>
+        </template>
 
 
         <template id="report_shipment">

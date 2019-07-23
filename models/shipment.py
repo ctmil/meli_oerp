@@ -483,9 +483,15 @@ class AccountInvoice(models.Model):
 	@api.model
 	def _get_shipment(self):
 		ret = {}
-		ret["shipping_id"] = 'x'
-		ret["pdfimage_filename"] = 'x'
-		ret["pdfimage_file"] = 'x'
+		ret["shipping_id"] = ''
+		ret["pdfimage_filename"] = ''
+		ret["pdfimage_file"] = ''
+		ret["receiver_address_name"] = ''
+		ret["receiver_address_line"] = ''
+		ret["receiver_address_phone"] = ''
+		ret["receiver_city"] = ''
+		ret["receiver_state"] = ''
+		ret["tracking_method"] = ''
 		if (self.origin):
 			order = self.env["sale.order"].search([('name','=',self.origin)])
 			if (order.id):
@@ -496,6 +502,16 @@ class AccountInvoice(models.Model):
 					ret["shipping_id"] = order.meli_shipping_id
 					ret["pdfimage_filename"] = shipment.pdfimage_filename
 					ret["pdfimage_file"] = shipment.pdfimage_file
+					ret["receiver_address_name"] = shipment.receiver_address_name
+					ret["receiver_address_line"] = shipment.receiver_address_line
+					ret["receiver_address_phone"] = shipment.receiver_address_phone
+					ret["receiver_city"] = shipment.receiver_city
+					ret["receiver_state"] = shipment.receiver_state
+					ret["tracking_method"] = shipment.tracking_method
+					ret["items"] = []
+					for order_item in shipment.order.order_items:
+						ret["items"].append({'quantity':order_item.quantity, 'name': order_item.posting_id.product_id.name})
+
 				else:
 					_logger.info("No meli_shipping_id found for:"+str(order.meli_shipping_id))
 			else:
