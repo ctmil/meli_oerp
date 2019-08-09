@@ -507,7 +507,13 @@ class AccountInvoice(models.Model):
 					ret["receiver_address_phone"] = shipment.receiver_address_phone
 					ret["receiver_city"] = shipment.receiver_city
 					ret["receiver_state"] = shipment.receiver_state
+<<<<<<< HEAD
 					ret["tracking_method"] = shipment.tracking_method
+=======
+					ret["tracking_method"] = "Mercadoenvios (" + shipment.tracking_method +")"
+					#ret["tracking_method_color"] = ""
+					#if (shipment.tracking_method=="Deprisa "):
+>>>>>>> 62d458f3c58343703cf04154915f9b99fb379f52
 					ret["items"] = []
 					for order_item in shipment.order.order_items:
 						ret["items"].append({'quantity':order_item.quantity, 'name': order_item.posting_id.product_id.name})
