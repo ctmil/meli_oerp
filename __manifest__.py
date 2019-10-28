@@ -10,8 +10,8 @@
 {
     'name': 'MercadoLibre Publisher',
     'version': '1.0',
-    'author': 'Moldeo Interactive Coop. Ltda.',
-    'website': 'http://www.moldeointeractive.com.ar',
+    'author': 'Moldeo Interactive',
+    'website': 'https://www.moldeointeractive.com.ar',
     "category": "Sales",
     "depends": ['base', 'product','sale','website_sale','stock','mrp'],
     'data': [
@@ -30,7 +30,7 @@
         'data/error_template_data.xml',
         'data/parameters_data.xml',
         'views/shipment_view.xml',
-		'report/report_shipment_view.xml',
+	'report/report_shipment_view.xml',
         #'report/report_invoice_shipment_view.xml',
     ],
     'demo_xml': [],
