@@ -695,7 +695,7 @@ class product_product(models.Model):
                                 #_logger.info("Atributo customizado:"+str(namecap))
                                 attribute = self.env['product.attribute'].search([('name','=',namecap),('meli_default_id_attribute','=',False)])
                                 _logger.info(attribute)
-                                
+
                                 if (attcomb['name']!=namecap):
                                     attribute_duplicates = self.env['product.attribute'].search([('name','=',attcomb['name']),('meli_default_id_attribute','=',False)])
                                     _logger.info("attribute_duplicates:")
@@ -747,8 +747,9 @@ class product_product(models.Model):
                                     #_logger.info(attribute_value_id)
                                     pass
                                 else:
-                                    _logger.info("Creating attribute value:")
-                                    attribute_value_id = self.env['product.attribute.value'].create({'attribute_id': attribute_id,'name': att['value_name']}).id
+                                    _logger.info("Creating attribute value:"+str(att))
+                                    if (att['value_name']!=None):
+                                        attribute_value_id = self.env['product.attribute.value'].create({'attribute_id': attribute_id,'name': att['value_name']}).id
 
                                 if (attribute_value_id):
                                     #_logger.info("attribute_value_id:")
@@ -933,8 +934,10 @@ class product_product(models.Model):
                                 #_logger.info(attribute_value_id)
                                 pass
                             else:
-                                #_logger.info("Creating attribute value:")
-                                attribute_value_id = self.env['product.attribute.value'].create({'attribute_id': attribute_id, 'name': att['value_name'] }).id
+                                _logger.info("Creating attribute value:")
+                                _logger.info(att)
+                                if (att['value_name']!=None):
+                                    attribute_value_id = self.env['product.attribute.value'].create({'attribute_id': attribute_id, 'name': att['value_name'] }).id
 
                             if (attribute_value_id):
                                 attribute_line =  self.env['product.template.attribute.line'].search([('attribute_id','=',attribute_id),('product_tmpl_id','=',product_template.id)])
@@ -1233,7 +1236,7 @@ class product_product(models.Model):
                 #files = { 'file': ('image.png', imagebin, "image/png"), }
                 files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
                 response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
-                _logger.info( "meli upload:" + response.content )
+                _logger.info( "meli upload:" + str(response.content) )
                 rjson = response.json()
                 if ("error" in rjson):
                     #raise osv.except_osv( _('MELI WARNING'), _('No se pudo cargar la imagen en MELI! Error: %s , Mensaje: %s, Status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
@@ -1373,6 +1376,8 @@ class product_product(models.Model):
         att_to_pub = []
         for line in product_tmpl.meli_pub_variant_attributes:
             att_to_pub.append(line.attribute_id.name)
+        _logger.info("att_to_pub:")
+        _logger.info(att_to_pub)
 
         if (len(att_to_pub)==0):
             return False
@@ -1427,8 +1432,14 @@ class product_product(models.Model):
             var_comb["attribute_combinations"].append(att_combination)
 
         for att in product.attribute_value_ids:
+            _logger.info(att.attribute_id.name);
+            _logger.info(att);
             if (att.attribute_id.name in att_to_pub):
+                _logger.info("is in");
+                _logger.info(att.attribute_id.meli_default_id_attribute)
                 if (att.attribute_id.meli_default_id_attribute.id):
+                    _logger.info(att.attribute_id.meli_default_id_attribute.id)
+                    _logger.info(att.attribute_id.meli_default_id_attribute.variation_attribute)
                     if (att.attribute_id.meli_default_id_attribute.variation_attribute):
                         att_combination = {
                             "name":att.attribute_id.meli_default_id_attribute.name,
@@ -1574,6 +1585,9 @@ class product_product(models.Model):
             product_tmpl.meli_price = new_price
             product.meli_price=product_tmpl.meli_price
 
+        product_tmpl.meli_price = str(int(float(product_tmpl.meli_price)))
+        product.meli_price = str(int(float(product.meli_price)))
+
         if company.mercadolibre_buying_mode and product_tmpl.meli_buying_mode==False:
             product_tmpl.meli_buying_mode = company.mercadolibre_buying_mode
 
@@ -1591,7 +1605,7 @@ class product_product(models.Model):
                         if (value.attribute_id.id==line.attribute_id.id):
                             values+= " "+value.name
 
-                product.meli_title = string.replace(product.meli_title,product.name,product.name+" "+values)
+                #product.meli_title = string.replace(product.meli_title,product.name,product.name+" "+values)
 
 
 
@@ -2202,6 +2216,9 @@ class product_product(models.Model):
         if product_tmpl.meli_price==False or product_tmpl.meli_price==0:
             product_tmpl.meli_price = product_tmpl.list_price
 
+        #if (product_tmpl.meli_currency=="COP"):
+        product_tmpl.meli_price = str(int(float(product_tmpl.meli_price)))
+
         if product_tmpl.taxes_id:
             new_price = product_tmpl.meli_price
             if (pl):
@@ -2224,6 +2241,11 @@ class product_product(models.Model):
         if product.meli_price==False or product.meli_price==0.0:
             if product_tmpl.meli_price:
                 product.meli_price = product_tmpl.meli_price
+
+        #if (product_tmpl.meli_currency=="COP"):
+        product.meli_price = str(int(float(product.meli_price)))
+        _logger.info(product.meli_price)
+        _logger.info(product_tmpl.meli_price)
 
         fields = {
             "price": product.meli_price

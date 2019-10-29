@@ -193,6 +193,12 @@ class mercadolibre_orders(models.Model):
         pricelist_obj = self.env['product.pricelist']
         respartner_obj = self.env['res.partner']
 
+        product_shipping = product_obj.search([('default_code','=','ENVIO')])
+        product_shipping_id = False
+        if (len(product_shipping)):
+            _logger.info(product_shipping)
+            product_shipping_id = product_shipping[0].id
+
         plistid = None
         if company.mercadolibre_pricelist:
             plistid = company.mercadolibre_pricelist
@@ -368,9 +374,13 @@ class mercadolibre_orders(models.Model):
         if (order_json["shipping"]):
             order_fields['shipping'] = self.pretty_json( id, order_json["shipping"] )
             meli_order_fields['meli_shipping'] = self.pretty_json( id, order_json["shipping"] )
+
             if ("id" in order_json["shipping"]):
                 order_fields['shipping_id'] = order_json["shipping"]["id"]
                 meli_order_fields['meli_shipping_id'] = order_json["shipping"]["id"]
+
+            if ("cost" in order_json["shipping"]):
+                meli_order_fields['meli_total_amount'] = float(order_json["total_amount"])+float(order_json["shipping"]["cost"])
 
         #create or update order
         if (order and order.id):
@@ -435,8 +445,11 @@ class mercadolibre_orders(models.Model):
                     return { 'error': 'No post related, exiting'}
 
                 product_related = product_obj.search([('meli_id','=',Item['item']['id'])])
-                if ('seller_custom_field' in Item['item']):
-                    product_related = product_obj.search([('default_code','=',Item['item']['seller_custom_field'])])
+                if ("variation_id" in Item["item"]):
+                    product_related = product_obj.search([('meli_id','=',Item['item']['id']),('meli_id_variation','=',Item['item']['variation_id'])])
+                if ('seller_custom_field' in Item['item'] and len(product_related)==0):
+                    if (Item['item']["seller_custom_field"]):
+                        product_related = product_obj.search([('default_code','=',Item['item']['seller_custom_field'])])
                     if (len(product_related)):
                         _logger.info("order product related by seller_custom_field and default_code:"+str(Item['item']['seller_custom_field']) )
                     else:
@@ -558,6 +571,23 @@ class mercadolibre_orders(models.Model):
                     else:
                         saleorderline_item_ids.write( ( saleorderline_item_fields ) )
 
+        if (sorder and ("cost" in order_json["shipping"]) and product_shipping_id):
+            saleorderline_item_fields = {
+                'company_id': company.id,
+                'order_id': sorder.id,
+                'meli_order_item_id': 'ENVIO',
+                'price_unit': float(order_json["shipping"]["cost"]),
+                'product_id': product_shipping_id,
+                'product_uom_qty': 1.0,
+                'product_uom': 1,
+                'name': "Shipping",
+            }
+            saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
+            if not saleorderline_item_ids:
+                saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
+            else:
+                saleorderline_item_ids.write( ( saleorderline_item_fields ) )
+
         if 'payments' in order_json:
             payments = order_json['payments']
             cn = 0
@@ -568,6 +598,7 @@ class mercadolibre_orders(models.Model):
                     'order_id': order.id,
                     'payment_id': Payment['id'],
                     'transaction_amount': Payment['transaction_amount'] or '',
+                    'total_paid_amount': Payment['total_paid_amount'] or '',
                     'currency_id': Payment['currency_id'] or '',
                     'status': Payment['status'] or '',
                     'date_created': Payment['date_created'] or '',
@@ -761,6 +792,7 @@ class mercadolibre_payments(models.Model):
     order_id = fields.Many2one("mercadolibre.orders","Order")
     payment_id = fields.Char('Payment Id')
     transaction_amount = fields.Char('Transaction Amount')
+    total_paid_amount = fields.Char('Total Paid Amount')
     currency_id = fields.Char(string='Currency')
     status = fields.Char(string='Payment Status')
     date_created = fields.Datetime('Creation date')
