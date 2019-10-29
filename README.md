@@ -1,9 +1,9 @@
 meli_oerp
 =========
 
-Módulo para sincronizar MercadoLibre con Odoo 8/9.
+Módulo para sincronizar MercadoLibre con Odoo 10.
 
-Para que funcione correctamente se debe tener instalado Odoo 8 o 9, en modo HTTPS (443).
+Para que funcione correctamente se debe tener instalado Odoo 10, en modo HTTPS (443).
 
 Ver http://applications.mercadolibre.com.ar para obtener el client_id (app_id), y el secret key, para obtener el owner_id (vendor id), simplemente se hace un curl -X GET https://api.mercadolibre.com/applications/{app_id} , que devuelve la info de la app y del owner.
 
