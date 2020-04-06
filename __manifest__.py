@@ -9,9 +9,9 @@
 
 {
     'name': 'MercadoLibre Publisher',
-    'version': '1.0',
-    'author': 'Moldeo Interactive Coop. Ltda.',
-    'website': 'http://www.moldeointeractive.com.ar',
+    'version': '11.0',
+    'author': 'Moldeo Interactive',
+    'website': 'https://www.moldeointeractive.com.ar',
     "category": "Sales",
     "depends": ['base', 'product','sale','website_sale','stock','mrp'],
     'data': [
