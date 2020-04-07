@@ -1625,8 +1625,30 @@ class product_product(models.Model):
         if product.meli_description==False:
             product.meli_description = product_tmpl.meli_description
 
-        if product_tmpl.meli_description:
+        if (product_tmpl.meli_description or len(product_tmpl.meli_description)==0):
             product.meli_description = product_tmpl.meli_description
+
+        force_template_title_with_attributes = True
+        if (force_template_title_with_attributes and (product.meli_title==False or len(product.meli_title)==0)):
+            # _logger.info( 'Assigning title: product.meli_title: %s name: %s' % (product.meli_title, product.name) )
+            product.meli_title = product_tmpl.meli_title
+            if len(product_tmpl.meli_pub_variant_attributes):
+                values = ""
+                for line in product_tmpl.meli_pub_variant_attributes:
+                    for value in product.attribute_value_ids:
+                        if (value.attribute_id.id==line.attribute_id.id):
+                            values+= " "+value.name
+
+                product.meli_title = string.replace(product.meli_title,product.name,product.name+" "+values)
+
+        force_template_title = False
+        if (product_tmpl.meli_title and force_template_title):
+            product.meli_title = product_tmpl.meli_title
+
+        if ( product.meli_title and len(product.meli_title)>60 ):
+            return warningobj.info( title='MELI WARNING', message="La longitud del título ("+str(len(product.meli_title))+") es superior a 60 caracteres.", message_html=product.meli_title )
+
+
 
         if product.meli_category==False:
             product.meli_category=product_tmpl.meli_category
