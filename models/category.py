@@ -72,7 +72,7 @@ class mercadolibre_category(models.Model):
     _name = "mercadolibre.category"
     _description = "Categories of MercadoLibre"
 
-    @api.one
+
     def get_attributes( self ):
 
         company = self.env.user.company_id

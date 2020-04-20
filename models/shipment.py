@@ -478,7 +478,7 @@ mercadolibre_shipment()
 
 
 class AccountInvoice(models.Model):
-	_inherit = "account.invoice"
+	_inherit = "account.move"
 
 	@api.model
 	def _get_shipment(self):

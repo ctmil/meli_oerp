@@ -10,16 +10,16 @@ class MeliCampaignRecord(models.Model):
 
     _name = 'meli.campaign.record'
     _description = u'Registros de Campañas MELI'
-    
-    campaign_id = fields.Many2one('meli.campaign', u'Campaña', 
+
+    campaign_id = fields.Many2one('meli.campaign', u'Campaña',
         required=True, readonly=True, states={'draft':[('readonly',False)]}, ondelete="restrict")
     pricelist_id = fields.Many2one('product.pricelist', u'Tarifa de Venta',
         required=True, ondelete="restrict")
-    name = fields.Char(u'Nombre', 
+    name = fields.Char(u'Nombre',
         required=True, readonly=True, states={'draft':[('readonly',False)]})
     description = fields.Text(string=u'Descripcion',
         readonly=True, states={'draft':[('readonly',False)]})
-    line_ids = fields.One2many('meli.campaign.record.line', 
+    line_ids = fields.One2many('meli.campaign.record.line',
         'meli_campaign_id', u'Productos en Oferta', copy=False, auto_join=True)
     state = fields.Selection([
         ('draft','Borrador'),
@@ -28,8 +28,8 @@ class MeliCampaignRecord(models.Model):
         ('done','Campaña Terminada'),
         ('rejected','Cancelado'),
         ], string=u'Estado', index=True, readonly=True, default = u'draft', )
-    
-    @api.multi
+
+
     def action_set_products(self):
         self.ensure_one()
         wizard_model = self.env['wizard.set.products.campaign']
@@ -40,14 +40,14 @@ class MeliCampaignRecord(models.Model):
         action = self.env.ref('meli_oerp.action_wizard_set_products_campaign').read()[0]
         action['res_id'] = wizard.id
         return action
-    
-    @api.multi
+
+
     def action_publish_to_meli(self):
         self.ensure_one()
         warning_model = self.env['warning']
         messages = self.line_ids.filtered(lambda x: x.state == 'draft').action_publish_to_meli()
         state = 'published'
-        #si algun producto se quedo esperando aprobacion, 
+        #si algun producto se quedo esperando aprobacion,
         #el estado general sera esperando aprobacion de Meli
         if self.line_ids.filtered(lambda x: x.state == 'pending_approval'):
             state = 'pending_approval'
@@ -55,14 +55,14 @@ class MeliCampaignRecord(models.Model):
             return warning_model.info(title='Ofertas', message=u"\n".join(messages))
         self.state = state
         return True
-    
-    @api.multi
+
+
     def action_done_publish(self):
         self.mapped('line_ids').filtered(lambda x: x.state != 'rejected').write({'state': 'done'})
         self.write({'state': 'done'})
         return True
-    
-    @api.multi
+
+
     def action_cancel_publish(self):
         self.ensure_one()
         warning_model = self.env['warning']
@@ -71,8 +71,8 @@ class MeliCampaignRecord(models.Model):
             return warning_model.info(title='Cancelar Oferta', message=u"\n".join(messages))
         self.write({'state': 'rejected'})
         return True
-    
-    @api.multi
+
+
     def action_recompute_prices(self):
         self.ensure_one()
         #pasar la lista de precios y actualizar los precios
@@ -83,8 +83,8 @@ class MeliCampaignRecord(models.Model):
                 'meli_price': line.product_template_id.price,
             })
         return True
-    
-    @api.multi
+
+
     def action_update_prices_to_meli(self):
         warning_model = self.env['warning']
         #los nuevos productos publicarlos
@@ -94,23 +94,23 @@ class MeliCampaignRecord(models.Model):
         if messages:
             return warning_model.info(title='Actualizar Ofertas', message=u"\n".join(messages))
         return True
-    
-    @api.multi
+
+
     def unlink(self):
         for campaign in self:
             if campaign.state not in ('draft',):
                 raise UserError(u"No puede Eliminar esta Campaña, intente cancelarla")
         res = super(MeliCampaignRecord, self).unlink()
-        return res 
-    
+        return res
+
 class MeliCampaignRecordLine(models.Model):
 
     _name = 'meli.campaign.record.line'
     _description = u'Productos o Ofertar en Campañas'
-    
-    meli_campaign_id = fields.Many2one('meli.campaign.record', 
+
+    meli_campaign_id = fields.Many2one('meli.campaign.record',
         u'Registro de Campaña', ondelete="cascade", auto_join=True)
-    product_template_id = fields.Many2one('product.template', 
+    product_template_id = fields.Many2one('product.template',
         u'Plantilla de Producto', ondelete="restrict", auto_join=True)
     price_unit = fields.Float(u'Precio Unitario', digits=dp.get_precision('Product Price'))
     list_price = fields.Float(u'Precio Unitario(Tarifa)', digits=dp.get_precision('Product Price'))
@@ -118,7 +118,7 @@ class MeliCampaignRecordLine(models.Model):
     declared_free_shipping = fields.Boolean(u'Envio Gratis?')
     declared_oro_premium_full = fields.Boolean(u'Premium?')
     declared_stock = fields.Float(u'Stock Declarado', digits=dp.get_precision('Product Unit of Measure'))
-    review_reasons_ids = fields.One2many('meli.campaign.record.review.reason', 
+    review_reasons_ids = fields.One2many('meli.campaign.record.review.reason',
         'meli_campaign_line_id', u'Razones de Revision', readonly=True, copy=False, auto_join=True)
     state = fields.Selection([
         ('draft','Borrador'),
@@ -127,8 +127,8 @@ class MeliCampaignRecordLine(models.Model):
         ('done','Campaña Terminada'),
         ('rejected','Cancelado'),
         ], string=u'Estado', default = u'draft')
-    
-    @api.multi
+
+
     def action_publish_to_meli(self):
         meli_util_model = self.env['meli.util']
         company = self.env.user.company_id
@@ -164,8 +164,8 @@ class MeliCampaignRecordLine(models.Model):
             if vals_line:
                 line.write(vals_line)
         return messages
-    
-    @api.multi
+
+
     def action_unpublish_to_meli(self):
         meli_util_model = self.env['meli.util']
         company = self.env.user.company_id
@@ -192,8 +192,8 @@ class MeliCampaignRecordLine(models.Model):
             if vals_line:
                 line.write(vals_line)
         return messages
-    
-    @api.multi
+
+
     def action_update_to_meli(self):
         meli_util_model = self.env['meli.util']
         company = self.env.user.company_id
@@ -214,15 +214,14 @@ class MeliCampaignRecordLine(models.Model):
                 messages.append("%s. Producto ID: %s" % (msj, line.product_template_id.meli_id))
                 continue
         return messages
-    
+
 class MeliCampaignRecordRevisionReason(models.Model):
 
     _name = 'meli.campaign.record.review.reason'
     _description = u'Razones de Revision en Ofertas'
-    
-    meli_campaign_line_id = fields.Many2one('meli.campaign.record.line', 
+
+    meli_campaign_line_id = fields.Many2one('meli.campaign.record.line',
         u'Producto en Oferta', ondelete="cascade", auto_join=True)
     reason_type = fields.Char(u'Tipo de Razon')
     reason_requisite = fields.Char(u'Requisito')
     message_key = fields.Char(u'Mensaje')
-    

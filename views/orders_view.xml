@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<openerp>
+<odoo>
     <data>
 
         <record model="ir.ui.view" id="view_meli_orders_tree">
@@ -181,7 +181,7 @@
             <field name="name">Ordenes</field>
             <field name="type">ir.actions.act_window</field>
             <field name="res_model">mercadolibre.orders</field>
-            <field name="view_type">form</field>
+            <!--field name="view_type">form</field-->
             <field name="view_mode">tree,form</field>
             <!--<field name="search_view_id" ref="meli_orders_search_view"/>-->
         </record>
@@ -190,7 +190,7 @@
             <field name="name">Compradores</field>
             <field name="type">ir.actions.act_window</field>
             <field name="res_model">mercadolibre.buyers</field>
-            <field name="view_type">form</field>
+            <!--field name="view_type">form</field-->
             <field name="view_mode">tree,form</field>
             <!--<field name="search_view_id" ref="meli_buyers_search_view"/>-->
         </record>
@@ -198,9 +198,9 @@
         <record id="action_update_meli_orders" model="ir.actions.act_window">
             <field name="name">Actualizar Ordenes de ML</field>
             <field name="type">ir.actions.act_window</field>
-            <field name="src_model">mercadolibre.orders</field>
+            <!--field name="src_model">mercadolibre.orders</field-->
             <field name="res_model">mercadolibre.orders.update</field>
-            <field name="view_type">form</field>
+            <!--field name="view_type">form</field-->
             <field name="view_mode">form</field>
             <field name="target">new</field>
         </record>
@@ -229,13 +229,14 @@
 
             <act_window id="action_update_meli_orders"
                 name="Update ML Orders"
-                src_model="mercadolibre.orders"
+                binding_model="mercadolibre.orders"
                 res_model="mercadolibre.orders.update"
-                view_type="form" view_mode="form"
-                key2="client_action_multi" target="new"/>
+                binding_views="form"
+                view_mode="form"
+                target="new"/>
 
 
 
 
     </data>
-</openerp>
+</odoo>

@@ -160,7 +160,7 @@ class product_template(models.Model):
 
         return variations
 
-    @api.one
+
     def product_template_stats(self):
 
         _pubs = ""
@@ -185,7 +185,7 @@ class product_template(models.Model):
 
         return {}
 
-    @api.multi
+
     def action_meli_pause(self):
         product = self
         for variant in product.product_variant_ids:
@@ -193,7 +193,7 @@ class product_template(models.Model):
                 variant.product_meli_status_pause()
         return {}
 
-    @api.multi
+
     def action_meli_activate(self):
         product = self
         for variant in product.product_variant_ids:
@@ -201,7 +201,7 @@ class product_template(models.Model):
                 variant.product_meli_status_active()
         return {}
 
-    @api.multi
+
     def action_meli_close(self):
         product = self
         for variant in product.product_variant_ids:
@@ -209,7 +209,7 @@ class product_template(models.Model):
                 variant.product_meli_status_close()
         return {}
 
-    @api.multi
+
     def action_meli_delete(self):
         product = self
         for variant in product.product_variant_ids:
@@ -287,7 +287,7 @@ class product_product(models.Model):
 
     _inherit = "product.product"
 
-    #@api.one
+    #
     @api.onchange('lst_price') # if these fields are changed, call method
     def check_change_price(self):
         # GUS
@@ -1290,7 +1290,7 @@ class product_product(models.Model):
 
         return { 'value': { 'meli_description' : result } }
 
-    @api.one
+
     def product_get_meli_update( self ):
         #self.ensure_one()
         #pdb.set_trace()

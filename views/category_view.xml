@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<openerp>
+<odoo>
     <data>
 
         <record model="ir.ui.view" id="view_meli_product_public_category_form_view">
@@ -47,7 +47,7 @@
             <field name="name">Categorías</field>
             <field name="type">ir.actions.act_window</field>
             <field name="res_model">mercadolibre.category</field>
-            <field name="view_type">form</field>
+            <!--field name="view_type">form</field-->
             <field name="view_mode">tree,form</field>
         </record>
 
@@ -57,4 +57,4 @@
             name="Categorías" />
 
     </data>
-</openerp>
+</odoo>

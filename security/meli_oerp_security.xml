@@ -3,7 +3,7 @@
 
     <record id="group_mercadolibre_manager" model="res.groups">
         <field name="name">MercadoLibre Sale Manager</field>
-        <field name="category_id" ref="base.module_category_sales_management"/>
+        <field name="category_id" ref="base.module_category_sales_sales"/>
         <field name="users" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/>
     </record>
 

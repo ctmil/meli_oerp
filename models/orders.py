@@ -158,20 +158,39 @@ class mercadolibre_orders(models.Model):
 
         return billinginfo
 
-    def full_phone( self, phone_json, context=None ):
+    def full_phone( self, buyer_json, context=None ):
         full_phone = ''
+        if "phone" in buyer_json:
+            phone_json = buyer_json["phone"]
+            if 'area_code' in phone_json:
+                if phone_json['area_code']:
+                    full_phone+= phone_json['area_code']
 
-        if 'area_code' in phone_json:
-            if phone_json['area_code']:
-                full_phone+= phone_json['area_code']
+            if 'number' in phone_json:
+                if phone_json['number']:
+                    full_phone+= phone_json['number']
 
-        if 'number' in phone_json:
-            if phone_json['number']:
-                full_phone+= phone_json['number']
+            if 'extension' in phone_json:
+                if phone_json['extension']:
+                    full_phone+= phone_json['extension']
 
-        if 'extension' in phone_json:
-            if phone_json['extension']:
-                full_phone+= phone_json['extension']
+        return full_phone
+
+    def full_alt_phone( self, buyer_json, context=None ):
+        full_phone = ''
+        if "alternative_phone" in buyer_json:
+            phone_json = buyer_json["alternative_phone"]
+            if 'area_code' in phone_json:
+                if phone_json['area_code']:
+                    full_phone+= phone_json['area_code']
+
+            if 'number' in phone_json:
+                if phone_json['number']:
+                    full_phone+= phone_json['number']
+
+            if 'extension' in phone_json:
+                if phone_json['extension']:
+                    full_phone+= phone_json['extension']
 
         return full_phone
 
@@ -275,7 +294,7 @@ class mercadolibre_orders(models.Model):
                 'city': self.city(Receiver),
                 'country_id': self.country(Receiver),
                 'state_id': self.state(self.country(Receiver),Receiver),
-                'phone': self.full_phone( Buyer['phone']),
+                'phone': self.full_phone( Buyer ),
                 'email': Buyer['email'],
                 'meli_buyer_id': Buyer['id']
             }
@@ -285,8 +304,8 @@ class mercadolibre_orders(models.Model):
                 'buyer_id': Buyer['id'],
                 'nickname': Buyer['nickname'],
                 'email': Buyer['email'],
-                'phone': self.full_phone( Buyer['phone']),
-                'alternative_phone': self.full_phone( Buyer['alternative_phone']),
+                'phone': self.full_phone( Buyer ),
+                'alternative_phone': self.full_alt_phone( Buyer ),
                 'first_name': Buyer['first_name'],
                 'last_name': Buyer['last_name'],
                 'billing_info': self.billing_info(Buyer['billing_info']),

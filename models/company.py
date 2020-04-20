@@ -39,7 +39,7 @@ class res_company(models.Model):
     def meli_get_object( self ):
         return True
 
-    @api.multi
+
     def get_meli_state( self ):
         # recoger el estado y devolver True o False (meli)
         #False if logged ok
@@ -125,7 +125,7 @@ class res_company(models.Model):
         for comp in self:
             comp.mercadolibre_state = ML_state
 
-    @api.multi
+
     def cron_meli_process( self ):
 
         _logger.info('company cron_meli_process() ')
@@ -238,7 +238,7 @@ class res_company(models.Model):
     mercadolibre_overwrite_variant = fields.Boolean(string='Overwrite product variant',help='Sobreescribir siempre Nombre y Descripción de la variante.')
 
 
-    @api.multi
+
     def	meli_logout(self):
         _logger.info('company.meli_logout() ')
         self.ensure_one()
@@ -260,7 +260,7 @@ class res_company(models.Model):
             "target": "new",
         }
 
-    @api.multi
+
     def meli_login(self):
         _logger.info('company.meli_login() ')
         self.ensure_one()
@@ -283,7 +283,7 @@ class res_company(models.Model):
             "target": "self",
         }
 
-    @api.multi
+
     def meli_query_get_questions(self):
 
         _logger.info("meli_query_get_questions")
@@ -301,7 +301,7 @@ class res_company(models.Model):
                 posting.posting_query_questions()
         return {}
 
-    @api.multi
+
     def meli_query_orders(self):
         _logger.info('company.meli_query_orders() ')
         company = self.env.user.company_id
@@ -309,7 +309,7 @@ class res_company(models.Model):
         result = orders_obj.orders_query_recent()
         return {}
 
-    @api.multi
+
     def meli_query_products(self):
         _logger.info('company.meli_query_products() ')
         company = self.env.user.company_id
@@ -469,13 +469,13 @@ class res_company(models.Model):
                 self._cr.rollback()
         return {}
 
-    @api.multi
+
     def meli_update_local_products(self):
         _logger.info('company.meli_update_local_products() ')
         self.product_meli_update_local_products()
         return {}
 
-    @api.multi
+
     def meli_update_remote_products(self):
         _logger.info('company.meli_update_remote_products() ')
         self.product_meli_update_remote_products()
@@ -584,7 +584,7 @@ class res_company(models.Model):
         result = category_obj.import_all_categories(category_root=CATEGORY_ROOT )
         return {}
 
-    @api.multi
+
     def meli_update_remote_stock(self):
         company = self.env.user.company_id
         if (company.mercadolibre_cron_post_update_stock):
@@ -615,7 +615,7 @@ class res_company(models.Model):
                 self._cr.rollback()
         return {}
 
-    @api.multi
+
     def meli_update_remote_price(self):
         if (self.mercadolibre_cron_post_update_price):
             product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False)])
