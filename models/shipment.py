@@ -39,7 +39,7 @@ from . import product
 from . import product_post
 from . import posting
 from . import res_partner
-#from pdf2image import convert_from_path, convert_from_bytes
+from pdf2image import convert_from_path, convert_from_bytes
 #
 #     https://www.odoo.com/fr_FR/forum/aide-1/question/solved-call-report-and-save-result-to-attachment-133244
 #
@@ -96,8 +96,8 @@ class mercadolibre_shipment_print(models.TransientModel):
 						_logger.info(data)
 						shipment.pdf_filename = "Shipment_"+shipment.shipping_id+".pdf"
 						shipment.pdf_file = base64.encodestring(data)
-						#images = convert_from_bytes(data, dpi=300,fmt='jpg')
-						if (1==2 and len(images)>1):
+						images = convert_from_bytes(data, dpi=300,fmt='jpg')
+						if (1==1 and len(images)>1):
 							for image in images:
 								image.save("/tmp/%s-page%d.jpg" % ("Shipment_"+shipment.shipping_id,images.index(image)), "JPEG")
 								if (images.index(image)==1):
@@ -358,7 +358,7 @@ class mercadolibre_shipment(models.Model):
 					try:
 						_logger.info("ships.pdf_filename:")
 						_logger.info(ships.pdf_filename)
-						if (1==2 and ships.pdf_filename):
+						if (1==1 and ships.pdf_filename):
 							_logger.info("We have a pdf file")
 							if (ships.pdfimage_filename==False):
 								_logger.info("Try create a pdf image file")
@@ -507,9 +507,8 @@ class AccountInvoice(models.Model):
 					ret["receiver_address_phone"] = shipment.receiver_address_phone
 					ret["receiver_city"] = shipment.receiver_city
 					ret["receiver_state"] = shipment.receiver_state
-					ret["tracking_method"] = "Mercadoenvios (" + shipment.tracking_method +")"
-					#ret["tracking_method_color"] = ""
-					#if (shipment.tracking_method=="Deprisa "):
+					ret["tracking_method"] = shipment.tracking_method
+
 					ret["items"] = []
 					for order_item in shipment.order.order_items:
 						ret["items"].append({'quantity':order_item.quantity, 'name': order_item.posting_id.product_id.name})

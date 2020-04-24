@@ -908,7 +908,7 @@ class product_product(models.Model):
                     variant.meli_default_stock_product = ptemp_nfree
 
         if ('attributes' in rjson):
-            if (len(rjson['attributes']) and 1==2):
+            if (len(rjson['attributes']) and 1==1):
                 for att in rjson['attributes']:
                     try:
                         _logger.info(att)
@@ -928,8 +928,10 @@ class product_product(models.Model):
                                 #_logger.info(attribute_value_id)
                                 pass
                             else:
-                                #_logger.info("Creating attribute value:")
-                                attribute_value_id = self.env['product.attribute.value'].create({'attribute_id': attribute_id, 'name': att['value_name'] }).id
+                                _logger.info("Creating attribute value:")
+                                _logger.info(att)
+                                if (att['value_name']!=None):
+                                    attribute_value_id = self.env['product.attribute.value'].create({'attribute_id': attribute_id, 'name': att['value_name'] }).id
 
                             if (attribute_value_id):
                                 attribute_line =  self.env['product.attribute.line'].search([('attribute_id','=',attribute_id),('product_tmpl_id','=',product_template.id)])
@@ -1228,7 +1230,7 @@ class product_product(models.Model):
                 #files = { 'file': ('image.png', imagebin, "image/png"), }
                 files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
                 response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
-                _logger.info( "meli upload:" + response.content )
+                _logger.info( "meli upload:" + str(response.content) )
                 rjson = response.json()
                 if ("error" in rjson):
                     #raise osv.except_osv( _('MELI WARNING'), _('No se pudo cargar la imagen en MELI! Error: %s , Mensaje: %s, Status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
@@ -1568,6 +1570,9 @@ class product_product(models.Model):
             new_price = round(new_price,2)
             product_tmpl.meli_price = new_price
             product.meli_price=product_tmpl.meli_price
+
+        product_tmpl.meli_price = str(int(float(product_tmpl.meli_price)))
+        product.meli_price = str(int(float(product.meli_price)))
 
         if company.mercadolibre_buying_mode and product_tmpl.meli_buying_mode==False:
             product_tmpl.meli_buying_mode = company.mercadolibre_buying_mode
@@ -2194,6 +2199,9 @@ class product_product(models.Model):
         if product_tmpl.meli_price==False or product_tmpl.meli_price==0:
             product_tmpl.meli_price = product_tmpl.list_price
 
+        #if (product_tmpl.meli_currency=="COP"):
+        product_tmpl.meli_price = str(int(float(product_tmpl.meli_price)))
+
         if product_tmpl.taxes_id:
             new_price = product_tmpl.meli_price
             if (pl):
@@ -2216,6 +2224,11 @@ class product_product(models.Model):
         if product.meli_price==False or product.meli_price==0.0:
             if product_tmpl.meli_price:
                 product.meli_price = product_tmpl.meli_price
+
+        #if (product_tmpl.meli_currency=="COP"):
+        product.meli_price = str(int(float(product.meli_price)))
+        _logger.info(product.meli_price)
+        _logger.info(product_tmpl.meli_price)
 
         fields = {
             "price": product.meli_price

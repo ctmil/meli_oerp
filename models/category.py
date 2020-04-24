@@ -56,6 +56,8 @@ class mercadolibre_category_attribute(models.Model):
     values = fields.Text(string="Values")
     type = fields.Char(string="Type")
 
+    required = fields.Boolean(string="Required by ML")
+
 mercadolibre_category_attribute()
 
 class product_attribute(models.Model):
@@ -103,7 +105,8 @@ class mercadolibre_category(models.Model):
                         'value_type': att['value_type'],
                         'hidden': ('hidden' in att['tags']),
                         'multivalued': ( 'multivalued' in att['tags']),
-                        'variation_attribute': ('variation_attribute' in att['tags'])
+                        'variation_attribute': ('variation_attribute' in att['tags']) | ('allow_variations' in att['tags']),
+                        'required': ('catalog_required' in att['tags'])
                     }
 
                     if ('tooltip' in att):

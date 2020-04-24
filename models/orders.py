@@ -193,6 +193,12 @@ class mercadolibre_orders(models.Model):
         pricelist_obj = self.env['product.pricelist']
         respartner_obj = self.env['res.partner']
 
+        product_shipping = product_obj.search([('default_code','=','ENVIO')])
+        product_shipping_id = False
+        if (len(product_shipping)):
+            _logger.info(product_shipping)
+            product_shipping_id = product_shipping[0].id
+
         plistid = None
         if company.mercadolibre_pricelist:
             plistid = company.mercadolibre_pricelist
@@ -357,8 +363,13 @@ class mercadolibre_orders(models.Model):
         if (order_json["shipping"]):
             order_fields['shipping'] = self.pretty_json( id, order_json["shipping"] )
             meli_order_fields['meli_shipping'] = self.pretty_json( id, order_json["shipping"] )
+
             if ("id" in order_json["shipping"]):
                 order_fields['shipping_id'] = order_json["shipping"]["id"]
+                meli_order_fields['meli_shipping_id'] = order_json["shipping"]["id"]
+
+            if ("cost" in order_json["shipping"]):
+                meli_order_fields['meli_total_amount'] = float(order_json["total_amount"])+float(order_json["shipping"]["cost"])
 
         #create or update order
         if (order and order.id):
