@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+      <record id="paperformat_invoice_shipment" model="report.paperformat">
+          <field name="name">A4 Invoice with Shipment Paper</field>
+          <field name="default" eval="True" />
+          <field name="format">A4</field>
+          <field name="page_height">0</field>
+          <field name="page_width">0</field>
+          <field name="orientation">Portrait</field>
+          <field name="margin_top">8</field>
+          <field name="margin_bottom">0</field>
+          <field name="margin_left">0</field>
+          <field name="margin_right">0</field>
+          <field name="header_line" eval="False"/>
+          <field name="header_spacing">5</field>
+          <field name="dpi">90</field>
+      </record>
+
+<!--
+      <template id="report_invoice_shipment"  inherit_id="account.report_invoice_document" primary="True">
+          <t t-call="web.html_container">
+              <t t-foreach="docs" t-as="o">
+                  <t t-set="lang" t-value="o.user_id.lang if o.type in ('in_invoice', 'in_refund') else o.partner_id.lang"/>
+                  <t t-call="account.report_invoice_document" t-lang="lang"/>
+              </t>
+          </t>
+      </template>-->
+
+      <template id="report_invoice_document_with_shipment"  inherit_id="account.report_invoice_document" primary="True">
+        <!--<h2>dummy</h2>-->
+      </template>
+
+      <template id="report_invoice_shipment">
+            <t t-call="web.html_container">
+                <t t-foreach="docs" t-as="o">
+                    <t t-set="lang" t-value="o.user_id.lang if o.type in ('in_invoice', 'in_refund') else o.partner_id.lang"/>
+                    <t t-call="meli_oerp.report_invoice_document_with_shipment" t-lang="lang"/>
+                    <t t-call="web.report_layout">
+        							<t t-call="meli_oerp.internal_layout">
+                        <t t-set="shipment" t-value="o._get_shipment()"/>
+                        <div class="page" style="margin: 0px !important;padding: 0px !important;">
+                          <!--<h2>Shipment</h2>-->
+                          <img
+                            style="margin: 0px !important;padding: 0px !important;" width="650" t-att-src="'data:image/jpeg;base64,%s' % to_text(shipment['pdfimage_file'])"
+                            t-att-title="shipment['shipping_id']"
+                            t-att-alt="shipment['pdfimage_filename']"/>
+                        </div>
+                      </t>
+                    </t>
+                </t>
+                <t t-call="meli_oerp.report_layout">
+                  <t t-call="meli_oerp.internal_layout">
+                    <div class="page">
+                      <t t-foreach="docs" t-as="o">
+                        <t t-if="not company">
+                            <!-- Multicompany -->
+                            <t t-if="company_id">
+                                <t t-set="company" t-value="company_id"/>
+                            </t>
+                            <t t-elif="o and 'company_id' in o">
+                                <t t-set="company" t-value="o.company_id.sudo()"/>
+                            </t>
+                            <t t-else="else">
+                                <t t-set="company" t-value="res_company"/>
+                            </t>
+                        </t>
+                        <t t-set="shipment" t-value="o._get_shipment()"/>
+                        <table style="width: 100%">
+                          <tr>
+                            <td style="width: 64.5%">
+                              <table style="width: 100%">
+                                <tr>
+                                  <td style="width: 20%"><b>Destinatario:</b></td>
+                                  <td><span><t t-esc="shipment['receiver_address_name']"/></span></td>
+                                </tr>
+                                <tr>
+                                  <td><b>Dirección:</b></td>
+                                  <td><span><t t-esc="shipment['receiver_address_line']"/></span></td>
+                                </tr>
+                                <tr>
+                                  <td><b>Teléfono:</b></td>
+                                  <td>
+                                    <table style="width: 100%">
+                                      <tr>
+                                        <td style="width: 22.5%"><span><t t-esc="shipment['receiver_address_phone']"/></span></td>
+                                        <td style="width: 15%"><b>Destino:</b></td>
+                                        <td style="width: 62.5%"><span><t t-esc="shipment['receiver_city']"/></span>,<span><t t-esc="shipment['receiver_state']"/></span>
+                                        <!--,<span t-field="o.receiver_country"/>--></td>
+                                      </tr>
+                                    </table>
+                                  </td>
+                                </tr>
+                                <tr>
+                                  <td><b>Tipo de envío:</b></td>
+                                  <td style="background-color: #99FF99;"><span><t t-esc="shipment['tracking_method']"/></span></td>
+                                </tr>
+                                <tr>
+                                  <td><b>Producto(s):</b></td>
+                                  <td>
+                                    <span t-foreach="shipment['items']" t-as="item">
+                                      <span><t t-esc="item['quantity']"/></span> x <span><t t-esc="item['name']"/></span>,
+                                   </span>
+                                   </td>
+                                </tr>
+                              </table>
+                            </td>
+                            <td style="width: 35.5%">
+                              Remitente: <span t-field="company.partner_id.name"/>
+                              <span t-field="company.partner_id" t-options='{"widget": "contact", "fields": ["address"], "no_marker": true}'/>
+                            </td>
+                          </tr>
+                        </table>
+                      </t>
+                    </div>
+                </t>
+              </t>
+            </t>
+      </template>
+
+
+    </data>
+</odoo>
