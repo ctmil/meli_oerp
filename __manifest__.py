@@ -33,6 +33,7 @@
 	'report/report_shipment_view.xml',
         'report/report_invoice_shipment_view.xml',
     ],
+    "external_dependencies": {"python": ['pdf2image']},
     'demo_xml': [],
     'active': False,
     'installable': True,
