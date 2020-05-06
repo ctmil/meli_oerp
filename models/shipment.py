@@ -53,7 +53,7 @@ class mercadolibre_shipment_print(models.TransientModel):
 
 	def shipment_print(self):
 		#pdb.set_trace()
-        context = self.env.context
+		context = self.env.context
 		company = self.env.user.company_id
 		shipment_ids = context['active_ids']
 		#product_obj = self.env['product.template']
