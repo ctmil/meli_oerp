@@ -411,7 +411,7 @@ class product_product(models.Model):
             thumbnail_url = pictures[0]['url']
             image = urlopen(thumbnail_url).read()
             image_base64 = base64.encodestring(image)
-            product.image_medium = image_base64
+            product.image_1920 = image_base64
 
             if (len(pictures)>1):
                 #complete product images:
@@ -465,7 +465,7 @@ class product_product(models.Model):
                         if (bin_updating):
                             _logger.info("Updating image data.")
                             _logger.info("Image:"+str(meli_imagen_bytes) )
-                            pimage.image = image_base64
+                            pimage.image_1920 = image_base64
         except Exception as e:
             _logger.info("_meli_set_images Exception")
             _logger.info(e, exc_info=True)
@@ -1180,11 +1180,11 @@ class product_product(models.Model):
         #
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
-        if product.image==None or product.image==False:
+        if product.image_1920==None or product.image_1920==False:
             return { 'status': 'error', 'message': 'no image to upload' }
 
-        imagebin = base64.b64decode(product.image)
-        imageb64 = product.image
+        imagebin = base64.b64decode(product.image_1920)
+        imageb64 = product.image_1920
         files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
         response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
 
@@ -1230,9 +1230,9 @@ class product_product(models.Model):
 
         #loop over images
         for product_image in product.product_image_ids:
-            if (product_image.image):
-                #_logger.info( "product_image.image:" + str(product_image.image) )
-                imagebin = base64.b64decode( product_image.image )
+            if (product_image.image_1920):
+                #_logger.info( "product_image.image_1920:" + str(product_image.image_1920) )
+                imagebin = base64.b64decode( product_image.image_1920 )
                 #files = { 'file': ('image.png', imagebin, "image/png"), }
                 files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
                 response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
@@ -1772,7 +1772,7 @@ class product_product(models.Model):
             assign_img = False and product.meli_id
 
             #publicando imagen cargada en OpenERP
-            if product.image==None:
+            if product.image_1920==None:
                 return warningobj.info( title='MELI WARNING', message="Debe cargar una imagen de base en el producto.", message_html="" )
             else:
                 # _logger.info( "try uploading image..." )
