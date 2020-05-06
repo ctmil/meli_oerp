@@ -134,7 +134,6 @@
                 <data>
                     <notebook>
                         <page string="MercadoLibre">
-                          <group>
                           <div class="oe_button_box" name="button_box_mel">
                             <button name='product_meli_get_product' type="object"
                             string="Cargar desde ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"
