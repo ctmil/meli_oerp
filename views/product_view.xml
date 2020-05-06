@@ -17,8 +17,10 @@
                 <notebook>
                     <page string="MercadoLibre Plantilla">
                       <group name="ML actions">
-                        <button name='%(action_product_template_post)d' type="action" string="Publicar-Actualizar producto en ML"/>
-                        <button name='%(action_product_template_update)d' type="action" string="Cargar desde ML"/>
+                        <button name='%(action_product_template_post)d' type="action" string="Publicar-Actualizar producto en ML" class="oe_stat_button"
+                        icon="fa-globe"/>
+                        <button name='%(action_product_template_update)d' type="action" string="Cargar desde ML" class="oe_stat_button"
+                        icon="fa-cloud-download"/>
                       </group>
                       <separator string="Descripcion del producto en ML" colspan="1"/>
                       <group name="Basic description">
