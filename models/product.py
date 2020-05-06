@@ -1293,10 +1293,11 @@ class product_product(models.Model):
     def product_get_meli_update( self ):
         company = self.env.user.company_id
         warningobj = self.env['warning']
-
         product_obj = self.env['product.product']
+        _logger.info("product_get_meli_update:")
+        _logger.info(self)
         for product in self:
-
+            _logger.info(product)
             CLIENT_ID = company.mercadolibre_client_id
             CLIENT_SECRET = company.mercadolibre_secret_key
             ACCESS_TOKEN = company.mercadolibre_access_token
@@ -1328,9 +1329,9 @@ class product_product(models.Model):
 
                     product.meli_status = ML_status
                     product.meli_permalink = ML_permalink
-
-
             product.meli_state = ML_state
+        _logger.info("product_get_meli_update end")
+
 
     def _is_value_excluded(self, att_value ):
         company = self.env.user.company_id
