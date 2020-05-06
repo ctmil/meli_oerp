@@ -1298,42 +1298,43 @@ class product_product(models.Model):
         warningobj = self.env['warning']
 
         product_obj = self.env['product.product']
-        product = self
+        for product in self:
 
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
 
-        ML_status = "unknown"
-        ML_permalink = ""
-        ML_state = False
+            CLIENT_ID = company.mercadolibre_client_id
+            CLIENT_SECRET = company.mercadolibre_secret_key
+            ACCESS_TOKEN = company.mercadolibre_access_token
+            REFRESH_TOKEN = company.mercadolibre_refresh_token
 
-        if (ACCESS_TOKEN=='' or ACCESS_TOKEN==False):
             ML_status = "unknown"
             ML_permalink = ""
-            ML_state = True
-        else:
-            meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
-            if product.meli_id:
-                response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token} )
-                rjson = response.json()
-                if "status" in rjson:
-                    ML_status = rjson["status"]
-                if "permalink" in rjson:
-                    ML_permalink = rjson["permalink"]
-                if "error" in rjson:
-                    ML_status = rjson["error"]
-                    ML_permalink = ""
-                if "sub_status" in rjson:
-                    if len(rjson["sub_status"]) and rjson["sub_status"][0]=='deleted':
-                        product.write({ 'meli_id': '' })
+            ML_state = False
 
-                self.meli_status = ML_status
-                self.meli_permalink = ML_permalink
+            if (ACCESS_TOKEN=='' or ACCESS_TOKEN==False):
+                ML_status = "unknown"
+                ML_permalink = ""
+                ML_state = True
+            else:
+                meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+                if product.meli_id:
+                    response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token} )
+                    rjson = response.json()
+                    if "status" in rjson:
+                        ML_status = rjson["status"]
+                    if "permalink" in rjson:
+                        ML_permalink = rjson["permalink"]
+                    if "error" in rjson:
+                        ML_status = rjson["error"]
+                        ML_permalink = ""
+                    if "sub_status" in rjson:
+                        if len(rjson["sub_status"]) and rjson["sub_status"][0]=='deleted':
+                            product.write({ 'meli_id': '' })
+
+                    product.meli_status = ML_status
+                    product.meli_permalink = ML_permalink
 
 
-        self.meli_state = ML_state
+            product.meli_state = ML_state
 
     def _is_value_excluded(self, att_value ):
         company = self.env.user.company_id
