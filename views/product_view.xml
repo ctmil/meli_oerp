@@ -161,20 +161,25 @@
             								confirm="Esta seguro de Activar este Producto en Mercado Libre?"/>
                             <button name='product_meli_status_pause' type="object"
                             string="Pausar producto en ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"
+                            class="oe_stat_button"
                             icon="fa-pause-circle"
             								confirm="Esta seguro de Pausar este Producto en Mercado Libre?"/>
                             <button name='product_meli_status_close' type="object"
                             string="Cerrar producto en ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"
                             icon="fa-pause-circle"
+                            class="oe_stat_button"
             								confirm="Esta seguro de Pausar este Producto en Mercado Libre?"/>
                             <button name='product_meli_delete' type="object"
                             string="Eliminar producto de ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"
                             icon="fa-trash-o"
+                            class="oe_stat_button"
             								confirm="Esta seguro de Eliminar este Producto en Mercado Libre?. Esta accion no podra revertirse"/>
                             <button name='product_meli_upload_image' type="object"
                             string="Subir imagen a ML" attrs="{'invisible':[('meli_state','=',True)]}"
                             class="oe_stat_button" icon="fa-cloud-upload"/>
                             <button name='product_meli_login' type="object"
+                            class="oe_stat_button"
+                            icon="fa-user-circle"
                             string="Se requiere Iniciar Sesión en ML" attrs="{'invisible':[('meli_state','=',False)]}"/>
                           </div>
                           <group string="Informacion de ML">

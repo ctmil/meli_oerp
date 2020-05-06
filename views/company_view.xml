@@ -20,22 +20,29 @@
                             <group name="Actions">
 
               								<button name='meli_login' type="object"
-              										string="Iniciar sesión en ML" attrs="{'invisible':[('mercadolibre_state','=',False)]}"/>
+              										string="Iniciar sesión en ML" attrs="{'invisible':[('mercadolibre_state','=',False)]}"
+                                  class="oe_stat_button"
+                                  icon="fa-user-circle"/>
 
               								<button name='meli_logout' type="object"
-              										string="Cerrar sesión con ML" attrs="{'invisible':[('mercadolibre_state','=',True)]}"/>
+              										string="Cerrar sesión con ML" attrs="{'invisible':[('mercadolibre_state','=',True)]}"
+                                  class="oe_stat_button"/>
 
                               <button name='meli_query_orders' type="object"
-              										string="Iniciar búsqueda de órdenes en ML" attrs="{'invisible':[('mercadolibre_state','=',True)]}"/>
+              										string="Iniciar búsqueda de órdenes en ML" attrs="{'invisible':[('mercadolibre_state','=',True)]}"
+                                  class="oe_stat_button"/>
 
               								<button name='meli_query_products' type="object"
-              										string="Iniciar búsqueda de productos en ML" attrs="{'invisible':[('mercadolibre_state','=',True)]}"/>
+              										string="Iniciar búsqueda de productos en ML" attrs="{'invisible':[('mercadolibre_state','=',True)]}"
+                                  class="oe_stat_button"/>
 
                                   <button name='meli_update_local_products' type="object"
-                  										string="Iniciar actualización de productos y stock desde ML" attrs="{'invisible':[('mercadolibre_state','=',True)]}"/>
+                  										string="Iniciar actualización de productos y stock desde ML" attrs="{'invisible':[('mercadolibre_state','=',True)]}"
+                                      class="oe_stat_button"/>
 
                                       <button name='meli_import_categories' type="object"
-                                          										string="Iniciar importación de categorías en ML" attrs="{'invisible':[('mercadolibre_state','=',True)]}"/>
+                                          										string="Iniciar importación de categorías en ML" attrs="{'invisible':[('mercadolibre_state','=',True)]}"
+                                                              class="oe_stat_button"/>
 
               							</group>
                             <group name="Account" col="2">
