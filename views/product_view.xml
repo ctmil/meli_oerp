@@ -135,71 +135,91 @@
                     <notebook>
                         <page string="MercadoLibre">
                           <group>
-
+                          <div class="oe_button_box" name="button_box_mel">
                             <button name='product_meli_get_product' type="object"
-                            string="Cargar desde ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
-                            <br/>
+                            string="Cargar desde ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"
+                            class="oe_stat_button"
+            								icon="fa-cloud-download"/>
                             <button name='%(action_product_post)d' type="action"
-                            string="Publicar producto en ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','!=',False)]}"/>
-                            <br/>
+                            string="Publicar producto en ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','!=',False)]}"
+                            class="oe_stat_button"
+            								icon="fa-globe"/>
                             <button name='%(action_product_post)d' type="action"
-                            string="Actualizar producto en ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
-                            <br/>
+                            string="Actualizar producto en ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"
+                            class="oe_stat_button"
+            								icon="fa-globe"/>
                             <button name='product_post_stock' type="object"
-                            string="Actualizar Stock en ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
-                            <!-- ,('meli_status','=','active'), -->
-                            <br/>
+                            string="Actualizar Stock en ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"
+                            class="oe_stat_button"
+            								icon="fa-globe"/>
                             <button name='product_meli_status_active' type="object"
-                            string="Activar producto en ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
-                            <br/>
+                            string="Activar producto en ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"
+                            class="oe_stat_button"
+            								icon="fa-check-square"
+            								confirm="Esta seguro de Activar este Producto en Mercado Libre?"/>
                             <button name='product_meli_status_pause' type="object"
-                            string="Pausar producto en ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
-                            <br/>
+                            string="Pausar producto en ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"
+                            icon="fa-pause-circle"
+            								confirm="Esta seguro de Pausar este Producto en Mercado Libre?"/>
                             <button name='product_meli_status_close' type="object"
-                            string="Cerrar producto en ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
-                            <br/>
+                            string="Cerrar producto en ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"
+                            icon="fa-pause-circle"
+            								confirm="Esta seguro de Pausar este Producto en Mercado Libre?"/>
                             <button name='product_meli_delete' type="object"
-                            string="Eliminar producto de ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"/>
-                            <br/>
+                            string="Eliminar producto de ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"
+                            icon="fa-trash-o"
+            								confirm="Esta seguro de Eliminar este Producto en Mercado Libre?. Esta accion no podra revertirse"/>
                             <button name='product_meli_upload_image' type="object"
-                            string="Subir imagen a ML" attrs="{'invisible':[('meli_state','=',True)]}"/>
-                            <br/>
+                            string="Subir imagen a ML" attrs="{'invisible':[('meli_state','=',True)]}"
+                            class="oe_stat_button" icon="fa-cloud-upload"/>
                             <button name='product_meli_login' type="object"
                             string="Se requiere Iniciar Sesión en ML" attrs="{'invisible':[('meli_state','=',False)]}"/>
-                            <br/>
-                            <field name="meli_post_required" />
-                            <field name="meli_state" />
-                            <field name="meli_status" />
-                            <field name="meli_permalink" widget="url"/>
-                            <field name="meli_id" />
-                            <field name="meli_id_variation"/>
-                            <br/>
-                            <br/>
-                            <field name="meli_title" />
-                            <field name="meli_description_banner_id" on_change="product_on_change_meli_banner( meli_description_banner_id)" />
-                            <field name="meli_description" />
-                            <field name="meli_brand"/>
-                            <field name="meli_model"/>
-
-                            <field name="meli_category" />
-                            <field name="meli_listing_type" />
-                            <field name="meli_buying_mode" />
-
-                            <field name="meli_price_fixed" />
-                            <field name="meli_price" />
-                            <field name="meli_currency" />
-
-                            <field name="meli_condition" />
-                            <field name="meli_available_quantity" />
-                            <field name="meli_warranty" />
-                            <field name="meli_imagen_logo" />
-                            <field name="meli_imagen_id" />
-                            <field name="meli_imagen_link" />
-                            <field name="meli_multi_imagen_id" />
-                            <field name="meli_video" />
-                            <field name="meli_attributes" />
-                            <field name="meli_default_stock_product"/>
+                          </div>
+                          <group string="Informacion de ML">
+                            <group>
+                              <field name="meli_post_required" />
+                              <field name="meli_status" />
+                              <field name="meli_state" />
+                            </group>
+                            <group>
+                              <field name="meli_permalink" widget="url" />
+                              <field name="meli_id" />
+                              <field name="meli_id_variation"/>
+                            </group>
                           </group>
+                          <group string="Detalle de Producto en ML">
+              							<group>
+                              <field name="meli_title" />
+                              <field name="meli_description_banner_id" on_change="product_on_change_meli_banner( meli_description_banner_id)" />
+                              <field name="meli_category" options="{'no_create': True}"/>
+                              <field name="meli_brand"/>
+                              <field name="meli_model"/>
+                              <field name="meli_listing_type" />
+                              <field name="meli_buying_mode" />
+                              <field name="meli_price_fixed" />
+                              <field name="meli_price" />
+                              <field name="meli_currency" />
+                            </group>
+                            <group>
+                              <field name="meli_condition" />
+                              <field name="meli_available_quantity" />
+                              <field name="meli_warranty" />
+                              <field name="meli_imagen_logo" />
+                              <field name="meli_imagen_id" />
+                              <field name="meli_imagen_link" />
+                              <field name="meli_multi_imagen_id" />
+                              <field name="meli_video" />
+                            </group>
+                          </group>
+                          <group string="Atributos">
+                            <group>
+                              <field name="meli_attributes" />
+                              <field name="meli_default_stock_product"/>
+                            </group>
+                          </group>
+                          <separator string="Descripcion del Producto en ML"
+            								colspan="2" />
+                          <field name="meli_description" />
                         </page>
                     </notebook>
                 </data>
