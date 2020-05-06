@@ -852,8 +852,8 @@ class mercadolibre_orders_update(models.TransientModel):
     _name = "mercadolibre.orders.update"
     _description = "Update Order"
 
-    def order_update(self, context):
-
+    def order_update(self):
+        context = self.env.context
         orders_ids = context['active_ids']
         orders_obj = self.env['mercadolibre.orders']
 

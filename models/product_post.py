@@ -49,8 +49,9 @@ class product_template_post(models.TransientModel):
     def pretty_json( self, data ):
         return json.dumps( data, sort_keys=False, indent=4 )
 
-    def product_template_post(self, context):
+    def product_template_post(self):
         #pdb.set_trace()
+        context = self.env.context
         company = self.env.user.company_id
         product_ids = context['active_ids']
         product_obj = self.env['product.template']
@@ -163,8 +164,9 @@ class product_post(models.TransientModel):
     def pretty_json( self, data ):
         return json.dumps( data, sort_keys=False, indent=4 )
 
-    def product_post(self, context):
+    def product_post(self):
         #import pdb;pdb.set_trace()
+        context = self.env.context
         company = self.env.user.company_id
         product_ids = context['active_ids']
         product_obj = self.env['product.product']

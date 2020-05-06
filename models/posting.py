@@ -34,8 +34,8 @@ class mercadolibre_posting_update(models.TransientModel):
     _name = "mercadolibre.posting.update"
     _description = "Update Posting Questions"
 
-    def posting_update(self, context ):
-
+    def posting_update(self ):
+        context = self.env.context
         posting_ids = False
         _logger.info("context:")
         _logger.info(context)
