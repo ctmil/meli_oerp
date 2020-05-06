@@ -140,7 +140,7 @@
                     <div name="button_box" position="inside">
                         <button type="object"
                             name="product_meli_status_pause"
-                            attrs="{'invisible':[('meli_variants_status', '!=', 'active')]}"
+                            attrs="{'invisible':[('meli_status', '!=', 'active')]}"
                             class="oe_stat_button">
                             <img src="/meli_oerp/static/src/img/logo_ML.png" width="48" alt="logo ml"/>
                             <span>Pausar en ML</span>
