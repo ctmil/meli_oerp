@@ -178,10 +178,10 @@ class res_company(models.Model):
     mercadolibre_category_import = fields.Char( string='Category to import', help='Category Code to Import, check Recursive Import to import the full tree', size=256)
     mercadolibre_recursive_import = fields.Boolean( string='Recursive import', help='Import all the category tree from Category Code', size=256)
 
-    mercadolibre_cron_refresh = fields.Boolean(string='Cron Refresh')
+    mercadolibre_cron_refresh = fields.Boolean(string='Keep alive',help='Cron Automatic Token Refresh for keeping ML connection alive.')
     mercadolibre_cron_mail = fields.Many2one(
         comodel_name="mail.template",
-        string="Cron Error E-mail Template",
+        string="Error E-mail Template",
         help="Select the email template that will be sent when "
         "cron refresh fails.")
     mercadolibre_cron_get_orders = fields.Boolean(string="Importar pedidos",help='Cron Get Orders / Pedidos de venta')
