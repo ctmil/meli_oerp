@@ -166,14 +166,14 @@
             								confirm="Esta seguro de Pausar este Producto en Mercado Libre?"/>
                             <button name='product_meli_status_close' type="object"
                             string="Cerrar producto en ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"
-                            icon="fa-pause-circle"
+                            icon="fa-times-circle-o"
                             class="oe_stat_button"
-            								confirm="Esta seguro de Pausar este Producto en Mercado Libre?"/>
+            								confirm="¿Esta seguro de Cerrar este Producto en Mercado Libre?"/>
                             <button name='product_meli_delete' type="object"
                             string="Eliminar producto de ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"
                             icon="fa-trash-o"
                             class="oe_stat_button"
-            								confirm="Esta seguro de Eliminar este Producto en Mercado Libre?. Esta accion no podra revertirse"/>
+            								confirm="¿Esta seguro de Eliminar este Producto en Mercado Libre?. Esta accion no podra revertirse"/>
                             <button name='product_meli_upload_image' type="object"
                             string="Subir imagen a ML" attrs="{'invisible':[('meli_state','=',True)]}"
                             class="oe_stat_button" icon="fa-cloud-upload"/>
