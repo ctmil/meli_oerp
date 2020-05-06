@@ -18,9 +18,17 @@
                     <page string="MercadoLibre Plantilla">
                       <group name="ML actions">
                         <div class="oe_button_box" name="button_box_mel">
-                          <button name='%(action_product_template_post)d' type="action" string="Publicar-Actualizar producto en ML" class="oe_stat_button"
-                          icon="fa-globe"/>
-                          <button name='%(action_product_template_update)d' type="action" string="Cargar desde ML" class="oe_stat_button"
+                          <button name='%(action_product_template_post)d' type="action"
+                            string="Publicar en ML"
+                            title="Publicar/Actualizar en ML"
+                            confirm="¿Está seguro que quiere publicar/actualizar los datos en ML?"
+                            class="oe_stat_button"
+                            icon="fa-globe"/>
+                          <button name='%(action_product_template_update)d' type="action"
+                            string="Importar desde ML"
+                            title="Importar datos desde ML"
+                            confirm="¿Está seguro que quiere importar los datos desde ML?"
+                            class="oe_stat_button"
                           icon="fa-cloud-download"/>
                         </div>
                       </group>
@@ -87,20 +95,21 @@
                             attrs="{'invisible':[('meli_variants_status', '!=', 'paused')]}"
                             class="oe_stat_button">
                             <img src="/meli_oerp/static/src/img/logo_ML.png" width="48"  alt="logo ml"/>
-                            <span>Activar en ML</span>
+                            <span>Activar</span>
                         </button>
                         <button type="object"
                             name="action_meli_close"
                             attrs="{'invisible':[('meli_variants_status', '!=', 'paused')]}"
                             class="oe_stat_button">
-                            <span>Cerrar en ML</span>
+                            <img src="/meli_oerp/static/src/img/logo_ML.png"  width="48"  alt="logo ml"/>
+                            <span>Cerrar</span>
                         </button>
                         <button type="object"
                             name="action_meli_delete"
                             attrs="{'invisible':[('meli_variants_status', '!=', 'closed')]}"
                             class="oe_stat_button">
                             <img src="/meli_oerp/static/src/img/logo_ML.png"  width="48"  alt="logo ml"/>
-                            <span>Eliminar de ML</span>
+                            <span>Eliminar</span>
                         </button>
                     </div>
                 </data>
