@@ -194,8 +194,8 @@
                               class="oe_stat_button"
               								confirm="¿Esta seguro de Cerrar este Producto en Mercado Libre?"/>
                             <button name='product_meli_delete' type="object"
-                              title="Eliminar"
-                              string="Eliminar producto de ML"
+                              string="Eliminar"
+                              title="Eliminar producto de ML"
                               attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"
                               icon="fa-trash-o"
                               class="oe_stat_button"
