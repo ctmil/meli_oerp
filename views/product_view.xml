@@ -19,13 +19,13 @@
                       <group name="ML actions">
                         <div class="oe_button_box" name="button_box_mel">
                           <button name='%(action_product_template_post)d' type="action"
-                            string="Publicar en ML"
+                            string="Publicar"
                             title="Publicar/Actualizar en ML"
                             confirm="¿Está seguro que quiere publicar/actualizar los datos en ML?"
                             class="oe_stat_button"
                             icon="fa-globe"/>
                           <button name='%(action_product_template_update)d' type="action"
-                            string="Importar desde ML"
+                            string="Importar"
                             title="Importar datos desde ML"
                             confirm="¿Está seguro que quiere importar los datos desde ML?"
                             class="oe_stat_button"
