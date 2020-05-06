@@ -1328,8 +1328,8 @@ class product_product(models.Model):
                         if len(rjson["sub_status"]) and rjson["sub_status"][0]=='deleted':
                             product.write({ 'meli_id': '' })
 
-                    product.meli_status = ML_status
-                    product.meli_permalink = ML_permalink
+            product.meli_status = ML_status
+            product.meli_permalink = ML_permalink
             product.meli_state = ML_state
         _logger.info("product_get_meli_update end")
 
