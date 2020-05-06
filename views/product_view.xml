@@ -151,6 +151,7 @@
                             string="Actualizar Stock en ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"
                             class="oe_stat_button"
             								icon="fa-globe"/>
+                            <br/>
                             <button name='product_meli_status_active' type="object"
                             string="Activar producto en ML" attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"
                             class="oe_stat_button"
