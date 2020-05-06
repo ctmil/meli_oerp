@@ -60,7 +60,7 @@
                                           class="oe_stat_button"/>
                               </div>
                             <group col="1">
-                              <group  string="Información de conección" name="Account" col="2">
+                              <group  string="Información de conexión" name="Account" col="2">
                 								<field name="mercadolibre_state" invisible="0" groups="base.group_no_one"/>
                 								<field name="mercadolibre_client_id" groups="base.group_no_one" />
                 								<field name="mercadolibre_secret_key" groups="base.group_no_one" />

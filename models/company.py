@@ -167,16 +167,16 @@ class res_company(models.Model):
             _logger.info("company.mercadolibre_cron_get_questions")
             self.meli_query_get_questions()
 
-    mercadolibre_client_id = fields.Char(string='Client ID para ingresar a MercadoLibre',size=128)
-    mercadolibre_secret_key = fields.Char(string='Secret Key para ingresar a MercadoLibre',size=128)
-    mercadolibre_redirect_uri = fields.Char( string='Redirect uri (https://myserver/meli_login)',size=1024)
-    mercadolibre_access_token = fields.Char( string='Access Token',size=256)
-    mercadolibre_refresh_token = fields.Char( string='Refresh Token', size=256)
-    mercadolibre_code = fields.Char( string='Code', size=256)
+    mercadolibre_client_id = fields.Char(string='App Id', help='Client ID para ingresar a MercadoLibre',size=128)
+    mercadolibre_secret_key = fields.Char(string='Secret Key', help='Secret Key para ingresar a MercadoLibre',size=128)
+    mercadolibre_redirect_uri = fields.Char( string='Redirect Uri', help='Redirect uri (https://yourserver.yourdomain.com/meli_login)',size=1024)
+    mercadolibre_access_token = fields.Char( string='Access Token', help='Access Token', size=256)
+    mercadolibre_refresh_token = fields.Char( string='Refresh Token', help='Refresh Token', size=256)
+    mercadolibre_code = fields.Char( string='Code', help='Code', size=256)
     mercadolibre_seller_id = fields.Char( string='Vendedor Id', size=256)
-    mercadolibre_state = fields.Boolean( compute=get_meli_state, string="Se requiere Iniciar Sesión con MLA", store=False )
-    mercadolibre_category_import = fields.Char( string='Category Code to Import', size=256)
-    mercadolibre_recursive_import = fields.Boolean( string='Import all categories (recursiveness)', size=256)
+    mercadolibre_state = fields.Boolean( compute=get_meli_state, string='Desconectado', help="Se requiere Iniciar Sesión con MLA", store=False )
+    mercadolibre_category_import = fields.Char( string='Category to import', help='Category Code to Import, check Recursive Import to import the full tree', size=256)
+    mercadolibre_recursive_import = fields.Boolean( string='Recursive import', help='Import all the category tree from Category Code', size=256)
 
     mercadolibre_cron_refresh = fields.Boolean(string='Cron Refresh')
     mercadolibre_cron_mail = fields.Many2one(
@@ -184,15 +184,15 @@ class res_company(models.Model):
         string="Cron Error E-mail Template",
         help="Select the email template that will be sent when "
         "cron refresh fails.")
-    mercadolibre_cron_get_orders = fields.Boolean(string='Cron Get Orders')
-    mercadolibre_cron_get_orders_shipment = fields.Boolean(string='Cron Get Orders Shipment')
-    mercadolibre_cron_get_orders_shipment_client = fields.Boolean(string='Cron Get Orders Shipment Client')
-    mercadolibre_cron_get_questions = fields.Boolean(string='Cron Get Questions')
-    mercadolibre_cron_get_update_products = fields.Boolean(string='Cron Update Products')
-    mercadolibre_cron_post_update_products = fields.Boolean(string='Cron Post Products')
-    mercadolibre_cron_post_update_stock = fields.Boolean(string='Cron Post Updated Stock')
-    mercadolibre_cron_post_update_price = fields.Boolean(string='Cron Post Updated Price')
-    mercadolibre_create_website_categories = fields.Boolean(string='Create Website Categories')
+    mercadolibre_cron_get_orders = fields.Boolean(string="Importar pedidos",help='Cron Get Orders / Pedidos de venta')
+    mercadolibre_cron_get_orders_shipment = fields.Boolean(string='Importar envíos',help='Cron Get Orders Shipment')
+    mercadolibre_cron_get_orders_shipment_client = fields.Boolean(string='Importar clientes',help='Cron Get Orders Shipment Client')
+    mercadolibre_cron_get_questions = fields.Boolean(string='Importar preguntas',help='Cron Get Questions')
+    mercadolibre_cron_get_update_products = fields.Boolean(string='Actualizar productos',help='Cron Update Products')
+    mercadolibre_cron_post_update_products = fields.Boolean(string='Publicar productos',help='Cron Post Products, Product Templates or Variants with Meli Publication field checked')
+    mercadolibre_cron_post_update_stock = fields.Boolean(string='Publicar Stock',help='Cron Post Updated Stock')
+    mercadolibre_cron_post_update_price = fields.Boolean(string='Publicar Precio',help='Cron Post Updated Price')
+    mercadolibre_create_website_categories = fields.Boolean(string='Crear categorías',help='Create Website eCommerce Categories from imported products ML categories')
     mercadolibre_pricelist = fields.Many2one( "product.pricelist", "Product Pricelist default", help="Select price list for ML product"
         "when published from Odoo to ML")
 
@@ -210,7 +210,8 @@ class res_company(models.Model):
     mercadolibre_condition = fields.Selection([ ("new", "Nuevo"),
                                                 ("used", "Usado"),
                                                 ("not_specified","No especificado")],
-                                                'Condición del producto predeterminado')
+                                                string='Condición',
+                                                help='Condición del producto predeterminado')
     mercadolibre_warranty = fields.Char(string='Garantía', size=256)
     mercadolibre_listing_type = fields.Selection([("free","Libre"),
                                                 ("bronze","Bronce"),
@@ -219,20 +220,22 @@ class res_company(models.Model):
                                                 ("gold_premium","Gold Premium"),
                                                 ("gold_special","Gold Special/Clásica"),
                                                 ("gold_pro","Oro Pro")],
-                                                string='Tipo de lista  predeterminada')
+                                                string='Tipo de lista',
+                                                help='Tipo de lista  predeterminada para todos los productos')
     mercadolibre_attributes = fields.Boolean(string='Apply product attributes')
     mercadolibre_exclude_attributes = fields.Many2many('product.attribute.value',
-        string='Valores excluidos para automatizar la publicación de variantes',help='Seleccionar valores que serán excluidos para las publicaciones')
+        string='Valores excluidos',help='Seleccionar valores que serán excluidos para las publicaciones de variantes')
     mercadolibre_update_local_stock = fields.Boolean(string='Cron Get Products and take Stock from ML')
     mercadolibre_product_template_override_variant = fields.Boolean(string='Product template override Variant')
     mercadolibre_order_confirmation = fields.Selection([ ("manual", "Manual"),
                                                 ("paid_confirm", "Pagado>Confirmado"),
                                                 ("paid_delivered", "Pagado>Entregado")],
-                                                'Order confirmation')
+                                                string='Acción al recibir un pedido',
+                                                help='Acción al confirmar una orden o pedido de venta')
     mercadolibre_product_attribute_creation = fields.Selection([ ("manual", "Manual"),
                                                 ("full", "Sincronizado completo (uno a uno, sin importar si se usa o no)"),
                                                 ("dynamic", "Dinámico (cuando se asocia un producto a una categoría (ML) con atributos (ML))") ],
-                                                'Create Product Attributes')
+                                                string='Create Product Attributes')
     #'mercadolibre_login': fields.selection( [ ("unknown", "Desconocida"), ("logged","Abierta"), ("not logged","Cerrada")],string='Estado de la sesión'), )
     mercadolibre_overwrite_template = fields.Boolean(string='Overwrite product template',help='Sobreescribir siempre Nombre y Descripción de la plantilla.')
     mercadolibre_overwrite_variant = fields.Boolean(string='Overwrite product variant',help='Sobreescribir siempre Nombre y Descripción de la variante.')
