@@ -446,7 +446,7 @@ class product_product(models.Model):
                         'meli_pub': True
                     }
                     #_logger.info(pimg_fields)
-                    if (product.product_image_ids):
+                    if (product.product_variant_image_ids):
                         pimage = self.env["product.image"].search([('meli_imagen_id','=',pic["id"]),('product_tmpl_id','=',product_template.id)])
                         #_logger.info(pimage)
                         if (pimage and pimage.image):
@@ -1222,14 +1222,14 @@ class product_product(models.Model):
         #
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
-        if product.product_image_ids==None:
+        if product.product_variant_image_ids==None:
             return { 'status': 'error', 'message': 'no images to upload' }
 
         image_ids = []
         c = 0
 
         #loop over images
-        for product_image in product.product_image_ids:
+        for product_image in product.product_variant_image_ids:
             if (product_image.image_1920):
                 #_logger.info( "product_image.image_1920:" + str(product_image.image_1920) )
                 imagebin = base64.b64decode( product_image.image_1920 )
@@ -1822,7 +1822,7 @@ class product_product(models.Model):
 
             #publicando multiples imagenes
             multi_images_ids = {}
-            if (product.product_image_ids):
+            if (product.product_variant_image_ids):
                 multi_images_ids = product.product_meli_upload_multi_images()
                 if 'status' in multi_images_ids:
                     _logger.error(multi_images_ids)
