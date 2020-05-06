@@ -126,13 +126,53 @@
                     <field name="meli_pub"/>
                     <field name="meli_id"/>
                     <field name="meli_id_variation"/>
-                    <field name="meli_status"/>
+                    <field name="meli_status" invisible="0"/>
                 </field>
             </field>
         </record>
 
-        <record model="ir.ui.view" id="product_nh_ml_form_view">
-            <field name="name">product.nh.ml.form.inherit</field>
+        <record model="ir.ui.view" id="product_product_form_view_meli_buttons">
+            <field name="name">product.product_meli_buttons</field>
+            <field name="model">product.product</field>
+            <field name="inherit_id" ref="product.product_normal_form_view"/>
+            <field name="arch" type="xml">
+                <data>
+                    <div name="button_box" position="inside">
+                        <button type="object"
+                            name="product_meli_status_pause"
+                            attrs="{'invisible':[('meli_variants_status', '!=', 'active')]}"
+                            class="oe_stat_button">
+                            <img src="/meli_oerp/static/src/img/logo_ML.png" width="48" alt="logo ml"/>
+                            <span>Pausar en ML</span>
+                        </button>
+                        <button type="object"
+                            name="product_meli_status_active"
+                            attrs="{'invisible':[('meli_status', '!=', 'paused')]}"
+                            class="oe_stat_button">
+                            <img src="/meli_oerp/static/src/img/logo_ML.png" width="48"  alt="logo ml"/>
+                            <span>Activar</span>
+                        </button>
+                        <button type="object"
+                            name="product_meli_status_close"
+                            attrs="{'invisible':[('meli_status', '!=', 'paused')]}"
+                            class="oe_stat_button">
+                            <img src="/meli_oerp/static/src/img/logo_ML.png"  width="48"  alt="logo ml"/>
+                            <span>Cerrar</span>
+                        </button>
+                        <button type="object"
+                            name="product_meli_delete"
+                            attrs="{'invisible':[('meli_status', '!=', 'closed')]}"
+                            class="oe_stat_button">
+                            <img src="/meli_oerp/static/src/img/logo_ML.png"  width="48"  alt="logo ml"/>
+                            <span>Eliminar</span>
+                        </button>
+                    </div>
+                </data>
+            </field>
+        </record>
+
+        <record model="ir.ui.view" id="product_normal_ml_form_view">
+            <field name="name">product.normal.ml.form.inherit</field>
             <field name="model">product.product</field>
             <field name="inherit_id" ref="product.product_normal_form_view" />
             <field name="arch" type="xml">
