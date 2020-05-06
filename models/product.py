@@ -1316,7 +1316,7 @@ class product_product(models.Model):
                 if product.meli_id:
                     response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token} )
                     rjson = response.json()
-                    _logger.info(rjson)
+                    #_logger.info(rjson)
                     if "status" in rjson:
                         ML_status = rjson["status"]
                     if "permalink" in rjson:
