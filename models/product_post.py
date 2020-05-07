@@ -40,6 +40,7 @@ class product_template_post(models.TransientModel):
     _name = "mercadolibre.product.template.post"
     _description = "Wizard de Product Template Posting en MercadoLibre"
 
+    force_meli_pub = fields.Boolean(string="Forzar publicación de todos los seleccionados",default=False)
     type = fields.Selection([('post','Alta'),('put','Editado'),('delete','Borrado')], string='Tipo de operación' );
     posting_date = fields.Date('Fecha del posting');
 	    #'company_id': fields.many2one('res.company',string='Company'),
@@ -50,24 +51,19 @@ class product_template_post(models.TransientModel):
         return json.dumps( data, sort_keys=False, indent=4 )
 
     def product_template_post(self, context=None):
+
         context = context or self.env.context
         company = self.env.user.company_id
         product_ids = context['active_ids']
         product_obj = self.env['product.template']
 
-        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        #user_obj.company_id.meli_login()
-        #company = user_obj.company_id
         warningobj = self.env['warning']
-
-        #company = self.pool.get('res.company').browse(cr,uid,1)
 
         REDIRECT_URI = company.mercadolibre_redirect_uri
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
         ACCESS_TOKEN = company.mercadolibre_access_token
         REFRESH_TOKEN = company.mercadolibre_refresh_token
-
 
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
@@ -83,6 +79,8 @@ class product_template_post(models.TransientModel):
         for product_id in product_ids:
             product = product_obj.browse(product_id)
             if (product):
+                if (self.force_meli_pub and not product.meli_pub):
+                    product.meli_pub = True
                 if (product.meli_pub):
                     res = product.product_template_post()
 

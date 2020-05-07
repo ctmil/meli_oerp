@@ -22,6 +22,7 @@
               <field name="type">form</field>
               <field name="arch" type="xml">
                 <form string="Publicar/Actualizar en Mercado Libre">
+                    <field name="force_meli_pub"/>
                     <footer>
                         <button name="product_template_post" string="Publicar" title="Publicar/Actualizar en Mercado Libre"  type="object" class="oe_highlight"  />
                         <button string="Cancel" class="oe_link" special="cancel" />
@@ -63,15 +64,15 @@
           view_mode="form"
           target="new"/>
 
-      <record id="action_product_template_update" model="ir.actions.act_window">
+      <!--record id="action_product_template_update" model="ir.actions.act_window">
           <field name="name">MELI Update</field>
           <field name="type">ir.actions.act_window</field>
-          <!--field name="src_model">product.template</field-->
+          <!- -field name="src_model">product.template</field- ->
           <field name="res_model">mercadolibre.product.template.update</field>
-          <!--field name="view_type">form</field-->
+          <!- -field name="view_type">form</field- ->
           <field name="view_mode">form</field>
           <field name="target">new</field>
-      </record>
+      </record-->
 
       <act_window id="action_product_template_update"
           name="Importar desde ML"
