@@ -547,8 +547,10 @@ class res_company(models.Model):
                         res = obj.product_post()
 
                         #we have a message
-                        if 'name' in res:
-                            ret_messages.append( { 'obj': obj, 'message': res  } )
+                        if 'res_id' in res:
+                            warning = self.env["warning"].browse(res["res_id"])
+                            if (warning):
+                                ret_messages.append( { 'obj': obj, 'message': str(warning.message)  } )
 
                 except Exception as e:
                     _logger.info("product_meli_update_remote_products > Exception founded!")
@@ -565,14 +567,14 @@ class res_company(models.Model):
             report_body = ""
 
             for msg in report_messages:
-                report_body+= msg["obj"].name+": "+msg["obj"].meli_id+"\n"
-                report_body+= "Mensaje: " + msg["message"] + "\n"
+                report_body+= msg["obj"].name+": "+str(msg["obj"].meli_id)+"\n"
+                report_body+= "Mensaje: " + str(msg["message"]) + "\n"
                 report_body+= "\n"
 
             post_vars = {
              'subject': "Meli Notification - Update Remote Products",
              'body': report_body,
-             'partner_ids': [(4, 1)],
+             'partner_ids': [(3, 1)],
              'type': "notification",
              'subtype': "mt_comment"
              }
