@@ -273,8 +273,8 @@ class mercadolibre_orders(models.Model):
             'status_detail': order_json["status_detail"] or '' ,
             'total_amount': order_json["total_amount"],
             'currency_id': order_json["currency_id"],
-            'date_created': order_json["date_created"] or '',
-            'date_closed': order_json["date_closed"] or '',
+            'date_created': parse(order_json["date_created"]) or '',
+            'date_closed': parse(order_json["date_closed"]) or '',
             'pack_order': False
         }
         if 'tags' in order_json:
@@ -402,6 +402,7 @@ class mercadolibre_orders(models.Model):
                 meli_order_fields['meli_total_amount'] = float(order_json["total_amount"])+float(order_json["shipping"]["cost"])
 
         #create or update order
+        _logger.info(order_fields)
         if (order and order.id):
             _logger.info("Updating order: %s" % (order.id))
             order.write( order_fields )
