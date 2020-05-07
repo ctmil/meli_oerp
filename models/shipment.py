@@ -40,6 +40,16 @@ from . import product_post
 from . import posting
 from . import res_partner
 from pdf2image import convert_from_path, convert_from_bytes
+
+from dateutil.parser import *
+from datetime import *
+
+def _ml_datetime(datestr):
+    try:
+        #return parse(datestr).isoformat().replace("T"," ")
+        return parse(datestr).strftime('%Y-%m-%d %H:%M:%S')
+    except:
+        return ""
 #
 #     https://www.odoo.com/fr_FR/forum/aide-1/question/solved-call-report-and-save-result-to-attachment-133244
 #
@@ -51,8 +61,8 @@ class mercadolibre_shipment_print(models.TransientModel):
 	_name = "mercadolibre.shipment.print"
 	_description = "Impresión de etiquetas"
 
-	def shipment_print(self, context):
-		#pdb.set_trace()
+	def shipment_print(self, context=None):
+		context = context or self.env.context
 		company = self.env.user.company_id
 		shipment_ids = context['active_ids']
 		#product_obj = self.env['product.template']
@@ -131,8 +141,8 @@ class mercadolibre_shipment_update(models.TransientModel):
 	_name = "mercadolibre.shipment.update"
 	_description = "Actualizar datos de envio"
 
-	def shipment_update(self, context):
-		#pdb.set_trace()
+	def shipment_update(self, context=None):
+		context = context or self.env.context
 		company = self.env.user.company_id
 		shipment_ids = context['active_ids']
 		#product_obj = self.env['product.template']
@@ -265,8 +275,8 @@ class mercadolibre_shipment(models.Model):
 					"order": order.id,
 					"mode": ship_json["mode"],
 					"shipping_mode": ship_json["shipping_option"]["name"],
-					"date_created": ship_json["date_created"],
-					"last_updated": ship_json["last_updated"],
+					"date_created": _ml_datetime(ship_json["date_created"]),
+					"last_updated": _ml_datetime(ship_json["last_updated"]),
 					"order_cost": ship_json["order_cost"],
 					"base_cost": ship_json["base_cost"],
 					"status": ship_json["status"],
@@ -274,7 +284,7 @@ class mercadolibre_shipment(models.Model):
 					#"status_history": ship_json["status_history"],
 					"tracking_number": ship_json["tracking_number"],
 					"tracking_method": ship_json["tracking_method"],
-					"date_first_printed": ship_json["date_first_printed"],
+					"date_first_printed": _ml_datetime(ship_json["date_first_printed"]),
 					"receiver_id": ship_json["receiver_id"],
 					"receiver_address_id": ship_json["receiver_address"]["id"],
 					"receiver_address_phone": ship_json["receiver_address"]["receiver_phone"],
@@ -406,8 +416,8 @@ class mercadolibre_shipment(models.Model):
 								'meli_status_detail': all_orders[0]["status_detail"] or '' ,
 								'meli_total_amount': ship_fields["order_cost"],
 								'meli_currency_id': all_orders[0]["currency_id"],
-								'meli_date_created': all_orders[0]["date_created"] or '',
-								'meli_date_closed': all_orders[0]["date_closed"] or '',
+								'meli_date_created': _ml_datetime(all_orders[0]["date_created"]) or '',
+								'meli_date_closed': _ml_datetime(all_orders[0]["date_closed"]) or '',
 							}
 							sorder = self.env["sale.order"].search( [ ('meli_order_id','=',meli_order_fields["meli_order_id"]) ] )
 							if (len(sorder)):

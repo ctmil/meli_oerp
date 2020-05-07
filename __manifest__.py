@@ -9,7 +9,7 @@
 
 {
     'name': 'MercadoLibre Publisher',
-    'version': '12.0.1.0',
+    'version': '12.0.2.0',
     'author': 'Moldeo Interactive',
     'website': 'https://www.moldeointeractive.com.ar',
     "category": "Sales",
@@ -33,6 +33,7 @@
         'report/report_invoice_shipment_view.xml',
 	'views/shipment_view.xml'
     ],
+    "external_dependencies": {"python": ['pdf2image']},
     'demo_xml': [],
     'active': False,
     'installable': True,
