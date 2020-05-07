@@ -38,7 +38,8 @@ from datetime import *
 
 def _ml_datetime(datestr):
     try:
-        return parse(datestr).isoformat().replace("T"," ")
+        #return parse(datestr).isoformat().replace("T"," ")
+        return parse(datestr).strftime('%Y-%m-%d %H:%M:%S')
     except:
         return ""
 
