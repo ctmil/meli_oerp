@@ -9,7 +9,7 @@
 
 {
     'name': 'MercadoLibre Publisher',
-    'version': '12.0',
+    'version': '12.0.1.0',
     'author': 'Moldeo Interactive',
     'website': 'https://www.moldeointeractive.com.ar',
     "category": "Sales",
@@ -29,9 +29,9 @@
         'data/cron_jobs.xml',
         'data/error_template_data.xml',
         'data/parameters_data.xml',
-	    'report/report_shipment_view.xml',
+	'report/report_shipment_view.xml',
         'report/report_invoice_shipment_view.xml',
-	    'views/shipment_view.xml'
+	'views/shipment_view.xml'
     ],
     'demo_xml': [],
     'active': False,
