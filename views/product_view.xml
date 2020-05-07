@@ -17,7 +17,7 @@
                 <notebook>
                     <page string="MercadoLibre Plantilla">
                       <group name="ML actions">
-                        <div class="oe_button_box" name="button_box_mel">
+                        <div class="oe_button_box" name="button_box_mel" style="width: auto;">
                           <button name='%(action_product_template_post)d' type="action"
                             string="Publicar"
                             title="Publicar/Actualizar en ML"
@@ -188,7 +188,7 @@
                 <data>
                     <notebook>
                         <page string="MercadoLibre">
-                          <div class="oe_button_box" name="button_box_mel">
+                          <div class="oe_button_box" name="button_box_mel" style="width: auto;">
                             <button name='product_meli_get_product' type="object"
                               string="Importar"
                               title="Importar desde ML"
