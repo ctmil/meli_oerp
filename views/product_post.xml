@@ -1,19 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<openerp>
-<data>
+<odoo>
+  <data>
 
         <record id="view_product_post" model="ir.ui.view">
-              <field name="name">Post Mercado Libre</field>
+              <field name="name">Post to Mercado Libre</field>
               <field name="model">mercadolibre.product.post</field>
               <field name="type">form</field>
               <field name="arch" type="xml">
-                <form string="PO Merge" version="7.0">
-
-
-
+                <form string="Publicar/Actualizar en Mercado Libre">
                     <footer>
-                        <button name="product_post" string="Post MELI"  type="object" class="oe_highlight"  />
-			or
+                        <button name="product_post" string="Publicar" title="Publicar/Actualizar en Mercado Libre"  type="object" class="oe_highlight"  />
                         <button string="Cancel" class="oe_link" special="cancel" />
                     </footer>
                 </form>
@@ -21,17 +17,18 @@
         </record>
 
         <record id="view_product_template_post" model="ir.ui.view">
-              <field name="name">Post Mercado Libre</field>
+              <field name="name">Post to Mercado Libre</field>
               <field name="model">mercadolibre.product.template.post</field>
               <field name="type">form</field>
               <field name="arch" type="xml">
-                <form string="PO Merge" version="7.0">
-
-
-
+                <form string="Publicar/Actualizar en Mercado Libre">
+                    <group string="Opciones de publicación" col="2">
+                      <group>
+                        <field name="force_meli_pub"/>
+                      </group>
+                    </group>
                     <footer>
-                        <button name="product_template_post" string="Post MELI"  type="object" class="oe_highlight"  />
-			or
+                        <button name="product_template_post" string="Publicar" title="Publicar/Actualizar en Mercado Libre"  type="object" class="oe_highlight"  />
                         <button string="Cancel" class="oe_link" special="cancel" />
                     </footer>
                 </form>
@@ -43,13 +40,9 @@
               <field name="model">mercadolibre.product.template.update</field>
               <field name="type">form</field>
               <field name="arch" type="xml">
-                <form string="PO Merge" version="7.0">
-
-
-
+                <form string="Update from MercadoLibre">
                     <footer>
                         <button name="product_template_update" string="Update from MELI"  type="object" class="oe_highlight"  />
-			or
                         <button string="Cancel" class="oe_link" special="cancel" />
                     </footer>
                 </form>
@@ -125,4 +118,4 @@
     </record>
 -->
 </data>
-</openerp>
+</odoo>
