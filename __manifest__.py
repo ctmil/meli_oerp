@@ -11,7 +11,7 @@
     'name': 'MercadoLibre Publisher',
     'version': '12.0.2.0',
     'author': 'Moldeo Interactive',
-    'website': 'https://www.moldeointeractive.com.ar',
+    'website': 'https://www.moldeointeractive.com',
     "category": "Sales",
     "depends": ['base', 'product','sale','website_sale','stock','mrp'],
     'data': [

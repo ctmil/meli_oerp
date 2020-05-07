@@ -168,9 +168,6 @@
                   <field name="type">form</field>
                   <field name="arch" type="xml">
                     <form string="Actualizar envio" version="7.0">
-
-
-
                         <footer>
                             <button name="shipment_update" string="Actualizar datos de envío"  type="object" class="oe_highlight"  />
                             <button string="Cancel" class="oe_link" special="cancel" />
