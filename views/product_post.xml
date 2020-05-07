@@ -3,13 +3,13 @@
   <data>
 
         <record id="view_product_post" model="ir.ui.view">
-              <field name="name">Post Mercado Libre</field>
+              <field name="name">Post to Mercado Libre</field>
               <field name="model">mercadolibre.product.post</field>
               <field name="type">form</field>
               <field name="arch" type="xml">
-                <form string="PO Merge" version="7.0">
+                <form string="Publicar/Actualizar en Mercado Libre">
                     <footer>
-                        <button name="product_post" string="Post MELI"  type="object" class="oe_highlight"  />
+                        <button name="product_post" string="Publicar" title="Publicar/Actualizar en Mercado Libre"  type="object" class="oe_highlight"  />
                         <button string="Cancel" class="oe_link" special="cancel" />
                     </footer>
                 </form>
@@ -17,13 +17,13 @@
         </record>
 
         <record id="view_product_template_post" model="ir.ui.view">
-              <field name="name">Post Mercado Libre</field>
+              <field name="name">Post to Mercado Libre</field>
               <field name="model">mercadolibre.product.template.post</field>
               <field name="type">form</field>
               <field name="arch" type="xml">
-                <form string="PO Merge" version="7.0">
+                <form string="Publicar/Actualizar en Mercado Libre">
                     <footer>
-                        <button name="product_template_post" string="Post MELI"  type="object" class="oe_highlight"  />
+                        <button name="product_template_post" string="Publicar" title="Publicar/Actualizar en Mercado Libre"  type="object" class="oe_highlight"  />
                         <button string="Cancel" class="oe_link" special="cancel" />
                     </footer>
                 </form>
@@ -35,7 +35,7 @@
               <field name="model">mercadolibre.product.template.update</field>
               <field name="type">form</field>
               <field name="arch" type="xml">
-                <form string="PO Merge" version="7.0">
+                <form string="Update from MercadoLibre">
                     <footer>
                         <button name="product_template_update" string="Update from MELI"  type="object" class="oe_highlight"  />
                         <button string="Cancel" class="oe_link" special="cancel" />
@@ -55,12 +55,13 @@
         </record>
 
       <act_window id="action_product_template_post"
-      name="Publicar/Actualizar en ML"
-      binding_model="product.template"
-      res_model="mercadolibre.product.template.post"
-      binding_views="form"
-      view_mode="form"
-      target="new"/>
+          name="Publicar/Actualizar en ML"
+          binding_model="product.template"
+          res_model="mercadolibre.product.template.post"
+          binding_type="action"
+          binding_views="list,form"
+          view_mode="form"
+          target="new"/>
 
       <record id="action_product_template_update" model="ir.actions.act_window">
           <field name="name">MELI Update</field>
@@ -73,30 +74,32 @@
       </record>
 
       <act_window id="action_product_template_update"
-          name="Cargar desde ML"
+          name="Importar desde ML"
           binding_model="product.template"
           res_model="mercadolibre.product.template.update"
-          binding_views="form"
+          binding_type="action"
+          binding_views="list,form"
           view_mode="form"
           target="new"/>
 
-    <record id="action_product_post" model="ir.actions.act_window">
+    <!--record id="action_product_post" model="ir.actions.act_window">
         <field name="name">MELI Post</field>
         <field name="type">ir.actions.act_window</field>
-        <!--field name="src_model">product.product</field-->
+        <!- -field name="src_model">product.product</field- ->
         <field name="res_model">mercadolibre.product.post</field>
-        <!--field name="view_type">form</field-->
+        <!- -field name="view_type">form</field- ->
         <field name="view_mode">form</field>
         <field name="target">new</field>
-    </record>
+    </record-->
 
     <act_window id="action_product_post"
         name="Publicar/Actualizar en ML"
         binding_model="product.product"
         res_model="mercadolibre.product.post"
-        binding_views="form"
+        binding_type="action"
+        binding_views="list,form"
         view_mode="form"
         target="new"/>
-    
+
   </data>
 </odoo>
