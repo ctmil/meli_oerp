@@ -83,6 +83,7 @@
                 <data>
 
                     <div name="button_box" position="inside">
+                        <field name="meli_status" invisible="1"/>
                         <button type="object"
                             name="action_meli_pause"
                             attrs="{'invisible':[('meli_variants_status', '!=', 'active')]}"
