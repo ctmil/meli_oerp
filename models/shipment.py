@@ -61,9 +61,8 @@ class mercadolibre_shipment_print(models.TransientModel):
 	_name = "mercadolibre.shipment.print"
 	_description = "Impresión de etiquetas"
 
-	def shipment_print(self):
-		#pdb.set_trace()
-		context = self.env.context
+	def shipment_print(self, context=None):
+		context = context or self.env.context
 		company = self.env.user.company_id
 		shipment_ids = context['active_ids']
 		#product_obj = self.env['product.template']
@@ -142,9 +141,8 @@ class mercadolibre_shipment_update(models.TransientModel):
 	_name = "mercadolibre.shipment.update"
 	_description = "Actualizar datos de envio"
 
-	def shipment_update(self):
-		#pdb.set_trace()
-		context = self.env.context
+	def shipment_update(self, context=None):
+		context = context or self.env.context
 		company = self.env.user.company_id
 		shipment_ids = context['active_ids']
 		#product_obj = self.env['product.template']

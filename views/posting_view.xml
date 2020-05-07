@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
   <data>
+
     <record model="ir.ui.view" id="view_meli_posting_tree">
         <field name="name">mercadolibre.posting.tree</field>
         <field name="model">mercadolibre.posting</field>
