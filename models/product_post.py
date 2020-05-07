@@ -51,7 +51,7 @@ class product_template_post(models.TransientModel):
 
     def product_template_post(self, context=None):
         #pdb.set_trace()
-        context = context | self.env.context
+        context = context or self.env.context
         company = self.env.user.company_id
         product_ids = context['active_ids']
         product_obj = self.env['product.template']
