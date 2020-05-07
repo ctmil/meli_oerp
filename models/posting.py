@@ -100,7 +100,10 @@ class mercadolibre_posting(models.Model):
 
             #
             meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN )
-
+            if (posting.meli_id):
+                pass;
+            else:
+                continue;
             response = meli.get("/items/"+posting.meli_id, {'access_token':meli.access_token})
             product_json = response.json()
             #_logger.info( product_json )
