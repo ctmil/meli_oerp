@@ -22,8 +22,11 @@
               <field name="type">form</field>
               <field name="arch" type="xml">
                 <form string="Publicar/Actualizar en Mercado Libre">
-                    <label string="Forzar publicación"/>
-                    <field name="force_meli_pub"/>
+                    <group string="Opciones de publicación" col="2">
+                      <group>
+                        <field name="force_meli_pub"/>
+                      </group>
+                    </group>
                     <footer>
                         <button name="product_template_post" string="Publicar" title="Publicar/Actualizar en Mercado Libre"  type="object" class="oe_highlight"  />
                         <button string="Cancel" class="oe_link" special="cancel" />
