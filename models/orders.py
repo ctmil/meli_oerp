@@ -629,8 +629,8 @@ class mercadolibre_orders(models.Model):
                     'total_paid_amount': Payment['total_paid_amount'] or '',
                     'currency_id': Payment['currency_id'] or '',
                     'status': Payment['status'] or '',
-                    'date_created': Payment['date_created'] or '',
-                    'date_last_modified': Payment['date_last_modified'] or '',
+                    'date_created': _ml_datetime(Payment['date_created']) or '',
+                    'date_last_modified': _ml_datetime(Payment['date_last_modified']) or '',
                 }
 
                 payment_ids = payments_obj.search( [  ('payment_id','=',payment_fields['payment_id']),

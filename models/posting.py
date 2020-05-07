@@ -29,7 +29,16 @@ import logging
 _logger = logging.getLogger(__name__)
 
 from .meli_oerp_config import *
+from dateutil.parser import *
+from datetime import *
 
+def _ml_datetime(datestr):
+    try:
+        #return parse(datestr).isoformat().replace("T"," ")
+        return parse(datestr).strftime('%Y-%m-%d %H:%M:%S')
+    except:
+        return ""
+        
 class mercadolibre_posting_update(models.TransientModel):
     _name = "mercadolibre.posting.update"
     _description = "Update Posting Questions"
@@ -159,7 +168,7 @@ class mercadolibre_posting(models.Model):
                 question_fields = {
                     'posting_id': posting.id,
                     'question_id': Question['id'],
-                    'date_created': Question['date_created'],
+                    'date_created': _ml_datetime(Question['date_created']),
                     'item_id': Question['item_id'],
                     'seller_id': Question['seller_id'],
                     'text': str(Question['text'].encode("utf-8")),
@@ -169,7 +178,7 @@ class mercadolibre_posting(models.Model):
                 if (question_answer):
                     question_fields['answer_text'] = str(question_answer['text'].encode("utf-8"))
                     question_fields['answer_status'] = question_answer['status']
-                    question_fields['answer_date_created'] = question_answer['date_created']
+                    question_fields['answer_date_created'] = _ml_datetime(question_answer['date_created'])
 
                 question = questions_obj.search( [('question_id','=',question_fields['question_id'])])
                 if not question:
