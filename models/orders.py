@@ -36,6 +36,13 @@ from . import shipment
 from dateutil.parser import *
 from datetime import *
 
+def _ml_datetime(datestr):
+    try:
+        return parse(datestr).isoformat().replace("T"," ")
+    except:
+        return ""
+
+
 class sale_order_line(models.Model):
     _inherit = "sale.order.line"
 
@@ -273,8 +280,8 @@ class mercadolibre_orders(models.Model):
             'status_detail': order_json["status_detail"] or '' ,
             'total_amount': order_json["total_amount"],
             'currency_id': order_json["currency_id"],
-            'date_created': parse(order_json["date_created"]) or '',
-            'date_closed': parse(order_json["date_closed"]) or '',
+            'date_created': _ml_datetime(order_json["date_created"]) or '',
+            'date_closed': _ml_datetime(order_json["date_closed"]) or '',
             'pack_order': False
         }
         if 'tags' in order_json:
@@ -386,8 +393,8 @@ class mercadolibre_orders(models.Model):
             'meli_status_detail': order_json["status_detail"] or '' ,
             'meli_total_amount': order_json["total_amount"],
             'meli_currency_id': order_json["currency_id"],
-            'meli_date_created': order_json["date_created"] or '',
-            'meli_date_closed': order_json["date_closed"] or '',
+            'meli_date_created': _ml_datetime(order_json["date_created"]) or '',
+            'meli_date_closed': _ml_datetime(order_json["date_closed"]) or '',
         }
 
         if (order_json["shipping"]):
