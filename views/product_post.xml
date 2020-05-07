@@ -77,7 +77,7 @@
             </record>
 
             <act_window id="action_product_template_update"
-                name="Cargar desde ML"
+                name="Importar desde ML"
                 src_model="product.template"
                 res_model="mercadolibre.product.template.update"
                 view_type="form" view_mode="form"
