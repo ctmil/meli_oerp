@@ -35,6 +35,12 @@ from . import product
 from . import shipment
 from dateutil.parser import *
 from datetime import *
+from urllib.request import urlopen
+import requests
+try:
+    from urllib import urlencode
+except ImportError:
+    from urllib.parse import urlencode
 
 class sale_order_line(models.Model):
     _inherit = "sale.order.line"
@@ -563,6 +569,8 @@ class mercadolibre_orders(models.Model):
             for Payment in payments:
                 cn = cn + 1
 
+                mp_payment_url = "https://api.mercadopago.com/v1/payments/"+str(order.id)
+
                 payment_fields = {
                     'order_id': order.id,
                     'payment_id': Payment['id'],
@@ -571,7 +579,15 @@ class mercadolibre_orders(models.Model):
                     'status': Payment['status'] or '',
                     'date_created': Payment['date_created'] or '',
                     'date_last_modified': Payment['date_last_modified'] or '',
+                    'mercadopago_url': mp_payment_url+'?access_token='+str(meli.access_token),
+                    'full_payment': '',
                 }
+
+                headers = {'Accept': 'application/json', 'User-Agent': 'Odoo', 'Content-type':'application/json'}
+                params = { 'access_token': meli.access_token }
+                mp_response = requests.get( mp_payment_url, params=urlencode(params), headers=headers )
+                if (mp_response):
+                    payment_fields["full_payment"] = mp_response.json()
 
                 payment_ids = payments_obj.search( [  ('payment_id','=',payment_fields['payment_id']),
                                                             ('order_id','=',order.id ) ] )
@@ -764,6 +780,8 @@ class mercadolibre_payments(models.Model):
     status = fields.Char(string='Payment Status')
     date_created = fields.Datetime('Creation date')
     date_last_modified = fields.Datetime('Modification date')
+    mercadopago_url = fields.Char(string="MercadoPago Payment Url")
+    full_payment = fields.Text(string="MercadoPago Payment Details")
 
 mercadolibre_payments()
 
