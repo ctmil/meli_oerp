@@ -597,7 +597,7 @@ class mercadolibre_orders(models.Model):
             for Payment in payments:
                 cn = cn + 1
 
-                mp_payment_url = "https://api.mercadopago.com/v1/payments/"+str(order.id)
+                mp_payment_url = "https://api.mercadopago.com/v1/payments/"+str(Payment['id'])
 
                 payment_fields = {
                     'order_id': order.id,
