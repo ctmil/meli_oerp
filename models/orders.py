@@ -42,6 +42,14 @@ try:
 except ImportError:
     from urllib.parse import urlencode
 
+def _ml_datetime(datestr):
+    try:
+        #return parse(datestr).isoformat().replace("T"," ")
+        return parse(datestr).strftime('%Y-%m-%d %H:%M:%S')
+    except:
+        return ""
+
+
 class sale_order_line(models.Model):
     _inherit = "sale.order.line"
 
@@ -164,20 +172,39 @@ class mercadolibre_orders(models.Model):
 
         return billinginfo
 
-    def full_phone( self, phone_json, context=None ):
+    def full_phone( self, buyer_json, context=None ):
         full_phone = ''
+        if "phone" in buyer_json:
+            phone_json = buyer_json["phone"]
+            if 'area_code' in phone_json:
+                if phone_json['area_code']:
+                    full_phone+= phone_json['area_code']
 
-        if 'area_code' in phone_json:
-            if phone_json['area_code']:
-                full_phone+= phone_json['area_code']
+            if 'number' in phone_json:
+                if phone_json['number']:
+                    full_phone+= phone_json['number']
 
-        if 'number' in phone_json:
-            if phone_json['number']:
-                full_phone+= phone_json['number']
+            if 'extension' in phone_json:
+                if phone_json['extension']:
+                    full_phone+= phone_json['extension']
 
-        if 'extension' in phone_json:
-            if phone_json['extension']:
-                full_phone+= phone_json['extension']
+        return full_phone
+
+    def full_alt_phone( self, buyer_json, context=None ):
+        full_phone = ''
+        if "alternative_phone" in buyer_json:
+            phone_json = buyer_json["alternative_phone"]
+            if 'area_code' in phone_json:
+                if phone_json['area_code']:
+                    full_phone+= phone_json['area_code']
+
+            if 'number' in phone_json:
+                if phone_json['number']:
+                    full_phone+= phone_json['number']
+
+            if 'extension' in phone_json:
+                if phone_json['extension']:
+                    full_phone+= phone_json['extension']
 
         return full_phone
 
@@ -260,8 +287,8 @@ class mercadolibre_orders(models.Model):
             'status_detail': order_json["status_detail"] or '' ,
             'total_amount': order_json["total_amount"],
             'currency_id': order_json["currency_id"],
-            'date_created': order_json["date_created"] or '',
-            'date_closed': order_json["date_closed"] or '',
+            'date_created': _ml_datetime(order_json["date_created"]) or '',
+            'date_closed': _ml_datetime(order_json["date_closed"]) or '',
             'pack_order': False
         }
         if 'tags' in order_json:
@@ -281,7 +308,7 @@ class mercadolibre_orders(models.Model):
                 'city': self.city(Receiver),
                 'country_id': self.country(Receiver),
                 'state_id': self.state(self.country(Receiver),Receiver),
-                'phone': self.full_phone( Buyer['phone']),
+                'phone': self.full_phone( Buyer ),
                 'email': Buyer['email'],
                 'meli_buyer_id': Buyer['id']
             }
@@ -291,8 +318,8 @@ class mercadolibre_orders(models.Model):
                 'buyer_id': Buyer['id'],
                 'nickname': Buyer['nickname'],
                 'email': Buyer['email'],
-                'phone': self.full_phone( Buyer['phone']),
-                'alternative_phone': self.full_phone( Buyer['alternative_phone']),
+                'phone': self.full_phone( Buyer ),
+                'alternative_phone': self.full_alt_phone( Buyer ),
                 'first_name': Buyer['first_name'],
                 'last_name': Buyer['last_name'],
                 'billing_info': self.billing_info(Buyer['billing_info']),
@@ -362,8 +389,8 @@ class mercadolibre_orders(models.Model):
             'meli_status_detail': order_json["status_detail"] or '' ,
             'meli_total_amount': order_json["total_amount"],
             'meli_currency_id': order_json["currency_id"],
-            'meli_date_created': order_json["date_created"] or '',
-            'meli_date_closed': order_json["date_closed"] or '',
+            'meli_date_created': _ml_datetime(order_json["date_created"]) or '',
+            'meli_date_closed': _ml_datetime(order_json["date_closed"]) or '',
         }
 
         if (order_json["shipping"]):
@@ -378,6 +405,7 @@ class mercadolibre_orders(models.Model):
                 meli_order_fields['meli_total_amount'] = float(order_json["total_amount"])+float(order_json["shipping"]["cost"])
 
         #create or update order
+        _logger.info(order_fields)
         if (order and order.id):
             _logger.info("Updating order: %s" % (order.id))
             order.write( order_fields )
@@ -577,8 +605,8 @@ class mercadolibre_orders(models.Model):
                     'transaction_amount': Payment['transaction_amount'] or '',
                     'currency_id': Payment['currency_id'] or '',
                     'status': Payment['status'] or '',
-                    'date_created': Payment['date_created'] or '',
-                    'date_last_modified': Payment['date_last_modified'] or '',
+                    'date_created': _ml_datetime(Payment['date_created']) or '',
+                    'date_last_modified': _ml_datetime(Payment['date_last_modified']) or '',
                     'mercadopago_url': mp_payment_url+'?access_token='+str(meli.access_token),
                     'full_payment': '',
                 }
@@ -776,6 +804,7 @@ class mercadolibre_payments(models.Model):
     order_id = fields.Many2one("mercadolibre.orders","Order")
     payment_id = fields.Char('Payment Id')
     transaction_amount = fields.Char('Transaction Amount')
+    total_paid_amount = fields.Char('Total Paid Amount')
     currency_id = fields.Char(string='Currency')
     status = fields.Char(string='Payment Status')
     date_created = fields.Datetime('Creation date')
