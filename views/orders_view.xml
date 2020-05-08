@@ -11,6 +11,7 @@
                     <field name="order_id"/>
                     <field name="status"/>
                     <field name="buyer"/>
+                    <field name="total_amount"/>
                     <field name="date_created"/>
                     <field name="date_closed"/>
                     <field name="tags" invisible="1"/>
