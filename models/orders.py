@@ -609,6 +609,10 @@ class mercadolibre_orders(models.Model):
                     'date_last_modified': _ml_datetime(Payment['date_last_modified']) or '',
                     'mercadopago_url': mp_payment_url+'?access_token='+str(company.mercadolibre_access_token),
                     'full_payment': '',
+                    'fee_amount': 0,
+                    'shipping_amount': 0,
+                    'total_paid_amount': 0,
+                    'taxes_amount': 0
                 }
 
                 headers = {'Accept': 'application/json', 'User-Agent': 'Odoo', 'Content-type':'application/json'}
@@ -616,6 +620,10 @@ class mercadolibre_orders(models.Model):
                 mp_response = requests.get( mp_payment_url, params=urlencode(params), headers=headers )
                 if (mp_response):
                     payment_fields["full_payment"] = mp_response.json()
+                    payment_fields["shipping_amount"] = payment_fields["full_payment"]["shipping_amount"]
+                    payment_fields["total_paid_amount"] = payment_fields["full_payment"]["transaction_details"]["total_paid_amount"]
+                    payment_fields["fee_amount"] = payment_fields["full_payment"]["fee_details"]["amount"]
+                    payment_fields["taxes_amount"] = payment_fields["full_payment"]["taxes_amount"]
 
                 payment_ids = payments_obj.search( [  ('payment_id','=',payment_fields['payment_id']),
                                                             ('order_id','=',order.id ) ] )
@@ -803,14 +811,20 @@ class mercadolibre_payments(models.Model):
 
     order_id = fields.Many2one("mercadolibre.orders","Order")
     payment_id = fields.Char('Payment Id')
-    transaction_amount = fields.Char('Transaction Amount')
-    total_paid_amount = fields.Char('Total Paid Amount')
+    transaction_amount = fields.Float('Transaction Amount')
+    total_paid_amount = fields.Float('Total Paid Amount')
     currency_id = fields.Char(string='Currency')
     status = fields.Char(string='Payment Status')
     date_created = fields.Datetime('Creation date')
     date_last_modified = fields.Datetime('Modification date')
     mercadopago_url = fields.Char(string="MercadoPago Payment Url")
     full_payment = fields.Text(string="MercadoPago Payment Details")
+
+    fee_amount = fields.Float('Fee Amount')
+    shipping_amount = fields.Float('Shipping Amount')
+    total_paid_amount = fields.Float('Total Paid Amount')
+    taxes_amount = fields.Float('Taxes Amount')
+
 
 mercadolibre_payments()
 
