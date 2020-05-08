@@ -123,9 +123,10 @@
                 <tree string="Pagos" >
                     <field name="payment_id"/>
                     <field name="transaction_amount"/>
+                    <field name="total_paid_amount"/>
                     <field name="shipping_amount"/>
                     <field name="fee_amount"/>
-                    <field name="tax_amount"/>
+                    <field name="taxes_amount"/>
                     <field name="currency_id"/>
                     <field name="status"/>
                     <field name="date_created"/>
