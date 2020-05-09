@@ -32,6 +32,16 @@
                           icon="fa-cloud-download"/>
                         </div>
                       </group>
+                      <group string="Publicaciones">
+                        <field name="product_variant_ids" options="{'no_create': True}" domain="[('meli_id','!=',None)]">
+                          <tree>
+                            <field name="name"/>
+                            <field name="meli_id"/>
+                            <field name="meli_status"/>
+                            <field name="meli_permalink" widget="url"/>
+                          </tree>
+                        </field>
+                      </group>
                       <separator string="Descripcion del producto en ML" colspan="1"/>
                       <group name="Basic description">
                         <field name="meli_title" />
