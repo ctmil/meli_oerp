@@ -91,7 +91,7 @@ class mercadolibre_category(models.Model):
         for obj in self:
             if (obj.meli_category_id):
                 obj.meli_category_attributes = "https://api.mercadolibre.com/categories/"+str(obj.meli_category_id)+"/attributes"
-                resp = meli.get("/categories/"+str(self.meli_category_id)+"/attributes", {'access_token':meli.access_token})
+                resp = meli.get("/categories/"+str(obj.meli_category_id)+"/attributes", {'access_token':meli.access_token})
                 rjs = resp.json()
                 att_ids = []
                 for att in rjs:
