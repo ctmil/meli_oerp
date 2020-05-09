@@ -674,7 +674,7 @@ class mercadolibre_orders(models.Model):
                         'product_id': product_shipping_id,
                         'product_uom_qty': 1.0,
                         'product_uom': 1,
-                        'name': "Shipping " + str(shipment.tracking_mode),
+                        'name': "Shipping " + str(shipment.shipping_mode),
                     }
                     saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
                     if not saleorderline_item_ids:
