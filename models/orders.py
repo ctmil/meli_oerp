@@ -623,8 +623,8 @@ class mercadolibre_orders(models.Model):
                 params = { 'access_token': company.mercadolibre_access_token }
                 mp_response = requests.get( mp_payment_url, params=urlencode(params), headers=headers )
                 if (mp_response):
-                    _logger.info(mp_response)
                     payment_fields["full_payment"] = mp_response.json()
+                    _logger.info(payment_fields["full_payment"])
                     payment_fields["shipping_amount"] = payment_fields["full_payment"]["shipping_amount"]
                     payment_fields["total_paid_amount"] = payment_fields["full_payment"]["transaction_details"]["total_paid_amount"]
                     if len(payment_fields["full_payment"]["fee_details"]):
