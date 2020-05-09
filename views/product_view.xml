@@ -31,6 +31,14 @@
                             class="oe_stat_button"
                           icon="fa-cloud-download"/>
                         </div>
+                        <field name="product_variant_ids" options="{'no_create': True}" >
+                          <tree>
+                            <field name="name"/>
+                            <field name="meli_id"/>
+                            <field name="meli_status"/>
+                            <field name="meli_permalink" widget="url"/>
+                          </tree>
+                        </field>
                       </group>
                       <separator string="Descripcion del producto en ML" colspan="1"/>
                       <group name="Basic description">
@@ -53,14 +61,6 @@
                       </group>
                       <separator string="Variantes" colspan="1"/>
                       <group name="variantes">
-                        <field name="product_variant_ids" options="{'no_create': True}" >
-                          <tree>
-                            <field name="name"/>
-                            <field name="meli_id"/>
-                            <field name="meli_status"/>
-                            <field name="meli_permalink" widget="url"/>
-                          </tree>
-                        </field>
                         <field name="meli_pub_as_variant" />
                         <field name="meli_pub_variant_attributes"  widget="many2many_checkboxes"  options="{'no_create': True}" domain="[('product_tmpl_id','=',id)]"/>
                         <field name="meli_pub_principal_variant" invisible="0"/>
