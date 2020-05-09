@@ -650,8 +650,15 @@ class mercadolibre_orders(models.Model):
                 shipment_obj.fetch( order )
                 shipment = shipment_obj.search([('shipping_id','=',order.shipping_id)])
 
-                if len(shipment) and sorder:
+                if len(shipment) and sorder and order:
                     sorder.meli_shipment = shipment
+                    order.shipment = shipment
+                    if (sorder.partner_id):
+                        sorder.partner_id.street = shipment.receiver_address_line
+                        sorder.partner_id.street2 = shipment.receiver_address_comment
+                        sorder.partner_id.city = shipment.receiver_city
+                        sorder.partner_id.phone = shipment.receiver_address_phone
+                        #sorder.partner_id.state = shipment.receiver_state
 
                 if (sorder and len(shipment) and ("cost" in order_json["shipping"])):
                     product_shipping_id = product_obj.search(['|','|',('default_code','=','ENVIO'),('default_code','=',shipment.tracking_method),('name','=',shipment.tracking_method)])
