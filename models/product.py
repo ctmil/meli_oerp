@@ -148,17 +148,16 @@ class product_template(models.Model):
         return ret
 
     def _variations(self):
-        product_tmpl = self
-
         variations = False
-        for variant in product_tmpl.product_variant_ids:
-            if ( variant._conditions_ok() ):
-                variant.meli_pub = True
-                var = variant._combination()
-                if (var):
-                    if (variations==False):
-                        variations = []
-                    variations.append(var)
+        for product_tmpl in self:
+            for variant in product_tmpl.product_variant_ids:
+                if ( variant._conditions_ok() ):
+                    variant.meli_pub = True
+                    var = variant._combination()
+                    if (var):
+                        if (variations==False):
+                            variations = []
+                        variations.append(var)
 
         return variations
 
@@ -167,23 +166,23 @@ class product_template(models.Model):
 
         _pubs = ""
         _stats = ""
-        product = self
-        for variant in product.product_variant_ids:
-            if (variant.meli_pub):
-                if ( (variant.meli_status=="active" or variant.meli_status=="paused") and variant.meli_id):
-                    if (len(_pubs)):
-                        _pubs = _pubs + "|" + variant.meli_id + ":" + variant.meli_status
-                    else:
-                        _pubs = variant.meli_id + ":" + variant.meli_status
+        for product in self:
+            for variant in product.product_variant_ids:
+                if (variant.meli_pub):
+                    if ( (variant.meli_status=="active" or variant.meli_status=="paused") and variant.meli_id):
+                        if (len(_pubs)):
+                            _pubs = _pubs + "|" + variant.meli_id + ":" + variant.meli_status
+                        else:
+                            _pubs = variant.meli_id + ":" + variant.meli_status
 
-                    if (variant.meli_status=="active"):
-                        _stats = "active"
+                        if (variant.meli_status=="active"):
+                            _stats = "active"
 
-                    if (_stats == "" and variant.meli_status=="paused"):
-                        _stats = "paused"
+                        if (_stats == "" and variant.meli_status=="paused"):
+                            _stats = "paused"
 
-        self.meli_publications = _pubs
-        self.meli_variants_status = _stats
+            product.meli_publications = _pubs
+            product.meli_variants_status = _stats
 
         return {}
 
@@ -1909,10 +1908,15 @@ class product_product(models.Model):
                         for ix in range(len(productjson["variations"]) ):
                             _logger.info("Variation to update!!")
                             _logger.info(productjson["variations"][ix])
+                            var_product = product
+                            for pvar in product_tmpl.product_variant_ids:
+                                if (pvar._is_product_combination(productjson["variations"][ix])):
+                                    var_product = pvar
+                                    var_product.meli_available_quantity = var_product.virtual_available
                             var = {
                                 "id": str(productjson["variations"][ix]["id"]),
                                 "price": str(product_tmpl.meli_price),
-                                "available_quantity": product.meli_available_quantity,
+                                "available_quantity": var_product.meli_available_quantity,
                                 "picture_ids": var_pics
                             }
                             varias["variations"].append(var)
