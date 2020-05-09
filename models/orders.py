@@ -672,7 +672,7 @@ class mercadolibre_orders(models.Model):
                         'order_id': sorder.id,
                         'meli_order_item_id': 'ENVIO',
                         'price_unit': float(order_json["shipping"]["cost"]),
-                        'product_id': product_shipping_id,
+                        'product_id': product_shipping_id.id,
                         'product_uom_qty': 1.0,
                         'product_uom': 1,
                         'name': "Shipping " + str(shipment.shipping_mode),
