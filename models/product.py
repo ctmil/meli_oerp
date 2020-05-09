@@ -37,6 +37,8 @@ from .meli_oerp_config import *
 
 from ..melisdk.meli import Meli
 import string
+if (not ('replace' in string.__dict__)):
+    string = str
 
 class product_template(models.Model):
     _inherit = "product.template"
@@ -1604,8 +1606,8 @@ class product_product(models.Model):
                     for value in product.attribute_value_ids:
                         if (value.attribute_id.id==line.attribute_id.id):
                             values+= " "+value.name
-
-                #product.meli_title = string.replace(product.meli_title,product.name,product.name+" "+values)
+                if (not product_tmpl.meli_pub_as_variant):
+                    product.meli_title = string.replace(product.meli_title,product.name,product.name+" "+values)
 
 
 

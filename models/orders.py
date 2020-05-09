@@ -35,6 +35,20 @@ from . import product
 from . import shipment
 from dateutil.parser import *
 from datetime import *
+from urllib.request import urlopen
+import requests
+try:
+    from urllib import urlencode
+except ImportError:
+    from urllib.parse import urlencode
+
+def _ml_datetime(datestr):
+    try:
+        #return parse(datestr).isoformat().replace("T"," ")
+        return parse(datestr).strftime('%Y-%m-%d %H:%M:%S')
+    except:
+        return ""
+
 
 class sale_order_line(models.Model):
     _inherit = "sale.order.line"
@@ -158,20 +172,39 @@ class mercadolibre_orders(models.Model):
 
         return billinginfo
 
-    def full_phone( self, phone_json, context=None ):
+    def full_phone( self, buyer_json, context=None ):
         full_phone = ''
+        if "phone" in buyer_json:
+            phone_json = buyer_json["phone"]
+            if 'area_code' in phone_json:
+                if phone_json['area_code']:
+                    full_phone+= phone_json['area_code']
 
-        if 'area_code' in phone_json:
-            if phone_json['area_code']:
-                full_phone+= phone_json['area_code']
+            if 'number' in phone_json:
+                if phone_json['number']:
+                    full_phone+= phone_json['number']
 
-        if 'number' in phone_json:
-            if phone_json['number']:
-                full_phone+= phone_json['number']
+            if 'extension' in phone_json:
+                if phone_json['extension']:
+                    full_phone+= phone_json['extension']
 
-        if 'extension' in phone_json:
-            if phone_json['extension']:
-                full_phone+= phone_json['extension']
+        return full_phone
+
+    def full_alt_phone( self, buyer_json, context=None ):
+        full_phone = ''
+        if "alternative_phone" in buyer_json:
+            phone_json = buyer_json["alternative_phone"]
+            if 'area_code' in phone_json:
+                if phone_json['area_code']:
+                    full_phone+= phone_json['area_code']
+
+            if 'number' in phone_json:
+                if phone_json['number']:
+                    full_phone+= phone_json['number']
+
+            if 'extension' in phone_json:
+                if phone_json['extension']:
+                    full_phone+= phone_json['extension']
 
         return full_phone
 
@@ -254,8 +287,8 @@ class mercadolibre_orders(models.Model):
             'status_detail': order_json["status_detail"] or '' ,
             'total_amount': order_json["total_amount"],
             'currency_id': order_json["currency_id"],
-            'date_created': order_json["date_created"] or '',
-            'date_closed': order_json["date_closed"] or '',
+            'date_created': _ml_datetime(order_json["date_created"]) or '',
+            'date_closed': _ml_datetime(order_json["date_closed"]) or '',
             'pack_order': False
         }
         if 'tags' in order_json:
@@ -275,7 +308,7 @@ class mercadolibre_orders(models.Model):
                 'city': self.city(Receiver),
                 'country_id': self.country(Receiver),
                 'state_id': self.state(self.country(Receiver),Receiver),
-                'phone': self.full_phone( Buyer['phone']),
+                'phone': self.full_phone( Buyer ),
                 'email': Buyer['email'],
                 'meli_buyer_id': Buyer['id']
             }
@@ -285,8 +318,8 @@ class mercadolibre_orders(models.Model):
                 'buyer_id': Buyer['id'],
                 'nickname': Buyer['nickname'],
                 'email': Buyer['email'],
-                'phone': self.full_phone( Buyer['phone']),
-                'alternative_phone': self.full_phone( Buyer['alternative_phone']),
+                'phone': self.full_phone( Buyer ),
+                'alternative_phone': self.full_alt_phone( Buyer ),
                 'first_name': Buyer['first_name'],
                 'last_name': Buyer['last_name'],
                 'billing_info': self.billing_info(Buyer['billing_info']),
@@ -367,8 +400,8 @@ class mercadolibre_orders(models.Model):
             'meli_status_detail': order_json["status_detail"] or '' ,
             'meli_total_amount': order_json["total_amount"],
             'meli_currency_id': order_json["currency_id"],
-            'meli_date_created': order_json["date_created"] or '',
-            'meli_date_closed': order_json["date_closed"] or '',
+            'meli_date_created': _ml_datetime(order_json["date_created"]) or '',
+            'meli_date_closed': _ml_datetime(order_json["date_closed"]) or '',
         }
 
         if (order_json["shipping"]):
@@ -594,6 +627,8 @@ class mercadolibre_orders(models.Model):
             for Payment in payments:
                 cn = cn + 1
 
+                mp_payment_url = "https://api.mercadopago.com/v1/payments/"+str(Payment['id'])
+
                 payment_fields = {
                     'order_id': order.id,
                     'payment_id': Payment['id'],
@@ -601,9 +636,24 @@ class mercadolibre_orders(models.Model):
                     'total_paid_amount': Payment['total_paid_amount'] or '',
                     'currency_id': Payment['currency_id'] or '',
                     'status': Payment['status'] or '',
-                    'date_created': Payment['date_created'] or '',
-                    'date_last_modified': Payment['date_last_modified'] or '',
+                    'date_created': _ml_datetime(Payment['date_created']) or '',
+                    'date_last_modified': _ml_datetime(Payment['date_last_modified']) or '',
+                    'mercadopago_url': mp_payment_url+'?access_token='+str(company.mercadolibre_access_token),
+                    'full_payment': '',
+                    'fee_amount': 0,
+                    'shipping_amount': 0,
+                    'taxes_amount': 0
                 }
+
+                headers = {'Accept': 'application/json', 'User-Agent': 'Odoo', 'Content-type':'application/json'}
+                params = { 'access_token': company.mercadolibre_access_token }
+                mp_response = requests.get( mp_payment_url, params=urlencode(params), headers=headers )
+                if (mp_response):
+                    payment_fields["full_payment"] = mp_response.json()
+                    payment_fields["shipping_amount"] = payment_fields["full_payment"]["shipping_amount"]
+                    payment_fields["total_paid_amount"] = payment_fields["full_payment"]["transaction_details"]["total_paid_amount"]
+                    payment_fields["fee_amount"] = payment_fields["full_payment"]["fee_details"][0]["amount"]
+                    payment_fields["taxes_amount"] = payment_fields["full_payment"]["taxes_amount"]
 
                 payment_ids = payments_obj.search( [  ('payment_id','=',payment_fields['payment_id']),
                                                             ('order_id','=',order.id ) ] )
@@ -791,12 +841,20 @@ class mercadolibre_payments(models.Model):
 
     order_id = fields.Many2one("mercadolibre.orders","Order")
     payment_id = fields.Char('Payment Id')
-    transaction_amount = fields.Char('Transaction Amount')
-    total_paid_amount = fields.Char('Total Paid Amount')
+    transaction_amount = fields.Float('Transaction Amount')
+    total_paid_amount = fields.Float('Total Paid Amount')
     currency_id = fields.Char(string='Currency')
     status = fields.Char(string='Payment Status')
     date_created = fields.Datetime('Creation date')
     date_last_modified = fields.Datetime('Modification date')
+    mercadopago_url = fields.Char(string="MercadoPago Payment Url")
+    full_payment = fields.Text(string="MercadoPago Payment Details")
+
+    fee_amount = fields.Float('Fee Amount')
+    shipping_amount = fields.Float('Shipping Amount')
+    total_paid_amount = fields.Float('Total Paid Amount')
+    taxes_amount = fields.Float('Taxes Amount')
+
 
 mercadolibre_payments()
 
@@ -833,8 +891,8 @@ class mercadolibre_orders_update(models.TransientModel):
     _name = "mercadolibre.orders.update"
     _description = "Update Order"
 
-    def order_update(self, context):
-
+    def order_update(self, context=None):
+        context = context or self.env.context
         orders_ids = context['active_ids']
         orders_obj = self.env['mercadolibre.orders']
 

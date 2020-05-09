@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<openerp>
+<odoo>
     <data>
 
         <record model="ir.ui.view" id="view_meli_orders_tree">
@@ -11,6 +11,7 @@
                     <field name="order_id"/>
                     <field name="status"/>
                     <field name="buyer"/>
+                    <field name="total_amount"/>
                     <field name="date_created"/>
                     <field name="date_closed"/>
                     <field name="tags" invisible="1"/>
@@ -123,6 +124,10 @@
                 <tree string="Pagos" >
                     <field name="payment_id"/>
                     <field name="transaction_amount"/>
+                    <field name="total_paid_amount"/>
+                    <field name="shipping_amount"/>
+                    <field name="fee_amount"/>
+                    <field name="taxes_amount"/>
                     <field name="currency_id"/>
                     <field name="status"/>
                     <field name="date_created"/>
@@ -238,4 +243,4 @@
 
 
     </data>
-</openerp>
+</odoo>
