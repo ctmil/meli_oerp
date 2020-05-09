@@ -649,7 +649,10 @@ class mercadolibre_orders(models.Model):
                 shipment_obj.fetch( order )
                 shipment = shipment_obj.search([('shipping_id','=',order.shipping_id)])
 
-                if (sorder and shipment):
+                if len(shipment) and sorder:
+                    sorder.shipment = shipment
+
+                if (sorder and len(shipment) and ("cost" in order_json["shipping"])):
                     product_shipping_id = product_obj.search(['|','|',('default_code','=','ENVIO'),('default_code','=',shipment.tracking_method),('name','=',shipment.tracking_method)])
 
                     if len(product_shipping_id):
