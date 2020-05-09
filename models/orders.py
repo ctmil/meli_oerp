@@ -60,6 +60,7 @@ class sale_order(models.Model):
     _inherit = "sale.order"
 
     meli_order_id =  fields.Char('Meli Order Id')
+    meli_orders = fields.Many2many('mercadolibre.orders',string="ML Orders")
     meli_status = fields.Selection( [
         #Initial state of an order, and it has no payment yet.
                                         ("confirmed","Confirmado"),
@@ -423,6 +424,7 @@ class mercadolibre_orders(models.Model):
                 _logger.info("Pack Order, dont create order")
             else:
                 sorder = saleorder_obj.create((meli_order_fields))
+                sorder.meli_orders = [(6, 0, [order.id])]
 
         #check error
         if not order:
@@ -593,23 +595,6 @@ class mercadolibre_orders(models.Model):
                     else:
                         saleorderline_item_ids.write( ( saleorderline_item_fields ) )
 
-        if (sorder and ("cost" in order_json["shipping"]) and product_shipping_id):
-            saleorderline_item_fields = {
-                'company_id': company.id,
-                'order_id': sorder.id,
-                'meli_order_item_id': 'ENVIO',
-                'price_unit': float(order_json["shipping"]["cost"]),
-                'product_id': product_shipping_id,
-                'product_uom_qty': 1.0,
-                'product_uom': 1,
-                'name': "Shipping",
-            }
-            saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
-            if not saleorderline_item_ids:
-                saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
-            else:
-                saleorderline_item_ids.write( ( saleorderline_item_fields ) )
-
         if 'payments' in order_json:
             payments = order_json['payments']
             cn = 0
@@ -659,6 +644,37 @@ class mercadolibre_orders(models.Model):
             _logger.info("Updating order: Shipment")
             if (order.shipping_id):
                 shipment_obj.fetch( order )
+                shipment = shipment_obj.search([('shipping_id','=',order.shipping_id)])
+
+                if (sorder and shipment):
+                    product_shipping_id = product_obj.search(['|','|',('default_code','=','ENVIO'),('default_code','=',shipment.tracking_method),('name','=',shipment.tracking_method)])
+
+                    if len(product_shipping_id):
+                        product_shipping_id = product_shipping_id[0]
+                    else:
+                        ship_prod = {
+                            "name": shipment.tracking_method,
+                            "default_code": shipment.tracking_method,
+                            "type": "service",
+                            #"taxes_id": None
+                        }
+                        product_shipping_id = product_obj.create(ship_prod)
+
+                    saleorderline_item_fields = {
+                        'company_id': company.id,
+                        'order_id': sorder.id,
+                        'meli_order_item_id': 'ENVIO',
+                        'price_unit': float(order_json["shipping"]["cost"]),
+                        'product_id': product_shipping_id,
+                        'product_uom_qty': 1.0,
+                        'product_uom': 1,
+                        'name': "Shipping " + str(shipping.tracking_mode),
+                    }
+                    saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
+                    if not saleorderline_item_ids:
+                        saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
+                    else:
+                        saleorderline_item_ids.write( ( saleorderline_item_fields ) )
 
         if sorder:
             if (company.mercadolibre_order_confirmation!="manual"):
@@ -796,7 +812,7 @@ class mercadolibre_orders(models.Model):
     payments = fields.One2many('mercadolibre.payments','order_id',string='Payments' )
     shipping = fields.Text(string="Shipping")
     shipping_id = fields.Char(string="Shipping id")
-    shipment = fields.One2many('mercadolibre.shipment','shipping_id',string='Shipment')
+    shipment = fields.Many2one('mercadolibre.shipment',string='Shipment')
 
     total_amount = fields.Char(string='Total amount')
     currency_id = fields.Char(string='Currency')
@@ -828,7 +844,7 @@ class mercadolibre_payments(models.Model):
     _name = "mercadolibre.payments"
     _description = "Pagos en MercadoLibre"
 
-    order_id = fields.Many2one("mercadolibre.orders","Order")
+    order_id = fields.Many2one("mercadolibre.orders",string="Order")
     payment_id = fields.Char('Payment Id')
     transaction_amount = fields.Float('Transaction Amount')
     total_paid_amount = fields.Float('Total Paid Amount')
@@ -870,7 +886,7 @@ class res_partner(models.Model):
 
 
     meli_buyer_id = fields.Char('Meli Buyer Id')
-    meli_buyer = fields.Many2one('mercadolibre.buyers','Buyer')
+    meli_buyer = fields.Many2one('mercadolibre.buyers',string='Buyer')
 
 
 res_partner()

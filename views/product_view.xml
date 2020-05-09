@@ -35,10 +35,11 @@
                       <group string="Publicaciones">
                         <field name="product_variant_ids" options="{'no_create': True}" domain="[('meli_id','!=',None)]">
                           <tree>
-                            <field name="name"/>
-                            <field name="meli_id"/>
-                            <field name="meli_status"/>
-                            <field name="meli_permalink" widget="url"/>
+                            <field string="Variante" name="name"/>
+                            <field string="Id Pub" name="meli_id"/>
+                            <field string="Id Var" name="meli_id_variation"/>
+                            <field string="Status" name="meli_status"/>
+                            <field string="Link" name="meli_permalink" widget="url"/>
                           </tree>
                         </field>
                       </group>
