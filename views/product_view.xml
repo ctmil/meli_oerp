@@ -10,8 +10,8 @@
             <label for="sale_ok" position="after">
                   <field name="meli_pub" />
                   <label for="meli_pub" />
-                  <field name="meli_publications" readonly="1"></field>
-                  <field name="meli_variants_status" readonly="1"></field>
+                  <field name="meli_publications" readonly="1" invisible="1"></field>
+                  <field name="meli_variants_status" readonly="1" invisible="1"></field>
               </label>
             <data>
                 <notebook>
@@ -134,9 +134,9 @@
             <field name="arch" type="xml">
                 <field name="default_code" position="before">
                     <field name="meli_pub"/>
-                    <field name="meli_id"/>
-                    <field name="meli_id_variation"/>
-                    <field name="meli_status" invisible="0"/>
+                    <field name="meli_id" invisible="0"/>
+                    <field name="meli_id_variation" invisible="0"/>
+                    <field name="meli_status" invisible="1"/>
                 </field>
             </field>
         </record>
