@@ -32,7 +32,7 @@
                           icon="fa-cloud-download"/>
                         </div>
                       </group>
-                      <group string="Publicaciones" col="1">
+                      <group string="Publicaciones">
                         <field name="product_variant_ids" options="{'no_create': True}" domain="[('meli_id','!=',None)]">
                           <tree>
                             <field name="name"/>
