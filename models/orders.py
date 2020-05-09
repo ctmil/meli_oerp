@@ -86,6 +86,7 @@ class sale_order(models.Model):
 #        'buyer': fields.many2one( "mercadolibre.buyers","Buyer"),
 #       'meli_seller': fields.text( string='Seller' ),
     meli_shipping_id =  fields.Char('Meli Shipping Id')
+    meli_shipment = fields.Many2one('mercadolibre.shipment',string='Meli Shipment Obj')
 
     def confirm_ml(self):
 
@@ -650,7 +651,7 @@ class mercadolibre_orders(models.Model):
                 shipment = shipment_obj.search([('shipping_id','=',order.shipping_id)])
 
                 if len(shipment) and sorder:
-                    sorder.shipment = shipment
+                    sorder.meli_shipment = shipment
 
                 if (sorder and len(shipment) and ("cost" in order_json["shipping"])):
                     product_shipping_id = product_obj.search(['|','|',('default_code','=','ENVIO'),('default_code','=',shipment.tracking_method),('name','=',shipment.tracking_method)])
@@ -665,7 +666,7 @@ class mercadolibre_orders(models.Model):
                             #"taxes_id": None
                         }
                         product_shipping_id = product_obj.create((ship_prod))
-
+                    _logger.info(product_shipping_id)
                     saleorderline_item_fields = {
                         'company_id': company.id,
                         'order_id': sorder.id,
