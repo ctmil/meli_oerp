@@ -1874,7 +1874,7 @@ class product_product(models.Model):
                             _logger.info("Variation to update!!")
                             _logger.info(productjson["variations"][ix])
                             var_product = product
-                            for pvar in product_tmpl_id.product_variant_ids:
+                            for pvar in product_tmpl.product_variant_ids:
                                 if (pvar._is_product_combination(productjson["variations"][ix])):
                                     var_product = pvar
                                     var_product.meli_available_quantity = var_product.virtual_available
