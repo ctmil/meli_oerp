@@ -664,7 +664,7 @@ class mercadolibre_orders(models.Model):
                             "type": "service",
                             #"taxes_id": None
                         }
-                        product_shipping_id = product_obj.create(ship_prod)
+                        product_shipping_id = product_obj.create((ship_prod))
 
                     saleorderline_item_fields = {
                         'company_id': company.id,
