@@ -31,7 +31,9 @@
                             class="oe_stat_button"
                           icon="fa-cloud-download"/>
                         </div>
-                        <field name="product_variant_ids" options="{'no_create': True}" >
+                      </group>
+                      <group string="Publicaciones" col="1">
+                        <field name="product_variant_ids" options="{'no_create': True}" domain="[('meli_id','!=',None)]">
                           <tree>
                             <field name="name"/>
                             <field name="meli_id"/>
