@@ -37,7 +37,7 @@ class warning(models.TransientModel):
             #'context': context,
             'type': 'ir.actions.act_window',
             'target': 'new',
-            'res_id': message.id,
+            'res_id': message.id
         }
         return res
 

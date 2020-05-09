@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<openerp>
+<odoo>
     <data>
 
         <record model="ir.ui.view" id="view_meli_product_public_category_form_view">
@@ -57,4 +57,4 @@
             name="Categorías" />
 
     </data>
-</openerp>
+</odoo>

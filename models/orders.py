@@ -468,8 +468,11 @@ class mercadolibre_orders(models.Model):
                     return { 'error': 'No post related, exiting'}
 
                 product_related = product_obj.search([('meli_id','=',Item['item']['id'])])
-                if ('seller_custom_field' in Item['item']):
-                    product_related = product_obj.search([('default_code','=',Item['item']['seller_custom_field'])])
+                if ("variation_id" in Item["item"]):
+                    product_related = product_obj.search([('meli_id','=',Item['item']['id']),('meli_id_variation','=',Item['item']['variation_id'])])
+                if ('seller_custom_field' in Item['item'] and len(product_related)==0):
+                    if (Item['item']["seller_custom_field"]):
+                        product_related = product_obj.search([('default_code','=',Item['item']['seller_custom_field'])])
                     if (len(product_related)):
                         _logger.info("order product related by seller_custom_field and default_code:"+str(Item['item']['seller_custom_field']) )
                     else:
@@ -488,8 +491,8 @@ class mercadolibre_orders(models.Model):
                                     'meli_pub': True,
                                 }
                                 #prod_fields['default_code'] = rjson3['id']
-                                productcreated = False
-                                #productcreated = self.env['product.product'].create((prod_fields))
+                                #productcreated = False
+                                productcreated = self.env['product.product'].create((prod_fields))
                                 if (productcreated):
                                     if (productcreated.product_tmpl_id):
                                         productcreated.product_tmpl_id.meli_pub = True
@@ -591,6 +594,23 @@ class mercadolibre_orders(models.Model):
                     else:
                         saleorderline_item_ids.write( ( saleorderline_item_fields ) )
 
+        if (sorder and ("cost" in order_json["shipping"]) and product_shipping_id):
+            saleorderline_item_fields = {
+                'company_id': company.id,
+                'order_id': sorder.id,
+                'meli_order_item_id': 'ENVIO',
+                'price_unit': float(order_json["shipping"]["cost"]),
+                'product_id': product_shipping_id,
+                'product_uom_qty': 1.0,
+                'product_uom': 1,
+                'name': "Shipping",
+            }
+            saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
+            if not saleorderline_item_ids:
+                saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
+            else:
+                saleorderline_item_ids.write( ( saleorderline_item_fields ) )
+
         if 'payments' in order_json:
             payments = order_json['payments']
             cn = 0
@@ -603,6 +623,7 @@ class mercadolibre_orders(models.Model):
                     'order_id': order.id,
                     'payment_id': Payment['id'],
                     'transaction_amount': Payment['transaction_amount'] or '',
+                    'total_paid_amount': Payment['total_paid_amount'] or '',
                     'currency_id': Payment['currency_id'] or '',
                     'status': Payment['status'] or '',
                     'date_created': _ml_datetime(Payment['date_created']) or '',
@@ -611,7 +632,6 @@ class mercadolibre_orders(models.Model):
                     'full_payment': '',
                     'fee_amount': 0,
                     'shipping_amount': 0,
-                    'total_paid_amount': 0,
                     'taxes_amount': 0
                 }
 
@@ -861,8 +881,8 @@ class mercadolibre_orders_update(models.TransientModel):
     _name = "mercadolibre.orders.update"
     _description = "Update Order"
 
-    def order_update(self, context):
-
+    def order_update(self, context=None):
+        context = context or self.env.context
         orders_ids = context['active_ids']
         orders_obj = self.env['mercadolibre.orders']
 

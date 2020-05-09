@@ -29,13 +29,22 @@ import logging
 _logger = logging.getLogger(__name__)
 
 from .meli_oerp_config import *
+from dateutil.parser import *
+from datetime import *
+
+def _ml_datetime(datestr):
+    try:
+        #return parse(datestr).isoformat().replace("T"," ")
+        return parse(datestr).strftime('%Y-%m-%d %H:%M:%S')
+    except:
+        return ""
 
 class mercadolibre_posting_update(models.TransientModel):
     _name = "mercadolibre.posting.update"
     _description = "Update Posting Questions"
 
-    def posting_update(self, context ):
-
+    def posting_update(self, context=None ):
+        context = context or self.env.context
         posting_ids = False
         _logger.info("context:")
         _logger.info(context)
@@ -62,29 +71,23 @@ class mercadolibre_posting(models.Model):
     _name = "mercadolibre.posting"
     _description = "Posting en MercadoLibre"
 
-    def posting_update( self ):
-
-        #log_msg = 'posting_update: %s' % (field_name)
-        #_logger.info(log_msg)
+    def _posting_update( self ):
 
         company = self.env.user.company_id
-
         posting_obj = self.env['mercadolibre.posting']
-        posting = self
 
-        update_status = "ok"
-
-        posting.posting_query_questions()
-
-        res = {}
-        res[posting.id] = update_status
-        return res
+        for posting in self:
+            update_status = "ok"
+            posting.posting_update = update_status
+            posting.posting_query_questions()
+            #res = {}
+            #res[posting.id] = update_status
+            #return res
 
     def posting_query_questions( self ):
 
         #get with an item id
         company = self.env.user.company_id
-
         posting_obj = self.env['mercadolibre.posting']
         posting = self
 
@@ -194,7 +197,7 @@ class mercadolibre_posting(models.Model):
     meli_permalink = fields.Char( string="Permalink en MercadoLibre", size=512 );
     meli_price = fields.Char(string='Precio de venta', size=128);
     posting_questions = fields.One2many( 'mercadolibre.questions','posting_id','Questions' );
-    posting_update = fields.Char( compute=posting_update, string="Posting Update", store=False );
+    posting_update = fields.Char( compute=_posting_update, string="Posting Update", store=False );
     meli_seller_custom_field = fields.Char('Sellect Custom Field or SKU',size=256);
 
 mercadolibre_posting()
