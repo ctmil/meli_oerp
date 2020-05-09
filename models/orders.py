@@ -424,7 +424,6 @@ class mercadolibre_orders(models.Model):
                 _logger.info("Pack Order, dont create order")
             else:
                 sorder = saleorder_obj.create((meli_order_fields))
-                sorder.meli_orders = [(6, 0, [order.id])]
 
         #check error
         if not order:
@@ -434,6 +433,8 @@ class mercadolibre_orders(models.Model):
         #check error
         if not sorder:
             _logger.warning("Warning adding sale.order. Normally a pack order." )
+        else:
+            sorder.meli_orders = [(6, 0, [order.id])]
             #return {'error': 'Error adding sale.order' }
 
         #update internal fields (items, payments, buyers)
