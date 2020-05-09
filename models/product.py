@@ -1886,10 +1886,15 @@ class product_product(models.Model):
                             for ix in range(len(productjson["variations"]) ):
                                 _logger.info("Variation to update!!")
                                 _logger.info(productjson["variations"][ix])
+                                var_product = product
+                                for pvar in product_tmpl.product_variant_ids:
+                                    if (pvar._is_product_combination(productjson["variations"][ix])):
+                                        var_product = pvar
+                                        var_product.meli_available_quantity = var_product.virtual_available
                                 var = {
                                     "id": str(productjson["variations"][ix]["id"]),
                                     "price": str(product_tmpl.meli_price),
-                                    "available_quantity": product.meli_available_quantity,
+                                    "available_quantity": var_product.meli_available_quantity,
                                     "picture_ids": var_pics
                                 }
                                 varias["variations"].append(var)

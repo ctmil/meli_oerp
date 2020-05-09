@@ -410,6 +410,7 @@ class mercadolibre_shipment(models.Model):
 								'pricelist_id': plistid.id,
 								#'meli_order_id': '%i' % (order_json["id"]),
 								'meli_order_id': packed_order_ids,
+                                'meli_orders': [(6, 0, all_orders_ids)],
 								'meli_shipping_id': ships.id,
 								'meli_shipping': ships,
 								'meli_status': all_orders[0]["status"],
