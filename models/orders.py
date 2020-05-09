@@ -652,7 +652,8 @@ class mercadolibre_orders(models.Model):
                     payment_fields["full_payment"] = mp_response.json()
                     payment_fields["shipping_amount"] = payment_fields["full_payment"]["shipping_amount"]
                     payment_fields["total_paid_amount"] = payment_fields["full_payment"]["transaction_details"]["total_paid_amount"]
-                    payment_fields["fee_amount"] = payment_fields["full_payment"]["fee_details"][0]["amount"]
+                    if ("fee_details" in payment_fields["full_payment"] and len(payment_fields["full_payment"]["fee_details"])>0):
+                        payment_fields["fee_amount"] = payment_fields["full_payment"]["fee_details"][0]["amount"]
                     payment_fields["taxes_amount"] = payment_fields["full_payment"]["taxes_amount"]
 
                 payment_ids = payments_obj.search( [  ('payment_id','=',payment_fields['payment_id']),
