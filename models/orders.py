@@ -674,14 +674,17 @@ class mercadolibre_orders(models.Model):
                         'price_unit': float(order_json["shipping"]["cost"]),
                         'product_id': product_shipping_id.id,
                         'product_uom_qty': 1.0,
+                        'tax_id': None,
                         'product_uom': 1,
                         'name': "Shipping " + str(shipment.shipping_mode),
                     }
                     saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
                     if not saleorderline_item_ids:
                         saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
+                        saleorderline_item_ids.tax_id = None
                     else:
                         saleorderline_item_ids.write( ( saleorderline_item_fields ) )
+                        saleorderline_item_ids.tax_id = None
 
         if sorder:
             if (company.mercadolibre_order_confirmation!="manual"):
