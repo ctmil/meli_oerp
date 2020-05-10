@@ -415,6 +415,7 @@ class mercadolibre_shipment(models.Model):
                                 'meli_orders': [(6, 0, all_orders_ids)],
 								'meli_shipping_id': ships.id,
 								'meli_shipping': ships,
+                                'meli_shipment': ships.id,
 								'meli_status': all_orders[0]["status"],
 								'meli_status_detail': all_orders[0]["status_detail"] or '' ,
 								'meli_total_amount': ship_fields["order_cost"],
