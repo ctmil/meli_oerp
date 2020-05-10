@@ -88,13 +88,14 @@ class mercadolibre_category(models.Model):
         REFRESH_TOKEN = company.mercadolibre_refresh_token
 
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
-
+        _logger.info("get_attributes:"+str(self.meli_category_id))
         if (self.meli_category_id):
             response_cat = meli.get("/categories/"+str(self.meli_category_id), {'access_token':meli.access_token})
             rjson_cat = response_cat.json()
             if ( "children_categories" in rjson_cat and len(rjson_cat["children_categories"])>0 ):
                 self.is_branch = True
             self.meli_category_url = "https://api.mercadolibre.com/categories/"+str(self.meli_category_id)
+            self.meli_category_attributes = "https://api.mercadolibre.com/categories/"+str(self.meli_category_id)+"/attributes"
             if (len(rjson_cat["path_from_root"])>1):
                 self.meli_father_category_id = rjson_cat["path_from_root"][len(rjson_cat["path_from_root"])-2]["id"]
 
@@ -102,7 +103,6 @@ class mercadolibre_category(models.Model):
             and self.is_branch==False
             and ( self.meli_category_attribute_ids==None or len(self.meli_category_attribute_ids)==0 )):
 
-            self.meli_category_attributes = "https://api.mercadolibre.com/categories/"+str(self.meli_category_id)+"/attributes"
             resp = meli.get("/categories/"+str(self.meli_category_id)+"/attributes", {'access_token':meli.access_token})
             rjs = resp.json()
             att_ids = []
