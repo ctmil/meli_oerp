@@ -796,8 +796,6 @@ class product_product(models.Model):
 
         #this write pull the trigger for create_variant_ids()...
         #_logger.info("rewrite to create variants")
-        _logger.info("product_template.attribute_line_ids")
-        _logger.info(product_template.attribute_line_ids)
         product_template.write({ 'attribute_line_ids': product_template.attribute_line_ids  })
         #_logger.info("published_att_variants:"+str(published_att_variants))
         if (published_att_variants):
@@ -1377,8 +1375,6 @@ class product_product(models.Model):
         att_to_pub = []
         for line in product_tmpl.meli_pub_variant_attributes:
             att_to_pub.append(line.attribute_id.name)
-        _logger.info("att_to_pub:")
-        _logger.info(att_to_pub)
 
         if (len(att_to_pub)==0):
             return False
@@ -1433,14 +1429,8 @@ class product_product(models.Model):
             var_comb["attribute_combinations"].append(att_combination)
 
         for att in product.attribute_value_ids:
-            _logger.info(att.attribute_id.name);
-            _logger.info(att);
             if (att.attribute_id.name in att_to_pub):
-                _logger.info("is in");
-                _logger.info(att.attribute_id.meli_default_id_attribute)
                 if (att.attribute_id.meli_default_id_attribute.id):
-                    _logger.info(att.attribute_id.meli_default_id_attribute.id)
-                    _logger.info(att.attribute_id.meli_default_id_attribute.variation_attribute)
                     if (att.attribute_id.meli_default_id_attribute.variation_attribute):
                         att_combination = {
                             "name":att.attribute_id.meli_default_id_attribute.name,
@@ -1599,17 +1589,6 @@ class product_product(models.Model):
         if product.meli_title==False or len(product.meli_title)==0:
             # _logger.info( 'Assigning title: product.meli_title: %s name: %s' % (product.meli_title, product.name) )
             product.meli_title = product_tmpl.meli_title
-            if len(product_tmpl.meli_pub_variant_attributes):
-                values = ""
-                for line in product_tmpl.meli_pub_variant_attributes:
-                    for value in product.attribute_value_ids:
-                        if (value.attribute_id.id==line.attribute_id.id):
-                            values+= " "+value.name
-                if (not product_tmpl.meli_pub_as_variant):
-                    product.meli_title = string.replace(product.meli_title,product.name,product.name+" "+values)
-
-
-
 
         force_template_title = False
         if (product_tmpl.meli_title and force_template_title):
@@ -1631,9 +1610,8 @@ class product_product(models.Model):
 
         force_template_title_with_attributes = True
         if (force_template_title_with_attributes and (product.meli_title==False or len(product.meli_title)==0)):
-            # _logger.info( 'Assigning title: product.meli_title: %s name: %s' % (product.meli_title, product.name) )
             product.meli_title = product_tmpl.meli_title
-            if len(product_tmpl.meli_pub_variant_attributes):
+            if len(product_tmpl.meli_pub_variant_attributes) and (not product_tmpl.meli_pub_as_variant):
                 values = ""
                 for line in product_tmpl.meli_pub_variant_attributes:
                     for value in product.attribute_value_ids:

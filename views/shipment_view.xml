@@ -7,6 +7,7 @@
             <field name="type">tree</field>
             <field name="arch" type="xml">
               <tree string="Shipment" >
+                  <field name="name"/>
                   <field name="shipping_id"/>
                   <field name="status"/>
                   <field name="substatus"/>
@@ -49,11 +50,13 @@
                     <field name="mode"/>
                     <field name="shipping_mode"/>
                     <field name="order_cost"/>
+                    <field name="shipping_cost"/>
                     <field name="base_cost"/>
                     <field name="logistic_type"/>
                   </group>
                   <group>
                     <field name="posting_id" invisible="1"/>
+                    <field name="sale_order" />
                     <field name="order_id" />
                     <field name="order" />
                     <field name="pack_order" />

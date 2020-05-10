@@ -164,12 +164,14 @@ class mercadolibre_shipment(models.Model):
 	_name = "mercadolibre.shipment"
 	_description = "Envio de MercadoLibre"
 
+	name = fields.Char(string='Name')
 	site_id = fields.Char('Site id')
 	posting_id = fields.Many2one("mercadolibre.posting",string="Posting")
 	shipping_id = fields.Char('Envio Id')
 	order_id =  fields.Char('Order Id')
 	order = fields.Many2one("mercadolibre.orders",string="Order")
 	orders = fields.Many2many("mercadolibre.orders",string="Orders (carrito)")
+	sale_order = fields.Many2one('sale.order',string="Sale Order",help="Pedido de venta relacionado en Odoo")
 
 	mode = fields.Char('Mode')
 	shipping_mode = fields.Char('Shipping mode')
@@ -177,8 +179,9 @@ class mercadolibre_shipment(models.Model):
 	date_created = fields.Datetime('Creation date')
 	last_updated = fields.Datetime('Last updated')
 
-	order_cost = fields.Char('Order Cost')
-	base_cost = fields.Char('Base Cost')
+	order_cost = fields.Float(string='Order Cost')
+	base_cost = fields.Float(string='Base Cost')
+	shipping_cost = fields.Float(string='Shipping Cost')
 
 	status = fields.Char("Status")
 	substatus = fields.Char("Sub Status")
@@ -230,10 +233,65 @@ class mercadolibre_shipment(models.Model):
 	def create_shipment( self ):
 		return {}
 
+	def _update_sale_order_shipping_info( self, order ):
+
+		company = self.env.user.company_id
+		product_obj = self.env['product.product']
+		saleorderline_obj = self.env['sale.order.line']
+
+		for shipment in self:
+			_logger.info("_update_sale_order_shipping_info")
+			sorder = shipment.sale_order
+			if (not sorder or not order):
+				continue;
+
+			sorder.meli_shipping_cost = shipment.shipping_cost
+			order.shipping_cost = shipment.shipping_cost
+
+			if (sorder.partner_id):
+				sorder.partner_id.street = shipment.receiver_address_line
+				sorder.partner_id.street2 = shipment.receiver_address_comment
+				sorder.partner_id.city = shipment.receiver_city
+				sorder.partner_id.phone = shipment.receiver_address_phone
+				#sorder.partner_id.state = ships.receiver_state
+
+			product_shipping_id = product_obj.search(['|','|',('default_code','=','ENVIO'),('default_code','=',shipment.tracking_method),('name','=',shipment.tracking_method)])
+
+			if len(product_shipping_id):
+				product_shipping_id = product_shipping_id[0]
+			else:
+				ship_prod = {
+					"name": shipment.tracking_method,
+					"default_code": shipment.tracking_method,
+					"type": "service",
+					#"taxes_id": None
+				}
+				product_shipping_id = product_obj.create((ship_prod))
+			_logger.info(product_shipping_id)
+			saleorderline_item_fields = {
+				'company_id': company.id,
+				'order_id': sorder.id,
+				'meli_order_item_id': 'ENVIO',
+				'price_unit': shipment.shipping_cost,
+				'product_id': product_shipping_id.id,
+				'product_uom_qty': 1.0,
+				'tax_id': None,
+				'product_uom': 1,
+				'name': "Shipping " + str(shipment.shipping_mode),
+			}
+			saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
+			if not saleorderline_item_ids:
+				saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
+				saleorderline_item_ids.tax_id = None
+			else:
+				saleorderline_item_ids.write( ( saleorderline_item_fields ) )
+				saleorderline_item_ids.tax_id = None
+
+	#Return shipment object based on mercadolibre.orders "order"
 	def fetch( self, order ):
 
 		company = self.env.user.company_id
-
+		sale_order_pack = None
 		saleorder_obj = self.env['sale.order']
 		saleorderline_obj = self.env['sale.order.line']
 		product_obj = self.env['product.product']
@@ -252,10 +310,12 @@ class mercadolibre_shipment(models.Model):
 		meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN )
 
 		ship_id = False
+		shipment = None
+
 		if (order and order.shipping_id):
 			ship_id = order.shipping_id
 		else:
-			return {}
+			return None
 
 		response = meli.get("/shipments/"+ str(ship_id),  {'access_token':meli.access_token})
 		if (response):
@@ -268,16 +328,17 @@ class mercadolibre_shipment(models.Model):
 			else:
 				_logger.info("Saving shipment fields")
 				ship_fields = {
+					"name": "MSO ["+str(ship_id)+"] "+str(ship_json["shipping_option"]["name"]),
 					"order": order.id,
 					"shipping_id": ship_json["id"],
 					"site_id": ship_json["site_id"],
 					"order_id": ship_json["order_id"],
-					"order": order.id,
 					"mode": ship_json["mode"],
 					"shipping_mode": ship_json["shipping_option"]["name"],
 					"date_created": _ml_datetime(ship_json["date_created"]),
 					"last_updated": _ml_datetime(ship_json["last_updated"]),
 					"order_cost": ship_json["order_cost"],
+					"shipping_cost": ("cost" in ship_json["shipping_option"] and ship_json["shipping_option"]["cost"]) or 0.0,
 					"base_cost": ship_json["base_cost"],
 					"status": ship_json["status"],
 					"substatus": ship_json["substatus"],
@@ -352,34 +413,32 @@ class mercadolibre_shipment(models.Model):
 							#We can create order with all items now
 							ship_fields["orders"] = [(6, 0, all_orders_ids)]
 
-
-
-				ships = shipment_obj.search([('shipping_id','=', ship_id)])
-				_logger.info(ships)
-				if (len(ships)==0):
+				shipment = shipment_obj.search([('shipping_id','=', ship_id)])
+				#_logger.info(ships)
+				if (len(shipment)==0):
 					_logger.info("Importing shipment: " + str(ship_id))
-					ship = shipment_obj.create((ship_fields))
-					if (ship):
+					shipment = shipment_obj.create((ship_fields))
+					if (shipment):
 						_logger.info("Created shipment ok!")
 				else:
 					_logger.info("Updating shipment: " + str(ship_id))
-					ships.write((ship_fields))
+					shipment.write((ship_fields))
 
 					try:
 						_logger.info("ships.pdf_filename:")
-						_logger.info(ships.pdf_filename)
-						if (1==1 and ships.pdf_filename):
+						_logger.info(shipment.pdf_filename)
+						if (1==1 and shipment.pdf_filename):
 							_logger.info("We have a pdf file")
-							if (ships.pdfimage_filename==False):
+							if (shipment.pdfimage_filename==False):
 								_logger.info("Try create a pdf image file")
-								data = base64.b64decode( ships.pdf_file )
+								data = base64.b64decode( shipment.pdf_file )
 								images = convert_from_bytes(data, dpi=300,fmt='jpg')
 								for image in images:
-									image.save("/tmp/%s-page%d.jpg" % ("Shipment_"+ships.shipping_id,images.index(image)), "JPEG")
+									image.save("/tmp/%s-page%d.jpg" % ("Shipment_"+shipment.shipping_id,images.index(image)), "JPEG")
 									if (images.index(image)==1):
-										imgdata = urlopen("file:///tmp/Shipment_"+ships.shipping_id+"-page1.jpg").read()
-										ships.pdfimage_file = base64.encodestring(imgdata)
-										ships.pdfimage_filename = "Shipment_"+ships.shipping_id+".jpg"
+										imgdata = urlopen("file:///tmp/Shipment_"+shipment.shipping_id+"-page1.jpg").read()
+										shipment.pdfimage_file = base64.encodestring(imgdata)
+										shipment.pdfimage_filename = "Shipment_"+shipment.shipping_id+".jpg"
 								#if (len(images)):
 								#	_logger.info(images)
 									#for image in images:
@@ -392,6 +451,11 @@ class mercadolibre_shipment(models.Model):
 						_logger.info("sudo apt install poppler-utils && sudo pip install pdf2image")
 						_logger.info(e, exc_info=True)
 						pass;
+
+					if (ship_fields["pack_order"]==False):
+						sorder = self.env["sale.order"].search( [ ('meli_order_id','=',ship_fields["order_id"]) ] )
+						if len(sorder):
+							shipment.sale_order = sorder
 
 					if (full_orders and ship_fields["pack_order"]):
 						plistid = None
@@ -410,24 +474,32 @@ class mercadolibre_shipment(models.Model):
 								'pricelist_id': plistid.id,
 								#'meli_order_id': '%i' % (order_json["id"]),
 								'meli_order_id': packed_order_ids,
-                                'meli_orders': [(6, 0, all_orders_ids)],
-								'meli_shipping_id': ships.id,
-								'meli_shipping': ships,
+								'meli_orders': [(6, 0, all_orders_ids)],
+								'meli_shipping_id': shipment.id,
+								'meli_shipping': shipment,
+								'meli_shipment': shipment.id,
 								'meli_status': all_orders[0]["status"],
 								'meli_status_detail': all_orders[0]["status_detail"] or '' ,
 								'meli_total_amount': ship_fields["order_cost"],
+								'meli_shipping_cost': shipment.shipping_cost,
+								'meli_paid_amount': all_orders[0]["paid_amount"],
 								'meli_currency_id': all_orders[0]["currency_id"],
 								'meli_date_created': _ml_datetime(all_orders[0]["date_created"]) or '',
 								'meli_date_closed': _ml_datetime(all_orders[0]["date_closed"]) or '',
 							}
-							sorder = self.env["sale.order"].search( [ ('meli_order_id','=',meli_order_fields["meli_order_id"]) ] )
-							if (len(sorder)):
-								sorder = sorder[0]
-								sorder.write(meli_order_fields)
+							sorder_pack = self.env["sale.order"].search( [ ('meli_order_id','=',meli_order_fields["meli_order_id"]) ] )
+							if (len(sorder_pack)):
+								sorder_pack = sorder_pack[0]
+								sorder_pack.write(meli_order_fields)
 							else:
-								sorder = self.env["sale.order"].create(meli_order_fields)
+								sorder_pack = self.env["sale.order"].create(meli_order_fields)
 
-							if (sorder.id):
+							if (sorder_pack.id):
+								shipment.sale_order = sorder_pack
+								order.sale_order = sorder_pack
+								order.shipping_cost = shipment.shipping_cost
+
+								#creating and updating all items related to ml.orders
 								for mOrder in all_orders:
 									#Each Order one product with one price and one quantity
 
@@ -435,7 +507,7 @@ class mercadolibre_shipment(models.Model):
 									unit_price = mOrder.order_items[0]["unit_price"]
 									saleorderline_item_fields = {
 										'company_id': company.id,
-										'order_id': sorder.id,
+										'order_id': shipment.sale_order.id,
 										'meli_order_item_id': mOrder.order_items[0]["order_item_id"],
 										'price_unit': float(unit_price),
 										'product_id': product_related_obj.id,
@@ -449,12 +521,18 @@ class mercadolibre_shipment(models.Model):
 									else:
 										saleorderline_item_fields['price_unit'] = product_related_obj.product_tmpl_id.lst_price
 
-									saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
+									saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',shipment.sale_order.id)] )
 
 									if not saleorderline_item_ids:
 										saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
 									else:
 										saleorderline_item_ids.write( ( saleorderline_item_fields ) )
+
+
+		if (shipment):
+			shipment._update_sale_order_shipping_info( order )
+
+		return shipment
 
 	def update( self ):
 
