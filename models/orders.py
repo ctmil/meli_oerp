@@ -285,7 +285,7 @@ class mercadolibre_orders(models.Model):
             #    sorder = saleorder_obj.browse(sorder_s[0] )
 
         order_fields = {
-            'name': 'Meli Order %i' % (order_json["id"]),
+            'name': "[%i] Meli Order" % ( order_json["id"] ),
             'order_id': '%i' % (order_json["id"]),
             'status': order_json["status"],
             'status_detail': order_json["status_detail"] or '' ,
@@ -416,7 +416,7 @@ class mercadolibre_orders(models.Model):
             order.write( order_fields )
         else:
             _logger.info("Adding new order: " )
-            _logger.info(order_fields)
+            #_logger.info(order_fields)
             order = order_obj.create( (order_fields))
 
         if (sorder and sorder.id):
@@ -424,7 +424,7 @@ class mercadolibre_orders(models.Model):
             sorder.write( meli_order_fields )
         else:
             _logger.info("Adding new sale.order: " )
-            _logger.info(meli_order_fields)
+            #_logger.info(meli_order_fields)
             if 'pack_order' in order_json["tags"]:
                 _logger.info("Pack Order, dont create order")
             else:
@@ -559,6 +559,8 @@ class mercadolibre_orders(models.Model):
                 if (product_related_obj == False or len(product_related_obj)==0):
                     _logger.error("No product related to meli_id:"+str(Item['item']['id']))
                     return { 'error': 'No product related to meli_id' }
+
+                order.name = "[%i] Meli Order %s" % ( order.id, product_related_obj.display_name )
 
                 if (sorder):
                     saleorderline_item_fields = {
