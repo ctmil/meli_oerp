@@ -232,6 +232,7 @@ class mercadolibre_shipment(models.Model):
 	def create_shipment( self ):
 		return {}
 
+	#Must return sale.order
 	def fetch( self, order ):
 
 		company = self.env.user.company_id
@@ -257,7 +258,7 @@ class mercadolibre_shipment(models.Model):
 		if (order and order.shipping_id):
 			ship_id = order.shipping_id
 		else:
-			return {}
+			return None
 
 		response = meli.get("/shipments/"+ str(ship_id),  {'access_token':meli.access_token})
 		if (response):
@@ -358,7 +359,7 @@ class mercadolibre_shipment(models.Model):
 
 
 				ships = shipment_obj.search([('shipping_id','=', ship_id)])
-				_logger.info(ships)
+				#_logger.info(ships)
 				if (len(ships)==0):
 					_logger.info("Importing shipment: " + str(ship_id))
 					ship = shipment_obj.create((ship_fields))
@@ -460,6 +461,7 @@ class mercadolibre_shipment(models.Model):
 										saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
 									else:
 										saleorderline_item_ids.write( ( saleorderline_item_fields ) )
+							return sorder
 
 	def update( self ):
 

@@ -655,7 +655,7 @@ class mercadolibre_orders(models.Model):
         if company.mercadolibre_cron_get_orders_shipment:
             _logger.info("Updating order: Shipment")
             if (order.shipping_id):
-                shipment_obj.fetch( order )
+                sorder = shipment_obj.fetch( order )
                 shipment = shipment_obj.search([('shipping_id','=',order.shipping_id)])
                 if len(shipment):
                     order.shipment = shipment
