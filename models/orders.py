@@ -663,7 +663,10 @@ class mercadolibre_orders(models.Model):
                     order.shipment = shipment
                     #TODO: enhance with _order_update_pack()...
                     #Updated sorder because shipment could create sorder pack...
-                    sorder = shipment.sale_order
+                    if (sorder):
+                        shipment.sale_order = sorder
+                    else:
+                        sorder = shipment.sale_order
 
         #could be packed sorder or standard one product item order
         if sorder:
