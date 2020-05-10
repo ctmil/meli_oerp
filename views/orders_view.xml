@@ -12,6 +12,7 @@
                     <field name="status"/>
                     <field name="buyer"/>
                     <field name="total_amount"/>
+                    <field name="paid_amount"/>
                     <field name="date_created"/>
                     <field name="date_closed"/>
                     <field name="tags" invisible="1"/>
@@ -34,6 +35,7 @@
                 <field name="meli_shipment" invisible="0"/>
 								<field name="meli_status_detail" invisible="0"/>
 								<field name="meli_total_amount" invisible="0"/>
+                <field name="meli_paid_amount" invisible="0"/>
 								<field name="meli_currency_id" invisible="0"/>
 								<field name="meli_date_created" invisible="0"/>
 								<field name="meli_date_closed" invisible="0"/>
@@ -92,6 +94,7 @@
                     <field name="status_detail"/>
                     <field name="order_items"/>
                     <field name="total_amount"/>
+                    <field name="paid_amount"/>
                     <field name="currency_id"/>
                     <field name="buyer"/>
                     <field name="payments"/>
