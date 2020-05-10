@@ -54,11 +54,11 @@
                     <field name="is_branch"/>
                     <field name="meli_category_id"/>
                     <field name="meli_father_category"/>
+                    <field name="meli_father_category_id"/>
                     <field name="public_category_id"/>
                     <field name="meli_category_url" widget="url"/>
                     <field name="meli_category_attributes" widget="url"/>
                     <field name="meli_category_attribute_ids"/>
-                    <field name="public_category_id"/>
                   </group>
                 </form>
             </field>

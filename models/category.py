@@ -95,6 +95,8 @@ class mercadolibre_category(models.Model):
             if ( "children_categories" in rjson_cat and len(rjson_cat["children_categories"])>0 ):
                 self.is_branch = True
             self.meli_category_url = "https://api.mercadolibre.com/categories/"+str(self.meli_category_id)
+            if (len(rjson_cat["path_from_root"])>1):
+                self.meli_father_category_id = rjson_cat["path_from_root"][len(rjson_cat["path_from_root"])-2]["id"]
 
         if (self.meli_category_id and self.is_branch==False):
             self.meli_category_attributes = "https://api.mercadolibre.com/categories/"+str(self.meli_category_id)+"/attributes"
@@ -277,6 +279,7 @@ class mercadolibre_category(models.Model):
     is_branch = fields.Boolean('Rama (no hoja)',index=True)
     meli_category_id = fields.Char('Category Id',index=True)
     meli_father_category = fields.Many2one('mercadolibre.category',string="Padre",index=True)
+    meli_father_category_id = fields.Char('Father Category Id',index=True)
     public_category_id = fields.Integer('Public Category Id',index=True)
 
     #public_category = fields.Many2one( "product.category.public", string="Product Website category default", help="Select Public Website category for this ML category ")
