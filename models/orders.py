@@ -285,6 +285,7 @@ class mercadolibre_orders(models.Model):
             #    sorder = saleorder_obj.browse(sorder_s[0] )
 
         order_fields = {
+            'name': 'Meli Order %i' % (order_json["id"]),
             'order_id': '%i' % (order_json["id"]),
             'status': order_json["status"],
             'status_detail': order_json["status_detail"] or '' ,
@@ -810,6 +811,7 @@ class mercadolibre_orders(models.Model):
 
         return {}
 
+    name = fields.Char(string='Order Name')
     order_id = fields.Char('Order Id')
 
     status = fields.Selection( [

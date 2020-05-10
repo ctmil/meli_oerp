@@ -164,6 +164,7 @@ class mercadolibre_shipment(models.Model):
 	_name = "mercadolibre.shipment"
 	_description = "Envio de MercadoLibre"
 
+    name = fields.Char(string='Name')
 	site_id = fields.Char('Site id')
 	posting_id = fields.Many2one("mercadolibre.posting",string="Posting")
 	shipping_id = fields.Char('Envio Id')
@@ -268,6 +269,7 @@ class mercadolibre_shipment(models.Model):
 			else:
 				_logger.info("Saving shipment fields")
 				ship_fields = {
+                    "name": "["+str(ship_id)+"] "+str(ship_json["shipping_option"]["name"]),
 					"order": order.id,
 					"shipping_id": ship_json["id"],
 					"site_id": ship_json["site_id"],
