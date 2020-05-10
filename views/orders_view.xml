@@ -17,6 +17,7 @@
                     <field name="date_created"/>
                     <field name="date_closed"/>
                     <field name="tags" invisible="1"/>
+                    <field name="pack_order" string="Es Carrito"/>
                 </tree>
             </field>
         </record>
@@ -154,6 +155,7 @@
                  <field name="status" string="Status"/>
                  <field name="buyer" string="Comprador"/>
                  <field name="seller" string="Vendedor"/>
+                 <field name="pack_order" string="Es Carrito"/>
     	         </search>
             </field>
         </record>
