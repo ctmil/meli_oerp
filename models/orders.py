@@ -657,10 +657,11 @@ class mercadolibre_orders(models.Model):
             if (order.shipping_id):
                 shipment_obj.fetch( order )
                 shipment = shipment_obj.search([('shipping_id','=',order.shipping_id)])
+                if len(shipment):
+                    order.shipment = shipment
 
                 if len(shipment) and sorder and order:
                     sorder.meli_shipment = shipment
-                    order.shipment = shipment
                     order.sale_order = sorder
                     if (sorder.partner_id):
                         sorder.partner_id.street = shipment.receiver_address_line
