@@ -98,7 +98,10 @@ class mercadolibre_category(models.Model):
             if (len(rjson_cat["path_from_root"])>1):
                 self.meli_father_category_id = rjson_cat["path_from_root"][len(rjson_cat["path_from_root"])-2]["id"]
 
-        if (self.meli_category_id and self.is_branch==False):
+        if (self.meli_category_id
+            and self.is_branch==False
+            and ( self.meli_category_attribute_ids==None or len(self.meli_category_attribute_ids)==0 )):
+
             self.meli_category_attributes = "https://api.mercadolibre.com/categories/"+str(self.meli_category_id)+"/attributes"
             resp = meli.get("/categories/"+str(self.meli_category_id)+"/attributes", {'access_token':meli.access_token})
             rjs = resp.json()
@@ -284,7 +287,7 @@ class mercadolibre_category(models.Model):
 
     #public_category = fields.Many2one( "product.category.public", string="Product Website category default", help="Select Public Website category for this ML category ")
     meli_category_attributes = fields.Char(compute=get_attributes,  string="Mercado Libre Category Attributes")
-    meli_category_url = fields.Char(string="Mercado Libre Category Url")
+    meli_category_url = fields.Char(compute=get_attributes, string="Mercado Libre Category Url")
     meli_category_attribute_ids = fields.Many2many("mercadolibre.category.attribute",string="Attributes")
 
 
