@@ -242,8 +242,11 @@ class mercadolibre_shipment(models.Model):
 		for shipment in self:
 			_logger.info("_update_sale_order_shipping_info")
 			sorder = shipment.sale_order
-			if (not sorder):
+			if (not sorder or not order):
 				continue;
+
+			sorder.meli_shipping_cost = shipment.shipping_cost
+			order.shipping_cost = shipment.shipping_cost
 
 			if (sorder.partner_id):
 				sorder.partner_id.street = shipment.receiver_address_line
