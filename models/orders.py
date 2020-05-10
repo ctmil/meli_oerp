@@ -81,7 +81,8 @@ class sale_order(models.Model):
 #        'meli_payments': fields.one2many('mercadolibre.payments','order_id','Payments' ),
     meli_shipping = fields.Text(string="Shipping");
 
-    meli_total_amount = fields.Char(string='Total amount');
+    meli_total_amount = fields.Float(string='Total amount');
+    meli_paid_amount = fields.Float(string='Paid amount',help='Paid amount (include shipping cost)');
     meli_currency_id = fields.Char(string='Currency ML');
 #        'buyer': fields.many2one( "mercadolibre.buyers","Buyer"),
 #       'meli_seller': fields.text( string='Seller' ),
@@ -288,6 +289,7 @@ class mercadolibre_orders(models.Model):
             'status': order_json["status"],
             'status_detail': order_json["status_detail"] or '' ,
             'total_amount': order_json["total_amount"],
+            'paid_amount': order_json["paid_amount"],
             'currency_id': order_json["currency_id"],
             'date_created': _ml_datetime(order_json["date_created"]) or '',
             'date_closed': _ml_datetime(order_json["date_closed"]) or '',
@@ -390,6 +392,7 @@ class mercadolibre_orders(models.Model):
             'meli_status': order_json["status"],
             'meli_status_detail': order_json["status_detail"] or '' ,
             'meli_total_amount': order_json["total_amount"],
+            'meli_paid_amount': order_json["paid_amount"],
             'meli_currency_id': order_json["currency_id"],
             'meli_date_created': _ml_datetime(order_json["date_created"]) or '',
             'meli_date_closed': _ml_datetime(order_json["date_closed"]) or '',
@@ -403,8 +406,8 @@ class mercadolibre_orders(models.Model):
                 order_fields['shipping_id'] = order_json["shipping"]["id"]
                 meli_order_fields['meli_shipping_id'] = order_json["shipping"]["id"]
 
-            if ("cost" in order_json["shipping"]):
-                meli_order_fields['meli_total_amount'] = float(order_json["total_amount"])+float(order_json["shipping"]["cost"])
+            #if ("cost" in order_json["shipping"]):
+            #    meli_order_fields['meli_total_amount'] = float(order_json["total_amount"])+float(order_json["shipping"]["cost"])
 
         #create or update order
         if (order and order.id):
@@ -831,7 +834,8 @@ class mercadolibre_orders(models.Model):
     shipping_id = fields.Char(string="Shipping id")
     shipment = fields.Many2one('mercadolibre.shipment',string='Shipment')
 
-    total_amount = fields.Char(string='Total amount')
+    total_amount = fields.Float(string='Total amount')
+    paid_amount = fields.Float(string='Paid amount',help='Includes shipping cost')
     currency_id = fields.Char(string='Currency')
     buyer =  fields.Many2one( "mercadolibre.buyers","Buyer")
     seller = fields.Text( string='Seller' )
@@ -874,7 +878,6 @@ class mercadolibre_payments(models.Model):
 
     fee_amount = fields.Float('Fee Amount')
     shipping_amount = fields.Float('Shipping Amount')
-    total_paid_amount = fields.Float('Total Paid Amount')
     taxes_amount = fields.Float('Taxes Amount')
 
 
