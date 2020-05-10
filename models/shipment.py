@@ -179,8 +179,9 @@ class mercadolibre_shipment(models.Model):
 	date_created = fields.Datetime('Creation date')
 	last_updated = fields.Datetime('Last updated')
 
-	order_cost = fields.Char('Order Cost')
-	base_cost = fields.Char('Base Cost')
+	order_cost = fields.Float(string='Order Cost')
+	base_cost = fields.Float(string='Base Cost')
+    shipping_cost = fields.Float(string='Shipping Cost')
 
 	status = fields.Char("Status")
 	substatus = fields.Char("Sub Status")
@@ -239,6 +240,7 @@ class mercadolibre_shipment(models.Model):
 		saleorderline_obj = self.env['sale.order.line']
 
 		for shipment in self:
+			_logger.info("_update_sale_order_shipping_info")
 			sorder = shipment.sale_order
 			if (not sorder):
 				continue;
@@ -267,7 +269,7 @@ class mercadolibre_shipment(models.Model):
 				'company_id': company.id,
 				'order_id': sorder.id,
 				'meli_order_item_id': 'ENVIO',
-				'price_unit': float(order.shipping_cost),
+				'price_unit': shipment.shipping_cost,
 				'product_id': product_shipping_id.id,
 				'product_uom_qty': 1.0,
 				'tax_id': None,
@@ -333,6 +335,7 @@ class mercadolibre_shipment(models.Model):
 					"date_created": _ml_datetime(ship_json["date_created"]),
 					"last_updated": _ml_datetime(ship_json["last_updated"]),
 					"order_cost": ship_json["order_cost"],
+                    "shipping_cost": ("cost" in ship_json["shipping_option"] and ship_json["shipping_option"]["cost"]) or 0.0,
 					"base_cost": ship_json["base_cost"],
 					"status": ship_json["status"],
 					"substatus": ship_json["substatus"],
@@ -470,7 +473,7 @@ class mercadolibre_shipment(models.Model):
 								'meli_status': all_orders[0]["status"],
 								'meli_status_detail': all_orders[0]["status_detail"] or '' ,
 								'meli_total_amount': ship_fields["order_cost"],
-                                'meli_shipping_cost': 0.0,
+                                'meli_shipping_cost': shipment.shipping_cost,
                                 'meli_paid_amount': all_orders[0]["paid_amount"],
 								'meli_currency_id': all_orders[0]["currency_id"],
 								'meli_date_created': _ml_datetime(all_orders[0]["date_created"]) or '',
@@ -486,6 +489,7 @@ class mercadolibre_shipment(models.Model):
 							if (sorder_pack.id):
 								shipment.sale_order = sorder_pack
 								order.sale_order = sorder_pack
+                                order.shipping_cost = shipment.shipping_cost
 
 								#creating and updating all items related to ml.orders
 								for mOrder in all_orders:

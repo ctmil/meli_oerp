@@ -290,8 +290,7 @@ class mercadolibre_orders(models.Model):
             'order_id': '%i' % (order_json["id"]),
             'status': order_json["status"],
             'status_detail': order_json["status_detail"] or '' ,
-            'total_amount': order_json["total_amount"],
-            'shipping_cost': (('cost' in order_json["shipping"]) and (order_json["shipping"]["cost"]) ) or 0.0,
+            'total_amount': order_json["total_amount"],            
             'paid_amount': order_json["paid_amount"],
             'currency_id': order_json["currency_id"],
             'date_created': _ml_datetime(order_json["date_created"]) or '',
@@ -405,6 +404,9 @@ class mercadolibre_orders(models.Model):
         if (order_json["shipping"]):
             order_fields['shipping'] = self.pretty_json( id, order_json["shipping"] )
             meli_order_fields['meli_shipping'] = self.pretty_json( id, order_json["shipping"] )
+            if ("cost" in order_json["shipping"]):
+                order_json["shipping_cost"] = float(order_json["shipping"]["cost"])
+                meli_order_fields["meli_shipping_cost"] = float(order_json["shipping"]["cost"])
             if ("id" in order_json["shipping"]):
                 order_fields['shipping_id'] = order_json["shipping"]["id"]
                 meli_order_fields['meli_shipping_id'] = order_json["shipping"]["id"]
