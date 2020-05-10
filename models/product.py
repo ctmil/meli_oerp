@@ -148,17 +148,16 @@ class product_template(models.Model):
         return ret
 
     def _variations(self):
-        product_tmpl = self
-
         variations = False
-        for variant in product_tmpl.product_variant_ids:
-            if ( variant._conditions_ok() ):
-                variant.meli_pub = True
-                var = variant._combination()
-                if (var):
-                    if (variations==False):
-                        variations = []
-                    variations.append(var)
+        for product_tmpl in self:
+            for variant in product_tmpl.product_variant_ids:
+                if ( variant._conditions_ok() ):
+                    variant.meli_pub = True
+                    var = variant._combination()
+                    if (var):
+                        if (variations==False):
+                            variations = []
+                        variations.append(var)
 
         return variations
 
@@ -167,23 +166,23 @@ class product_template(models.Model):
 
         _pubs = ""
         _stats = ""
-        product = self
-        for variant in product.product_variant_ids:
-            if (variant.meli_pub):
-                if ( (variant.meli_status=="active" or variant.meli_status=="paused") and variant.meli_id):
-                    if (len(_pubs)):
-                        _pubs = _pubs + "|" + variant.meli_id + ":" + variant.meli_status
-                    else:
-                        _pubs = variant.meli_id + ":" + variant.meli_status
+        for product in self:
+            for variant in product.product_variant_ids:
+                if (variant.meli_pub):
+                    if ( (variant.meli_status=="active" or variant.meli_status=="paused") and variant.meli_id):
+                        if (len(_pubs)):
+                            _pubs = _pubs + "|" + variant.meli_id + ":" + variant.meli_status
+                        else:
+                            _pubs = variant.meli_id + ":" + variant.meli_status
 
-                    if (variant.meli_status=="active"):
-                        _stats = "active"
+                        if (variant.meli_status=="active"):
+                            _stats = "active"
 
-                    if (_stats == "" and variant.meli_status=="paused"):
-                        _stats = "paused"
+                        if (_stats == "" and variant.meli_status=="paused"):
+                            _stats = "paused"
 
-        self.meli_publications = _pubs
-        self.meli_variants_status = _stats
+            product.meli_publications = _pubs
+            product.meli_variants_status = _stats
 
         return {}
 
@@ -1586,17 +1585,6 @@ class product_product(models.Model):
         if product.meli_title==False or len(product.meli_title)==0:
             # _logger.info( 'Assigning title: product.meli_title: %s name: %s' % (product.meli_title, product.name) )
             product.meli_title = product_tmpl.meli_title
-            if len(product_tmpl.meli_pub_variant_attributes):
-                values = ""
-                for line in product_tmpl.meli_pub_variant_attributes:
-                    for value in product.attribute_value_ids:
-                        if (value.attribute_id.id==line.attribute_id.id):
-                            values+= " "+value.name
-                if (not product_tmpl.meli_pub_as_variant):
-                    product.meli_title = string.replace(product.meli_title,product.name,product.name+" "+values)
-
-
-
 
         force_template_title = False
         if (product_tmpl.meli_title and force_template_title):
@@ -1613,8 +1601,29 @@ class product_product(models.Model):
         if product.meli_description==False:
             product.meli_description = product_tmpl.meli_description
 
-        if product_tmpl.meli_description:
+        if (product_tmpl.meli_description or len(product_tmpl.meli_description)==0):
             product.meli_description = product_tmpl.meli_description
+
+        force_template_title_with_attributes = True
+        if (force_template_title_with_attributes and (product.meli_title==False or len(product.meli_title)==0)):
+            product.meli_title = product_tmpl.meli_title
+            if len(product_tmpl.meli_pub_variant_attributes) and (not product_tmpl.meli_pub_as_variant):
+                values = ""
+                for line in product_tmpl.meli_pub_variant_attributes:
+                    for value in product.attribute_value_ids:
+                        if (value.attribute_id.id==line.attribute_id.id):
+                            values+= " "+value.name
+
+                product.meli_title = string.replace(product.meli_title,product.name,product.name+" "+values)
+
+        force_template_title = False
+        if (product_tmpl.meli_title and force_template_title):
+            product.meli_title = product_tmpl.meli_title
+
+        if ( product.meli_title and len(product.meli_title)>60 ):
+            return warningobj.info( title='MELI WARNING', message="La longitud del título ("+str(len(product.meli_title))+") es superior a 60 caracteres.", message_html=product.meli_title )
+
+
 
         if product.meli_category==False:
             product.meli_category=product_tmpl.meli_category

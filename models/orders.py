@@ -370,6 +370,18 @@ class mercadolibre_orders(models.Model):
                     else:
                         _logger.error("res.partner.id_category:" + str(Buyer['billing_info']['doc_type']))
 
+                #Colombia
+                if ( ('doc_type' in Buyer['billing_info']) and ('l10n_co_document_type' in self.env['res.partner']._fields) ):
+                    if (Buyer['billing_info']['doc_type']=="CC"):
+                        meli_buyer_fields['l10n_co_document_type'] = 'national_citizen_id'
+                    if (Buyer['billing_info']['doc_type']=="NIT"):
+                        meli_buyer_fields['l10n_co_document_type'] = 'rut'
+                    if (Buyer['billing_info']['doc_type']=="CE"):
+                        meli_buyer_fields['l10n_co_document_type'] = 'foreign_id_card'
+
+                    meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
+
+
             partner_ids = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ] )
             partner_id = 0
             if not partner_ids:
@@ -410,8 +422,6 @@ class mercadolibre_orders(models.Model):
                 order_fields['shipping_id'] = order_json["shipping"]["id"]
                 meli_order_fields['meli_shipping_id'] = order_json["shipping"]["id"]
 
-            #if ("cost" in order_json["shipping"]):
-            #    meli_order_fields['meli_total_amount'] = float(order_json["total_amount"])+float(order_json["shipping"]["cost"])
 
         #create or update order
         if (order and order.id):
@@ -637,10 +647,9 @@ class mercadolibre_orders(models.Model):
                 mp_response = requests.get( mp_payment_url, params=urlencode(params), headers=headers )
                 if (mp_response):
                     payment_fields["full_payment"] = mp_response.json()
-                    _logger.info(payment_fields["full_payment"])
                     payment_fields["shipping_amount"] = payment_fields["full_payment"]["shipping_amount"]
                     payment_fields["total_paid_amount"] = payment_fields["full_payment"]["transaction_details"]["total_paid_amount"]
-                    if len(payment_fields["full_payment"]["fee_details"]):
+                    if ("fee_details" in payment_fields["full_payment"] and len(payment_fields["full_payment"]["fee_details"])>0):
                         payment_fields["fee_amount"] = payment_fields["full_payment"]["fee_details"][0]["amount"]
                     payment_fields["taxes_amount"] = payment_fields["full_payment"]["taxes_amount"]
 

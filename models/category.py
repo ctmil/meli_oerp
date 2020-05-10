@@ -202,7 +202,7 @@ class mercadolibre_category(models.Model):
             father = None
             response_cat = meli.get("/categories/"+str(category_id), {'access_token':meli.access_token})
             rjson_cat = response_cat.json()
-            if ("children_categories" in rjson_cat):
+            if ("children_categories" in rjson_cat and len(rjson_cat["children_categories"])>0):
                 is_branch = True
 
             ml_cat_id = category_obj.search([('meli_category_id','=',category_id)])
