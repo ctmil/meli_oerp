@@ -452,6 +452,11 @@ class mercadolibre_shipment(models.Model):
 						_logger.info(e, exc_info=True)
 						pass;
 
+					if (ship_fields["pack_order"]==False):
+						sorder = self.env["sale.order"].search( [ ('meli_order_id','=',ship_fields["order_id"]) ] )
+						if len(sorder):
+							shipment.sale_order = sorder
+
 					if (full_orders and ship_fields["pack_order"]):
 						plistid = None
 						if company.mercadolibre_pricelist:
