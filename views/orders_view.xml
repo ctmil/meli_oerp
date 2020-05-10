@@ -8,6 +8,7 @@
             <field name="type">tree</field>
             <field name="arch" type="xml">
                 <tree string="Ordenes" >
+                    <field name="name"/>
                     <field name="order_id"/>
                     <field name="status"/>
                     <field name="buyer"/>
@@ -28,17 +29,17 @@
                 <data>
                     <notebook>
                         <page string="MercadoLibre" attrs="{'invisible':[('meli_order_id', '=', False)]}">
-							<group>
-								<field name="meli_order_id" invisible="0"/>
-                <field name="meli_orders" invisible="0"/>
-								<field name="meli_status" invisible="0"/>
-                <field name="meli_shipment" invisible="0"/>
-								<field name="meli_status_detail" invisible="0"/>
-								<field name="meli_total_amount" invisible="0"/>
-                <field name="meli_paid_amount" invisible="0"/>
-								<field name="meli_currency_id" invisible="0"/>
-								<field name="meli_date_created" invisible="0"/>
-								<field name="meli_date_closed" invisible="0"/>
+                            <group>
+                              <field name="meli_order_id" invisible="0"/>
+                              <field name="meli_orders" invisible="0"/>
+                              <field name="meli_status" invisible="0"/>
+                              <field name="meli_shipment" invisible="0"/>
+                              <field name="meli_status_detail" invisible="0"/>
+                              <field name="meli_total_amount" invisible="0"/>
+                              <field name="meli_paid_amount" invisible="0"/>
+                              <field name="meli_currency_id" invisible="0"/>
+                              <field name="meli_date_created" invisible="0"/>
+                              <field name="meli_date_closed" invisible="0"/>
                             </group>
                         </page>
                     </notebook>
@@ -85,9 +86,10 @@
             <field name="arch" type="xml">
               <form string="Orden">
                 <group>
+                    <field name="name"/>
+                    <field name="order_id"/>
                     <field name="tags"/>
                     <field name="seller"/>
-                    <field name="order_id"/>
                     <field name="status"/>
                     <field name="date_created"/>
                     <field name="date_closed"/>
