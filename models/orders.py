@@ -560,7 +560,7 @@ class mercadolibre_orders(models.Model):
                     _logger.error("No product related to meli_id:"+str(Item['item']['id']))
                     return { 'error': 'No product related to meli_id' }
 
-                order.name = "[%i] Meli Order %s" % ( order.id, product_related_obj.display_name )
+                order.name = "[%s] Meli Order %s" % ( str(order.order_id), product_related_obj.display_name )
 
                 if (sorder):
                     saleorderline_item_fields = {
