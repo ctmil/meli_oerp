@@ -269,7 +269,7 @@ class mercadolibre_shipment(models.Model):
 			else:
 				_logger.info("Saving shipment fields")
 				ship_fields = {
-                    "name": "["+str(ship_id)+"] "+str(ship_json["shipping_option"]["name"]),
+                    "name": "MSO ["+str(ship_id)+"] "+str(ship_json["shipping_option"]["name"]),
 					"order": order.id,
 					"shipping_id": ship_json["id"],
 					"site_id": ship_json["site_id"],

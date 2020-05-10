@@ -149,6 +149,7 @@
             <field name="model">mercadolibre.orders</field>
             <field name="arch" type="xml">
     	         <search string="Search MercadoLibre Orders Information">
+                 <field name="name" string="Name (order id or product name)"/>
                  <field name="order_id" string="Order ID"/>
                  <field name="status" string="Status"/>
                  <field name="buyer" string="Comprador"/>
