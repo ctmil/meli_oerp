@@ -285,7 +285,7 @@ class mercadolibre_orders(models.Model):
             #    sorder = saleorder_obj.browse(sorder_s[0] )
 
         order_fields = {
-            'name': "[%i] Meli Order" % ( order_json["id"] ),
+            'name': "MO [%i]" % ( order_json["id"] ),
             'order_id': '%i' % (order_json["id"]),
             'status': order_json["status"],
             'status_detail': order_json["status_detail"] or '' ,
@@ -560,7 +560,7 @@ class mercadolibre_orders(models.Model):
                     _logger.error("No product related to meli_id:"+str(Item['item']['id']))
                     return { 'error': 'No product related to meli_id' }
 
-                order.name = "[%s] Meli Order %s" % ( str(order.order_id), product_related_obj.display_name )
+                order.name = "MO [%s] %s" % ( str(order.order_id), product_related_obj.display_name )
 
                 if (sorder):
                     saleorderline_item_fields = {
