@@ -1,21 +1,21 @@
 # -*- coding: utf-8 -*-
 ##############################################################################
 #
-#    OpenERP, Open Source Management Solution
-#    Copyright (C) 2004-2009 Tiny SPRL (<http://tiny.be>).
+#	OpenERP, Open Source Management Solution
+#	Copyright (C) 2004-2009 Tiny SPRL (<http://tiny.be>).
 #
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Affero General Public License as
-#    published by the Free Software Foundation, either version 3 of the
-#    License, or (at your option) any later version.
+#	This program is free software: you can redistribute it and/or modify
+#	it under the terms of the GNU Affero General Public License as
+#	published by the Free Software Foundation, either version 3 of the
+#	License, or (at your option) any later version.
 #
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Affero General Public License for more details.
+#	This program is distributed in the hope that it will be useful,
+#	but WITHOUT ANY WARRANTY; without even the implied warranty of
+#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#	GNU Affero General Public License for more details.
 #
-#    You should have received a copy of the GNU Affero General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#	You should have received a copy of the GNU Affero General Public License
+#	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
 
@@ -45,13 +45,13 @@ from dateutil.parser import *
 from datetime import *
 
 def _ml_datetime(datestr):
-    try:
-        #return parse(datestr).isoformat().replace("T"," ")
-        return parse(datestr).strftime('%Y-%m-%d %H:%M:%S')
-    except:
-        return ""
+	try:
+		#return parse(datestr).isoformat().replace("T"," ")
+		return parse(datestr).strftime('%Y-%m-%d %H:%M:%S')
+	except:
+		return ""
 #
-#     https://www.odoo.com/fr_FR/forum/aide-1/question/solved-call-report-and-save-result-to-attachment-133244
+#	 https://www.odoo.com/fr_FR/forum/aide-1/question/solved-call-report-and-save-result-to-attachment-133244
 #
 
 
@@ -232,11 +232,61 @@ class mercadolibre_shipment(models.Model):
 	def create_shipment( self ):
 		return {}
 
-	#Must return sale.order
+	def _update_sale_order_shipping_info( self, order ):
+
+		company = self.env.user.company_id
+		product_obj = self.env['product.product']
+		saleorderline_obj = self.env['sale.order.line']
+
+		for shipment in self:
+			sorder = shipment.sale_order
+			if (not sorder):
+				continue;
+
+			if (sorder.partner_id):
+				sorder.partner_id.street = shipment.receiver_address_line
+				sorder.partner_id.street2 = shipment.receiver_address_comment
+				sorder.partner_id.city = shipment.receiver_city
+				sorder.partner_id.phone = shipment.receiver_address_phone
+				#sorder.partner_id.state = ships.receiver_state
+
+			product_shipping_id = product_obj.search(['|','|',('default_code','=','ENVIO'),('default_code','=',shipment.tracking_method),('name','=',shipment.tracking_method)])
+
+			if len(product_shipping_id):
+				product_shipping_id = product_shipping_id[0]
+			else:
+				ship_prod = {
+					"name": shipment.tracking_method,
+					"default_code": shipment.tracking_method,
+					"type": "service",
+					#"taxes_id": None
+				}
+				product_shipping_id = product_obj.create((ship_prod))
+			_logger.info(product_shipping_id)
+			saleorderline_item_fields = {
+				'company_id': company.id,
+				'order_id': sorder.id,
+				'meli_order_item_id': 'ENVIO',
+				'price_unit': float(order.shipping_cost),
+				'product_id': product_shipping_id.id,
+				'product_uom_qty': 1.0,
+				'tax_id': None,
+				'product_uom': 1,
+				'name': "Shipping " + str(shipment.shipping_mode),
+			}
+			saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
+			if not saleorderline_item_ids:
+				saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
+				saleorderline_item_ids.tax_id = None
+			else:
+				saleorderline_item_ids.write( ( saleorderline_item_fields ) )
+				saleorderline_item_ids.tax_id = None
+
+	#Return shipment object based on mercadolibre.orders "order"
 	def fetch( self, order ):
 
 		company = self.env.user.company_id
-
+		sale_order_pack = None
 		saleorder_obj = self.env['sale.order']
 		saleorderline_obj = self.env['sale.order.line']
 		product_obj = self.env['product.product']
@@ -255,6 +305,8 @@ class mercadolibre_shipment(models.Model):
 		meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN )
 
 		ship_id = False
+		shipment = None
+
 		if (order and order.shipping_id):
 			ship_id = order.shipping_id
 		else:
@@ -271,12 +323,11 @@ class mercadolibre_shipment(models.Model):
 			else:
 				_logger.info("Saving shipment fields")
 				ship_fields = {
-                    "name": "MSO ["+str(ship_id)+"] "+str(ship_json["shipping_option"]["name"]),
+					"name": "MSO ["+str(ship_id)+"] "+str(ship_json["shipping_option"]["name"]),
 					"order": order.id,
 					"shipping_id": ship_json["id"],
 					"site_id": ship_json["site_id"],
 					"order_id": ship_json["order_id"],
-					"order": order.id,
 					"mode": ship_json["mode"],
 					"shipping_mode": ship_json["shipping_option"]["name"],
 					"date_created": _ml_datetime(ship_json["date_created"]),
@@ -356,34 +407,32 @@ class mercadolibre_shipment(models.Model):
 							#We can create order with all items now
 							ship_fields["orders"] = [(6, 0, all_orders_ids)]
 
-
-
-				ships = shipment_obj.search([('shipping_id','=', ship_id)])
+				shipment = shipment_obj.search([('shipping_id','=', ship_id)])
 				#_logger.info(ships)
-				if (len(ships)==0):
+				if (len(shipment)==0):
 					_logger.info("Importing shipment: " + str(ship_id))
-					ship = shipment_obj.create((ship_fields))
-					if (ship):
+					shipment = shipment_obj.create((ship_fields))
+					if (shipment):
 						_logger.info("Created shipment ok!")
 				else:
 					_logger.info("Updating shipment: " + str(ship_id))
-					ships.write((ship_fields))
+					shipment.write((ship_fields))
 
 					try:
 						_logger.info("ships.pdf_filename:")
-						_logger.info(ships.pdf_filename)
-						if (1==1 and ships.pdf_filename):
+						_logger.info(shipment.pdf_filename)
+						if (1==1 and shipment.pdf_filename):
 							_logger.info("We have a pdf file")
-							if (ships.pdfimage_filename==False):
+							if (shipment.pdfimage_filename==False):
 								_logger.info("Try create a pdf image file")
-								data = base64.b64decode( ships.pdf_file )
+								data = base64.b64decode( shipment.pdf_file )
 								images = convert_from_bytes(data, dpi=300,fmt='jpg')
 								for image in images:
-									image.save("/tmp/%s-page%d.jpg" % ("Shipment_"+ships.shipping_id,images.index(image)), "JPEG")
+									image.save("/tmp/%s-page%d.jpg" % ("Shipment_"+shipment.shipping_id,images.index(image)), "JPEG")
 									if (images.index(image)==1):
-										imgdata = urlopen("file:///tmp/Shipment_"+ships.shipping_id+"-page1.jpg").read()
-										ships.pdfimage_file = base64.encodestring(imgdata)
-										ships.pdfimage_filename = "Shipment_"+ships.shipping_id+".jpg"
+										imgdata = urlopen("file:///tmp/Shipment_"+shipment.shipping_id+"-page1.jpg").read()
+										shipment.pdfimage_file = base64.encodestring(imgdata)
+										shipment.pdfimage_filename = "Shipment_"+shipment.shipping_id+".jpg"
 								#if (len(images)):
 								#	_logger.info(images)
 									#for image in images:
@@ -414,10 +463,10 @@ class mercadolibre_shipment(models.Model):
 								'pricelist_id': plistid.id,
 								#'meli_order_id': '%i' % (order_json["id"]),
 								'meli_order_id': packed_order_ids,
-                                'meli_orders': [(6, 0, all_orders_ids)],
-								'meli_shipping_id': ships.id,
-								'meli_shipping': ships,
-                                'meli_shipment': ships.id,
+								'meli_orders': [(6, 0, all_orders_ids)],
+								'meli_shipping_id': shipment.id,
+								'meli_shipping': shipment,
+								'meli_shipment': shipment.id,
 								'meli_status': all_orders[0]["status"],
 								'meli_status_detail': all_orders[0]["status_detail"] or '' ,
 								'meli_total_amount': ship_fields["order_cost"],
@@ -425,15 +474,18 @@ class mercadolibre_shipment(models.Model):
 								'meli_date_created': _ml_datetime(all_orders[0]["date_created"]) or '',
 								'meli_date_closed': _ml_datetime(all_orders[0]["date_closed"]) or '',
 							}
-							sorder = self.env["sale.order"].search( [ ('meli_order_id','=',meli_order_fields["meli_order_id"]) ] )
-							if (len(sorder)):
-								sorder = sorder[0]
-								sorder.write(meli_order_fields)
+							sorder_pack = self.env["sale.order"].search( [ ('meli_order_id','=',meli_order_fields["meli_order_id"]) ] )
+							if (len(sorder_pack)):
+								sorder_pack = sorder_pack[0]
+								sorder_pack.write(meli_order_fields)
 							else:
-								sorder = self.env["sale.order"].create(meli_order_fields)
+								sorder_pack = self.env["sale.order"].create(meli_order_fields)
 
-							if (sorder.id):
-								ships.sale_order = sorder
+							if (sorder_pack.id):
+								shipment.sale_order = sorder_pack
+								order.sale_order = sorder_pack
+
+								#creating and updating all items related to ml.orders
 								for mOrder in all_orders:
 									#Each Order one product with one price and one quantity
 
@@ -461,7 +513,12 @@ class mercadolibre_shipment(models.Model):
 										saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
 									else:
 										saleorderline_item_ids.write( ( saleorderline_item_fields ) )
-							return sorder
+
+
+		if (shipment):
+			shipment._update_sale_order_shipping_info( order )
+
+		return shipment
 
 	def update( self ):
 

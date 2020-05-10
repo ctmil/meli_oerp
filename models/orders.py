@@ -81,9 +81,10 @@ class sale_order(models.Model):
 #        'meli_payments': fields.one2many('mercadolibre.payments','order_id','Payments' ),
     meli_shipping = fields.Text(string="Shipping");
 
-    meli_total_amount = fields.Float(string='Total amount');
-    meli_paid_amount = fields.Float(string='Paid amount',help='Paid amount (include shipping cost)');
-    meli_currency_id = fields.Char(string='Currency ML');
+    meli_total_amount = fields.Float(string='Total amount')
+    meli_shipping_cost = fields.Float(string='Shipping Cost',help='Gastos de envío')
+    meli_paid_amount = fields.Float(string='Paid amount',help='Paid amount (include shipping cost)')
+    meli_currency_id = fields.Char(string='Currency ML')
 #        'buyer': fields.many2one( "mercadolibre.buyers","Buyer"),
 #       'meli_seller': fields.text( string='Seller' ),
     meli_shipping_id =  fields.Char('Meli Shipping Id')
@@ -393,6 +394,7 @@ class mercadolibre_orders(models.Model):
             'meli_status': order_json["status"],
             'meli_status_detail': order_json["status_detail"] or '' ,
             'meli_total_amount': order_json["total_amount"],
+            'meli_shipping_cost': 0,
             'meli_paid_amount': order_json["paid_amount"],
             'meli_currency_id': order_json["currency_id"],
             'meli_date_created': _ml_datetime(order_json["date_created"]) or '',
@@ -402,7 +404,8 @@ class mercadolibre_orders(models.Model):
         if (order_json["shipping"]):
             order_fields['shipping'] = self.pretty_json( id, order_json["shipping"] )
             meli_order_fields['meli_shipping'] = self.pretty_json( id, order_json["shipping"] )
-
+            if ("cost" in order_json["shipping"]):
+                meli_order_fields['meli_shipping_cost'] = order_json["shipping"]["cost"]
             if ("id" in order_json["shipping"]):
                 order_fields['shipping_id'] = order_json["shipping"]["id"]
                 meli_order_fields['meli_shipping_id'] = order_json["shipping"]["id"]
@@ -654,55 +657,15 @@ class mercadolibre_orders(models.Model):
 
         if company.mercadolibre_cron_get_orders_shipment:
             _logger.info("Updating order: Shipment")
-            if (order.shipping_id):
-                sorder = shipment_obj.fetch( order )
-                shipment = shipment_obj.search([('shipping_id','=',order.shipping_id)])
-                if len(shipment):
+            if (order and order.shipping_id):
+                shipment = shipment_obj.fetch( order )
+                if (shipment):
                     order.shipment = shipment
+                    #TODO: enhance with _order_update_pack()...
+                    #Updated sorder because shipment could create sorder pack...
+                    sorder = shipment.sale_order
 
-                if len(shipment) and sorder and order:
-                    sorder.meli_shipment = shipment
-                    order.sale_order = sorder
-                    if (sorder.partner_id):
-                        sorder.partner_id.street = shipment.receiver_address_line
-                        sorder.partner_id.street2 = shipment.receiver_address_comment
-                        sorder.partner_id.city = shipment.receiver_city
-                        sorder.partner_id.phone = shipment.receiver_address_phone
-                        #sorder.partner_id.state = shipment.receiver_state
-
-                if (sorder and len(shipment) and ("cost" in order_json["shipping"])):
-                    product_shipping_id = product_obj.search(['|','|',('default_code','=','ENVIO'),('default_code','=',shipment.tracking_method),('name','=',shipment.tracking_method)])
-
-                    if len(product_shipping_id):
-                        product_shipping_id = product_shipping_id[0]
-                    else:
-                        ship_prod = {
-                            "name": shipment.tracking_method,
-                            "default_code": shipment.tracking_method,
-                            "type": "service",
-                            #"taxes_id": None
-                        }
-                        product_shipping_id = product_obj.create((ship_prod))
-                    _logger.info(product_shipping_id)
-                    saleorderline_item_fields = {
-                        'company_id': company.id,
-                        'order_id': sorder.id,
-                        'meli_order_item_id': 'ENVIO',
-                        'price_unit': float(order_json["shipping"]["cost"]),
-                        'product_id': product_shipping_id.id,
-                        'product_uom_qty': 1.0,
-                        'tax_id': None,
-                        'product_uom': 1,
-                        'name': "Shipping " + str(shipment.shipping_mode),
-                    }
-                    saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
-                    if not saleorderline_item_ids:
-                        saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
-                        saleorderline_item_ids.tax_id = None
-                    else:
-                        saleorderline_item_ids.write( ( saleorderline_item_fields ) )
-                        saleorderline_item_ids.tax_id = None
-
+        #could be packed sorder or standard one product item order
         if sorder:
             if (company.mercadolibre_order_confirmation!="manual"):
                 sorder.confirm_ml()
@@ -844,6 +807,7 @@ class mercadolibre_orders(models.Model):
     shipment = fields.Many2one('mercadolibre.shipment',string='Shipment')
 
     total_amount = fields.Float(string='Total amount')
+    shipping_cost = fields.Float(string='Shipping Cost',help='Gastos de envío')
     paid_amount = fields.Float(string='Paid amount',help='Includes shipping cost')
     currency_id = fields.Char(string='Currency')
     buyer =  fields.Many2one( "mercadolibre.buyers","Buyer")
