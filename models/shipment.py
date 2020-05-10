@@ -181,7 +181,7 @@ class mercadolibre_shipment(models.Model):
 
 	order_cost = fields.Float(string='Order Cost')
 	base_cost = fields.Float(string='Base Cost')
-    shipping_cost = fields.Float(string='Shipping Cost')
+	shipping_cost = fields.Float(string='Shipping Cost')
 
 	status = fields.Char("Status")
 	substatus = fields.Char("Sub Status")
@@ -335,7 +335,7 @@ class mercadolibre_shipment(models.Model):
 					"date_created": _ml_datetime(ship_json["date_created"]),
 					"last_updated": _ml_datetime(ship_json["last_updated"]),
 					"order_cost": ship_json["order_cost"],
-                    "shipping_cost": ("cost" in ship_json["shipping_option"] and ship_json["shipping_option"]["cost"]) or 0.0,
+					"shipping_cost": ("cost" in ship_json["shipping_option"] and ship_json["shipping_option"]["cost"]) or 0.0,
 					"base_cost": ship_json["base_cost"],
 					"status": ship_json["status"],
 					"substatus": ship_json["substatus"],
@@ -473,8 +473,8 @@ class mercadolibre_shipment(models.Model):
 								'meli_status': all_orders[0]["status"],
 								'meli_status_detail': all_orders[0]["status_detail"] or '' ,
 								'meli_total_amount': ship_fields["order_cost"],
-                                'meli_shipping_cost': shipment.shipping_cost,
-                                'meli_paid_amount': all_orders[0]["paid_amount"],
+								'meli_shipping_cost': shipment.shipping_cost,
+								'meli_paid_amount': all_orders[0]["paid_amount"],
 								'meli_currency_id': all_orders[0]["currency_id"],
 								'meli_date_created': _ml_datetime(all_orders[0]["date_created"]) or '',
 								'meli_date_closed': _ml_datetime(all_orders[0]["date_closed"]) or '',
@@ -489,7 +489,7 @@ class mercadolibre_shipment(models.Model):
 							if (sorder_pack.id):
 								shipment.sale_order = sorder_pack
 								order.sale_order = sorder_pack
-                                order.shipping_cost = shipment.shipping_cost
+								order.shipping_cost = shipment.shipping_cost
 
 								#creating and updating all items related to ml.orders
 								for mOrder in all_orders:
