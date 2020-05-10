@@ -426,7 +426,7 @@ class mercadolibre_orders(models.Model):
             _logger.info("Adding new sale.order: " )
             #_logger.info(meli_order_fields)
             if 'pack_order' in order_json["tags"]:
-                _logger.info("Pack Order, dont create order")
+                _logger.info("Pack Order, dont create sale.order, leave it to mercadolibre.shipment")
             else:
                 sorder = saleorder_obj.create((meli_order_fields))
 
@@ -439,7 +439,9 @@ class mercadolibre_orders(models.Model):
         if not sorder:
             _logger.warning("Warning adding sale.order. Normally a pack order." )
         else:
+            #assign mercadolibre.order to sale.order (its only one product)
             sorder.meli_orders = [(6, 0, [order.id])]
+            order.sale_order = sorder
             #return {'error': 'Error adding sale.order' }
 
         #update internal fields (items, payments, buyers)
@@ -659,6 +661,7 @@ class mercadolibre_orders(models.Model):
                 if len(shipment) and sorder and order:
                     sorder.meli_shipment = shipment
                     order.shipment = shipment
+                    order.sale_order = sorder
                     if (sorder.partner_id):
                         sorder.partner_id.street = shipment.receiver_address_line
                         sorder.partner_id.street2 = shipment.receiver_address_comment
@@ -815,6 +818,7 @@ class mercadolibre_orders(models.Model):
 
     name = fields.Char(string='Order Name')
     order_id = fields.Char('Order Id')
+    sale_order = fields.Many2one('sale.order',string="Sale Order",help='Pedido de venta de Odoo')
 
     status = fields.Selection( [
         #Initial state of an order, and it has no payment yet.

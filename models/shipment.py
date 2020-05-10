@@ -171,6 +171,7 @@ class mercadolibre_shipment(models.Model):
 	order_id =  fields.Char('Order Id')
 	order = fields.Many2one("mercadolibre.orders",string="Order")
 	orders = fields.Many2many("mercadolibre.orders",string="Orders (carrito)")
+    sale_order = fields.Many2one('sale.order',string="Sale Order",help="Pedido de venta relacionado en Odoo")
 
 	mode = fields.Char('Mode')
 	shipping_mode = fields.Char('Shipping mode')
@@ -431,6 +432,7 @@ class mercadolibre_shipment(models.Model):
 								sorder = self.env["sale.order"].create(meli_order_fields)
 
 							if (sorder.id):
+                                ships.sale_order = sorder
 								for mOrder in all_orders:
 									#Each Order one product with one price and one quantity
 
