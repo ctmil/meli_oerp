@@ -493,7 +493,7 @@ class mercadolibre_shipment(models.Model):
 									unit_price = mOrder.order_items[0]["unit_price"]
 									saleorderline_item_fields = {
 										'company_id': company.id,
-										'order_id': sorder.id,
+										'order_id': shipment.sale_order.id,
 										'meli_order_item_id': mOrder.order_items[0]["order_item_id"],
 										'price_unit': float(unit_price),
 										'product_id': product_related_obj.id,
@@ -507,7 +507,7 @@ class mercadolibre_shipment(models.Model):
 									else:
 										saleorderline_item_fields['price_unit'] = product_related_obj.product_tmpl_id.lst_price
 
-									saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
+									saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',shipment.sale_order.id)] )
 
 									if not saleorderline_item_ids:
 										saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
