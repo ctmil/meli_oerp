@@ -233,7 +233,7 @@ class mercadolibre_category(models.Model):
             ml_cat_id = category_obj.search([('meli_category_id','=',category_id)])
             if (ml_cat_id.id and is_branch==False):
                 #_logger.info("category exists!" + str(ml_cat_id))
-                ml_cat_id.get_attributes()
+                ml_cat_id._get_attributes()
             else:
                 _logger.info("Creating category: " + str(category_id))
                 #https://api.mercadolibre.com/categories/MLA1743
@@ -259,7 +259,7 @@ class mercadolibre_category(models.Model):
                 }
                 ml_cat_id = category_obj.create((cat_fields))
                 if (ml_cat_id.id and is_branch==False):
-                  ml_cat_id.get_attributes()
+                  ml_cat_id._get_attributes()
 
 
     def import_all_categories(self, category_root ):
