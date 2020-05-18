@@ -83,7 +83,9 @@ class sale_order(models.Model):
 
     meli_total_amount = fields.Float(string='Total amount')
     meli_shipping_cost = fields.Float(string='Shipping Cost',help='Gastos de envío')
+    meli_shipping_list_cost = fields.Float(string='Shipping List Cost',help='Gastos de envío, costo de lista/interno')
     meli_paid_amount = fields.Float(string='Paid amount',help='Paid amount (include shipping cost)')
+    meli_fee_amount = fields.Float(string='Fee amount',help="Comisión")
     meli_currency_id = fields.Char(string='Currency ML')
 #        'buyer': fields.many2one( "mercadolibre.buyers","Buyer"),
 #       'meli_seller': fields.text( string='Seller' ),
@@ -651,6 +653,10 @@ class mercadolibre_orders(models.Model):
                     payment_fields["total_paid_amount"] = payment_fields["full_payment"]["transaction_details"]["total_paid_amount"]
                     if ("fee_details" in payment_fields["full_payment"] and len(payment_fields["full_payment"]["fee_details"])>0):
                         payment_fields["fee_amount"] = payment_fields["full_payment"]["fee_details"][0]["amount"]
+                        if (order):
+                            order.fee_amount = payment_fields["fee_amount"]
+                            if (sorder):
+                                sorder.meli_fee_amount = order.fee_amount
                     payment_fields["taxes_amount"] = payment_fields["full_payment"]["taxes_amount"]
 
                 payment_ids = payments_obj.search( [  ('payment_id','=',payment_fields['payment_id']),
@@ -820,6 +826,7 @@ class mercadolibre_orders(models.Model):
 
     total_amount = fields.Float(string='Total amount')
     shipping_cost = fields.Float(string='Shipping Cost',help='Gastos de envío')
+    shipping_list_cost = fields.Float(string='Shipping List Cost',help='Gastos de envío, costo de lista/interno')
     paid_amount = fields.Float(string='Paid amount',help='Includes shipping cost')
     currency_id = fields.Char(string='Currency')
     buyer =  fields.Many2one( "mercadolibre.buyers","Buyer")

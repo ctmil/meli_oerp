@@ -38,6 +38,8 @@
                               <field name="meli_status_detail" invisible="0"/>
                               <field name="meli_total_amount" invisible="0"/>
                               <field name="meli_shipping_cost" invisible="0"/>
+                              <field name="meli_shipping_list_cost" invisible="0"/>
+                              <field name="meli_fee_amount" invisible="0"/>
                               <field name="meli_paid_amount" invisible="0"/>
                               <field name="meli_currency_id" invisible="0"/>
                               <field name="meli_date_created" invisible="0"/>
@@ -100,6 +102,8 @@
                     <field name="order_items"/>
                     <field name="total_amount"/>
                     <field name="shipping_cost"/>
+                    <field name="shipping_list_cost"/>
+                    <field name="fee_amount"/>
                     <field name="paid_amount"/>
                     <field name="currency_id"/>
                     <field name="buyer"/>

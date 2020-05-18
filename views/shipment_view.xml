@@ -51,6 +51,7 @@
                     <field name="shipping_mode"/>
                     <field name="order_cost"/>
                     <field name="shipping_cost"/>
+                    <field name="shipping_list_cost"/>
                     <field name="base_cost"/>
                     <field name="logistic_type"/>
                   </group>

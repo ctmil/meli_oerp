@@ -182,6 +182,7 @@ class mercadolibre_shipment(models.Model):
 	order_cost = fields.Float(string='Order Cost')
 	base_cost = fields.Float(string='Base Cost')
 	shipping_cost = fields.Float(string='Shipping Cost')
+    shipping_list_cost = fields.Float(string='Shipping List Cost')
 
 	status = fields.Char("Status")
 	substatus = fields.Char("Sub Status")
@@ -246,7 +247,9 @@ class mercadolibre_shipment(models.Model):
 				continue;
 
 			sorder.meli_shipping_cost = shipment.shipping_cost
+            sorder.meli_shipping_list_cost = shipment.shipping_list_cost
 			order.shipping_cost = shipment.shipping_cost
+            order.shipping_list_cost = shipment.shipping_list_cost
 
 			if (sorder.partner_id):
 				sorder.partner_id.street = shipment.receiver_address_line
@@ -339,6 +342,7 @@ class mercadolibre_shipment(models.Model):
 					"last_updated": _ml_datetime(ship_json["last_updated"]),
 					"order_cost": ship_json["order_cost"],
 					"shipping_cost": ("cost" in ship_json["shipping_option"] and ship_json["shipping_option"]["cost"]) or 0.0,
+					"shipping_list_cost": ("list_cost" in ship_json["shipping_option"] and ship_json["shipping_option"]["list_cost"]) or 0.0,
 					"base_cost": ship_json["base_cost"],
 					"status": ship_json["status"],
 					"substatus": ship_json["substatus"],
@@ -482,6 +486,7 @@ class mercadolibre_shipment(models.Model):
 								'meli_status_detail': all_orders[0]["status_detail"] or '' ,
 								'meli_total_amount': ship_fields["order_cost"],
 								'meli_shipping_cost': shipment.shipping_cost,
+                                'meli_shipping_list_cost': shipment.shipping_list_cost,
 								'meli_paid_amount': all_orders[0]["paid_amount"],
 								'meli_currency_id': all_orders[0]["currency_id"],
 								'meli_date_created': _ml_datetime(all_orders[0]["date_created"]) or '',
@@ -496,10 +501,13 @@ class mercadolibre_shipment(models.Model):
 
 							if (sorder_pack.id):
 								shipment.sale_order = sorder_pack
+
 								order.sale_order = sorder_pack
 								order.shipping_cost = shipment.shipping_cost
+								order.shipping_list_cost = shipment.shipping_list_cost
 
 								#creating and updating all items related to ml.orders
+								sorder_pack.meli_fee_amount = 0.0
 								for mOrder in all_orders:
 									#Each Order one product with one price and one quantity
 
@@ -515,6 +523,8 @@ class mercadolibre_shipment(models.Model):
 										'product_uom': 1,
 										'name': mOrder.order_items[0]["order_item_title"],
 									}
+									if (mOrder.fee_amount):
+										sorder_pack.meli_fee_amount = sorder_pack.meli_fee_amount + mOrder.fee_amount
 									if (float(unit_price)==product_related_obj.product_tmpl_id.lst_price):
 										saleorderline_item_fields['price_unit'] = float(unit_price)
 										saleorderline_item_fields['tax_id'] = None
