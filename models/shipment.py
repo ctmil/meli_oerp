@@ -182,7 +182,7 @@ class mercadolibre_shipment(models.Model):
 	order_cost = fields.Float(string='Order Cost')
 	base_cost = fields.Float(string='Base Cost')
 	shipping_cost = fields.Float(string='Shipping Cost')
-    shipping_list_cost = fields.Float(string='Shipping List Cost')
+	shipping_list_cost = fields.Float(string='Shipping List Cost')
 
 	status = fields.Char("Status")
 	substatus = fields.Char("Sub Status")
