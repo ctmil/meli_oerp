@@ -45,13 +45,13 @@ from dateutil.parser import *
 from datetime import *
 
 def _ml_datetime(datestr):
-    try:
-        #return parse(datestr).isoformat().replace("T"," ")
-        return parse(datestr).strftime('%Y-%m-%d %H:%M:%S')
-    except:
-        return ""
+	try:
+		#return parse(datestr).isoformat().replace("T"," ")
+		return parse(datestr).strftime('%Y-%m-%d %H:%M:%S')
+	except:
+		return ""
 #
-#     https://www.odoo.com/fr_FR/forum/aide-1/question/solved-call-report-and-save-result-to-attachment-133244
+#	 https://www.odoo.com/fr_FR/forum/aide-1/question/solved-call-report-and-save-result-to-attachment-133244
 #
 
 
@@ -247,9 +247,9 @@ class mercadolibre_shipment(models.Model):
 				continue;
 
 			sorder.meli_shipping_cost = shipment.shipping_cost
-            sorder.meli_shipping_list_cost = shipment.shipping_list_cost
+			sorder.meli_shipping_list_cost = shipment.shipping_list_cost
 			order.shipping_cost = shipment.shipping_cost
-            order.shipping_list_cost = shipment.shipping_list_cost
+			order.shipping_list_cost = shipment.shipping_list_cost
 
 			if (sorder.partner_id):
 				sorder.partner_id.street = shipment.receiver_address_line
@@ -486,7 +486,7 @@ class mercadolibre_shipment(models.Model):
 								'meli_status_detail': all_orders[0]["status_detail"] or '' ,
 								'meli_total_amount': ship_fields["order_cost"],
 								'meli_shipping_cost': shipment.shipping_cost,
-                                'meli_shipping_list_cost': shipment.shipping_list_cost,
+								'meli_shipping_list_cost': shipment.shipping_list_cost,
 								'meli_paid_amount': all_orders[0]["paid_amount"],
 								'meli_currency_id': all_orders[0]["currency_id"],
 								'meli_date_created': _ml_datetime(all_orders[0]["date_created"]) or '',
