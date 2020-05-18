@@ -292,6 +292,7 @@ class mercadolibre_orders(models.Model):
             'order_id': '%i' % (order_json["id"]),
             'status': order_json["status"],
             'status_detail': order_json["status_detail"] or '' ,
+            'fee_amount': 0.0,
             'total_amount': order_json["total_amount"],
             'paid_amount': order_json["paid_amount"],
             'currency_id': order_json["currency_id"],
@@ -824,6 +825,7 @@ class mercadolibre_orders(models.Model):
     shipping_id = fields.Char(string="Shipping id")
     shipment = fields.Many2one('mercadolibre.shipment',string='Shipment')
 
+    fee_amount = fields.Float(string='Fee total amount')
     total_amount = fields.Float(string='Total amount')
     shipping_cost = fields.Float(string='Shipping Cost',help='Gastos de envío')
     shipping_list_cost = fields.Float(string='Shipping List Cost',help='Gastos de envío, costo de lista/interno')
