@@ -146,12 +146,15 @@ class mercadolibre_orders(models.Model):
         full_state = ''
         state_id = False
         if (Receiver and 'state' in Receiver):
-            full_state = Receiver['state']['name']
-            state = self.env['res.country.state'].search(['&',('name','like',full_state),('country_id','=',country_id)])
-            if (len(state)==1):
-                state_id = state.id
-            else:
-                if (len(state)>1):
+            if ('id' in Receiver['state']):
+                state = self.env['res.country.state'].search([('code','like',Receiver['state']['id'])])
+                if (len(state)):
+                    state_id = state[0].id
+                    return state_id
+            if ('name' in Receiver['state']):
+                full_state = Receiver['state']['name']
+                state = self.env['res.country.state'].search(['&',('name','like',full_state),('country_id','=',country_id)])
+                if (len(state)):
                     state_id = state[0].id
         return state_id
 
@@ -159,10 +162,16 @@ class mercadolibre_orders(models.Model):
         full_country = ''
         country_id = False
         if (Receiver and 'country' in Receiver):
-            full_country = Receiver['country']['name']
-            country = self.env['res.country'].search([('name','like',full_country)])
-            if (len(country)):
-                country_id = country.id
+            if ('id' in Receiver['country']):
+                country = self.env['res.country'].search([('code','like',Receiver['country']['id'])])
+                if (len(country)):
+                    country_id = country[0].id
+                    return country_id
+            if ('name' in Receiver['country']):
+                full_country = Receiver['country']['name']
+                country = self.env['res.country'].search([('name','like',full_country)])
+                if (len(country)):
+                    country_id = country.id
         return country_id
 
     def billing_info( self, billing_json, context=None ):
@@ -251,7 +260,7 @@ class mercadolibre_orders(models.Model):
         posting_obj = self.env['mercadolibre.posting']
         order_items_obj = self.env['mercadolibre.order_items']
         payments_obj = self.env['mercadolibre.payments']
-        shipment_obj = self.env["mercadolibre.shipment"]
+        shipment_obj = self.env['mercadolibre.shipment']
 
         order = None
         sorder = None
@@ -311,6 +320,26 @@ class mercadolibre_orders(models.Model):
             if ('shipping' in order_json):
                 if ('receiver_address' in order_json['shipping']):
                     Receiver = order_json['shipping']['receiver_address']
+                elif ('id' in order_json['shipping']):
+                    Shipment = self.env["mercadolibre.shipment"].search([('shipping_id','=',order_json['shipping']["id"])])
+                    if (len(Shipment)==1):
+                        Receiver = {
+                            'receiver_address': Shipment.receiver_address_line,
+                            'country': {
+                                'id': Shipment.receiver_country_code,
+                                'name': Shipment.receiver_country
+                            },
+                            'state': {
+                                'name': Shipment.receiver_state,
+                                'id': Shipment.receiver_state_code
+                            },
+                            'city': {
+                                'name': Shipment.receiver_city,
+                                'id': Shipment.receiver_city_code
+                            }
+                        }
+
+
             meli_buyer_fields = {
                 'name': Buyer['first_name']+' '+Buyer['last_name'],
                 'street': self.street(Receiver),
@@ -593,7 +622,7 @@ class mercadolibre_orders(models.Model):
                     }
 
                     product_template = product_related_obj.product_tmpl_id
-                    if (product_template.taxes_id):
+                    if (product_template.taxes_id and not self.env.user.has_group('sale.group_show_price_subtotal')):
                         txtotal = 0
                         ml_price_converted = float(Item['unit_price'])
                         _logger.info("Adjust taxes")
@@ -607,7 +636,7 @@ class mercadolibre_orders(models.Model):
                             _logger.info("Price converted:"+str(ml_price_converted))
                             saleorderline_item_fields['price_unit'] = ml_price_converted
                     else:
-                        if (float(Item['unit_price'])==product_related_obj.product_tmpl_id.lst_price):
+                        if (float(Item['unit_price'])==product_related_obj.product_tmpl_id.lst_price and not self.env.user.has_group('sale.group_show_price_subtotal')):
                             saleorderline_item_fields['price_unit'] = float(Item['unit_price'])
                             saleorderline_item_fields['tax_id'] = None
                         else:

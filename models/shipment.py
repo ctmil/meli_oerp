@@ -203,8 +203,14 @@ class mercadolibre_shipment(models.Model):
 	receiver_street_name = fields.Char('Calle')
 	receiver_street_number = fields.Char('Nro')
 	receiver_city = fields.Char('Ciudad')
+	receiver_city_code = fields.Char(string='Codigo Ciudad')
 	receiver_state = fields.Char('Estado')
+	receiver_state_code = fields.Char('Estado ID')
+	receiver_state_id = fields.Many2one('res.country.state',string='State')
+    
 	receiver_country = fields.Char('Pais')
+	receiver_country_code = fields.Char('Código Pais')
+	receiver_country_id = fields.Many2one('res.country',string='Country')	
 	receiver_latitude = fields.Char('Latitud')
 	receiver_longitude = fields.Char('Longitud')
 
@@ -359,7 +365,9 @@ class mercadolibre_shipment(models.Model):
 					"receiver_street_name": ship_json["receiver_address"]["street_name"],
 					"receiver_street_number": ship_json["receiver_address"]["street_number"],
 					"receiver_city": ship_json["receiver_address"]["city"]["name"],
+					"receiver_city_code": ship_json["receiver_address"]["city"]["id"],
 					"receiver_state": ship_json["receiver_address"]["state"]["name"],
+					"receiver_state_code": ship_json["receiver_address"]["state"]["code"],
 					"receiver_country": ship_json["receiver_address"]["country"]["name"],
 					"receiver_latitude": ship_json["receiver_address"]["latitude"],
 					"receiver_longitude": ship_json["receiver_address"]["longitude"],
