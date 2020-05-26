@@ -369,6 +369,7 @@ class mercadolibre_shipment(models.Model):
 					"receiver_state": ship_json["receiver_address"]["state"]["name"],
 					"receiver_state_code": ship_json["receiver_address"]["state"]["id"],
 					"receiver_country": ship_json["receiver_address"]["country"]["name"],
+                    "receiver_country_code": ship_json["receiver_address"]["country"]["id"],
 					"receiver_latitude": ship_json["receiver_address"]["latitude"],
 					"receiver_longitude": ship_json["receiver_address"]["longitude"],
 
