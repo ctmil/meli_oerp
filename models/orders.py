@@ -129,6 +129,8 @@ sale_order()
 class mercadolibre_orders(models.Model):
     _name = "mercadolibre.orders"
     _description = "Pedidos en MercadoLibre"
+	
+    _inherit = ['portal.mixin', 'mail.thread', 'mail.activity.mixin']
 
     def street(self, Receiver ):
         full_street = 'no street'

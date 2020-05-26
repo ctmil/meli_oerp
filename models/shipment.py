@@ -163,6 +163,8 @@ mercadolibre_shipment_update()
 class mercadolibre_shipment(models.Model):
 	_name = "mercadolibre.shipment"
 	_description = "Envio de MercadoLibre"
+    
+	_inherit = ['portal.mixin', 'mail.thread', 'mail.activity.mixin']
 
 	name = fields.Char(string='Name')
 	site_id = fields.Char('Site id')
@@ -369,7 +371,7 @@ class mercadolibre_shipment(models.Model):
 					"receiver_state": ship_json["receiver_address"]["state"]["name"],
 					"receiver_state_code": ship_json["receiver_address"]["state"]["id"],
 					"receiver_country": ship_json["receiver_address"]["country"]["name"],
-                    "receiver_country_code": ship_json["receiver_address"]["country"]["id"],
+					"receiver_country_code": ship_json["receiver_address"]["country"]["id"],
 					"receiver_latitude": ship_json["receiver_address"]["latitude"],
 					"receiver_longitude": ship_json["receiver_address"]["longitude"],
 

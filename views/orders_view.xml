@@ -88,31 +88,60 @@
             <field name="model">mercadolibre.orders</field>
             <field name="type">form</field>
             <field name="arch" type="xml">
-              <form string="Orden">
-                <group>
-                    <field name="name"/>
-                    <field name="order_id"/>
-                    <field name="sale_order"/>
-                    <field name="tags"/>
-                    <field name="seller"/>
+              <form string="Orden de ML">
+                <header>
+                  <field name="order_id"/>
+                </header>
+                <sheet>
+                  <div class="oe_title">
+                    <h1><field name="name"/></h1>
                     <field name="status"/>
-                    <field name="date_created"/>
-                    <field name="date_closed"/>
                     <field name="status_detail"/>
-                    <field name="order_items"/>
-                    <field name="total_amount"/>
-                    <field name="shipping_cost"/>
-                    <field name="shipping_list_cost"/>
-                    <field name="fee_amount"/>
-                    <field name="paid_amount"/>
-                    <field name="currency_id"/>
-                    <field name="buyer"/>
-                    <field name="payments"/>
-                    <field name="shipping"/>
-                    <field name="shipping_id"/>
-                    <field name="shipment"/>
+                    <field name="tags"/>
+                  </div>
+                  <group>
+                    <group>
+                        <field name="sale_order"/>
+                        <field name="date_created"/>
+                        <field name="date_closed"/>
+                        <field name="buyer"/>
+                        <field name="seller"/>
+                    </group>
+                    <group>
+                        <field name="total_amount" widget="monetary"/>
+                        <field name="shipping_cost"  widget="monetary"/>
+                        <field name="shipping_list_cost"  widget="monetary"/>
+                        <field name="fee_amount"  widget="monetary"/>
+                        <field name="paid_amount"  widget="monetary"/>
+                        <field name="currency_id"/>
+                    </group>
                   </group>
-                </form>
+                  <notebook>
+                    <page string="Order Items">
+                      <field name="order_items" />
+                    </page>
+                    <page string="Payments">
+                      <field name="payments"/>
+                    </page>
+                    <page string="Shipments">
+                      <group>
+                        <group>
+                            <field name="shipping"/>
+                            <field name="shipping_id"/>
+                          </group>
+                          <group>
+                            <field name="shipment"/>
+                          </group>
+                      </group>
+                    </page>
+                  </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids" widget="mail_followers"/>
+                    <field name="activity_ids" widget="mail_activity"/>
+                    <field name="message_ids" widget="mail_thread"/>
+                </div>
+              </form>
             </field>
         </record>
 
