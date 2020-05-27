@@ -89,7 +89,9 @@ class mercadolibre_posting(models.Model):
         #get with an item id
         company = self.env.user.company_id
         posting_obj = self.env['mercadolibre.posting']
+
         for posting in self:
+
             log_msg = 'posting_query_questions: %s' % (posting.meli_id)
             #_logger.info(log_msg)
 
