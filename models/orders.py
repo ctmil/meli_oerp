@@ -568,8 +568,9 @@ class mercadolibre_orders(models.Model):
                                 else:
                                     _logger.info( "product couldnt be created")
                                 product_related = productcreated
-                            except:
-                                _logger.info( "product couldnt be created")
+                            except Exception as e:
+                                _logger.info("Error creando producto.")
+                                _logger.error(e, exc_info=True)
                                 pass;
 
                         if ('variation_attributes' in Item['item']):
