@@ -89,97 +89,73 @@ class mercadolibre_posting(models.Model):
         #get with an item id
         company = self.env.user.company_id
         posting_obj = self.env['mercadolibre.posting']
-        posting = self
 
-        log_msg = 'posting_query_questions: %s' % (posting.meli_id)
-        _logger.info(log_msg)
+        for posting in self:
 
+            log_msg = 'posting_query_questions: %s' % (posting.meli_id)
+            #_logger.info(log_msg)
 
+            CLIENT_ID = company.mercadolibre_client_id
+            CLIENT_SECRET = company.mercadolibre_secret_key
+            ACCESS_TOKEN = company.mercadolibre_access_token
+            REFRESH_TOKEN = company.mercadolibre_refresh_token
 
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
+            #
+            meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN )
+            if (posting.meli_id):
+                pass;
+            else:
+                continue;
+            response = meli.get("/items/"+posting.meli_id, {'access_token':meli.access_token})
+            product_json = response.json()
+            #_logger.info( product_json )
 
-        #
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN )
+            if "error" in product_json:
+                ML_status = product_json["error"]
+            else:
+                ML_status = product_json["status"]
+                ML_permalink = product_json["permalink"]
+                ML_price = product_json["price"]
+                #ML_sku = product_json["seller_custom_field"]
+                posting.write( { 'meli_status': ML_status, 'meli_permalink': ML_permalink, 'meli_price': ML_price } )
 
-        response = meli.get("/items/"+posting.meli_id, {'access_token':meli.access_token})
-        product_json = response.json()
-        #_logger.info( product_json )
+            if (not company.mercadolibre_cron_get_questions):
+                return {}
 
-        if "error" in product_json:
-            ML_status = product_json["error"]
-        else:
-            ML_status = product_json["status"]
-            ML_permalink = product_json["permalink"]
-            ML_price = product_json["price"]
-            #ML_sku = product_json["seller_custom_field"]
-            posting.write( { 'meli_status': ML_status, 'meli_permalink': ML_permalink, 'meli_price': ML_price } )
+            response = meli.get("/questions/search?item_id="+posting.meli_id, {'access_token':meli.access_token})
+            questions_json = response.json()
+            questions_obj = self.env['mercadolibre.questions']
 
-        if (not company.mercadolibre_cron_get_questions):
-            return {}
+            if 'questions' in questions_json:
+                questions = questions_json['questions']
+                #_logger.info( questions )
+                cn = 0
+                for Question in questions:
+                    cn = cn + 1
 
-        response = meli.get("/questions/search?item_id="+posting.meli_id, {'access_token':meli.access_token})
-        questions_json = response.json()
-        #_logger.info( questions_json )
+                    question_answer = Question['answer']
 
-        questions_obj = self.env['mercadolibre.questions']
+                    question_fields = {
+                        'posting_id': posting.id,
+                        'question_id': Question['id'],
+                        'date_created': _ml_datetime(Question['date_created']),
+                        'item_id': Question['item_id'],
+                        'seller_id': Question['seller_id'],
+                        'text': str(Question['text'].encode("utf-8")),
+                        'status': Question['status'],
+                    }
 
-        if 'questions' in questions_json:
-            questions = questions_json['questions']
-            #_logger.info( questions )
-            cn = 0
-            for Question in questions:
-                cn = cn + 1
-                #_logger.info(cn)
-                #_logger.info(Question )
+                    if (question_answer):
+                        question_fields['answer_text'] = str(question_answer['text'].encode("utf-8"))
+                        question_fields['answer_status'] = question_answer['status']
+                        question_fields['answer_date_created'] = _ml_datetime(question_answer['date_created'])
 
-#{
-#   'status': u'UNANSWERED',
-#   'seller_id': 171319838,
-#   'from': {
-#      'answered_questions': 0,
-#      'id': 171329758
-#   },
-#   'deleted_from_listing': False,
-#   'text': 'Pregunta que hago para testear el m\xf3dulo de meli_oerp en Odoo....??',
-#   'answer': None,
-#   'item_id': u'MLA548679961',
-#   'date_created': '2015-03-04T12:04:48.000-04:00',
-#   'hold': False,
-#   'id': 3471012014
-#}
-
-##{
-#   'status': 'ACTIVE',
-#   'text': 'Ok recibiose la pregunta correctamente, ahora viendo si sale esta respuesta! Saludos\nMas saludos',
-#   'date_created': '2015-03-04T13:00:53.000-04:00'
-#}
-
-                question_answer = Question['answer']
-
-                question_fields = {
-                    'posting_id': posting.id,
-                    'question_id': Question['id'],
-                    'date_created': Question['date_created'],
-                    'item_id': Question['item_id'],
-                    'seller_id': Question['seller_id'],
-                    'text': Question['text'].encode("utf-8"),
-                    'status': Question['status'],
-                }
-
-                if (question_answer):
-                    question_fields['answer_text'] = question_answer['text'].encode("utf-8")
-                    question_fields['answer_status'] = question_answer['status']
-                    question_fields['answer_date_created'] = question_answer['date_created']
-
-                question = questions_obj.search( [('question_id','=',question_fields['question_id'])])
-                if not question:
-	                question = questions_obj.create( ( question_fields ))
-                else:
-                    if question:
-                        question.write( (question_fields) )
+                    question = questions_obj.search( [('question_id','=',question_fields['question_id'])])
+                    if not question:
+    	                question = questions_obj.create( ( question_fields ))
+                    else:
+                        if question:
+                            question.write( (question_fields) )
 
 
         return {}

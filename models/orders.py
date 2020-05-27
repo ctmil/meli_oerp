@@ -390,7 +390,6 @@ class mercadolibre_orders(models.Model):
                 meli_buyer_fields['meli_buyer'] = buyer_id.id
                 if (('doc_type' in Buyer['billing_info']) and ('afip.responsability.type' in self.env)):
                     doctypeid = self.env['res.partner.id_category'].search([('code','=',Buyer['billing_info']['doc_type'])]).id
-                    doctypeid = False
                     if (doctypeid):
                         meli_buyer_fields['main_id_category_id'] = doctypeid
                         meli_buyer_fields['main_id_number'] = Buyer['billing_info']['doc_number']

@@ -121,6 +121,7 @@ class mercadolibre_category(models.Model):
             and self.is_branch==False
             and ( self.meli_category_attribute_ids==None or len(self.meli_category_attribute_ids)==0 )):
 
+            self.meli_category_attributes = "https://api.mercadolibre.com/categories/"+str(self.meli_category_id)+"/attributes"
             resp = meli.get("/categories/"+str(self.meli_category_id)+"/attributes", {'access_token':meli.access_token})
             rjs = resp.json()
             att_ids = []
@@ -205,6 +206,11 @@ class mercadolibre_category(models.Model):
             _logger.info("Add att_ids")
             _logger.info(att_ids)
             self.write({'meli_category_attribute_ids': [(6, 0, att_ids)] })
+
+            response_cat = meli.get("/categories/"+str(self.meli_category_id), {'access_token':meli.access_token})
+            rjson_cat = response_cat.json()
+            if ("children_categories" in rjson_cat):
+                self.is_branch = True
 
         return {}
 

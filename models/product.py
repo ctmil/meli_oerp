@@ -109,7 +109,6 @@ class product_template(models.Model):
 
     def product_template_update(self):
         product_obj = self.env['product.template']
-        product = self
         company = self.env.user.company_id
         warningobj = self.env['warning']
         ret = {}
@@ -133,17 +132,18 @@ class product_template(models.Model):
 
         _logger.info("Product Template Update")
 
-        if (product.meli_pub_as_variant and product.meli_pub_principal_variant.id):
-            _logger.info("Updating principal variant")
-            ret = product.meli_pub_principal_variant.product_meli_get_product()
-        else:
-            for variant in product.product_variant_ids:
-                _logger.info("Variant:", variant)
-                if (variant.meli_pub):
-                    _logger.info("Updating variant")
-                    ret = variant.product_meli_get_product()
-                    if ('name' in ret):
-                        return ret
+        for product in self:
+            if (product.meli_pub_as_variant and product.meli_pub_principal_variant.id):
+                _logger.info("Updating principal variant")
+                ret = product.meli_pub_principal_variant.product_meli_get_product()
+            else:
+                for variant in product.product_variant_ids:
+                    _logger.info("Variant:", variant)
+                    if (variant.meli_pub):
+                        _logger.info("Updating variant")
+                        ret = variant.product_meli_get_product()
+                        if ('name' in ret):
+                            return ret
 
         return ret
 
@@ -188,34 +188,34 @@ class product_template(models.Model):
 
     @api.multi
     def action_meli_pause(self):
-        product = self
-        for variant in product.product_variant_ids:
-            if (variant.meli_pub):
-                variant.product_meli_status_pause()
+        for product in self:
+            for variant in product.product_variant_ids:
+                if (variant.meli_pub):
+                    variant.product_meli_status_pause()
         return {}
 
     @api.multi
     def action_meli_activate(self):
-        product = self
-        for variant in product.product_variant_ids:
-            if (variant.meli_pub):
-                variant.product_meli_status_active()
+        for product in self:
+            for variant in product.product_variant_ids:
+                if (variant.meli_pub):
+                    variant.product_meli_status_active()
         return {}
 
     @api.multi
     def action_meli_close(self):
-        product = self
-        for variant in product.product_variant_ids:
-            if (variant.meli_pub):
-                variant.product_meli_status_close()
+        for product in self:
+            for variant in product.product_variant_ids:
+                if (variant.meli_pub):
+                    variant.product_meli_status_close()
         return {}
 
     @api.multi
     def action_meli_delete(self):
-        product = self
-        for variant in product.product_variant_ids:
-            if (variant.meli_pub):
-                variant.product_meli_delete()
+        for product in self:
+            for variant in product.product_variant_ids:
+                if (variant.meli_pub):
+                    variant.product_meli_delete()
         return {}
 
     @api.onchange('meli_pub') # if these fields are changed, call method
