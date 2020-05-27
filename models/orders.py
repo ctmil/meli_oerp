@@ -129,7 +129,7 @@ sale_order()
 class mercadolibre_orders(models.Model):
     _name = "mercadolibre.orders"
     _description = "Pedidos en MercadoLibre"
-	
+
     _inherit = ['portal.mixin', 'mail.thread', 'mail.activity.mixin']
 
     def street(self, Receiver ):
@@ -316,6 +316,8 @@ class mercadolibre_orders(models.Model):
             if 'pack_order' in order_json["tags"]:
                 order_fields["pack_order"] = True
 
+        partner_id = False
+
         if 'buyer' in order_json:
             Buyer = order_json['buyer']
             Receiver = False
@@ -349,7 +351,7 @@ class mercadolibre_orders(models.Model):
                 'country_id': self.country(Receiver),
                 'state_id': self.state(self.country(Receiver),Receiver),
                 'phone': self.full_phone( Buyer ),
-                'email': Buyer['email'],
+                #'email': Buyer['email'],
                 'meli_buyer_id': Buyer['id']
             }
 
@@ -417,21 +419,28 @@ class mercadolibre_orders(models.Model):
 
 
             partner_ids = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ] )
-            partner_id = 0
-            if not partner_ids:
+            if (len(partner_ids)>0):
+                partner_id = partner_ids[0]
+            if not partner_id:
                 #_logger.info( "creating partner:" + str(meli_buyer_fields) )
                 partner_id = respartner_obj.create(( meli_buyer_fields ))
             else:
                 partner_id = partner_ids
                 _logger.info("Updating partner")
                 _logger.info(meli_buyer_fields)
+
+                if (partner_id.email==buyer_fields["email"]):
+                    #eliminar email de ML que no es valido
+                    meli_buyer_fields["email"] = ''
+
                 partner_id.write(meli_buyer_fields)
 
             if order and buyer_id:
                 return_id = order.write({'buyer':buyer_id.id})
 
-        if (len(partner_ids)>0):
-            partner_id = partner_ids[0]
+        if (not partner_id):
+            _logger.error("No partner founded or created for ML Order" )
+            return {'error': 'No partner founded or created for ML Order' }
         #process base order fields
         meli_order_fields = {
             'partner_id': partner_id.id,
