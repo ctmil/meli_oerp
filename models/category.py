@@ -92,8 +92,7 @@ class mercadolibre_category(models.Model):
         if (self.meli_category_id):
             response_cat = meli.get("/categories/"+str(self.meli_category_id), {'access_token':meli.access_token})
             rjson_cat = response_cat.json()
-            if ( "children_categories" in rjson_cat and len(rjson_cat["children_categories"])>0 ):
-                self.is_branch = True
+            self.is_branch = ( "children_categories" in rjson_cat and len(rjson_cat["children_categories"])>0 )
             self.meli_category_url = "https://api.mercadolibre.com/categories/"+str(self.meli_category_id)
             self.meli_category_attributes = "https://api.mercadolibre.com/categories/"+str(self.meli_category_id)+"/attributes"
             _logger.info(len(rjson_cat["path_from_root"]))
@@ -209,8 +208,7 @@ class mercadolibre_category(models.Model):
 
             response_cat = meli.get("/categories/"+str(self.meli_category_id), {'access_token':meli.access_token})
             rjson_cat = response_cat.json()
-            if ("children_categories" in rjson_cat and len(rjson_cat["children_categories"])>0):
-                self.is_branch = True
+            self.is_branch = ( "children_categories" in rjson_cat and len(rjson_cat["children_categories"])>0 )
 
         return {}
 
