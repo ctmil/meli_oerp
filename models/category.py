@@ -99,6 +99,7 @@ class mercadolibre_category(models.Model):
             if (len(rjson_cat["path_from_root"])>=2):
                 fid = int(len(rjson_cat["path_from_root"])-2)
                 _logger.info(fid)
+                _logger.info(rjson_cat["path_from_root"][fid]["id"])
                 self.meli_father_category_id = rjson_cat["path_from_root"][fid]["id"]
 
     @api.one
