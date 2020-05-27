@@ -95,9 +95,11 @@ class mercadolibre_category(models.Model):
             self.is_branch = ( "children_categories" in rjson_cat and len(rjson_cat["children_categories"])>0 )
             self.meli_category_url = "https://api.mercadolibre.com/categories/"+str(self.meli_category_id)
             self.meli_category_attributes = "https://api.mercadolibre.com/categories/"+str(self.meli_category_id)+"/attributes"
-            _logger.info(len(rjson_cat["path_from_root"]))
-            if (len(rjson_cat["path_from_root"])>1):
-                self.meli_father_category_id = rjson_cat["path_from_root"][len(rjson_cat["path_from_root"])-2]["id"]
+            _logger.info(rjson_cat["path_from_root"])
+            if (len(rjson_cat["path_from_root"])>=2):
+                fid = int(len(rjson_cat["path_from_root"])-2)
+                _logger.info(fid)
+                self.meli_father_category_id = rjson_cat["path_from_root"][fid]["id"]
 
     @api.one
     def _get_attributes( self ):
