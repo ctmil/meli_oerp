@@ -1484,10 +1484,10 @@ class product_product(models.Model):
 
         _logger.debug('[DEBUG] product_post_variant, assign meli_id')
         #import pdb; pdb.set_trace()
-        product = self
-        product_tmpl = self.product_tmpl_id
-        if (variant_principal):
-            product.meli_id = variant_principal.meli_id
+        for product in self:
+            product_tmpl = self.product_tmpl_id
+            if (variant_principal):
+                product.meli_id = variant_principal.meli_id
 
     def product_post(self):
         #import pdb;pdb.set_trace();
