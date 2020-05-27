@@ -524,6 +524,9 @@ class mercadolibre_shipment(models.Model):
 									#Each Order one product with one price and one quantity
 
 									product_related_obj = mOrder.order_items[0].posting_id.product_id
+									if not (product_related_obj):
+										_logger.error("Error adding order line: product not found in database: " + str(mOrder.order_items[0]["order_item_title"]) )
+										continue;
 									unit_price = mOrder.order_items[0]["unit_price"]
 									saleorderline_item_fields = {
 										'company_id': company.id,
