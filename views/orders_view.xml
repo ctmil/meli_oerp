@@ -7,7 +7,7 @@
             <field name="model">mercadolibre.orders</field>
             <field name="type">tree</field>
             <field name="arch" type="xml">
-                <tree string="Ordenes" >
+                <tree string="Ordenes" default_order="date_created desc">
                     <field name="name"/>
                     <field name="order_id"/>
                     <field name="status"/>

@@ -6,7 +6,7 @@
             <field name="model">mercadolibre.shipment</field>
             <field name="type">tree</field>
             <field name="arch" type="xml">
-              <tree string="Shipment" >
+              <tree string="Shipment" default_order="date_created desc">
                   <field name="name"/>
                   <field name="shipping_id"/>
                   <field name="status"/>
@@ -38,98 +38,94 @@
             <field name="arch" type="xml">
                 <form string="Shipment">
                   <header>
-                    <field name="name"/>
+                    <field name="status"/>
                   </header>
                   <sheet>
-                  <group string="Status">
-                    <group>
-                      <field name="shipping_id"/>
-                      <field name="status"/>
+                    <div class="oe_title">
+                      <h1><field name="name"/></h1>
                       <field name="substatus"/>
-                      <field name="date_created"/>
-                      <field name="last_updated"/>
+                      <field name="shipping_id"/>
+                    </div>
+                    <group string="Details">
+                      <group>
+                        <field name="date_created"/>
+                        <field name="last_updated"/>
+                        <field name="order_cost"/>
+                        <field name="base_cost"/>
+                        <field name="shipping_cost"/>
+                        <field name="shipping_list_cost"/>                                        
+                      </group>
+                      <group>
+                        <field name="tracking_method" />
+                        <field name="tracking_number"/>
+                        <field name="mode"/>
+                        <field name="shipping_mode"/>
+                        <field name="logistic_type"/>
+                      </group>
                     </group>
-                    <group>
-                      <field name="tracking_method" />
-                      <field name="tracking_number"/>
-                      <field name="mode"/>
-                      <field name="shipping_mode"/>
-                      <field name="logistic_type"/>
+                    <group string="Orders">
+                      <group>
+                        <field name="posting_id" invisible="1"/>
+                        <field name="sale_order" />
+                        <field name="order_id" />
+                      </group>
+                      <group>
+                        <field name="order" />
+                        <field name="pack_order" />
+                        <field name="orders" />
+                      </group>
                     </group>
-                  </group>
-                  <group string="Costs">
-                    <group>
-                      <field name="order_cost"/>
-                      <field name="base_cost"/>
+                    <group string="Receiver/Sender">
+                      <group>
+                        <field name="receiver_id"/>
+                        <field name="receiver_address_id"/>
+                        <field name="receiver_address_phone"/>
+                        <field name="receiver_address_name"/>
+                        <field name="receiver_address_comment"/>
+                        <field name="receiver_address_line"/>
+                        <field name="receiver_street_number"/>
+                        <field name="receiver_city"/>
+                        <field name="receiver_city_code"/>
+                        <field name="receiver_state"/>
+                        <field name="receiver_state_code"/>
+                        <field name="receiver_state_id"/>
+                        <field name="receiver_country"/>
+                        <field name="receiver_country_code"/>
+                        <field name="receiver_country_id"/>
+                        <field name="receiver_latitude"/>
+                        <field name="receiver_longitude"/>
+                      </group>
+                      <group>
+                        <field name="sender_id"/>
+                        <field name="sender_address_id"/>
+                        <field name="sender_address_line"/>
+                        <field name="sender_address_comment"/>
+                        <field name="sender_street_name"/>
+                        <field name="sender_street_number"/>
+                        <field name="sender_city"/>
+                        <field name="sender_state"/>
+                        <field name="sender_country"/>
+                        <field name="sender_latitude"/>
+                        <field name="sender_longitude"/>
+                      </group>
                     </group>
-                    <group>
-                      <field name="shipping_cost"/>
-                      <field name="shipping_list_cost"/>                                        
+                    <group string="Guias">
+                      <group>
+                        <field name="pdf_file" filename="pdf_filename"/>
+                        <field name="pdf_filename"/>
+                        <field name="pdf_link" widget="url"/>
+                      </group>
+                      <group>
+                        <field name="pdfimage_file" filename="pdfimage_filename"/>
+                        <field name="pdfimage_filename"/>
+                      </group>
                     </group>
-                  </group>
-                  <group string="Orders">
-                    <group>
-                      <field name="posting_id" invisible="1"/>
-                      <field name="sale_order" />
-                      <field name="order_id" />
-                    </group>
-                    <group>
-                      <field name="order" />
-                      <field name="pack_order" />
-                      <field name="orders" />
-                    </group>
-                  </group>
-                  <group string="Receiver/Sender">
-                    <group>
-                      <field name="receiver_id"/>
-                      <field name="receiver_address_id"/>
-                      <field name="receiver_address_phone"/>
-                      <field name="receiver_address_name"/>
-                      <field name="receiver_address_comment"/>
-                      <field name="receiver_address_line"/>
-                      <field name="receiver_street_number"/>
-                      <field name="receiver_city"/>
-                      <field name="receiver_city_code"/>
-                      <field name="receiver_state"/>
-                      <field name="receiver_state_code"/>
-                      <field name="receiver_state_id"/>
-                      <field name="receiver_country"/>
-                      <field name="receiver_country_code"/>
-                      <field name="receiver_country_id"/>
-                      <field name="receiver_latitude"/>
-                      <field name="receiver_longitude"/>
-                    </group>
-                    <group>
-                      <field name="sender_id"/>
-                      <field name="sender_address_id"/>
-                      <field name="sender_address_line"/>
-                      <field name="sender_address_comment"/>
-                      <field name="sender_street_name"/>
-                      <field name="sender_street_number"/>
-                      <field name="sender_city"/>
-                      <field name="sender_state"/>
-                      <field name="sender_country"/>
-                      <field name="sender_latitude"/>
-                      <field name="sender_longitude"/>
-                    </group>
-                  </group>
-                  <group string="Guias">
-                    <group>
-                      <field name="pdf_file" filename="pdf_filename"/>
-                      <field name="pdf_filename"/>
-                      <field name="pdf_link" widget="url"/>
-                    </group>
-                    <group>
-                      <field name="pdfimage_file" filename="pdfimage_filename"/>
-                      <field name="pdfimage_filename"/>
-                    </group>
-                  </group>
-                </sheet>
-                <div class="oe_chatter">
-                    <field name="message_follower_ids" widget="mail_followers"/>
-                    <field name="activity_ids" widget="mail_activity"/>
-                    <field name="message_ids" widget="mail_thread"/>
-                </div>
+                  </sheet>
+                  <div class="oe_chatter">
+                      <field name="message_follower_ids" widget="mail_followers"/>
+                      <field name="activity_ids" widget="mail_activity"/>
+                      <field name="message_ids" widget="mail_thread"/>
+                  </div>
                 </form>
             </field>
         </record>
