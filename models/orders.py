@@ -547,6 +547,14 @@ class mercadolibre_orders(models.Model):
                         else:
                             #optional, get product
                             try:
+                                CLIENT_ID = company.mercadolibre_client_id
+                                CLIENT_SECRET = company.mercadolibre_secret_key
+                                ACCESS_TOKEN = company.mercadolibre_access_token
+                                REFRESH_TOKEN = company.mercadolibre_refresh_token
+
+                                #
+                                meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN )
+
                                 response3 = meli.get("/items/"+str(Item['item']['id']), {'access_token':meli.access_token})
                                 rjson3 = response3.json()
                                 prod_fields = {
