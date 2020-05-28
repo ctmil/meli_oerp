@@ -819,7 +819,7 @@ class product_product(models.Model):
                 has_sku = False
 
                 _v_default_code = ""
-                for att in variant.attribute_value_ids:
+                for att in variant.attribute_line_ids:
                     _v_default_code = _v_default_code + att.attribute_id.name+':'+att.name+';'
                 #_logger.info("_v_default_code: " + _v_default_code)
                 for variation in rjson['variations']:
@@ -1352,7 +1352,7 @@ class product_product(models.Model):
             att_to_pub.append(line.attribute_id.name)
         #_logger.info(att_to_pub)
 
-        for att in product.attribute_value_ids:
+        for att in product.attribute_line_ids:
             if (att.attribute_id.name in att_to_pub):
                 conditionok = True
             if (self._is_value_excluded(att)):
@@ -1405,7 +1405,7 @@ class product_product(models.Model):
 
         #customized attrs:
         customs = []
-        for att in product.attribute_value_ids:
+        for att in product.attribute_line_ids:
             if (att.attribute_id.name in att_to_pub):
                 if (not att.attribute_id.meli_default_id_attribute.id):
                     customs.append(att)
@@ -1426,7 +1426,7 @@ class product_product(models.Model):
             }
             var_comb["attribute_combinations"].append(att_combination)
 
-        for att in product.attribute_value_ids:
+        for att in product.attribute_line_ids:
             if (att.attribute_id.name in att_to_pub):
                 if (att.attribute_id.meli_default_id_attribute.id):
                     if (att.attribute_id.meli_default_id_attribute.variation_attribute):
@@ -1598,7 +1598,7 @@ class product_product(models.Model):
             if len(product_tmpl.meli_pub_variant_attributes):
                 values = ""
                 for line in product_tmpl.meli_pub_variant_attributes:
-                    for value in product.attribute_value_ids:
+                    for value in product.attribute_line_ids:
                         if (value.attribute_id.id==line.attribute_id.id):
                             values+= " "+value.name
                 if (not product_tmpl.meli_pub_as_variant):
