@@ -73,7 +73,38 @@ class mercadolibre_category(models.Model):
     _description = "Categories of MercadoLibre"
 
 
-    def get_attributes( self ):
+    def _get_category_url( self ):
+        company = self.env.user.company_id
+
+        warningobj = self.env['warning']
+        category_obj = self.env['mercadolibre.category']
+        att_obj = self.env['mercadolibre.category.attribute']
+        prod_att_obj = self.env['product.attribute']
+
+        CLIENT_ID = company.mercadolibre_client_id
+        CLIENT_SECRET = company.mercadolibre_secret_key
+        ACCESS_TOKEN = company.mercadolibre_access_token
+        REFRESH_TOKEN = company.mercadolibre_refresh_token
+
+        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+        _logger.info("_get_category_url:"+str(self.meli_category_id))
+
+        for category in self:
+            if (category.meli_category_id):
+                response_cat = meli.get("/categories/"+str(self.meli_category_id), {'access_token':meli.access_token})
+                rjson_cat = response_cat.json()
+                category.is_branch = ( "children_categories" in rjson_cat and len(rjson_cat["children_categories"])>0 )
+                category.meli_category_url = "https://api.mercadolibre.com/categories/"+str(category.meli_category_id)
+                category.meli_category_attributes = "https://api.mercadolibre.com/categories/"+str(category.meli_category_id)+"/attributes"
+                #_logger.info(rjson_cat["path_from_root"])
+                if (len(rjson_cat["path_from_root"])>=2):
+                    fid = int(len(rjson_cat["path_from_root"])-2)
+                    #_logger.info(fid)
+                    #_logger.info(rjson_cat["path_from_root"][fid]["id"])
+                    category.meli_father_category_id = rjson_cat["path_from_root"][fid]["id"]
+
+
+    def _get_attributes( self ):
 
         company = self.env.user.company_id
 
@@ -88,10 +119,14 @@ class mercadolibre_category(models.Model):
         REFRESH_TOKEN = company.mercadolibre_refresh_token
 
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
-        for obj in self:
-            if (obj.meli_category_id):
-                obj.meli_category_attributes = "https://api.mercadolibre.com/categories/"+str(obj.meli_category_id)+"/attributes"
-                resp = meli.get("/categories/"+str(obj.meli_category_id)+"/attributes", {'access_token':meli.access_token})
+        _logger.info("_get_attributes:"+str(self.meli_category_id))
+        for category in self:
+            if (category.meli_category_id
+                and category.is_branch==False
+                and ( category.meli_category_attribute_ids==None or len(category.meli_category_attribute_ids)==0 )):
+
+                category.meli_category_attributes = "https://api.mercadolibre.com/categories/"+str(self.meli_category_id)+"/attributes"
+                resp = meli.get("/categories/"+str(category.meli_category_id)+"/attributes", {'access_token':meli.access_token})
                 rjs = resp.json()
                 att_ids = []
                 for att in rjs:
@@ -172,14 +207,13 @@ class mercadolibre_category(models.Model):
                         _logger.info("Exception")
                         _logger.info(e, exc_info=True)
 
-                _logger.info("Add att_ids")
-                _logger.info(att_ids)
-                obj.write({'meli_category_attribute_ids': [(6, 0, att_ids)] })
+                #_logger.info("Add att_ids")
+                #_logger.info(att_ids)
+                category.write({'meli_category_attribute_ids': [(6, 0, att_ids)] })
 
-                response_cat = meli.get("/categories/"+str(obj.meli_category_id), {'access_token':meli.access_token})
+                response_cat = meli.get("/categories/"+str(category.meli_category_id), {'access_token':meli.access_token})
                 rjson_cat = response_cat.json()
-                if ("children_categories" in rjson_cat and len(rjson_cat["children_categories"])>0):
-                    obj.is_branch = True
+                category.is_branch = ( "children_categories" in rjson_cat and len(rjson_cat["children_categories"])>0 )
 
         return {}
 
@@ -202,13 +236,13 @@ class mercadolibre_category(models.Model):
             father = None
             response_cat = meli.get("/categories/"+str(category_id), {'access_token':meli.access_token})
             rjson_cat = response_cat.json()
-            if ("children_categories" in rjson_cat):
+            if ("children_categories" in rjson_cat and len(rjson_cat["children_categories"])>0):
                 is_branch = True
 
             ml_cat_id = category_obj.search([('meli_category_id','=',category_id)])
             if (ml_cat_id.id and is_branch==False):
                 #_logger.info("category exists!" + str(ml_cat_id))
-                ml_cat_id.get_attributes()
+                ml_cat_id._get_attributes()
             else:
                 _logger.info("Creating category: " + str(category_id))
                 #https://api.mercadolibre.com/categories/MLA1743
@@ -234,7 +268,7 @@ class mercadolibre_category(models.Model):
                 }
                 ml_cat_id = category_obj.create((cat_fields))
                 if (ml_cat_id.id and is_branch==False):
-                  ml_cat_id.get_attributes()
+                  ml_cat_id._get_attributes()
 
 
     def import_all_categories(self, category_root ):
@@ -275,10 +309,12 @@ class mercadolibre_category(models.Model):
     is_branch = fields.Boolean('Rama (no hoja)',index=True)
     meli_category_id = fields.Char('Category Id',index=True)
     meli_father_category = fields.Many2one('mercadolibre.category',string="Padre",index=True)
-    public_category_id = fields.Integer('Public Category Id',index=True)
+    meli_father_category_id = fields.Char(string='Father ML Id',compute=_get_category_url,index=True)
+    public_category_id = fields.Integer(string='Public Category Id',index=True)
 
     #public_category = fields.Many2one( "product.category.public", string="Product Website category default", help="Select Public Website category for this ML category ")
-    meli_category_attributes = fields.Char(compute=get_attributes,  string="Mercado Libre Category Attributes")
+    meli_category_attributes = fields.Char(compute=_get_attributes,  string="Mercado Libre Category Attributes")
+    meli_category_url = fields.Char(compute=_get_category_url, string="Mercado Libre Category Url")
     meli_category_attribute_ids = fields.Many2many("mercadolibre.category.attribute",string="Attributes")
 
 
