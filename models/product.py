@@ -1405,7 +1405,7 @@ class product_product(models.Model):
 
         #customized attrs:
         customs = []
-        for att in product.attribute_line_ids:
+        for att in product.product_template_attribute_value_ids:
             if (att.attribute_id.name in att_to_pub):
                 if (not att.attribute_id.meli_default_id_attribute.id):
                     customs.append(att)
