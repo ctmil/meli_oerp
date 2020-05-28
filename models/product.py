@@ -1304,6 +1304,7 @@ class product_product(models.Model):
         ML_status = "unknown"
         ML_permalink = ""
         ML_state = False
+        meli = None
 
         if (ACCESS_TOKEN=='' or ACCESS_TOKEN==False):
             ML_status = "unknown"
@@ -1311,25 +1312,24 @@ class product_product(models.Model):
             ML_state = True
         else:
             meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
-            for product in self:
-                if product.meli_id:
-                    response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token} )
-                    rjson = response.json()
-                    if "status" in rjson:
-                        ML_status = rjson["status"]
-                    if "permalink" in rjson:
-                        ML_permalink = rjson["permalink"]
-                    if "error" in rjson:
-                        ML_status = rjson["error"]
-                        ML_permalink = ""
-                    if "sub_status" in rjson:
-                        if len(rjson["sub_status"]) and rjson["sub_status"][0]=='deleted':
-                            product.write({ 'meli_id': '' })
-
-                product.meli_status = ML_status
-                product.meli_permalink = ML_permalink
 
         for product in self:
+            if product.meli_id and meli:
+                response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token} )
+                rjson = response.json()
+                if "status" in rjson:
+                    ML_status = rjson["status"]
+                if "permalink" in rjson:
+                    ML_permalink = rjson["permalink"]
+                if "error" in rjson:
+                    ML_status = rjson["error"]
+                    ML_permalink = ""
+                if "sub_status" in rjson:
+                    if len(rjson["sub_status"]) and rjson["sub_status"][0]=='deleted':
+                        product.write({ 'meli_id': '' })
+
+            product.meli_status = ML_status
+            product.meli_permalink = ML_permalink
             product.meli_state = ML_state
 
     def _is_value_excluded(self, att_value ):
