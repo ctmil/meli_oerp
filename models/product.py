@@ -1123,7 +1123,6 @@ class product_product(models.Model):
     def product_meli_status_active( self ):
         company = self.env.user.company_id
         product_obj = self.env['product.product']
-        product = self
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
@@ -1131,12 +1130,20 @@ class product_product(models.Model):
         REFRESH_TOKEN = company.mercadolibre_refresh_token
 
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
-
-        response = meli.put("/items/"+product.meli_id, { 'status': 'active' }, {'access_token':meli.access_token})
-        if (meli and response):
-            _logger.info(response.json())
+        if (meli):
+            pass;
         else:
-            _logger.info("product_meli_status_active error")
+            return {}
+
+        for product in self:
+            _logger.info("activating "+str(product.meli_id))
+            response = meli.put("/items/"+product.meli_id, { 'status': 'active' }, {'access_token':meli.access_token})
+            if (response):
+                _logger.info(response.json())
+            else:
+                _logger.info("product_meli_status_active error")
+                _logger.info(response)
+
         return {}
 
     def product_meli_delete( self ):
