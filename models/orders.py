@@ -121,7 +121,7 @@ class sale_order(models.Model):
                                 _logger.info(pop)
                                 if (pop.qty_done==0.0 and pop.product_qty>=0.0):
                                     pop.qty_done = pop.product_qty
-                            _logger.info("do_new_transfer > action_done")
+                            _logger.info("do_new_transfer")
                             spick.action_done()
 
 sale_order()
