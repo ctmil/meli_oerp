@@ -72,8 +72,7 @@ class mercadolibre_category(models.Model):
     _name = "mercadolibre.category"
     _description = "Categories of MercadoLibre"
 
-
-    @api.one
+    @api.multi
     def _get_category_url( self ):
         company = self.env.user.company_id
 
@@ -89,20 +88,22 @@ class mercadolibre_category(models.Model):
 
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
         _logger.info("_get_category_url:"+str(self.meli_category_id))
-        if (self.meli_category_id):
-            response_cat = meli.get("/categories/"+str(self.meli_category_id), {'access_token':meli.access_token})
-            rjson_cat = response_cat.json()
-            self.is_branch = ( "children_categories" in rjson_cat and len(rjson_cat["children_categories"])>0 )
-            self.meli_category_url = "https://api.mercadolibre.com/categories/"+str(self.meli_category_id)
-            self.meli_category_attributes = "https://api.mercadolibre.com/categories/"+str(self.meli_category_id)+"/attributes"
-            _logger.info(rjson_cat["path_from_root"])
-            if (len(rjson_cat["path_from_root"])>=2):
-                fid = int(len(rjson_cat["path_from_root"])-2)
-                _logger.info(fid)
-                _logger.info(rjson_cat["path_from_root"][fid]["id"])
-                self.meli_father_category_id = rjson_cat["path_from_root"][fid]["id"]
 
-    @api.one
+        for category in self:
+            if (category.meli_category_id):
+                response_cat = meli.get("/categories/"+str(self.meli_category_id), {'access_token':meli.access_token})
+                rjson_cat = response_cat.json()
+                category.is_branch = ( "children_categories" in rjson_cat and len(rjson_cat["children_categories"])>0 )
+                category.meli_category_url = "https://api.mercadolibre.com/categories/"+str(category.meli_category_id)
+                category.meli_category_attributes = "https://api.mercadolibre.com/categories/"+str(category.meli_category_id)+"/attributes"
+                #_logger.info(rjson_cat["path_from_root"])
+                if (len(rjson_cat["path_from_root"])>=2):
+                    fid = int(len(rjson_cat["path_from_root"])-2)
+                    #_logger.info(fid)
+                    #_logger.info(rjson_cat["path_from_root"][fid]["id"])
+                    category.meli_father_category_id = rjson_cat["path_from_root"][fid]["id"]
+
+    @api.multi
     def _get_attributes( self ):
 
         company = self.env.user.company_id
@@ -119,99 +120,100 @@ class mercadolibre_category(models.Model):
 
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
         _logger.info("_get_attributes:"+str(self.meli_category_id))
-        if (self.meli_category_id
-            and self.is_branch==False
-            and ( self.meli_category_attribute_ids==None or len(self.meli_category_attribute_ids)==0 )):
+        for category in self:
+            if (category.meli_category_id
+                and category.is_branch==False
+                and ( category.meli_category_attribute_ids==None or len(category.meli_category_attribute_ids)==0 )):
 
-            self.meli_category_attributes = "https://api.mercadolibre.com/categories/"+str(self.meli_category_id)+"/attributes"
-            resp = meli.get("/categories/"+str(self.meli_category_id)+"/attributes", {'access_token':meli.access_token})
-            rjs = resp.json()
-            att_ids = []
-            for att in rjs:
-                try:
-                    _logger.info("att:")
-                    _logger.info(att)
-                    _logger.info(att['id'])
-                    attrs = att_obj.search( [ ('att_id','like',str(att['id'])) ] )
-                    attrs_field = {
-                        'name': att['name'],
-                        'value_type': att['value_type'],
-                        'hidden': ('hidden' in att['tags']),
-                        'multivalued': ( 'multivalued' in att['tags']),
-                        'variation_attribute': ('variation_attribute' in att['tags']) | ('allow_variations' in att['tags']),
-                        'required': ('catalog_required' in att['tags'])
-                    }
+                category.meli_category_attributes = "https://api.mercadolibre.com/categories/"+str(self.meli_category_id)+"/attributes"
+                resp = meli.get("/categories/"+str(category.meli_category_id)+"/attributes", {'access_token':meli.access_token})
+                rjs = resp.json()
+                att_ids = []
+                for att in rjs:
+                    try:
+                        _logger.info("att:")
+                        _logger.info(att)
+                        _logger.info(att['id'])
+                        attrs = att_obj.search( [ ('att_id','like',str(att['id'])) ] )
+                        attrs_field = {
+                            'name': att['name'],
+                            'value_type': att['value_type'],
+                            'hidden': ('hidden' in att['tags']),
+                            'multivalued': ( 'multivalued' in att['tags']),
+                            'variation_attribute': ('variation_attribute' in att['tags']) | ('allow_variations' in att['tags']),
+                            'required': ('catalog_required' in att['tags'])
+                        }
 
-                    if ('tooltip' in att):
-                        attrs_field['tooltip'] = att['tooltip']
+                        if ('tooltip' in att):
+                            attrs_field['tooltip'] = att['tooltip']
 
-                    if ('values' in att):
-                        attrs_field['values'] = json.dumps(att['values'])
+                        if ('values' in att):
+                            attrs_field['values'] = json.dumps(att['values'])
 
-                    if ('type' in att):
-                        attrs_field['type'] = att['type']
+                        if ('type' in att):
+                            attrs_field['type'] = att['type']
 
-                    if (len(attrs)):
-                        attrs[0].write(attrs_field)
-                        attrs = attrs[0]
-                        att_ids.append(attrs.id)
-                    else:
-                        _logger.info("Add attribute")
-                        attrs_field['att_id'] = att['id']
-                        _logger.info(attrs_field)
-                        attrs = att_obj.create(attrs_field)
-                        att_ids.append(attrs[0].id)
+                        if (len(attrs)):
+                            attrs[0].write(attrs_field)
+                            attrs = attrs[0]
+                            att_ids.append(attrs.id)
+                        else:
+                            _logger.info("Add attribute")
+                            attrs_field['att_id'] = att['id']
+                            _logger.info(attrs_field)
+                            attrs = att_obj.create(attrs_field)
+                            att_ids.append(attrs[0].id)
 
-                    if (attrs.id):
-                        if (company.mercadolibre_product_attribute_creation!='manual'):
-                            #primero que coincida todo
-                            prod_attrs = prod_att_obj.search( [ ('name','like',att['name']),
-                                                                ('meli_default_id_attribute','=',attrs[0].id) ] )
-                            if (len(prod_attrs)==0):
-                                #que solo coincida el id
-                                prod_attrs = prod_att_obj.search( [ ('meli_default_id_attribute','=',attrs[0].id) ] )
+                        if (attrs.id):
+                            if (company.mercadolibre_product_attribute_creation!='manual'):
+                                #primero que coincida todo
+                                prod_attrs = prod_att_obj.search( [ ('name','like',att['name']),
+                                                                    ('meli_default_id_attribute','=',attrs[0].id) ] )
+                                if (len(prod_attrs)==0):
+                                    #que solo coincida el id
+                                    prod_attrs = prod_att_obj.search( [ ('meli_default_id_attribute','=',attrs[0].id) ] )
 
-                            if (len(prod_attrs)==0):
-                                #que coincida el nombre al menos
-                                prod_att_obj.search( [ ('name','like',att['name']) ] )
+                                if (len(prod_attrs)==0):
+                                    #que coincida el nombre al menos
+                                    prod_att_obj.search( [ ('name','like',att['name']) ] )
 
-                            #if (len(prod_attrs)==0):
-                                #que coincida el meli_id!!
-                                #prod_att_obj.search( [ ('meli_id','like',att['id']) ] )
+                                #if (len(prod_attrs)==0):
+                                    #que coincida el meli_id!!
+                                    #prod_att_obj.search( [ ('meli_id','like',att['id']) ] )
 
-                            prod_att = {
-                                'name': att['name'],
-                                'create_variant': 'always',
-                                'meli_default_id_attribute': attrs[0].id,
-                                #'meli_id': attrs[0].att_id
-                            }
-                            if (len(prod_attrs)>=1):
-                                #tomamos el primero
-                                _logger.error("Atención multiples atributos asignados!")
-                                #prod_attrs = prod_attrs[0]
-                                for prod_attr in prod_attrs:
-                                    prod_att['create_variant'] = prod_attr.create_variant
-                                    prod_attr.write(prod_att)
-                                #if (len(prod_attrs)==1):
-                                #    if (prod_attrs.id):
-                                #        prod_att['create_variant'] = prod_attrs.create_variant
-                                #        prod_att_obj.write(prod_att)
-                            else:
-                                prod_attrs = prod_att_obj.create(prod_att)
+                                prod_att = {
+                                    'name': att['name'],
+                                    'create_variant': 'always',
+                                    'meli_default_id_attribute': attrs[0].id,
+                                    #'meli_id': attrs[0].att_id
+                                }
+                                if (len(prod_attrs)>=1):
+                                    #tomamos el primero
+                                    _logger.error("Atención multiples atributos asignados!")
+                                    #prod_attrs = prod_attrs[0]
+                                    for prod_attr in prod_attrs:
+                                        prod_att['create_variant'] = prod_attr.create_variant
+                                        prod_attr.write(prod_att)
+                                    #if (len(prod_attrs)==1):
+                                    #    if (prod_attrs.id):
+                                    #        prod_att['create_variant'] = prod_attrs.create_variant
+                                    #        prod_att_obj.write(prod_att)
+                                else:
+                                    prod_attrs = prod_att_obj.create(prod_att)
 
-                except Exception as e:
-                    _logger.info("att:")
-                    _logger.info(att)
-                    _logger.info("Exception")
-                    _logger.info(e, exc_info=True)
+                    except Exception as e:
+                        _logger.info("att:")
+                        _logger.info(att)
+                        _logger.info("Exception")
+                        _logger.info(e, exc_info=True)
 
-            _logger.info("Add att_ids")
-            _logger.info(att_ids)
-            self.write({'meli_category_attribute_ids': [(6, 0, att_ids)] })
+                #_logger.info("Add att_ids")
+                #_logger.info(att_ids)
+                category.write({'meli_category_attribute_ids': [(6, 0, att_ids)] })
 
-            response_cat = meli.get("/categories/"+str(self.meli_category_id), {'access_token':meli.access_token})
-            rjson_cat = response_cat.json()
-            self.is_branch = ( "children_categories" in rjson_cat and len(rjson_cat["children_categories"])>0 )
+                response_cat = meli.get("/categories/"+str(category.meli_category_id), {'access_token':meli.access_token})
+                rjson_cat = response_cat.json()
+                category.is_branch = ( "children_categories" in rjson_cat and len(rjson_cat["children_categories"])>0 )
 
         return {}
 
