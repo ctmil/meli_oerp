@@ -64,9 +64,6 @@
           <field name="type">form</field>
           <field name="arch" type="xml">
             <form string="Update questions" version="7.0">
-
-
-
                 <footer>
                     <button name="posting_update" string="Update Posting Questions"  type="object" class="oe_highlight"  />
                     <button string="Cancel" class="oe_link" special="cancel" />

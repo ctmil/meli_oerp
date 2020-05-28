@@ -43,9 +43,9 @@ if (not ('replace' in string.__dict__)):
 class product_template(models.Model):
     _inherit = "product.template"
 
+    @api.multi
     def product_template_post(self):
         product_obj = self.env['product.template']
-        product = self
         company = self.env.user.company_id
         warningobj = self.env['warning']
 
@@ -68,42 +68,43 @@ class product_template(models.Model):
 
         _logger.info("Product Template Post")
         ret = {}
-        if (product.meli_pub_as_variant):
-            _logger.info("Posting as variants")
-            #filtrar las variantes que tengan esos atributos que definimos
-            #la primera variante que cumple las condiciones es la que publicamos.
-            variant_principal = False
-            #las condiciones es que los atributos de la variante
-            conditions_ok = True
-            for variant in product.product_variant_ids:
-                if (variant._conditions_ok() ):
-                    variant.meli_pub = True
-                    if (variant_principal==False):
-                        _logger.info("Posting variant principal:")
-                        _logger.info(variant)
-                        variant_principal = variant
-                        product.meli_pub_principal_variant = variant
-                        ret = variant.product_post()
-                        if ('name' in ret):
-                            return ret
+        for product in self:
+            if (product.meli_pub_as_variant):
+                _logger.info("Posting as variants")
+                #filtrar las variantes que tengan esos atributos que definimos
+                #la primera variante que cumple las condiciones es la que publicamos.
+                variant_principal = False
+                #las condiciones es que los atributos de la variante
+                conditions_ok = True
+                for variant in product.product_variant_ids:
+                    if (variant._conditions_ok() ):
+                        variant.meli_pub = True
+                        if (variant_principal==False):
+                            _logger.info("Posting variant principal:")
+                            _logger.info(variant)
+                            variant_principal = variant
+                            product.meli_pub_principal_variant = variant
+                            ret = variant.product_post()
+                            if ('name' in ret[0]):
+                                return ret[0]
+                        else:
+                            if (variant_principal):
+                                variant.product_post_variant(variant_principal)
                     else:
-                        if (variant_principal):
-                            variant.product_post_variant(variant_principal)
-                else:
-                    _logger.info("No condition met for:"+variant.display_name)
-            _logger.info(product.meli_pub_variant_attributes)
+                        _logger.info("No condition met for:"+variant.display_name)
+                _logger.info(product.meli_pub_variant_attributes)
 
 
-        else:
-            for variant in product.product_variant_ids:
-                _logger.info("Variant:", variant)
-                if (variant.meli_pub):
-                    _logger.info("Posting variant")
-                    ret = variant.product_post()
-                    if ('name' in ret):
-                        return ret
-                else:
-                    _logger.info("No meli_pub for:"+variant.display_name)
+            else:
+                for variant in product.product_variant_ids:
+                    _logger.info("Variant:", variant)
+                    if (variant.meli_pub):
+                        _logger.info("Posting variant")
+                        ret = variant.product_post()
+                        if ('name' in ret[0]):
+                            return ret[0]
+                    else:
+                        _logger.info("No meli_pub for:"+variant.display_name)
 
         return ret
 
@@ -745,8 +746,9 @@ class product_product(models.Model):
                                     #_logger.info(attribute_value_id)
                                     pass
                                 else:
-                                    _logger.info("Creating attribute value:")
-                                    attribute_value_id = self.env['product.attribute.value'].create({'attribute_id': attribute_id,'name': att['value_name']}).id
+                                    _logger.info("Creating attribute value:"+str(att))
+                                    if (att['value_name']!=None):
+                                        attribute_value_id = self.env['product.attribute.value'].create({'attribute_id': attribute_id,'name': att['value_name']}).id
 
                                 if (attribute_value_id):
                                     #_logger.info("attribute_value_id:")
@@ -1285,15 +1287,11 @@ class product_product(models.Model):
 
         return { 'value': { 'meli_description' : result } }
 
-    @api.one
+    @api.multi
     def product_get_meli_update( self ):
-        #self.ensure_one()
-        #pdb.set_trace()
         company = self.env.user.company_id
         warningobj = self.env['warning']
-
         product_obj = self.env['product.product']
-        product = self
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
@@ -1310,25 +1308,26 @@ class product_product(models.Model):
             ML_state = True
         else:
             meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
-            if product.meli_id:
-                response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token} )
-                rjson = response.json()
-                if "status" in rjson:
-                    ML_status = rjson["status"]
-                if "permalink" in rjson:
-                    ML_permalink = rjson["permalink"]
-                if "error" in rjson:
-                    ML_status = rjson["error"]
-                    ML_permalink = ""
-                if "sub_status" in rjson:
-                    if len(rjson["sub_status"]) and rjson["sub_status"][0]=='deleted':
-                        product.write({ 'meli_id': '' })
+            for product in self:
+                if product.meli_id:
+                    response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token} )
+                    rjson = response.json()
+                    if "status" in rjson:
+                        ML_status = rjson["status"]
+                    if "permalink" in rjson:
+                        ML_permalink = rjson["permalink"]
+                    if "error" in rjson:
+                        ML_status = rjson["error"]
+                        ML_permalink = ""
+                    if "sub_status" in rjson:
+                        if len(rjson["sub_status"]) and rjson["sub_status"][0]=='deleted':
+                            product.write({ 'meli_id': '' })
 
-                self.meli_status = ML_status
-                self.meli_permalink = ML_permalink
+                    product.meli_status = ML_status
+                    product.meli_permalink = ML_permalink
 
-
-        self.meli_state = ML_state
+        for product in self:
+            product.meli_state = ML_state
 
     def _is_value_excluded(self, att_value ):
         company = self.env.user.company_id
@@ -1490,6 +1489,14 @@ class product_product(models.Model):
                 product.meli_id = variant_principal.meli_id
 
     def product_post(self):
+        res = []
+        for product in self:
+            res.append(product._product_post())
+
+        return res
+
+
+    def _product_post(self):
         #import pdb;pdb.set_trace();
         _logger.info('[DEBUG] product_post')
 
@@ -1585,6 +1592,17 @@ class product_product(models.Model):
         if product.meli_title==False or len(product.meli_title)==0:
             # _logger.info( 'Assigning title: product.meli_title: %s name: %s' % (product.meli_title, product.name) )
             product.meli_title = product_tmpl.meli_title
+            if len(product_tmpl.meli_pub_variant_attributes):
+                values = ""
+                for line in product_tmpl.meli_pub_variant_attributes:
+                    for value in product.attribute_value_ids:
+                        if (value.attribute_id.id==line.attribute_id.id):
+                            values+= " "+value.name
+                if (not product_tmpl.meli_pub_as_variant):
+                    product.meli_title = string.replace(product.meli_title,product.name,product.name+" "+values)
+
+
+
 
         force_template_title = False
         if (product_tmpl.meli_title and force_template_title):
@@ -1603,27 +1621,6 @@ class product_product(models.Model):
 
         if (product_tmpl.meli_description or len(product_tmpl.meli_description)==0):
             product.meli_description = product_tmpl.meli_description
-
-        force_template_title_with_attributes = True
-        if (force_template_title_with_attributes and (product.meli_title==False or len(product.meli_title)==0)):
-            product.meli_title = product_tmpl.meli_title
-            if len(product_tmpl.meli_pub_variant_attributes) and (not product_tmpl.meli_pub_as_variant):
-                values = ""
-                for line in product_tmpl.meli_pub_variant_attributes:
-                    for value in product.attribute_value_ids:
-                        if (value.attribute_id.id==line.attribute_id.id):
-                            values+= " "+value.name
-
-                product.meli_title = string.replace(product.meli_title,product.name,product.name+" "+values)
-
-        force_template_title = False
-        if (product_tmpl.meli_title and force_template_title):
-            product.meli_title = product_tmpl.meli_title
-
-        if ( product.meli_title and len(product.meli_title)>60 ):
-            return warningobj.info( title='MELI WARNING', message="La longitud del título ("+str(len(product.meli_title))+") es superior a 60 caracteres.", message_html=product.meli_title )
-
-
 
         if product.meli_category==False:
             product.meli_category=product_tmpl.meli_category
