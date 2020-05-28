@@ -1133,7 +1133,10 @@ class product_product(models.Model):
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
         response = meli.put("/items/"+product.meli_id, { 'status': 'active' }, {'access_token':meli.access_token})
-
+        if (meli and response):
+            _logger.info(response.json())
+        else:
+            _logger.info("product_meli_status_active error")
         return {}
 
     def product_meli_delete( self ):
