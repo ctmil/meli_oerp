@@ -1395,7 +1395,7 @@ class product_product(models.Model):
             return False
 
         price = False
-        if (product.meli_price):
+        if (product.meli_price and float(product.meli_price)>0):
             price = product.meli_price
         qty = product.meli_available_quantity
 
