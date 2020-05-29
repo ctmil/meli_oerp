@@ -2293,7 +2293,7 @@ class product_product(models.Model):
 
     #post only fields
     meli_post_required = fields.Boolean(string='Publicable', help='Este producto es publicable en Mercado Libre')
-    meli_id = fields.Char(string='ML Id', help='Id del item asignado por Meli', size=256, index=True)
+    meli_id = fields.Char(string='Id', help='Id del item asignado por Meli', size=256, index=True)
     meli_description_banner_id = fields.Many2one("mercadolibre.banner","Banner")
     meli_buying_mode = fields.Selection(string='Método',help='Método de compra',selection=[("buy_it_now","Compre ahora"),("classified","Clasificado")])
     meli_price = fields.Char( string='Precio',help='Precio de venta en ML', size=128)
@@ -2315,7 +2315,7 @@ class product_product(models.Model):
     meli_model = fields.Char(string="Modelo",size=256)
     meli_brand = fields.Char(string="Marca",size=256)
     meli_default_stock_product = fields.Many2one("product.product","Producto de referencia para stock")
-    meli_id_variation = fields.Char( string='ML Variation Id',string='Id de Variante de Meli', size=256)
+    meli_id_variation = fields.Char( string='Variation Id',help='Id de Variante de Meli', size=256)
 
     _defaults = {
         'meli_imagen_logo': 'None',
