@@ -2017,6 +2017,13 @@ class product_product(models.Model):
         #last modifications if response is OK
         if "id" in rjson:
             product.write( { 'meli_id': rjson["id"]} )
+            if ("variations" in rjson):
+                for ix in range(len(rjson["variations"]) ):
+                    _var = rjson["variations"][ix]
+                    for pvar in product_tmpl.product_variant_ids:
+                        if (pvar._is_product_combination(_var) and 'id' in _var):
+                            pvar.meli_id_variation = _var["id"]
+
 
         posting_fields = {'posting_date': str(datetime.now()),'meli_id':rjson['id'],'product_id':product.id,'name': 'Post: ' + product.meli_title }
 
