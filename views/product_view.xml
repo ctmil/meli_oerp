@@ -39,6 +39,7 @@
                             <field string="Id Pub" name="meli_id"/>
                             <field string="Id Var" name="meli_id_variation"/>
                             <field string="Status" name="meli_status"/>
+                            <field string="Sub Status" name="meli_sub_status"/>
                             <field string="Link" name="meli_permalink" widget="url"/>
                           </tree>
                         </field>
@@ -96,7 +97,7 @@
                     <div name="button_box" position="inside">
                         <button type="object"
                             name="action_meli_pause"
-                            attrs="{'invisible':[('meli_variants_status', '!=', 'active')]}"
+                            attrs="{'invisible':[('meli_variants_status', '!=', 'active')] }"
                             class="oe_stat_button">
                             <img src="/meli_oerp/static/src/img/logo_ML.png" width="48" alt="logo ml"/>
                             <span>Pausar en ML</span>
@@ -138,6 +139,7 @@
                     <field name="meli_id" invisible="0"/>
                     <field name="meli_id_variation" invisible="0"/>
                     <field name="meli_status" invisible="1"/>
+                    <field name="meli_sub_status" invisible="1"/>
                 </field>
             </field>
         </record>
@@ -150,6 +152,7 @@
                 <data>
                     <div name="button_box" position="inside">
                         <field name="meli_status" invisible="1"/>
+                        <field name="meli_sub_status" invisible="1"/>
                         <button type="object"
                             name="product_meli_status_pause"
                             attrs="{'invisible':[('meli_status', '!=', 'active')]}"
@@ -159,7 +162,7 @@
                         </button>
                         <button type="object"
                             name="product_meli_status_active"
-                            attrs="{'invisible':[('meli_status', '!=', 'paused')]}"
+                            attrs="{'invisible':[('meli_status', '!=', 'paused')] }"
                             class="oe_stat_button">
                             <img src="/meli_oerp/static/src/img/logo_ML.png" width="48"  alt="logo ml"/>
                             <span>Activar</span>
@@ -266,8 +269,9 @@
                           </div>
                           <group string="Informacion de ML">
                             <group>
-                              <field name="meli_post_required" />
+                              <field name="meli_post_required" invisible="1" />
                               <field name="meli_status" />
+                              <field name="meli_sub_status" />
                               <field name="meli_state" />
                             </group>
                             <group>
