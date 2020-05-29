@@ -2305,8 +2305,8 @@ class product_product(models.Model):
     meli_multi_imagen_id = fields.Char(string='Multi Imagen Ids', size=512)
     meli_video = fields.Char( string='Video (id de youtube)', size=256)
 
-    meli_permalink = fields.Char( compute=product_get_meli_update, size=256, string='PermaLink in MercadoLibre', store=False )
-    meli_state = fields.Boolean( compute=product_get_meli_update, string="Inicio de sesión requerida", store=False )
+    meli_permalink = fields.Char( compute=product_get_meli_update, size=256, string='Link',help='PermaLink in MercadoLibre', store=False )
+    meli_state = fields.Boolean( compute=product_get_meli_update, string='Login',help="Inicio de sesión requerida", store=False )
     meli_status = fields.Char( compute=product_get_meli_update, size=128, string='Status', help="Estado del producto en ML", store=False )
     meli_sub_status = fields.Char( compute=product_get_meli_update, size=128, string='Sub status',help="Sub Estado del producto en ML", store=False )
 
@@ -2315,7 +2315,7 @@ class product_product(models.Model):
     meli_model = fields.Char(string="Modelo",size=256)
     meli_brand = fields.Char(string="Marca",size=256)
     meli_default_stock_product = fields.Many2one("product.product","Producto de referencia para stock")
-    meli_id_variation = fields.Char( string='Id de Variante de Meli', size=256)
+    meli_id_variation = fields.Char( string='ML Variation Id',string='Id de Variante de Meli', size=256)
 
     _defaults = {
         'meli_imagen_logo': 'None',
