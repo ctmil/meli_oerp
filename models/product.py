@@ -171,10 +171,13 @@ class product_template(models.Model):
             for variant in product.product_variant_ids:
                 if (variant.meli_pub):
                     if ( (variant.meli_status=="active" or variant.meli_status=="paused") and variant.meli_id):
+                        ml_full_status = variant.meli_status
+                        if (variant.meli_sub_status):
+                            ml_full_status+= ' ('+str(variant.meli_sub_status)+')'
                         if (len(_pubs)):
-                            _pubs = _pubs + "|" + variant.meli_id + ":" + variant.meli_status
+                            _pubs = _pubs + "|" + variant.meli_id + ":" + ml_full_status
                         else:
-                            _pubs = variant.meli_id + ":" + variant.meli_status
+                            _pubs = variant.meli_id + ":" + ml_full_status
 
                         if (variant.meli_status=="active"):
                             _stats = "active"
@@ -557,7 +560,7 @@ class product_product(models.Model):
             'name': rjson['title'].encode("utf-8"),
             #'default_code': rjson['id'],
             'meli_imagen_id': imagen_id,
-            'meli_post_required': True,
+            #'meli_post_required': True,
             'meli_id': rjson['id'],
             'meli_permalink': rjson['permalink'],
             'meli_title': rjson['title'].encode("utf-8"),
@@ -1171,7 +1174,7 @@ class product_product(models.Model):
             ML_status = rjson["error"]
         if "sub_status" in rjson:
             if len(rjson["sub_status"]) and rjson["sub_status"][0]=='deleted':
-                product.write({ 'meli_id': '' })
+                product.write({ 'meli_id': '','meli_id_variation': '' })
 
         return {}
 
@@ -1312,6 +1315,7 @@ class product_product(models.Model):
         REFRESH_TOKEN = company.mercadolibre_refresh_token
 
         ML_status = "unknown"
+        ML_sub_status = ""
         ML_permalink = ""
         ML_state = False
         meli = None
@@ -1335,10 +1339,13 @@ class product_product(models.Model):
                     ML_status = rjson["error"]
                     ML_permalink = ""
                 if "sub_status" in rjson:
-                    if len(rjson["sub_status"]) and rjson["sub_status"][0]=='deleted':
-                        product.write({ 'meli_id': '' })
+                    if len(rjson["sub_status"]):
+                        ML_sub_status =  rjson["sub_status"][0]
+                        if ( ML_sub_status =='deleted' ):
+                            product.write({ 'meli_id': '','meli_id_variation': '' })
 
             product.meli_status = ML_status
+            product.meli_sub_status = ML_sub_status
             product.meli_permalink = ML_permalink
             product.meli_state = ML_state
 
@@ -2285,29 +2292,30 @@ class product_product(models.Model):
     meli_listing_type = fields.Selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special/Clásica"),("gold_pro","Oro Pro")], string='Tipo de lista')
 
     #post only fields
-    meli_post_required = fields.Boolean(string='Este producto es publicable en Mercado Libre')
-    meli_id = fields.Char( string='Id del item asignado por Meli', size=256, index=True)
+    meli_post_required = fields.Boolean(string='Publicable', help='Este producto es publicable en Mercado Libre')
+    meli_id = fields.Char(string='Id', help='Id del item asignado por Meli', size=256, index=True)
     meli_description_banner_id = fields.Many2one("mercadolibre.banner","Banner")
-    meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
-    meli_price = fields.Char(string='Precio de venta', size=128)
+    meli_buying_mode = fields.Selection(string='Método',help='Método de compra',selection=[("buy_it_now","Compre ahora"),("classified","Clasificado")])
+    meli_price = fields.Char( string='Precio',help='Precio de venta en ML', size=128)
     meli_price_fixed = fields.Boolean(string='Price is fixed')
-    meli_available_quantity = fields.Integer(string='Cantidad disponible')
+    meli_available_quantity = fields.Integer(string='Cantidades', help='Cantidad disponible a publicar en ML')
     meli_imagen_logo = fields.Char(string='Imagen Logo', size=256)
     meli_imagen_id = fields.Char(string='Imagen Id', size=256)
     meli_imagen_link = fields.Char(string='Imagen Link', size=256)
     meli_multi_imagen_id = fields.Char(string='Multi Imagen Ids', size=512)
     meli_video = fields.Char( string='Video (id de youtube)', size=256)
 
-    meli_permalink = fields.Char( compute=product_get_meli_update, size=256, string='PermaLink in MercadoLibre', store=False )
-    meli_state = fields.Boolean( compute=product_get_meli_update, string="Inicio de sesión requerida", store=False )
-    meli_status = fields.Char( compute=product_get_meli_update, size=128, string="Estado del producto en ML", store=False )
+    meli_permalink = fields.Char( compute=product_get_meli_update, size=256, string='Link',help='PermaLink in MercadoLibre', store=False )
+    meli_state = fields.Boolean( compute=product_get_meli_update, string='Login',help="Inicio de sesión requerida", store=False )
+    meli_status = fields.Char( compute=product_get_meli_update, size=128, string='Status', help="Estado del producto en ML", store=False )
+    meli_sub_status = fields.Char( compute=product_get_meli_update, size=128, string='Sub status',help="Sub Estado del producto en ML", store=False )
 
     meli_attributes = fields.Text(string='Atributos')
 
     meli_model = fields.Char(string="Modelo",size=256)
     meli_brand = fields.Char(string="Marca",size=256)
     meli_default_stock_product = fields.Many2one("product.product","Producto de referencia para stock")
-    meli_id_variation = fields.Char( string='Id de Variante de Meli', size=256)
+    meli_id_variation = fields.Char( string='Variation Id',help='Id de Variante de Meli', size=256)
 
     _defaults = {
         'meli_imagen_logo': 'None',
