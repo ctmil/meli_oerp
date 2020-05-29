@@ -1462,39 +1462,39 @@ class product_product(models.Model):
         product = self
         product_tmpl = self.product_tmpl_id
 
-        _logger.info("_is_product_combination:")
-        _logger.info(variation)
+        #_logger.info("_is_product_combination:")
+        #_logger.info(variation)
 
         _self_combinations = product._combination()
         _map_combinations = {}
-        _logger.info('_self_combinations')
-        _logger.info(_self_combinations)
+        #_logger.info('_self_combinations')
+        #_logger.info(_self_combinations)
 
         if 'attribute_combinations' in _self_combinations:
             for att in _self_combinations['attribute_combinations']:
-                _logger.info(att)
+                #_logger.info(att)
                 _map_combinations[att["name"]] = att["value_name"]
 
-        _logger.info('_map_combinations')
-        _logger.info(_map_combinations)
+        #_logger.info('_map_combinations')
+        #_logger.info(_map_combinations)
 
         _is_p_comb = True
 
         if ('attribute_combinations' in variation):
             #check if every att combination exist in this product
             for att in variation['attribute_combinations']:
-                _logger.info("chech att:"+str(att["name"]))
+                #_logger.info("chech att:"+str(att["name"]))
                 if ( att["name"] in _map_combinations):
                     if (_map_combinations[att["name"]]==att["value_name"]):
                         _is_p_comb = True
-                        _logger.info(_is_p_comb)
+                        #_logger.info(_is_p_comb)
                     else:
                         _is_p_comb = False
-                        _logger.info(_is_p_comb)
+                        #_logger.info(_is_p_comb)
                         break
                 else:
                     _is_p_comb = False
-                    _logger.info(_is_p_comb)
+                    #_logger.info(_is_p_comb)
                     break
 
         return _is_p_comb
@@ -1897,17 +1897,17 @@ class product_product(models.Model):
                             for pic in body["pictures"]:
                                 var_pics.append(pic['id'])
                         _logger.info("Variations already posted, must update them only")
-                        vars_updated = []
+                        vars_updated = self.env["product.product"]
                         for ix in range(len(productjson["variations"]) ):
                             var_info = productjson["variations"][ix]
-                            _logger.info("Variation to update!!")
-                            _logger.info(var_info)
+                            #_logger.info("Variation to update!!")
+                            #_logger.info(var_info)
                             var_product = None
                             for pvar in product_tmpl.product_variant_ids:
                                 if (pvar._is_product_combination(var_info)):
                                     var_product = pvar
                                     var_product.meli_available_quantity = var_product.virtual_available
-                                    vars_updated.append(var_product)
+                                    vars_updated+=var_product
                             var = {
                                 "id": str(var_info["id"]),
                                 "price": str(product_tmpl.meli_price),
