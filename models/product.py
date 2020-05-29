@@ -1886,6 +1886,7 @@ class product_product(models.Model):
                     #preparamos las variantes
 
                     if ( productjson and len(productjson["variations"]) ):
+                        #ya hay variantes publicadas en ML
                         varias = {
                             "title": body["title"],
                             "pictures": body["pictures"],
@@ -1896,16 +1897,19 @@ class product_product(models.Model):
                             for pic in body["pictures"]:
                                 var_pics.append(pic['id'])
                         _logger.info("Variations already posted, must update them only")
+                        vars_updated = []
                         for ix in range(len(productjson["variations"]) ):
+                            var_info = productjson["variations"][ix]
                             _logger.info("Variation to update!!")
-                            _logger.info(productjson["variations"][ix])
-                            var_product = product
+                            _logger.info(var_info)
+                            var_product = None
                             for pvar in product_tmpl.product_variant_ids:
-                                if (pvar._is_product_combination(productjson["variations"][ix])):
+                                if (pvar._is_product_combination(var_info)):
                                     var_product = pvar
                                     var_product.meli_available_quantity = var_product.virtual_available
+                                    vars_updated.append(var_product)
                             var = {
-                                "id": str(productjson["variations"][ix]["id"]),
+                                "id": str(var_info["id"]),
                                 "price": str(product_tmpl.meli_price),
                                 "available_quantity": var_product.meli_available_quantity,
                                 "picture_ids": var_pics
@@ -1913,6 +1917,14 @@ class product_product(models.Model):
                             varias["variations"].append(var)
                         #variations = product_tmpl._variations()
                         #varias["variations"] = variations
+                        _all_variations = product_tmpl._variations()
+                        _updated_ids = vars_updated.mapped('id')
+                        _new_candidates = product_tmpl.product_variant_ids.filtered(lambda pv: pv.id not in _updated_ids)
+                        for aix in range(len(_all_variations)):
+                            var_info = _all_variations[aix]
+                            for pvar in _new_candidates:
+                                if (pvar._is_product_combination(var_info)):
+                                    varias["variations"].append(var_info)
 
                         _logger.info(varias)
                         responsevar = meli.put("/items/"+product.meli_id, varias, {'access_token':meli.access_token})
