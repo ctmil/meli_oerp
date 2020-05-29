@@ -171,10 +171,13 @@ class product_template(models.Model):
             for variant in product.product_variant_ids:
                 if (variant.meli_pub):
                     if ( (variant.meli_status=="active" or variant.meli_status=="paused") and variant.meli_id):
+                        ml_full_status = variant.meli_status
+                        if (variant.meli_sub_status):
+                            ml_full_status+= ' ('+str(variant.meli_sub_status)+')'
                         if (len(_pubs)):
-                            _pubs = _pubs + "|" + variant.meli_id + ":" + variant.meli_status
+                            _pubs = _pubs + "|" + variant.meli_id + ":" + ml_full_status
                         else:
-                            _pubs = variant.meli_id + ":" + variant.meli_status
+                            _pubs = variant.meli_id + ":" + ml_full_status
 
                         if (variant.meli_status=="active"):
                             _stats = "active"
@@ -1312,6 +1315,7 @@ class product_product(models.Model):
         REFRESH_TOKEN = company.mercadolibre_refresh_token
 
         ML_status = "unknown"
+        ML_sub_status = ""
         ML_permalink = ""
         ML_state = False
         meli = None
@@ -1335,10 +1339,13 @@ class product_product(models.Model):
                     ML_status = rjson["error"]
                     ML_permalink = ""
                 if "sub_status" in rjson:
-                    if len(rjson["sub_status"]) and rjson["sub_status"][0]=='deleted':
-                        product.write({ 'meli_id': '' })
+                    if len(rjson["sub_status"]):
+                        ML_sub_status =  rjson["sub_status"][0]
+                        if ( ML_sub_status =='deleted' ):
+                            product.write({ 'meli_id': '' })
 
             product.meli_status = ML_status
+            product.meli_sub_status = ML_sub_status
             product.meli_permalink = ML_permalink
             product.meli_state = ML_state
 
@@ -2301,6 +2308,7 @@ class product_product(models.Model):
     meli_permalink = fields.Char( compute=product_get_meli_update, size=256, string='PermaLink in MercadoLibre', store=False )
     meli_state = fields.Boolean( compute=product_get_meli_update, string="Inicio de sesión requerida", store=False )
     meli_status = fields.Char( compute=product_get_meli_update, size=128, string="Estado del producto en ML", store=False )
+    meli_sub_status = fields.Char( compute=product_get_meli_update, size=128, string="Sub Estado del producto en ML", store=False )
 
     meli_attributes = fields.Text(string='Atributos')
 
