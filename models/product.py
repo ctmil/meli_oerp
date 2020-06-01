@@ -171,10 +171,13 @@ class product_template(models.Model):
             for variant in product.product_variant_ids:
                 if (variant.meli_pub):
                     if ( (variant.meli_status=="active" or variant.meli_status=="paused") and variant.meli_id):
+                        ml_full_status = variant.meli_status
+                        if (variant.meli_sub_status):
+                            ml_full_status+= ' ('+str(variant.meli_sub_status)+')'
                         if (len(_pubs)):
-                            _pubs = _pubs + "|" + variant.meli_id + ":" + variant.meli_status
+                            _pubs = _pubs + "|" + variant.meli_id + ":" + ml_full_status
                         else:
-                            _pubs = variant.meli_id + ":" + variant.meli_status
+                            _pubs = variant.meli_id + ":" + ml_full_status
 
                         if (variant.meli_status=="active"):
                             _stats = "active"
@@ -557,7 +560,7 @@ class product_product(models.Model):
             'name': rjson['title'].encode("utf-8"),
             #'default_code': rjson['id'],
             'meli_imagen_id': imagen_id,
-            'meli_post_required': True,
+            #'meli_post_required': True,
             'meli_id': rjson['id'],
             'meli_permalink': rjson['permalink'],
             'meli_title': rjson['title'].encode("utf-8"),
@@ -1120,7 +1123,6 @@ class product_product(models.Model):
     def product_meli_status_active( self ):
         company = self.env.user.company_id
         product_obj = self.env['product.product']
-        product = self
 
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
@@ -1128,8 +1130,19 @@ class product_product(models.Model):
         REFRESH_TOKEN = company.mercadolibre_refresh_token
 
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+        if (meli):
+            pass;
+        else:
+            return {}
 
-        response = meli.put("/items/"+product.meli_id, { 'status': 'active' }, {'access_token':meli.access_token})
+        for product in self:
+            _logger.info("activating "+str(product.meli_id))
+            response = meli.put("/items/"+product.meli_id, { 'status': 'active' }, {'access_token':meli.access_token})
+            if (response):
+                _logger.info(response.json())
+            else:
+                _logger.info("product_meli_status_active error")
+                _logger.info(response)
 
         return {}
 
@@ -1158,7 +1171,7 @@ class product_product(models.Model):
             ML_status = rjson["error"]
         if "sub_status" in rjson:
             if len(rjson["sub_status"]) and rjson["sub_status"][0]=='deleted':
-                product.write({ 'meli_id': '' })
+                product.write({ 'meli_id': '','meli_id_variation': '' })
 
         return {}
 
@@ -1299,8 +1312,10 @@ class product_product(models.Model):
         REFRESH_TOKEN = company.mercadolibre_refresh_token
 
         ML_status = "unknown"
+        ML_sub_status = ""
         ML_permalink = ""
         ML_state = False
+        meli = None
 
         if (ACCESS_TOKEN=='' or ACCESS_TOKEN==False):
             ML_status = "unknown"
@@ -1308,25 +1323,27 @@ class product_product(models.Model):
             ML_state = True
         else:
             meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
-            for product in self:
-                if product.meli_id:
-                    response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token} )
-                    rjson = response.json()
-                    if "status" in rjson:
-                        ML_status = rjson["status"]
-                    if "permalink" in rjson:
-                        ML_permalink = rjson["permalink"]
-                    if "error" in rjson:
-                        ML_status = rjson["error"]
-                        ML_permalink = ""
-                    if "sub_status" in rjson:
-                        if len(rjson["sub_status"]) and rjson["sub_status"][0]=='deleted':
-                            product.write({ 'meli_id': '' })
-
-                    product.meli_status = ML_status
-                    product.meli_permalink = ML_permalink
 
         for product in self:
+            if product.meli_id and meli:
+                response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token} )
+                rjson = response.json()
+                if "status" in rjson:
+                    ML_status = rjson["status"]
+                if "permalink" in rjson:
+                    ML_permalink = rjson["permalink"]
+                if "error" in rjson:
+                    ML_status = rjson["error"]
+                    ML_permalink = ""
+                if "sub_status" in rjson:
+                    if len(rjson["sub_status"]):
+                        ML_sub_status =  rjson["sub_status"][0]
+                        if ( ML_sub_status =='deleted' ):
+                            product.write({ 'meli_id': '','meli_id_variation': '' })
+
+            product.meli_status = ML_status
+            product.meli_sub_status = ML_sub_status
+            product.meli_permalink = ML_permalink
             product.meli_state = ML_state
 
     def _is_value_excluded(self, att_value ):
@@ -1375,7 +1392,7 @@ class product_product(models.Model):
             return False
 
         price = False
-        if (product.meli_price):
+        if (product.meli_price and float(product.meli_price)>0):
             price = product.meli_price
         qty = product.meli_available_quantity
 
@@ -1442,39 +1459,39 @@ class product_product(models.Model):
         product = self
         product_tmpl = self.product_tmpl_id
 
-        _logger.info("_is_product_combination:")
-        _logger.info(variation)
+        #_logger.info("_is_product_combination:")
+        #_logger.info(variation)
 
         _self_combinations = product._combination()
         _map_combinations = {}
-        _logger.info('_self_combinations')
-        _logger.info(_self_combinations)
+        #_logger.info('_self_combinations')
+        #_logger.info(_self_combinations)
 
         if 'attribute_combinations' in _self_combinations:
             for att in _self_combinations['attribute_combinations']:
-                _logger.info(att)
+                #_logger.info(att)
                 _map_combinations[att["name"]] = att["value_name"]
 
-        _logger.info('_map_combinations')
-        _logger.info(_map_combinations)
+        #_logger.info('_map_combinations')
+        #_logger.info(_map_combinations)
 
         _is_p_comb = True
 
         if ('attribute_combinations' in variation):
             #check if every att combination exist in this product
             for att in variation['attribute_combinations']:
-                _logger.info("chech att:"+str(att["name"]))
+                #_logger.info("chech att:"+str(att["name"]))
                 if ( att["name"] in _map_combinations):
                     if (_map_combinations[att["name"]]==att["value_name"]):
                         _is_p_comb = True
-                        _logger.info(_is_p_comb)
+                        #_logger.info(_is_p_comb)
                     else:
                         _is_p_comb = False
-                        _logger.info(_is_p_comb)
+                        #_logger.info(_is_p_comb)
                         break
                 else:
                     _is_p_comb = False
-                    _logger.info(_is_p_comb)
+                    #_logger.info(_is_p_comb)
                     break
 
         return _is_p_comb
@@ -1866,6 +1883,7 @@ class product_product(models.Model):
                     #preparamos las variantes
 
                     if ( productjson and len(productjson["variations"]) ):
+                        #ya hay variantes publicadas en ML
                         varias = {
                             "title": body["title"],
                             "pictures": body["pictures"],
@@ -1876,16 +1894,19 @@ class product_product(models.Model):
                             for pic in body["pictures"]:
                                 var_pics.append(pic['id'])
                         _logger.info("Variations already posted, must update them only")
+                        vars_updated = self.env["product.product"]
                         for ix in range(len(productjson["variations"]) ):
-                            _logger.info("Variation to update!!")
-                            _logger.info(productjson["variations"][ix])
-                            var_product = product
+                            var_info = productjson["variations"][ix]
+                            #_logger.info("Variation to update!!")
+                            #_logger.info(var_info)
+                            var_product = None
                             for pvar in product_tmpl.product_variant_ids:
-                                if (pvar._is_product_combination(productjson["variations"][ix])):
+                                if (pvar._is_product_combination(var_info)):
                                     var_product = pvar
                                     var_product.meli_available_quantity = var_product.virtual_available
+                                    vars_updated+=var_product
                             var = {
-                                "id": str(productjson["variations"][ix]["id"]),
+                                "id": str(var_info["id"]),
                                 "price": str(product_tmpl.meli_price),
                                 "available_quantity": var_product.meli_available_quantity,
                                 "picture_ids": var_pics
@@ -1893,6 +1914,18 @@ class product_product(models.Model):
                             varias["variations"].append(var)
                         #variations = product_tmpl._variations()
                         #varias["variations"] = variations
+                        _all_variations = product_tmpl._variations()
+                        _updated_ids = vars_updated.mapped('id')
+                        _logger.info(_updated_ids)
+                        _new_candidates = product_tmpl.product_variant_ids.filtered(lambda pv: pv.id not in _updated_ids)
+                        _logger.info(_new_candidates)
+                        for aix in range(len(_all_variations)):
+                            var_info = _all_variations[aix]
+                            for pvar in _new_candidates:
+                                if (pvar._is_product_combination(var_info)):
+                                    #varias["variations"].append(var_info)
+                                    _logger.info("news:")
+                                    _logger.info(var_info)
 
                         _logger.info(varias)
                         responsevar = meli.put("/items/"+product.meli_id, varias, {'access_token':meli.access_token})
@@ -1997,6 +2030,13 @@ class product_product(models.Model):
         #last modifications if response is OK
         if "id" in rjson:
             product.write( { 'meli_id': rjson["id"]} )
+            if ("variations" in rjson):
+                for ix in range(len(rjson["variations"]) ):
+                    _var = rjson["variations"][ix]
+                    for pvar in product_tmpl.product_variant_ids:
+                        if (pvar._is_product_combination(_var) and 'id' in _var):
+                            pvar.meli_id_variation = _var["id"]
+
 
         posting_fields = {'posting_date': str(datetime.now()),'meli_id':rjson['id'],'product_id':product.id,'name': 'Post: ' + product.meli_title }
 
@@ -2269,29 +2309,30 @@ class product_product(models.Model):
     meli_listing_type = fields.Selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special/Clásica"),("gold_pro","Oro Pro")], string='Tipo de lista')
 
     #post only fields
-    meli_post_required = fields.Boolean(string='Este producto es publicable en Mercado Libre')
-    meli_id = fields.Char( string='Id del item asignado por Meli', size=256, index=True)
+    meli_post_required = fields.Boolean(string='Publicable', help='Este producto es publicable en Mercado Libre')
+    meli_id = fields.Char(string='Id', help='Id del item asignado por Meli', size=256, index=True)
     meli_description_banner_id = fields.Many2one("mercadolibre.banner","Banner")
-    meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
-    meli_price = fields.Char(string='Precio de venta', size=128)
+    meli_buying_mode = fields.Selection(string='Método',help='Método de compra',selection=[("buy_it_now","Compre ahora"),("classified","Clasificado")])
+    meli_price = fields.Char( string='Precio',help='Precio de venta en ML', size=128)
     meli_price_fixed = fields.Boolean(string='Price is fixed')
-    meli_available_quantity = fields.Integer(string='Cantidad disponible')
+    meli_available_quantity = fields.Integer(string='Cantidades', help='Cantidad disponible a publicar en ML')
     meli_imagen_logo = fields.Char(string='Imagen Logo', size=256)
     meli_imagen_id = fields.Char(string='Imagen Id', size=256)
     meli_imagen_link = fields.Char(string='Imagen Link', size=256)
     meli_multi_imagen_id = fields.Char(string='Multi Imagen Ids', size=512)
     meli_video = fields.Char( string='Video (id de youtube)', size=256)
 
-    meli_permalink = fields.Char( compute=product_get_meli_update, size=256, string='PermaLink in MercadoLibre', store=False )
-    meli_state = fields.Boolean( compute=product_get_meli_update, string="Inicio de sesión requerida", store=False )
-    meli_status = fields.Char( compute=product_get_meli_update, size=128, string="Estado del producto en ML", store=False )
+    meli_permalink = fields.Char( compute=product_get_meli_update, size=256, string='Link',help='PermaLink in MercadoLibre', store=False )
+    meli_state = fields.Boolean( compute=product_get_meli_update, string='Login',help="Inicio de sesión requerida", store=False )
+    meli_status = fields.Char( compute=product_get_meli_update, size=128, string='Status', help="Estado del producto en ML", store=False )
+    meli_sub_status = fields.Char( compute=product_get_meli_update, size=128, string='Sub status',help="Sub Estado del producto en ML", store=False )
 
     meli_attributes = fields.Text(string='Atributos')
 
     meli_model = fields.Char(string="Modelo",size=256)
     meli_brand = fields.Char(string="Marca",size=256)
     meli_default_stock_product = fields.Many2one("product.product","Producto de referencia para stock")
-    meli_id_variation = fields.Char( string='Id de Variante de Meli', size=256)
+    meli_id_variation = fields.Char( string='Variation Id',help='Id de Variante de Meli', size=256)
 
     _defaults = {
         'meli_imagen_logo': 'None',
