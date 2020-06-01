@@ -1919,12 +1919,16 @@ class product_product(models.Model):
                         #varias["variations"] = variations
                         _all_variations = product_tmpl._variations()
                         _updated_ids = vars_updated.mapped('id')
+                        _logger.info(_updated_ids)
                         _new_candidates = product_tmpl.product_variant_ids.filtered(lambda pv: pv.id not in _updated_ids)
+                        _logger.info(_new_candidates)
                         for aix in range(len(_all_variations)):
                             var_info = _all_variations[aix]
                             for pvar in _new_candidates:
                                 if (pvar._is_product_combination(var_info)):
-                                    varias["variations"].append(var_info)
+                                    #varias["variations"].append(var_info)
+                                    _logger.info("news:")
+                                    _logger.info(var_info)
 
                         _logger.info(varias)
                         responsevar = meli.put("/items/"+product.meli_id, varias, {'access_token':meli.access_token})
