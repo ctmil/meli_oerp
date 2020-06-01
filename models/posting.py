@@ -141,12 +141,12 @@ class mercadolibre_posting(models.Model):
                         'date_created': _ml_datetime(Question['date_created']),
                         'item_id': Question['item_id'],
                         'seller_id': Question['seller_id'],
-                        'text': str(Question['text'].encode("utf-8")),
+                        'text': Question['text'].encode("utf-8"),
                         'status': Question['status'],
                     }
 
                     if (question_answer):
-                        question_fields['answer_text'] = str(question_answer['text'].encode("utf-8"))
+                        question_fields['answer_text'] = question_answer['text'].encode("utf-8")
                         question_fields['answer_status'] = question_answer['status']
                         question_fields['answer_date_created'] = _ml_datetime(question_answer['date_created'])
 

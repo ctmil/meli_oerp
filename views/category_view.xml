@@ -43,6 +43,28 @@
         </record>
 
 
+        <record model="ir.ui.view" id="view_meli_category_form">
+            <field name="name">mercadolibre.category.form</field>
+            <field name="model">mercadolibre.category</field>
+            <field name="type">form</field>
+            <field name="arch" type="xml">
+              <form string="Category">
+                <group>
+                    <field name="name"/>
+                    <field name="is_branch"/>
+                    <field name="meli_category_id"/>
+                    <field name="meli_father_category"/>
+                    <field name="meli_father_category_id"/>
+                    <field name="public_category_id"/>
+                    <field name="meli_category_url" widget="url"/>
+                    <field name="meli_category_attributes" widget="url"/>
+                    <field name="meli_category_attribute_ids"/>
+                  </group>
+                </form>
+            </field>
+        </record>
+
+
         <record model="ir.actions.act_window" id="action_meli_categories_tree">
             <field name="name">Categorías</field>
             <field name="type">ir.actions.act_window</field>
