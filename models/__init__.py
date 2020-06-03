@@ -6,6 +6,7 @@
 #
 ##############################################################################
 
+from . import versions
 from . import warning
 from . import company
 from . import product
