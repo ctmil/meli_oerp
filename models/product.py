@@ -1785,7 +1785,17 @@ class product_product(models.Model):
         }
         if (product.meli_category.meli_category_id == "MLA9214"):
             body["price"] = None
-            del body["condition"]
+            body["currency_id"] = None
+            body["condition"] = None
+            body["location"] = {
+                "address_line": "mi direccion 1111",
+                "city": {
+                    "name": "Capital Federal"
+                },
+                "state": {
+                    "name": "Capital Federal"
+                }
+            }
 
         bodydescription = {
             "plain_text": product.meli_description or '',
