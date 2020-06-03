@@ -1783,7 +1783,7 @@ class product_product(models.Model):
             #"pictures": [ { 'source': product.meli_imagen_logo} ] ,
             "video_id": product.meli_video  or '',
         }
-        if (product.meli_category.meli_category_id == "MLA9214"):
+        if (product.meli_category.meli_father_category_id in ["MLA122201","MLA1540"]):
             body["price"] = None
             body["currency_id"] = None
             body["condition"] = None
