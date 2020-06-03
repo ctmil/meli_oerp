@@ -1794,6 +1794,9 @@ class product_product(models.Model):
                 },
                 "state": {
                     "name": "Capital Federal"
+                },
+                "country": {
+                    "name": "Argentina"
                 }
             }
 
