@@ -40,6 +40,8 @@ import string
 if (not ('replace' in string.__dict__)):
     string = str
 
+from .versions import *
+
 class product_template(models.Model):
     _inherit = "product.template"
 
@@ -260,7 +262,7 @@ class product_template(models.Model):
     meli_variants_status = fields.Text(compute=product_template_stats,string='Meli Variant Status')
 
     meli_pub_as_variant = fields.Boolean('Publicar variantes como variantes en ML',help='Publicar variantes como variantes de la misma publicación, no como publicaciones independientes.')
-    meli_pub_variant_attributes = fields.Many2many('product.template.attribute.line', string='Atributos a publicar en ML',help='Seleccionar los atributos a publicar')
+    meli_pub_variant_attributes = fields.Many2many(prod_att_line, string='Atributos a publicar en ML',help='Seleccionar los atributos a publicar')
     meli_pub_principal_variant = fields.Many2one( 'product.product',string='Variante principal',help='Variante principal')
 
     meli_model = fields.Char(string="Modelo [meli]",size=256)
@@ -478,7 +480,7 @@ class product_product(models.Model):
     def product_meli_get_product( self ):
         company = self.env.user.company_id
         product_obj = self.env['product.product']
-        uomobj = self.env['uom.uom']
+        uomobj = self.env[uom_model]
         #pdb.set_trace()
         product = self
 
@@ -714,7 +716,7 @@ class product_product(models.Model):
                                         _logger.info("attribute_duplicates:",len(attribute_duplicates))
                                         for attdup in attribute_duplicates:
                                             _logger.info("duplicate:"+attdup.name+":"+str(attdup.id))
-                                            attdup_line =  self.env['product.template.attribute.line'].search([('attribute_id','=',attdup.id),('product_tmpl_id','=',product_template.id)])
+                                            attdup_line =  self.env[prod_att_line].search([('attribute_id','=',attdup.id),('product_tmpl_id','=',product_template.id)])
                                             if (len(attdup_line)):
                                                 for attline in attdup_line:
                                                     attline.unlink()
@@ -722,7 +724,7 @@ class product_product(models.Model):
 
                                 #buscar en las lineas existentes
                                 if (len(attribute)>1):
-                                    att_line = self.env['product.template.attribute.line'].search([('attribute_id','in',attribute.ids),('product_tmpl_id','=',product_template.id)])
+                                    att_line = self.env[prod_att_line].search([('attribute_id','in',attribute.ids),('product_tmpl_id','=',product_template.id)])
                                     _logger.info(att_line)
                                     if (len(att_line)):
                                         _logger.info("Atributo ya asignado!")
@@ -763,14 +765,14 @@ class product_product(models.Model):
                                     #_logger.info("attribute_value_id:")
                                     #_logger.info(attribute_value_id)
                                     #search for line ids.
-                                    attribute_line =  self.env['product.template.attribute.line'].search([('attribute_id','=',attribute_id),('product_tmpl_id','=',product_template.id)])
+                                    attribute_line =  self.env[prod_att_line].search([('attribute_id','=',attribute_id),('product_tmpl_id','=',product_template.id)])
                                     #_logger.info(attribute_line)
                                     if (attribute_line and attribute_line.id):
                                         #_logger.info(attribute_line)
                                         pass
                                     else:
                                         #_logger.info("Creating att line id:")
-                                        attribute_line =  self.env['product.template.attribute.line'].create( { 'attribute_id': attribute_id,'product_tmpl_id': product_template.id, 'value_ids': [(4,attribute_value_id)] } )
+                                        attribute_line =  self.env[prod_att_line].create( { 'attribute_id': attribute_id,'product_tmpl_id': product_template.id, 'value_ids': [(4,attribute_value_id)] } )
 
                                     if (attribute_line):
                                         #_logger.info("Check attribute line values id.")
@@ -946,13 +948,13 @@ class product_product(models.Model):
                                     attribute_value_id = self.env['product.attribute.value'].create({'attribute_id': attribute_id, 'name': att['value_name'] }).id
 
                             if (attribute_value_id):
-                                attribute_line =  self.env['product.template.attribute.line'].search([('attribute_id','=',attribute_id),('product_tmpl_id','=',product_template.id)])
+                                attribute_line =  self.env[prod_att_line].search([('attribute_id','=',attribute_id),('product_tmpl_id','=',product_template.id)])
                                 if (attribute_line and attribute_line.id):
                                     #_logger.info(attribute_line)
                                     pass
                                 else:
                                     #_logger.info("Creating att line id:")
-                                    attribute_line =  self.env['product.template.attribute.line'].create( { 'attribute_id': attribute_id, 'product_tmpl_id': product_template.id, 'value_ids': [(4,attribute_value_id)] } )
+                                    attribute_line =  self.env[prod_att_line].create( { 'attribute_id': attribute_id, 'product_tmpl_id': product_template.id, 'value_ids': [(4,attribute_value_id)] } )
 
                                 if (attribute_line):
                                     #_logger.info("Check attribute line values id.")
@@ -982,7 +984,7 @@ class product_product(models.Model):
         # CONDICION: tener un
         variant = self
         product_template = self.product_tmpl_id
-        uomobj = self.env['uom.uom']
+        uomobj = self.env[uom_model]
         if (not ("mrp.bom" in self.env)):
             _logger.info("mrp.bom not found")
             _logger.error("Must install Manufacturing Module")
@@ -2202,7 +2204,7 @@ class product_product(models.Model):
 
     def product_update_stock(self, stock=False):
         product = self
-        uomobj = self.env['uom.uom']
+        uomobj = self.env[uom_model]
         _stock = product.virtual_available
 
         if (stock!=False):
