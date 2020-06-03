@@ -499,7 +499,7 @@ class product_product(models.Model):
             response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token})
             #_logger.info(response)
             rjson = response.json()
-            #_logger.info(rjson)
+            _logger.info(rjson)
         except IOError as e:
             _logger.info( "I/O error({0}): {1}".format(e.errno, e.strerror) )
             return {}
@@ -554,7 +554,11 @@ class product_product(models.Model):
             if (len(rjson['pictures'])>0):
                 imagen_id = rjson['pictures'][0]['id']
 
-        product._meli_set_price( product_template, rjson['price'] )
+        try:
+            if (float(rjson['price'])>=0.0):
+                product._meli_set_price( product_template, rjson['price'] )
+        except:
+            rjson['price'] = 0.0
 
         meli_fields = {
             'name': rjson['title'].encode("utf-8"),
