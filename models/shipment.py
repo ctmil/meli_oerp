@@ -44,6 +44,8 @@ from pdf2image import convert_from_path, convert_from_bytes
 from dateutil.parser import *
 from datetime import *
 
+from .versions import *
+
 def _ml_datetime(datestr):
 	try:
 		#return parse(datestr).isoformat().replace("T"," ")
@@ -592,7 +594,7 @@ mercadolibre_shipment()
 
 
 class AccountInvoice(models.Model):
-	_inherit = "account.move"
+	_inherit = acc_inv_model
 
 	@api.model
 	def _get_shipment(self):

@@ -30,6 +30,8 @@ import requests
 from ..melisdk.meli import Meli
 import json
 
+from .versions import *
+
 class product_public_category(models.Model):
 
     _inherit="product.public.category"
@@ -182,7 +184,7 @@ class mercadolibre_category(models.Model):
 
                                 prod_att = {
                                     'name': att['name'],
-                                    'create_variant': 'always',
+                                    'create_variant': default_create_variant,
                                     'meli_default_id_attribute': attrs[0].id,
                                     #'meli_id': attrs[0].att_id
                                 }

@@ -453,7 +453,7 @@ class product_product(models.Model):
                         'meli_pub': True
                     }
                     #_logger.info(pimg_fields)
-                    if (product.product_variant_image_ids):
+                    if (product.variant_image_ids()):
                         pimage = self.env["product.image"].search([('meli_imagen_id','=',pic["id"]),('product_tmpl_id','=',product_template.id)])
                         #_logger.info(pimage)
                         if (pimage and pimage.image):
@@ -640,7 +640,7 @@ class product_product(models.Model):
         if ('shipping' in rjson):
             att_shipping = {
                 'name': 'Con envío',
-                'create_variant': 'no_variant'
+                'create_variant': default_no_create_variant
             }
             if ('variations' in rjson):
                 #_logger.info("has variations")
@@ -674,7 +674,7 @@ class product_product(models.Model):
                             att = {
                                 'name': namecap,
                                 'value_name': attcomb['value_name'],
-                                'create_variant': 'always',
+                                'create_variant': default_create_variant,
                                 'att_id': False
                             }
                             if ('id' in attcomb):
@@ -720,7 +720,6 @@ class product_product(models.Model):
                                             if (len(attdup_line)):
                                                 for attline in attdup_line:
                                                     attline.unlink()
-                                            #attdup.unlink()
 
                                 #buscar en las lineas existentes
                                 if (len(attribute)>1):
@@ -745,7 +744,7 @@ class product_product(models.Model):
                                 #_logger.info("Creating attribute:")
                                 attribute_id = self.env['product.attribute'].create({ 'name': att['name'],'create_variant': att['create_variant'] }).id
 
-                            if (att['create_variant']=='always'):
+                            if (att['create_variant']==default_create_variant):
                                 #_logger.info("published_att_variants")
                                 published_att_variants = True
 
@@ -772,7 +771,11 @@ class product_product(models.Model):
                                         pass
                                     else:
                                         #_logger.info("Creating att line id:")
-                                        attribute_line =  self.env[prod_att_line].create( { 'attribute_id': attribute_id,'product_tmpl_id': product_template.id, 'value_ids': [(4,attribute_value_id)] } )
+                                        attribute_line =  self.env[prod_att_line].create( { 
+                                            'attribute_id': attribute_id,
+                                            'value_ids': [(4,attribute_value_id)],
+                                            'product_tmpl_id': product_template.id
+                                        } )
 
                                     if (attribute_line):
                                         #_logger.info("Check attribute line values id.")
@@ -827,7 +830,7 @@ class product_product(models.Model):
                 has_sku = False
 
                 _v_default_code = ""
-                for att in variant.product_template_attribute_value_ids:
+                for att in variant.att_value_ids():
                     _v_default_code = _v_default_code + att.attribute_id.name+':'+att.name+';'
                 #_logger.info("_v_default_code: " + _v_default_code)
                 for variation in rjson['variations']:
@@ -954,7 +957,11 @@ class product_product(models.Model):
                                     pass
                                 else:
                                     #_logger.info("Creating att line id:")
-                                    attribute_line =  self.env[prod_att_line].create( { 'attribute_id': attribute_id, 'product_tmpl_id': product_template.id, 'value_ids': [(4,attribute_value_id)] } )
+                                    attribute_line =  self.env[prod_att_line].create( { 
+                                        'attribute_id': attribute_id,
+                                        'value_ids': [(4,attribute_value_id)],
+                                        'product_tmpl_id': product_template.id
+                                    } )
 
                                 if (attribute_line):
                                     #_logger.info("Check attribute line values id.")
@@ -1240,14 +1247,14 @@ class product_product(models.Model):
         #
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
-        if product.product_variant_image_ids==None:
+        if product.variant_image_ids()==None:
             return { 'status': 'error', 'message': 'no images to upload' }
 
         image_ids = []
         c = 0
 
         #loop over images
-        for product_image in product.product_variant_image_ids:
+        for product_image in product.variant_image_ids():
             if (product_image.image_1920):
                 #_logger.info( "product_image.image_1920:" + str(product_image.image_1920) )
                 imagebin = base64.b64decode( product_image.image_1920 )
@@ -1374,7 +1381,7 @@ class product_product(models.Model):
             att_to_pub.append(line.attribute_id.name)
         #_logger.info(att_to_pub)
 
-        for att in product.product_template_attribute_value_ids:
+        for att in product.att_value_ids():
             if (att.attribute_id.name in att_to_pub):
                 conditionok = True
             if (self._is_value_excluded(att)):
@@ -1427,7 +1434,7 @@ class product_product(models.Model):
 
         #customized attrs:
         customs = []
-        for att in product.product_template_attribute_value_ids:
+        for att in product.att_value_ids():
             if (att.attribute_id.name in att_to_pub):
                 if (not att.attribute_id.meli_default_id_attribute.id):
                     customs.append(att)
@@ -1641,7 +1648,7 @@ class product_product(models.Model):
             if len(product_tmpl.meli_pub_variant_attributes):
                 values = ""
                 for line in product_tmpl.meli_pub_variant_attributes:
-                    for value in product.product_template_attribute_value_ids:
+                    for value in product.att_value_ids():
                         if (value.attribute_id.id==line.attribute_id.id):
                             values+= " "+value.name
                 if (not product_tmpl.meli_pub_as_variant):
@@ -1866,7 +1873,7 @@ class product_product(models.Model):
 
         #publicando multiples imagenes
         multi_images_ids = {}
-        if (product.product_variant_image_ids):
+        if (product.variant_image_ids()):
             multi_images_ids = product.product_meli_upload_multi_images()
             if 'status' in multi_images_ids:
                 _logger.error(multi_images_ids)
@@ -2029,7 +2036,6 @@ class product_product(models.Model):
                 del body['price']
                 del body['available_quantity']
                 resbody = meli.put("/items/"+product.meli_id, body, {'access_token':meli.access_token})
-
                 return {}
 
         #check fields

@@ -125,7 +125,7 @@ class Download(http.Controller):
 
         :param str model: name of the model to fetch the data from
         :param str record_id: id of the record from which to fetch the data
-        :param str method: name of the method used to fetch data, decorated with
+        :param str method: name of the method used to fetch data, decorated with @api.one
         :param bool encoded: whether the data is encoded in base64
         :param str filename: the file's name, if any
         :returns: :class:`werkzeug.wrappers.Response`
