@@ -1785,6 +1785,7 @@ class product_product(models.Model):
         }
         if (product.meli_category.meli_category_id == "MLA9214"):
             body["price"] = None
+            del body["condition"]
 
         bodydescription = {
             "plain_text": product.meli_description or '',
