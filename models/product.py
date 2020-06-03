@@ -1783,6 +1783,8 @@ class product_product(models.Model):
             #"pictures": [ { 'source': product.meli_imagen_logo} ] ,
             "video_id": product.meli_video  or '',
         }
+        if (product.meli_category.meli_category_id == "MLA9214"):
+            body["price"] = None
 
         bodydescription = {
             "plain_text": product.meli_description or '',
