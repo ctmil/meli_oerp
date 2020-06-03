@@ -1960,7 +1960,15 @@ class product_product(models.Model):
 
                         _logger.info(varias)
                         responsevar = meli.put("/items/"+product.meli_id, varias, {'access_token':meli.access_token})
-                        _logger.info(responsevar.json())
+                        rjsonv = responsevar.json()
+                        _logger.info(rjsonv)
+                        if ("variations" in rjsonv):
+                            for ix in range(len(rjsonv["variations"]) ):
+                                _var = rjsonv["variations"][ix]
+                                for pvar in product_tmpl.product_variant_ids:
+                                    if (pvar._is_product_combination(_var) and 'id' in _var):
+                                        pvar.meli_id_variation = _var["id"]
+
                         #_logger.debug(responsevar.json())
                         resdes = meli.put("/items/"+product.meli_id+"/description", bodydescription, {'access_token':meli.access_token})
                         #_logger.debug(resdes.json())
@@ -2021,6 +2029,7 @@ class product_product(models.Model):
                 del body['price']
                 del body['available_quantity']
                 resbody = meli.put("/items/"+product.meli_id, body, {'access_token':meli.access_token})
+
                 return {}
 
         #check fields
