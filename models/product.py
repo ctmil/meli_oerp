@@ -1954,7 +1954,7 @@ class product_product(models.Model):
                             var_info = _all_variations[aix]
                             for pvar in _new_candidates:
                                 if (pvar._is_product_combination(var_info)):
-                                    #varias["variations"].append(var_info)
+                                    varias["variations"].append(var_info)
                                     _logger.info("news:")
                                     _logger.info(var_info)
 
