@@ -554,7 +554,11 @@ class product_product(models.Model):
             if (len(rjson['pictures'])>0):
                 imagen_id = rjson['pictures'][0]['id']
 
-        product._meli_set_price( product_template, rjson['price'] )
+        try:
+            if (float(rjson['price'])>=0.0):
+                product._meli_set_price( product_template, rjson['price'] )
+        except:
+            rjson['price'] = 0.0
 
         meli_fields = {
             'name': rjson['title'].encode("utf-8"),
@@ -730,7 +734,6 @@ class product_product(models.Model):
                             elif (len(attribute)>1):
                                 _logger.error("Attributes duplicated names!!!")
                                 attribute_id = attribute[0].id
-
 
                             #_logger.info(attribute_id)
                             if attribute_id:
@@ -1499,6 +1502,27 @@ class product_product(models.Model):
 
         return _is_p_comb
 
+    def _validate_category_settings( self, body ):
+        for product in self:
+            if (product.meli_category and
+                str(product.meli_category.meli_father_category_id) in ["MLA122201","MLA1540"]):
+                body["price"] = None
+                body["currency_id"] = None
+                body["condition"] = None
+                body["location"] = {
+                    "address_line": "mi direccion 1111",
+                    "city": {
+                        "name": "Capital Federal"
+                    },
+                    "state": {
+                        "name": "Capital Federal"
+                    },
+                    "country": {
+                        "name": "Argentina"
+                    }
+                }
+                return body
+
     def product_post_variant(self,variant_principal):
 
         _logger.debug('[DEBUG] product_post_variant, assign meli_id')
@@ -1780,6 +1804,8 @@ class product_product(models.Model):
             #"pictures": [ { 'source': product.meli_imagen_logo} ] ,
             "video_id": product.meli_video  or '',
         }
+
+        body = product._validate_category_settings( body )
 
         bodydescription = {
             "plain_text": product.meli_description or '',

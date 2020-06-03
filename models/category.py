@@ -87,11 +87,11 @@ class mercadolibre_category(models.Model):
         REFRESH_TOKEN = company.mercadolibre_refresh_token
 
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
-        _logger.info("_get_category_url:"+str(self.meli_category_id))
 
         for category in self:
             if (category.meli_category_id):
-                response_cat = meli.get("/categories/"+str(self.meli_category_id), {'access_token':meli.access_token})
+                _logger.info("_get_category_url:"+str(category.meli_category_id))
+                response_cat = meli.get("/categories/"+str(category.meli_category_id), {'access_token':meli.access_token})
                 rjson_cat = response_cat.json()
                 category.is_branch = ( "children_categories" in rjson_cat and len(rjson_cat["children_categories"])>0 )
                 category.meli_category_url = "https://api.mercadolibre.com/categories/"+str(category.meli_category_id)
@@ -119,13 +119,12 @@ class mercadolibre_category(models.Model):
         REFRESH_TOKEN = company.mercadolibre_refresh_token
 
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
-        _logger.info("_get_attributes:"+str(self.meli_category_id))
         for category in self:
             if (category.meli_category_id
                 and category.is_branch==False
                 and ( category.meli_category_attribute_ids==None or len(category.meli_category_attribute_ids)==0 )):
-
-                category.meli_category_attributes = "https://api.mercadolibre.com/categories/"+str(self.meli_category_id)+"/attributes"
+                _logger.info("_get_attributes:"+str(category.meli_category_id))
+                category.meli_category_attributes = "https://api.mercadolibre.com/categories/"+str(category.meli_category_id)+"/attributes"
                 resp = meli.get("/categories/"+str(category.meli_category_id)+"/attributes", {'access_token':meli.access_token})
                 rjs = resp.json()
                 att_ids = []
