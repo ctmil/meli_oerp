@@ -31,6 +31,7 @@ def get_image_full(self):
     return self.image_1920
 
 def set_image_full(self, image):
-    return (self.image_1920 = image)
+    self.image_1920 = image
+    return True
     
     
