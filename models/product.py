@@ -418,7 +418,7 @@ class product_product(models.Model):
             thumbnail_url = pictures[0]['url']
             image = urlopen(thumbnail_url).read()
             image_base64 = base64.encodestring(image)
-            product.image_1920 = image_base64
+            set_image_full(product, image_base64)
 
             if (len(pictures)>1):
                 #complete product images:
@@ -472,7 +472,7 @@ class product_product(models.Model):
                         if (bin_updating):
                             _logger.info("Updating image data.")
                             _logger.info("Image:"+str(meli_imagen_bytes) )
-                            pimage.image_1920 = image_base64
+                            set_image_full(pimage, image_base64)
         except Exception as e:
             _logger.info("_meli_set_images Exception")
             _logger.info(e, exc_info=True)
@@ -771,7 +771,7 @@ class product_product(models.Model):
                                         pass
                                     else:
                                         #_logger.info("Creating att line id:")
-                                        attribute_line =  self.env[prod_att_line].create( { 
+                                        attribute_line =  self.env[prod_att_line].create( {
                                             'attribute_id': attribute_id,
                                             'value_ids': [(4,attribute_value_id)],
                                             'product_tmpl_id': product_template.id
@@ -957,7 +957,7 @@ class product_product(models.Model):
                                     pass
                                 else:
                                     #_logger.info("Creating att line id:")
-                                    attribute_line =  self.env[prod_att_line].create( { 
+                                    attribute_line =  self.env[prod_att_line].create( {
                                         'attribute_id': attribute_id,
                                         'value_ids': [(4,attribute_value_id)],
                                         'product_tmpl_id': product_template.id
@@ -1205,11 +1205,11 @@ class product_product(models.Model):
         #
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
-        if product.image_1920==None or product.image_1920==False:
+        if get_image_full(product)==None or get_image_full(product)==False:
             return { 'status': 'error', 'message': 'no image to upload' }
 
-        imagebin = base64.b64decode(product.image_1920)
-        imageb64 = product.image_1920
+        imagebin = base64.b64decode(get_image_full(product))
+        imageb64 = get_image_full(product)
         files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
         response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
 
@@ -1255,9 +1255,8 @@ class product_product(models.Model):
 
         #loop over images
         for product_image in variant_image_ids(product):
-            if (product_image.image_1920):
-                #_logger.info( "product_image.image_1920:" + str(product_image.image_1920) )
-                imagebin = base64.b64decode( product_image.image_1920 )
+            if (get_image_full(product_image)):
+                imagebin = base64.b64decode( get_image_full(product_image) )
                 #files = { 'file': ('image.png', imagebin, "image/png"), }
                 files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
                 response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
@@ -1455,7 +1454,7 @@ class product_product(models.Model):
             }
             var_comb["attribute_combinations"].append(att_combination)
 
-        for att in product.attribute_line_ids:
+        for att in att_line_ids(product):
             if (att.attribute_id.name in att_to_pub):
                 if (att.attribute_id.meli_default_id_attribute.id):
                     if (att.attribute_id.meli_default_id_attribute.variation_attribute):
@@ -1823,7 +1822,7 @@ class product_product(models.Model):
         assign_img = False and product.meli_id
 
         #publicando imagen cargada en OpenERP
-        if product.image_1920==None:
+        if get_image_full(product)==None:
             return warningobj.info( title='MELI WARNING', message="Debe cargar una imagen de base en el producto.", message_html="" )
         else:
             # _logger.info( "try uploading image..." )

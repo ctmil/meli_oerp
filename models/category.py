@@ -237,11 +237,10 @@ class mercadolibre_category(models.Model):
             father = None
             response_cat = meli.get("/categories/"+str(category_id), {'access_token':meli.access_token})
             rjson_cat = response_cat.json()
-            if ("children_categories" in rjson_cat and len(rjson_cat["children_categories"])>0):
-                is_branch = True
+            is_branch = ("children_categories" in rjson_cat and len(rjson_cat["children_categories"])>0)
 
             ml_cat_id = category_obj.search([('meli_category_id','=',category_id)])
-            if (ml_cat_id.id and is_branch==False):
+            if (len(ml_cat_id) and ml_cat_id[0].id and is_branch==False):
                 #_logger.info("category exists!" + str(ml_cat_id))
                 ml_cat_id._get_attributes()
             else:
@@ -255,7 +254,9 @@ class mercadolibre_category(models.Model):
                     fullname = fullname + "/" + path["name"]
                   if (len(rjson_cat["path_from_root"])>1):
                       father_ml_id = rjson_cat["path_from_root"][len(rjson_cat["path_from_root"])-2]["id"]
-                      father = category_obj.search([('meli_category_id','=',father_ml_id)]).id
+                      father_id = category_obj.search([('meli_category_id','=',father_ml_id)])
+                      if (father_id and len(father_id)):
+                          father = father[0].id
 
 
                 #fullname = fullname + "/" + rjson_cat['name']

@@ -22,3 +22,15 @@ def variant_image_ids(self):
 #att value ids
 def att_value_ids(self):
     return self.product_template_attribute_value_ids
+
+#att line ids
+def att_line_ids(self):
+    return self.attribute_line_ids
+
+def get_image_full(self):
+    return self.image_1920
+
+def set_image_full(self, image):
+    return (self.image_1920 = image)
+    
+    
