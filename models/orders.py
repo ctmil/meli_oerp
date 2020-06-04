@@ -114,15 +114,15 @@ class sale_order(models.Model):
                 _logger.info("paid_delivered ok! delivering")
                 for spick in self.picking_ids:
                     _logger.info(spick)
-                    if (spick.pack_operation_product_ids):
-                        _logger.info(spick.pack_operation_product_ids)
-                        if (len(spick.pack_operation_product_ids)>=1):
-                            for pop in spick.pack_operation_product_ids:
+                    if (spick.move_line_ids):
+                        _logger.info(spick.move_line_ids)
+                        if (len(spick.move_line_ids)>=1):
+                            for pop in spick.move_line_ids:
                                 _logger.info(pop)
                                 if (pop.qty_done==0.0 and pop.product_qty>=0.0):
                                     pop.qty_done = pop.product_qty
                             _logger.info("do_new_transfer")
-                            spick.do_new_transfer()
+                            spick.action_done()
 
 sale_order()
 
