@@ -40,10 +40,12 @@ import string
 if (not ('replace' in string.__dict__)):
     string = str
 
+from .versions import *
+
 class product_template(models.Model):
     _inherit = "product.template"
 
-    @api.multi
+
     def product_template_post(self):
         product_obj = self.env['product.template']
         company = self.env.user.company_id
@@ -162,7 +164,7 @@ class product_template(models.Model):
 
         return variations
 
-    @api.one
+
     def product_template_stats(self):
 
         _pubs = ""
@@ -190,7 +192,7 @@ class product_template(models.Model):
 
         return {}
 
-    @api.multi
+
     def action_meli_pause(self):
         for product in self:
             for variant in product.product_variant_ids:
@@ -198,7 +200,7 @@ class product_template(models.Model):
                     variant.product_meli_status_pause()
         return {}
 
-    @api.multi
+
     def action_meli_activate(self):
         for product in self:
             for variant in product.product_variant_ids:
@@ -206,7 +208,7 @@ class product_template(models.Model):
                     variant.product_meli_status_active()
         return {}
 
-    @api.multi
+
     def action_meli_close(self):
         for product in self:
             for variant in product.product_variant_ids:
@@ -214,7 +216,7 @@ class product_template(models.Model):
                     variant.product_meli_status_close()
         return {}
 
-    @api.multi
+
     def action_meli_delete(self):
         for product in self:
             for variant in product.product_variant_ids:
@@ -260,7 +262,7 @@ class product_template(models.Model):
     meli_variants_status = fields.Text(compute=product_template_stats,string='Meli Variant Status')
 
     meli_pub_as_variant = fields.Boolean('Publicar variantes como variantes en ML',help='Publicar variantes como variantes de la misma publicación, no como publicaciones independientes.')
-    meli_pub_variant_attributes = fields.Many2many('product.template.attribute.line', string='Atributos a publicar en ML',help='Seleccionar los atributos a publicar')
+    meli_pub_variant_attributes = fields.Many2many(prod_att_line, string='Atributos a publicar en ML',help='Seleccionar los atributos a publicar')
     meli_pub_principal_variant = fields.Many2one( 'product.product',string='Variante principal',help='Variante principal')
 
     meli_model = fields.Char(string="Modelo [meli]",size=256)
@@ -292,7 +294,7 @@ class product_product(models.Model):
 
     _inherit = "product.product"
 
-    #@api.one
+    #
     @api.onchange('lst_price') # if these fields are changed, call method
     def check_change_price(self):
         # GUS
@@ -416,7 +418,7 @@ class product_product(models.Model):
             thumbnail_url = pictures[0]['url']
             image = urlopen(thumbnail_url).read()
             image_base64 = base64.encodestring(image)
-            product.image_medium = image_base64
+            set_image_full(product, image_base64)
 
             if (len(pictures)>1):
                 #complete product images:
@@ -451,7 +453,7 @@ class product_product(models.Model):
                         'meli_pub': True
                     }
                     #_logger.info(pimg_fields)
-                    if (product.product_image_ids):
+                    if (variant_image_ids(product)):
                         pimage = self.env["product.image"].search([('meli_imagen_id','=',pic["id"]),('product_tmpl_id','=',product_template.id)])
                         #_logger.info(pimage)
                         if (pimage and pimage.image):
@@ -470,7 +472,7 @@ class product_product(models.Model):
                         if (bin_updating):
                             _logger.info("Updating image data.")
                             _logger.info("Image:"+str(meli_imagen_bytes) )
-                            pimage.image = image_base64
+                            set_image_full(pimage, image_base64)
         except Exception as e:
             _logger.info("_meli_set_images Exception")
             _logger.info(e, exc_info=True)
@@ -478,7 +480,7 @@ class product_product(models.Model):
     def product_meli_get_product( self ):
         company = self.env.user.company_id
         product_obj = self.env['product.product']
-        uomobj = self.env['uom.uom']
+        uomobj = self.env[uom_model]
         #pdb.set_trace()
         product = self
 
@@ -499,7 +501,7 @@ class product_product(models.Model):
             response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token})
             #_logger.info(response)
             rjson = response.json()
-            _logger.info(rjson)
+            #_logger.info(rjson)
         except IOError as e:
             _logger.info( "I/O error({0}): {1}".format(e.errno, e.strerror) )
             return {}
@@ -638,7 +640,7 @@ class product_product(models.Model):
         if ('shipping' in rjson):
             att_shipping = {
                 'name': 'Con envío',
-                'create_variant': 'no_variant'
+                'create_variant': default_no_create_variant
             }
             if ('variations' in rjson):
                 #_logger.info("has variations")
@@ -672,7 +674,7 @@ class product_product(models.Model):
                             att = {
                                 'name': namecap,
                                 'value_name': attcomb['value_name'],
-                                'create_variant': 'always',
+                                'create_variant': default_create_variant,
                                 'att_id': False
                             }
                             if ('id' in attcomb):
@@ -714,15 +716,14 @@ class product_product(models.Model):
                                         _logger.info("attribute_duplicates:",len(attribute_duplicates))
                                         for attdup in attribute_duplicates:
                                             _logger.info("duplicate:"+attdup.name+":"+str(attdup.id))
-                                            attdup_line =  self.env['product.template.attribute.line'].search([('attribute_id','=',attdup.id),('product_tmpl_id','=',product_template.id)])
+                                            attdup_line =  self.env[prod_att_line].search([('attribute_id','=',attdup.id),('product_tmpl_id','=',product_template.id)])
                                             if (len(attdup_line)):
                                                 for attline in attdup_line:
                                                     attline.unlink()
-                                            #attdup.unlink()
 
                                 #buscar en las lineas existentes
                                 if (len(attribute)>1):
-                                    att_line = self.env['product.template.attribute.line'].search([('attribute_id','in',attribute.ids),('product_tmpl_id','=',product_template.id)])
+                                    att_line = self.env[prod_att_line].search([('attribute_id','in',attribute.ids),('product_tmpl_id','=',product_template.id)])
                                     _logger.info(att_line)
                                     if (len(att_line)):
                                         _logger.info("Atributo ya asignado!")
@@ -743,7 +744,7 @@ class product_product(models.Model):
                                 #_logger.info("Creating attribute:")
                                 attribute_id = self.env['product.attribute'].create({ 'name': att['name'],'create_variant': att['create_variant'] }).id
 
-                            if (att['create_variant']=='always'):
+                            if (att['create_variant']==default_create_variant):
                                 #_logger.info("published_att_variants")
                                 published_att_variants = True
 
@@ -763,14 +764,18 @@ class product_product(models.Model):
                                     #_logger.info("attribute_value_id:")
                                     #_logger.info(attribute_value_id)
                                     #search for line ids.
-                                    attribute_line =  self.env['product.template.attribute.line'].search([('attribute_id','=',attribute_id),('product_tmpl_id','=',product_template.id)])
+                                    attribute_line =  self.env[prod_att_line].search([('attribute_id','=',attribute_id),('product_tmpl_id','=',product_template.id)])
                                     #_logger.info(attribute_line)
                                     if (attribute_line and attribute_line.id):
                                         #_logger.info(attribute_line)
                                         pass
                                     else:
                                         #_logger.info("Creating att line id:")
-                                        attribute_line =  self.env['product.template.attribute.line'].create( { 'attribute_id': attribute_id,'product_tmpl_id': product_template.id, 'value_ids': [(4,attribute_value_id)] } )
+                                        attribute_line =  self.env[prod_att_line].create( {
+                                            'attribute_id': attribute_id,
+                                            'value_ids': [(4,attribute_value_id)],
+                                            'product_tmpl_id': product_template.id
+                                        } )
 
                                     if (attribute_line):
                                         #_logger.info("Check attribute line values id.")
@@ -825,7 +830,7 @@ class product_product(models.Model):
                 has_sku = False
 
                 _v_default_code = ""
-                for att in variant.attribute_value_ids:
+                for att in att_value_ids(variant):
                     _v_default_code = _v_default_code + att.attribute_id.name+':'+att.name+';'
                 #_logger.info("_v_default_code: " + _v_default_code)
                 for variation in rjson['variations']:
@@ -946,13 +951,17 @@ class product_product(models.Model):
                                     attribute_value_id = self.env['product.attribute.value'].create({'attribute_id': attribute_id, 'name': att['value_name'] }).id
 
                             if (attribute_value_id):
-                                attribute_line =  self.env['product.template.attribute.line'].search([('attribute_id','=',attribute_id),('product_tmpl_id','=',product_template.id)])
+                                attribute_line =  self.env[prod_att_line].search([('attribute_id','=',attribute_id),('product_tmpl_id','=',product_template.id)])
                                 if (attribute_line and attribute_line.id):
                                     #_logger.info(attribute_line)
                                     pass
                                 else:
                                     #_logger.info("Creating att line id:")
-                                    attribute_line =  self.env['product.template.attribute.line'].create( { 'attribute_id': attribute_id, 'product_tmpl_id': product_template.id, 'value_ids': [(4,attribute_value_id)] } )
+                                    attribute_line =  self.env[prod_att_line].create( {
+                                        'attribute_id': attribute_id,
+                                        'value_ids': [(4,attribute_value_id)],
+                                        'product_tmpl_id': product_template.id
+                                    } )
 
                                 if (attribute_line):
                                     #_logger.info("Check attribute line values id.")
@@ -982,7 +991,7 @@ class product_product(models.Model):
         # CONDICION: tener un
         variant = self
         product_template = self.product_tmpl_id
-        uomobj = self.env['uom.uom']
+        uomobj = self.env[uom_model]
         if (not ("mrp.bom" in self.env)):
             _logger.info("mrp.bom not found")
             _logger.error("Must install Manufacturing Module")
@@ -1196,11 +1205,11 @@ class product_product(models.Model):
         #
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
-        if product.image==None or product.image==False:
+        if get_image_full(product)==None or get_image_full(product)==False:
             return { 'status': 'error', 'message': 'no image to upload' }
 
-        imagebin = base64.b64decode(product.image)
-        imageb64 = product.image
+        imagebin = base64.b64decode(get_image_full(product))
+        imageb64 = get_image_full(product)
         files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
         response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
 
@@ -1238,17 +1247,16 @@ class product_product(models.Model):
         #
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
-        if product.product_image_ids==None:
+        if variant_image_ids(product)==None:
             return { 'status': 'error', 'message': 'no images to upload' }
 
         image_ids = []
         c = 0
 
         #loop over images
-        for product_image in product.product_image_ids:
-            if (product_image.image):
-                #_logger.info( "product_image.image:" + str(product_image.image) )
-                imagebin = base64.b64decode( product_image.image )
+        for product_image in variant_image_ids(product):
+            if (get_image_full(product_image)):
+                imagebin = base64.b64decode( get_image_full(product_image) )
                 #files = { 'file': ('image.png', imagebin, "image/png"), }
                 files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
                 response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
@@ -1306,7 +1314,7 @@ class product_product(models.Model):
 
         return { 'value': { 'meli_description' : result } }
 
-    @api.multi
+
     def product_get_meli_update( self ):
         company = self.env.user.company_id
         warningobj = self.env['warning']
@@ -1372,7 +1380,7 @@ class product_product(models.Model):
             att_to_pub.append(line.attribute_id.name)
         #_logger.info(att_to_pub)
 
-        for att in product.attribute_value_ids:
+        for att in att_value_ids(product):
             if (att.attribute_id.name in att_to_pub):
                 conditionok = True
             if (self._is_value_excluded(att)):
@@ -1425,7 +1433,7 @@ class product_product(models.Model):
 
         #customized attrs:
         customs = []
-        for att in product.attribute_value_ids:
+        for att in att_value_ids(product):
             if (att.attribute_id.name in att_to_pub):
                 if (not att.attribute_id.meli_default_id_attribute.id):
                     customs.append(att)
@@ -1446,7 +1454,7 @@ class product_product(models.Model):
             }
             var_comb["attribute_combinations"].append(att_combination)
 
-        for att in product.attribute_value_ids:
+        for att in att_line_ids(product):
             if (att.attribute_id.name in att_to_pub):
                 if (att.attribute_id.meli_default_id_attribute.id):
                     if (att.attribute_id.meli_default_id_attribute.variation_attribute):
@@ -1639,7 +1647,7 @@ class product_product(models.Model):
             if len(product_tmpl.meli_pub_variant_attributes):
                 values = ""
                 for line in product_tmpl.meli_pub_variant_attributes:
-                    for value in product.attribute_value_ids:
+                    for value in att_value_ids(product):
                         if (value.attribute_id.id==line.attribute_id.id):
                             values+= " "+value.name
                 if (not product_tmpl.meli_pub_as_variant):
@@ -1814,7 +1822,7 @@ class product_product(models.Model):
         assign_img = False and product.meli_id
 
         #publicando imagen cargada en OpenERP
-        if product.image==None:
+        if get_image_full(product)==None:
             return warningobj.info( title='MELI WARNING', message="Debe cargar una imagen de base en el producto.", message_html="" )
         else:
             # _logger.info( "try uploading image..." )
@@ -1864,7 +1872,7 @@ class product_product(models.Model):
 
         #publicando multiples imagenes
         multi_images_ids = {}
-        if (product.product_image_ids):
+        if (variant_image_ids(product)):
             multi_images_ids = product.product_meli_upload_multi_images()
             if 'status' in multi_images_ids:
                 _logger.error(multi_images_ids)
@@ -1952,13 +1960,21 @@ class product_product(models.Model):
                             var_info = _all_variations[aix]
                             for pvar in _new_candidates:
                                 if (pvar._is_product_combination(var_info)):
-                                    #varias["variations"].append(var_info)
+                                    varias["variations"].append(var_info)
                                     _logger.info("news:")
                                     _logger.info(var_info)
 
                         _logger.info(varias)
                         responsevar = meli.put("/items/"+product.meli_id, varias, {'access_token':meli.access_token})
-                        _logger.info(responsevar.json())
+                        rjsonv = responsevar.json()
+                        _logger.info(rjsonv)
+                        if ("variations" in rjsonv):
+                            for ix in range(len(rjsonv["variations"]) ):
+                                _var = rjsonv["variations"][ix]
+                                for pvar in product_tmpl.product_variant_ids:
+                                    if (pvar._is_product_combination(_var) and 'id' in _var):
+                                        pvar.meli_id_variation = _var["id"]
+
                         #_logger.debug(responsevar.json())
                         resdes = meli.put("/items/"+product.meli_id+"/description", bodydescription, {'access_token':meli.access_token})
                         #_logger.debug(resdes.json())
@@ -2202,7 +2218,7 @@ class product_product(models.Model):
 
     def product_update_stock(self, stock=False):
         product = self
-        uomobj = self.env['uom.uom']
+        uomobj = self.env[uom_model]
         _stock = product.virtual_available
 
         if (stock!=False):

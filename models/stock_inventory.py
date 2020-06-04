@@ -12,7 +12,7 @@ _logger = logging.getLogger(__name__)
 class Inventory(models.Model):
     _inherit = "stock.inventory"
 
-    #@api.multi
+    #
     #def action_done(self):
         #import pdb; pdb.set_trace()
         #_logger.info("Inventory action_done")
@@ -23,7 +23,7 @@ class Inventory(models.Model):
 class InventoryLine(models.Model):
     _inherit = "stock.inventory.line"
 
-    #@api.multi
+    #
     #def action_done(self):
         #import pdb; pdb.set_trace()
         #_logger.info("InventoryLine action_done")

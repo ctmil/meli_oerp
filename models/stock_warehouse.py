@@ -11,7 +11,7 @@ class StockWarehouse(models.Model):
     meli_published = fields.Boolean(u'Disponible en MELI', copy=False)
     meli_sequence = fields.Integer(u'Secuencia Meli')
     
-    @api.multi
+    
     def meli_publish_button(self):
         self.ensure_one()
         return self.write({'meli_published': not self.meli_published})

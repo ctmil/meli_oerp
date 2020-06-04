@@ -6,7 +6,7 @@ import math
 class res_currency_rate(models.Model):
     _inherit = 'res.currency.rate'
 
-    @api.one
+
     @api.onchange('rate') # if these fields are changed, call method
     def check_change_rate(self):
         self.update_prices()

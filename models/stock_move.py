@@ -12,7 +12,7 @@ _logger = logging.getLogger(__name__)
 class StockMove(models.Model):
     _inherit = "stock.move"
 
-    @api.multi
+    
     def action_assign(self, no_prepare=False):
         company = self.env.user.company_id
         for mov in self:
@@ -63,7 +63,7 @@ class StockMove(models.Model):
 
         return True
 
-    @api.multi
+    
     def action_done(self):
         #import pdb; pdb.set_trace()
         company = self.env.user.company_id

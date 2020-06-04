@@ -134,7 +134,7 @@ class SaleOrder(models.Model):
 #        'buyer': fields.many2one( "mercadolibre.buyers","Buyer"),
 #       'meli_seller': fields.text( string='Seller' ),
 
-    @api.multi
+    
     def action_print_tag_delivery(self):
         meli_orders = self.mapped('meli_order_id').filtered(lambda x: x.status == 'paid')
         if meli_orders:

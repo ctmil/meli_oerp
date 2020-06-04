@@ -99,11 +99,11 @@ class Download(http.Controller):
     class StockMove(models.Model):
         _inherit = 'stock.move'
 
-        @api.one
+
         def _get_datas(self):
             return ustr("Stock n°%s") % self.id
 
-        @api.multi
+
         def button_get_file(self):
             self.ensure_one()
             return {
