@@ -94,7 +94,7 @@ class MercadolibreNotification(models.Model):
             #_logger.info("access_token:"+str(ACCESS_TOKEN))
             response = meli.get("/myfeeds", {'app_id': company.mercadolibre_client_id,'offset': 1, 'limit': 10,'access_token':meli.access_token} )
             rjson = response.json()
-            _logger.info(rjson)
+            #_logger.info(rjson)
             if ("messages" in rjson):
                 for n in rjson["messages"]:
                     try:
@@ -114,7 +114,7 @@ class MercadolibreNotification(models.Model):
                                         if (posting):
                                             posting.posting_query_questions()
 
-                            if (n["topic"]=="order"):
+                            if (n["topic"] in ["order","created_orders"]):
                                 nn = self.search([('notification_id','=',n["_id"])])
                                 if (len(nn)==0):
                                     vals = self._prepare_values(values=n)
@@ -122,6 +122,25 @@ class MercadolibreNotification(models.Model):
                                     _logger.info("Created new ORDER notification.")
                                     #_logger.info(noti)
                                     _logger.info(n)
+
+                            if (n["topic"]=="items"):
+                                nn = self.search([('notification_id','=',n["_id"])])
+                                if (len(nn)==0):
+                                    vals = self._prepare_values(values=n)
+                                    noti = self.create(vals)
+                                    _logger.info("Created new ITEM notification.")
+                                    #_logger.info(noti)
+                                    _logger.info(n)
+
+                            if (n["topic"] in ["payments"]):
+                                nn = self.search([('notification_id','=',n["_id"])])
+                                if (len(nn)==0):
+                                    vals = self._prepare_values(values=n)
+                                    noti = self.create(vals)
+                                    _logger.info("Created new PAYMENT notification.")
+                                    #_logger.info(noti)
+                                    _logger.info(n)
+
                     except:
                         _logger.error("Error creating notification.")
                         return {"error": "Error creating notification.", "status": "520" }
