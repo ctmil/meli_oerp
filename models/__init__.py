@@ -8,6 +8,7 @@
 
 from . import versions
 from . import warning
+from . import meli_util
 from . import company
 from . import product
 from . import category
