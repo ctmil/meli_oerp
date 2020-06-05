@@ -256,7 +256,7 @@ class mercadolibre_category(models.Model):
                       father_ml_id = rjson_cat["path_from_root"][len(rjson_cat["path_from_root"])-2]["id"]
                       father_id = category_obj.search([('meli_category_id','=',father_ml_id)])
                       if (father_id and len(father_id)):
-                          father = father[0].id
+                          father = father_id[0].id
 
 
                 #fullname = fullname + "/" + rjson_cat['name']
