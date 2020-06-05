@@ -51,8 +51,8 @@ class MercadolibreNotification(models.Model):
     _description = "Notificaciones en MercadoLibre"
     _rec_name = 'notification_id'
 
-    notification_id = fields.Char('Notification Id',index=True)
-    application_id = fields.Char('Application Id')
+    notification_id = fields.Char(string='Notification Id',required=True,index=True)
+    application_id = fields.Char(string='Application Id')
     user_id = fields.Char('User Id')
     topic = fields.Char('Topic')
     sent = fields.Datetime('Sent')
@@ -70,7 +70,7 @@ class MercadolibreNotification(models.Model):
 
     _sql_constraints = [
         #('ref_uniq', 'unique(notification_id, application_id, user_id, topic)', 'Notification Id must be unique!'),
-        ('ref_uniq', 'unique(notification_id)', 'Notification Id must be unique!'),
+        ('unique_notification_id', 'unique(notification_id)', 'Notification Id must be unique!'),
     ]
 
     def _prepare_values(self, values):
