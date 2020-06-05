@@ -79,7 +79,7 @@
 		</record>
 
 		<menuitem id="menu_meli_notifications" action="action_meli_notifications_tree"
-			parent="menu_meli" name="Notifications" groups="meli_oerp.group_meli_user" />
+			parent="sale.sale_menu_root" name="Notifications" groups="meli_oerp.group_mercadolibre_manager" />
 
 	</data>
 </odoo>
