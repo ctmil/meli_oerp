@@ -240,12 +240,12 @@ class product_template(models.Model):
     meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
     meli_price = fields.Char(string='Precio de venta', size=128)
     meli_currency = fields.Selection([("ARS","Peso Argentino (ARS)"),
-    ("MXN","Peso Mexicano (MXN)"),
-    ("COP","Peso Colombiano (COP)"),
-    ("PEN","Sol Peruano (PEN)"),
-    ("BOB","Boliviano (BOB)"),
-    ("BRL","Real (BRL)"),
-    ("CLP","Peso Chileno (CLP)")],
+                                    ("MXN","Peso Mexicano (MXN)"),
+                                    ("COP","Peso Colombiano (COP)"),
+                                    ("PEN","Sol Peruano (PEN)"),
+                                    ("BOB","Boliviano (BOB)"),
+                                    ("BRL","Real (BRL)"),
+                                    ("CLP","Peso Chileno (CLP)")],
                                     string='Moneda')
     meli_condition = fields.Selection([ ("new", "Nuevo"),
                                         ("used", "Usado"),
