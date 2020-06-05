@@ -68,6 +68,10 @@ class MercadolibreNotification(models.Model):
     processing_started = fields.Datetime("Processing started")
     processing_ended = fields.Datetime("Processing ended")
 
+    _sql_constraints = [
+        ('ref_uniq', 'unique(notification_id, application_id, user_id, topic)', 'Notification Id must be unique!'),
+    ]
+
     def _prepare_values(self, values):
         vals = {
             "notification_id": values["_id"],
