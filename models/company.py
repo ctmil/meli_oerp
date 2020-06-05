@@ -635,4 +635,10 @@ class res_company(models.Model):
                         _logger.info("meli_update_remote_price > Exception founded!")
                         _logger.info(e, exc_info=True)
 
+    @api.multi
+    def meli_notifications(self):
+        #_logger.info("meli_notifications")
+        notifications = self.env['mercadolibre.notification']
+        return notifications.fetch_lasts()
+
 res_company()
