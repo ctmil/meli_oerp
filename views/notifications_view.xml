@@ -79,7 +79,7 @@
 		</record>
 
 		<menuitem id="menu_meli_notifications" action="action_meli_notifications_tree"
-			parent="sale.sale_menu_root" name="Notifications" />
+			parent="menu_meli" name="Notifications" />
 
 	</data>
 </odoo>

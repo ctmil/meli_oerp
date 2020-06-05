@@ -94,7 +94,7 @@ class MercadolibreNotification(models.Model):
             #_logger.info("access_token:"+str(ACCESS_TOKEN))
             response = meli.get("/myfeeds", {'app_id': company.mercadolibre_client_id,'offset': 1, 'limit': 10,'access_token':meli.access_token} )
             rjson = response.json()
-            #_logger.info(rjson)
+            _logger.info(rjson)
             if ("messages" in rjson):
                 for n in rjson["messages"]:
                     try:
