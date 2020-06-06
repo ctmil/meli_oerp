@@ -45,7 +45,7 @@ from .versions import *
 class product_template(models.Model):
     _inherit = "product.template"
 
-    @api.multi
+
     def product_template_post(self):
         product_obj = self.env['product.template']
         company = self.env.user.company_id
@@ -164,7 +164,7 @@ class product_template(models.Model):
 
         return variations
 
-    @api.one
+
     def product_template_stats(self):
 
         _pubs = ""
@@ -192,7 +192,7 @@ class product_template(models.Model):
 
         return {}
 
-    @api.multi
+
     def action_meli_pause(self):
         for product in self:
             for variant in product.product_variant_ids:
@@ -200,7 +200,7 @@ class product_template(models.Model):
                     variant.product_meli_status_pause()
         return {}
 
-    @api.multi
+
     def action_meli_activate(self):
         for product in self:
             for variant in product.product_variant_ids:
@@ -208,7 +208,7 @@ class product_template(models.Model):
                     variant.product_meli_status_active()
         return {}
 
-    @api.multi
+
     def action_meli_close(self):
         for product in self:
             for variant in product.product_variant_ids:
@@ -216,7 +216,7 @@ class product_template(models.Model):
                     variant.product_meli_status_close()
         return {}
 
-    @api.multi
+
     def action_meli_delete(self):
         for product in self:
             for variant in product.product_variant_ids:
@@ -294,7 +294,7 @@ class product_product(models.Model):
 
     _inherit = "product.product"
 
-    #@api.one
+    #
     @api.onchange('lst_price') # if these fields are changed, call method
     def check_change_price(self):
         # GUS
@@ -771,10 +771,10 @@ class product_product(models.Model):
                                         pass
                                     else:
                                         #_logger.info("Creating att line id:")
-                                        attribute_line =  self.env[prod_att_line].create( {
-                                            'attribute_id': attribute_id,
-                                            'product_tmpl_id': product_template.id
-                                        } )
+                                        att_vals = _prepare_attribute( product_template_id=product_template.id,
+                                                                            attribute_id,
+                                                                            attribute_value_id )
+                                        attribute_line =  self.env[prod_att_line].create(att_vals)
 
                                     if (attribute_line):
                                         #_logger.info("Check attribute line values id.")
@@ -956,10 +956,10 @@ class product_product(models.Model):
                                     pass
                                 else:
                                     #_logger.info("Creating att line id:")
-                                    attribute_line =  self.env[prod_att_line].create( {
-                                        'attribute_id': attribute_id,
-                                        'product_tmpl_id': product_template.id
-                                    } )
+                                    att_vals = _prepare_attribute( product_template_id=product_template.id,
+                                                                   attribute_id,
+                                                                   attribute_value_id )
+                                    attribute_line =  self.env[prod_att_line].create(att_vals)
 
                                 if (attribute_line):
                                     #_logger.info("Check attribute line values id.")
@@ -1312,7 +1312,7 @@ class product_product(models.Model):
 
         return { 'value': { 'meli_description' : result } }
 
-    @api.multi
+
     def product_get_meli_update( self ):
         company = self.env.user.company_id
         warningobj = self.env['warning']
@@ -2269,7 +2269,7 @@ class product_product(models.Model):
                 #_logger.info("StockInventoryLine:")
                 #_logger.info(stock_inventory_field_line)
                 if (StockInventoryLine):
-                    return_id = StockInventory.action_done()
+                    return_id = _stock_inventory_action_done(StockInventory)
                     #_logger.info("action_done:"+str(return_id))
 
 

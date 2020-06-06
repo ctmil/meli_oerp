@@ -74,7 +74,7 @@ class mercadolibre_category(models.Model):
     _name = "mercadolibre.category"
     _description = "Categories of MercadoLibre"
 
-    @api.multi
+
     def _get_category_url( self ):
         company = self.env.user.company_id
 
@@ -105,7 +105,7 @@ class mercadolibre_category(models.Model):
                     #_logger.info(rjson_cat["path_from_root"][fid]["id"])
                     category.meli_father_category_id = rjson_cat["path_from_root"][fid]["id"]
 
-    @api.multi
+
     def _get_attributes( self ):
 
         company = self.env.user.company_id
