@@ -32,7 +32,7 @@
 	'report/report_shipment_view.xml',
         'report/report_invoice_shipment_view.xml',
 	'views/shipment_view.xml',
-    'views/notifications_view.xml'
+	'views/notifications_view.xml'
     ],
     "external_dependencies": {"python": ['pdf2image']},
     'demo_xml': [],
