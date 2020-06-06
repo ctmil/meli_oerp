@@ -622,7 +622,7 @@ class product_product(models.Model):
             'posting_date': str(datetime.now()),
             'meli_id':rjson['id'],
             'product_id':product.id,
-            'name': 'Post (ML): ' + product.meli_title
+            'name': 'Post ('+str(product.meli_id)+'): ' + product.meli_title
         }
 
         posting = self.env['mercadolibre.posting'].search([('meli_id','=',rjson['id'])])
