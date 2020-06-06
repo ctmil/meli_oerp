@@ -128,7 +128,7 @@ class MercadolibreNotification(models.Model):
                                     #_logger.info(noti)
                                     _logger.info(n)
 
-                            if (n["topic"]=="items"):
+                            if (1==2 and n["topic"]=="items"):
                                 nn = self.search([('notification_id','=',n["_id"])])
                                 if (len(nn)==0):
                                     vals = self._prepare_values(values=n)
