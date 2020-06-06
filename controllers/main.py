@@ -7,7 +7,7 @@ from odoo import http, api
 from ..melisdk.meli import Meli
 
 from odoo import fields, osv
-from odoo.http import request
+from odoo.http import Controller, Response, request, route
 
 import pdb
 import logging
@@ -106,6 +106,7 @@ class Download(http.Controller):
 
 
         def _get_datas(self):
+            self.ensure_one()
             return ustr("Stock n°%s") % self.id
 
 
