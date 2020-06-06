@@ -119,7 +119,7 @@ class MercadolibreNotification(models.Model):
                                         if (posting):
                                             posting.posting_query_questions()
 
-                            if (n["topic"] in ["order","created_orders"]):
+                            if (n["topic"] in ["order","created_orders","orders_v2"]):
                                 nn = self.search([('notification_id','=',n["_id"])])
                                 if (len(nn)==0):
                                     vals = self._prepare_values(values=n)
