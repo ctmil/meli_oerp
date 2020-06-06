@@ -111,7 +111,7 @@ class MercadolibreNotification(models.Model):
                                     noti = self.create(vals)
                                     _logger.info("Created new QUESTION notification")
                                     #_logger.info(noti)
-                                    _logger.info(n)
+                                    #_logger.info(n)
                                     questions = meli.get(""+str(n["resource"]), {'access_token':meli.access_token} )
                                     qjson =  questions.json()
                                     if ("item_id" in qjson):
@@ -126,7 +126,7 @@ class MercadolibreNotification(models.Model):
                                     noti = self.create(vals)
                                     _logger.info("Created new ORDER notification.")
                                     #_logger.info(noti)
-                                    _logger.info(n)
+                                    #_logger.info(n)
 
                             if (1==2 and n["topic"]=="items"):
                                 nn = self.search([('notification_id','=',n["_id"])])
@@ -135,7 +135,7 @@ class MercadolibreNotification(models.Model):
                                     noti = self.create(vals)
                                     _logger.info("Created new ITEM notification.")
                                     #_logger.info(noti)
-                                    _logger.info(n)
+                                    #_logger.info(n)
 
                             if (n["topic"] in ["payments"]):
                                 nn = self.search([('notification_id','=',n["_id"])])
@@ -144,7 +144,7 @@ class MercadolibreNotification(models.Model):
                                     noti = self.create(vals)
                                     _logger.info("Created new PAYMENT notification.")
                                     #_logger.info(noti)
-                                    _logger.info(n)
+                                    #_logger.info(n)
 
                     except:
                         _logger.error("Error creating notification.")
