@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+	<data>
+
+		<record model="ir.ui.view" id="view_meli_notifications_tree">
+			<field name="name">mercadolibre.notification.tree</field>
+			<field name="model">mercadolibre.notification</field>
+			<field name="arch" type="xml">
+				<tree create="0" edit="1" delete="1" default_order='sent desc, notification_id desc'>
+					<field name="notification_id" />
+					<field name="sent" />
+					<field name="topic" />
+					<field name="resource" />
+					<field name="user_id" />
+					<field name="state" />
+				</tree>
+			</field>
+		</record>
+
+		<!--record model="ir.ui.view" id="view_meli_questions_form">
+			<field name="name">mercadolibre.questions.form</field>
+			<field name="model">mercadolibre.questions</field>
+			<field name="arch" type="xml">
+				<form create="0" edit="0" delete="0">
+					<header>
+						<field name="status" widget="statusbar" />
+						<field name="answer_status" widget="statusbar" />
+					</header>
+					<sheet>
+						<group>
+							<group>
+								<field name="question_id" />
+								<field name="item_id" />
+								<field name="date_created" />
+								<field name="text" />
+							</group>
+							<group>
+								<field name="posting_id" />
+								<field name="seller_id" />
+								<field name="answer_date_created" />
+								<field name="answer_text" />
+							</group>
+						</group>
+					</sheet>
+				</form>
+			</field>
+		</record-->
+
+		<record id="meli_notifications_search_view" model="ir.ui.view">
+			<field name="name">MercadoLibre Notifications - Search</field>
+			<field name="model">mercadolibre.notification</field>
+			<field name="arch" type="xml">
+				<search>
+					<field name="notification_id" />
+					<field name="sent" />
+					<field name="topic" />
+					<field name="resource" />
+					<field name="user_id" />
+					<field name="state" />
+					<filter string="Questions only"
+						domain="[('topic', '=', 'questions')]"
+						name="questions_filter" />
+					<filter string="Today"
+						domain="[('sent', '=', context_today().strftime('%Y-%m-%d'))]"
+						name="today_filter" />
+					<filter string='State' icon="terp-mrp" domain="[]"
+						context="{'group_by' : 'state'}" />
+				</search>
+			</field>
+		</record>
+
+		<record model="ir.actions.act_window" id="action_meli_notifications_tree">
+			<field name="name">Notifications</field>
+			<field name="type">ir.actions.act_window</field>
+			<field name="res_model">mercadolibre.notification</field>
+			<field name="view_type">form</field>
+			<field name="view_mode">tree,form</field>
+			<field name="search_view_id" ref="meli_notifications_search_view" />
+		</record>
+
+		<menuitem id="menu_meli_notifications" action="action_meli_notifications_tree"
+			parent="menu_meli" name="Notifications" />
+
+	</data>
+</odoo>
