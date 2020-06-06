@@ -50,7 +50,7 @@
 			<field name="name">MercadoLibre Notifications - Search</field>
 			<field name="model">mercadolibre.notification</field>
 			<field name="arch" type="xml">
-				<search>
+				<search  string="Search MercadoLibre Notifications Information">
 					<field name="notification_id" />
 					<field name="sent" />
 					<field name="topic" />
@@ -80,8 +80,12 @@
 			<field name="search_view_id" ref="meli_notifications_search_view" />
 		</record>
 
-		<menuitem id="menu_meli_notifications" action="action_meli_notifications_tree"
-			parent="menu_meli" name="Notifications" />
+		<menuitem id="menu_meli" name="MercadoLibre" parent="sale.sale_menu_root" sequence="9"/>
+
+		<menuitem id="menu_meli_notifications"
+			action="action_meli_notifications_tree"
+			parent="menu_meli"
+			name="Notifications" />
 
 	</data>
 </odoo>
