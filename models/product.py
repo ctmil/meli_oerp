@@ -1517,6 +1517,7 @@ class product_product(models.Model):
         return _is_p_comb
 
     def _validate_category_settings( self, body ):
+        return body
         for product in self:
             if (product.meli_category and
                 str(product.meli_category.meli_father_category_id) in ["MLA122201","MLA1540"]):
