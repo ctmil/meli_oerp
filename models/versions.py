@@ -41,7 +41,7 @@ def _prepare_attribute( product_template_id, attribute_id, attribute_value_id ):
                }
     return att_vals
     
-def _stock_inventory_action_done( self )
+def _stock_inventory_action_done( self ):
     return self.action_done()
 
 
