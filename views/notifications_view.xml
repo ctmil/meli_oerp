@@ -64,7 +64,9 @@
 						domain="[('sent', '=', context_today().strftime('%Y-%m-%d'))]"
 						name="today_filter" />
 					<filter string='State' icon="terp-mrp" domain="[]"
-						context="{'group_by' : 'state'}" />
+							context="{'group_by' : 'state'}" name="state_filter"/>
+					<filter string='Topic' domain="[]"
+								context="{'group_by' : 'topic'}" name="topic_filter"/>
 				</search>
 			</field>
 		</record>
