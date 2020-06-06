@@ -10,6 +10,7 @@
                 <tree string="Ordenes" default_order="date_created desc">
                     <field name="name"/>
                     <field name="order_id"/>
+                    <field name="shipping_id" invisible="0"/>
                     <field name="status"/>
                     <field name="buyer"/>
                     <field name="total_amount"/>
@@ -153,6 +154,7 @@
             <field name="arch" type="xml">
                 <tree string="Lineas de la Orden" >
                     <field name="posting_id"/>
+                    <field name="product_id"/>
                     <field name="order_id"/>
                     <field name="order_item_id"/>
                     <field name="unit_price"/>

@@ -40,6 +40,7 @@ import string
 if (not ('replace' in string.__dict__)):
     string = str
 
+from . import versions
 from .versions import *
 
 class product_template(models.Model):
@@ -240,12 +241,12 @@ class product_template(models.Model):
     meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
     meli_price = fields.Char(string='Precio de venta', size=128)
     meli_currency = fields.Selection([("ARS","Peso Argentino (ARS)"),
-    ("MXN","Peso Mexicano (MXN)"),
-    ("COP","Peso Colombiano (COP)"),
-    ("PEN","Sol Peruano (PEN)"),
-    ("BOB","Boliviano (BOB)"),
-    ("BRL","Real (BRL)"),
-    ("CLP","Peso Chileno (CLP)")],
+                                    ("MXN","Peso Mexicano (MXN)"),
+                                    ("COP","Peso Colombiano (COP)"),
+                                    ("PEN","Sol Peruano (PEN)"),
+                                    ("BOB","Boliviano (BOB)"),
+                                    ("BRL","Real (BRL)"),
+                                    ("CLP","Peso Chileno (CLP)")],
                                     string='Moneda')
     meli_condition = fields.Selection([ ("new", "Nuevo"),
                                         ("used", "Usado"),
@@ -611,16 +612,27 @@ class product_product(models.Model):
         product.write( meli_fields )
         product_template.write( tmpl_fields )
 
-        if (rjson['available_quantity']>0):
-            product_template.website_published = True
-        else:
+        if (rjson['available_quantity']>=0):
+            if (product_template.type not in ['product']):
+                try:
+                    product_template.write( { 'type': 'product' } )
+                except Exception as e:
+                    _logger.info("Set type almacenable ('product') not possible:")
+                    _logger.error(e, exc_info=True)
+                    pass;
+            #TODO: agregar parametro para esto: ml_auto_website_published_if_available  default true
+            if (1==1 and rjson['available_quantity']>0):
+                product_template.website_published = True
+
+        #TODO: agregar parametro para esto: ml_auto_website_unpublished_if_not_available default false
+        if (1==2 and rjson['available_quantity']==0):
             product_template.website_published = False
 
         posting_fields = {
             'posting_date': str(datetime.now()),
             'meli_id':rjson['id'],
             'product_id':product.id,
-            'name': 'Post (ML): ' + product.meli_title
+            'name': 'Post ('+str(product.meli_id)+'): ' + product.meli_title
         }
 
         posting = self.env['mercadolibre.posting'].search([('meli_id','=',rjson['id'])])
@@ -771,11 +783,8 @@ class product_product(models.Model):
                                         pass
                                     else:
                                         #_logger.info("Creating att line id:")
-                                        attribute_line =  self.env[prod_att_line].create( {
-                                            'attribute_id': attribute_id,
-                                            'value_ids': [(4,attribute_value_id)],
-                                            'product_tmpl_id': product_template.id
-                                        } )
+                                        att_vals = _prepare_attribute( product_template.id, attribute_id, attribute_value_id )
+                                        attribute_line =  self.env[prod_att_line].create(att_vals)
 
                                     if (attribute_line):
                                         #_logger.info("Check attribute line values id.")
@@ -957,11 +966,8 @@ class product_product(models.Model):
                                     pass
                                 else:
                                     #_logger.info("Creating att line id:")
-                                    attribute_line =  self.env[prod_att_line].create( {
-                                        'attribute_id': attribute_id,
-                                        'value_ids': [(4,attribute_value_id)],
-                                        'product_tmpl_id': product_template.id
-                                    } )
+                                    att_vals = _prepare_attribute( product_template.id, attribute_id, attribute_value_id )
+                                    attribute_line =  self.env[prod_att_line].create(att_vals)
 
                                 if (attribute_line):
                                     #_logger.info("Check attribute line values id.")
@@ -2271,10 +2277,7 @@ class product_product(models.Model):
                 #_logger.info("StockInventoryLine:")
                 #_logger.info(stock_inventory_field_line)
                 if (StockInventoryLine):
-                    #return_id = StockInventory.action_done()
-                    return_id = StockInventory.post_inventory()
-                    return_id = StockInventory.action_start()
-                    return_id = StockInventory.action_validate()
+                    return_id = _stock_inventory_action_done(StockInventory)
                     #_logger.info("action_done:"+str(return_id))
 
 

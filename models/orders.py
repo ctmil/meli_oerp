@@ -243,12 +243,6 @@ class mercadolibre_orders(models.Model):
         pricelist_obj = self.env['product.pricelist']
         respartner_obj = self.env['res.partner']
 
-        product_shipping = product_obj.search([('default_code','=','ENVIO')])
-        product_shipping_id = False
-        if (len(product_shipping)):
-            _logger.info(product_shipping)
-            product_shipping_id = product_shipping[0].id
-
         plistid = None
         if company.mercadolibre_pricelist:
             plistid = company.mercadolibre_pricelist
@@ -533,14 +527,24 @@ class mercadolibre_orders(models.Model):
 
                 product_related = product_obj.search([('meli_id','=',Item['item']['id'])])
                 if ("variation_id" in Item["item"]):
-                    product_related = product_obj.search([('meli_id','=',Item['item']['id']),('meli_id_variation','=',Item['item']['variation_id'])])
-                if ('seller_custom_field' in Item['item'] and len(product_related)==0):
-                    if (Item['item']["seller_custom_field"]):
-                        product_related = product_obj.search([('default_code','=',Item['item']['seller_custom_field'])])
+                    product_related = product_obj.search([('meli_id','=',Item['item']['id']),('meli_id_variation','=',str(Item['item']['variation_id']))])
+                if ( ('seller_custom_field' in Item['item'] or 'seller_sku' in Item['item'])  and len(product_related)==0):
+
+                    seller_sku = Item['item']['seller_custom_field']
+
+                    if (not seller_sku and 'seller_sku' in Item['item']):
+                        seller_sku = Item['item']['seller_sku']
+
+                    if (seller_sku):
+                        product_related = product_obj.search([('default_code','=',seller_sku)])
+
                     if (len(product_related)):
-                        _logger.info("order product related by seller_custom_field and default_code:"+str(Item['item']['seller_custom_field']) )
+                        _logger.info("order product related by seller_custom_field and default_code:"+str(seller_sku) )
                     else:
-                        product_related = product_obj.search([('meli_id','=',Item['item']['id'])])
+                        combination = []
+                        if ('variation_id' in Item['item'] and Item['item']['variation_id'] ):
+                            combination = [( 'meli_id_variation','=',Item['item']['variation_id'])]
+                        product_related = product_obj.search([('meli_id','=',Item['item']['id'])] + combination)
                         if len(product_related):
                             _logger.info("Product founded:"+str(Item['item']['id']))
                         else:
@@ -562,6 +566,8 @@ class mercadolibre_orders(models.Model):
                                     'meli_id': rjson3['id'],
                                     'meli_pub': True,
                                 }
+                                if (seller_sku):
+                                    prod_fields['default_code'] = seller_sku
                                 #prod_fields['default_code'] = rjson3['id']
                                 #productcreated = False
                                 productcreated = self.env['product.product'].create((prod_fields))
@@ -601,6 +607,7 @@ class mercadolibre_orders(models.Model):
                         product_related_obj = product_related
 
                 if (post_related and product_related):
+                    #only assign to post if no object is already assigned
                     if (post_related.product_id==False):
                         post_related.product_id = product_related
 
@@ -614,6 +621,10 @@ class mercadolibre_orders(models.Model):
                     'quantity': Item['quantity'],
                     'currency_id': Item['currency_id']
                 }
+
+                if (product_related):
+                    order_item_fields['product_id'] = product_related.id
+
                 order_item_ids = order_items_obj.search( [('order_item_id','=',order_item_fields['order_item_id']),('order_id','=',order.id)] )
                 #_logger.info( order_item_fields )
                 if not order_item_ids:
@@ -892,6 +903,7 @@ class mercadolibre_order_items(models.Model):
     _description = "Producto pedido en MercadoLibre"
 
     posting_id = fields.Many2one("mercadolibre.posting","Posting")
+    product_id = fields.Many2one("product.product",string="Product",help="Product Variant")
     order_id = fields.Many2one("mercadolibre.orders","Order")
     order_item_id = fields.Char('Item Id')
     order_item_title = fields.Char('Item Title')
