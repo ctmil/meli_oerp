@@ -9,7 +9,6 @@ from ..melisdk.meli import Meli
 from odoo import fields, osv
 from odoo.http import Controller, Response, request, route
 
-
 import pdb
 import logging
 _logger = logging.getLogger(__name__)
