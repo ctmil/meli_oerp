@@ -587,7 +587,6 @@ class product_product(models.Model):
 
         tmpl_fields = {
           'name': meli_fields["name"],
-          'type': 'product',
           'description_sale': desplain,
           #'name': str(rjson['id']),
           #'lst_price': ml_price_convert,
@@ -613,9 +612,20 @@ class product_product(models.Model):
         product.write( meli_fields )
         product_template.write( tmpl_fields )
 
-        if (rjson['available_quantity']>0):
-            product_template.website_published = True
-        else:
+        if (rjson['available_quantity']>=0):
+            if (product_template.type not in ['product']):
+                try:
+                    product_template.write( { 'type': 'product' } )
+                except Exception as e:
+                    _logger.info("Set type almacenable ('product') not possible:")
+                    _logger.error(e, exc_info=True)
+                    pass;
+            #TODO: agregar parametro para esto: ml_auto_website_published_if_available  default true
+            if (1==1 and rjson['available_quantity']>0):
+                product_template.website_published = True
+
+        #TODO: agregar parametro para esto: ml_auto_website_unpublished_if_not_available default false
+        if (1==2 and rjson['available_quantity']==0):
             product_template.website_published = False
 
         posting_fields = {
