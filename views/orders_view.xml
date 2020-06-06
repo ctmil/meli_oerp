@@ -154,6 +154,7 @@
             <field name="arch" type="xml">
                 <tree string="Lineas de la Orden" >
                     <field name="posting_id"/>
+                    <field name="product_id"/>
                     <field name="order_id"/>
                     <field name="order_item_id"/>
                     <field name="unit_price"/>
