@@ -10,6 +10,7 @@
                 <tree string="Ordenes" default_order="date_created desc">
                     <field name="name"/>
                     <field name="order_id"/>
+                    <field name="shipping_id" insible="0"/>
                     <field name="status"/>
                     <field name="buyer"/>
                     <field name="total_amount"/>
