@@ -75,9 +75,9 @@
 			<field name="name">Notifications</field>
 			<field name="type">ir.actions.act_window</field>
 			<field name="res_model">mercadolibre.notification</field>
-			<field name="view_type">form</field>
+			<!--field name="view_type">form</field-->
 			<field name="view_mode">tree,form</field>
-			<field name="search_view_id" ref="meli_notifications_search_view" />
+			<!--field name="search_view_id" ref="meli_notifications_search_view" /-->
 		</record>
 
 		<menuitem id="menu_meli" name="MercadoLibre" parent="sale.sale_menu_root" sequence="9"/>
