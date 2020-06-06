@@ -586,6 +586,7 @@ class product_product(models.Model):
 
         tmpl_fields = {
           'name': meli_fields["name"],
+          'type': 'product',
           'description_sale': desplain,
           #'name': str(rjson['id']),
           #'lst_price': ml_price_convert,
