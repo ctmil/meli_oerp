@@ -40,7 +40,7 @@ import string
 if (not ('replace' in string.__dict__)):
     string = str
 
-from .versions import *
+from . import versions
 
 class product_template(models.Model):
     _inherit = "product.template"

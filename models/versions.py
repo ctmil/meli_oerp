@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Odoo version 13.0
+# For Odoo version 11.0
 
 # Odoo 12.0 -> Odoo 13.0
 uom_model = "product.uom"
