@@ -1981,7 +1981,7 @@ class product_product(models.Model):
                             if (rjsonv["error"]=="forbidden"):
                                 meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
                                 url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
-                                return warningobj.info( title='MELI WARNING', message="Debe iniciar sesión en MELI con el usuario correcto.  "+error_msg, message_html="")
+                                return warningobj.info( title='MELI WARNING', message="Debe iniciar sesión en MELI con el usuario correcto.", message_html="<br><br>"+error_msg)
                             else:
                                 return warningobj.info( title='MELI WARNING', message="Completar todos los campos y revise el mensaje siguiente.", message_html="<br><br>"+error_msg )
 
