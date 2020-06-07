@@ -1975,6 +1975,21 @@ class product_product(models.Model):
                         responsevar = meli.put("/items/"+product.meli_id, varias, {'access_token':meli.access_token})
                         rjsonv = responsevar.json()
                         _logger.info(rjsonv)
+                        if ("error" in rjsonv):
+                            error_msg = 'MELI RESP.: <h5>Mensaje de error</h5> %s<h5>Mensaje</h5> %s<br/><h5>status</h5> %s<br/><h5>cause</h5> %s<br/>' % (rjsonv["error"], rjsonv["message"], rjsonv["status"], rjsonv["cause"])
+                            _logger.error(error_msg)
+                            if (rjsonv["error"]=="forbidden"):
+                                meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
+                                url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
+                                return {
+                                    "type": "ir.actions.act_url",
+                                    "url": url_login_meli,
+                                    "target": "new",
+                                }
+                            else:
+                                return warningobj.info( title='MELI WARNING', message="Completar todos los campos y revise el mensaje siguiente.", message_html="<br><br>"+error_msg )
+
+
                         if ("variations" in rjsonv):
                             for ix in range(len(rjsonv["variations"]) ):
                                 _var = rjsonv["variations"][ix]
@@ -2065,19 +2080,19 @@ class product_product(models.Model):
         #check error
         if "error" in rjson:
             #_logger.info( "Error received: %s " % rjson["error"] )
-            error_msg = 'MELI: mensaje de error:  %s , mensaje: %s, status: %s, cause: %s ' % (rjson["error"], rjson["message"], rjson["status"], rjson["cause"])
+            error_msg = 'MELI RESP.: <h5>Mensaje de error</h5> %s<h5>Mensaje</h5> %s<br/><h5>status</h5> %s<br/><h5>cause</h5> %s<br/>' % (rjson["error"], rjson["message"], rjson["status"], rjson["cause"])
             _logger.error(error_msg)
 
             missing_fields = error_msg
 
             #expired token
-            if "message" in rjson and (rjson["message"]=='invalid_token' or rjson["message"]=="expired_token"):
+            if "message" in rjson and (rjson["error"]=="forbidden" or rjson["message"]=='invalid_token' or rjson["message"]=="expired_token"):
                 meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
                 url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
-                return warningobj.info( title='MELI WARNING', message="Debe iniciar sesión en MELI.  ", message_html="")
+                return warningobj.info( title='MELI WARNING', message="Debe iniciar sesión en MELI.  "+str(rjson["message"]), message_html="")
             else:
                  #Any other errors
-                return warningobj.info( title='MELI WARNING', message="Completar todos los campos!  ", message_html="<br><br>"+missing_fields )
+                return warningobj.info( title='MELI WARNING', message="Completar todos los campos y revise el mensaje siguiente.", message_html="<br><br>"+missing_fields )
 
         #last modifications if response is OK
         if "id" in rjson:
