@@ -1976,7 +1976,7 @@ class product_product(models.Model):
                         rjsonv = responsevar.json()
                         _logger.info(rjsonv)
                         if ("error" in rjsonv):
-                            error_msg = 'MELI RESP.: <h5>Mensaje de error</h5> %s<h5>Mensaje</h5> %s<br/><h5>status</h5> %s<br/><h5>cause</h5> %s<br/>' % (rjsonv["error"], rjsonv["message"], rjsonv["status"], rjsonv["cause"])
+                            error_msg = 'MELI RESP.: <h6>Mensaje de error</h6> %s<br/><h6>Mensaje</h6> %s<br/><h6>status</h6> %s<br/><h6>cause</h6> %s<br/>' % (rjsonv["error"], rjsonv["message"], rjsonv["status"], rjsonv["cause"])
                             _logger.error(error_msg)
                             if (rjsonv["error"]=="forbidden"):
                                 meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
@@ -2075,20 +2075,16 @@ class product_product(models.Model):
 
         #check error
         if "error" in rjson:
-            #_logger.info( "Error received: %s " % rjson["error"] )
-            error_msg = 'MELI RESP.: <h5>Mensaje de error</h5> %s<h5>Mensaje</h5> %s<br/><h5>status</h5> %s<br/><h5>cause</h5> %s<br/>' % (rjson["error"], rjson["message"], rjson["status"], rjson["cause"])
+            error_msg = 'MELI RESP.: <h6>Mensaje de error</h6> %s<br/><h6>Mensaje</h6> %s<br/><h6>status</h6> %s<br/><h6>cause</h6> %s<br/>' % (rjson["error"], rjson["message"], rjson["status"], rjson["cause"])
             _logger.error(error_msg)
-
-            missing_fields = error_msg
-
             #expired token
             if "message" in rjson and (rjson["error"]=="forbidden" or rjson["message"]=='invalid_token' or rjson["message"]=="expired_token"):
                 meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
                 url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
-                return warningobj.info( title='MELI WARNING', message="Debe iniciar sesión en MELI.  "+str(rjson["message"]), message_html="")
+                return warningobj.info( title='MELI WARNING', message="Debe iniciar sesión en MELI:  "+str(rjson["message"]), message_html="<br><br>"+error_msg)
             else:
                  #Any other errors
-                return warningobj.info( title='MELI WARNING', message="Completar todos los campos y revise el mensaje siguiente.", message_html="<br><br>"+missing_fields )
+                return warningobj.info( title='MELI WARNING', message="Completar todos los campos y revise el mensaje siguiente.", message_html="<br><br>"+error_msg )
 
         #last modifications if response is OK
         if "id" in rjson:
