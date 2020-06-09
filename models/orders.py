@@ -59,7 +59,7 @@ sale_order_line()
 class sale_order(models.Model):
     _inherit = "sale.order"
 
-    meli_order_id =  fields.Char('Meli Order Id')
+    meli_order_id =  fields.Char(string='Meli Order Id',index=True)
     meli_orders = fields.Many2many('mercadolibre.orders',string="ML Orders")
     meli_status = fields.Selection( [
         #Initial state of an order, and it has no payment yet.
@@ -230,7 +230,8 @@ class mercadolibre_orders(models.Model):
 
     def orders_update_order_json( self, data, context=None ):
 
-        _logger.info("orders_update_order_json > data "+str(data['id']) )
+        _logger.info("orders_update_order_json > data "+str(data['id']) + " json:" + str(data['order_json']['id']) )
+
         oid = data["id"]
         order_json = data["order_json"]
         #_logger.info( "data:" + str(data) )
@@ -275,7 +276,7 @@ class mercadolibre_orders(models.Model):
                         sorder = sorder_s
         else:
         #we search for existing order with same order_id => "id"
-            order_s = order_obj.search([ ('order_id','=',order_json['id']) ] )
+            order_s = order_obj.search([ ('order_id','=','%i' % (order_json["id"])) ] )
             if (order_s):
                 if (len(order_s)>1):
                     order = order_s[0]
@@ -283,7 +284,7 @@ class mercadolibre_orders(models.Model):
                     order = order_s
             #    order = order_obj.browse(order_s[0] )
 
-            sorder_s = saleorder_obj.search([ ('meli_order_id','=',order_json['id']) ] )
+            sorder_s = saleorder_obj.search([ ('meli_order_id','=','%i' % (order_json["id"])) ] )
             if (sorder_s):
                 if (len(sorder_s)>1):
                     sorder = sorder_s[0]
@@ -670,7 +671,7 @@ class mercadolibre_orders(models.Model):
                             saleorderline_item_fields['price_unit'] = float(Item['unit_price'])
                             saleorderline_item_fields['tax_id'] = None
                         else:
-                            saleorderline_item_fields['price_unit'] = product_related_obj.product_tmpl_id.lst_price
+                            saleorderline_item_fields['price_unit'] = float(Item['unit_price'])
 
 
                     saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
@@ -858,8 +859,8 @@ class mercadolibre_orders(models.Model):
 
         return {}
 
-    name = fields.Char(string='Order Name')
-    order_id = fields.Char('Order Id')
+    name = fields.Char(string='Order Name',index=True)
+    order_id = fields.Char(string='Order Id',index=True)
     sale_order = fields.Many2one('sale.order',string="Sale Order",help='Pedido de venta de Odoo')
 
     status = fields.Selection( [

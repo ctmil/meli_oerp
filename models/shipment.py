@@ -1,21 +1,21 @@
 # -*- coding: utf-8 -*-
 ##############################################################################
 #
-#    OpenERP, Open Source Management Solution
-#    Copyright (C) 2004-2009 Tiny SPRL (<http://tiny.be>).
+#	OpenERP, Open Source Management Solution
+#	Copyright (C) 2004-2009 Tiny SPRL (<http://tiny.be>).
 #
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Affero General Public License as
-#    published by the Free Software Foundation, either version 3 of the
-#    License, or (at your option) any later version.
+#	This program is free software: you can redistribute it and/or modify
+#	it under the terms of the GNU Affero General Public License as
+#	published by the Free Software Foundation, either version 3 of the
+#	License, or (at your option) any later version.
 #
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Affero General Public License for more details.
+#	This program is distributed in the hope that it will be useful,
+#	but WITHOUT ANY WARRANTY; without even the implied warranty of
+#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#	GNU Affero General Public License for more details.
 #
-#    You should have received a copy of the GNU Affero General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#	You should have received a copy of the GNU Affero General Public License
+#	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
 
@@ -165,7 +165,7 @@ mercadolibre_shipment_update()
 class mercadolibre_shipment(models.Model):
 	_name = "mercadolibre.shipment"
 	_description = "Envio de MercadoLibre"
-    
+	
 	_inherit = ['portal.mixin', 'mail.thread', 'mail.activity.mixin']
 
 	name = fields.Char(string='Name')
@@ -211,7 +211,7 @@ class mercadolibre_shipment(models.Model):
 	receiver_state = fields.Char('Estado')
 	receiver_state_code = fields.Char('Estado ID')
 	receiver_state_id = fields.Many2one('res.country.state',string='State')
-    
+	
 	receiver_country = fields.Char('Pais')
 	receiver_country_code = fields.Char('Código Pais')
 	receiver_country_id = fields.Many2one('res.country',string='Country')	
@@ -247,6 +247,7 @@ class mercadolibre_shipment(models.Model):
 	def _update_sale_order_shipping_info( self, order ):
 
 		company = self.env.user.company_id
+		product_tpl = self.env['product.template']
 		product_obj = self.env['product.product']
 		saleorderline_obj = self.env['sale.order.line']
 
@@ -269,18 +270,27 @@ class mercadolibre_shipment(models.Model):
 				#sorder.partner_id.state = ships.receiver_state
 
 			product_shipping_id = product_obj.search(['|','|',('default_code','=','ENVIO'),('default_code','=',shipment.tracking_method),('name','=',shipment.tracking_method)])
-
+			
 			if len(product_shipping_id):
 				product_shipping_id = product_shipping_id[0]
 			else:
+				product_shipping_id = None
 				ship_prod = {
 					"name": shipment.tracking_method,
 					"default_code": shipment.tracking_method,
 					"type": "service",
 					#"taxes_id": None
 				}
-				product_shipping_id = product_obj.create((ship_prod))
+				_logger.info(ship_prod)
+				product_shipping_tpl = product_tpl.create((ship_prod))
+				if (product_shipping_tpl):
+					product_shipping_id = product_shipping_tpl.product_variant_ids[0]
 			_logger.info(product_shipping_id)
+			
+			if (not product_shipping_id):
+				_logger.info('Failed to create shipping product service')
+				continue
+				
 			saleorderline_item_fields = {
 				'company_id': company.id,
 				'order_id': sorder.id,
@@ -501,7 +511,7 @@ class mercadolibre_shipment(models.Model):
 								'meli_shipping_cost': shipment.shipping_cost,
 								'meli_shipping_list_cost': shipment.shipping_list_cost,
 								'meli_paid_amount': shipment.order_cost,
-                                'meli_fee_amount': 0.0,
+								'meli_fee_amount': 0.0,
 								'meli_currency_id': all_orders[0]["currency_id"],
 								'meli_date_created': _ml_datetime(all_orders[0]["date_created"]) or '',
 								'meli_date_closed': _ml_datetime(all_orders[0]["date_closed"]) or '',
@@ -524,7 +534,7 @@ class mercadolibre_shipment(models.Model):
 								sorder_pack.meli_fee_amount = 0.0
 								for mOrder in all_orders:
 									#Each Order one product with one price and one quantity
-									product_related_obj = mOrder.order_items[0].product_id or mOrder.order_items[0].posting_id.product_id                                        
+									product_related_obj = mOrder.order_items[0].product_id or mOrder.order_items[0].posting_id.product_id										
 									if not (product_related_obj):
 										_logger.error("Error adding order line: product not found in database: " + str(mOrder.order_items[0]["order_item_title"]) )
 										continue;
