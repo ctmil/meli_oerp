@@ -47,7 +47,8 @@ def _ml_datetime(datestr):
         #return parse(datestr).isoformat().replace("T"," ")
         return parse(datestr).strftime('%Y-%m-%d %H:%M:%S')
     except:
-        return ""
+        _logger.error(datestr)
+        return None
 
 
 class sale_order_line(models.Model):
@@ -59,7 +60,7 @@ sale_order_line()
 class sale_order(models.Model):
     _inherit = "sale.order"
 
-    meli_order_id =  fields.Char('Meli Order Id')
+    meli_order_id =  fields.Char(string='Meli Order Id',index=True)
     meli_orders = fields.Many2many('mercadolibre.orders',string="ML Orders")
     meli_status = fields.Selection( [
         #Initial state of an order, and it has no payment yet.
@@ -225,12 +226,36 @@ class mercadolibre_orders(models.Model):
 
         return full_phone
 
+    def _set_product_unit_price( self, product_related_obj, Item ):
+        product_template = product_related_obj.product_tmpl_id
+        upd_line = {
+            "price_unit": float(Item['unit_price']),
+        }
+        if (product_template.taxes_id and not self.env.user.has_group('sale.group_show_price_subtotal')):
+            txtotal = 0
+            ml_price_converted = float(Item['unit_price'])
+            #_logger.info("Adjust taxes")
+            for txid in product_template.taxes_id:
+                if (txid.type_tax_use=="sale"):
+                    txtotal = txtotal + txid.amount
+                    #_logger.info(txid.amount)
+            if (txtotal>0):
+                #_logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_converted))
+                ml_price_converted = ml_price_converted / (1.0 + txtotal*0.01)
+                _logger.info("Price adjusted with taxes:"+str(ml_price_converted))
+                upd_line["price_unit"] = ml_price_converted
+        else:
+            if ( float(Item['unit_price']) == product_template.lst_price and not self.env.user.has_group('sale.group_show_price_subtotal')):
+                upd_line["tax_id"] = None
+        return upd_line
+
     def pretty_json( self, ids, data, indent=0, context=None ):
         return json.dumps( data, sort_keys=False, indent=4 )
 
     def orders_update_order_json( self, data, context=None ):
 
-        _logger.info("orders_update_order_json > data "+str(data['id']) )
+        _logger.info("orders_update_order_json > data "+str(data['id']) + " json:" + str(data['order_json']['id']) )
+
         oid = data["id"]
         order_json = data["order_json"]
         #_logger.info( "data:" + str(data) )
@@ -275,7 +300,7 @@ class mercadolibre_orders(models.Model):
                         sorder = sorder_s
         else:
         #we search for existing order with same order_id => "id"
-            order_s = order_obj.search([ ('order_id','=',order_json['id']) ] )
+            order_s = order_obj.search([ ('order_id','=','%i' % (order_json["id"])) ] )
             if (order_s):
                 if (len(order_s)>1):
                     order = order_s[0]
@@ -283,7 +308,7 @@ class mercadolibre_orders(models.Model):
                     order = order_s
             #    order = order_obj.browse(order_s[0] )
 
-            sorder_s = saleorder_obj.search([ ('meli_order_id','=',order_json['id']) ] )
+            sorder_s = saleorder_obj.search([ ('meli_order_id','=','%i' % (order_json["id"])) ] )
             if (sorder_s):
                 if (len(sorder_s)>1):
                     sorder = sorder_s[0]
@@ -444,8 +469,8 @@ class mercadolibre_orders(models.Model):
             'meli_total_amount': order_json["total_amount"],
             'meli_paid_amount': order_json["paid_amount"],
             'meli_currency_id': order_json["currency_id"],
-            'meli_date_created': _ml_datetime(order_json["date_created"]) or '',
-            'meli_date_closed': _ml_datetime(order_json["date_closed"]) or '',
+            'meli_date_created': _ml_datetime(order_json["date_created"]),
+            'meli_date_closed': _ml_datetime(order_json["date_closed"]),
         }
 
         if (order_json["shipping"]):
@@ -650,28 +675,7 @@ class mercadolibre_orders(models.Model):
                         'product_uom': 1,
                         'name': Item['item']['title'],
                     }
-
-                    product_template = product_related_obj.product_tmpl_id
-                    if (product_template.taxes_id and not self.env.user.has_group('sale.group_show_price_subtotal')):
-                        txtotal = 0
-                        ml_price_converted = float(Item['unit_price'])
-                        _logger.info("Adjust taxes")
-                        for txid in product_template.taxes_id:
-                            if (txid.type_tax_use=="sale"):
-                                txtotal = txtotal + txid.amount
-                                _logger.info(txid.amount)
-                        if (txtotal>0):
-                            _logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_converted))
-                            ml_price_converted = ml_price_converted / (1.0 + txtotal*0.01)
-                            _logger.info("Price converted:"+str(ml_price_converted))
-                            saleorderline_item_fields['price_unit'] = ml_price_converted
-                    else:
-                        if (float(Item['unit_price'])==product_related_obj.product_tmpl_id.lst_price and not self.env.user.has_group('sale.group_show_price_subtotal')):
-                            saleorderline_item_fields['price_unit'] = float(Item['unit_price'])
-                            saleorderline_item_fields['tax_id'] = None
-                        else:
-                            saleorderline_item_fields['price_unit'] = product_related_obj.product_tmpl_id.lst_price
-
+                    saleorderline_item_fields.update( self._set_product_unit_price( product_related_obj, Item ) )
 
                     saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
 
@@ -695,8 +699,8 @@ class mercadolibre_orders(models.Model):
                     'total_paid_amount': Payment['total_paid_amount'] or '',
                     'currency_id': Payment['currency_id'] or '',
                     'status': Payment['status'] or '',
-                    'date_created': _ml_datetime(Payment['date_created']) or '',
-                    'date_last_modified': _ml_datetime(Payment['date_last_modified']) or '',
+                    'date_created': _ml_datetime(Payment['date_created']),
+                    'date_last_modified': _ml_datetime(Payment['date_last_modified']),
                     'mercadopago_url': mp_payment_url+'?access_token='+str(company.mercadolibre_access_token),
                     'full_payment': '',
                     'fee_amount': 0,
@@ -858,8 +862,8 @@ class mercadolibre_orders(models.Model):
 
         return {}
 
-    name = fields.Char(string='Order Name')
-    order_id = fields.Char('Order Id')
+    name = fields.Char(string='Order Name',index=True)
+    order_id = fields.Char(string='Order Id',index=True)
     sale_order = fields.Many2one('sale.order',string="Sale Order",help='Pedido de venta de Odoo')
 
     status = fields.Selection( [
