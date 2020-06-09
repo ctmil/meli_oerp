@@ -225,6 +225,29 @@ class mercadolibre_orders(models.Model):
 
         return full_phone
 
+    def _set_product_unit_price( self, product_related_obj, Item ):
+        product_template = product_related_obj.product_tmpl_id
+        upd_line = {
+            "price_unit": float(Item['unit_price']),
+        }
+        if (product_template.taxes_id and not self.env.user.has_group('sale.group_show_price_subtotal')):
+            txtotal = 0
+            ml_price_converted = float(Item['unit_price'])
+            #_logger.info("Adjust taxes")
+            for txid in product_template.taxes_id:
+                if (txid.type_tax_use=="sale"):
+                    txtotal = txtotal + txid.amount
+                    #_logger.info(txid.amount)
+            if (txtotal>0):
+                #_logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_converted))
+                ml_price_converted = ml_price_converted / (1.0 + txtotal*0.01)
+                _logger.info("Price adjusted with taxes:"+str(ml_price_converted))
+                upd_line["price_unit"] = ml_price_converted
+        else:
+            if ( float(Item['unit_price']) == product_template.lst_price and not self.env.user.has_group('sale.group_show_price_subtotal')):
+                upd_line["tax_id"] = None
+        return upd_line
+
     def pretty_json( self, ids, data, indent=0, context=None ):
         return json.dumps( data, sort_keys=False, indent=4 )
 
@@ -651,28 +674,7 @@ class mercadolibre_orders(models.Model):
                         'product_uom': 1,
                         'name': Item['item']['title'],
                     }
-
-                    product_template = product_related_obj.product_tmpl_id
-                    if (product_template.taxes_id and not self.env.user.has_group('sale.group_show_price_subtotal')):
-                        txtotal = 0
-                        ml_price_converted = float(Item['unit_price'])
-                        _logger.info("Adjust taxes")
-                        for txid in product_template.taxes_id:
-                            if (txid.type_tax_use=="sale"):
-                                txtotal = txtotal + txid.amount
-                                _logger.info(txid.amount)
-                        if (txtotal>0):
-                            _logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_converted))
-                            ml_price_converted = ml_price_converted / (1.0 + txtotal*0.01)
-                            _logger.info("Price converted:"+str(ml_price_converted))
-                            saleorderline_item_fields['price_unit'] = ml_price_converted
-                    else:
-                        if (float(Item['unit_price'])==product_related_obj.product_tmpl_id.lst_price and not self.env.user.has_group('sale.group_show_price_subtotal')):
-                            saleorderline_item_fields['price_unit'] = float(Item['unit_price'])
-                            saleorderline_item_fields['tax_id'] = None
-                        else:
-                            saleorderline_item_fields['price_unit'] = float(Item['unit_price'])
-
+                    saleorderline_item_fields.update( self._set_product_unit_price( product_related_obj, Item ) )
 
                     saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
 
