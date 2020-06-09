@@ -51,7 +51,8 @@ def _ml_datetime(datestr):
 		#return parse(datestr).isoformat().replace("T"," ")
 		return parse(datestr).strftime('%Y-%m-%d %H:%M:%S')
 	except:
-		return ""
+		_logger.error(datestr)
+		return None
 #
 #	 https://www.odoo.com/fr_FR/forum/aide-1/question/solved-call-report-and-save-result-to-attachment-133244
 #
