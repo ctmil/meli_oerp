@@ -513,8 +513,8 @@ class mercadolibre_shipment(models.Model):
 								'meli_paid_amount': shipment.order_cost,
 								'meli_fee_amount': 0.0,
 								'meli_currency_id': all_orders[0]["currency_id"],
-								'meli_date_created': _ml_datetime(all_orders[0]["date_created"]) or '',
-								'meli_date_closed': _ml_datetime(all_orders[0]["date_closed"]) or '',
+								'meli_date_created': _ml_datetime(all_orders[0]["date_created"]),
+								'meli_date_closed': _ml_datetime(all_orders[0]["date_closed"]),
 							}
 							sorder_pack = self.env["sale.order"].search( [ ('meli_order_id','=',meli_order_fields["meli_order_id"]) ] )
 							if (len(sorder_pack)):
