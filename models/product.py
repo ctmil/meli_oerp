@@ -70,10 +70,11 @@ class product_template(models.Model):
             }
 
         _logger.info("Product Template Post")
-        _logger.info(self.env.context)
-        _logger.info(self.env.context.get("force_meli_pub"))
-        _logger.info(self.env.context.get("force_meli_pubx"))
-        _logger.info("force_meli_pub" in self.env.context)
+
+        custom_context = {}
+        if ("force_meli_pub" in self.env.context):
+            custom_context = { "force_meli_pub": self.env.context.get("force_meli_pub") }
+
         ret = {}
         for product in self:
             if (product.meli_pub_as_variant):
@@ -91,12 +92,12 @@ class product_template(models.Model):
                             _logger.info(variant)
                             variant_principal = variant
                             product.meli_pub_principal_variant = variant
-                            ret = variant.with_context({}).product_post()
+                            ret = variant.with_context(custom_context).product_post()
                             if ('name' in ret[0]):
                                 return ret[0]
                         else:
                             if (variant_principal):
-                                variant.product_post_variant(variant_principal)
+                                variant.with_context(custom_context).product_post_variant(variant_principal)
                     else:
                         _logger.info("No condition met for:"+variant.display_name)
                 _logger.info(product.meli_pub_variant_attributes)
@@ -107,7 +108,7 @@ class product_template(models.Model):
                     _logger.info("Variant:", variant, variant.meli_pub)
                     if (variant.meli_pub):
                         _logger.info("Posting variant")
-                        ret = variant.product_post()
+                        ret = variant.with_context(custom_context).product_post()
                         if ('name' in ret[0]):
                             return ret[0]
                     else:
