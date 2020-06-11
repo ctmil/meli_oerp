@@ -409,38 +409,41 @@ class product_product(models.Model):
         if company.mercadolibre_pricelist:
             pl = company.mercadolibre_pricelist
 
-        #NEW OR NULL
+        # NEW OR NULL
+        # > Set template meli price
         if ( product_tmpl.meli_price==False
             or ( product_tmpl.meli_price and int(float(product_tmpl.meli_price))==0 ) ):
             product_tmpl.meli_price = product_tmpl.list_price
 
+        # UPDATE
+        # Actualizamos el product meli price (todas las variantes en ML deben tener el mismo precio):
+        # por eso lo tomamos de la plantilla para simplifiar
+        new_price = product_tmpl.list_price
+        if ( product.lst_price ):
+            new_price = product.lst_price
+
+        if (pl):
+            return_val = pl.price_get(product.id,1.0)
+            if pl.id in return_val:
+                new_price = return_val[pl.id]
+            _logger.info("return_val: ")
+            _logger.info(return_val)
+        else:
+            _logger.info( "new_price: " +str(new_price))
+            if ( product.lst_price ):
+                new_price = product.lst_price
+
         if product_tmpl.taxes_id:
-
             _logger.info("taxes:")
-
-            new_price = product_tmpl.meli_price
-
-            if (pl):
-                return_val = pl.price_get(product.id,1.0)
-                if pl.id in return_val:
-                    new_price = return_val[pl.id]
-                _logger.info("return_val: ")
-                _logger.info(return_val)
-            else:
-                _logger.info( "new_price: " +str(new_price))
-                new_price = product_tmpl.list_price
-                if ( product.lst_price ):
-                    new_price = product.lst_price
-
-            #price total
-            #
             new_price = new_price * ( 1 + ( product_tmpl.taxes_id[0].amount / 100) )
             new_price = round(new_price,2)
-            product_tmpl.meli_price = new_price
-            product.meli_price = product_tmpl.meli_price
+
+        product_tmpl.meli_price = new_price
+        product.meli_price = product_tmpl.meli_price
 
         product_tmpl.meli_price = str(int(float(product_tmpl.meli_price)))
         _logger.info("product_tmpl.meli_price updated: " + str(product_tmpl.meli_price))
+
         product.meli_price = str(int(float(product.meli_price)))
         _logger.info("product.meli_price updated: " + str(product.meli_price))
 
