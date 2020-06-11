@@ -30,25 +30,27 @@
                             confirm="¿Está seguro que quiere importar los datos desde ML?"
                             class="oe_stat_button"
                           icon="fa-cloud-download"/>
-                          <button name='%(action_category_predictor)d' type="action"
-                            string="Predecir categoria"
-                            title="Predecir categoría de ML"
+                          <button name='action_category_predictor' type="object"
+            								string="Sugerir Categoria MELI"
                             class="oe_stat_button"
-                            icon="fa-cloud-download"/>
+                            icon="fa-refresh"
+            								attrs="{'invisible':['|',('meli_state','=',True),('meli_category','!=',False)]}" />
                         </div>
                       </group>
-                      <group string="Publicaciones">
-                        <field name="product_variant_ids" options="{'no_create': True}" domain="[('meli_id','!=',None)]">
-                          <tree>
-                            <field string="Variante" name="name"/>
-                            <field string="Id Pub" name="meli_id"/>
-                            <field string="Id Var" name="meli_id_variation"/>
-                            <field string="Status" name="meli_status"/>
-                            <field string="Sub Status" name="meli_sub_status"/>
-                            <field string="Link" name="meli_permalink" widget="url"/>
-                          </tree>
-                        </field>
-                      </group>
+                      <separator string="Variants" colspan="1"/>
+                      <field name="product_variant_ids" options="{'no_create': True}" domain="[('meli_id','!=',None)]">
+                        <tree>
+                          <field string="Id Pub" name="meli_id"/>
+                          <field string="Id Var" name="meli_id_variation"/>
+                          <field string="Variant" name="name"/>
+                          <field string="Status" name="meli_status"/>
+                          <field string="Sub Status" name="meli_sub_status"/>
+                          <field string="ML Title" name="meli_title"/>
+                          <field string="ML Price" name="meli_price"/>
+                          <field string="ML Qty" name="meli_available_quantity"/>
+                          <field string="Link" name="meli_permalink" widget="url"/>
+                        </tree>
+                      </field>
                       <separator string="Descripcion del producto en ML" colspan="1"/>
                       <group name="Basic description">
                         <field name="meli_title" />
@@ -214,11 +216,11 @@
                               attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"
                               class="oe_stat_button"
               								icon="fa-cloud-download"/>
-                            <button name='%(action_category_predictor)d' type="action"
-                                string="Predecir categoria"
-                                title="Predecir categoría de ML"
+                              <button name='action_category_predictor' type="object"
+                								string="Sugerir Categoria MELI"
                                 class="oe_stat_button"
-                                icon="fa-cloud-download"/>
+                                icon="fa-refresh"
+                								attrs="{'invisible':['|',('meli_state','=',True),('meli_category','!=',False)]}" />
                             <button name='%(action_product_post)d' type="action"
                               string="Publicar"
                               title="Publicar producto en ML"
