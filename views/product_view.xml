@@ -32,9 +32,9 @@
                           icon="fa-cloud-download"/>
                           <button name='action_category_predictor' type="object"
             								string="Sugerir Categoria MELI"
+                            attrs="{'invisible':[('meli_category','!=',False)]}"
                             class="oe_stat_button"
-                            icon="fa-refresh"
-            								attrs="{'invisible':['|',('meli_state','=',True),('meli_category','!=',False)]}" />
+                            icon="fa-refresh"/>
                         </div>
                       </group>
                       <separator string="Variants" colspan="1"/>
