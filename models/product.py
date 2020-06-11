@@ -400,10 +400,10 @@ class product_product(models.Model):
         product_template.write({'lst_price': ml_price_converted})
 
     def set_meli_price(self):
-        _logger.info("set_meli_price")
         company = self.env.user.company_id
         product = self
         product_tmpl = product.product_tmpl_id
+        _logger.info("set_meli_price: "+str(product_tmpl.list_price)+ " >> "+str(product_tmpl.display_name)+": "+str(product_tmpl.meli_price)+" | "+str(product.display_name)+": "+str(product.meli_price) )
 
         pl = False
         if company.mercadolibre_pricelist:
