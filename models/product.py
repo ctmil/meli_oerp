@@ -382,7 +382,7 @@ class product_product(models.Model):
         #    res[id] = self.lst_price
         #return res
 
-    def _meli_set_price( self, product_template, meli_price ):
+    def _meli_set_product_price( self, product_template, meli_price ):
         company = self.env.user.company_id
         ml_price_converted = meli_price
         if (product_template.taxes_id):
@@ -398,6 +398,43 @@ class product_product(models.Model):
                 _logger.info("Price converted:"+str(ml_price_converted))
 
         product_template.write({'lst_price': ml_price_converted})
+
+    def set_meli_price(self):
+
+        company = self.env.user.company_id
+        product = self
+        product_tmpl = product.product_tmpl_id
+
+        pl = False
+        if company.mercadolibre_pricelist:
+            pl = company.mercadolibre_pricelist
+
+        if ( product_tmpl.meli_price==False
+            or ( product_tmpl.meli_price and int(float(product_tmpl.meli_price))==0 ):
+            product_tmpl.meli_price = product_tmpl.list_price
+
+        if product_tmpl.taxes_id:
+            new_price = product_tmpl.meli_price
+            if (pl):
+                return_val = pl.price_get(product.id,1.0)
+                if pl.id in return_val:
+                    new_price = return_val[pl.id]
+            else:
+                new_price = product_tmpl.list_price
+                if (product.lst_price):
+                    new_price = product.lst_price
+
+            new_price = new_price * ( 1 + ( product_tmpl.taxes_id[0].amount / 100) )
+            new_price = round(new_price,2)
+            product_tmpl.meli_price = new_price
+            product.meli_price=product_tmpl.meli_price
+
+        product_tmpl.meli_price = str(int(float(product_tmpl.meli_price)))
+        product.meli_price = str(int(float(product.meli_price)))
+        _logger.info("product.meli_price updated: " + str(product.meli_price))
+        _logger.info("product.meli_price updated: " + str(product_tmpl.meli_price))
+
+        return product.meli_price
 
     def _meli_set_category( self, product_template, category_id ):
 
@@ -629,7 +666,7 @@ class product_product(models.Model):
 
         try:
             if (float(rjson['price'])>=0.0):
-                product._meli_set_price( product_template, rjson['price'] )
+                product._meli_set_product_price( product_template, rjson['price'] )
         except:
             rjson['price'] = 0.0
 
@@ -1687,31 +1724,7 @@ class product_product(models.Model):
         if product_tmpl.meli_title==False:
             product_tmpl.meli_title = product_tmpl.name
 
-        pl = False
-        if company.mercadolibre_pricelist:
-            pl = company.mercadolibre_pricelist
-
-        if product_tmpl.meli_price==False or product_tmpl.meli_price==0:
-            product_tmpl.meli_price = product_tmpl.list_price
-
-        if product_tmpl.taxes_id:
-            new_price = product_tmpl.meli_price
-            if (pl):
-                return_val = pl.price_get(product.id,1.0)
-                if pl.id in return_val:
-                    new_price = return_val[pl.id]
-            else:
-                new_price = product_tmpl.list_price
-                if (product.lst_price):
-                    new_price = product.lst_price
-
-            new_price = new_price * ( 1 + ( product_tmpl.taxes_id[0].amount / 100) )
-            new_price = round(new_price,2)
-            product_tmpl.meli_price = new_price
-            product.meli_price=product_tmpl.meli_price
-
-        product_tmpl.meli_price = str(int(float(product_tmpl.meli_price)))
-        product.meli_price = str(int(float(product.meli_price)))
+        product.set_meli_price()
 
         if company.mercadolibre_buying_mode and product_tmpl.meli_buying_mode==False:
             product_tmpl.meli_buying_mode = company.mercadolibre_buying_mode
@@ -2375,44 +2388,7 @@ class product_product(models.Model):
         REFRESH_TOKEN = company.mercadolibre_refresh_token
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
-
-        pl = False
-        if company.mercadolibre_pricelist:
-            pl = company.mercadolibre_pricelist
-
-        if product_tmpl.meli_price==False or product_tmpl.meli_price==0:
-            product_tmpl.meli_price = product_tmpl.list_price
-
-        #if (product_tmpl.meli_currency=="COP"):
-        product_tmpl.meli_price = str(int(float(product_tmpl.meli_price)))
-
-        if product_tmpl.taxes_id:
-            new_price = product_tmpl.meli_price
-            if (pl):
-                return_val = pl.price_get(product.id,1.0)
-                if pl.id in return_val:
-                    new_price = return_val[pl.id]
-            else:
-                new_price = product_tmpl.list_price
-                if (product.lst_price):
-                    new_price = product.lst_price
-
-            new_price = new_price * ( 1 + ( product_tmpl.taxes_id[0].amount / 100) )
-            new_price = round(new_price,2)
-            product_tmpl.meli_price = new_price
-            product.meli_price=product_tmpl.meli_price
-
-        if product_tmpl.meli_price==False or product_tmpl.meli_price==0:
-            product_tmpl.meli_price = product_tmpl.standard_price
-
-        if product.meli_price==False or product.meli_price==0.0:
-            if product_tmpl.meli_price:
-                product.meli_price = product_tmpl.meli_price
-
-        #if (product_tmpl.meli_currency=="COP"):
-        product.meli_price = str(int(float(product.meli_price)))
-        _logger.info(product.meli_price)
-        _logger.info(product_tmpl.meli_price)
+        product.set_meli_price()
 
         fields = {
             "price": product.meli_price
