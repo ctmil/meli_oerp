@@ -71,6 +71,9 @@ class product_template(models.Model):
 
         _logger.info("Product Template Post")
         _logger.info(self.env.context)
+        _logger.info(self.env.context.get("force_meli_pub"))
+        _logger.info(self.env.context.get("force_meli_pubx"))
+        _logger.info("force_meli_pub" in self.env.context)
         ret = {}
         for product in self:
             if (product.meli_pub_as_variant):
@@ -88,7 +91,7 @@ class product_template(models.Model):
                             _logger.info(variant)
                             variant_principal = variant
                             product.meli_pub_principal_variant = variant
-                            ret = variant.product_post()
+                            ret = variant.with_context({}).product_post()
                             if ('name' in ret[0]):
                                 return ret[0]
                         else:

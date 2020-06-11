@@ -76,7 +76,7 @@ class product_template_post(models.TransientModel):
 	            "target": "new",
             }
         res = {}
-        _logger.info("context:")
+        _logger.info("context in product_template_post:")
         _logger.info(self.env.context)
 
         for product_id in product_ids:
