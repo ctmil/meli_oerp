@@ -61,6 +61,10 @@
                     <field name="meli_category_url" widget="url"/>
                     <field name="meli_category_attributes" widget="url"/>
                     <field name="meli_category_attribute_ids"/>
+                    <separator name="Settings" />
+                    <field name="meli_category_settings"/>
+                    <field name="meli_setting_minimum_price"/>
+                    <field name="meli_setting_maximum_price"/>
                   </group>
                 </form>
             </field>

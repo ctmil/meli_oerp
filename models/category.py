@@ -327,5 +327,9 @@ class mercadolibre_category(models.Model):
     meli_category_url = fields.Char(compute=_get_category_url, string="Mercado Libre Category Url")
     meli_category_attribute_ids = fields.Many2many("mercadolibre.category.attribute",string="Attributes")
 
+    meli_category_settings = fields.Char(string="Settings")
+    meli_setting_minimum_price = fields.Float(string="Minimum price")
+    meli_setting_maximum_price = fields.Float(string="Maximum price")
+
 
 mercadolibre_category()
