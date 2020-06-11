@@ -70,10 +70,14 @@ class product_template(models.Model):
             }
 
         _logger.info("Product Template Post")
+        _logger.info(self.env.context)
 
         custom_context = {}
+        force_meli_pub = False
         if ("force_meli_pub" in self.env.context):
-            custom_context = { "force_meli_pub": self.env.context.get("force_meli_pub") }
+            force_meli_pub = self.env.context.get("force_meli_pub")
+            custom_context = { "force_meli_pub": force_meli_pub }
+        _logger.info(custom_context)
 
         ret = {}
         for product in self:
@@ -106,6 +110,8 @@ class product_template(models.Model):
             else:
                 for variant in product.product_variant_ids:
                     _logger.info("Variant:", variant, variant.meli_pub)
+                    if (force_meli_pub==True):
+                        variant.meli_pub = True
                     if (variant.meli_pub):
                         _logger.info("Posting variant")
                         ret = variant.with_context(custom_context).product_post()
