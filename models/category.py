@@ -219,11 +219,12 @@ class mercadolibre_category(models.Model):
         return {}
 
     def action_import_father_category( self ):
-        if (self.meli_father_category_id):
-            try:
-                self.meli_father_category = self.import_category(self.meli_father_category_id)
-            except:
-                _logger.error("No se pudo importar: "+ str(self.meli_father_category_id))
+        for obj in self:
+            if (obj.meli_father_category_id):
+                try:
+                    obj.meli_father_category = obj.import_category(obj.meli_father_category_id)
+                except:
+                    _logger.error("No se pudo importar: "+ str(obj.meli_father_category_id))
 
     def import_category(self, category_id ):
         company = self.env.user.company_id
