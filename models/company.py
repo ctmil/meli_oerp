@@ -39,6 +39,28 @@ class res_company(models.Model):
     def meli_get_object( self ):
         return True
 
+    def _get_ML_currencies(self):
+        #https://api.mercadolibre.com/currencies
+        meli_util_model = self.env['meli.util']
+        meli = meli_util_model.get_new_instance()
+        ML_currencies = [ ("ARS","Peso Argentino (ARS)"),
+                            ("MXN","Peso Mexicano (MXN)"),
+                            ("COP","Peso Colombiano (COP)"),
+                            ("PEN","Sol Peruano (PEN)"),
+                            ("BOB","Boliviano (BOB)"),
+                            ("BRL","Real (BRL)"),
+                            ("CLP","Peso Chileno (CLP)")]
+        if (meli):
+            response = meli.get("/currencies")
+            if (response):
+                ML_currencies = []
+                currencies = response.json()
+                for k in currencies:
+                    ML.append(( k["id"], k["description"] ))
+
+        return ML_currencies
+
+
     def _get_ML_sites(self):
         # to check api.mercadolibre.com/sites  > MLA
         meli_util_model = self.env['meli.util']
@@ -55,16 +77,16 @@ class res_company(models.Model):
         response = meli.get("/sites")
         if (response):
             sites = response.json()
-            _logger.info(sites)
+            #_logger.info(sites)
             for site in sites:
-                _logger.info("site:")
-                _logger.info(site)
+                #_logger.info("site:")
+                #_logger.info(site)
                 _key_ = site["default_currency_id"]
                 ML_sites[_key_] = site
 
         currency = self.mercadolibre_currency
 
-        _logger.info(ML_sites)
+        #_logger.info(ML_sites)
 
         if (currency and currency in ML_sites):
             return ML_sites[currency]["id"]
@@ -229,13 +251,13 @@ class res_company(models.Model):
     mercadolibre_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),
                                                   ("classified","Clasificado")],
                                                   string='Método de compra predeterminado')
-    mercadolibre_currency = fields.Selection([("ARS","Peso Argentino (ARS)"),
-    ("MXN","Peso Mexicano (MXN)"),
-    ("COP","Peso Colombiano (COP)"),
-    ("PEN","Sol Peruano (PEN)"),
-    ("BOB","Boliviano (BOB)"),
-    ("BRL","Real (BRL)"),
-    ("CLP","Peso Chileno (CLP)")],
+    mercadolibre_currency = fields.Selection([  ("ARS","Peso Argentino (ARS)"),
+                                                ("MXN","Peso Mexicano (MXN)"),
+                                                ("COP","Peso Colombiano (COP)"),
+                                                ("PEN","Sol Peruano (PEN)"),
+                                                ("BOB","Boliviano (BOB)"),
+                                                ("BRL","Real (BRL)"),
+                                                ("CLP","Peso Chileno (CLP)")],
                                                 string='Moneda predeterminada')
     mercadolibre_condition = fields.Selection([ ("new", "Nuevo"),
                                                 ("used", "Usado"),
