@@ -2175,6 +2175,8 @@ class product_product(models.Model):
         if "error" in rjson:
             error_msg = 'MELI RESP.: <h6>Mensaje de error</h6> %s<br/><h6>Mensaje</h6> %s<br/><h6>status</h6> %s<br/><h6>cause</h6> %s<br/>' % (rjson["error"], rjson["message"], rjson["status"], rjson["cause"])
             _logger.error(error_msg)
+            if (rjson["cause"] and rjson["cause"][0] and "message" in rjson["cause"][0]):
+                error_msg+= '<h3>'+str(rjson["cause"][0]["message"])+'</h3>'
             #expired token
             if "message" in rjson and (rjson["error"]=="forbidden" or rjson["message"]=='invalid_token' or rjson["message"]=="expired_token"):
                 meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
