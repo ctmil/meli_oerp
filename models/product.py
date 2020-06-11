@@ -273,12 +273,14 @@ class product_template(models.Model):
         response = meli.post("/sites/"+self.env.user.company_id._get_ML_sites()+"/category_predictor/predict", vals)
         rjson = response.json()
         meli_categ = False
-        _logger.info(rjson)
-        _logger.info(isinstance(rjson, list))
+        #_logger.info(rjson)
+        #_logger.info(isinstance(rjson, list))
         if rjson and isinstance(rjson, list):
             if "id" in rjson[0]:
-                _logger.info("Take first suggestion")
+                #_logger.info("Take first suggestion")
                 meli_categ = self.env['mercadolibre.category'].import_category(rjson[0]['id'])
+                if (meli_categ==None):
+                    _logger.info("Import category failed.")
         return meli_categ, rjson
 
     def _get_pricelist_for_meli(self):

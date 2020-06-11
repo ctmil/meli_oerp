@@ -231,7 +231,7 @@ class mercadolibre_category(models.Model):
         REFRESH_TOKEN = company.mercadolibre_refresh_token
 
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
-
+        ml_cat_id = None
         if (category_id):
             is_branch = False
             father = None
@@ -271,6 +271,8 @@ class mercadolibre_category(models.Model):
                 ml_cat_id = category_obj.create((cat_fields))
                 if (ml_cat_id.id and is_branch==False):
                   ml_cat_id._get_attributes()
+
+        return ml_cat_id
 
 
     def import_all_categories(self, category_root ):
