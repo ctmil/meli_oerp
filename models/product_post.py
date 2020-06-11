@@ -78,7 +78,6 @@ class product_template_post(models.TransientModel):
         res = {}
         _logger.info("context:")
         _logger.info(self.env.context)
-        self.env.context.update({'force_meli_pub': self.force_meli_pub })
 
         for product_id in product_ids:
             product = product_obj.browse(product_id)
@@ -86,7 +85,7 @@ class product_template_post(models.TransientModel):
                 if (self.force_meli_pub and not product.meli_pub):
                     product.meli_pub = True
                 if (product.meli_pub):
-                    res = product.product_template_post()
+                    res = product.with_context({'force_meli_pub': self.force_meli_pub }).product_template_post()
 
             if 'name' in res:
                 return res
