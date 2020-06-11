@@ -2366,7 +2366,6 @@ class product_product(models.Model):
             return warning_model.info( title='MELI WARNING', message="CATEGORY PREDICTOR", message_html="Categoria sugerida: %s" % meli_categ.name)
         return warning_model.info( title='MELI WARNING', message="CATEGORY PREDICTOR", message_html=rjson)
 
-    @api.multi
     def _get_meli_category_from_predictor(self):
         self.ensure_one()
         meli_util_model = self.env['meli.util']
@@ -2383,7 +2382,6 @@ class product_product(models.Model):
                 meli_categ = self.env['mercadolibre.category'].import_category(rjson[0]['id'])
         return meli_categ, rjson
 
-    @api.model
     def _get_pricelist_for_meli(self):
         pricelist = self.env.user.company_id.mercadolibre_pricelist
         if not pricelist:
