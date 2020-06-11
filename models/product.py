@@ -415,8 +415,11 @@ class product_product(models.Model):
             product_tmpl.meli_price = product_tmpl.list_price
 
         if product_tmpl.taxes_id:
+
             _logger.info("taxes:")
+
             new_price = product_tmpl.meli_price
+
             if (pl):
                 return_val = pl.price_get(product.id,1.0)
                 if pl.id in return_val:
@@ -437,9 +440,9 @@ class product_product(models.Model):
             product.meli_price = product_tmpl.meli_price
 
         product_tmpl.meli_price = str(int(float(product_tmpl.meli_price)))
+        _logger.info("product_tmpl.meli_price updated: " + str(product_tmpl.meli_price))
         product.meli_price = str(int(float(product.meli_price)))
         _logger.info("product.meli_price updated: " + str(product.meli_price))
-        _logger.info("product_tmpl.meli_price updated: " + str(product_tmpl.meli_price))
 
         return product.meli_price
 
