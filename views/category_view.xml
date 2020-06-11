@@ -54,6 +54,8 @@
                     <field name="is_branch"/>
                     <field name="meli_category_id"/>
                     <field name="meli_father_category"/>
+                    <button type="object" name="action_import_father_category" string="Importar Padre" Title="Importar Padre" class="oe_stat_button"
+                    icon="fa-cloud-download">Importar Padre</button>
                     <field name="meli_father_category_id"/>
                     <field name="public_category_id"/>
                     <field name="meli_category_url" widget="url"/>

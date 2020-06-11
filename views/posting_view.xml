@@ -104,7 +104,8 @@
         name="Update ML Post"
         binding_model="mercadolibre.posting"
         res_model="mercadolibre.posting.update"
-        binding_views="form"
+        binding_type="action"
+        binding_views="list,form"
         view_mode="form"
         target="new"/>
 

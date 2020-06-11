@@ -283,7 +283,8 @@
                 name="Update ML Orders"
                 binding_model="mercadolibre.orders"
                 res_model="mercadolibre.orders.update"
-                binding_views="form"
+                binding_type="action"
+                binding_views="list,form"
                 view_mode="form"
                 target="new"/>
 

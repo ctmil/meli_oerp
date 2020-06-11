@@ -218,6 +218,12 @@ class mercadolibre_category(models.Model):
 
         return {}
 
+    def action_import_father_category( self ):
+        if (self.meli_father_category_id):
+            try:
+                self.meli_father_category = self.import_category(meli_father_category_id)
+            except:
+                _logger.error("No se pudo importar: "+ str(meli_father_category_id))
 
     def import_category(self, category_id ):
         company = self.env.user.company_id
@@ -256,7 +262,7 @@ class mercadolibre_category(models.Model):
                       father_ml_id = rjson_cat["path_from_root"][len(rjson_cat["path_from_root"])-2]["id"]
                       father_id = category_obj.search([('meli_category_id','=',father_ml_id)])
                       if (father_id and len(father_id)):
-                          father = father_id[0].id
+                          father = father_id[0]
 
 
                 #fullname = fullname + "/" + rjson_cat['name']
