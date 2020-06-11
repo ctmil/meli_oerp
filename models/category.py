@@ -91,7 +91,7 @@ class mercadolibre_category(models.Model):
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
         for category in self:
-            if (category.meli_category_id):
+            if (category and category.meli_category_id):
                 _logger.info("_get_category_url:"+str(category.meli_category_id))
                 response_cat = meli.get("/categories/"+str(category.meli_category_id), {'access_token':meli.access_token})
                 rjson_cat = response_cat.json()
