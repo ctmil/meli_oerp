@@ -80,6 +80,7 @@ class product_template(models.Model):
         _logger.info(custom_context)
 
         ret = {}
+        posted_products = 0
         for product in self:
             if (product.meli_pub_as_variant):
                 _logger.info("Posting as variants")
@@ -99,16 +100,20 @@ class product_template(models.Model):
                             ret = variant.with_context(custom_context).product_post()
                             if ('name' in ret[0]):
                                 return ret[0]
+                            posted_products+= 1
+
                         else:
                             if (variant_principal):
-                                variant.with_context(custom_context).product_post_variant(variant_principal)
+                                ret = variant.with_context(custom_context).product_post_variant(variant_principal)
+                                if ('name' in ret[0]):
+                                    return ret[0]
+                                posted_products+= 1
                     else:
                         _logger.info("No condition met for:"+variant.display_name)
                 _logger.info(product.meli_pub_variant_attributes)
 
 
             else:
-                posted_products = 0
                 for variant in product.product_variant_ids:
                     _logger.info("Variant:", variant, variant.meli_pub)
                     if (force_meli_pub==True):
@@ -118,12 +123,11 @@ class product_template(models.Model):
                         ret = variant.with_context(custom_context).product_post()
                         if ('name' in ret[0]):
                             return ret[0]
+                        posted_products+= 1
                     else:
                         _logger.info("No meli_pub for:"+variant.display_name)
 
-                    posted_products+=1
-
-        if (posted_products==0 and not 'name' in ret[0]):
+        if (posted_products==0 and not 'name' in ret):
             ret = warningobj.info( title='MELI WARNING', message="Se intentaron publicar 0 productos. Debe forzar las publicaciones o marcar el producto con el campo Meli Publication, debajo del titulo.", message_html="" )
 
         return ret
