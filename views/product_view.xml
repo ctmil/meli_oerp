@@ -30,6 +30,11 @@
                             confirm="¿Está seguro que quiere importar los datos desde ML?"
                             class="oe_stat_button"
                           icon="fa-cloud-download"/>
+                          <button name='%(action_category_predictor)d' type="action"
+                            string="Predecir categoria"
+                            title="Predecir categoría de ML"
+                            class="oe_stat_button"
+                            icon="fa-cloud-download"/>
                         </div>
                       </group>
                       <group string="Publicaciones">
@@ -209,6 +214,11 @@
                               attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"
                               class="oe_stat_button"
               								icon="fa-cloud-download"/>
+                            <button name='%(action_category_predictor)d' type="action"
+                                string="Predecir categoria"
+                                title="Predecir categoría de ML"
+                                class="oe_stat_button"
+                                icon="fa-cloud-download"/>
                             <button name='%(action_product_post)d' type="action"
                               string="Publicar"
                               title="Publicar producto en ML"

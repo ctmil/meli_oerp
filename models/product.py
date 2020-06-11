@@ -235,6 +235,52 @@ class product_template(models.Model):
             variant.write({'meli_pub':self.meli_pub})
 
 
+    def get_title_for_meli(self):
+        return self.name
+
+    def get_title_for_category_predictor(self):
+        return self.name
+
+    def get_price_for_category_predictor(self):
+        pricelist = self._get_pricelist_for_meli()
+        return int(self.with_context(pricelist=pricelist.id).price)
+
+    def action_category_predictor(self):
+        self.ensure_one()
+        warning_model = self.env['warning']
+        meli_categ, rjson = self._get_meli_category_from_predictor()
+        if meli_categ:
+            self.meli_category = meli_categ.id
+            return warning_model.info( title='MELI WARNING', message="CATEGORY PREDICTOR", message_html="Categoria sugerida: %s" % meli_categ.name)
+        return warning_model.info( title='MELI WARNING', message="CATEGORY PREDICTOR", message_html=rjson)
+
+    def _get_meli_category_from_predictor(self):
+        self.ensure_one()
+        meli_util_model = self.env['meli.util']
+        meli = meli_util_model.get_new_instance()
+        vals = [{
+            'title': self.get_title_for_category_predictor(),
+            'price': self.get_price_for_category_predictor(),
+        }]
+        response = meli.post("/sites/MLM/category_predictor/predict", vals)
+        rjson = response.json()
+        meli_categ = False
+        if rjson and isinstance(rjson, list):
+            if "id" in rjson[0]:
+                meli_categ = self.env['mercadolibre.category'].import_category(rjson[0]['id'])
+        return meli_categ, rjson
+
+    def _get_pricelist_for_meli(self):
+        pricelist = self.env.user.company_id.mercadolibre_pricelist
+        if not pricelist:
+            pricelist = self.env['product.pricelist'].search([
+                ('currency_id','=',self.env.user.company_id.mercadolibre_currency),
+                ('website_id','!=',False),
+            ], limit=1)
+        if not pricelist:
+            pricelist = self.env['product.pricelist'].search([], limit=1)
+        return pricelist
+
     name = fields.Char('Name', size=128, required=True, translate=False, index=True)
     meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
     meli_description = fields.Text(string='Descripción')
@@ -288,7 +334,7 @@ class product_image(models.Model):
     meli_imagen_size = fields.Char(string='Size')
     meli_imagen_max_size = fields.Char(string='Max Size')
     meli_imagen_bytes = fields.Integer(string='Size bytes')
-    meli_pub = fields.Boolean(string='Publicar en ML')
+    meli_pub = fields.Boolean(string='Publicar en ML',index=True)
 
 product_image()
 
