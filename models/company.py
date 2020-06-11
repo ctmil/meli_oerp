@@ -59,7 +59,7 @@ class res_company(models.Model):
             for site in sites:
                 _logger.info("site:")
                 _logger.info(site)
-                _key_ = sites["default_currency_id"]
+                _key_ = site["default_currency_id"]
                 ML_sites[_key_] = sites[site]
 
         currency = self.mercadolibre_currency
