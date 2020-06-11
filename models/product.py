@@ -410,7 +410,7 @@ class product_product(models.Model):
             pl = company.mercadolibre_pricelist
 
         if ( product_tmpl.meli_price==False
-            or ( product_tmpl.meli_price and int(float(product_tmpl.meli_price))==0 ):
+            or ( product_tmpl.meli_price and int(float(product_tmpl.meli_price))==0 ) ):
             product_tmpl.meli_price = product_tmpl.list_price
 
         if product_tmpl.taxes_id:
