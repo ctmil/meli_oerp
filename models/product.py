@@ -105,9 +105,9 @@ class product_template(models.Model):
                         else:
                             if (variant_principal):
                                 ret = variant.with_context(custom_context).product_post_variant(variant_principal)
-                                if ('name' in ret[0]):
-                                    return ret[0]
-                                posted_products+= 1
+                                #if ('name' in ret[0]):
+                                #    return ret[0]
+                                #posted_products+= 1
                     else:
                         _logger.info("No condition met for:"+variant.display_name)
                 _logger.info(product.meli_pub_variant_attributes)
@@ -127,7 +127,7 @@ class product_template(models.Model):
                     else:
                         _logger.info("No meli_pub for:"+variant.display_name)
 
-        if (posted_products==0 and not 'name' in ret):
+        if (posted_products==0):
             ret = warningobj.info( title='MELI WARNING', message="Se intentaron publicar 0 productos. Debe forzar las publicaciones o marcar el producto con el campo Meli Publication, debajo del titulo.", message_html="" )
 
         return ret
