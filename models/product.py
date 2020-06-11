@@ -108,6 +108,7 @@ class product_template(models.Model):
 
 
             else:
+                posted_products = 0
                 for variant in product.product_variant_ids:
                     _logger.info("Variant:", variant, variant.meli_pub)
                     if (force_meli_pub==True):
@@ -119,6 +120,11 @@ class product_template(models.Model):
                             return ret[0]
                     else:
                         _logger.info("No meli_pub for:"+variant.display_name)
+
+                    posted_products+=1
+
+        if (posted_products==0 and not 'name' in ret[0]):
+            ret = warningobj.info( title='MELI WARNING', message="Se intentaron publicar 0 productos. Debe forzar las publicaciones o marcar el producto con el campo Meli Publication, debajo del titulo.", message_html="" )
 
         return ret
 
