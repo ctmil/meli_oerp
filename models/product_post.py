@@ -92,7 +92,7 @@ class product_template_post(models.TransientModel):
                     posted_products+=1
 
         if (posted_products==0 and not 'name' in res):
-            res = warningobj.info( title='MELI WARNING', message="Debe forzar las publicaciones o marcar el producto con el campo Meli Publication, debajo del titulo.", message_html="" )
+            res = warningobj.info( title='MELI WARNING', message="Se intentaron publicar 0 productos. Debe forzar las publicaciones o marcar el producto con el campo Meli Publication, debajo del titulo.", message_html="" )
 
         return res
 

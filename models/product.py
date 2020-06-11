@@ -2129,7 +2129,7 @@ class product_product(models.Model):
 
         #check fields
         if product.meli_description==False:
-            return warningobj.info(title='MELI WARNING', message="Debe completar el campo 'description' (en html)", message_html="")
+            return warningobj.info(title='MELI WARNING', message="Debe completar el campo description en la plantilla de MercadoLibre o del producto (Descripción de Ventas)", message_html="")
 
         if product.meli_id:
             _logger.info(body)
