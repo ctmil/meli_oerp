@@ -39,6 +39,32 @@ class res_company(models.Model):
     def meli_get_object( self ):
         return True
 
+    def _get_ML_sites(self):
+        # to check api.mercadolibre.com/sites  > MLA
+        meli_util_model = self.env['meli.util']
+        meli = meli_util_model.get_new_instance()
+        ML_sites = {
+            "ARS": { "name": "Argentina", "id": "MLA", "default_currency_id": "ARS" },
+            "MXN": { "name": "México", "id": "MLM", "default_currency_id": "MXN" },
+            "COP": { "name": "Colombia", "id": "MCO", "default_currency_id": "COP" },
+            "PEN": { "name": "Perú", "id": "MPE", "default_currency_id": "PEN" },
+            "BOB": { "name": "Bolivia", "id": "MBO", "default_currency_id": "BOB" },
+            "BRL": { "name": "Brasil", "id": "MLA", "default_currency_id": "BRL" },
+            "CLP": { "name": "Chile", "id": "MLC", "default_currency_id": "CLP" },
+        }
+        response = meli.get("/sites")
+        if (response):
+            sites = response.json()
+            _logger.info(sites)
+            for site in sites:
+                _logger.info("site:")
+                _logger.info(site)
+
+        currency = self.mercadolibre_currency
+
+        if (currency and currency in ML_sites):
+            return ML_sites[currency]["id"]
+        return "MLA"
 
     def get_meli_state( self ):
         # recoger el estado y devolver True o False (meli)

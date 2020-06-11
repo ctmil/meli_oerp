@@ -248,11 +248,19 @@ class product_template(models.Model):
     def action_category_predictor(self):
         self.ensure_one()
         warning_model = self.env['warning']
+
         meli_categ, rjson = self._get_meli_category_from_predictor()
         if meli_categ:
             self.meli_category = meli_categ.id
             return warning_model.info( title='MELI WARNING', message="CATEGORY PREDICTOR", message_html="Categoria sugerida: %s" % meli_categ.name)
-        return warning_model.info( title='MELI WARNING', message="CATEGORY PREDICTOR", message_html=rjson)
+
+        message_html = ''
+        if rjson and len(rjson):
+            for rama in rjson:
+                _logger.info(rama)
+                message_html+="<br/><br/>"+str(rama)
+
+        return warning_model.info( title='MELI WARNING', message="CATEGORY PREDICTOR", message_html=message_html)
 
     def _get_meli_category_from_predictor(self):
         self.ensure_one()
@@ -262,7 +270,7 @@ class product_template(models.Model):
             'title': self.get_title_for_category_predictor(),
             'price': self.get_price_for_category_predictor(),
         }]
-        response = meli.post("/sites/MLM/category_predictor/predict", vals)
+        response = meli.post("/sites/"+self.env.user.company_id._get_ML_sites()+"/category_predictor/predict", vals)
         rjson = response.json()
         meli_categ = False
         if rjson and isinstance(rjson, list):
