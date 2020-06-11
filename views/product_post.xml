@@ -66,7 +66,7 @@
           binding_type="action"
           binding_views="list,form"
           view_mode="form"
-          context="{'force_meli_pub': context.get('force_meli_pub', False),}"
+          context="{'force_meli_pub': self.force_meli_pub}"
           target="new"/>
 
       <!--record id="action_product_template_update" model="ir.actions.act_window">
