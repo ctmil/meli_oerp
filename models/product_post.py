@@ -78,6 +78,8 @@ class product_template_post(models.TransientModel):
         res = {}
         _logger.info("context:")
         _logger.info(self.env.context)
+         self.env.context.update({'force_meli_pub': self.force_meli_pub })
+
         for product_id in product_ids:
             product = product_obj.browse(product_id)
             if (product):

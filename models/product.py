@@ -70,6 +70,7 @@ class product_template(models.Model):
             }
 
         _logger.info("Product Template Post")
+        _logger.info(self.env.context)
         ret = {}
         for product in self:
             if (product.meli_pub_as_variant):
@@ -101,7 +102,6 @@ class product_template(models.Model):
             else:
                 for variant in product.product_variant_ids:
                     _logger.info("Variant:", variant, variant.meli_pub)
-                    _logger.info(self.env.context)
                     if (variant.meli_pub):
                         _logger.info("Posting variant")
                         ret = variant.product_post()
@@ -1618,6 +1618,8 @@ class product_product(models.Model):
     def _product_post(self):
         #import pdb;pdb.set_trace();
         _logger.info('[DEBUG] product_post')
+        _logger.info(self.env.context)
+
 
         product_obj = self.env['product.product']
         product_tpl_obj = self.env['product.template']
