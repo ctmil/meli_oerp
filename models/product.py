@@ -2173,7 +2173,7 @@ class product_product(models.Model):
 
         #check error
         if "error" in rjson:
-            error_msg = '<h6>Mensaje de error de MercadoLibre: %s, Status: %s </h6><br/><br/><h6>Mensaje: </h6><h2>%s</h2><br/><h6>Cause: </h6> %s<br/>' % (rjson["error"], rjson["message"], rjson["status"], rjson["cause"])
+            error_msg = '<h6>Mensaje de error de MercadoLibre: %s; status: %s </h6><h2>Mensaje: %s</h2><br/><h6>Cause: </h6> %s' % (rjson["error"], rjson["status"], rjson["message"], rjson["cause"])
             _logger.error(error_msg)
             if (rjson["cause"] and rjson["cause"][0] and "message" in rjson["cause"][0]):
                 error_msg+= '<h3>'+str(rjson["cause"][0]["message"])+'</h3>'
