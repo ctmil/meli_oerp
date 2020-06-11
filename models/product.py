@@ -100,7 +100,8 @@ class product_template(models.Model):
 
             else:
                 for variant in product.product_variant_ids:
-                    _logger.info("Variant:", variant)
+                    _logger.info("Variant:", variant, variant.meli_pub)
+                    _logger.info(self.env.context)
                     if (variant.meli_pub):
                         _logger.info("Posting variant")
                         ret = variant.product_post()
