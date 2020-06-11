@@ -49,7 +49,7 @@ class res_company(models.Model):
             "COP": { "name": "Colombia", "id": "MCO", "default_currency_id": "COP" },
             "PEN": { "name": "Perú", "id": "MPE", "default_currency_id": "PEN" },
             "BOB": { "name": "Bolivia", "id": "MBO", "default_currency_id": "BOB" },
-            "BRL": { "name": "Brasil", "id": "MLA", "default_currency_id": "BRL" },
+            "BRL": { "name": "Brasil", "id": "MLB", "default_currency_id": "BRL" },
             "CLP": { "name": "Chile", "id": "MLC", "default_currency_id": "CLP" },
         }
         response = meli.get("/sites")
@@ -59,8 +59,12 @@ class res_company(models.Model):
             for site in sites:
                 _logger.info("site:")
                 _logger.info(site)
+                _key_ = sites["default_currency_id"]
+                ML_sites[_key_] = sites[site]
 
         currency = self.mercadolibre_currency
+
+        _logger.info(ML_sites)
 
         if (currency and currency in ML_sites):
             return ML_sites[currency]["id"]
