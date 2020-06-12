@@ -76,16 +76,23 @@ class product_template_post(models.TransientModel):
 	            "target": "new",
             }
         res = {}
+        _logger.info("context in product_template_post:")
+        _logger.info(self.env.context)
+
+        posted_products = 0
         for product_id in product_ids:
             product = product_obj.browse(product_id)
             if (product):
                 if (self.force_meli_pub and not product.meli_pub):
                     product.meli_pub = True
                 if (product.meli_pub):
-                    res = product.product_template_post()
+                    res = product.with_context({'force_meli_pub': self.force_meli_pub }).product_template_post()
+                    if 'name' in res:
+                        return res
+                    posted_products+=1
 
-            if 'name' in res:
-                return res
+        if (posted_products==0 and not 'name' in res):
+            res = warningobj.info( title='MELI WARNING', message="Se intentaron publicar 0 productos. Debe forzar las publicaciones o marcar el producto con el campo Meli Publication, debajo del titulo.", message_html="" )
 
         return res
 
