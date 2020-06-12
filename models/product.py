@@ -70,7 +70,17 @@ class product_template(models.Model):
             }
 
         _logger.info("Product Template Post")
+        _logger.info(self.env.context)
+
+        custom_context = {}
+        force_meli_pub = False
+        if ("force_meli_pub" in self.env.context):
+            force_meli_pub = self.env.context.get("force_meli_pub")
+            custom_context = { "force_meli_pub": force_meli_pub }
+        _logger.info(custom_context)
+
         ret = {}
+        posted_products = 0
         for product in self:
             if (product.meli_pub_as_variant):
                 _logger.info("Posting as variants")
@@ -87,12 +97,17 @@ class product_template(models.Model):
                             _logger.info(variant)
                             variant_principal = variant
                             product.meli_pub_principal_variant = variant
-                            ret = variant.product_post()
+                            ret = variant.with_context(custom_context).product_post()
                             if ('name' in ret[0]):
                                 return ret[0]
+                            posted_products+= 1
+
                         else:
                             if (variant_principal):
-                                variant.product_post_variant(variant_principal)
+                                ret = variant.with_context(custom_context).product_post_variant(variant_principal)
+                                #if ('name' in ret[0]):
+                                #    return ret[0]
+                                #posted_products+= 1
                     else:
                         _logger.info("No condition met for:"+variant.display_name)
                 _logger.info(product.meli_pub_variant_attributes)
@@ -100,14 +115,20 @@ class product_template(models.Model):
 
             else:
                 for variant in product.product_variant_ids:
-                    _logger.info("Variant:", variant)
+                    _logger.info("Variant:", variant, variant.meli_pub)
+                    if (force_meli_pub==True):
+                        variant.meli_pub = True
                     if (variant.meli_pub):
                         _logger.info("Posting variant")
-                        ret = variant.product_post()
+                        ret = variant.with_context(custom_context).product_post()
                         if ('name' in ret[0]):
                             return ret[0]
+                        posted_products+= 1
                     else:
                         _logger.info("No meli_pub for:"+variant.display_name)
+
+        if (posted_products==0):
+            ret = warningobj.info( title='MELI WARNING', message="Se intentaron publicar 0 productos. Debe forzar las publicaciones o marcar el producto con el campo Meli Publication, debajo del titulo.", message_html="" )
 
         return ret
 
@@ -234,6 +255,65 @@ class product_template(models.Model):
             variant.write({'meli_pub':self.meli_pub})
 
 
+    def get_title_for_meli(self):
+        return self.name
+
+    def get_title_for_category_predictor(self):
+        return self.name
+
+    def get_price_for_category_predictor(self):
+        pricelist = self._get_pricelist_for_meli()
+        return int(self.with_context(pricelist=pricelist.id).price)
+
+    def action_category_predictor(self):
+        self.ensure_one()
+        warning_model = self.env['warning']
+
+        meli_categ, rjson = self._get_meli_category_from_predictor()
+        if meli_categ:
+            self.meli_category = meli_categ.id
+            return warning_model.info( title='MELI WARNING', message="CATEGORY PREDICTOR", message_html="Categoria sugerida: %s" % meli_categ.name)
+
+        message_html = ''
+        if rjson and len(rjson):
+            for rama in rjson:
+                _logger.info(rama)
+                message_html+="<br/><br/>"+str(rama)
+
+        return warning_model.info( title='MELI WARNING', message="CATEGORY PREDICTOR", message_html=message_html)
+
+    def _get_meli_category_from_predictor(self):
+        self.ensure_one()
+        meli_util_model = self.env['meli.util']
+        meli = meli_util_model.get_new_instance()
+        vals = [{
+            'title': self.get_title_for_category_predictor(),
+            'price': self.get_price_for_category_predictor(),
+        }]
+        response = meli.post("/sites/"+self.env.user.company_id._get_ML_sites()+"/category_predictor/predict", vals)
+        rjson = response.json()
+        meli_categ = False
+        #_logger.info(rjson)
+        #_logger.info(isinstance(rjson, list))
+        if rjson and isinstance(rjson, list):
+            if "id" in rjson[0]:
+                #_logger.info("Take first suggestion")
+                meli_categ = self.env['mercadolibre.category'].import_category(rjson[0]['id'])
+                if (meli_categ==None):
+                    _logger.info("Import category failed.")
+        return meli_categ, rjson
+
+    def _get_pricelist_for_meli(self):
+        pricelist = self.env.user.company_id.mercadolibre_pricelist
+        if not pricelist:
+            pricelist = self.env['product.pricelist'].search([
+                ('currency_id','=',self.env.user.company_id.mercadolibre_currency),
+                ('website_id','!=',False),
+            ], limit=1)
+        if not pricelist:
+            pricelist = self.env['product.pricelist'].search([], limit=1)
+        return pricelist
+
     name = fields.Char('Name', size=128, required=True, translate=False, index=True)
     meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
     meli_description = fields.Text(string='Descripción')
@@ -287,7 +367,7 @@ class product_image(models.Model):
     meli_imagen_size = fields.Char(string='Size')
     meli_imagen_max_size = fields.Char(string='Max Size')
     meli_imagen_bytes = fields.Integer(string='Size bytes')
-    meli_pub = fields.Boolean(string='Publicar en ML')
+    meli_pub = fields.Boolean(string='Publicar en ML',index=True)
 
 product_image()
 
@@ -312,7 +392,7 @@ class product_product(models.Model):
         #    res[id] = self.lst_price
         #return res
 
-    def _meli_set_price( self, product_template, meli_price ):
+    def _meli_set_product_price( self, product_template, meli_price ):
         company = self.env.user.company_id
         ml_price_converted = meli_price
         if (product_template.taxes_id):
@@ -328,6 +408,56 @@ class product_product(models.Model):
                 _logger.info("Price converted:"+str(ml_price_converted))
 
         product_template.write({'lst_price': ml_price_converted})
+
+    def set_meli_price(self):
+        company = self.env.user.company_id
+        product = self
+        product_tmpl = product.product_tmpl_id
+        _logger.info("set_meli_price: "+str(product_tmpl.list_price)+ " >> "+str(product_tmpl.display_name)+": "+str(product_tmpl.meli_price)+" | "+str(product.display_name)+": "+str(product.meli_price) )
+
+        pl = False
+        if company.mercadolibre_pricelist:
+            pl = company.mercadolibre_pricelist
+
+        # NEW OR NULL
+        # > Set template meli price
+        if ( product_tmpl.meli_price==False
+            or ( product_tmpl.meli_price and int(float(product_tmpl.meli_price))==0 ) ):
+            product_tmpl.meli_price = product_tmpl.list_price
+
+        # UPDATE
+        # Actualizamos el product meli price (todas las variantes en ML deben tener el mismo precio):
+        # por eso lo tomamos de la plantilla para simplifiar
+        new_price = product_tmpl.list_price
+        if ( product.lst_price ):
+            new_price = product.lst_price
+
+        if (pl):
+            return_val = pl.price_get(product.id,1.0)
+            if pl.id in return_val:
+                new_price = return_val[pl.id]
+            _logger.info("return_val: ")
+            _logger.info(return_val)
+        else:
+            _logger.info( "new_price: " +str(new_price))
+            if ( product.lst_price ):
+                new_price = product.lst_price
+
+        if product_tmpl.taxes_id:
+            _logger.info("taxes:")
+            new_price = new_price * ( 1 + ( product_tmpl.taxes_id[0].amount / 100) )
+            new_price = round(new_price,2)
+
+        product_tmpl.meli_price = new_price
+        product.meli_price = product_tmpl.meli_price
+
+        product_tmpl.meli_price = str(int(float(product_tmpl.meli_price)))
+        _logger.info("product_tmpl.meli_price updated: " + str(product_tmpl.meli_price))
+
+        product.meli_price = str(int(float(product.meli_price)))
+        _logger.info("product.meli_price updated: " + str(product.meli_price))
+
+        return product.meli_price
 
     def _meli_set_category( self, product_template, category_id ):
 
@@ -559,7 +689,7 @@ class product_product(models.Model):
 
         try:
             if (float(rjson['price'])>=0.0):
-                product._meli_set_price( product_template, rjson['price'] )
+                product._meli_set_product_price( product_template, rjson['price'] )
         except:
             rjson['price'] = 0.0
 
@@ -1558,6 +1688,8 @@ class product_product(models.Model):
     def _product_post(self):
         #import pdb;pdb.set_trace();
         _logger.info('[DEBUG] product_post')
+        _logger.info(self.env.context)
+
 
         product_obj = self.env['product.product']
         product_tpl_obj = self.env['product.template']
@@ -1615,38 +1747,14 @@ class product_product(models.Model):
         if product_tmpl.meli_title==False:
             product_tmpl.meli_title = product_tmpl.name
 
-        pl = False
-        if company.mercadolibre_pricelist:
-            pl = company.mercadolibre_pricelist
-
-        if product_tmpl.meli_price==False or product_tmpl.meli_price==0:
-            product_tmpl.meli_price = product_tmpl.list_price
-
-        if product_tmpl.taxes_id:
-            new_price = product_tmpl.meli_price
-            if (pl):
-                return_val = pl.price_get(product.id,1.0)
-                if pl.id in return_val:
-                    new_price = return_val[pl.id]
-            else:
-                new_price = product_tmpl.list_price
-                if (product.lst_price):
-                    new_price = product.lst_price
-
-            new_price = new_price * ( 1 + ( product_tmpl.taxes_id[0].amount / 100) )
-            new_price = round(new_price,2)
-            product_tmpl.meli_price = new_price
-            product.meli_price=product_tmpl.meli_price
-
-        product_tmpl.meli_price = str(int(float(product_tmpl.meli_price)))
-        product.meli_price = str(int(float(product.meli_price)))
+        product.set_meli_price()
 
         if company.mercadolibre_buying_mode and product_tmpl.meli_buying_mode==False:
             product_tmpl.meli_buying_mode = company.mercadolibre_buying_mode
 
-        if product_tmpl.meli_description==False or len(product_tmpl.meli_description)==0:
+        #Si la descripcion de template esta vacia la asigna del description_sale
+        if product_tmpl.meli_description==False or ( product_tmpl.meli_description and len(product_tmpl.meli_description)==0):
             product_tmpl.meli_description = product_tmpl.description_sale
-
 
         if product.meli_title==False or len(product.meli_title)==0:
             # _logger.info( 'Assigning title: product.meli_title: %s name: %s' % (product.meli_title, product.name) )
@@ -1678,7 +1786,7 @@ class product_product(models.Model):
         if product.meli_description==False:
             product.meli_description = product_tmpl.meli_description
 
-        if (product_tmpl.meli_description or len(product_tmpl.meli_description)==0):
+        if (product_tmpl.meli_description and len(product_tmpl.meli_description)>=0):
             product.meli_description = product_tmpl.meli_description
 
         if product.meli_category==False:
@@ -2056,8 +2164,8 @@ class product_product(models.Model):
                 return {}
 
         #check fields
-        if product.meli_description==False:
-            return warningobj.info(title='MELI WARNING', message="Debe completar el campo 'description' (en html)", message_html="")
+        if (product.meli_description==False or ( product.meli_description and len(product.meli_description)==0) ):
+            return warningobj.info(title='MELI WARNING', message="Debe completar el campo description en la plantilla de MercadoLibre o del producto (Descripción de Ventas)", message_html="<h3>Descripción faltante</h3>")
 
         if product.meli_id:
             _logger.info(body)
@@ -2075,8 +2183,10 @@ class product_product(models.Model):
 
         #check error
         if "error" in rjson:
-            error_msg = 'MELI RESP.: <h6>Mensaje de error</h6> %s<br/><h6>Mensaje</h6> %s<br/><h6>status</h6> %s<br/><h6>cause</h6> %s<br/>' % (rjson["error"], rjson["message"], rjson["status"], rjson["cause"])
+            error_msg = '<h6>Mensaje de error de MercadoLibre: %s; status: %s </h6><h2>Mensaje: %s</h2><br/><h6>Cause: </h6> %s' % (rjson["error"], rjson["status"], rjson["message"], rjson["cause"])
             _logger.error(error_msg)
+            if (rjson["cause"] and rjson["cause"][0] and "message" in rjson["cause"][0]):
+                error_msg+= '<h3>'+str(rjson["cause"][0]["message"])+'</h3>'
             #expired token
             if "message" in rjson and (rjson["error"]=="forbidden" or rjson["message"]=='invalid_token' or rjson["message"]=="expired_token"):
                 meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
@@ -2303,49 +2413,18 @@ class product_product(models.Model):
         REFRESH_TOKEN = company.mercadolibre_refresh_token
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
-
-        pl = False
-        if company.mercadolibre_pricelist:
-            pl = company.mercadolibre_pricelist
-
-        if product_tmpl.meli_price==False or product_tmpl.meli_price==0:
-            product_tmpl.meli_price = product_tmpl.list_price
-
-        #if (product_tmpl.meli_currency=="COP"):
-        product_tmpl.meli_price = str(int(float(product_tmpl.meli_price)))
-
-        if product_tmpl.taxes_id:
-            new_price = product_tmpl.meli_price
-            if (pl):
-                return_val = pl.price_get(product.id,1.0)
-                if pl.id in return_val:
-                    new_price = return_val[pl.id]
-            else:
-                new_price = product_tmpl.list_price
-                if (product.lst_price):
-                    new_price = product.lst_price
-
-            new_price = new_price * ( 1 + ( product_tmpl.taxes_id[0].amount / 100) )
-            new_price = round(new_price,2)
-            product_tmpl.meli_price = new_price
-            product.meli_price=product_tmpl.meli_price
-
-        if product_tmpl.meli_price==False or product_tmpl.meli_price==0:
-            product_tmpl.meli_price = product_tmpl.standard_price
-
-        if product.meli_price==False or product.meli_price==0.0:
-            if product_tmpl.meli_price:
-                product.meli_price = product_tmpl.meli_price
-
-        #if (product_tmpl.meli_currency=="COP"):
-        product.meli_price = str(int(float(product.meli_price)))
-        _logger.info(product.meli_price)
-        _logger.info(product_tmpl.meli_price)
+        product.set_meli_price()
 
         fields = {
             "price": product.meli_price
         }
         response = meli.put("/items/"+product.meli_id, fields, {'access_token':meli.access_token})
+
+    def get_title_for_meli(self):
+        return self.name
+
+    def action_category_predictor(self):
+        return self.product_tmpl_id.action_category_predictor()
 
     #typical values
     meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)

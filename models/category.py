@@ -91,7 +91,7 @@ class mercadolibre_category(models.Model):
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
         for category in self:
-            if (category.meli_category_id):
+            if (category and category.meli_category_id):
                 _logger.info("_get_category_url:"+str(category.meli_category_id))
                 response_cat = meli.get("/categories/"+str(category.meli_category_id), {'access_token':meli.access_token})
                 rjson_cat = response_cat.json()
@@ -102,7 +102,7 @@ class mercadolibre_category(models.Model):
                 if (len(rjson_cat["path_from_root"])>=2):
                     fid = int(len(rjson_cat["path_from_root"])-2)
                     #_logger.info(fid)
-                    #_logger.info(rjson_cat["path_from_root"][fid]["id"])
+                    _logger.info(rjson_cat["path_from_root"][fid]["id"])
                     category.meli_father_category_id = rjson_cat["path_from_root"][fid]["id"]
 
 
@@ -218,6 +218,13 @@ class mercadolibre_category(models.Model):
 
         return {}
 
+    def action_import_father_category( self ):
+        for obj in self:
+            if (obj.meli_father_category_id):
+                try:
+                    obj.meli_father_category = obj.import_category(obj.meli_father_category_id)
+                except:
+                    _logger.error("No se pudo importar: "+ str(obj.meli_father_category_id))
 
     def import_category(self, category_id ):
         company = self.env.user.company_id
@@ -231,7 +238,7 @@ class mercadolibre_category(models.Model):
         REFRESH_TOKEN = company.mercadolibre_refresh_token
 
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
-
+        ml_cat_id = None
         if (category_id):
             is_branch = False
             father = None
@@ -256,7 +263,7 @@ class mercadolibre_category(models.Model):
                       father_ml_id = rjson_cat["path_from_root"][len(rjson_cat["path_from_root"])-2]["id"]
                       father_id = category_obj.search([('meli_category_id','=',father_ml_id)])
                       if (father_id and len(father_id)):
-                          father = father_id[0].id
+                          father = father_id[0]
 
 
                 #fullname = fullname + "/" + rjson_cat['name']
@@ -271,6 +278,8 @@ class mercadolibre_category(models.Model):
                 ml_cat_id = category_obj.create((cat_fields))
                 if (ml_cat_id.id and is_branch==False):
                   ml_cat_id._get_attributes()
+
+        return ml_cat_id
 
 
     def import_all_categories(self, category_root ):
@@ -318,6 +327,10 @@ class mercadolibre_category(models.Model):
     meli_category_attributes = fields.Char(compute=_get_attributes,  string="Mercado Libre Category Attributes")
     meli_category_url = fields.Char(compute=_get_category_url, string="Mercado Libre Category Url")
     meli_category_attribute_ids = fields.Many2many("mercadolibre.category.attribute",string="Attributes")
+
+    meli_category_settings = fields.Char(string="Settings")
+    meli_setting_minimum_price = fields.Float(string="Minimum price")
+    meli_setting_maximum_price = fields.Float(string="Maximum price")
 
 
 mercadolibre_category()
