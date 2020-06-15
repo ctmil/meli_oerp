@@ -150,6 +150,8 @@ class MercadolibreNotification(models.Model):
             return {"error": "Error connecting to Meli.", "status": "520" }
             pass;
 
+        self.process_notifications()        
+
         #ok send ACK 200
         return ""
 
