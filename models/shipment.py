@@ -166,7 +166,7 @@ mercadolibre_shipment_update()
 class mercadolibre_shipment(models.Model):
 	_name = "mercadolibre.shipment"
 	_description = "Envio de MercadoLibre"
-	
+
 	_inherit = ['portal.mixin', 'mail.thread', 'mail.activity.mixin']
 
 	name = fields.Char(string='Name')
@@ -212,10 +212,10 @@ class mercadolibre_shipment(models.Model):
 	receiver_state = fields.Char('Estado')
 	receiver_state_code = fields.Char('Estado ID')
 	receiver_state_id = fields.Many2one('res.country.state',string='State')
-	
+
 	receiver_country = fields.Char('Pais')
 	receiver_country_code = fields.Char('Código Pais')
-	receiver_country_id = fields.Many2one('res.country',string='Country')	
+	receiver_country_id = fields.Many2one('res.country',string='Country')
 	receiver_latitude = fields.Char('Latitud')
 	receiver_longitude = fields.Char('Longitud')
 
@@ -271,7 +271,7 @@ class mercadolibre_shipment(models.Model):
 				#sorder.partner_id.state = ships.receiver_state
 
 			product_shipping_id = product_obj.search(['|','|',('default_code','=','ENVIO'),('default_code','=',shipment.tracking_method),('name','=',shipment.tracking_method)])
-			
+
 			if len(product_shipping_id):
 				product_shipping_id = product_shipping_id[0]
 			else:
@@ -287,11 +287,11 @@ class mercadolibre_shipment(models.Model):
 				if (product_shipping_tpl):
 					product_shipping_id = product_shipping_tpl.product_variant_ids[0]
 			_logger.info(product_shipping_id)
-			
+
 			if (not product_shipping_id):
 				_logger.info('Failed to create shipping product service')
 				continue
-				
+
 			saleorderline_item_fields = {
 				'company_id': company.id,
 				'order_id': sorder.id,
@@ -535,7 +535,7 @@ class mercadolibre_shipment(models.Model):
 								sorder_pack.meli_fee_amount = 0.0
 								for mOrder in all_orders:
 									#Each Order one product with one price and one quantity
-									product_related_obj = mOrder.order_items[0].product_id or mOrder.order_items[0].posting_id.product_id										
+									product_related_obj = mOrder.order_items[0].product_id or mOrder.order_items[0].posting_id.product_id
 									if not (product_related_obj):
 										_logger.error("Error adding order line: product not found in database: " + str(mOrder.order_items[0]["order_item_title"]) )
 										continue;
@@ -552,11 +552,8 @@ class mercadolibre_shipment(models.Model):
 									}
 									if (mOrder.fee_amount):
 										sorder_pack.meli_fee_amount = sorder_pack.meli_fee_amount + mOrder.fee_amount
-									if (float(unit_price)==product_related_obj.product_tmpl_id.lst_price):
-										saleorderline_item_fields['price_unit'] = float(unit_price)
-										saleorderline_item_fields['tax_id'] = None
-									else:
-										saleorderline_item_fields['price_unit'] = product_related_obj.product_tmpl_id.lst_price
+
+									saleorderline_item_fields.update( sorder_pack._set_product_unit_price( product_related_obj, mOrder.order_items[0] ) )
 
 									saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',shipment.sale_order.id)] )
 
