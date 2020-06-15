@@ -39,13 +39,13 @@ def set_image_full(self, image):
     self.image = image
     return True
 
-def _prepare_attribute( product_template_id, attribute_id, attribute_value_id ):
+def prepare_attribute( product_template_id, attribute_id, attribute_value_id ):
     att_vals = { 'attribute_id': attribute_id,
                  'product_tmpl_id': product_template_id
                }
     return att_vals
 
-def _stock_inventory_action_done( self ):
+def stock_inventory_action_done( self ):
     return self.action_done()
 
 def ml_datetime(datestr):

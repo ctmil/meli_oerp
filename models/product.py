@@ -913,7 +913,7 @@ class product_product(models.Model):
                                         pass
                                     else:
                                         #_logger.info("Creating att line id:")
-                                        att_vals = _prepare_attribute( product_template.id, attribute_id, attribute_value_id )
+                                        att_vals = prepare_attribute( product_template.id, attribute_id, attribute_value_id )
                                         attribute_line =  self.env[prod_att_line].create(att_vals)
 
                                     if (attribute_line):
@@ -1096,7 +1096,7 @@ class product_product(models.Model):
                                     pass
                                 else:
                                     #_logger.info("Creating att line id:")
-                                    att_vals = _prepare_attribute( product_template.id, attribute_id, attribute_value_id )
+                                    att_vals = prepare_attribute( product_template.id, attribute_id, attribute_value_id )
                                     attribute_line =  self.env[prod_att_line].create(att_vals)
 
                                 if (attribute_line):
@@ -2395,7 +2395,7 @@ class product_product(models.Model):
                 #_logger.info("StockInventoryLine:")
                 #_logger.info(stock_inventory_field_line)
                 if (StockInventoryLine):
-                    return_id = _stock_inventory_action_done(StockInventory)
+                    return_id = stock_inventory_action_done(StockInventory)
                     #_logger.info("action_done:"+str(return_id))
 
 
