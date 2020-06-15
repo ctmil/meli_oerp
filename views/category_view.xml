@@ -61,20 +61,20 @@
                       <field name="name"/>
                       <field name="is_branch"/>
                       <field name="meli_category_id"/>
-                      <field name="meli_father_category"/>
-                      <field name="meli_father_category_id"/>
-                      <field name="public_category_id"/>
-                    </group>
-                    <group>
                       <field name="meli_category_url" widget="url"/>
-                      <field name="meli_category_attributes" widget="url"/>
-                      <field name="meli_category_attribute_ids"/>
+                      <field name="public_category_id"/>
                       <separator name="Settings" />
                       <field name="meli_category_settings"/>
                       <field name="meli_setting_minimum_price"/>
                       <field name="meli_setting_maximum_price"/>
                     </group>
+                    <group>
+                      <field name="meli_father_category_id"/>
+                      <field name="meli_father_category"/>
+                    </group>
                 </group>
+                <field name="meli_category_attributes" widget="url"/>
+                <field name="meli_category_attribute_ids"/>
               </form>
             </field>
         </record>
