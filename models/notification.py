@@ -33,7 +33,6 @@ from odoo import tools
 from . import versions
 from .versions import *
 
-
 #https://api.mercadolibre.com/questions/search?item_id=MLA508223205
 #https://api.mercadolibre.com/myfeeds?app_id=3219083410743656&offset=1&limit=5&access_token=APP_USR-3219083410743656-110520-aac05cf817595680f2f2bfed74062e3f-387126569
 #
