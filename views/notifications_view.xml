@@ -27,7 +27,7 @@
 					</header>
 					<sheet>
 						<div class="oe_title">
-							<h1><field name="resource_id"/></h1>
+							<h1><field name="notification_id"/></h1>
 							<field name='user_id'/>
 							<field name='application_id'/>
 						</div>
