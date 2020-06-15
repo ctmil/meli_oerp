@@ -229,7 +229,7 @@ class MercadolibreNotification(models.Model):
                 noti.state = 'FAILED'
                 noti.processing_errors = str(E)
             finally:
-                noti.processing_ended = _ml_datetime('now
+                noti.processing_ended = _ml_datetime('now')
 
 
     def process_notifications(self):
