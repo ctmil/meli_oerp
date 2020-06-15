@@ -218,20 +218,24 @@ class MercadolibreNotification(models.Model):
                     noti.state = 'FAILED'
                     noti.processing_errors = str(ojson['error'])
                 if ("id" in ojson):
+
                     morder = self.env["mercadolibre.orders"].search( [('order_id','=',ojson["id"])], limit=1 )
+
                     _logger.info(str(morder))
+                    pdata = { "id": False, "order_json": ojson }
+
                     if (morder and len(morder)):
-                        rsjson = morder.orders_update_order_json( {"id": morder.id, "order_json": ojson } )
-                        _logger.info(str(rsjson))
-                        if ('error' in rsjson):
-                            noti.state = 'FAILED'
-                            noti.processing_errors = str(rsjson['error'])
-                        else:
-                            noti.state = 'SUCCESS'
-                            noti.processing_errors = str(rsjson)
-                    else:
+                        pdata["id"] =  morder.id
+
+                    rsjson = morder.orders_update_order_json( pdata )
+                    _logger.info(str(rsjson))
+                    
+                    if ('error' in rsjson):
                         noti.state = 'FAILED'
-                        noti.processing_errors = "No mercadolibre.order found with order_id: try to import!"
+                        noti.processing_errors = str(rsjson['error'])
+                    else:
+                        noti.state = 'SUCCESS'
+                        noti.processing_errors = str(rsjson)
 
             except Exception as E:
                 noti.state = 'FAILED'
