@@ -226,7 +226,7 @@ class MercadolibreNotification(models.Model):
                             noti.processing_errors = str(rsjson['error'])
                         else:
                             noti.state = 'SUCCESS'
-                            noti.processing_errors = str(rsjson
+                            noti.processing_errors = str(rsjson)
                     else:
                         noti.state = 'FAILED'
                         noti.processing_errors = "No mercadolibre.order found with order_id: try to import!"
