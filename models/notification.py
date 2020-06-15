@@ -150,7 +150,7 @@ class MercadolibreNotification(models.Model):
             return {"error": "Error connecting to Meli.", "status": "520" }
             pass;
 
-        self.process_notifications()        
+        self.process_notifications()
 
         #ok send ACK 200
         return ""
@@ -269,6 +269,6 @@ class MercadolibreNotification(models.Model):
         #process all
         _logger.info("Processing received notifications")
         received = self.search([('state','=','RECEIVED')])
-        if (len(received)):
+        if (received and len(received)):
             for noti in received:
                 noti.process_notification()
