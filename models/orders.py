@@ -42,6 +42,8 @@ try:
 except ImportError:
     from urllib.parse import urlencode
 
+from . import versions
+from .versions import *
 
 class sale_order_line(models.Model):
     _inherit = "sale.order.line"
