@@ -32,7 +32,9 @@ from .meli_oerp_config import *
 from dateutil.parser import *
 from datetime import *
 
+from . import versions
 from .versions import *
+
 
 class mercadolibre_posting_update(models.TransientModel):
     _name = "mercadolibre.posting.update"

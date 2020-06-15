@@ -44,6 +44,7 @@ from pdf2image import convert_from_path, convert_from_bytes
 from dateutil.parser import *
 from datetime import *
 
+from . import versions
 from .versions import *
 
 #
