@@ -64,9 +64,11 @@ class MercadolibreNotification(models.Model):
 		("RECEIVED","Notification received."),
 		("PROCESSING","Processing notification."),
 		("SUCCESS","Notification processed."),
-		], string='Notification State')
-    processing_started = fields.Datetime("Processing started")
-    processing_ended = fields.Datetime("Processing ended")
+        ("FAILED","Notification process with errors")
+		], string='Notification State' )
+    processing_started = fields.Datetime( string="Processing started" )
+    processing_ended = fields.Datetime( string="Processing ended" )
+    processing_errors = fields.Text( string="Processing errors log" )
 
     _sql_constraints = [
         #('ref_uniq', 'unique(notification_id, application_id, user_id, topic)', 'Notification Id must be unique!'),
@@ -125,6 +127,28 @@ class MercadolibreNotification(models.Model):
                                     vals = self._prepare_values(values=n)
                                     noti = self.create(vals)
                                     _logger.info("Created new ORDER notification.")
+                                    if (noti):
+                                        noti.state = 'PROCESSING'
+                                        noti.attempts = 1
+                                        try:
+                                            resord = meli.get(""+str(n["resource"]), {'access_token':meli.access_token} )
+                                            ojson =  resord.json()
+                                            if ("order_id" in ojson):
+                                                morder = self.env["mercadolibre.orders"].search( [('order_id','=',ojson["order_id"])], limit=1 )
+                                                if (morder and len(morder)):
+                                                    result = morder.orders_update_order_json( {"id": morder.id, "order_json": ojson } )
+                                                    rsjson = result.json()
+                                                    if ('error' in rsjson):
+                                                        noti.state = 'FAILED'
+                                                        noti.processing_errors = str(rsjson['error'])
+                                                    else:
+                                                        noti.state = 'SUCCESS'
+                                                        noti.processing_errors = str(rsjson)
+                                        except Exception as E:
+                                            noti.state = 'FAILED'
+                                            noti.processing_errors = str(E)
+                                            pass;
+
                                     #_logger.info(noti)
                                     #_logger.info(n)
 
