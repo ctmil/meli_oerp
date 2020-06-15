@@ -165,7 +165,7 @@ class MercadolibreNotification(models.Model):
         for noti in self:
 
             noti.state = 'PROCESSING'
-            noti.attempts+= 1
+            #noti.attempts+= 1
             noti.processing_started = ml_datetime(str(datetime.now()))
 
             try:
@@ -207,7 +207,7 @@ class MercadolibreNotification(models.Model):
         for noti in self:
 
             noti.state = 'PROCESSING'
-            noti.attempts+= 1
+            #noti.attempts+= 1
             noti.processing_started = ml_datetime(str(datetime.now()))
 
             try:
@@ -229,7 +229,7 @@ class MercadolibreNotification(models.Model):
 
                     rsjson = morder.orders_update_order_json( pdata )
                     _logger.info(str(rsjson))
-                    
+
                     if ('error' in rsjson):
                         noti.state = 'FAILED'
                         noti.processing_errors = str(rsjson['error'])
