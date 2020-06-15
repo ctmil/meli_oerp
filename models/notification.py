@@ -230,7 +230,7 @@ class MercadolibreNotification(models.Model):
             finally:
                 noti.processing_ended = _ml_datetime('now')
 
-    def _process_notification(self):
+    def process_notification(self):
         _logger.info("_process_notification")
 
         company = self.env.user.company_id
@@ -256,4 +256,4 @@ class MercadolibreNotification(models.Model):
         received = self.search([('state','=','RECEIVED')])
         if (len(received)):
             for noti in received:
-                noti._process_notification()
+                noti.process_notification()
