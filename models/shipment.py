@@ -353,8 +353,8 @@ class mercadolibre_shipment(models.Model):
 					"order_id": ship_json["order_id"],
 					"mode": ship_json["mode"],
 					"shipping_mode": ship_json["shipping_option"]["name"],
-					"date_created": _ml_datetime(ship_json["date_created"]),
-					"last_updated": _ml_datetime(ship_json["last_updated"]),
+					"date_created": ml_datetime(ship_json["date_created"]),
+					"last_updated": ml_datetime(ship_json["last_updated"]),
 					"order_cost": ship_json["order_cost"],
 					"shipping_cost": ("cost" in ship_json["shipping_option"] and ship_json["shipping_option"]["cost"]) or 0.0,
 					"shipping_list_cost": ("list_cost" in ship_json["shipping_option"] and ship_json["shipping_option"]["list_cost"]) or 0.0,
@@ -364,7 +364,7 @@ class mercadolibre_shipment(models.Model):
 					#"status_history": ship_json["status_history"],
 					"tracking_number": ship_json["tracking_number"],
 					"tracking_method": ship_json["tracking_method"],
-					"date_first_printed": _ml_datetime(ship_json["date_first_printed"]),
+					"date_first_printed": ml_datetime(ship_json["date_first_printed"]),
 					"receiver_id": ship_json["receiver_id"],
 					"receiver_address_id": ship_json["receiver_address"]["id"],
 					"receiver_address_phone": ship_json["receiver_address"]["receiver_phone"],
@@ -508,8 +508,8 @@ class mercadolibre_shipment(models.Model):
 								'meli_paid_amount': shipment.order_cost,
 								'meli_fee_amount': 0.0,
 								'meli_currency_id': all_orders[0]["currency_id"],
-								'meli_date_created': _ml_datetime(all_orders[0]["date_created"]),
-								'meli_date_closed': _ml_datetime(all_orders[0]["date_closed"]),
+								'meli_date_created': ml_datetime(all_orders[0]["date_created"]),
+								'meli_date_closed': ml_datetime(all_orders[0]["date_closed"]),
 							}
 							sorder_pack = self.env["sale.order"].search( [ ('meli_order_id','=',meli_order_fields["meli_order_id"]) ] )
 							if (len(sorder_pack)):

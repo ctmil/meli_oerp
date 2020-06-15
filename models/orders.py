@@ -318,8 +318,8 @@ class mercadolibre_orders(models.Model):
             'total_amount': order_json["total_amount"],
             'paid_amount': order_json["paid_amount"],
             'currency_id': order_json["currency_id"],
-            'date_created': _ml_datetime(order_json["date_created"]),
-            'date_closed': _ml_datetime(order_json["date_closed"]),
+            'date_created': ml_datetime(order_json["date_created"]),
+            'date_closed': ml_datetime(order_json["date_closed"]),
             'pack_order': False
         }
         if 'tags' in order_json:
@@ -461,8 +461,8 @@ class mercadolibre_orders(models.Model):
             'meli_total_amount': order_json["total_amount"],
             'meli_paid_amount': order_json["paid_amount"],
             'meli_currency_id': order_json["currency_id"],
-            'meli_date_created': _ml_datetime(order_json["date_created"]),
-            'meli_date_closed': _ml_datetime(order_json["date_closed"]),
+            'meli_date_created': ml_datetime(order_json["date_created"]),
+            'meli_date_closed': ml_datetime(order_json["date_closed"]),
         }
 
         if (order_json["shipping"]):
@@ -691,8 +691,8 @@ class mercadolibre_orders(models.Model):
                     'total_paid_amount': Payment['total_paid_amount'] or '',
                     'currency_id': Payment['currency_id'] or '',
                     'status': Payment['status'] or '',
-                    'date_created': _ml_datetime(Payment['date_created']),
-                    'date_last_modified': _ml_datetime(Payment['date_last_modified']),
+                    'date_created': ml_datetime(Payment['date_created']),
+                    'date_last_modified': ml_datetime(Payment['date_last_modified']),
                     'mercadopago_url': mp_payment_url+'?access_token='+str(company.mercadolibre_access_token),
                     'full_payment': '',
                     'fee_amount': 0,

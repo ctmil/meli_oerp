@@ -37,7 +37,7 @@
 								title="Procesar notificación"
 								confirm="¿Está seguro que necesita procesar esta notificación?"
 								class="oe_stat_button"
-								icon="fa-cloud-download"/>
+								icon="fa-refresh"/>
 						</div>
 						<group>
 							<group>

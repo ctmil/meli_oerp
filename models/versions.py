@@ -48,7 +48,7 @@ def _prepare_attribute( product_template_id, attribute_id, attribute_value_id ):
 def _stock_inventory_action_done( self ):
     return self.action_done()
 
-def _ml_datetime(datestr):
+def ml_datetime(datestr):
     try:
         #return parse(datestr).isoformat().replace("T"," ")
         return parse(datestr).strftime('%Y-%m-%d %H:%M:%S')
