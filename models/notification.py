@@ -166,7 +166,7 @@ class MercadolibreNotification(models.Model):
 
             noti.state = 'PROCESSING'
             noti.attempts = 1
-            noti.processing_started = ml_datetime('now')
+            noti.processing_started = ml_datetime(str(datetime.now()))
 
             try:
                 questions = meli.get(""+str(noti.resource), {'access_token':meli.access_token} )
@@ -191,7 +191,7 @@ class MercadolibreNotification(models.Model):
                 noti.state = 'FAILED'
                 noti.processing_errors = str(E)
             finally:
-                noti.processing_ended = ml_datetime('now')
+                noti.processing_ended = ml_datetime(str(datetime.now()))
 
 
 
@@ -206,7 +206,7 @@ class MercadolibreNotification(models.Model):
 
         noti.state = 'PROCESSING'
         noti.attempts = 1
-        noti.processing_started = ml_datetime('now')
+        noti.processing_started = ml_datetime(str(datetime.now()))
         for noti in self:
             try:
                 res = meli.get(""+str(noti.resource), {'access_token':meli.access_token} )
@@ -228,7 +228,7 @@ class MercadolibreNotification(models.Model):
                 noti.state = 'FAILED'
                 noti.processing_errors = str(E)
             finally:
-                noti.processing_ended = ml_datetime('now')
+                noti.processing_ended = ml_datetime(str(datetime.now()))
 
     def process_notification(self):
         _logger.info("_process_notification")
