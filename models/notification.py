@@ -231,11 +231,30 @@ class MercadolibreNotification(models.Model):
             finally:
                 noti.processing_ended = _ml_datetime('now')
 
+    def _process_notification(self):
+        _logger.info("_process_notification")
+
+        company = self.env.user.company_id
+        meli_util_model = self.env['meli.util']
+        meli = meli_util_model.get_new_instance(company)
+        ACCESS_TOKEN = company.mercadolibre_access_token
+        REFRESH_TOKEN = company.mercadolibre_refresh_token
+
+        for noti in self:
+
+            if (noti.topic and len(noti.topic)):
+
+                if (noti.topic in ["questions"]):
+                    noti._process_notification_question()
+
+                if (noti.topic in ["order","created_orders","orders_v2"]):
+                    noti._process_notification_order()
+
 
     def process_notifications(self):
         #process all
         _logger.info("Processing received notifications")
-        received = self.search([('state','=','RECEIVED
+        received = self.search([('state','=','RECEIVED')])
         if (len(received)):
             for noti in received:
                 noti._process_notification()
