@@ -209,10 +209,11 @@ class MercadolibreNotification(models.Model):
             noti.state = 'PROCESSING'
             noti.attempts = 1
             noti.processing_started = ml_datetime(str(datetime.now()))
-            
+
             try:
                 res = meli.get(""+str(noti.resource), {'access_token':meli.access_token} )
                 ojson =  res.json()
+                _logger.info(ojson)
                 if ('error' in ojson):
                     noti.state = 'FAILED'
                     noti.processing_errors = str(ojson['error'])
@@ -225,7 +226,11 @@ class MercadolibreNotification(models.Model):
                             noti.processing_errors = str(rsjson['error'])
                         else:
                             noti.state = 'SUCCESS'
-                            noti.processing_errors = str(rsjson)
+                            noti.processing_errors = str(rsjson
+                    else:
+                        noti.state = 'FAILED'
+                        noti.processing_errors = "No mercadolibre.order found with order_id: try to import!"
+
             except Exception as E:
                 noti.state = 'FAILED'
                 noti.processing_errors = str(E)
