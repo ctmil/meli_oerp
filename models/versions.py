@@ -39,14 +39,14 @@ def set_image_full(self, image):
     self.image = image
     return True
 
-def _prepare_attribute( product_template_id, attribute_id, attribute_value_id ):
+def prepare_attribute( product_template_id, attribute_id, attribute_value_id ):
     att_vals = { 'attribute_id': attribute_id,
                  'value_ids': [(4,attribute_value_id)],
                  'product_tmpl_id': product_template_id
                }
     return att_vals
     
-def _stock_inventory_action_done( self ):
+def stock_inventory_action_done( self ):
     return_id = self.post_inventory()
     return_id = self.action_start()
     return_id = self.action_validate()

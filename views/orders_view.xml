@@ -31,9 +31,9 @@
                 <data>
                     <notebook>
                         <page string="MercadoLibre" attrs="{'invisible':[('meli_order_id', '=', False)]}">
+                            <field name="meli_orders" invisible="0"/>
                             <group>
                               <field name="meli_order_id" invisible="0"/>
-                              <field name="meli_orders" invisible="0"/>
                               <field name="meli_status" invisible="0"/>
                               <field name="meli_shipment" invisible="0"/>
                               <field name="meli_status_detail" invisible="0"/>
