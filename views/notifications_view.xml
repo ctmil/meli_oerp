@@ -32,7 +32,7 @@
 							<field name='application_id'/>
 						</div>
 						<div class="oe_button_box" name="button_box_mel" style="width: auto;">
-							<button name='_process_notification' type="action"
+							<button name='_process_notification' type="object"
 								string="Procesar"
 								title="Procesar notificación"
 								confirm="¿Está seguro que necesita procesar esta notificación?"
