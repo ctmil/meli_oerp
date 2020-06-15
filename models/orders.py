@@ -42,14 +42,6 @@ try:
 except ImportError:
     from urllib.parse import urlencode
 
-def _ml_datetime(datestr):
-    try:
-        #return parse(datestr).isoformat().replace("T"," ")
-        return parse(datestr).strftime('%Y-%m-%d %H:%M:%S')
-    except:
-        _logger.error(datestr)
-        return None
-
 
 class sale_order_line(models.Model):
     _inherit = "sale.order.line"
@@ -326,8 +318,8 @@ class mercadolibre_orders(models.Model):
             'total_amount': order_json["total_amount"],
             'paid_amount': order_json["paid_amount"],
             'currency_id': order_json["currency_id"],
-            'date_created': _ml_datetime(order_json["date_created"]) or '',
-            'date_closed': _ml_datetime(order_json["date_closed"]) or '',
+            'date_created': _ml_datetime(order_json["date_created"]),
+            'date_closed': _ml_datetime(order_json["date_closed"]),
             'pack_order': False
         }
         if 'tags' in order_json:

@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+from dateutil.parser import *
+from datetime import *
+import logging
+_logger = logging.getLogger(__name__)
 
 # For Odoo version 11.0
 
@@ -40,10 +44,14 @@ def _prepare_attribute( product_template_id, attribute_id, attribute_value_id ):
                  'product_tmpl_id': product_template_id
                }
     return att_vals
-    
+
 def _stock_inventory_action_done( self ):
     return self.action_done()
 
-
-    
-    
+def _ml_datetime(datestr):
+    try:
+        #return parse(datestr).isoformat().replace("T"," ")
+        return parse(datestr).strftime('%Y-%m-%d %H:%M:%S')
+    except:
+        _logger.error(datestr)
+        return None

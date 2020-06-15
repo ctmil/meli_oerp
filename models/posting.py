@@ -32,12 +32,7 @@ from .meli_oerp_config import *
 from dateutil.parser import *
 from datetime import *
 
-def _ml_datetime(datestr):
-    try:
-        #return parse(datestr).isoformat().replace("T"," ")
-        return parse(datestr).strftime('%Y-%m-%d %H:%M:%S')
-    except:
-        return ""
+from .versions import *
 
 class mercadolibre_posting_update(models.TransientModel):
     _name = "mercadolibre.posting.update"

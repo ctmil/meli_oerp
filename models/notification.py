@@ -30,6 +30,10 @@ from odoo import fields, osv, models, api
 from odoo.tools.translate import _
 from odoo import tools
 
+from . import versions
+from .versions import *
+
+
 #https://api.mercadolibre.com/questions/search?item_id=MLA508223205
 #https://api.mercadolibre.com/myfeeds?app_id=3219083410743656&offset=1&limit=5&access_token=APP_USR-3219083410743656-110520-aac05cf817595680f2f2bfed74062e3f-387126569
 #
@@ -52,12 +56,12 @@ class MercadolibreNotification(models.Model):
     _rec_name = 'notification_id'
 
     notification_id = fields.Char(string='Notification Id',required=True,index=True)
-    application_id = fields.Char(string='Application Id')
+    application_id = fields.Char(string='Application Id', index=True)
     user_id = fields.Char('User Id')
-    topic = fields.Char('Topic')
+    topic = fields.Char('Topic', index=True)
     sent = fields.Datetime('Sent')
-    received = fields.Datetime('Received')
-    resource = fields.Char("Resource")
+    received = fields.Datetime('Received', index=True)
+    resource = fields.Char("Resource", index=True)
     attempts = fields.Integer('Attempts')
 
     state = fields.Selection([
@@ -65,7 +69,7 @@ class MercadolibreNotification(models.Model):
 		("PROCESSING","Processing notification."),
 		("SUCCESS","Notification processed."),
         ("FAILED","Notification process with errors")
-		], string='Notification State' )
+		], string='Notification State', index=True )
     processing_started = fields.Datetime( string="Processing started" )
     processing_ended = fields.Datetime( string="Processing ended" )
     processing_errors = fields.Text( string="Processing errors log" )
@@ -112,30 +116,8 @@ class MercadolibreNotification(models.Model):
                                     vals = self._prepare_values(values=n)
                                     noti = self.create(vals)
                                     _logger.info("Created new QUESTION notification")
-                                    #_logger.info(noti)
-                                    #_logger.info(n)
-                                    try:
-                                        questions = meli.get(""+str(n["resource"]), {'access_token':meli.access_token} )
-                                        qjson =  questions.json()
-                                        if ('error' in qjson):
-                                            noti.state = 'FAILED'
-                                            noti.processing_errors = str(qjson['error'])
-                                        if ("item_id" in qjson):
-                                            posting = self.env["mercadolibre.posting"].search([('meli_id','=',qjson["item_id"])])
-                                            if (posting):
-                                                rsjson = posting.posting_query_questions()
-                                                if ('error' in rsjson):
-                                                    noti.state = 'FAILED'
-                                                    noti.processing_errors = str(rsjson['error'])
-                                                else:
-                                                    noti.state = 'SUCCESS'
-                                                    noti.processing_errors = str(rsjson)
-                                    except Exception as E:
-                                        noti.state = 'FAILED'
-                                        noti.processing_errors = str(E)
-                                    finally:
-                                        noti.processing_ended = _ml_datetime('now')
-
+                                    if (noti):
+                                        noti._process_notification_question()
 
                             if (n["topic"] in ["order","created_orders","orders_v2"]):
                                 nn = self.search([('notification_id','=',n["_id"])])
@@ -144,33 +126,7 @@ class MercadolibreNotification(models.Model):
                                     noti = self.create(vals)
                                     _logger.info("Created new ORDER notification.")
                                     if (noti):
-                                        noti.state = 'PROCESSING'
-                                        noti.attempts = 1
-                                        noti.processing_started = _ml_datetime('now')
-                                        try:
-                                            resord = meli.get(""+str(n["resource"]), {'access_token':meli.access_token} )
-                                            ojson =  resord.json()
-                                            if ('error' in ojson):
-                                                noti.state = 'FAILED'
-                                                noti.processing_errors = str(ojson['error'])
-                                            if ("order_id" in ojson):
-                                                morder = self.env["mercadolibre.orders"].search( [('order_id','=',ojson["order_id"])], limit=1 )
-                                                if (morder and len(morder)):
-                                                    rsjson = morder.orders_update_order_json( {"id": morder.id, "order_json": ojson } )
-                                                    if ('error' in rsjson):
-                                                        noti.state = 'FAILED'
-                                                        noti.processing_errors = str(rsjson['error'])
-                                                    else:
-                                                        noti.state = 'SUCCESS'
-                                                        noti.processing_errors = str(rsjson)
-                                        except Exception as E:
-                                            noti.state = 'FAILED'
-                                            noti.processing_errors = str(E)
-                                        finally:
-                                            noti.processing_ended = _ml_datetime('now')
-
-                                    #_logger.info(noti)
-                                    #_logger.info(n)
+                                        noti._process_notification_order()
 
                             if (1==2 and n["topic"]=="items"):
                                 nn = self.search([('notification_id','=',n["_id"])])
@@ -178,8 +134,6 @@ class MercadolibreNotification(models.Model):
                                     vals = self._prepare_values(values=n)
                                     noti = self.create(vals)
                                     _logger.info("Created new ITEM notification.")
-                                    #_logger.info(noti)
-                                    #_logger.info(n)
 
                             if (n["topic"] in ["payments"]):
                                 nn = self.search([('notification_id','=',n["_id"])])
@@ -187,8 +141,6 @@ class MercadolibreNotification(models.Model):
                                     vals = self._prepare_values(values=n)
                                     noti = self.create(vals)
                                     _logger.info("Created new PAYMENT notification.")
-                                    #_logger.info(noti)
-                                    #_logger.info(n)
 
                     except:
                         _logger.error("Error creating notification.")
@@ -202,7 +154,88 @@ class MercadolibreNotification(models.Model):
         #ok send ACK 200
         return ""
 
+    def _process_notification_question(self):
+        _logger.info("_process_notification_question")
+
+        company = self.env.user.company_id
+        meli_util_model = self.env['meli.util']
+        meli = meli_util_model.get_new_instance(company)
+        ACCESS_TOKEN = company.mercadolibre_access_token
+        REFRESH_TOKEN = company.mercadolibre_refresh_token
+
+        for noti in self:
+
+            noti.state = 'PROCESSING'
+            noti.attempts = 1
+            noti.processing_started = _ml_datetime('now')
+
+            try:
+                questions = meli.get(""+str(noti.resource), {'access_token':meli.access_token} )
+                qjson =  questions.json()
+                if ('error' in qjson):
+                    noti.state = 'FAILED'
+                    noti.processing_errors = str(qjson['error'])
+                if ("item_id" in qjson):
+                    posting = self.env["mercadolibre.posting"].search([('meli_id','=',qjson["item_id"])])
+                    if (posting and len(posting)):
+                        rsjson = posting.posting_query_questions()
+                        if ('error' in rsjson):
+                            noti.state = 'FAILED'
+                            noti.processing_errors = str( rsjson['error'] )
+                        else:
+                            noti.state = 'SUCCESS'
+                            noti.processing_errors = str(rsjson)
+                    else:
+                        noti.state = 'FAILED'
+                        noti.processing_errors = str( "Posting not found related to question" )
+            except Exception as E:
+                noti.state = 'FAILED'
+                noti.processing_errors = str(E)
+            finally:
+                noti.processing_ended = _ml_datetime('now')
+
+
+
+    def _process_notification_order(self):
+        _logger.info("_process_notification_order")
+
+        company = self.env.user.company_id
+        meli_util_model = self.env['meli.util']
+        meli = meli_util_model.get_new_instance(company)
+        ACCESS_TOKEN = company.mercadolibre_access_token
+        REFRESH_TOKEN = company.mercadolibre_refresh_token
+
+        noti.state = 'PROCESSING'
+        noti.attempts = 1
+        noti.processing_started = _ml_datetime('now')
+        for noti in self:
+            try:
+                res = meli.get(""+str(noti.resource), {'access_token':meli.access_token} )
+                ojson =  res.json()
+                if ('error' in ojson):
+                    noti.state = 'FAILED'
+                    noti.processing_errors = str(ojson['error'])
+                if ("order_id" in ojson):
+                    morder = self.env["mercadolibre.orders"].search( [('order_id','=',ojson["order_id"])], limit=1 )
+                    if (morder and len(morder)):
+                        rsjson = morder.orders_update_order_json( {"id": morder.id, "order_json": ojson } )
+                        if ('error' in rsjson):
+                            noti.state = 'FAILED'
+                            noti.processing_errors = str(rsjson['error'])
+                        else:
+                            noti.state = 'SUCCESS'
+                            noti.processing_errors = str(rsjson)
+            except Exception as E:
+                noti.state = 'FAILED'
+                noti.processing_errors = str(E)
+            finally:
+                noti.processing_ended = _ml_datetime('now
+
 
     def process_notifications(self):
         #process all
-        _logger.info("Processing notifications")
+        _logger.info("Processing received notifications")
+        received = self.search([('state','=','RECEIVED
+        if (len(received)):
+            for noti in received:
+                noti._process_notification()
