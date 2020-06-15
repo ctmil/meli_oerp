@@ -66,8 +66,8 @@ class MercadolibreNotification(models.Model):
     state = fields.Selection([
 		("RECEIVED","Notification received."),
 		("PROCESSING","Processing notification."),
-		("SUCCESS","Notification processed."),
-        ("FAILED","Notification process with errors")
+        ("FAILED","Notification process with errors"),
+		("SUCCESS","Notification processed.")
 		], string='Notification State', index=True )
     processing_started = fields.Datetime( string="Processing started" )
     processing_ended = fields.Datetime( string="Processing ended" )
@@ -218,9 +218,9 @@ class MercadolibreNotification(models.Model):
                     noti.state = 'FAILED'
                     noti.processing_errors = str(ojson['error'])
                 if ("id" in ojson):
-                    morder = self.env["mercadolibre.orders"].search( [('order_id','=',ojson["order_id"])], limit=1 )
+                    morder = self.env["mercadolibre.orders"].search( [('order_id','=',ojson["id"])], limit=1 )
+                    _logger.info(str(morder))
                     if (morder and len(morder)):
-                        _logger.info(str(morder))
                         rsjson = morder.orders_update_order_json( {"id": morder.id, "order_json": ojson } )
                         _logger.info(str(rsjson))
                         if ('error' in rsjson):
