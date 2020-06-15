@@ -204,10 +204,12 @@ class MercadolibreNotification(models.Model):
         ACCESS_TOKEN = company.mercadolibre_access_token
         REFRESH_TOKEN = company.mercadolibre_refresh_token
 
-        noti.state = 'PROCESSING'
-        noti.attempts = 1
-        noti.processing_started = ml_datetime(str(datetime.now()))
         for noti in self:
+
+            noti.state = 'PROCESSING'
+            noti.attempts = 1
+            noti.processing_started = ml_datetime(str(datetime.now()))
+            
             try:
                 res = meli.get(""+str(noti.resource), {'access_token':meli.access_token} )
                 ojson =  res.json()
