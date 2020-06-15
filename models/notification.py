@@ -165,7 +165,7 @@ class MercadolibreNotification(models.Model):
         for noti in self:
 
             noti.state = 'PROCESSING'
-            noti.attempts = 1
+            noti.attempts+= 1
             noti.processing_started = ml_datetime(str(datetime.now()))
 
             try:
@@ -207,7 +207,7 @@ class MercadolibreNotification(models.Model):
         for noti in self:
 
             noti.state = 'PROCESSING'
-            noti.attempts = 1
+            noti.attempts+= 1
             noti.processing_started = ml_datetime(str(datetime.now()))
 
             try:
@@ -217,10 +217,12 @@ class MercadolibreNotification(models.Model):
                 if ('error' in ojson):
                     noti.state = 'FAILED'
                     noti.processing_errors = str(ojson['error'])
-                if ("order_id" in ojson):
+                if ("id" in ojson):
                     morder = self.env["mercadolibre.orders"].search( [('order_id','=',ojson["order_id"])], limit=1 )
                     if (morder and len(morder)):
+                        _logger.info(str(morder))
                         rsjson = morder.orders_update_order_json( {"id": morder.id, "order_json": ojson } )
+                        _logger.info(str(rsjson))
                         if ('error' in rsjson):
                             noti.state = 'FAILED'
                             noti.processing_errors = str(rsjson['error'])
