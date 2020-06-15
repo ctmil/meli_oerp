@@ -17,34 +17,46 @@
 			</field>
 		</record>
 
-		<!--record model="ir.ui.view" id="view_meli_questions_form">
-			<field name="name">mercadolibre.questions.form</field>
-			<field name="model">mercadolibre.questions</field>
+		<record model="ir.ui.view" id="view_meli_notification_form">
+			<field name="name">mercadolibre.notification.form</field>
+			<field name="model">mercadolibre.notification</field>
 			<field name="arch" type="xml">
 				<form create="0" edit="0" delete="0">
 					<header>
-						<field name="status" widget="statusbar" />
-						<field name="answer_status" widget="statusbar" />
+						<field name="state" widget="statusbar" />
 					</header>
 					<sheet>
+						<div class="oe_title">
+							<h1><field name="notification_id"/></h1>
+							<field name='user_id'/>
+							<field name='application_id'/>
+						</div>
+						<div class="oe_button_box" name="button_box_mel" style="width: auto;">
+							<button name='process_notification' type="object"
+								string="Procesar"
+								title="Procesar notificación"
+								confirm="¿Está seguro que necesita procesar esta notificación?"
+								class="oe_stat_button"
+								icon="fa-refresh"/>
+						</div>
 						<group>
 							<group>
-								<field name="question_id" />
-								<field name="item_id" />
-								<field name="date_created" />
-								<field name="text" />
+								<field name="topic" />
+								<field name="resource" />
+								<field name="sent" />
+								<field name="received" />
 							</group>
 							<group>
-								<field name="posting_id" />
-								<field name="seller_id" />
-								<field name="answer_date_created" />
-								<field name="answer_text" />
+								<field name='attempts'/>
+								<field name="processing_started" />
+								<field name="processing_ended" />
+								<field name="processing_errors" />
 							</group>
 						</group>
 					</sheet>
 				</form>
 			</field>
-		</record-->
+		</record>
 
 		<record id="meli_notifications_search_view" model="ir.ui.view">
 			<field name="name">MercadoLibre Notifications - Search</field>

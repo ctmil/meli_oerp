@@ -44,15 +44,9 @@ from pdf2image import convert_from_path, convert_from_bytes
 from dateutil.parser import *
 from datetime import *
 
+from . import versions
 from .versions import *
 
-def _ml_datetime(datestr):
-	try:
-		#return parse(datestr).isoformat().replace("T"," ")
-		return parse(datestr).strftime('%Y-%m-%d %H:%M:%S')
-	except:
-		_logger.error(datestr)
-		return None
 #
 #	 https://www.odoo.com/fr_FR/forum/aide-1/question/solved-call-report-and-save-result-to-attachment-133244
 #
@@ -166,7 +160,7 @@ mercadolibre_shipment_update()
 class mercadolibre_shipment(models.Model):
 	_name = "mercadolibre.shipment"
 	_description = "Envio de MercadoLibre"
-	
+
 	_inherit = ['portal.mixin', 'mail.thread', 'mail.activity.mixin']
 
 	name = fields.Char(string='Name')
@@ -212,10 +206,10 @@ class mercadolibre_shipment(models.Model):
 	receiver_state = fields.Char('Estado')
 	receiver_state_code = fields.Char('Estado ID')
 	receiver_state_id = fields.Many2one('res.country.state',string='State')
-	
+
 	receiver_country = fields.Char('Pais')
 	receiver_country_code = fields.Char('Código Pais')
-	receiver_country_id = fields.Many2one('res.country',string='Country')	
+	receiver_country_id = fields.Many2one('res.country',string='Country')
 	receiver_latitude = fields.Char('Latitud')
 	receiver_longitude = fields.Char('Longitud')
 
@@ -271,7 +265,7 @@ class mercadolibre_shipment(models.Model):
 				#sorder.partner_id.state = ships.receiver_state
 
 			product_shipping_id = product_obj.search(['|','|',('default_code','=','ENVIO'),('default_code','=',shipment.tracking_method),('name','=',shipment.tracking_method)])
-			
+
 			if len(product_shipping_id):
 				product_shipping_id = product_shipping_id[0]
 			else:
@@ -287,11 +281,11 @@ class mercadolibre_shipment(models.Model):
 				if (product_shipping_tpl):
 					product_shipping_id = product_shipping_tpl.product_variant_ids[0]
 			_logger.info(product_shipping_id)
-			
+
 			if (not product_shipping_id):
 				_logger.info('Failed to create shipping product service')
 				continue
-				
+
 			saleorderline_item_fields = {
 				'company_id': company.id,
 				'order_id': sorder.id,
@@ -359,8 +353,8 @@ class mercadolibre_shipment(models.Model):
 					"order_id": ship_json["order_id"],
 					"mode": ship_json["mode"],
 					"shipping_mode": ship_json["shipping_option"]["name"],
-					"date_created": _ml_datetime(ship_json["date_created"]),
-					"last_updated": _ml_datetime(ship_json["last_updated"]),
+					"date_created": ml_datetime(ship_json["date_created"]),
+					"last_updated": ml_datetime(ship_json["last_updated"]),
 					"order_cost": ship_json["order_cost"],
 					"shipping_cost": ("cost" in ship_json["shipping_option"] and ship_json["shipping_option"]["cost"]) or 0.0,
 					"shipping_list_cost": ("list_cost" in ship_json["shipping_option"] and ship_json["shipping_option"]["list_cost"]) or 0.0,
@@ -370,7 +364,7 @@ class mercadolibre_shipment(models.Model):
 					#"status_history": ship_json["status_history"],
 					"tracking_number": ship_json["tracking_number"],
 					"tracking_method": ship_json["tracking_method"],
-					"date_first_printed": _ml_datetime(ship_json["date_first_printed"]),
+					"date_first_printed": ml_datetime(ship_json["date_first_printed"]),
 					"receiver_id": ship_json["receiver_id"],
 					"receiver_address_id": ship_json["receiver_address"]["id"],
 					"receiver_address_phone": ship_json["receiver_address"]["receiver_phone"],
@@ -514,8 +508,8 @@ class mercadolibre_shipment(models.Model):
 								'meli_paid_amount': shipment.order_cost,
 								'meli_fee_amount': 0.0,
 								'meli_currency_id': all_orders[0]["currency_id"],
-								'meli_date_created': _ml_datetime(all_orders[0]["date_created"]),
-								'meli_date_closed': _ml_datetime(all_orders[0]["date_closed"]),
+								'meli_date_created': ml_datetime(all_orders[0]["date_created"]),
+								'meli_date_closed': ml_datetime(all_orders[0]["date_closed"]),
 							}
 							sorder_pack = self.env["sale.order"].search( [ ('meli_order_id','=',meli_order_fields["meli_order_id"]) ] )
 							if (len(sorder_pack)):
@@ -535,7 +529,7 @@ class mercadolibre_shipment(models.Model):
 								sorder_pack.meli_fee_amount = 0.0
 								for mOrder in all_orders:
 									#Each Order one product with one price and one quantity
-									product_related_obj = mOrder.order_items[0].product_id or mOrder.order_items[0].posting_id.product_id										
+									product_related_obj = mOrder.order_items[0].product_id or mOrder.order_items[0].posting_id.product_id
 									if not (product_related_obj):
 										_logger.error("Error adding order line: product not found in database: " + str(mOrder.order_items[0]["order_item_title"]) )
 										continue;
@@ -552,11 +546,8 @@ class mercadolibre_shipment(models.Model):
 									}
 									if (mOrder.fee_amount):
 										sorder_pack.meli_fee_amount = sorder_pack.meli_fee_amount + mOrder.fee_amount
-									if (float(unit_price)==product_related_obj.product_tmpl_id.lst_price):
-										saleorderline_item_fields['price_unit'] = float(unit_price)
-										saleorderline_item_fields['tax_id'] = None
-									else:
-										saleorderline_item_fields['price_unit'] = product_related_obj.product_tmpl_id.lst_price
+
+									saleorderline_item_fields.update( order._set_product_unit_price( product_related_obj, mOrder.order_items[0] ) )
 
 									saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',shipment.sale_order.id)] )
 
