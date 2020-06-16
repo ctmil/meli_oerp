@@ -46,6 +46,13 @@
                       <field name="substatus"/>
                       <field name="shipping_id"/>
                     </div>
+                    <div class="oe_button_box" name="button_box_mel" style="width: auto;">
+                      <button name='update' type="object"
+                        string="Actualizar"
+                        attrs="{'invisible':[('order_id','=',False)]}"
+                        class="oe_stat_button"
+                        icon="fa-refresh"/>
+                    </div>
                     <group string="Details">
                       <group>
                         <field name="date_created"/>

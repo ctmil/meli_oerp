@@ -101,6 +101,13 @@
                     <field name="tags"/>
                     <field name="order_id"/>
                   </div>
+                  <div class="oe_button_box" name="button_box_mel" style="width: auto;">
+                    <button name='orders_update_order' type="object"
+                      string="Actualizar"
+                      attrs="{'invisible':[('order_id','=',False)]}"
+                      class="oe_stat_button"
+                      icon="fa-refresh"/>
+                  </div>
                   <group>
                     <group>
                         <field name="sale_order"/>
