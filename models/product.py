@@ -472,7 +472,7 @@ class product_product(models.Model):
         mlcatid = False
         www_cat_id = False
 
-        ml_cat = self.env['mercadolibre.category'].search([('meli_category_id','=',category_id)])
+        ml_cat = self.env['mercadolibre.category'].search([('meli_category_id','=',category_id)],limit=1)
         ml_cat_id = ml_cat.id
         if (ml_cat_id):
             #_logger.info( "category exists!" + str(ml_cat_id) )
