@@ -13,6 +13,7 @@
 					<field name="resource" />
 					<field name="user_id" />
 					<field name="state" />
+					<field name="processing_errors" invisible="0" />
 				</tree>
 			</field>
 		</record>
