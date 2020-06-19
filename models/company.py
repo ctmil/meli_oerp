@@ -698,6 +698,6 @@ class res_company(models.Model):
     def meli_set_automatic_tax_included(self):
         #create a product with a price of 100, check if tax are created
         #create an order with this product and check final amount in line.
-
+        return False
 
 res_company()
