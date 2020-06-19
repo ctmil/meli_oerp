@@ -71,6 +71,7 @@
                 								<field name="mercadolibre_code" invisible="0" groups="base.group_no_one" />
                                 <field name="mercadolibre_cron_refresh" invisible="0"/>
                                 <field name="mercadolibre_cron_mail" invisible="0"/>
+                                <field name="mercadolibre_tax_included" invisible="0" groups="base.group_no_one"/>
                               </group>
                               <group string="Configuración básica" col="2">
                                 <group>
@@ -105,9 +106,11 @@
                                   <field name="mercadolibre_cron_get_orders" invisible="0"/>
                                   <field name="mercadolibre_cron_get_orders_shipment" invisible="0"/>
                                   <field name="mercadolibre_cron_get_orders_shipment_client" invisible="0"/>
+                                  <field name="mercadolibre_cron_get_questions" invisible="0"/>
                                 </group>
                                 <group>
-                                  <field name="mercadolibre_cron_get_questions" invisible="0"/>
+                                  <field name="mercadolibre_create_product_from_order" invisible="0"/>
+                                  <field name="mercadolibre_update_existings_variants" invisible="0"/>
                                   <field name="mercadolibre_cron_get_update_products" invisible="0"/>
                                   <field name="mercadolibre_update_local_stock" invisible="0"/>
                                   <field name="mercadolibre_order_confirmation" invisible="0"/>
