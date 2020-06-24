@@ -433,7 +433,7 @@ class product_product(models.Model):
                             'applied_on': '1_product',
                             'pricelist_id': pl.id,
                             'compute_price': 'fixed',
-                            'currency_id': pl.currency_id,
+                            'currency_id': pl.currency_id.id,
 				            'fixed_price': float(ml_price_converted)
                              })
         else:
