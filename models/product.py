@@ -437,7 +437,7 @@ class product_product(models.Model):
 				            'fixed_price': float(ml_price_converted)
                              })
         else:
-            if (product_template.lst_price<=0.0):
+            if (product_template.lst_price<=1.0):
                 product_template.write({'lst_price': ml_price_converted})
 
     def set_meli_price(self):
