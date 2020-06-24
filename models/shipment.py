@@ -405,7 +405,7 @@ class mercadolibre_shipment(models.Model):
 						_logger.error( items_json["error"] )
 						_logger.error( items_json["message"] )
 					else:
-						if (len(items_json)>1):
+						if (len(items_json)>1 or ( len(items_json)==1 and order.pack_order==True ) ):
 							_logger.info("Es carrito")
 							ship_fields["pack_order"] = True
 						else:
