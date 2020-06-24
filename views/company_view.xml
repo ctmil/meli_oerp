@@ -102,6 +102,7 @@
                               </group>
                               <group string="Automatización ML a Odoo" name="autoget"  col="2">
                                 <group>
+                                  <field name="mercadolibre_process_notifications" invisible="0"/>
                                   <field name="mercadolibre_cron_get_orders" invisible="0"/>
                                   <field name="mercadolibre_cron_get_orders_shipment" invisible="0"/>
                                   <field name="mercadolibre_cron_get_orders_shipment_client" invisible="0"/>
