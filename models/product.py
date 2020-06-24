@@ -2144,6 +2144,7 @@ class product_product(models.Model):
                                 for pvar in product_tmpl.product_variant_ids:
                                     if (pvar._is_product_combination(_var) and 'id' in _var):
                                         pvar.meli_id_variation = _var["id"]
+                                        pvar.meli_price = str(_var["price"])
 
                         #_logger.debug(responsevar.json())
                         resdes = meli.put("/items/"+product.meli_id+"/description", bodydescription, {'access_token':meli.access_token})
