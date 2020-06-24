@@ -417,7 +417,28 @@ class product_product(models.Model):
         if company.mercadolibre_pricelist:
             pl = company.mercadolibre_pricelist
 
-        product_template.write({'lst_price': ml_price_converted})
+        if (pl):
+            #pass
+            pli = self.env['product.pricelist.item']
+            pli_tpl = pli.search([('pricelist_id','in',[pl.id]),('product_tmpl_id','=',product_template.id)])
+            pli_var = pli.search([('pricelist_id','in',[pl.id]),('product_id','=',self.id)])
+            if (pli_tpl or pli_var):
+                return_val = pl.price_get( self.id, 1.0 )
+                if (pl.id in return_val):
+                    old_price = return_val[pl.id]
+            else:
+                pli_tpl = pli.create({
+                            'product_tmpl_id': product_template.id,
+                            'min_quantity': 0,
+                            'applied_on': '1_product',
+                            'pricelist_id': pl.id,
+                            'compute_price': 'fixed',
+                            'currency_id': pl.currency_id,
+				            'fixed_price': float(ml_price_converted)
+                             })
+        else:
+            if (product_template.lst_price==0.0):
+                product_template.write({'lst_price': ml_price_converted})
 
     def set_meli_price(self):
         company = self.env.user.company_id
