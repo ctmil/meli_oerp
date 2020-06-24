@@ -1,60 +1,61 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <data>
+  <data>
 
-        <record model="ir.ui.view" id="view_meli_posting_tree">
-            <field name="name">mercadolibre.posting.tree</field>
-            <field name="model">mercadolibre.posting</field>
-            <field name="type">tree</field>
-            <field name="arch" type="xml">
-                <tree string="Ventas"  default_order="posting_date desc">
-                    <field name="name"/>
-                    <field name="posting_date"/>
-                    <field name="product_id"/>
-                    <field name="meli_seller_custom_field"/>
-                    <field name="meli_id"/>
-                    <field name="meli_permalink" widget="url"/>
-                    <field name="meli_status"/>
-                    <field name="meli_price"/>
-                    <field name="posting_questions"/>
-                </tree>
-            </field>
-        </record>
+    <record model="ir.ui.view" id="view_meli_posting_tree">
+        <field name="name">mercadolibre.posting.tree</field>
+        <field name="model">mercadolibre.posting</field>
+        <field name="type">tree</field>
+        <field name="arch" type="xml">
+            <tree string="Ventas publicadas" >
+                <field name="name"/>
+                <field name="posting_date"/>
+                <field name="product_id"/>
+                <field name="meli_seller_custom_field"/>
+                <field name="meli_id"/>
+                <field name="meli_permalink" widget="url"/>
+                <field name="meli_status"/>
+                <field name="meli_price"/>
+                <field name="posting_questions"/>
+            </tree>
+        </field>
+    </record>
 
 
-        <record model="ir.ui.view" id="view_meli_posting_form">
-            <field name="name">mercadolibre.posting.form</field>
-            <field name="model">mercadolibre.posting</field>
-            <field name="type">form</field>
-            <field name="arch" type="xml">
-				      <form string="Venta en ML">
-                <group>
-                    <field name="name"/>
-                    <field name="posting_date"/>
-                    <field name="meli_id"/>
-                    <field name="meli_seller_custom_field"/>
-                    <field name="product_id"/>
-                    <field name="meli_permalink" widget="url"/>
-                    <field name="meli_status"/>
-                    <field name="meli_price"/>
-                    <field name="posting_questions"/>
-                    <field name="posting_update"/>
-                  </group>
-                </form>
-            </field>
-        </record>
+    <record model="ir.ui.view" id="view_meli_posting_form">
+        <field name="name">mercadolibre.posting.form</field>
+        <field name="model">mercadolibre.posting</field>
+        <field name="type">form</field>
+        <field name="arch" type="xml">
+		      <form string="Venta en ML">
+            <group>
+                <field name="name"/>
+                <field name="posting_date"/>
+                <field name="meli_id"/>
+                <field name="meli_seller_custom_field"/>
+                <field name="product_id"/>
+                <field name="meli_permalink" widget="url"/>
+                <field name="meli_status"/>
+                <field name="meli_price"/>
+                <field name="posting_questions"/>
+                <field name="posting_update"/>
+              </group>
+            </form>
+        </field>
+    </record>
+
 
     <record id="meli_posting_search_view" model="ir.ui.view">
         <field name="name">MercadoLibre Posting - Search</field>
         <field name="model">mercadolibre.posting</field>
         <field name="arch" type="xml">
-    	    <search string="Search MercadoLibre Posting Information">
+          <search string="Search MercadoLibre Posting Information">
             <field name="name" string="Nombre publicación"/>
             <field name="meli_id" string="Meli ID"/>
             <field name="meli_status" string="Status"/>
             <field name="product_id" string="Producto"/>
             <field name="meli_price" string="Precio"/>
-    	    </search>
+          </search>
         </field>
     </record>
 

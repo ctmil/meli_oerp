@@ -395,19 +395,50 @@ class product_product(models.Model):
     def _meli_set_product_price( self, product_template, meli_price ):
         company = self.env.user.company_id
         ml_price_converted = meli_price
-        if (product_template.taxes_id):
-            txtotal = 0
-            _logger.info("Adjust taxes")
-            for txid in product_template.taxes_id:
-                if (txid.type_tax_use=="sale"):
-                    txtotal = txtotal + txid.amount
-                    _logger.info(txid.amount)
-            if (txtotal>0):
-                _logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_converted))
-                ml_price_converted = meli_price / (1.0 + txtotal*0.01)
-                _logger.info("Price converted:"+str(ml_price_converted))
+        tax_excluded = ml_tax_excluded(self)
 
-        product_template.write({'lst_price': ml_price_converted})
+        if ( tax_excluded and product_template.taxes_id ):
+            _logger.info("Adjust taxes")
+            txfixed = 0
+            txpercent = 0
+            #_logger.info("Adjust taxes")
+            for txid in product_template.taxes_id:
+                if (txid.type_tax_use=="sale" and not txid.price_include):
+                    if (txid.amount_type=="percent"):
+                        txpercent = txpercent + txid.amount
+                    if (txid.amount_type=="fixed"):
+                        txfixed = txfixed + txid.amount
+            if (txfixed>0 or txpercent>0):
+                #_logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_converted))
+                ml_price_converted = txfixed + ml_price_converted / (1.0 + txpercent*0.01)
+                _logger.info("Price adjusted with taxes:"+str(ml_price_converted))
+
+        pl = False
+        if company.mercadolibre_pricelist:
+            pl = company.mercadolibre_pricelist
+
+        if (pl):
+            #pass
+            pli = self.env['product.pricelist.item']
+            pli_tpl = pli.search([('pricelist_id','in',[pl.id]),('product_tmpl_id','=',product_template.id)])
+            pli_var = pli.search([('pricelist_id','in',[pl.id]),('product_id','=',self.id)])
+            if (pli_tpl or pli_var):
+                return_val = pl.price_get( self.id, 1.0 )
+                if (pl.id in return_val):
+                    old_price = return_val[pl.id]
+            else:
+                pli_tpl = pli.create({
+                            'product_tmpl_id': product_template.id,
+                            'min_quantity': 0,
+                            'applied_on': '1_product',
+                            'pricelist_id': pl.id,
+                            'compute_price': 'fixed',
+                            'currency_id': pl.currency_id.id,
+				            'fixed_price': float(ml_price_converted)
+                             })
+        else:
+            if (product_template.lst_price<=1.0):
+                product_template.write({'lst_price': ml_price_converted})
 
     def set_meli_price(self):
         company = self.env.user.company_id
@@ -443,11 +474,24 @@ class product_product(models.Model):
             if ( product.lst_price ):
                 new_price = product.lst_price
 
-        if product_tmpl.taxes_id:
-            _logger.info("taxes:")
-            new_price = new_price * ( 1 + ( product_tmpl.taxes_id[0].amount / 100) )
-            new_price = round(new_price,2)
+        tax_excluded = ml_tax_excluded(self)
+        if ( tax_excluded and product_tmpl.taxes_id ):
+            _logger.info("Adjust taxes for publish")
+            txfixed = 0
+            txpercent = 0
+            #_logger.info("Adjust taxes")
+            for txid in product_tmpl.taxes_id:
+                if (txid.type_tax_use=="sale" and not txid.price_include):
+                    if (txid.amount_type=="percent"):
+                        txpercent = txpercent + txid.amount
+                    if (txid.amount_type=="fixed"):
+                        txfixed = txfixed + txid.amount
+            if (txfixed>0 or txpercent>0):
+                #_logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_converted))
+                new_price = txfixed + new_price / (1.0 + txpercent*0.01)
+                _logger.info("Price adjusted with taxes:"+str(new_price))
 
+        new_price = round(new_price,2)
         product_tmpl.meli_price = new_price
         product.meli_price = product_tmpl.meli_price
 
@@ -472,7 +516,7 @@ class product_product(models.Model):
         mlcatid = False
         www_cat_id = False
 
-        ml_cat = self.env['mercadolibre.category'].search([('meli_category_id','=',category_id)])
+        ml_cat = self.env['mercadolibre.category'].search([('meli_category_id','=',category_id)],limit=1)
         ml_cat_id = ml_cat.id
         if (ml_cat_id):
             #_logger.info( "category exists!" + str(ml_cat_id) )
@@ -801,7 +845,7 @@ class product_product(models.Model):
 
         #_logger.info(rjson['variations'])
         published_att_variants = False
-        if ('variations' in rjson):
+        if (company.mercadolibre_update_existings_variants and 'variations' in rjson):
             #recorrer los variations>attribute_combinations y agregarlos como atributos de las variantes
             #_logger.info(rjson['variations'])
             vindex = -1
@@ -947,7 +991,8 @@ class product_product(models.Model):
 
         #this write pull the trigger for create_variant_ids()...
         #_logger.info("rewrite to create variants")
-        product_template.write({ 'attribute_line_ids': product_template.attribute_line_ids  })
+        if (company.mercadolibre_update_existings_variants):
+            product_template.write({ 'attribute_line_ids': product_template.attribute_line_ids  })
         #_logger.info("published_att_variants:"+str(published_att_variants))
         if (published_att_variants):
             product_template.meli_pub_as_variant = True
@@ -1063,8 +1108,8 @@ class product_product(models.Model):
                 for variant in product_template.product_variant_ids:
                     variant.meli_default_stock_product = ptemp_nfree
 
-        if ('attributes' in rjson):
-            if (len(rjson['attributes']) and 1==1):
+        if (company.mercadolibre_update_existings_variants and 'attributes' in rjson):
+            if (len(rjson['attributes']) ):
                 for att in rjson['attributes']:
                     try:
                         _logger.info(att)
@@ -2100,6 +2145,7 @@ class product_product(models.Model):
                                 for pvar in product_tmpl.product_variant_ids:
                                     if (pvar._is_product_combination(_var) and 'id' in _var):
                                         pvar.meli_id_variation = _var["id"]
+                                        pvar.meli_price = str(_var["price"])
 
                         #_logger.debug(responsevar.json())
                         resdes = meli.put("/items/"+product.meli_id+"/description", bodydescription, {'access_token':meli.access_token})

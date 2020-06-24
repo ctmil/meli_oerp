@@ -74,7 +74,7 @@ class sale_order(models.Model):
 
 #        'meli_order_items': fields.one2many('mercadolibre.order_items','order_id','Order Items' ),
 #        'meli_payments': fields.one2many('mercadolibre.payments','order_id','Payments' ),
-    meli_shipping = fields.Text(string="Shipping");
+    meli_shipping = fields.Text(string="Shipping")
 
     meli_total_amount = fields.Float(string='Total amount')
     meli_shipping_cost = fields.Float(string='Shipping Cost',help='Gastos de envío')
@@ -222,25 +222,35 @@ class mercadolibre_orders(models.Model):
 
     def _set_product_unit_price( self, product_related_obj, Item ):
         product_template = product_related_obj.product_tmpl_id
-        upd_line = {
-            "price_unit": float(Item['unit_price']),
-        }
-        if (product_template.taxes_id and not self.env.user.has_group('sale.group_show_price_subtotal')):
-            txtotal = 0
-            ml_price_converted = float(Item['unit_price'])
+        ml_price_converted = float(Item['unit_price'])
+        #11.0
+        #tax_excluded = self.env.user.has_group('sale.group_show_price_subtotal')
+        #12.0 and 13.0
+        tax_excluded = ml_tax_excluded(self)
+        if ( tax_excluded and product_template.taxes_id ):
+            txfixed = 0
+            txpercent = 0
             #_logger.info("Adjust taxes")
             for txid in product_template.taxes_id:
-                if (txid.type_tax_use=="sale"):
-                    txtotal = txtotal + txid.amount
+                if (txid.type_tax_use=="sale" and not txid.price_include):
+                    if (txid.amount_type=="percent"):
+                        txpercent = txpercent + txid.amount
+                    if (txid.amount_type=="fixed"):
+                        txfixed = txfixed + txid.amount
                     #_logger.info(txid.amount)
-            if (txtotal>0):
+            if (txfixed>0 or txpercent>0):
                 #_logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_converted))
-                ml_price_converted = ml_price_converted / (1.0 + txtotal*0.01)
+                ml_price_converted = txfixed + ml_price_converted / (1.0 + txpercent*0.01)
                 _logger.info("Price adjusted with taxes:"+str(ml_price_converted))
-                upd_line["price_unit"] = ml_price_converted
-        else:
-            if ( float(Item['unit_price']) == product_template.lst_price and not self.env.user.has_group('sale.group_show_price_subtotal')):
-                upd_line["tax_id"] = None
+
+        ml_price_converted = round(ml_price_converted,2)
+
+        upd_line = {
+            "price_unit": ml_price_converted,
+        }
+        #else:
+        #    if ( float(Item['unit_price']) == product_template.lst_price and not self.env.user.has_group('sale.group_show_price_subtotal')):
+        #        upd_line["tax_id"] = None
         return upd_line
 
     def pretty_json( self, ids, data, indent=0, context=None ):
@@ -564,10 +574,13 @@ class mercadolibre_orders(models.Model):
                         if ('variation_id' in Item['item'] and Item['item']['variation_id'] ):
                             combination = [( 'meli_id_variation','=',Item['item']['variation_id'])]
                         product_related = product_obj.search([('meli_id','=',Item['item']['id'])] + combination)
-                        if len(product_related):
+                        if product_related and len(product_related):
                             _logger.info("Product founded:"+str(Item['item']['id']))
                         else:
                             #optional, get product
+                            if not company.mercadolibre_create_product_from_order:
+                                product_related = None
+
                             try:
                                 CLIENT_ID = company.mercadolibre_client_id
                                 CLIENT_SECRET = company.mercadolibre_secret_key
@@ -608,7 +621,7 @@ class mercadolibre_orders(models.Model):
                         if ('variation_attributes' in Item['item']):
                             _logger.info("TODO: search by attributes")
 
-                if len(product_related):
+                if product_related and len(product_related):
                     if len(product_related)>1:
                         last_p = False
                         for p in product_related:

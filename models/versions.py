@@ -55,3 +55,10 @@ def ml_datetime(datestr):
     except:
         _logger.error(datestr)
         return None
+
+def ml_tax_excluded(self):
+    #11.0
+    tax_excluded = self.env.user.has_group('sale.group_show_price_subtotal')
+    #12.0 and 13.0
+    #tax_excluded = self.env.user.has_group('account.group_show_line_subtotals_tax_excluded')
+    return tax_excluded

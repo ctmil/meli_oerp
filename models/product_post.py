@@ -87,7 +87,7 @@ class product_template_post(models.TransientModel):
                     product.meli_pub = True
                 if (product.meli_pub):
                     res = product.with_context({'force_meli_pub': self.force_meli_pub }).product_template_post()
-                    if 'name' in res:
+                    if (res and 'name' in res):
                         return res
                     posted_products+=1
 
