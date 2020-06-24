@@ -44,7 +44,7 @@ def prepare_attribute( product_template_id, attribute_id, attribute_value_id ):
                  'product_tmpl_id': product_template_id
                }
     return att_vals
-    
+
 def stock_inventory_action_done( self ):
     return_id = self.post_inventory()
     return_id = self.action_start()
@@ -58,3 +58,10 @@ def ml_datetime(datestr):
     except:
         _logger.error(datestr)
         return None
+
+def ml_tax_excluded(self):
+    #11.0
+    #tax_excluded = self.env.user.has_group('sale.group_show_price_subtotal')
+    #12.0 and 13.0
+    tax_excluded = self.env.user.has_group('account.group_show_line_subtotals_tax_excluded')
+    return tax_excluded

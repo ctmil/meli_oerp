@@ -291,7 +291,7 @@ class res_company(models.Model):
     #'mercadolibre_login': fields.selection( [ ("unknown", "Desconocida"), ("logged","Abierta"), ("not logged","Cerrada")],string='Estado de la sesión'), )
     mercadolibre_overwrite_template = fields.Boolean(string='Overwrite product template',help='Sobreescribir siempre Nombre y Descripción de la plantilla.')
     mercadolibre_overwrite_variant = fields.Boolean(string='Overwrite product variant',help='Sobreescribir siempre Nombre y Descripción de la variante.')
-
+    mercadolibre_process_notifications = fields.Boolean(string='Process all notifications',help='Procesar las notificaciones recibidas (/meli_notify)')
 
 
     def	meli_logout(self):
@@ -691,6 +691,8 @@ class res_company(models.Model):
     def meli_notifications(self):
         #_logger.info("meli_notifications")
         notifications = self.env['mercadolibre.notification']
-        return notifications.fetch_lasts()
+        if (self.mercadolibre_process_notifications):
+            return notifications.fetch_lasts()
+        return False
 
 res_company()

@@ -74,7 +74,7 @@ class sale_order(models.Model):
 
 #        'meli_order_items': fields.one2many('mercadolibre.order_items','order_id','Order Items' ),
 #        'meli_payments': fields.one2many('mercadolibre.payments','order_id','Payments' ),
-    meli_shipping = fields.Text(string="Shipping");
+    meli_shipping = fields.Text(string="Shipping")
 
     meli_total_amount = fields.Float(string='Total amount')
     meli_shipping_cost = fields.Float(string='Shipping Cost',help='Gastos de envío')
@@ -225,22 +225,32 @@ class mercadolibre_orders(models.Model):
         upd_line = {
             "price_unit": float(Item['unit_price']),
         }
-        if (product_template.taxes_id and not self.env.user.has_group('sale.group_show_price_subtotal')):
-            txtotal = 0
+        #11.0
+        #tax_excluded = self.env.user.has_group('sale.group_show_price_subtotal')
+        #12.0 and 13.0
+        tax_excluded = ml_tax_excluded(self)
+        if ( tax_excluded and product_template.taxes_id ):
+            txfixed = 0
+            txpercent = 0
             ml_price_converted = float(Item['unit_price'])
             #_logger.info("Adjust taxes")
             for txid in product_template.taxes_id:
-                if (txid.type_tax_use=="sale"):
-                    txtotal = txtotal + txid.amount
+                if (txid.type_tax_use=="sale" and not txid.price_include):
+                    if (txid.amount_type=="percent"):
+                        txpercent = txpercent + txid.amount
+                    if (txid.amount_type=="fixed"):
+                        txfixed = txfixed + txid.amount
                     #_logger.info(txid.amount)
-            if (txtotal>0):
+            if (txfixed>0 or txpercent>0):
                 #_logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_converted))
-                ml_price_converted = ml_price_converted / (1.0 + txtotal*0.01)
+                ml_price_converted = txfixed + ml_price_converted / (1.0 + txpercent*0.01)
                 _logger.info("Price adjusted with taxes:"+str(ml_price_converted))
                 upd_line["price_unit"] = ml_price_converted
-        else:
-            if ( float(Item['unit_price']) == product_template.lst_price and not self.env.user.has_group('sale.group_show_price_subtotal')):
-                upd_line["tax_id"] = None
+
+        ml_price_converted = round(ml_price_converted,2)
+        #else:
+        #    if ( float(Item['unit_price']) == product_template.lst_price and not self.env.user.has_group('sale.group_show_price_subtotal')):
+        #        upd_line["tax_id"] = None
         return upd_line
 
     def pretty_json( self, ids, data, indent=0, context=None ):

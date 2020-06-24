@@ -395,17 +395,27 @@ class product_product(models.Model):
     def _meli_set_product_price( self, product_template, meli_price ):
         company = self.env.user.company_id
         ml_price_converted = meli_price
-        if (product_template.taxes_id):
-            txtotal = 0
+        tax_excluded = ml_tax_excluded(self)
+
+        if ( tax_excluded and product_template.taxes_id ):
             _logger.info("Adjust taxes")
+            txfixed = 0
+            txpercent = 0
+            #_logger.info("Adjust taxes")
             for txid in product_template.taxes_id:
-                if (txid.type_tax_use=="sale"):
-                    txtotal = txtotal + txid.amount
-                    _logger.info(txid.amount)
-            if (txtotal>0):
-                _logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_converted))
-                ml_price_converted = meli_price / (1.0 + txtotal*0.01)
-                _logger.info("Price converted:"+str(ml_price_converted))
+                if (txid.type_tax_use=="sale" and not txid.price_include):
+                    if (txid.amount_type=="percent"):
+                        txpercent = txpercent + txid.amount
+                    if (txid.amount_type=="fixed"):
+                        txfixed = txfixed + txid.amount
+            if (txfixed>0 or txpercent>0):
+                #_logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_converted))
+                ml_price_converted = txfixed + ml_price_converted / (1.0 + txpercent*0.01)
+                _logger.info("Price adjusted with taxes:"+str(ml_price_converted))
+
+        pl = False
+        if company.mercadolibre_pricelist:
+            pl = company.mercadolibre_pricelist
 
         product_template.write({'lst_price': ml_price_converted})
 
@@ -443,11 +453,24 @@ class product_product(models.Model):
             if ( product.lst_price ):
                 new_price = product.lst_price
 
-        if product_tmpl.taxes_id:
-            _logger.info("taxes:")
-            new_price = new_price * ( 1 + ( product_tmpl.taxes_id[0].amount / 100) )
-            new_price = round(new_price,2)
+        tax_excluded = ml_tax_excluded(self)
+        if ( tax_excluded and product_tmpl.taxes_id ):
+            _logger.info("Adjust taxes for publish")
+            txfixed = 0
+            txpercent = 0
+            #_logger.info("Adjust taxes")
+            for txid in product_tmpl.taxes_id:
+                if (txid.type_tax_use=="sale" and not txid.price_include):
+                    if (txid.amount_type=="percent"):
+                        txpercent = txpercent + txid.amount
+                    if (txid.amount_type=="fixed"):
+                        txfixed = txfixed + txid.amount
+            if (txfixed>0 or txpercent>0):
+                #_logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_converted))
+                new_price = txfixed + new_price / (1.0 + txpercent*0.01)
+                _logger.info("Price adjusted with taxes:"+str(new_price))
 
+        new_price = round(new_price,2)
         product_tmpl.meli_price = new_price
         product.meli_price = product_tmpl.meli_price
 
