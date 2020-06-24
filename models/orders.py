@@ -222,9 +222,7 @@ class mercadolibre_orders(models.Model):
 
     def _set_product_unit_price( self, product_related_obj, Item ):
         product_template = product_related_obj.product_tmpl_id
-        upd_line = {
-            "price_unit": float(Item['unit_price']),
-        }
+        ml_price_converted = float(Item['unit_price'])
         #11.0
         #tax_excluded = self.env.user.has_group('sale.group_show_price_subtotal')
         #12.0 and 13.0
@@ -232,7 +230,6 @@ class mercadolibre_orders(models.Model):
         if ( tax_excluded and product_template.taxes_id ):
             txfixed = 0
             txpercent = 0
-            ml_price_converted = float(Item['unit_price'])
             #_logger.info("Adjust taxes")
             for txid in product_template.taxes_id:
                 if (txid.type_tax_use=="sale" and not txid.price_include):
@@ -245,9 +242,12 @@ class mercadolibre_orders(models.Model):
                 #_logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_converted))
                 ml_price_converted = txfixed + ml_price_converted / (1.0 + txpercent*0.01)
                 _logger.info("Price adjusted with taxes:"+str(ml_price_converted))
-                upd_line["price_unit"] = ml_price_converted
 
         ml_price_converted = round(ml_price_converted,2)
+
+        upd_line = {
+            "price_unit": ml_price_converted,
+        }
         #else:
         #    if ( float(Item['unit_price']) == product_template.lst_price and not self.env.user.has_group('sale.group_show_price_subtotal')):
         #        upd_line["tax_id"] = None
