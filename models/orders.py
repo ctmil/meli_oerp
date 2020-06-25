@@ -574,10 +574,13 @@ class mercadolibre_orders(models.Model):
                         if ('variation_id' in Item['item'] and Item['item']['variation_id'] ):
                             combination = [( 'meli_id_variation','=',Item['item']['variation_id'])]
                         product_related = product_obj.search([('meli_id','=',Item['item']['id'])] + combination)
-                        if len(product_related):
+                        if product_related and len(product_related):
                             _logger.info("Product founded:"+str(Item['item']['id']))
                         else:
                             #optional, get product
+                            if not company.mercadolibre_create_product_from_order:
+                                product_related = None
+
                             try:
                                 CLIENT_ID = company.mercadolibre_client_id
                                 CLIENT_SECRET = company.mercadolibre_secret_key
@@ -618,7 +621,7 @@ class mercadolibre_orders(models.Model):
                         if ('variation_attributes' in Item['item']):
                             _logger.info("TODO: search by attributes")
 
-                if len(product_related):
+                if product_related and len(product_related):
                     if len(product_related)>1:
                         last_p = False
                         for p in product_related:

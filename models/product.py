@@ -845,7 +845,7 @@ class product_product(models.Model):
 
         #_logger.info(rjson['variations'])
         published_att_variants = False
-        if ('variations' in rjson):
+        if (company.mercadolibre_update_existings_variants and 'variations' in rjson):
             #recorrer los variations>attribute_combinations y agregarlos como atributos de las variantes
             #_logger.info(rjson['variations'])
             vindex = -1
@@ -991,7 +991,8 @@ class product_product(models.Model):
 
         #this write pull the trigger for create_variant_ids()...
         #_logger.info("rewrite to create variants")
-        product_template.write({ 'attribute_line_ids': product_template.attribute_line_ids  })
+        if (company.mercadolibre_update_existings_variants):
+            product_template.write({ 'attribute_line_ids': product_template.attribute_line_ids  })
         #_logger.info("published_att_variants:"+str(published_att_variants))
         if (published_att_variants):
             product_template.meli_pub_as_variant = True
@@ -1107,8 +1108,8 @@ class product_product(models.Model):
                 for variant in product_template.product_variant_ids:
                     variant.meli_default_stock_product = ptemp_nfree
 
-        if ('attributes' in rjson):
-            if (len(rjson['attributes']) and 1==1):
+        if (company.mercadolibre_update_existings_variants and 'attributes' in rjson):
+            if (len(rjson['attributes']) ):
                 for att in rjson['attributes']:
                     try:
                         _logger.info(att)

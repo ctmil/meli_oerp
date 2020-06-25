@@ -293,6 +293,9 @@ class res_company(models.Model):
     mercadolibre_overwrite_variant = fields.Boolean(string='Overwrite product variant',help='Sobreescribir siempre Nombre y Descripción de la variante.')
     mercadolibre_process_notifications = fields.Boolean(string='Process all notifications',help='Procesar las notificaciones recibidas (/meli_notify)')
 
+    mercadolibre_create_product_from_order = fields.Boolean(string='Importar productos inexistentes',help='Importar productos desde la orden si no se encuentran en la base.')
+    mercadolibre_update_existings_variants = fields.Boolean(string='Actualiza/agrega variantes',help='Permite agregar y actualizar variantes de un producto existente (No recomendable cuando se está ya en modo Odoo a ML, solo usar cuando se importa por primera vez de ML a Odoo, para no romper el stock)')
+    mercadolibre_tax_included = fields.Boolean(string='Tax Included',help='Tax Included, discount tax when importing products, also, use price_unit with or without taxes when importing order lines.')
 
     def	meli_logout(self):
         _logger.info('company.meli_logout() ')
@@ -691,8 +694,11 @@ class res_company(models.Model):
     def meli_notifications(self):
         #_logger.info("meli_notifications")
         notifications = self.env['mercadolibre.notification']
-        if (self.mercadolibre_process_notifications):
-            return notifications.fetch_lasts()
+        return notifications.fetch_lasts()
+
+    def meli_set_automatic_tax_included(self):
+        #create a product with a price of 100, check if tax are created
+        #create an order with this product and check final amount in line.
         return False
 
 res_company()
