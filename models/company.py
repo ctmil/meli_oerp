@@ -295,7 +295,11 @@ class res_company(models.Model):
 
     mercadolibre_create_product_from_order = fields.Boolean(string='Importar productos inexistentes',help='Importar productos desde la orden si no se encuentran en la base.')
     mercadolibre_update_existings_variants = fields.Boolean(string='Actualiza/agrega variantes',help='Permite agregar y actualizar variantes de un producto existente (No recomendable cuando se está ya en modo Odoo a ML, solo usar cuando se importa por primera vez de ML a Odoo, para no romper el stock)')
-    mercadolibre_tax_included = fields.Boolean(string='Tax Included',help='Tax Included, discount tax when importing products, also, use price_unit with or without taxes when importing order lines.')
+    mercadolibre_tax_included = fields.Selection( string='Tax Included',
+                                                  help='Esto se aplica al importar ordenes, productos y tambien al publicar, sobre la lista de precio seleccionada o sobre el precio de lista.',
+                                                  selection=[ ('auto','Configuración del sistema'),
+                                                              ('tax_included','Impuestos ya incluídos del precio de lista'),
+                                                              ('tax_excluded','Impuestos excluídos del precio de lista') ] )
 
     def	meli_logout(self):
         _logger.info('company.meli_logout() ')

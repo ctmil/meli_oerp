@@ -71,11 +71,11 @@
                 								<field name="mercadolibre_code" invisible="0" groups="base.group_no_one" />
                                 <field name="mercadolibre_cron_refresh" invisible="0"/>
                                 <field name="mercadolibre_cron_mail" invisible="0"/>
-                                <field name="mercadolibre_tax_included" invisible="1" groups="base.group_no_one"/>
                               </group>
                               <group string="Configuración básica" col="2">
                                 <group>
                                   <field name="mercadolibre_pricelist" invisible="0"/>
+                                  <field name="mercadolibre_tax_included" invisible="0" groups="base.group_no_one"/>
                                   <field name="mercadolibre_buying_mode" invisible="0"/>
                                   <field name="mercadolibre_currency" invisible="0"/>
                                   <field name="mercadolibre_condition" invisible="0"/>
