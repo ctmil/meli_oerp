@@ -488,7 +488,7 @@ class product_product(models.Model):
                         txfixed = txfixed + txid.amount
             if (txfixed>0 or txpercent>0):
                 #_logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_converted))
-                new_price = txfixed + new_price / (1.0 + txpercent*0.01)
+                new_price = txfixed + new_price * (1.0 + txpercent*0.01)
                 _logger.info("Price adjusted with taxes:"+str(new_price))
 
         new_price = round(new_price,2)
