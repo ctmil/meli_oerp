@@ -395,7 +395,7 @@ class mercadolibre_shipment(models.Model):
 					"sender_longitude": ship_json["sender_address"]["longitude"],
 
 
-					"logistic_type": ship_json["logistic_type"]
+					"logistic_type": ("logistic_type" in ship_json and ship_json["logistic_type"]) or ""
 				}
 
 				response2 = meli.get("/shipments/"+ str(ship_id)+"/items",  {'access_token':meli.access_token})
