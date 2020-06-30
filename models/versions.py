@@ -65,7 +65,7 @@ def ml_tax_excluded(self):
     #tax_excluded = self.env.user.has_group('sale.group_show_price_subtotal')
     #12.0 and 13.0
     tax_excluded = self.env.user.has_group('account.group_show_line_subtotals_tax_excluded')
-    company = self.env.user.company
+    company = self.env.user.company_id
     if (company and company.mercadolibre_tax_included not in ['auto']):
         tax_excluded = (company.mercadolibre_tax_included in ['tax_excluded'])
     return tax_excluded
