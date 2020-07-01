@@ -146,17 +146,17 @@ class mercadolibre_shipment_print(models.TransientModel):
 
 		meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN )
 
-        full_ids = ""
+		full_ids = ""
 		comma = ""
 		reporte = ""
 		sep = ""
 		for pick_id in picking_ids:
-            #sacar la orden relacionada
-            #de la orden sacar el shipping id
-            if (pick_id.sale_id and pick_id.sale_id.meli_shipment):
-                shipid = pick_id.sale_id.meli_shipment.id
-            else:
-                continue;
+			#sacar la orden relacionada
+			#de la orden sacar el shipping id
+			if (pick_id.sale_id and pick_id.sale_id.meli_shipment):
+				shipid = pick_id.sale_id.meli_shipment.id
+			else:
+				continue;
 			shipment = shipment_obj.browse(shipid)
 			shipment.update()
 			if (shipment and shipment.status=="ready_to_ship"):
