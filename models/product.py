@@ -1439,39 +1439,42 @@ class product_product(models.Model):
         c = 0
 
         #loop over images
-        for product_image in variant_image_ids(product):
-            if (get_image_full(product_image)):
-                imagebin = base64.b64decode( get_image_full(product_image) )
-                #files = { 'file': ('image.png', imagebin, "image/png"), }
-                files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
-                response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
-                _logger.info( "meli upload:" + str(response.content) )
-                rjson = response.json()
-                if ("error" in rjson):
-                    #raise osv.except_osv( _('MELI WARNING'), _('No se pudo cargar la imagen en MELI! Error: %s , Mensaje: %s, Status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
-                    return rjson
-                else:
-                    image_ids+= [ { 'id': rjson['id'] }]
-                    c = c + 1
-                    _logger.info( "image_ids:" + str(image_ids) )
-                    image_uploaded = {}
-                    ilink = ""
-                    isize = ""
-                    if ('variations' in rjson):
-                        if (len(rjson['variations'])):
-                            #big one, first one XXX-F
-                            image_uploaded = rjson['variations'][0]
+        var_image_ids = variant_image_ids(product)
+        if (var_image_ids and len(var_image_ids)>1):
+            for imix in range(len(var_image_ids)-1):
+                product_image = var_image_ids[imix+1]
+                if (get_image_full(product_image)):
+                    imagebin = base64.b64decode( get_image_full(product_image) )
+                    #files = { 'file': ('image.png', imagebin, "image/png"), }
+                    files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
+                    response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
+                    _logger.info( "meli upload:" + str(response.content) )
+                    rjson = response.json()
+                    if ("error" in rjson):
+                        #raise osv.except_osv( _('MELI WARNING'), _('No se pudo cargar la imagen en MELI! Error: %s , Mensaje: %s, Status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
+                        return rjson
                     else:
-                        image_uploaded = rjson
+                        image_ids+= [ { 'id': rjson['id'] }]
+                        c = c + 1
+                        _logger.info( "image_ids:" + str(image_ids) )
+                        image_uploaded = {}
+                        ilink = ""
+                        isize = ""
+                        if ('variations' in rjson):
+                            if (len(rjson['variations'])):
+                                #big one, first one XXX-F
+                                image_uploaded = rjson['variations'][0]
+                        else:
+                            image_uploaded = rjson
 
-                    if 'secure_url' in image_uploaded:
-                        ilink = image_uploaded['secure_url']
-                    if 'size' in image_uploaded:
-                        isize = image_uploaded['size']
-                    product_image.meli_imagen_id = rjson['id']
-                    product_image.meli_imagen_max_size = rjson['max_size']
-                    product_image.meli_imagen_link = ilink
-                    product_image.meli_imagen_size = isize
+                        if 'secure_url' in image_uploaded:
+                            ilink = image_uploaded['secure_url']
+                        if 'size' in image_uploaded:
+                            isize = image_uploaded['size']
+                        product_image.meli_imagen_id = rjson['id']
+                        product_image.meli_imagen_max_size = rjson['max_size']
+                        product_image.meli_imagen_link = ilink
+                        product_image.meli_imagen_size = isize
 
         product.write( { "meli_multi_imagen_id": "%s" % (image_ids) } )
 
@@ -1985,8 +1988,10 @@ class product_product(models.Model):
         # _logger.info( body )
         assign_img = False and product.meli_id
 
-        #publicando imagen cargada en OpenERP
-        if get_image_full(product)==None:
+        #publicando imagenes
+        first_image_to_publish = get_first_image_to_publish(product)
+
+        if ==None:
             return warningobj.info( title='MELI WARNING', message="Debe cargar una imagen de base en el producto.", message_html="" )
         else:
             # _logger.info( "try uploading image..." )

@@ -126,6 +126,7 @@
                                 <group>
                                   <field name="mercadolibre_product_template_override_variant" invisible="0"/>
                                   <field name="mercadolibre_product_attribute_creation" invisible="0"/>
+                                  <field name="mercadolibre_do_not_use_first_image" invisible="0"/>                                                                    
                                 </group>
                                 <!--
                                   <field name="mercadolibre_overwrite_template" invisible="0"/>

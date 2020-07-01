@@ -301,6 +301,8 @@ class res_company(models.Model):
                                                               ('tax_included','Impuestos ya incluídos del precio de lista'),
                                                               ('tax_excluded','Impuestos excluídos del precio de lista') ] )
 
+    mercadolibre_do_not_use_first_image = fields.Boolean(string="Do not use first image")
+
     def	meli_logout(self):
         _logger.info('company.meli_logout() ')
         self.ensure_one()
