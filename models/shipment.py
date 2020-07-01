@@ -135,7 +135,7 @@ class mercadolibre_shipment_print(models.TransientModel):
 		company = self.env.user.company_id
 		picking_ids = context['active_ids']
 		#product_obj = self.env['product.template']
-        picking_obj = self.env['stock.picking']
+		picking_obj = self.env['stock.picking']
 		shipment_obj = self.env['mercadolibre.shipment']
 		warningobj = self.env['warning']
 
