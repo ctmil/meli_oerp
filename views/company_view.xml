@@ -120,6 +120,7 @@
                               <group string="Automatización Odoo a ML" name="autopost"  col="2">
                                 <group>
                                   <field name="mercadolibre_cron_post_update_products" invisible="0"/>
+                                  <field name="mercadolibre_cron_post_new_products" invisible="0"/>                                  
                                   <field name="mercadolibre_cron_post_update_stock" invisible="0"/>
                                   <field name="mercadolibre_cron_post_update_price" invisible="0"/>
                                 </group>
