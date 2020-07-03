@@ -113,6 +113,7 @@
                                   <field name="mercadolibre_create_product_from_order" invisible="0"/>
                                   <field name="mercadolibre_update_existings_variants" invisible="0"/>
                                   <field name="mercadolibre_cron_get_update_products" invisible="0"/>
+                                  <field name="mercadolibre_cron_get_new_products" invisible="0"/>                                  
                                   <field name="mercadolibre_update_local_stock" invisible="0"/>
                                   <field name="mercadolibre_order_confirmation" invisible="0"/>
                                 </group>
@@ -120,12 +121,14 @@
                               <group string="Automatización Odoo a ML" name="autopost"  col="2">
                                 <group>
                                   <field name="mercadolibre_cron_post_update_products" invisible="0"/>
+                                  <field name="mercadolibre_cron_post_new_products" invisible="0"/>
                                   <field name="mercadolibre_cron_post_update_stock" invisible="0"/>
                                   <field name="mercadolibre_cron_post_update_price" invisible="0"/>
                                 </group>
                                 <group>
                                   <field name="mercadolibre_product_template_override_variant" invisible="0"/>
                                   <field name="mercadolibre_product_attribute_creation" invisible="0"/>
+                                  <field name="mercadolibre_do_not_use_first_image" invisible="0"/>                                                                    
                                 </group>
                                 <!--
                                   <field name="mercadolibre_overwrite_template" invisible="0"/>

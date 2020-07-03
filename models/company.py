@@ -191,9 +191,13 @@ class res_company(models.Model):
             _logger.info("company.mercadolibre_cron_get_update_products")
             self.meli_update_local_products()
 
-        if (company.mercadolibre_cron_post_update_products):
+        if (company.mercadolibre_cron_get_new_products):
+            _logger.info("company.mercadolibre_cron_get_new_products")
+            self.product_meli_get_products()
+
+        if (company.mercadolibre_cron_post_update_products or company.mercadolibre_cron_post_new_products):
             _logger.info("company.mercadolibre_cron_post_update_products")
-            self.meli_update_remote_products()
+            self.meli_update_remote_products(post_new=company.mercadolibre_cron_post_new_products)
 
         if (company.mercadolibre_cron_post_update_stock):
             _logger.info("company.mercadolibre_cron_post_update_stock")
@@ -240,8 +244,8 @@ class res_company(models.Model):
     mercadolibre_cron_get_orders_shipment = fields.Boolean(string='Importar envíos',help='Cron Get Orders Shipment')
     mercadolibre_cron_get_orders_shipment_client = fields.Boolean(string='Importar clientes',help='Cron Get Orders Shipment Client')
     mercadolibre_cron_get_questions = fields.Boolean(string='Importar preguntas',help='Cron Get Questions')
-    mercadolibre_cron_get_update_products = fields.Boolean(string='Actualizar productos',help='Cron Update Products')
-    mercadolibre_cron_post_update_products = fields.Boolean(string='Publicar productos',help='Cron Post Products, Product Templates or Variants with Meli Publication field checked')
+    mercadolibre_cron_get_update_products = fields.Boolean(string='Actualizar productos',help='Cron Update Products already imported')
+    mercadolibre_cron_post_update_products = fields.Boolean(string='Actualizar productos',help='Cron Update Posted Products, Product Templates or Variants with Meli Publication field checked')
     mercadolibre_cron_post_update_stock = fields.Boolean(string='Publicar Stock',help='Cron Post Updated Stock')
     mercadolibre_cron_post_update_price = fields.Boolean(string='Publicar Precio',help='Cron Post Updated Price')
     mercadolibre_create_website_categories = fields.Boolean(string='Crear categorías',help='Create Website eCommerce Categories from imported products ML categories')
@@ -300,6 +304,10 @@ class res_company(models.Model):
                                                   selection=[ ('auto','Configuración del sistema'),
                                                               ('tax_included','Impuestos ya incluídos del precio de lista'),
                                                               ('tax_excluded','Impuestos excluídos del precio de lista') ] )
+
+    mercadolibre_do_not_use_first_image = fields.Boolean(string="Do not use first image")
+    mercadolibre_cron_post_new_products = fields.Boolean(string='Incluir nuevos productos',help='Cron Post New Products, Product Templates or Variants with Meli Publication field checked')
+    mercadolibre_cron_get_new_products = fields.Boolean(string='Importar nuevos productos',help='Cron Import New Products, Product Templates or Variants')
 
     def	meli_logout(self):
         _logger.info('company.meli_logout() ')
@@ -541,6 +549,11 @@ class res_company(models.Model):
         return {}
 
 
+    def meli_post_new_remote_products(self):
+        _logger.info('company.meli_post_new_remote_products() ')
+        self.product_meli_update_remote_products(post_new=True)
+        return {}
+
     def meli_update_remote_products(self):
         _logger.info('company.meli_update_remote_products() ')
         self.product_meli_update_remote_products()
@@ -585,7 +598,7 @@ class res_company(models.Model):
 
         return {}
 
-    def product_meli_update_remote_products( self ):
+    def product_meli_update_remote_products( self, post_new = False ):
         _logger.info('company.product_meli_update_remote_products() ')
         company = self.env.user.company_id
         product_obj = self.env['product.product']
@@ -599,15 +612,22 @@ class res_company(models.Model):
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
         url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
-        product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False)])
+        #product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False)])
+        product_ids = self.env['product.product'].search([('meli_pub','=',True)])
         _logger.info("product_ids to update:" + str(product_ids))
 
         ret_messages = []
         if product_ids:
             for obj in product_ids:
                 try:
-                    _logger.info( "Product remote to update: " + str(obj.id)  )
-                    if (obj.meli_id and (obj.meli_status=='active')):
+                    if (post_new):
+                        _logger.info( "Product remote to update/create: " + str(obj.id)  )
+                    else:
+                        _logger.info( "Product remote to update: " + str(obj.id)  )
+                    post_update = company.mercadolibre_cron_post_update_products
+                    updating = post_update and obj.meli_id and (obj.meli_status=='active')
+                    creating = post_new and ( not obj.meli_id or ( obj.meli_id and obj.meli_id == '') )
+                    if ( updating or creating):
                         res = obj.product_post()
 
                         #we have a message

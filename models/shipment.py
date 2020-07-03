@@ -130,6 +130,68 @@ class mercadolibre_shipment_print(models.TransientModel):
 		else:
 			return warningobj.info( title='Impresión de etiquetas: Estas etiquetas ya fueron todas impresas.', message=reporte )
 
+	def shipment_stock_picking_print(self, context=None):
+		context = context or self.env.context
+		company = self.env.user.company_id
+		picking_ids = context['active_ids']
+		#product_obj = self.env['product.template']
+		picking_obj = self.env['stock.picking']
+		shipment_obj = self.env['mercadolibre.shipment']
+		warningobj = self.env['warning']
+
+		CLIENT_ID = company.mercadolibre_client_id
+		CLIENT_SECRET = company.mercadolibre_secret_key
+		ACCESS_TOKEN = company.mercadolibre_access_token
+		REFRESH_TOKEN = company.mercadolibre_refresh_token
+
+		meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN )
+
+		full_ids = ""
+		comma = ""
+		reporte = ""
+		sep = ""
+		for pick_id in picking_ids:
+			#sacar la orden relacionada
+			#de la orden sacar el shipping id
+			if (pick_id.sale_id and pick_id.sale_id.meli_shipment):
+				shipid = pick_id.sale_id.meli_shipment.id
+			else:
+				continue;
+			shipment = shipment_obj.browse(shipid)
+			shipment.update()
+			if (shipment and shipment.status=="ready_to_ship"):
+				full_ids = full_ids + comma + shipment.shipping_id
+				#full_str_ids = full_str_ids + comma + shipment
+				comma = ","
+				download_url = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+shipment.shipping_id+"&response_type=pdf&access_token="+meli.access_token
+				shipment.pdf_link = download_url
+
+				if (shipment.substatus=="printed"):
+					try:
+						data = urlopen(shipment.pdf_link).read()
+						_logger.info(data)
+						shipment.pdf_filename = "Shipment_"+shipment.shipping_id+".pdf"
+						shipment.pdf_file = base64.encodestring(data)
+						images = convert_from_bytes(data, dpi=300,fmt='jpg')
+						if (1==1 and len(images)>1):
+							for image in images:
+								image.save("/tmp/%s-page%d.jpg" % ("Shipment_"+shipment.shipping_id,images.index(image)), "JPEG")
+								if (images.index(image)==1):
+									imgdata = urlopen("file:///tmp/Shipment_"+shipment.shipping_id+"-page1.jpg").read()
+									shipment.pdfimage_file = base64.encodestring(imgdata)
+									shipment.pdfimage_filename = "Shipment_"+shipment.shipping_id+".jpg"
+					except Exception as e:
+						_logger.info("Exception!")
+						_logger.info(e, exc_info=True)
+						#return warningobj.info( title='Impresión de etiquetas: Error descargando guias', message=download_url )
+						reporte = reporte + sep + "Error descargando pdf:" + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)+'<a href="'+download_url+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'
+						sep = "<br>"+"\n"
+
+			else:
+				reporte = reporte + sep + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)
+				sep = "<br>"+"\n"
+
+
 
 mercadolibre_shipment_print()
 
