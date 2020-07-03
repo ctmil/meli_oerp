@@ -304,6 +304,8 @@ class res_company(models.Model):
                                                   selection=[ ('auto','Configuración del sistema'),
                                                               ('tax_included','Impuestos ya incluídos del precio de lista'),
                                                               ('tax_excluded','Impuestos excluídos del precio de lista') ] )
+
+    mercadolibre_do_not_use_first_image = fields.Boolean(string="Do not use first image")
     mercadolibre_cron_post_new_products = fields.Boolean(string='Incluir nuevos productos',help='Cron Post New Products, Product Templates or Variants with Meli Publication field checked')
     mercadolibre_cron_get_new_products = fields.Boolean(string='Importar nuevos productos',help='Cron Import New Products, Product Templates or Variants')
 
