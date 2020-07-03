@@ -554,9 +554,9 @@ class res_company(models.Model):
         self.product_meli_update_remote_products(post_new=True)
         return {}
 
-    def meli_update_remote_products(self):
+    def meli_update_remote_products(self,post_new=False):
         _logger.info('company.meli_update_remote_products() ')
-        self.product_meli_update_remote_products()
+        self.product_meli_update_remote_products(post_new=post_new)
         return {}
 
     def product_meli_update_local_products( self ):
