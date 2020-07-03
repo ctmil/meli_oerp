@@ -599,7 +599,8 @@ class res_company(models.Model):
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
         url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
-        product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False)])
+        #product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False)])
+        product_ids = self.env['product.product'].search([('meli_pub','=',True)])
         _logger.info("product_ids to update:" + str(product_ids))
 
         ret_messages = []
@@ -607,7 +608,8 @@ class res_company(models.Model):
             for obj in product_ids:
                 try:
                     _logger.info( "Product remote to update: " + str(obj.id)  )
-                    if (obj.meli_id and (obj.meli_status=='active')):
+                    updating = obj.meli_id and (obj.meli_status=='active')
+                    if ( updating or 1==1):
                         res = obj.product_post()
 
                         #we have a message

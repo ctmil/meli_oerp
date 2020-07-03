@@ -375,9 +375,8 @@ class product_product(models.Model):
 
     _inherit = "product.product"
 
-    #
-    @api.onchange('lst_price') # if these fields are changed, call method
-    def check_change_price(self):
+    #@api.onchange('lst_price') # if these fields are changed, call method
+    #def check_change_price(self):
         # GUS
         #pdb.set_trace();
         #pricelists = self.env['product.pricelist'].search([])
@@ -386,11 +385,12 @@ class product_product(models.Model):
         #        pricelist = pricelists.id
         #    else:
         #        pricelist = pricelists[0].id
-        self.meli_price = str(self.lst_price)
+        #self.meli_price = str(self.lst_price)
         #res = {}
         #for id in self:
         #    res[id] = self.lst_price
         #return res
+
 
     def _meli_set_product_price( self, product_template, meli_price ):
         company = self.env.user.company_id
@@ -492,6 +492,10 @@ class product_product(models.Model):
                 _logger.info("Price adjusted with taxes:"+str(new_price))
 
         new_price = round(new_price,2)
+
+        if (product_tmpl.meli_currency and product_tmpl.meli_currency == 'COP'):
+            new_price = math.ceil(new_price)
+
         product_tmpl.meli_price = new_price
         product.meli_price = product_tmpl.meli_price
 
