@@ -191,6 +191,9 @@ class res_company(models.Model):
             _logger.info("company.mercadolibre_cron_get_update_products")
             self.meli_update_local_products()
 
+        if (company.mercadolibre_cron_get_new_products):
+            _logger.info("company.mercadolibre_cron_get_new_products")
+            self.product_meli_get_products()
 
         if (company.mercadolibre_cron_post_update_products or company.mercadolibre_cron_post_new_products):
             _logger.info("company.mercadolibre_cron_post_update_products")
@@ -241,8 +244,8 @@ class res_company(models.Model):
     mercadolibre_cron_get_orders_shipment = fields.Boolean(string='Importar envíos',help='Cron Get Orders Shipment')
     mercadolibre_cron_get_orders_shipment_client = fields.Boolean(string='Importar clientes',help='Cron Get Orders Shipment Client')
     mercadolibre_cron_get_questions = fields.Boolean(string='Importar preguntas',help='Cron Get Questions')
-    mercadolibre_cron_get_update_products = fields.Boolean(string='Actualizar productos',help='Cron Update Products')
-    mercadolibre_cron_post_update_products = fields.Boolean(string='Publicar productos',help='Cron Post Products, Product Templates or Variants with Meli Publication field checked')
+    mercadolibre_cron_get_update_products = fields.Boolean(string='Actualizar productos',help='Cron Update Products already imported')
+    mercadolibre_cron_post_update_products = fields.Boolean(string='Actualizar productos',help='Cron Update Posted Products, Product Templates or Variants with Meli Publication field checked')
     mercadolibre_cron_post_update_stock = fields.Boolean(string='Publicar Stock',help='Cron Post Updated Stock')
     mercadolibre_cron_post_update_price = fields.Boolean(string='Publicar Precio',help='Cron Post Updated Price')
     mercadolibre_create_website_categories = fields.Boolean(string='Crear categorías',help='Create Website eCommerce Categories from imported products ML categories')
@@ -302,7 +305,7 @@ class res_company(models.Model):
                                                               ('tax_included','Impuestos ya incluídos del precio de lista'),
                                                               ('tax_excluded','Impuestos excluídos del precio de lista') ] )
     mercadolibre_cron_post_new_products = fields.Boolean(string='Incluir nuevos productos',help='Cron Post New Products, Product Templates or Variants with Meli Publication field checked')
-
+    mercadolibre_cron_get_new_products = fields.Boolean(string='Importar nuevos productos',help='Cron Import New Products, Product Templates or Variants')
 
     def	meli_logout(self):
         _logger.info('company.meli_logout() ')
