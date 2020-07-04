@@ -23,6 +23,7 @@ Para Costa RIca: https://api.mercadolibre.com/sites/MCR/search?nickname=ESCRIBE_
 Ver http://developers.mercadolibre.com.ar para ver la API.
 
 Ver los códigos de categoría aquí (MLA: Argentina, MLB: Brasil) :  https://api.mercadolibre.com/sites/MLA/categories .
+Para Costa Rica: https://api.mercadolibre.com/sites/MCR/categories
 
 <h2>Instrucciones básicas de configuración:</h2>
 
