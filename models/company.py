@@ -628,6 +628,7 @@ class res_company(models.Model):
                     updating = post_update and obj.meli_id and (obj.meli_status=='active')
                     creating = post_new and ( not obj.meli_id or ( obj.meli_id and obj.meli_id == '') )
                     if ( updating or creating):
+                        res = {}
                         if (updating):
                             res = obj.product_post()
                         if (creating and obj.product_tmpl_id.meli_pub):
