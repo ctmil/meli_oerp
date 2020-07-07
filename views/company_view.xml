@@ -52,11 +52,19 @@
                                       icon="fa-cloud-download"
                                       class="oe_stat_button"/>
 
-                                      <button name='meli_import_categories' type="object"
-                                          string="Importar categorías"
-                                          title="Iniciar importación de categorías de ML a Odoo (eCommerce)"
+                                  <button name='meli_import_categories' type="object"
+                                      string="Importar categorías"
+                                      title="Iniciar importación de categorías de ML a Odoo (eCommerce)"
+                                      attrs="{'invisible':[('mercadolibre_state','=',True)]}"
+                                      icon="fa-cloud-download"
+                                      class="oe_stat_button"/>
+
+                                  <button name='meli_pause_all' type="object"
+                                          string="Pausar no registrados"
+                                          title="Pausar todos los productos publicados en ML que no estan en Odoo"
+                                          confirm="¿Está seguro que quiere pausar todos sus productos de ML?"
                                           attrs="{'invisible':[('mercadolibre_state','=',True)]}"
-                                          icon="fa-cloud-download"
+                                          icon="fa-pause"
                                           class="oe_stat_button"/>
                               </div>
                             <group col="1">
@@ -113,7 +121,7 @@
                                   <field name="mercadolibre_create_product_from_order" invisible="0"/>
                                   <field name="mercadolibre_update_existings_variants" invisible="0"/>
                                   <field name="mercadolibre_cron_get_update_products" invisible="0"/>
-                                  <field name="mercadolibre_cron_get_new_products" invisible="0"/>                                  
+                                  <field name="mercadolibre_cron_get_new_products" invisible="0"/>
                                   <field name="mercadolibre_update_local_stock" invisible="0"/>
                                   <field name="mercadolibre_order_confirmation" invisible="0"/>
                                 </group>
@@ -128,7 +136,7 @@
                                 <group>
                                   <field name="mercadolibre_product_template_override_variant" invisible="0"/>
                                   <field name="mercadolibre_product_attribute_creation" invisible="0"/>
-                                  <field name="mercadolibre_do_not_use_first_image" invisible="0"/>                                                                    
+                                  <field name="mercadolibre_do_not_use_first_image" invisible="0"/>
                                 </group>
                                 <!--
                                   <field name="mercadolibre_overwrite_template" invisible="0"/>
