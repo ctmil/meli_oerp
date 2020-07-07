@@ -309,6 +309,8 @@ class res_company(models.Model):
     mercadolibre_cron_post_new_products = fields.Boolean(string='Incluir nuevos productos',help='Cron Post New Products, Product Templates or Variants with Meli Publication field checked')
     mercadolibre_cron_get_new_products = fields.Boolean(string='Importar nuevos productos',help='Cron Import New Products, Product Templates or Variants')
 
+    mercadolibre_process_offset = fields.Char('Offset for pause all')
+
     def	meli_logout(self):
         _logger.info('company.meli_logout() ')
         self.ensure_one()
@@ -752,7 +754,7 @@ class res_company(models.Model):
         url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
 
         results = []
-        response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token,'offset': 0 })
+        response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'status':'active','access_token':meli.access_token,'offset': 0 })
         rjson = response.json()
         _logger.info( rjson )
 
@@ -847,14 +849,14 @@ class res_company(models.Model):
         icommit = 0
         micom = 5
         if (results):
-            self._cr.autocommit(False)
+            #self._cr.autocommit(False)
             try:
                 for item_id in results:
                     _logger.info(item_id)
                     iitem+= 1
                     icommit+= 1
                     if (icommit>=micom):
-                        self._cr.commit()
+                        #self._cr.commit()
                         icommit = 0
                     _logger.info( item_id + "("+str(iitem)+"/"+str(rjson['paging']['total'])+")" )
                     posting_id = self.env['product.product'].search([('meli_id','=',item_id)])
@@ -869,7 +871,7 @@ class res_company(models.Model):
             except Exception as e:
                 _logger.info("meli_pause_all Exception!")
                 _logger.info(e, exc_info=True)
-                self._cr.rollback()
+                #self._cr.rollback()
         return {}
 
 res_company()
