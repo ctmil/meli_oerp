@@ -630,10 +630,10 @@ class res_company(models.Model):
                         res = {}
                         if (updating):
                             _logger.info( "Product remote create: " + str(obj.id)  )
-                            res = obj.with_context({'force_meli_pub': True }).product_template_post()
+                            res = obj.product_template_post()
                         if (creating):
                             _logger.info( "Product remote to update: " + str(obj.id)  )
-                            res = obj.product_template_post()
+                            res = obj.with_context({'force_meli_pub': True }).product_template_post()
 
                         #we have a message
                         if 'res_id' in res:
