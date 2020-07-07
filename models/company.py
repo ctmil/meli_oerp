@@ -623,7 +623,8 @@ class res_company(models.Model):
             for obj in product_ids:
                 try:
                     post_update = company.mercadolibre_cron_post_update_products
-                    updating = post_update and obj.meli_publications and (obj.meli_variants_status=='active')
+                    updating = post_update and obj.meli_publications and len(obj.meli_publications)
+                    #(obj.meli_variants_status=='active')
                     creating = post_new and ( not obj.meli_publications or ( obj.meli_publications and obj.meli_publications == '') )
                     _logger.info(obj.name)
                     _logger.info(obj.meli_publications)
