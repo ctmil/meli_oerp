@@ -53,10 +53,10 @@
                       </field>
                       <separator string="Descripcion del producto en ML" colspan="1"/>
                       <group name="Basic description">
-                        <field name="meli_title" />
-                        <field name="meli_description" />
-                        <field name="meli_category" />
-                        <field name="meli_price" />
+                        <field name="meli_title" attrs="{'required':[('meli_pub','=',True)]}"/>
+                        <field name="meli_description" attrs="{'required':[('meli_pub','=',True)]}"/>
+                        <field name="meli_category" attrs="{'required':[('meli_pub','=',True)]}"/>
+                        <field name="meli_price" attrs="{'required':[('meli_pub','=',True)]}"/>
                         <field name="meli_dimensions" />
                         <!--<field name="meli_attributes" />-->
                         <field name="meli_brand"/>
@@ -64,11 +64,11 @@
                       </group>
                       <separator string="Condiciones de venta" colspan="1"/>
                       <group name="ML buying conditions">
-                        <field name="meli_currency" />
-                        <field name="meli_buying_mode" />
+                        <field name="meli_currency" attrs="{'required':[('meli_pub','=',True)]}"/>
+                        <field name="meli_buying_mode" attrs="{'required':[('meli_pub','=',True)]}"/>
                         <field name="meli_warranty" />
-                        <field name="meli_condition" />
-                        <field name="meli_listing_type" />
+                        <field name="meli_condition" attrs="{'required':[('meli_pub','=',True)]}"/>
+                        <field name="meli_listing_type" attrs="{'required':[('meli_pub','=',True)]}"/>
                       </group>
                       <separator string="Variantes" colspan="1"/>
                       <group name="variantes">
@@ -303,7 +303,7 @@
                               <field name="meli_buying_mode" />
                               <field name="meli_price_fixed" />
                               <field name="meli_price" />
-                              <field name="meli_currency" />
+                              <field name="meli_currency"/>
                             </group>
                             <group>
                               <field name="meli_condition" />

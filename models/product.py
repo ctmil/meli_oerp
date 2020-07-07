@@ -1893,6 +1893,12 @@ class product_product(models.Model):
                     if (atname=="MODELO" or atname=="MODEL"):
                         attribute = { "id": "MODEL", "value_name": atval }
                         attributes.append(attribute)
+                    if (atname=="Procesador" or atname=="PROCESSOR_BRAND"):
+                        attribute = { "id": "PROCESSOR_BRAND", "value_name": atval }
+                        attributes.append(attribute)
+                    if (atname=="Sistema Operativo" or atname=="OS_NAME"):
+                        attribute = { "id": "OS_NAME", "value_name": atval }
+                        attributes.append(attribute)
 
                     if (at_line_id.attribute_id.meli_default_id_attribute.id):
                         attribute = {
@@ -1976,7 +1982,7 @@ class product_product(models.Model):
             "currency_id": product.meli_currency  or '0',
             "condition": product.meli_condition  or '',
             "available_quantity": product.meli_available_quantity  or '0',
-            "warranty": product.meli_warranty or '',
+            #"warranty": product.meli_warranty or '',
             #"pictures": [ { 'source': product.meli_imagen_logo} ] ,
             "video_id": product.meli_video  or '',
         }
@@ -2014,7 +2020,7 @@ class product_product(models.Model):
                 "price": product.meli_price or '0',
                 #"condition": product.meli_condition or '',
                 "available_quantity": product.meli_available_quantity or '0',
-                "warranty": product.meli_warranty or '',
+                #"warranty": product.meli_warranty or '',
                 "pictures": [],
                 "video_id": product.meli_video or '',
             }
