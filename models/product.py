@@ -189,9 +189,9 @@ class product_template(models.Model):
 
     def product_template_stats(self):
 
-        _pubs = ""
-        _stats = ""
         for product in self:
+            _pubs = ""
+            _stats = ""
             for variant in product.product_variant_ids:
                 if (variant.meli_pub):
                     if ( (variant.meli_status=="active" or variant.meli_status=="paused") and variant.meli_id):
