@@ -659,7 +659,7 @@ class res_company(models.Model):
             report_body = ""
 
             for msg in report_messages:
-                report_body+= msg["obj"].name+": "+str(msg["obj"].meli_id)+"\n"
+                report_body+= msg["obj"].name+": "+str(msg["obj"].meli_publications)+"\n"
                 report_body+= "Mensaje: " + str(msg["message"]) + "\n"
                 report_body+= "\n"
 
