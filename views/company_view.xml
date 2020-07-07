@@ -60,8 +60,8 @@
                                       class="oe_stat_button"/>
 
                                   <button name='meli_pause_all' type="object"
-                                          string="Pausar todos los productos"
-                                          title="Pausar todos los productos publicados en ML, incluso los que no estan en Odoo"
+                                          string="Pausar no registrados"
+                                          title="Pausar todos los productos publicados en ML que no estan en Odoo"
                                           confirm="¿Está seguro que quiere pausar todos sus productos de ML?"
                                           attrs="{'invisible':[('mercadolibre_state','=',True)]}"
                                           icon="fa-pause"

@@ -727,7 +727,9 @@ class res_company(models.Model):
     def meli_notifications(self):
         #_logger.info("meli_notifications")
         notifications = self.env['mercadolibre.notification']
-        return notifications.fetch_lasts()
+        if (self.mercadolibre_process_notifications):
+            return notifications.fetch_lasts()
+        return {}
 
     def meli_set_automatic_tax_included(self):
         #create a product with a price of 100, check if tax are created
@@ -856,23 +858,14 @@ class res_company(models.Model):
                         icommit = 0
                     _logger.info( item_id + "("+str(iitem)+"/"+str(rjson['paging']['total'])+")" )
                     posting_id = self.env['product.product'].search([('meli_id','=',item_id)])
-                    response = meli.get("/items/"+item_id, {'access_token':meli.access_token})
-                    rjson3 = response.json()
                     if (posting_id):
                         _logger.info( "meli_pause_all Item already in database: " + str(posting_id[0]) )
+                        #response = meli.get("/items/"+item_id, {'access_token':meli.access_token})
+                        #rjson3 = response.json()
                     else:
                         #idcreated = self.pool.get('product.product').create(cr,uid,{ 'name': rjson3['title'], 'meli_id': rjson3['id'] })
-                        if 'id' in rjson3:
-                            prod_fields = {
-                                'name': rjson3['title'].encode("utf-8"),
-                                'description': rjson3['title'].encode("utf-8"),
-                                'meli_id': rjson3['id'],
-                                'meli_pub': True,
-                            }
-                            #prod_fields['default_code'] = rjson3['id']
-                            response = meli.put("/items/"+prod_fields['meli_id'], { 'status': 'paused' }, {'access_token':meli.access_token})
-                        else:
-                            _logger.info( "meli_pause_all product error: " + str(rjson3) )
+                        #prod_fields['default_code'] = rjson3['id']
+                        response = meli.put("/items/"+item_id, { 'status': 'paused' }, {'access_token':meli.access_token})
             except Exception as e:
                 _logger.info("meli_pause_all Exception!")
                 _logger.info(e, exc_info=True)
