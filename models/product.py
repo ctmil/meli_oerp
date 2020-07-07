@@ -1809,7 +1809,8 @@ class product_product(models.Model):
         if product_tmpl.meli_description==False or ( product_tmpl.meli_description and len(product_tmpl.meli_description)==0):
             product_tmpl.meli_description = product_tmpl.description_sale
 
-        if product.meli_title==False or len(product.meli_title)==0:
+        if (product.meli_title==False or len(product.meli_title)==0) or
+            ( product_tmpl.meli_pub_variant_attributes and not product_tmpl.meli_pub_as_variant and len(product_tmpl.meli_pub_variant_attributes) ):
             # _logger.info( 'Assigning title: product.meli_title: %s name: %s' % (product.meli_title, product.name) )
             product.meli_title = product_tmpl.meli_title
             if len(product_tmpl.meli_pub_variant_attributes):

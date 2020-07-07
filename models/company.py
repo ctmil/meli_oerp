@@ -615,26 +615,25 @@ class res_company(models.Model):
 
         url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
         #product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False)])
-        product_ids = self.env['product.product'].search([('meli_pub','=',True)])
-        _logger.info("product_ids to update:" + str(product_ids))
+        product_ids = self.env['product.template'].search([('meli_pub','=',True)])
+        _logger.info("product_ids to update or create:" + str(product_ids))
 
         ret_messages = []
         if product_ids:
             for obj in product_ids:
                 try:
-                    if (post_new):
-                        _logger.info( "Product remote to update/create: " + str(obj.id)  )
-                    else:
-                        _logger.info( "Product remote to update: " + str(obj.id)  )
                     post_update = company.mercadolibre_cron_post_update_products
-                    updating = post_update and obj.meli_id and (obj.meli_status=='active')
-                    creating = post_new and ( not obj.meli_id or ( obj.meli_id and obj.meli_id == '') )
+                    updating = post_update and obj.meli_publications and (obj.meli_variants_status=='active')
+                    creating = post_new and ( not obj.meli_publications or ( obj.meli_publications and obj.meli_publications == '') )
+
                     if ( updating or creating):
                         res = {}
                         if (updating):
-                            res = obj.product_post()
-                        if (creating and obj.product_tmpl_id.meli_pub):
-                            res = obj.product_tmpl_id.product_template_post()
+                            _logger.info( "Product remote create: " + str(obj.id)  )
+                            res = obj.with_context({'force_meli_pub': True }).product_template_post()
+                        if (creating):
+                            _logger.info( "Product remote to update: " + str(obj.id)  )
+                            res = obj.product_template_post()
 
                         #we have a message
                         if 'res_id' in res:
