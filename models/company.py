@@ -625,14 +625,16 @@ class res_company(models.Model):
                     post_update = company.mercadolibre_cron_post_update_products
                     updating = post_update and obj.meli_publications and (obj.meli_variants_status=='active')
                     creating = post_new and ( not obj.meli_publications or ( obj.meli_publications and obj.meli_publications == '') )
-
+                    _logger.info(obj.name)
+                    _logger.info(obj.meli_publications)
+                    _logger.info(obj.meli_variants_status)
                     if ( updating or creating):
                         res = {}
                         if (updating):
-                            _logger.info( "Product remote create: " + str(obj.id)  )
+                            _logger.info( "Product remote update: " + str(obj.id)  )
                             res = obj.product_template_post()
                         if (creating):
-                            _logger.info( "Product remote to update: " + str(obj.id)  )
+                            _logger.info( "Product remote to create: " + str(obj.id)  )
                             res = obj.with_context({'force_meli_pub': True }).product_template_post()
 
                         #we have a message
