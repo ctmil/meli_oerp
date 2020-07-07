@@ -784,6 +784,8 @@ class res_company(models.Model):
             response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search",
                                 {'access_token':meli.access_token,
                                 'search_type': 'scan',
+                                'status': status,
+                                'offset': offset,
                                 'limit': '100' })
             rjson = response.json()
             _logger.info( rjson )
