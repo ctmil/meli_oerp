@@ -754,7 +754,11 @@ class res_company(models.Model):
         url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
 
         results = []
-        response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'status':'active','access_token':meli.access_token,'offset': 0 })
+        offset = 0
+        status = 'active'
+        if (company.mercadolibre_process_offset):
+            offset = company.mercadolibre_process_offset
+        response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'status': status,'access_token':meli.access_token,'offset': offset })
         rjson = response.json()
         _logger.info( rjson )
 
