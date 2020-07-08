@@ -189,9 +189,9 @@ class product_template(models.Model):
 
     def product_template_stats(self):
 
-        _pubs = ""
-        _stats = ""
         for product in self:
+            _pubs = ""
+            _stats = ""
             for variant in product.product_variant_ids:
                 if (variant.meli_pub):
                     if ( (variant.meli_status=="active" or variant.meli_status=="paused") and variant.meli_id):
@@ -326,7 +326,8 @@ class product_template(models.Model):
                                     ("PEN","Sol Peruano (PEN)"),
                                     ("BOB","Boliviano (BOB)"),
                                     ("BRL","Real (BRL)"),
-                                    ("CLP","Peso Chileno (CLP)")],
+                                    ("CLP","Peso Chileno (CLP)"),
+                                    ("CRC","Colon Costarricense (CRC)")],
                                     string='Moneda')
     meli_condition = fields.Selection([ ("new", "Nuevo"),
                                         ("used", "Usado"),
@@ -1808,7 +1809,11 @@ class product_product(models.Model):
         if product_tmpl.meli_description==False or ( product_tmpl.meli_description and len(product_tmpl.meli_description)==0):
             product_tmpl.meli_description = product_tmpl.description_sale
 
-        if product.meli_title==False or len(product.meli_title)==0:
+        if (
+            ( product.meli_title==False or len(product.meli_title)==0 )
+            or
+            ( product_tmpl.meli_pub_variant_attributes and not product_tmpl.meli_pub_as_variant and len(product_tmpl.meli_pub_variant_attributes) )
+            ):
             # _logger.info( 'Assigning title: product.meli_title: %s name: %s' % (product.meli_title, product.name) )
             product.meli_title = product_tmpl.meli_title
             if len(product_tmpl.meli_pub_variant_attributes):
@@ -2496,7 +2501,8 @@ class product_product(models.Model):
     ("PEN","Sol Peruano (PEN)"),
     ("BOB","Boliviano (BOB)"),
     ("BRL","Real (BRL)"),
-    ("CLP","Peso Chileno (CLP)")],string='Moneda')
+    ("CLP","Peso Chileno (CLP)"),
+    ("CRC","Colon Costarricense (CRC)")],string='Moneda')
     meli_condition = fields.Selection([ ("new", "Nuevo"), ("used", "Usado"), ("not_specified","No especificado")],'Condición del producto')
     meli_warranty = fields.Char(string='Garantía', size=256)
     meli_listing_type = fields.Selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special/Clásica"),("gold_pro","Oro Pro")], string='Tipo de lista')
