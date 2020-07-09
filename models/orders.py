@@ -679,7 +679,7 @@ class mercadolibre_orders(models.Model):
                         'price_unit': float(Item['unit_price']),
                         'product_id': product_related_obj.id,
                         'product_uom_qty': Item['quantity'],
-                        'product_uom': 1,
+                        'product_uom': product_related_obj.uom_id.id,
                         'name': Item['item']['title'],
                     }
                     saleorderline_item_fields.update( self._set_product_unit_price( product_related_obj, Item ) )

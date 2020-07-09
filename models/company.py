@@ -410,6 +410,10 @@ class res_company(models.Model):
         rjson = response.json()
         _logger.info( rjson )
 
+        #if 'Error' in rjson:
+            #if ( rjson["Error"] == "The specified resource is not available at the moment." ):
+        #    return warningobj.info( title='MELI ERROR', message=rjson["Error"], message_html="" )
+
         if 'error' in rjson:
             if rjson['message']=='invalid_token' or rjson['message']=='expired_token':
                 ACCESS_TOKEN = ''
