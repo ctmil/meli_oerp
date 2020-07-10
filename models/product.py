@@ -216,17 +216,18 @@ class product_template(models.Model):
 
     def search_template_stats(self, operator, value):
         _logger.info("search_template_stats")
-        _logger.info(self)
+        _logger.info(operator)
+        _logger.info(value)
         if operator == 'ilike':
             #name = self.env.context.get('name', False)
             #if name is not False:
             id_list = []
             _logger.info(self.env.context)
-            name = self.env.context.get('name', False)
+            #name = self.env.context.get('name', False)
             products = self.env['product.template'].search([])
-            if (name):
+            if (value):
                 for p in products:
-                    if (name in p.meli_publications):
+                    if (value in p.meli_publications):
                         id_list.append(p.id)
 
             return [('id', 'in', id_list)]
