@@ -214,6 +214,25 @@ class product_template(models.Model):
 
         return {}
 
+    def search_template_stats(self, operator, value):
+        if operator == 'ilike':
+            #name = self.env.context.get('name', False)
+            #if name is not False:
+            id_list = []
+            name = self.env.context.get('name', False)
+            products = self.env['product.template'].search([])
+            if (name):
+                for p in products:
+                    if (name in p.meli_publications):
+                        id_list.append(p.id)
+
+            return [('id', 'in', id_list)]
+        else:
+            _logger.error(
+                'The field name is not searchable'
+                ' with the operator: {}',format(operator)
+            )
+
 
     def action_meli_pause(self):
         for product in self:
@@ -340,7 +359,7 @@ class product_template(models.Model):
     meli_listing_type = fields.Selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special/Clásica"),("gold_pro","Oro Pro")], string='Tipo de lista')
     meli_attributes = fields.Text(string='Atributos')
 
-    meli_publications = fields.Text(compute=product_template_stats,string='Publicaciones en ML')
+    meli_publications = fields.Text(compute=product_template_stats,string='Publicaciones en ML',search=search_template_stats)
     meli_variants_status = fields.Text(compute=product_template_stats,string='Meli Variant Status')
 
     meli_pub_as_variant = fields.Boolean('Publicar variantes como variantes en ML',help='Publicar variantes como variantes de la misma publicación, no como publicaciones independientes.')
