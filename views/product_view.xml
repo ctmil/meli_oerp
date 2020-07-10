@@ -21,16 +21,15 @@
       <record id="product_search_form_view" model="ir.ui.view">
           <field name="name">product.product.ml.search</field>
           <field name="model">product.product</field>
-          <field name="mode">primary</field>
           <field name="inherit_id" ref="product.product_search_form_view"/>
           <field name="arch" type="xml">
-              <filter name="filter_to_purchase" position="after">
-                <field name="meli_publications" string="Product ML Id" filter_domain="[('meli_id','ilike',self)]"/>
+              <field name="pricelist_id" position="before">
+                <field name="meli_ids" string="Product ML Id" filter_domain="[('meli_id','ilike',self)]"/>
                 <separator/>
                 <filter string="MercadoLibre, A publicar" name="meli_pub_active" domain="[('meli_pub','=',True)]"/>
                 <filter string="MercadoLibre, Publicados" name="meli_id_active" domain="[('meli_id','ilike','M')]"/>
                 <!--filter string="MercadoLibre, Activos" name="meli_status_active" domain="[('meli_status','ilike','active')]"/-->
-              </filter>
+              </field>
           </field>
       </record>
 
