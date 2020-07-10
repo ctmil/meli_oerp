@@ -603,7 +603,7 @@ class mercadolibre_shipment(models.Model):
 										'price_unit': float(unit_price),
 										'product_id': product_related_obj.id,
 										'product_uom_qty': mOrder.order_items[0]["quantity"],
-										'product_uom': 1,
+										'product_uom': product_related_obj.uom_id.id,
 										'name': mOrder.order_items[0]["order_item_title"],
 									}
 									if (mOrder.fee_amount):
