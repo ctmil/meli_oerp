@@ -224,7 +224,7 @@ class product_template(models.Model):
             id_list = []
             _logger.info(self.env.context)
             #name = self.env.context.get('name', False)
-            products = self.env['product.template'].search([])
+            products = self.env['product.template'].search([], limit=10000)
             if (value):
                 for p in products:
                     if (value in p.meli_publications):
