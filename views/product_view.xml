@@ -24,7 +24,7 @@
           <field name="inherit_id" ref="product.product_search_form_view"/>
           <field name="arch" type="xml">
               <field name="pricelist_id" position="before">
-                <field name="meli_ids" string="Product ML Id" filter_domain="[('meli_id','ilike',self)]"/>
+                <field name="meli_id" string="Product ML Id" filter_domain="[('meli_id','ilike',self)]"/>
                 <separator/>
                 <filter string="MercadoLibre, A publicar" name="meli_pub_active" domain="[('meli_pub','=',True)]"/>
                 <filter string="MercadoLibre, Publicados" name="meli_id_active" domain="[('meli_id','ilike','M')]"/>
