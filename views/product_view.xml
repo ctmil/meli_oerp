@@ -26,8 +26,8 @@
               <field name="pricelist_id" position="before">
                 <field name="meli_id" string="Product ML Id" filter_domain="[('meli_id','ilike',self)]"/>
                 <separator/>
-                <filter string="MercadoLibre, A publicar" name="meli_pub_active" domain="[('meli_pub','=',True)]"/>
-                <filter string="MercadoLibre, Publicados" name="meli_id_active" domain="[('meli_id','ilike','M')]"/>
+                <filter string="MercadoLibre, A publicar" name="meli_pub_active2" domain="[('meli_pub','=',True)]"/>
+                <filter string="MercadoLibre, Publicados" name="meli_id_active2" domain="[('meli_id','ilike','M')]"/>
                 <!--filter string="MercadoLibre, Activos" name="meli_status_active" domain="[('meli_status','ilike','active')]"/-->
               </field>
           </field>
