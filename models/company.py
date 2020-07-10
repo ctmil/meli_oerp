@@ -310,6 +310,8 @@ class res_company(models.Model):
     mercadolibre_cron_get_new_products = fields.Boolean(string='Importar nuevos productos',help='Cron Import New Products, Product Templates or Variants')
 
     mercadolibre_process_offset = fields.Char('Offset for pause all')
+    mercadolibre_post_default_code = fields.Boolean(string='Post SKU',help='Post Odoo default_code field for templates or variants to seller_custom_field in ML')
+    mercadolibre_import_search_sku = fields.Boolean(string='Search SKU',help='Search product by default_code')
 
     def	meli_logout(self):
         _logger.info('company.meli_logout() ')
@@ -409,6 +411,10 @@ class res_company(models.Model):
         response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token,'offset': 0 })
         rjson = response.json()
         _logger.info( rjson )
+
+        #if 'Error' in rjson:
+            #if ( rjson["Error"] == "The specified resource is not available at the moment." ):
+        #    return warningobj.info( title='MELI ERROR', message=rjson["Error"], message_html="" )
 
         if 'error' in rjson:
             if rjson['message']=='invalid_token' or rjson['message']=='expired_token':
@@ -512,10 +518,25 @@ class res_company(models.Model):
                         icommit = 0
                     _logger.info( item_id + "("+str(iitem)+"/"+str(rjson['paging']['total'])+")" )
                     posting_id = self.env['product.product'].search([('meli_id','=',item_id)])
+
                     response = meli.get("/items/"+item_id, {'access_token':meli.access_token})
                     rjson3 = response.json()
+                    if ( ( not posting_id or len(posting_id)==0 ) and company.mercadolibre_import_search_sku ):
+                        if ('seller_custom_field' in rjson3 and rjson3['seller_custom_field'] and len(rjson3['seller_custom_field'])):
+                            posting_id = self.env['product.product'].search([('default_code','=',rjson3['seller_custom_field'])])
+                            if (not posting_id or len(posting_id)==0):
+                                posting_id = self.env['product.template'].search([('default_code','=',rjson3['seller_custom_field'])])
+                        if ('variations' in rjson3):
+                            for var in rjson3['variations']:
+                                if ('seller_custom_field' in var and var['seller_custom_field'] and len(var['seller_custom_field'])):
+                                    posting_id = self.env['product.product'].search([('default_code','=',var['seller_custom_field'])])
+                                    if (posting_id):
+                                        break;
+
+
                     if (posting_id):
                         _logger.info( "Item already in database: " + str(posting_id[0]) )
+                    #elif (not company.mercadolibre_import_search_sku):
                     else:
                         #idcreated = self.pool.get('product.product').create(cr,uid,{ 'name': rjson3['title'], 'meli_id': rjson3['id'] })
                         if 'id' in rjson3:

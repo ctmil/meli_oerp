@@ -1980,7 +1980,17 @@ class product_product(models.Model):
             "currency_id": product.meli_currency  or '0',
             "condition": product.meli_condition  or '',
             "available_quantity": product.meli_available_quantity  or '0',
-            "warranty": product.meli_warranty or '',
+            #"warranty": product.meli_warranty or '',
+            "sale_terms":[
+                 {
+                    "id":"WARRANTY_TYPE",
+                    "value_name":"Garantía del vendedor"
+                 },
+                 {
+                    "id":"WARRANTY_TIME",
+                    "value_name": product.meli_warranty
+                 }
+              ],
             #"pictures": [ { 'source': product.meli_imagen_logo} ] ,
             "video_id": product.meli_video  or '',
         }
@@ -2018,7 +2028,18 @@ class product_product(models.Model):
                 "price": product.meli_price or '0',
                 #"condition": product.meli_condition or '',
                 "available_quantity": product.meli_available_quantity or '0',
-                "warranty": product.meli_warranty or '',
+                #"warranty": product.meli_warranty or '',
+                "sale_terms":[
+                     {
+                        "id":"WARRANTY_TYPE",
+                        "value_name":"Garantía del vendedor"
+                     },
+                     {
+                        "id":"WARRANTY_TIME",
+                        "value_name": product.meli_warranty
+                     }
+                  ],
+
                 "pictures": [],
                 "video_id": product.meli_video or '',
             }
@@ -2077,7 +2098,7 @@ class product_product(models.Model):
 
         if (not variations_candidates):
             #SKU ?
-            if (product.default_code):
+            if (product.default_code and company.mercadolibre_post_default_code):
                 #TODO: flag for publishing SKU as attribute in single variant mode?? maybe
                 #attribute = { "id": "SELLER_SKU", "value_name": product.default_code }
                 #attributes.append(attribute)
@@ -2361,7 +2382,8 @@ class product_product(models.Model):
                         if ('picture_ids' in addvar):
                             if len(pictures_v)>=len(addvar["picture_ids"]):
                                 addvar["picture_ids"] = pictures_v
-                        addvar["seller_custom_field"] = product.default_code
+                        if (company.mercadolibre_post_default_code):
+                            addvar["seller_custom_field"] = product.default_code
                         addvar["price"] = same_price
                         _logger.info("Add variation!")
                         _logger.info(addvar)
