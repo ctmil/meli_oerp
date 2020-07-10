@@ -14,7 +14,7 @@
                 <filter string="MercadoLibre, A publicar" name="meli_pub_active" domain="[('meli_pub','=',True)]"/>
                 <filter string="MercadoLibre, Publicados" name="meli_id_active" domain="[('meli_publications','!=',None)]"/>
                 <filter string="MercadoLibre, Activos" name="meli_status_active" domain="[('meli_variants_status','=','active')]"/>
-              </field>
+              </filter>
           </field>
       </record>
 
