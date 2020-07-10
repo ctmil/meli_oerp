@@ -12,8 +12,8 @@
                 <field name="meli_id" string="Product ML Id" filter_domain="['|','|',('default_code','ilike',self),('name','ilike',self),('meli_publications','ilike',self)]"/>
                 <separator/>
                 <filter string="MercadoLibre, A publicar" name="meli_pub_active" domain="[('meli_pub','=',True)]"/>
-                <filter string="MercadoLibre, Publicados" name="meli_id_active" domain="[('meli_id','!=',None)]"/>
-                <filter string="MercadoLibre, Activos" name="meli_status_active" domain="[('meli_pub_status','=','active')]"/>
+                <filter string="MercadoLibre, Publicados" name="meli_id_active" domain="[('meli_publications','!=',None)]"/>
+                <filter string="MercadoLibre, Activos" name="meli_status_active" domain="[('meli_variants_status','=','active')]"/>
               </field>
           </field>
       </record>
