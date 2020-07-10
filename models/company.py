@@ -526,13 +526,15 @@ class res_company(models.Model):
                             posting_id = self.env['product.product'].search([('default_code','=',rjson3['seller_custom_field'])])
                             if (not posting_id or len(posting_id)==0):
                                 posting_id = self.env['product.template'].search([('default_code','=',rjson3['seller_custom_field'])])
+                                _logger.info("Founded template with default code, dont know how to handle it.")
+                            else:
+                                posting_id.meli_id = item_id
                         if ('variations' in rjson3):
                             for var in rjson3['variations']:
                                 if ('seller_custom_field' in var and var['seller_custom_field'] and len(var['seller_custom_field'])):
                                     posting_id = self.env['product.product'].search([('default_code','=',var['seller_custom_field'])])
                                     if (posting_id):
-                                        break;
-
+                                        posting_id.meli_id = item_id
 
                     if (posting_id):
                         _logger.info( "Item already in database: " + str(posting_id[0]) )
