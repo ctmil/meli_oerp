@@ -215,10 +215,12 @@ class product_template(models.Model):
         return {}
 
     def search_template_stats(self, operator, value):
+        _logger.info("search_template_stats",operator,value)
         if operator == 'ilike':
             #name = self.env.context.get('name', False)
             #if name is not False:
             id_list = []
+            _logger.info(self.env.context)
             name = self.env.context.get('name', False)
             products = self.env['product.template'].search([])
             if (name):
