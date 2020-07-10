@@ -535,6 +535,8 @@ class res_company(models.Model):
                                     posting_id = self.env['product.product'].search([('default_code','=',var['seller_custom_field'])])
                                     if (posting_id):
                                         posting_id.meli_id = item_id
+                                        if (len(posting_id.product_tmpl_id.product_variant_ids)>1):
+                                            posting_id.meli_id_variation = var['id']
 
                     if (posting_id):
                         _logger.info( "Item already in database: " + str(posting_id[0]) )
