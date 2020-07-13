@@ -2,6 +2,19 @@
 <odoo>
     <data>
 
+      <record id="sale_order_view_search_inherit_sale" model="ir.ui.view">
+          <field name="name">sale.order.search.inherit.sale.ml</field>
+          <field name="model">sale.order</field>
+          <field name="mode">primary</field>
+          <field name="inherit_id" ref="sale.view_sales_order_filter"/>
+          <field name="arch" type="xml">
+              <xpath expr="//filter[@name='my_sale_orders_filter']" position="after">
+                  <separator/>
+                  <filter string="MercadoLibre Orders" name="sale_orders_ml" domain="[('meli_order_id','!=',False)]" />
+              </xpath>
+          </field>
+      </record>
+
         <record model="ir.ui.view" id="view_meli_orders_tree">
             <field name="name">mercadolibre.orders.tree</field>
             <field name="model">mercadolibre.orders</field>
@@ -229,7 +242,6 @@
             <form string="Update Order" version="7.0">
                 <footer>
                     <button name="order_update" string="Update Order"  type="object" class="oe_highlight"  />
-		or
                     <button string="Cancel" class="oe_link" special="cancel" />
                 </footer>
             </form>
