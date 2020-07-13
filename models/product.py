@@ -2020,7 +2020,7 @@ class product_product(models.Model):
                 "price": product.meli_price or '0',
                 #"condition": product.meli_condition or '',
                 "available_quantity": product.meli_available_quantity or '0',
-                "warranty": product.meli_warranty or '',
+                #"warranty": product.meli_warranty or '',
                 "pictures": [],
                 "video_id": product.meli_video or '',
             }
