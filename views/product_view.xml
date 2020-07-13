@@ -203,7 +203,6 @@
                     <label for="meli_pub" />
                     <field name="meli_master" />
                     <label for="meli_master" />
-
                 </label>
 
                 <data>

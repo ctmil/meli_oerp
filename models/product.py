@@ -1998,7 +1998,7 @@ class product_product(models.Model):
         #publicando imagenes
         first_image_to_publish = get_first_image_to_publish(product)
 
-        if first_image_to_publish==None:
+        if first_image_to_publish == None:
             return warningobj.info( title='MELI WARNING', message="Debe cargar una imagen de base en el producto.", message_html="" )
         else:
             # _logger.info( "try uploading image..." )
