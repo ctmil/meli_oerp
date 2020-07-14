@@ -8,6 +8,7 @@
           <field name="inherit_id" ref="sale.sale_order_view_search_inherit_sale"/>
           <field name="arch" type="xml">
               <xpath expr="//filter[@name='my_sale_orders_filter']" position="after">
+                <field name="meli_order_id" string="MercadoLibre Order Id"/>
                 <separator/>
                 <filter string="MercadoLibre Orders" name="sale_orders_ml" domain="[('meli_order_id','!=',False)]" />
               </xpath>
@@ -20,6 +21,7 @@
           <field name="inherit_id" ref="sale.sale_order_view_search_inherit_quotation"/>
           <field name="arch" type="xml">
               <xpath expr="//filter[@name='my_quotation']" position="after">
+                <field name="meli_order_id" string="MercadoLibre Order Id"/>
                 <separator/>
                 <filter string="MercadoLibre Quotations" name="sale_orders_ml" domain="[('meli_order_id','!=',False)]" />
               </xpath>
