@@ -19,7 +19,7 @@
           <field name="model">sale.order</field>
           <field name="inherit_id" ref="sale.sale_order_view_search_inherit_quotation"/>
           <field name="arch" type="xml">
-              <xpath expr="//filter[@name='my_quotation']" position="after">
+              <xpath expr="//filter[@name='my_sale_orders_filter']" position="after">
                 <separator/>
                 <filter string="MercadoLibre Quotations" name="sale_orders_ml" domain="[('meli_order_id','!=',False)]" />
               </xpath>
@@ -256,7 +256,7 @@
           <field name="arch" type="xml">
             <form string="Update Order" version="7.0">
                 <footer>
-                    <button name="order_update" string="Update Order"  type="object" class="oe_highlight"  />		
+                    <button name="order_update" string="Update Order"  type="object" class="oe_highlight"  />
                     <button string="Cancel" class="oe_link" special="cancel" />
                 </footer>
             </form>
