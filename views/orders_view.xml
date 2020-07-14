@@ -2,14 +2,15 @@
 <odoo>
     <data>
 
-      <record id="sale_order_view_search_inherit_sale_ml" model="ir.ui.view">
-          <field name="name">sale.order.search.inherit.sale.ml</field>
+      <record id="sale_order_view_search_inherit_meli" model="ir.ui.view">
+          <field name="name">sale.order.search.inherit.meli</field>
           <field name="model">sale.order</field>
-          <field name="inherit_id" ref="sale.sale_order_view_search_inherit_sale"/>
+          <field name="mode">primary</field>
+          <field name="inherit_id" ref="sale.view_sales_order_filter"/>
           <field name="arch" type="xml">
-              <xpath expr="//filter[@name='my_sale_orders_filter']" position="after">
-                  <separator/>
-                  <filter string="MercadoLibre Orders" name="sale_orders_ml" domain="[('meli_order_id','!=',False)]" />
+              <xpath expr="//filter[@name='my_sale_orders_filter']" position="replace">
+                <separator/>
+                <filter string="MercadoLibre Orders" name="sale_orders_ml" domain="[('meli_order_id','!=',False)]" />
               </xpath>
           </field>
       </record>
