@@ -46,8 +46,8 @@ def get_first_image_to_publish(self):
     if (company.mercadolibre_do_not_use_first_image):
         image_ids = variant_image_ids(product)
         if (len(image_ids)):
-            #Use first image of variant image ids
-            first_image_to_publish = image_ids[0]
+            #Use first image of variant image ids: product.image
+            first_image_to_publish = get_image_full(image_ids[0])
     else:
         first_image_to_publish = get_image_full(product)
         
