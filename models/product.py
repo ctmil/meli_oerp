@@ -1417,7 +1417,7 @@ class product_product(models.Model):
         #
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
-        first_image_to_publish = get_first_image_to_publish(product)
+        first_image_to_publish = get_first_image_to_publish( product )
 
         if first_image_to_publish==None or first_image_to_publish==False:
             return { 'status': 'error', 'message': 'no image to upload' }
@@ -1471,6 +1471,8 @@ class product_product(models.Model):
         var_image_ids = variant_image_ids(product)
         if (var_image_ids and len(var_image_ids)):
             for imix in range(0,len(var_image_ids)):
+                if (company.mercadolibre_do_not_use_first_image and imix==0):
+                    continue;
                 _logger.info("Upload multi image:"+str(imix))
                 product_image = var_image_ids[imix]
                 if (get_image_full(product_image)):
@@ -2033,7 +2035,7 @@ class product_product(models.Model):
         assign_img = False and product.meli_id
 
         #publicando imagenes
-        first_image_to_publish = get_first_image_to_publish(product)
+        first_image_to_publish = get_first_image_to_publish( product )
 
         if first_image_to_publish==None:
             return warningobj.info( title='MELI WARNING', message="Debe cargar una imagen de base en el producto, si chequeo el 'Dont use first image' debe al menos poner una imagen adicional en el producto.", message_html="" )
