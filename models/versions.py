@@ -48,7 +48,7 @@ def get_first_image_to_publish(self):
         image_ids = variant_image_ids(product)
         if (len(image_ids)):
             #Use first image of variant image ids: product.image
-            first_image_to_publish = image_ids[0].image
+            first_image_to_publish = get_image_full(image_ids[0])
     else:
         first_image_to_publish = get_image_full(product)
 
