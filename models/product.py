@@ -626,15 +626,18 @@ class product_product(models.Model):
             if (len(pictures)>1):
                 #complete product images:
                 #delete all images...
-                _logger.info("Importing all images...")
+                _logger.info("Importing all images after principal...")
                 #_logger.info(pictures)
-                for ix in range(1,len(pictures)-1):
+                #_logger.info(range(1,len(pictures)))
+                for ix in range(1,len(pictures)):
+                    #_logger.info(ix)
                     pic = pictures[ix]
                     bin_updating = False
                     resimage = meli.get("/pictures/"+pic['id'], {'access_token':meli.access_token})
                     imgjson = resimage.json()
 
                     thumbnail_url = pic['secure_url']
+                    #_logger.info(imgjson)
                     if 'error' in imgjson:
                         pass;
                     else:
@@ -665,7 +668,7 @@ class product_product(models.Model):
                             _logger.info("Image:"+str(len(imagebin))+" vs URLImage:"+str(meli_imagen_bytes)+" diff:"+str(bin_diff) )
                             bin_updating = (abs(bin_diff)>0)
 
-                    if (pimage==False or len(pimage)==0):
+                    if (pimage==False or (pimage and len(pimage)==0)):
                         _logger.info("Creating new image")
                         bin_updating = True
                         pimage = self.env["product.image"].create(pimg_fields)
@@ -764,6 +767,11 @@ class product_product(models.Model):
                 product._meli_set_product_price( product_template, rjson['price'] )
         except:
             rjson['price'] = 0.0
+
+        try:
+            rjson['warranty'] = rjson['warranty'].replace('Garantía del vendedor: ','')
+        except:
+            pass;
 
         meli_fields = {
             'name': rjson['title'].encode("utf-8"),
@@ -1414,11 +1422,13 @@ class product_product(models.Model):
         #
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
-        if get_image_full(product)==None or get_image_full(product)==False:
-            return { 'status': 'error', 'message': 'no image to upload' }
+        first_image_to_publish = get_first_image_to_publish( product )
 
-        imagebin = base64.b64decode(get_image_full(product))
-        imageb64 = get_image_full(product)
+        if first_image_to_publish==None or first_image_to_publish==False:
+            return { 'status': 'error', 'message': 'no image to upload' }
+        _logger.info("product_meli_upload_image: ")
+        imagebin = base64.b64decode(first_image_to_publish)
+        imageb64 = first_image_to_publish
         files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
         response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
 
@@ -1428,7 +1438,7 @@ class product_product(models.Model):
             return rjson
             #return { 'status': 'error', 'message': 'not uploaded'}
 
-        _logger.info( rjson )
+        #_logger.info( rjson )
 
         if ("id" in rjson):
             #guardar id
@@ -1464,15 +1474,18 @@ class product_product(models.Model):
 
         #loop over images
         var_image_ids = variant_image_ids(product)
-        if (var_image_ids and len(var_image_ids)>1):
-            for imix in range(len(var_image_ids)-1):
-                product_image = var_image_ids[imix+1]
+        if (var_image_ids and len(var_image_ids)):
+            for imix in range(0,len(var_image_ids)):
+                if (company.mercadolibre_do_not_use_first_image and imix==0):
+                    continue;
+                _logger.info("Upload multi image: "+str(imix))
+                product_image = var_image_ids[imix]
                 if (get_image_full(product_image)):
                     imagebin = base64.b64decode( get_image_full(product_image) )
                     #files = { 'file': ('image.png', imagebin, "image/png"), }
                     files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
                     response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
-                    _logger.info( "meli upload:" + str(response.content) )
+                    #_logger.info( "meli upload:" + str(response.content) )
                     rjson = response.json()
                     if ("error" in rjson):
                         #raise osv.except_osv( _('MELI WARNING'), _('No se pudo cargar la imagen en MELI! Error: %s , Mensaje: %s, Status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
@@ -2027,10 +2040,10 @@ class product_product(models.Model):
         assign_img = False and product.meli_id
 
         #publicando imagenes
-        first_image_to_publish = get_first_image_to_publish(product)
+        first_image_to_publish = get_first_image_to_publish( product )
 
         if first_image_to_publish==None:
-            return warningobj.info( title='MELI WARNING', message="Debe cargar una imagen de base en el producto.", message_html="" )
+            return warningobj.info( title='MELI WARNING', message="Debe cargar una imagen de base en el producto, si chequeo el 'Dont use first image' debe al menos poner una imagen adicional en el producto.", message_html="" )
         else:
             # _logger.info( "try uploading image..." )
             resim = product.product_meli_upload_image()
@@ -2098,7 +2111,7 @@ class product_product(models.Model):
 
         if product.meli_imagen_id:
             if 'pictures' in body.keys():
-                body["pictures"]+= [ { 'id': product.meli_imagen_id } ]
+                body["pictures"] = [ { 'id': product.meli_imagen_id } ]
             else:
                 body["pictures"] = [ { 'id': product.meli_imagen_id } ]
 
