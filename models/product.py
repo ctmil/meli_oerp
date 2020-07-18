@@ -628,6 +628,7 @@ class product_product(models.Model):
                 #delete all images...
                 _logger.info("Importing all images after principal...")
                 _logger.info(pictures)
+                _logger.info(range(1,len(pictures)-1))
                 for ix in range(1,len(pictures)-1):
                     pic = pictures[ix]
                     bin_updating = False
