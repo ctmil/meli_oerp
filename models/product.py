@@ -626,8 +626,8 @@ class product_product(models.Model):
             if (len(pictures)>1):
                 #complete product images:
                 #delete all images...
-                _logger.info("Importing all images...")
-                #_logger.info(pictures)
+                _logger.info("Importing all images after principal...")
+                _logger.info(pictures)
                 for ix in range(1,len(pictures)-1):
                     pic = pictures[ix]
                     bin_updating = False
@@ -635,6 +635,7 @@ class product_product(models.Model):
                     imgjson = resimage.json()
 
                     thumbnail_url = pic['secure_url']
+                    _logger.info(imgjson)
                     if 'error' in imgjson:
                         pass;
                     else:
@@ -665,7 +666,7 @@ class product_product(models.Model):
                             _logger.info("Image:"+str(len(imagebin))+" vs URLImage:"+str(meli_imagen_bytes)+" diff:"+str(bin_diff) )
                             bin_updating = (abs(bin_diff)>0)
 
-                    if (pimage==False or len(pimage)==0):
+                    if (pimage==False or (pimage and len(pimage)==0)):
                         _logger.info("Creating new image")
                         bin_updating = True
                         pimage = self.env["product.image"].create(pimg_fields)
