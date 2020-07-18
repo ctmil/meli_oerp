@@ -627,17 +627,17 @@ class product_product(models.Model):
                 #complete product images:
                 #delete all images...
                 _logger.info("Importing all images after principal...")
-                _logger.info(pictures)
-                _logger.info(range(1,len(pictures)))
+                #_logger.info(pictures)
+                #_logger.info(range(1,len(pictures)))
                 for ix in range(1,len(pictures)):
-                    _logger.info(ix)
+                    #_logger.info(ix)
                     pic = pictures[ix]
                     bin_updating = False
                     resimage = meli.get("/pictures/"+pic['id'], {'access_token':meli.access_token})
                     imgjson = resimage.json()
 
                     thumbnail_url = pic['secure_url']
-                    _logger.info(imgjson)
+                    #_logger.info(imgjson)
                     if 'error' in imgjson:
                         pass;
                     else:
@@ -1467,9 +1467,10 @@ class product_product(models.Model):
 
         #loop over images
         var_image_ids = variant_image_ids(product)
-        if (var_image_ids and len(var_image_ids)>1):
-            for imix in range(len(var_image_ids)-1):
-                product_image = var_image_ids[imix+1]
+        if (var_image_ids and len(var_image_ids)):
+            for imix in range(0,len(var_image_ids)):
+                _logger.info("Upload multi image:"+str(imix))
+                product_image = var_image_ids[imix]
                 if (get_image_full(product_image)):
                     imagebin = base64.b64decode( get_image_full(product_image) )
                     #files = { 'file': ('image.png', imagebin, "image/png"), }
@@ -2101,7 +2102,7 @@ class product_product(models.Model):
 
         if product.meli_imagen_id:
             if 'pictures' in body.keys():
-                body["pictures"]+= [ { 'id': product.meli_imagen_id } ]
+                body["pictures"] = [ { 'id': product.meli_imagen_id } ]
             else:
                 body["pictures"] = [ { 'id': product.meli_imagen_id } ]
 
