@@ -768,6 +768,11 @@ class product_product(models.Model):
         except:
             rjson['price'] = 0.0
 
+        try:
+            rjson['warranty'] = rjson['warranty'].replace('Garantía del vendedor: ','')
+        except:
+            pass;
+
         meli_fields = {
             'name': rjson['title'].encode("utf-8"),
             #'default_code': rjson['id'],
@@ -1421,7 +1426,7 @@ class product_product(models.Model):
 
         if first_image_to_publish==None or first_image_to_publish==False:
             return { 'status': 'error', 'message': 'no image to upload' }
-        #_logger.info("product_meli_upload_image: ")
+        _logger.info("product_meli_upload_image: ")
         imagebin = base64.b64decode(first_image_to_publish)
         imageb64 = first_image_to_publish
         files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
@@ -1433,7 +1438,7 @@ class product_product(models.Model):
             return rjson
             #return { 'status': 'error', 'message': 'not uploaded'}
 
-        _logger.info( rjson )
+        #_logger.info( rjson )
 
         if ("id" in rjson):
             #guardar id
@@ -1473,14 +1478,14 @@ class product_product(models.Model):
             for imix in range(0,len(var_image_ids)):
                 if (company.mercadolibre_do_not_use_first_image and imix==0):
                     continue;
-                _logger.info("Upload multi image:"+str(imix))
+                _logger.info("Upload multi image: "+str(imix))
                 product_image = var_image_ids[imix]
                 if (get_image_full(product_image)):
                     imagebin = base64.b64decode( get_image_full(product_image) )
                     #files = { 'file': ('image.png', imagebin, "image/png"), }
                     files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
                     response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
-                    _logger.info( "meli upload:" + str(response.content) )
+                    #_logger.info( "meli upload:" + str(response.content) )
                     rjson = response.json()
                     if ("error" in rjson):
                         #raise osv.except_osv( _('MELI WARNING'), _('No se pudo cargar la imagen en MELI! Error: %s , Mensaje: %s, Status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
