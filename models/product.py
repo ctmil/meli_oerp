@@ -1421,7 +1421,7 @@ class product_product(models.Model):
 
         if first_image_to_publish==None or first_image_to_publish==False:
             return { 'status': 'error', 'message': 'no image to upload' }
-        _logger.info("product_meli_upload_image: "+str(first_image_to_publish.name))
+        #_logger.info("product_meli_upload_image: ")
         imagebin = base64.b64decode(first_image_to_publish)
         imageb64 = first_image_to_publish
         files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }

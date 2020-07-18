@@ -38,7 +38,7 @@ def get_image_full(self):
 def set_image_full(self, image):
     self.image = image
     return True
-    
+
 def get_first_image_to_publish(self):
     company = self.env.user.company_id
     product = self
@@ -47,11 +47,11 @@ def get_first_image_to_publish(self):
     if (company.mercadolibre_do_not_use_first_image):
         image_ids = variant_image_ids(product)
         if (len(image_ids)):
-            #Use first image of variant image ids
-            first_image_to_publish = image_ids[0]
+            #Use first image of variant image ids: product.image
+            first_image_to_publish = image_ids[0].image
     else:
         first_image_to_publish = get_image_full(product)
-        
+
     return first_image_to_publish
 
 def prepare_attribute( product_template_id, attribute_id, attribute_value_id ):
