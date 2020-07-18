@@ -1417,11 +1417,13 @@ class product_product(models.Model):
         #
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
-        if get_image_full(product)==None or get_image_full(product)==False:
+        first_image_to_publish = get_first_image_to_publish(product)
+
+        if first_image_to_publish==None or first_image_to_publish==False:
             return { 'status': 'error', 'message': 'no image to upload' }
 
-        imagebin = base64.b64decode(get_image_full(product))
-        imageb64 = get_image_full(product)
+        imagebin = base64.b64decode(first_image_to_publish)
+        imageb64 = first_image_to_publish
         files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
         response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
 
@@ -2034,7 +2036,7 @@ class product_product(models.Model):
         first_image_to_publish = get_first_image_to_publish(product)
 
         if first_image_to_publish==None:
-            return warningobj.info( title='MELI WARNING', message="Debe cargar una imagen de base en el producto.", message_html="" )
+            return warningobj.info( title='MELI WARNING', message="Debe cargar una imagen de base en el producto, si chequeo el 'Dont use first image' debe al menos poner una imagen adicional en el producto.", message_html="" )
         else:
             # _logger.info( "try uploading image..." )
             resim = product.product_meli_upload_image()
