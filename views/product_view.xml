@@ -11,7 +11,7 @@
                 <field name="meli_publications" string="Product ML Id" filter_domain="[('meli_publications','ilike',self)]"/>
                 <separator/>
                 <filter string="MercadoLibre, A publicar" name="meli_pub_active" domain="[('meli_pub','=',True)]"/>
-                <filter string="MercadoLibre, Publicados" name="meli_id_active" domain="[('meli_ids','ilike','M')]"/>
+                <filter string="MercadoLibre, Publicados" name="meli_id_active" domain="[('meli_publications','ilike','M')]"/>
                 <filter string="MercadoLibre, Activos" name="meli_status_active" domain="[('meli_publications','ilike','active')]"/>
               </xpath>
           </field>
