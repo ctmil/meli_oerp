@@ -390,7 +390,7 @@ class product_template(models.Model):
     meli_product_code = fields.Char(string="Codigo de proveedor [meli]")
     meli_product_supplier = fields.Char(string="Proveedor del producto [meli]")
 
-    meli_ids = field.Char(size=2048,string="MercadoLibre Ids.",help="ML Ids de variantes separados por coma.",index=True)
+    meli_ids = fields.Char(size=2048,string="MercadoLibre Ids.",help="ML Ids de variantes separados por coma.",index=True)
 
 product_template()
 
