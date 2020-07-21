@@ -277,7 +277,6 @@ class product_template(models.Model):
             _logger.info("onchange meli_pub variant before::"+str(variant.meli_pub))
             variant.write({'meli_pub':self.meli_pub})
 
-
     def get_title_for_meli(self):
         return self.name
 
@@ -337,6 +336,16 @@ class product_template(models.Model):
             pricelist = self.env['product.pricelist'].search([], limit=1)
         return pricelist
 
+    def update_meli_ids(self):
+        for tpl in self:
+            ml_ids = ""
+            coma = ""
+            for p in tpl.product_variant_ids:
+                if (p.meli_id and len(p.meli_id)):
+                    ml_ids = ml_ids + coma + str(p.meli_id)
+                    coma = ","
+            tpl.meli_ids = ml_ids
+
     name = fields.Char('Name', size=128, required=True, translate=False, index=True)
     meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
     meli_description = fields.Text(string='Descripción')
@@ -380,6 +389,8 @@ class product_template(models.Model):
     meli_product_cost = fields.Float(string="Costo del proveedor [meli]")
     meli_product_code = fields.Char(string="Codigo de proveedor [meli]")
     meli_product_supplier = fields.Char(string="Proveedor del producto [meli]")
+
+    meli_ids = fields.Char(size=2048,string="MercadoLibre Ids.",help="ML Ids de variantes separados por coma.",index=True)
 
 product_template()
 
@@ -2543,6 +2554,12 @@ class product_product(models.Model):
 
     def action_category_predictor(self):
         return self.product_tmpl_id.action_category_predictor()
+
+    @api.onchange('meli_id') # if these fields are changed, call method
+    def change_meli_id(self):
+        for p in self:
+            if p.product_tmpl_id:
+                p.product_tmpl_id.update_meli_ids()
 
     #typical values
     meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
