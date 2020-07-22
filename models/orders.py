@@ -48,7 +48,9 @@ from .versions import *
 class sale_order_line(models.Model):
     _inherit = "sale.order.line"
 
-    meli_order_item_id = fields.Char('Meli Order Item Id');
+    meli_order_item_id = fields.Char('Meli Order Item Id')
+    meli_order_variation_id = fields.Char('Meli Order Item Variation Id')
+
 sale_order_line()
 
 class sale_order(models.Model):
@@ -648,6 +650,7 @@ class mercadolibre_orders(models.Model):
                     'order_id': order.id,
                     'posting_id': post_related_obj.id,
                     'order_item_id': Item['item']['id'],
+                    'order_item_variation_id': Item['item']['variation_id'],
                     'order_item_title': Item['item']['title'],
                     'order_item_category_id': Item['item']['category_id'],
                     'unit_price': Item['unit_price'],

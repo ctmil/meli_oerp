@@ -230,10 +230,9 @@
 	         </search>
         </field>
     </record>
-    <!--
 
     <record id="meli_buyers_search_view" model="ir.ui.view">
-        <field name="name">Compradores de ML - Buscar</field>
+        <field name="name">mercadolibre.buyers.search</field>
         <field name="model">mercadolibre.buyers</field>
         <field name="arch" type="xml">
     	    <search string="Search MercadoLibre Buyers Information">
@@ -247,7 +246,6 @@
     	    </search>
         </field>
     </record>
--->
 
     <record id="view_orders_update" model="ir.ui.view">
           <field name="name">Actualizar Orden de ML</field>
