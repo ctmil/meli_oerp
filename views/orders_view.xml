@@ -218,38 +218,34 @@
             </field>
         </record>
 
+    <record id="meli_orders_search_view" model="ir.ui.view">
+        <field name="name">mercadolibre.orders.search</field>
+        <field name="model">mercadolibre.orders</field>
+        <field name="arch" type="xml">
+	         <search string="Search MercadoLibre Orders Information">
+             <field name="order_id" string="Order ID"/>
+             <field name="status" string="Status"/>
+             <field name="buyer" string="Comprador"/>
+             <!--field name="seller" string="Vendedor"/-->
+	         </search>
+        </field>
+    </record>
 
-        <record id="meli_orders_search_view" model="ir.ui.view">
-            <field name="name">mercadolibre.orders.search</field>
-            <field name="model">mercadolibre.orders</field>
-            <field name="arch" type="xml">
-    	         <search string="Search MercadoLibre Orders Information">
-                 <field name="name" string="Name (order id or product name)"/>
-                 <field name="order_id" string="Order ID"/>
-                 <field name="status" string="Status"/>
-                 <field name="buyer" string="Comprador"/>
-                 <field name="seller" string="Vendedor"/>
-                 <field name="pack_order" string="Es Carrito"/>
-    	         </search>
-            </field>
-        </record>
-
-        <record id="meli_buyers_search_view" model="ir.ui.view">
-            <field name="name">Compradores de ML - Buscar</field>
-            <field name="model">mercadolibre.buyers</field>
-            <field name="arch" type="xml">
-              <search string="Search MercadoLibre Buyers Information">
-                  <field name="nickname" string="Usuario ML"/>
-                  <field name="first_name" string="Nombre ML"/>
-                  <field name="last_name" string="Apellido ML"/>
-                  <field name="email" string="Email ML"/>
-                  <field name="phone" string="Phone ML"/>
-                  <field name="alternative_phone" string="Alternative Phone ML"/>
-                  <field name="billing_info" string="Documento Id ML"/>
-        	    </search>
-            </field>
-        </record>
-
+    <record id="meli_buyers_search_view" model="ir.ui.view">
+        <field name="name">mercadolibre.buyers.search</field>
+        <field name="model">mercadolibre.buyers</field>
+        <field name="arch" type="xml">
+    	    <search string="Search MercadoLibre Buyers Information">
+              <field name="nickname" string="Usuario ML"/>
+              <field name="first_name" string="Nombre ML"/>
+              <field name="last_name" string="Apellido ML"/>
+              <field name="email" string="Email ML"/>
+              <field name="phone" string="Phone ML"/>
+              <field name="alternative_phone" string="Alternative Phone ML"/>
+              <field name="billing_info" string="Documento Id ML"/>
+    	    </search>
+        </field>
+    </record>
 
     <record id="view_orders_update" model="ir.ui.view">
           <field name="name">Actualizar Orden de ML</field>

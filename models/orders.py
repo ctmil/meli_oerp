@@ -48,7 +48,9 @@ from .versions import *
 class sale_order_line(models.Model):
     _inherit = "sale.order.line"
 
-    meli_order_item_id = fields.Char('Meli Order Item Id');
+    meli_order_item_id = fields.Char('Meli Order Item Id')
+    meli_order_item_variation_id = fields.Char('Meli Order Item Variation Id')
+
 sale_order_line()
 
 class sale_order(models.Model):
@@ -578,8 +580,8 @@ class mercadolibre_orders(models.Model):
                             _logger.info("Product founded:"+str(Item['item']['id']))
                         else:
                             #optional, get product
-                            if not company.mercadolibre_create_product_from_order:
-                                product_related = None
+                            productcreated = None
+                            product_related = None
 
                             try:
                                 CLIENT_ID = company.mercadolibre_client_id
@@ -602,7 +604,8 @@ class mercadolibre_orders(models.Model):
                                     prod_fields['default_code'] = seller_sku
                                 #prod_fields['default_code'] = rjson3['id']
                                 #productcreated = False
-                                productcreated = self.env['product.product'].create((prod_fields))
+                                if company.mercadolibre_create_product_from_order:
+                                    productcreated = self.env['product.product'].create((prod_fields))
                                 if (productcreated):
                                     if (productcreated.product_tmpl_id):
                                         productcreated.product_tmpl_id.meli_pub = True
@@ -647,6 +650,7 @@ class mercadolibre_orders(models.Model):
                     'order_id': order.id,
                     'posting_id': post_related_obj.id,
                     'order_item_id': Item['item']['id'],
+                    'order_item_variation_id': Item['item']['variation_id'],
                     'order_item_title': Item['item']['title'],
                     'order_item_category_id': Item['item']['category_id'],
                     'unit_price': Item['unit_price'],
@@ -657,7 +661,8 @@ class mercadolibre_orders(models.Model):
                 if (product_related):
                     order_item_fields['product_id'] = product_related.id
 
-                order_item_ids = order_items_obj.search( [('order_item_id','=',order_item_fields['order_item_id']),('order_id','=',order.id)] )
+                order_item_ids = order_items_obj.search( [('order_item_id','=',order_item_fields['order_item_id']),
+                                                            ('order_id','=',order.id)] )
                 #_logger.info( order_item_fields )
                 if not order_item_ids:
                     #_logger.info( "order_item_fields: " + str(order_item_fields) )
@@ -676,6 +681,7 @@ class mercadolibre_orders(models.Model):
                         'company_id': company.id,
                         'order_id': sorder.id,
                         'meli_order_item_id': Item['item']['id'],
+                        'meli_order_item_variation_id': Item['item']['variation_id'],
                         'price_unit': float(Item['unit_price']),
                         'product_id': product_related_obj.id,
                         'product_uom_qty': Item['quantity'],
@@ -684,7 +690,9 @@ class mercadolibre_orders(models.Model):
                     }
                     saleorderline_item_fields.update( self._set_product_unit_price( product_related_obj, Item ) )
 
-                    saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
+                    saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),
+                                                                        ('meli_order_item_variation_id','=',saleorderline_item_fields['meli_order_item_variation_id'])
+                                                                        ('order_id','=',sorder.id)] )
 
                     if not saleorderline_item_ids:
                         saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
@@ -917,6 +925,7 @@ class mercadolibre_order_items(models.Model):
     product_id = fields.Many2one("product.product",string="Product",help="Product Variant")
     order_id = fields.Many2one("mercadolibre.orders","Order")
     order_item_id = fields.Char('Item Id')
+    order_item_variation_id = fields.Char('Item Variation Id')
     order_item_title = fields.Char('Item Title')
     order_item_category_id = fields.Char('Item Category Id')
     unit_price = fields.Char(string='Unit price')

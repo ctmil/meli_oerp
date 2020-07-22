@@ -359,7 +359,8 @@ class mercadolibre_shipment(models.Model):
 				'product_uom': 1,
 				'name': "Shipping " + str(shipment.shipping_mode),
 			}
-			saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
+			saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),
+																('order_id','=',sorder.id)] )
 			if not saleorderline_item_ids:
 				saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
 				saleorderline_item_ids.tax_id = None
@@ -600,6 +601,7 @@ class mercadolibre_shipment(models.Model):
 										'company_id': company.id,
 										'order_id': shipment.sale_order.id,
 										'meli_order_item_id': mOrder.order_items[0]["order_item_id"],
+										'meli_order_item_variation_id': mOrder.order_items[0]["order_item_variation_id"],
 										'price_unit': float(unit_price),
 										'product_id': product_related_obj.id,
 										'product_uom_qty': mOrder.order_items[0]["quantity"],
@@ -611,7 +613,9 @@ class mercadolibre_shipment(models.Model):
 
 									saleorderline_item_fields.update( order._set_product_unit_price( product_related_obj, mOrder.order_items[0] ) )
 
-									saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',shipment.sale_order.id)] )
+									saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),
+																						('meli_order_item_variation_id','=',saleorderline_item_fields['meli_order_item_variation_id']),
+																						('order_id','=',shipment.sale_order.id)] )
 
 									if not saleorderline_item_ids:
 										saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
