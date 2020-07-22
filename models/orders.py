@@ -49,7 +49,7 @@ class sale_order_line(models.Model):
     _inherit = "sale.order.line"
 
     meli_order_item_id = fields.Char('Meli Order Item Id')
-    meli_order_variation_id = fields.Char('Meli Order Item Variation Id')
+    meli_order_item_variation_id = fields.Char('Meli Order Item Variation Id')
 
 sale_order_line()
 
@@ -661,7 +661,8 @@ class mercadolibre_orders(models.Model):
                 if (product_related):
                     order_item_fields['product_id'] = product_related.id
 
-                order_item_ids = order_items_obj.search( [('order_item_id','=',order_item_fields['order_item_id']),('order_id','=',order.id)] )
+                order_item_ids = order_items_obj.search( [('order_item_id','=',order_item_fields['order_item_id']),
+                                                            ('order_id','=',order.id)] )
                 #_logger.info( order_item_fields )
                 if not order_item_ids:
                     #_logger.info( "order_item_fields: " + str(order_item_fields) )
@@ -680,6 +681,7 @@ class mercadolibre_orders(models.Model):
                         'company_id': company.id,
                         'order_id': sorder.id,
                         'meli_order_item_id': Item['item']['id'],
+                        'meli_order_item_variation_id': Item['item']['variation_id'],
                         'price_unit': float(Item['unit_price']),
                         'product_id': product_related_obj.id,
                         'product_uom_qty': Item['quantity'],
@@ -688,7 +690,9 @@ class mercadolibre_orders(models.Model):
                     }
                     saleorderline_item_fields.update( self._set_product_unit_price( product_related_obj, Item ) )
 
-                    saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),('order_id','=',sorder.id)] )
+                    saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),
+                                                                        ('meli_order_item_variation_id','=',saleorderline_item_fields['meli_order_item_variation_id'])
+                                                                        ('order_id','=',sorder.id)] )
 
                     if not saleorderline_item_ids:
                         saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
