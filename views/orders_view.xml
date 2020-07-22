@@ -218,7 +218,6 @@
             </field>
         </record>
 
-<!--
     <record id="meli_orders_search_view" model="ir.ui.view">
         <field name="name">mercadolibre.orders.search</field>
         <field name="model">mercadolibre.orders</field>
@@ -227,10 +226,11 @@
              <field name="order_id" string="Order ID"/>
              <field name="status" string="Status"/>
              <field name="buyer" string="Comprador"/>
-             <field name="seller" string="Vendedor"/>
+             <!--field name="seller" string="Vendedor"/-->
 	         </search>
         </field>
     </record>
+    <!--
 
     <record id="meli_buyers_search_view" model="ir.ui.view">
         <field name="name">Compradores de ML - Buscar</field>

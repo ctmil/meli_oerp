@@ -578,8 +578,8 @@ class mercadolibre_orders(models.Model):
                             _logger.info("Product founded:"+str(Item['item']['id']))
                         else:
                             #optional, get product
-                            if not company.mercadolibre_create_product_from_order:
-                                product_related = None
+                            productcreated = None
+                            product_related = None
 
                             try:
                                 CLIENT_ID = company.mercadolibre_client_id
@@ -602,7 +602,8 @@ class mercadolibre_orders(models.Model):
                                     prod_fields['default_code'] = seller_sku
                                 #prod_fields['default_code'] = rjson3['id']
                                 #productcreated = False
-                                productcreated = self.env['product.product'].create((prod_fields))
+                                if company.mercadolibre_create_product_from_order:
+                                    productcreated = self.env['product.product'].create((prod_fields))
                                 if (productcreated):
                                     if (productcreated.product_tmpl_id):
                                         productcreated.product_tmpl_id.meli_pub = True
@@ -917,6 +918,7 @@ class mercadolibre_order_items(models.Model):
     product_id = fields.Many2one("product.product",string="Product",help="Product Variant")
     order_id = fields.Many2one("mercadolibre.orders","Order")
     order_item_id = fields.Char('Item Id')
+    order_item_variation_id = fields.Char('Item Variation Id')
     order_item_title = fields.Char('Item Title')
     order_item_category_id = fields.Char('Item Category Id')
     unit_price = fields.Char(string='Unit price')
