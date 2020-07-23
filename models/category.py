@@ -38,7 +38,7 @@ class mercadolibre_category_import(models.TransientModel):
 
     meli_category_id = fields.Char(string="MercadoLibre Category ID",help="MercadoLibre Category ID (ML????????)",default="")
 
-    def meli_category_import(self):
+    def meli_category_import(self, context=None):
 
         context = context or self.env.context
         company = self.env.user.company_id
