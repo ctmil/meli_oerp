@@ -273,8 +273,11 @@ class mercadolibre_category(models.Model):
                     'name': fullname,
                     'meli_category_id': ''+str(category_id),
                     'is_branch': is_branch,
-                    'meli_father_category': father
+                    #'meli_father_category': father
                 }
+                if (father and father.id):
+                    cat_fields['meli_father_category'] = father.id
+                _logger.info(cat_fields)
                 ml_cat_id = category_obj.create((cat_fields))
                 if (ml_cat_id.id and is_branch==False):
                   ml_cat_id._get_attributes()
