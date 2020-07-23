@@ -36,7 +36,24 @@ class mercadolibre_category_import(models.TransientModel):
     _name = "mercadolibre.category.import"
     _description = "Wizard de Importacion de Categoria desde MercadoLibre"
 
-    meli_category_id = fields.Char(string="MercadoLibre Category ID",help="MercadoLibre Category ID (ML????????)",default="")
+    def _get_default_meli_category_id(self, context=None):
+        context = context or self.env.context
+        company = self.env.user.company_id
+        mlcat_ids = context['active_ids']
+        mlcat_obj = self.env['mercadolibre.category']
+        _logger.info("_get_default_meli_category_id")
+        _logger.info(context)
+
+    def _get_default_meli_recursive_import(self, context=None):
+        context = context or self.env.context
+        company = self.env.user.company_id
+        mlcat_ids = context['active_ids']
+        mlcat_obj = self.env['mercadolibre.category']
+        _logger.info("_get_default_meli_category_id")
+        _logger.info(context)
+
+    meli_category_id = fields.Char(string="MercadoLibre Category ID",help="MercadoLibre Category ID (ML????????)",default=_get_default_meli_category_id)
+    meli_recursive_import = fields.Boolean(string="Recursive Import",help="Importar todas las subramas",default=_get_default_meli_recursive_import)
 
     def meli_category_import(self, context=None):
 

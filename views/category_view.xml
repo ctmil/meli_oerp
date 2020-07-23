@@ -23,6 +23,7 @@
                     <group string="Opciones de publicación" col="2">
                       <group>
                         <field name="meli_category_id"/>
+                        <field name="meli_recursive_import"/>
                       </group>
                     </group>
                     <footer>
