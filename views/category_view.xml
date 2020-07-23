@@ -98,7 +98,7 @@
             <field name="arch" type="xml">
               <form string="Category">
                 <div class="oe_button_box">
-                  <button type="object" name="%(action_mercadolibre_category_import)d"
+                  <button type="action" name="%(action_mercadolibre_category_import)d"
                     string="Importar"
                     title="Importar"
                     class="oe_stat_button"
