@@ -39,16 +39,16 @@ class mercadolibre_category_import(models.TransientModel):
     def _get_default_meli_category_id(self, context=None):
         context = context or self.env.context
         company = self.env.user.company_id
-        mlcat_ids = context['active_ids']
-        mlcat_obj = self.env['mercadolibre.category']
+        #mlcat_ids = context['active_ids']
+        #mlcat_obj = self.env['mercadolibre.category']
         _logger.info("_get_default_meli_category_id")
         _logger.info(context)
 
     def _get_default_meli_recursive_import(self, context=None):
         context = context or self.env.context
         company = self.env.user.company_id
-        mlcat_ids = context['active_ids']
-        mlcat_obj = self.env['mercadolibre.category']
+        #mlcat_ids = context['active_ids']
+        #mlcat_obj = self.env['mercadolibre.category']
         _logger.info("_get_default_meli_category_id")
         _logger.info(context)
 
