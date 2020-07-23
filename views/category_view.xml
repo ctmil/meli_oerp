@@ -2,6 +2,47 @@
 <odoo>
     <data>
 
+        <record id="meli_category_search_view" model="ir.ui.view">
+            <field name="name">mercadolibre.category.search</field>
+            <field name="model">mercadolibre.category</field>
+            <field name="arch" type="xml">
+               <search string="Search MercadoLibre Categories Information">
+                 <field name="name" string="Name"/>
+                 <field name="meli_category_id" string="Mercadolibre ID"/>
+                 <field name="meli_father_category_id" string="Mercadolibre Father ID"/>
+               </search>
+            </field>
+        </record>
+
+        <record id="view_meli_category_import" model="ir.ui.view">
+              <field name="name">mercadolibre.category.import.form</field>
+              <field name="model">mercadolibre.category.import</field>
+              <field name="type">form</field>
+              <field name="arch" type="xml">
+                <form string="Importar categoria desde Mercado Libre">
+                    <group string="Opciones de publicación" col="2">
+                      <group>
+                        <field name="meli_category_id"/>
+                      </group>
+                    </group>
+                    <footer>
+                        <button name="meli_category_import" string="Importar" title="Importar desde Mercado Libre"  type="object" class="oe_highlight"  />
+                        <button string="Cancel" class="oe_link" special="cancel" />
+                    </footer>
+                </form>
+              </field>
+        </record>
+
+        <record id="action_mercadolibre_category_import" model="ir.actions.act_window">
+            <field name="name">Importar categoria de ML</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="src_model">mercadolibre.category</field>
+            <field name="res_model">mercadolibre.category.import</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+
         <record model="ir.ui.view" id="view_meli_product_public_category_form_view">
           <field name="name">mercadolibre.website.category.form</field>
           <field name="model">product.public.category</field>
@@ -50,6 +91,11 @@
             <field name="arch" type="xml">
               <form string="Category">
                 <div class="oe_button_box">
+                  <button type="object" name="%(action_mercadolibre_category_import)d"
+                    string="Importar"
+                    title="Importar"
+                    class="oe_stat_button"
+                    icon="fa-cloud-download"></button>
                   <button type="object" name="action_import_father_category"
                     string="Importar Padre"
                     title="Importar Padre"

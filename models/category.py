@@ -32,6 +32,42 @@ import json
 
 from .versions import *
 
+class mercadolibre_category_import(models.TransientModel):
+    _name = "mercadolibre.category.import"
+    _description = "Wizard de Importacion de Categoria desde MercadoLibre"
+
+    meli_category_id = fields.Char(string="MercadoLibre Category ID",help="MercadoLibre Category ID (ML????????)",default="")
+
+    def meli_category_import(self):
+
+        context = context or self.env.context
+        company = self.env.user.company_id
+        mlcat_ids = context['active_ids']
+        mlcat_obj = self.env['mercadolibre.category']
+
+        warningobj = self.env['warning']
+
+        REDIRECT_URI = company.mercadolibre_redirect_uri
+        CLIENT_ID = company.mercadolibre_client_id
+        CLIENT_SECRET = company.mercadolibre_secret_key
+        ACCESS_TOKEN = company.mercadolibre_access_token
+        REFRESH_TOKEN = company.mercadolibre_refresh_token
+
+        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+
+        if ACCESS_TOKEN=='' or ACCESS_TOKEN==False:
+            meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
+            url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
+            return {
+                "type": "ir.actions.act_url",
+                "url": url_login_meli,
+                "target": "new",
+            }
+
+        _logger.info(context)
+
+mercadolibre_category_import()
+
 class product_public_category(models.Model):
 
     _inherit="product.public.category"
@@ -334,6 +370,8 @@ class mercadolibre_category(models.Model):
     meli_category_settings = fields.Char(string="Settings")
     meli_setting_minimum_price = fields.Float(string="Minimum price")
     meli_setting_maximum_price = fields.Float(string="Maximum price")
+    meli_setting_minimum_qty = fields.Float(string="Minimum qty")
+    meli_setting_maximum_qty = fields.Float(string="Maximum qty")
 
 
 mercadolibre_category()
