@@ -43,6 +43,13 @@
             <field name="target">new</field>
         </record>
 
+        <act_window id="action_mercadolibre_category_import"
+            name="Importar categoria de ML"
+            src_model="mercadolibre.category"
+            res_model="mercadolibre.category.import"
+            view_type="form" view_mode="form"
+            key2="client_action_multi" target="new"/>
+
         <record model="ir.ui.view" id="view_meli_product_public_category_form_view">
           <field name="name">mercadolibre.website.category.form</field>
           <field name="model">product.public.category</field>
