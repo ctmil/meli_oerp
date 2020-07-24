@@ -691,7 +691,7 @@ class mercadolibre_orders(models.Model):
                     saleorderline_item_fields.update( self._set_product_unit_price( product_related_obj, Item ) )
 
                     saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),
-                                                                        ('meli_order_item_variation_id','=',saleorderline_item_fields['meli_order_item_variation_id'])
+                                                                        ('meli_order_item_variation_id','=',saleorderline_item_fields['meli_order_item_variation_id']),
                                                                         ('order_id','=',sorder.id)] )
 
                     if not saleorderline_item_ids:
