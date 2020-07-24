@@ -37,7 +37,7 @@
         <record id="action_mercadolibre_category_import" model="ir.actions.act_window">
             <field name="name">Importar categoria de ML</field>
             <field name="type">ir.actions.act_window</field>
-            <field name="src_model">mercadolibre.category</field>
+            <!--field name="src_model">mercadolibre.category</field-->
             <field name="res_model">mercadolibre.category.import</field>
             <!--field name="view_type">form</field-->
             <field name="view_mode">form</field>
