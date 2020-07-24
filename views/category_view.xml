@@ -51,7 +51,7 @@
             binding_type="action"
             binding_views="list,form"
             view_mode="form"
-            key2="client_action_multi" target="new"/>
+            target="new"/>
 
         <record model="ir.ui.view" id="view_meli_product_public_category_form_view">
           <field name="name">mercadolibre.website.category.form</field>
