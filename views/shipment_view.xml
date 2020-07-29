@@ -38,12 +38,20 @@
             <field name="arch" type="xml">
                 <form string="Shipment">
                   <header>
-                    Status: <field name="status"/>
                   </header>
                   <sheet>
+                    <div name="button_box" position="inside">
+                      <button class="oe_stat_button" type="object" name="update"
+                          icon="fa-car">
+                          <field string="Status" name="status" widget="statinfo"/>
+                      </button>
+                      <button class="oe_stat_button" type="object" name="update"
+                          icon="fa-car">
+                          <field string="Status" name="substatus" widget="statinfo"/>
+                      </button>
+                    </div>
                     <div class="oe_title">
                       <h1><field name="name"/></h1>
-                      <h4>Sub-Status: <field name="substatus"/></h4>
                       <h5><field name="shipping_id"/></h5>
                     </div>
                     <div class="oe_button_box" name="button_box_mel" style="width: auto;">
