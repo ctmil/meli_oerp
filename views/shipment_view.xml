@@ -38,7 +38,7 @@
             <field name="arch" type="xml">
                 <form string="Shipment">
                   <header>
-                    <h3>Status: <field name="status"/></h3>
+                    Status: <field name="status"/>
                   </header>
                   <sheet>
                     <div class="oe_title">
