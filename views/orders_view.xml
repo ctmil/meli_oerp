@@ -119,12 +119,11 @@
             <field name="arch" type="xml">
               <form string="Orden de ML">
                 <header>
-                  <field name="status"/>
+                  <field name="status" widget="statusbar"/>
                 </header>
                 <sheet>
                   <div class="oe_title">
                     <h1><field name="name"/></h1>
-                    <field name="status"/>
                     <field name="status_detail"/>
                     <field name="tags"/>
                     <field name="order_id"/>
