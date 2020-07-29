@@ -769,6 +769,8 @@ class mercadolibre_orders(models.Model):
         if sorder:
             if (company.mercadolibre_order_confirmation!="manual"):
                 sorder.confirm_ml()
+            if (sorder.meli_status=="cancelled"):
+                sorder.action_cancel()
 
         return {}
 
