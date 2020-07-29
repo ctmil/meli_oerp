@@ -37,16 +37,15 @@
             <field name="type">form</field>
             <field name="arch" type="xml">
                 <form string="Shipment">
-                  <header>
-                  </header>
+                  
                   <sheet>
-                    <div name="button_box" position="inside">
+                    <div name="button_box">
                       <button class="oe_stat_button" type="object" name="update"
                           icon="fa-car">
                           <field string="Status" name="status" widget="statinfo"/>
                       </button>
                       <button class="oe_stat_button" type="object" name="update"
-                          icon="fa-car">
+                          icon="fa-refresh">
                           <field string="Status" name="substatus" widget="statinfo"/>
                       </button>
                     </div>
