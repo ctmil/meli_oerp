@@ -131,6 +131,7 @@ class mercadolibre_shipment_print(models.TransientModel):
 			return warningobj.info( title='Impresión de etiquetas: Estas etiquetas ya fueron todas impresas.', message=reporte )
 
 	def shipment_stock_picking_print(self, context=None):
+		_logger.info("shipment_stock_picking_print")
 		context = context or self.env.context
 		company = self.env.user.company_id
 		picking_ids = context['active_ids']
