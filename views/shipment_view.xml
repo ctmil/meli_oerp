@@ -38,7 +38,7 @@
             <field name="arch" type="xml">
                 <form string="Shipment">
                   <sheet>
-                    <div name="button_box">
+                    <div name="oe_button_box" style="width: auto;">
                       <button class="oe_stat_button" type="object" name="update"
                           icon="fa-car">
                           <field string="Status" name="status" widget="statinfo"/>
