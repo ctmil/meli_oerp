@@ -171,14 +171,14 @@
             name="Envíos" />
 
         <record id="view_mercadolibre_shipment_print" model="ir.ui.view">
-              <field name="name">Imprimir Etiquetas</field>
+              <field name="name">Imprimir Guias de MercadoLibre</field>
               <field name="model">mercadolibre.shipment.print</field>
               <field name="type">form</field>
               <field name="arch" type="xml">
-                <form string="PO Merge" version="7.0">
+                <form string="Imprimir Guias">
                     <field name="include_ready_to_print" />
                     <footer>
-                        <button name="shipment_print" string="Imprimir Etiqueta"  type="object" class="oe_highlight"  />
+                        <button name="shipment_print" string="Imprimir Guias"  type="object" class="oe_highlight"  />
                         <button string="Cancel" class="oe_link" special="cancel" />
                     </footer>
                 </form>
@@ -186,7 +186,7 @@
         </record>
 
         <record id="action_mercadolibre_shipment_print" model="ir.actions.act_window">
-            <field name="name">Print (Etiquetas/Guías)</field>
+            <field name="name">Imprimir Guias de MercadoLibre</field>
             <field name="type">ir.actions.act_window</field>
             <field name="src_model">mercadolibre.shipment</field>
             <field name="res_model">mercadolibre.shipment.print</field>
@@ -196,21 +196,21 @@
         </record>
 
         <act_window id="action_mercadolibre_shipment_print"
-            name="Meli Print (Guías/Etiquetas PDF ML)"
+            name="Imprimir Guias de MercadoLibre"
             src_model="mercadolibre.shipment"
             res_model="mercadolibre.shipment.print"
             view_type="form" view_mode="form"
             key2="client_action_multi" target="new"/>
 
         <record id="view_mercadolibre_stock_picking_print" model="ir.ui.view">
-              <field name="name">Imprimir Etiquetas</field>
+              <field name="name">Imprimir Guias de MercadoLibre</field>
               <field name="model">mercadolibre.shipment.print</field>
               <field name="type">form</field>
               <field name="arch" type="xml">
-                <form string="PO Merge" version="7.0">
+                <form string="Imprimir Guias de MercadoLibre" version="7.0">
                     <field name="include_ready_to_print" />
                     <footer>
-                        <button name="shipment_stock_picking_print" string="Imprimir Etiqueta (Entregas)"  type="object" class="oe_highlight"  />
+                        <button name="shipment_stock_picking_print" string="Imprimir Etiqueta (Guias)"  type="object" class="oe_highlight"  />
                         <button string="Cancel" class="oe_link" special="cancel" />
                     </footer>
                 </form>
@@ -218,7 +218,7 @@
         </record>
 
         <record id="action_mercadolibre_stock_picking_print" model="ir.actions.act_window">
-            <field name="name">Print (Etiquetas/Guías)</field>
+            <field name="name">Imprimir Guias de MercadoLibre</field>
             <field name="type">ir.actions.act_window</field>
             <field name="src_model">stock.picking</field>
             <field name="res_model">mercadolibre.shipment.print</field>
@@ -228,7 +228,7 @@
         </record>
 
         <act_window id="action_mercadolibre_stock_picking_print"
-                name="Meli Print (Guías/Etiquetas PDF ML)"
+                name="Imprimir Guias de MercadoLibre"
                 src_model="stock.picking"
                 res_model="mercadolibre.shipment.print"
                 view_type="form" view_mode="form"
