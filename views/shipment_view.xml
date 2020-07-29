@@ -44,7 +44,7 @@
                     </button>
                     <button class="oe_stat_button" type="object" name="update"
                         icon="fa-refresh">
-                        <field string="Status" name="substatus" widget="statinfo"/>
+                        <field string="Sub-Status" name="substatus" widget="statinfo"/>
                     </button>
                   </div>
                   <sheet>
