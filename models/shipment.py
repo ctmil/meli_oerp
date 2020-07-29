@@ -97,7 +97,7 @@ class mercadolibre_shipment_print(models.TransientModel):
 				download_url = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+shipment.shipping_id+"&response_type=pdf&access_token="+meli.access_token
 				shipment.pdf_link = download_url
 
-				if (shipment.substatus=="printed"):
+				if (shipment.substatus=="printed" or self.include_ready_to_print):
 					try:
 						data = urlopen(shipment.pdf_link).read()
 						_logger.info(data)
@@ -166,7 +166,7 @@ class mercadolibre_shipment_print(models.TransientModel):
 				download_url = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+shipment.shipping_id+"&response_type=pdf&access_token="+meli.access_token
 				shipment.pdf_link = download_url
 
-				if (shipment.substatus=="printed"):
+				if (shipment.substatus=="printed" or self.include_ready_to_print):
 					try:
 						data = urlopen(shipment.pdf_link).read()
 						_logger.info(data)
@@ -191,7 +191,7 @@ class mercadolibre_shipment_print(models.TransientModel):
 				reporte = reporte + sep + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)
 				sep = "<br>"+"\n"
 
-
+	include_ready_to_print = fields.Boolean(string="Include Ready To Print",default=False)
 
 mercadolibre_shipment_print()
 

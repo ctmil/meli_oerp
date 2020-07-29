@@ -1875,7 +1875,7 @@ class product_product(models.Model):
 
 
 
-        force_template_title = False
+        force_template_title = company.mercadolibre_product_template_override_variant
         if (product_tmpl.meli_title and force_template_title):
             product.meli_title = product_tmpl.meli_title
 
