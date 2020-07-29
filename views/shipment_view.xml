@@ -207,7 +207,7 @@
               <field name="type">form</field>
               <field name="arch" type="xml">
                 <form string="PO Merge" version="7.0">
-                    <field name="include_printed" />
+                    <field name="include_ready_to_print" />
                     <footer>
                         <button name="shipment_stock_picking_print" string="Imprimir Etiqueta (Entregas)"  type="object" class="oe_highlight"  />
                         <button string="Cancel" class="oe_link" special="cancel" />
