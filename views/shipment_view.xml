@@ -209,14 +209,14 @@
             key2="client_action_multi" target="new"/>
 
         <record id="view_mercadolibre_stock_picking_print" model="ir.ui.view">
-              <field name="name">Imprimir Guias de MercadoLibre</field>
+              <field name="name">Imprimir Guias de MercadoLibre (Inv.)</field>
               <field name="model">mercadolibre.shipment.print</field>
               <field name="type">form</field>
               <field name="arch" type="xml">
-                <form string="Imprimir Guias de MercadoLibre" version="7.0">
+                <form string="Imprimir Guias de MercadoLibre (Inv.)" version="7.0">
                     <field name="include_ready_to_print" />
                     <footer>
-                        <button name="shipment_stock_picking_print" string="Imprimir Etiqueta (Guias)"  type="object" class="oe_highlight"  />
+                        <button name="shipment_stock_picking_print" string="Imprimir Etiqueta (Guias) (Inv.)"  type="object" class="oe_highlight"  />
                         <button string="Cancel" class="oe_link" special="cancel" />
                     </footer>
                 </form>
@@ -224,10 +224,11 @@
         </record>
 
         <record id="action_mercadolibre_stock_picking_print" model="ir.actions.act_window">
-            <field name="name">Imprimir Guias de MercadoLibre</field>
+            <field name="name">Imprimir Guias de MercadoLibre (Inv.)</field>
             <field name="type">ir.actions.act_window</field>
             <field name="src_model">stock.picking</field>
             <field name="res_model">mercadolibre.shipment.print</field>
+            <field name="view_id">view_mercadolibre_stock_picking_print</view>
             <field name="view_type">form</field>
             <field name="view_mode">form</field>
             <field name="target">new</field>
