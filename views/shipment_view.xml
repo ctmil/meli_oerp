@@ -239,7 +239,8 @@
                 binding_model="stock.picking"
                 res_model="mercadolibre.shipment.print"
                 view_id="view_mercadolibre_stock_picking_print"
-                view_type="form" view_mode="form"
+                binding_views="form"
+                view_mode="form"
                 target="new"/>
 
 
