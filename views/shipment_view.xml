@@ -205,7 +205,7 @@
             name="Imprimir Guias de MercadoLibre"
             binding_model="mercadolibre.shipment"
             res_model="mercadolibre.shipment.print"
-            binding_views="form"
+            binding_views="list,form"
             view_mode="form"
             target="new"/>
 	
@@ -239,7 +239,7 @@
                 binding_model="stock.picking"
                 res_model="mercadolibre.shipment.print"
                 view_id="view_mercadolibre_stock_picking_print"
-                binding_views="form"
+                binding_views="list,form"
                 view_mode="form"
                 target="new"/>
 
@@ -273,7 +273,7 @@
                 name="Update"
                 binding_model="mercadolibre.shipment"
                 res_model="mercadolibre.shipment.update"
-                binding_views="form" 
+                binding_views="list,form"
                 view_mode="form"                
                 target="new"/>
 
