@@ -94,6 +94,9 @@ class sale_order(models.Model):
         company = self.env.user.company_id
         stock_picking = self.env["stock.picking"]
 
+        if (self.meli_status=="cancelled"):
+            self.action_cancel()
+
         if (company.mercadolibre_order_confirmation=="paid_confirm"):
 
             if ( (self.state=="draft" or self.state=="sent") and self.meli_status=="paid"):
@@ -766,6 +769,8 @@ class mercadolibre_orders(models.Model):
         if sorder:
             if (company.mercadolibre_order_confirmation!="manual"):
                 sorder.confirm_ml()
+            if (sorder.meli_status=="cancelled"):
+                sorder.action_cancel()
 
         return {}
 
@@ -977,7 +982,6 @@ mercadolibre_buyers()
 
 class res_partner(models.Model):
     _inherit = "res.partner"
-
 
     meli_buyer_id = fields.Char('Meli Buyer Id')
     meli_buyer = fields.Many2one('mercadolibre.buyers',string='Buyer')
