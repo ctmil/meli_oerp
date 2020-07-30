@@ -238,6 +238,7 @@
                 name="Imprimir Guias de MercadoLibre"
                 src_model="stock.picking"
                 res_model="mercadolibre.shipment.print"
+                view_id="view_mercadolibre_stock_picking_print"
                 view_type="form" view_mode="form"
                 key2="client_action_multi" target="new"/>
 
