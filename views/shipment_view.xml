@@ -182,7 +182,7 @@
               <field name="type">form</field>
               <field name="arch" type="xml">
                 <form string="Imprimir Guias">
-                    <field name="include_ready_to_print" />
+                    Incluir etiquetas aun no impresas: <field name="include_ready_to_print" />
                     <footer>
                         <button name="shipment_print" string="Imprimir Guias"  type="object" class="oe_highlight"  />
                         <button string="Cancel" class="oe_link" special="cancel" />
@@ -214,7 +214,7 @@
               <field name="type">form</field>
               <field name="arch" type="xml">
                 <form string="Imprimir Guias de MercadoLibre (Inv.)" version="7.0">
-                    <field name="include_ready_to_print" />
+                    Incluir etiquetas aun no impresas: <field name="include_ready_to_print" />
                     <footer>
                         <button name="shipment_stock_picking_print" string="Imprimir Etiqueta (Guias) (Inv.)"  type="object" class="oe_highlight"  />
                         <button string="Cancel" class="oe_link" special="cancel" />
