@@ -97,7 +97,7 @@ class mercadolibre_shipment_print(models.TransientModel):
 				download_url = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+shipment.shipping_id+"&response_type=pdf&access_token="+meli.access_token
 				shipment.pdf_link = download_url
 
-				if (shipment.substatus=="printed"):
+				if (shipment.substatus=="printed" or self.include_ready_to_print):
 					try:
 						data = urlopen(shipment.pdf_link).read()
 						_logger.info(data)
@@ -131,6 +131,7 @@ class mercadolibre_shipment_print(models.TransientModel):
 			return warningobj.info( title='Impresión de etiquetas: Estas etiquetas ya fueron todas impresas.', message=reporte )
 
 	def shipment_stock_picking_print(self, context=None):
+		_logger.info("shipment_stock_picking_print")
 		context = context or self.env.context
 		company = self.env.user.company_id
 		picking_ids = context['active_ids']
@@ -153,12 +154,23 @@ class mercadolibre_shipment_print(models.TransientModel):
 		for pick_id in picking_ids:
 			#sacar la orden relacionada
 			#de la orden sacar el shipping id
-			if (pick_id.sale_id and pick_id.sale_id.meli_shipment):
-				shipid = pick_id.sale_id.meli_shipment.id
-			else:
+			pick = picking_obj.browse(pick_id)
+			shipid = None
+			shipment = None
+			if (pick and pick.sale_id):
+				if (pick.sale_id.meli_shipment):
+					shipid = pick.sale_id.meli_shipment.id
+				if ( (not shipid) and len(pick.sale_id.meli_orders) ):
+					shipment = shipment_obj.search([('shipping_id','=',pick.sale_id.meli_orders[0].shipping_id)])
+					if (shipment):
+						shipid = shipment.id
+			else:					
 				continue;
-			shipment = shipment_obj.browse(shipid)
-			shipment.update()
+
+			if (shipid):
+				shipment = shipment_obj.browse(shipid)
+				shipment.update()
+
 			if (shipment and shipment.status=="ready_to_ship"):
 				full_ids = full_ids + comma + shipment.shipping_id
 				#full_str_ids = full_str_ids + comma + shipment
@@ -166,7 +178,7 @@ class mercadolibre_shipment_print(models.TransientModel):
 				download_url = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+shipment.shipping_id+"&response_type=pdf&access_token="+meli.access_token
 				shipment.pdf_link = download_url
 
-				if (shipment.substatus=="printed"):
+				if (shipment.substatus=="printed" or self.include_ready_to_print):
 					try:
 						data = urlopen(shipment.pdf_link).read()
 						_logger.info(data)
@@ -188,10 +200,22 @@ class mercadolibre_shipment_print(models.TransientModel):
 						sep = "<br>"+"\n"
 
 			else:
-				reporte = reporte + sep + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)
+				if (shipment):
+					reporte = reporte + sep + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)
+				else:
+					reporte = reporte + sep + str(pick.name) + " has no ML shipment."
 				sep = "<br>"+"\n"
 
+		_logger.info(full_ids)
+		full_url_link_pdf = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_ids+"&response_type=pdf&access_token="+meli.access_token
+		_logger.info(full_url_link_pdf)
+		if (full_ids):
+			return warningobj.info( title='Impresión de etiquetas', message="Abrir este link para descargar el PDF", message_html=""+full_ids+'<br><br><a href="'+full_url_link_pdf+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'+"<br><br>Reporte de no impresas:<br>"+reporte )
+		else:
+			return warningobj.info( title='Impresión de etiquetas: Estas etiquetas ya fueron todas impresas.', message="O no tienen shipments asociados.", message_html=reporte )
 
+
+	include_ready_to_print = fields.Boolean(string="Include Ready To Print",default=False)
 
 mercadolibre_shipment_print()
 
@@ -245,8 +269,9 @@ class mercadolibre_shipment(models.Model):
 	shipping_cost = fields.Float(string='Shipping Cost')
 	shipping_list_cost = fields.Float(string='Shipping List Cost')
 
-	status = fields.Char("Status")
-	substatus = fields.Char("Sub Status")
+	#state = fields.Selection(string="State",)
+	status = fields.Char(string="Status")
+	substatus = fields.Char(string="Sub Status")
 	status_history = fields.Text("status_history")
 	tracking_number = fields.Char("Tracking number")
 	tracking_method = fields.Char("Tracking method")
@@ -541,6 +566,7 @@ class mercadolibre_shipment(models.Model):
 						sorder = self.env["sale.order"].search( [ ('meli_order_id','=',ship_fields["order_id"]) ] )
 						if len(sorder):
 							shipment.sale_order = sorder
+							sorder.meli_shipment = shipment
 
 					if (full_orders and ship_fields["pack_order"]):
 						plistid = None
