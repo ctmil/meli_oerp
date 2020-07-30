@@ -154,12 +154,21 @@ class mercadolibre_shipment_print(models.TransientModel):
 		for pick_id in picking_ids:
 			#sacar la orden relacionada
 			#de la orden sacar el shipping id
-			if (pick_id.sale_id and pick_id.sale_id.meli_shipment):
-				shipid = pick_id.sale_id.meli_shipment.id
-			else:
+			pick = picking_obj.browse(pick_id)
+			shipid = None
+			shipment = None
+			if (pick and pick.sale_id):
+				if (pick.sale_id.meli_shipment):
+					shipid = pick.sale_id.meli_shipment.id
+				if (not shipid):
+					shipid = pick.sale_id.shipping_id
+			else:					
 				continue;
-			shipment = shipment_obj.browse(shipid)
-			shipment.update()
+
+			if (shipid):
+				shipment = shipment_obj.browse(shipid)
+				shipment.update()
+
 			if (shipment and shipment.status=="ready_to_ship"):
 				full_ids = full_ids + comma + shipment.shipping_id
 				#full_str_ids = full_str_ids + comma + shipment
