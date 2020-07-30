@@ -200,7 +200,10 @@ class mercadolibre_shipment_print(models.TransientModel):
 						sep = "<br>"+"\n"
 
 			else:
-				reporte = reporte + sep + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)
+				if (shipment):
+					reporte = reporte + sep + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)
+				else:
+					reporte = reporte + sep + str(pick.name)
 				sep = "<br>"+"\n"
 
 		_logger.info(full_ids)
