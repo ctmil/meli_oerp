@@ -1854,7 +1854,7 @@ class product_product(models.Model):
 
         #Si la descripcion de template esta vacia la asigna del description_sale
         force_template_description = company.mercadolibre_product_template_override_variant
-        if product_tmpl.meli_description==False or ( product_tmpl.meli_description and len(product_tmpl.meli_description)==0) or force_template_description:
+        if force_template_description or product_tmpl.meli_description==False or ( product_tmpl.meli_description and len(product_tmpl.meli_description)==0):
             product_tmpl.meli_description = product_tmpl.description_sale
 
         if (
