@@ -160,8 +160,8 @@ class mercadolibre_shipment_print(models.TransientModel):
 			if (pick and pick.sale_id):
 				if (pick.sale_id.meli_shipment):
 					shipid = pick.sale_id.meli_shipment.id
-				if (not shipid):
-					shipid = pick.sale_id.shipping_id
+				if ( (not shipid) and len(pick.sale_id.meli_orders) ):
+					shipid = pick.sale_id.meli_orders[0].shipping_id
 			else:					
 				continue;
 
