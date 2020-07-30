@@ -228,7 +228,7 @@
             <field name="type">ir.actions.act_window</field>
             <field name="src_model">stock.picking</field>
             <field name="res_model">mercadolibre.shipment.print</field>
-            <field name="view_id">view_mercadolibre_stock_picking_print</view>
+            <field name="view_id" ref="meli_oerp.view_mercadolibre_stock_picking_print"></field>
             <field name="view_type">form</field>
             <field name="view_mode">form</field>
             <field name="target">new</field>
