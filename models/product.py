@@ -1853,7 +1853,8 @@ class product_product(models.Model):
             product_tmpl.meli_buying_mode = company.mercadolibre_buying_mode
 
         #Si la descripcion de template esta vacia la asigna del description_sale
-        if product_tmpl.meli_description==False or ( product_tmpl.meli_description and len(product_tmpl.meli_description)==0):
+        force_template_description = company.mercadolibre_product_template_override_variant
+        if product_tmpl.meli_description==False or ( product_tmpl.meli_description and len(product_tmpl.meli_description)==0) or force_template_description:
             product_tmpl.meli_description = product_tmpl.description_sale
 
         if (
@@ -1887,7 +1888,7 @@ class product_product(models.Model):
                 _logger.info("Assign tmpl price:"+str(product_tmpl.meli_price))
                 product.meli_price = product_tmpl.meli_price
 
-        if product.meli_description==False:
+        if product.meli_description==False or force_template_description:
             product.meli_description = product_tmpl.meli_description
 
         if (product_tmpl.meli_description and len(product_tmpl.meli_description)>=0):
