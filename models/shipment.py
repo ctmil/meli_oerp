@@ -203,7 +203,7 @@ class mercadolibre_shipment_print(models.TransientModel):
 				if (shipment):
 					reporte = reporte + sep + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)
 				else:
-					reporte = reporte + sep + str(pick.name)
+					reporte = reporte + sep + str(pick.name) + " has no ML shipment."
 				sep = "<br>"+"\n"
 
 		_logger.info(full_ids)
@@ -212,7 +212,7 @@ class mercadolibre_shipment_print(models.TransientModel):
 		if (full_ids):
 			return warningobj.info( title='Impresión de etiquetas', message="Abrir este link para descargar el PDF", message_html=""+full_ids+'<br><br><a href="'+full_url_link_pdf+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'+"<br><br>Reporte de no impresas:<br>"+reporte )
 		else:
-			return warningobj.info( title='Impresión de etiquetas: Estas etiquetas ya fueron todas impresas.', message=reporte )
+			return warningobj.info( title='Impresión de etiquetas: Estas etiquetas ya fueron todas impresas.', message="O no tienen shipments asociados.", message_html=reporte )
 
 
 	include_ready_to_print = fields.Boolean(string="Include Ready To Print",default=False)
