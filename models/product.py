@@ -1844,7 +1844,7 @@ class product_product(models.Model):
         if company.mercadolibre_warranty and product_tmpl.meli_warranty==False:
             product_tmpl.meli_warranty = company.mercadolibre_warranty
 
-        if product_tmpl.meli_title==False:
+        if product_tmpl.meli_title==False or ( product_tmpl.meli_title and len(product_tmpl.meli_title)==0 ):
             product_tmpl.meli_title = product_tmpl.name
 
         product.set_meli_price()
@@ -1853,14 +1853,19 @@ class product_product(models.Model):
             product_tmpl.meli_buying_mode = company.mercadolibre_buying_mode
 
         #Si la descripcion de template esta vacia la asigna del description_sale
-        force_template_description = company.mercadolibre_product_template_override_variant
+        force_template_description = ( company.mercadolibre_product_template_override_variant
+                                        and company.mercadolibre_product_template_override_method
+                                        and company.mercadolibre_product_template_override_method in ['default','description','title_and_description']
+                                        )
         if force_template_description or product_tmpl.meli_description==False or ( product_tmpl.meli_description and len(product_tmpl.meli_description)==0):
             product_tmpl.meli_description = product_tmpl.description_sale
 
         if (
             ( product.meli_title==False or len(product.meli_title)==0 )
             or
-            ( product_tmpl.meli_pub_variant_attributes and not product_tmpl.meli_pub_as_variant and len(product_tmpl.meli_pub_variant_attributes) )
+            ( product_tmpl.meli_pub_variant_attributes
+                and not product_tmpl.meli_pub_as_variant
+                    and len(product_tmpl.meli_pub_variant_attributes) )
             ):
             # _logger.info( 'Assigning title: product.meli_title: %s name: %s' % (product.meli_title, product.name) )
             product.meli_title = product_tmpl.meli_title
@@ -1873,11 +1878,12 @@ class product_product(models.Model):
                 if (not product_tmpl.meli_pub_as_variant):
                     product.meli_title = string.replace(product.meli_title,product.name,product.name+" "+values)
 
+        force_template_title = ( company.mercadolibre_product_template_override_variant
+                                 and company.mercadolibre_product_template_override_method
+                                 and company.mercadolibre_product_template_override_method in ['title','title_and_description']
+                                )
 
-
-
-        force_template_title = company.mercadolibre_product_template_override_variant
-        if (product_tmpl.meli_title and force_template_title):
+        if ( product_tmpl.meli_title and force_template_title):
             product.meli_title = product_tmpl.meli_title
 
         if ( product.meli_title and len(product.meli_title)>60 ):
