@@ -283,6 +283,15 @@ class res_company(models.Model):
         string='Valores excluidos',help='Seleccionar valores que serán excluidos para las publicaciones de variantes')
     mercadolibre_update_local_stock = fields.Boolean(string='Cron Get Products and take Stock from ML')
     mercadolibre_product_template_override_variant = fields.Boolean(string='Product template override Variant')
+    mercadolibre_product_template_override_method = fields.Selection(string='Método para Sobreescribir',
+                                                                    help='Método para Sobreescribir Titulo y Descripcion desde la información del Producto a la solapa de ML y sus variantes de ML',
+                                                                    selection=[
+                                                                        ('default','Predeterminado, sobreescribe descripcion solamente'),
+                                                                        ('description','Sobreescribir descripcion solamente'),
+                                                                        ('title','Sobreescribir título solamente'),
+                                                                        ('title_and_description','Sobreescribir titulo y descripcion')
+                                                                    ],
+                                                                    default='default')
     mercadolibre_order_confirmation = fields.Selection([ ("manual", "Manual"),
                                                 ("paid_confirm", "Pagado>Confirmado"),
                                                 ("paid_delivered", "Pagado>Entregado")],

@@ -91,7 +91,7 @@
                                 <group>
                                   <field name="mercadolibre_warranty" invisible="0"/>
                                   <field name="mercadolibre_listing_type" invisible="0"/>
-                                  <field name="mercadolibre_seller_user" invisible="0"/>                                  
+                                  <field name="mercadolibre_seller_user" invisible="0"/>
                                   <field name="mercadolibre_attributes" invisible="0"/>
                                   <field name="mercadolibre_exclude_attributes"  widget="many2many" options="{'no_create': True}">
                                     <tree>
@@ -126,6 +126,10 @@
                                   <field name="mercadolibre_cron_get_new_products" invisible="0"/>
                                   <field name="mercadolibre_update_local_stock" invisible="0"/>
                                   <field name="mercadolibre_order_confirmation" invisible="0"/>
+                                  <!--
+                                    <field name="mercadolibre_overwrite_template" invisible="0"/>
+                                    <field name="mercadolibre_overwrite_variant" invisible="0"/>
+                                  -->
                                 </group>
                               </group>
                               <group string="Automatización Odoo a ML" name="autopost"  col="2">
@@ -138,14 +142,12 @@
                                 <group>
                                   <field name="mercadolibre_post_default_code" invisible="0"/>
                                   <field name="mercadolibre_product_template_override_variant" invisible="0"/>
+                                  <field name="mercadolibre_product_template_override_method" invisble="0"/>
+                                  <hr/>
                                   <field name="mercadolibre_product_attribute_creation" invisible="0"/>
                                   <field name="mercadolibre_do_not_use_first_image" invisible="0"/>
                                   <field name="mercadolibre_process_offset" invisible="1"/>
                                 </group>
-                                <!--
-                                  <field name="mercadolibre_overwrite_template" invisible="0"/>
-                                  <field name="mercadolibre_overwrite_variant" invisible="0"/>
-                                -->
                               </group>
                             </group>
 
