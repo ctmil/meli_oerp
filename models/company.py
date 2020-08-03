@@ -313,6 +313,8 @@ class res_company(models.Model):
     mercadolibre_post_default_code = fields.Boolean(string='Post SKU',help='Post Odoo default_code field for templates or variants to seller_custom_field in ML')
     mercadolibre_import_search_sku = fields.Boolean(string='Search SKU',help='Search product by default_code')
 
+    mercadolibre_seller_user = fields.Many2one(string="Vendedor", "res.user" )
+
     def	meli_logout(self):
         _logger.info('company.meli_logout() ')
         self.ensure_one()
