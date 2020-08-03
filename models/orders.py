@@ -492,6 +492,9 @@ class mercadolibre_orders(models.Model):
                 order_fields['shipping_id'] = order_json["shipping"]["id"]
                 meli_order_fields['meli_shipping_id'] = order_json["shipping"]["id"]
 
+        #user
+        if (company.mercadolibre_seller_user):
+            meli_order_fields["user_id"] = company.mercadolibre_seller_user.id
 
         #create or update order
         if (order and order.id):
