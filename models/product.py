@@ -629,18 +629,21 @@ class product_product(models.Model):
 
         try:
             product = self
-            thumbnail_url = pictures[0]['url']
-            image = urlopen(thumbnail_url).read()
-            image_base64 = base64.encodestring(image)
-            set_image_full(product, image_base64)
+            ix_start = 0
+            if (not company.mercadolibre_do_not_use_first_image):
+                ix_start = 1
+                thumbnail_url = pictures[0]['url']
+                image = urlopen(thumbnail_url).read()
+                image_base64 = base64.encodestring(image)
+                set_image_full(product, image_base64)
 
-            if (len(pictures)>1):
+            if (len(pictures)):
                 #complete product images:
                 #delete all images...
                 _logger.info("Importing all images after principal...")
                 #_logger.info(pictures)
                 #_logger.info(range(1,len(pictures)))
-                for ix in range(1,len(pictures)):
+                for ix in range(ix_start,len(pictures)):
                     pic = pictures[ix]
                     _logger.info(pic)
                     bin_updating = False
