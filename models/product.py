@@ -679,6 +679,7 @@ class product_product(models.Model):
                             _logger.info("Image:"+str(len(imagebin))+" vs URLImage:"+str(meli_imagen_bytes)+" diff:"+str(bin_diff) )
                             bin_updating = (abs(bin_diff)>0)
 
+                    _logger.info(pimage)
                     if (pimage==False or (pimage and len(pimage)==0)):
                         _logger.info("Creating new image")
                         bin_updating = True
