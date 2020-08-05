@@ -759,7 +759,7 @@ class product_product(models.Model):
 
         #TODO: verificar q es un video
         if rjson['video_id']:
-            vid = ''
+            vid = rjson['video_id']
 
         #TODO: traer las imagenes
         #TODO:
