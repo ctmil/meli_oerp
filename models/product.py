@@ -645,7 +645,7 @@ class product_product(models.Model):
                 #_logger.info(range(1,len(pictures)))
                 for ix in range(ix_start,len(pictures)):
                     pic = pictures[ix]
-                    _logger.info(pic)
+                    #_logger.info(pic)
                     bin_updating = False
                     resimage = meli.get("/pictures/"+pic['id'], {'access_token':meli.access_token})
                     imgjson = resimage.json()
@@ -682,7 +682,7 @@ class product_product(models.Model):
                             _logger.info("Image:"+str(len(imagebin))+" vs URLImage:"+str(meli_imagen_bytes)+" diff:"+str(bin_diff) )
                             bin_updating = (abs(bin_diff)>0)
 
-                    _logger.info(str(pimage==False))
+                    #_logger.info(str(pimage==False))
                     if (not pimage or (pimage and len(pimage)==0)):
                         _logger.info("Creating new image")
                         bin_updating = True
@@ -2130,6 +2130,7 @@ class product_product(models.Model):
         multi_images_ids = {}
         if (variant_image_ids(product)):
             multi_images_ids = product.product_meli_upload_multi_images()
+            _logger.info(multi_images_ids)
             if 'status' in multi_images_ids:
                 _logger.error(multi_images_ids)
                 return warningobj.info( title='MELI WARNING', message="Error publicando imagenes", message_html="Error: "+str(multi_images_ids["error"])+" Status:"+str(multi_images_ids["status"]) )
