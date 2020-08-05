@@ -1463,7 +1463,8 @@ class product_product(models.Model):
             product.write( { "meli_imagen_id": rjson["id"], "meli_imagen_link": rjson["variations"][0]["url"] })
             #asociar imagen a producto
             if product.meli_id:
-                response = meli.post("/items/"+product.meli_id+"/pictures", { 'id': rjson["id"] }, { 'access_token': meli.access_token } )
+                return rjson["id"]
+                #response = meli.post("/items/"+product.meli_id+"/pictures", { 'id': rjson["id"] }, { 'access_token': meli.access_token } )
             else:
                 return { 'status': 'warning', 'message': 'uploaded but not assigned' }
 
