@@ -396,7 +396,7 @@ product_template()
 
 class product_image(models.Model):
     _inherit = "product.image"
-
+    #website_sale.product_template_form_view
     meli_imagen_id = fields.Char(string='Imagen Id',index=True)
     meli_imagen_link = fields.Char(string='Imagen Link')
     meli_imagen_size = fields.Char(string='Size')
@@ -629,20 +629,23 @@ class product_product(models.Model):
 
         try:
             product = self
-            thumbnail_url = pictures[0]['url']
-            image = urlopen(thumbnail_url).read()
-            image_base64 = base64.encodestring(image)
-            set_image_full(product, image_base64)
+            ix_start = 0
+            if (not company.mercadolibre_do_not_use_first_image):
+                ix_start = 1
+                thumbnail_url = pictures[0]['url']
+                image = urlopen(thumbnail_url).read()
+                image_base64 = base64.encodestring(image)
+                set_image_full(product, image_base64)
 
-            if (len(pictures)>1):
+            if (len(pictures)):
                 #complete product images:
                 #delete all images...
                 _logger.info("Importing all images after principal...")
                 #_logger.info(pictures)
                 #_logger.info(range(1,len(pictures)))
-                for ix in range(1,len(pictures)):
-                    #_logger.info(ix)
+                for ix in range(ix_start,len(pictures)):
                     pic = pictures[ix]
+                    #_logger.info(pic)
                     bin_updating = False
                     resimage = meli.get("/pictures/"+pic['id'], {'access_token':meli.access_token})
                     imgjson = resimage.json()
@@ -679,7 +682,8 @@ class product_product(models.Model):
                             _logger.info("Image:"+str(len(imagebin))+" vs URLImage:"+str(meli_imagen_bytes)+" diff:"+str(bin_diff) )
                             bin_updating = (abs(bin_diff)>0)
 
-                    if (pimage==False or (pimage and len(pimage)==0)):
+                    #_logger.info(str(pimage==False))
+                    if (not pimage or (pimage and len(pimage)==0)):
                         _logger.info("Creating new image")
                         bin_updating = True
                         pimage = self.env["product.image"].create(pimg_fields)
@@ -690,6 +694,9 @@ class product_product(models.Model):
                             _logger.info("Updating image data.")
                             _logger.info("Image:"+str(meli_imagen_bytes) )
                             set_image_full(pimage, image_base64)
+                        else:
+                            _logger.info("Already in Odoo")
+                            _logger.info(pimage)
         except Exception as e:
             _logger.info("_meli_set_images Exception")
             _logger.info(e, exc_info=True)
@@ -752,7 +759,7 @@ class product_product(models.Model):
 
         #TODO: verificar q es un video
         if rjson['video_id']:
-            vid = ''
+            vid = rjson['video_id']
 
         #TODO: traer las imagenes
         #TODO:
@@ -1456,7 +1463,8 @@ class product_product(models.Model):
             product.write( { "meli_imagen_id": rjson["id"], "meli_imagen_link": rjson["variations"][0]["url"] })
             #asociar imagen a producto
             if product.meli_id:
-                response = meli.post("/items/"+product.meli_id+"/pictures", { 'id': rjson["id"] }, { 'access_token': meli.access_token } )
+                return rjson["id"]
+                #response = meli.post("/items/"+product.meli_id+"/pictures", { 'id': rjson["id"] }, { 'access_token': meli.access_token } )
             else:
                 return { 'status': 'warning', 'message': 'uploaded but not assigned' }
 
@@ -2123,6 +2131,7 @@ class product_product(models.Model):
         multi_images_ids = {}
         if (variant_image_ids(product)):
             multi_images_ids = product.product_meli_upload_multi_images()
+            _logger.info(multi_images_ids)
             if 'status' in multi_images_ids:
                 _logger.error(multi_images_ids)
                 return warningobj.info( title='MELI WARNING', message="Error publicando imagenes", message_html="Error: "+str(multi_images_ids["error"])+" Status:"+str(multi_images_ids["status"]) )
