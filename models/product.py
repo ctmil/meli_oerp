@@ -396,7 +396,7 @@ product_template()
 
 class product_image(models.Model):
     _inherit = "product.image"
-
+    #website_sale.product_template_form_view
     meli_imagen_id = fields.Char(string='Imagen Id',index=True)
     meli_imagen_link = fields.Char(string='Imagen Link')
     meli_imagen_size = fields.Char(string='Size')
@@ -641,8 +641,8 @@ class product_product(models.Model):
                 #_logger.info(pictures)
                 #_logger.info(range(1,len(pictures)))
                 for ix in range(1,len(pictures)):
-                    #_logger.info(ix)
                     pic = pictures[ix]
+                    _logger.info(pic)
                     bin_updating = False
                     resimage = meli.get("/pictures/"+pic['id'], {'access_token':meli.access_token})
                     imgjson = resimage.json()
@@ -690,6 +690,9 @@ class product_product(models.Model):
                             _logger.info("Updating image data.")
                             _logger.info("Image:"+str(meli_imagen_bytes) )
                             set_image_full(pimage, image_base64)
+                        else:
+                            _logger.info("Already in Odoo")
+                            _logger.info(pimage)
         except Exception as e:
             _logger.info("_meli_set_images Exception")
             _logger.info(e, exc_info=True)
