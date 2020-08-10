@@ -9,7 +9,7 @@
 
 {
     'name': 'MercadoLibre Publisher',
-    'version': '11.0.20.29',
+    'version': '11.0.20.30',
     'author': 'Moldeo Interactive',
     'website': 'https://www.moldeointeractive.com',
     "category": "Sales",
@@ -18,7 +18,7 @@
         'security/meli_oerp_security.xml',
         'security/ir.model.access.csv',
         'views/company_view.xml',
-    	'views/posting_view.xml',
+        'views/posting_view.xml',
         'views/product_post.xml',
         'views/product_view.xml',
     	'views/category_view.xml',
@@ -29,10 +29,10 @@
         'data/cron_jobs.xml',
         'data/error_template_data.xml',
         'data/parameters_data.xml',
-	'report/report_shipment_view.xml',
+	     'report/report_shipment_view.xml',
         'report/report_invoice_shipment_view.xml',
-	'views/shipment_view.xml',
-	'views/notifications_view.xml'
+        'views/shipment_view.xml',
+        'views/notifications_view.xml'
     ],
     "external_dependencies": {"python": ['pdf2image']},
     'demo_xml': [],
