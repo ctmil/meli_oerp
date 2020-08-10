@@ -601,6 +601,10 @@ class mercadolibre_shipment(models.Model):
 								'meli_date_closed': ml_datetime(all_orders[0]["date_closed"]),
 							}
 							sorder_pack = self.env["sale.order"].search( [ ('meli_order_id','=',meli_order_fields["meli_order_id"]) ] )
+
+							if (company.mercadolibre_seller_user):
+								meli_order_fields["user_id"] = company.mercadolibre_seller_user.id
+
 							if (len(sorder_pack)):
 								sorder_pack = sorder_pack[0]
 								sorder_pack.write(meli_order_fields)
