@@ -1673,6 +1673,7 @@ class product_product(models.Model):
         }
         if (product_tmpl.meli_pub_principal_variant.meli_imagen_id):
             if (len(product_tmpl.meli_pub_principal_variant.meli_imagen_id)):
+               #TODO: picture for each variant
                var_comb["picture_ids"] = [ product_tmpl.meli_pub_principal_variant.meli_imagen_id]
 
         #customized attrs:
@@ -1698,7 +1699,7 @@ class product_product(models.Model):
             }
             var_comb["attribute_combinations"].append(att_combination)
 
-        for att in att_line_ids(product):
+        for att in att_value_ids(product):
             if (att.attribute_id.name in att_to_pub):
                 if (att.attribute_id.meli_default_id_attribute.id):
                     if (att.attribute_id.meli_default_id_attribute.variation_attribute):
