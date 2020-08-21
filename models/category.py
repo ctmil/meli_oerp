@@ -159,6 +159,10 @@ class mercadolibre_category(models.Model):
                     category.meli_father_category_id = rjson_cat["path_from_root"][fid]["id"]
 
 
+    def get_attributes( self ):
+        for cat in self:
+            cat._get_attributes()
+
     def _get_attributes( self ):
 
         company = self.env.user.company_id

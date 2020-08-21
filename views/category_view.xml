@@ -106,6 +106,11 @@
                     title="Importar"
                     class="oe_stat_button"
                     icon="fa-cloud-download"></button>
+                    <button type="action" name="get_attributes"
+                      string="Importar atributos"
+                      title="Importar atributos"
+                      class="oe_stat_button"
+                      icon="fa-cloud-download"></button>
                   <button type="object" name="action_import_father_category"
                     string="Importar Padre"
                     title="Importar Padre"
