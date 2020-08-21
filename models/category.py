@@ -188,7 +188,7 @@ class mercadolibre_category(models.Model):
                         _logger.info("att:")
                         _logger.info(att)
                         _logger.info(att['id'])
-                        attrs = att_obj.search( [ ('att_id','like',str(att['id'])) ] )
+                        attrs = att_obj.search( [ ('att_id','=',str(att['id'])),('name','=',str(att['name'])) ] )
                         attrs_field = {
                             'name': att['name'],
                             'value_type': att['value_type'],
@@ -221,7 +221,7 @@ class mercadolibre_category(models.Model):
                         if (attrs.id):
                             if (company.mercadolibre_product_attribute_creation!='manual'):
                                 #primero que coincida todo
-                                prod_attrs = prod_att_obj.search( [ ('name','like',att['name']),
+                                prod_attrs = prod_att_obj.search( [ ('name','=',att['name']),
                                                                     ('meli_default_id_attribute','=',attrs[0].id) ] )
                                 if (len(prod_attrs)==0):
                                     #que solo coincida el id
@@ -229,7 +229,7 @@ class mercadolibre_category(models.Model):
 
                                 if (len(prod_attrs)==0):
                                     #que coincida el nombre al menos
-                                    prod_att_obj.search( [ ('name','like',att['name']) ] )
+                                    prod_att_obj.search( [ ('name','=',att['name']) ] )
 
                                 #if (len(prod_attrs)==0):
                                     #que coincida el meli_id!!
