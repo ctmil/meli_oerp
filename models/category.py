@@ -98,6 +98,7 @@ class mercadolibre_category_attribute(models.Model):
     _name = "mercadolibre.category.attribute"
     _description = "MercadoLibre Attribute"
 
+    cat_id = fields.Char(string="Category Id (ML)",index=True)
     att_id = fields.Char(string="Attribute Id (ML)",index=True)
     name = fields.Char(string="Attribute Name (ML)",index=True)
 
