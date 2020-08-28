@@ -98,6 +98,7 @@ class mercadolibre_category_attribute(models.Model):
     _name = "mercadolibre.category.attribute"
     _description = "MercadoLibre Attribute"
 
+    cat_id = fields.Char(string="Category Id (ML)",index=True)
     att_id = fields.Char(string="Attribute Id (ML)",index=True)
     name = fields.Char(string="Attribute Name (ML)",index=True)
 
@@ -159,6 +160,10 @@ class mercadolibre_category(models.Model):
                     category.meli_father_category_id = rjson_cat["path_from_root"][fid]["id"]
 
 
+    def get_attributes( self ):
+        for cat in self:
+            cat._get_attributes()
+
     def _get_attributes( self ):
 
         company = self.env.user.company_id
@@ -188,7 +193,7 @@ class mercadolibre_category(models.Model):
                         _logger.info("att:")
                         _logger.info(att)
                         _logger.info(att['id'])
-                        attrs = att_obj.search( [ ('att_id','like',str(att['id'])) ] )
+                        attrs = att_obj.search( [ ('att_id','=',str(att['id'])),('name','=',str(att['name'])) ] )
                         attrs_field = {
                             'name': att['name'],
                             'value_type': att['value_type'],
@@ -221,7 +226,7 @@ class mercadolibre_category(models.Model):
                         if (attrs.id):
                             if (company.mercadolibre_product_attribute_creation!='manual'):
                                 #primero que coincida todo
-                                prod_attrs = prod_att_obj.search( [ ('name','like',att['name']),
+                                prod_attrs = prod_att_obj.search( [ ('name','=',att['name']),
                                                                     ('meli_default_id_attribute','=',attrs[0].id) ] )
                                 if (len(prod_attrs)==0):
                                     #que solo coincida el id
@@ -229,7 +234,7 @@ class mercadolibre_category(models.Model):
 
                                 if (len(prod_attrs)==0):
                                     #que coincida el nombre al menos
-                                    prod_att_obj.search( [ ('name','like',att['name']) ] )
+                                    prod_att_obj.search( [ ('name','=',att['name']) ] )
 
                                 #if (len(prod_attrs)==0):
                                     #que coincida el meli_id!!
