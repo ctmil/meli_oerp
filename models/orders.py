@@ -154,9 +154,11 @@ class mercadolibre_orders(models.Model):
                     state_id = state[0].id
                     return state_id
             id_ml = Receiver['state']['id'].split("-")
+            _logger.info(Receiver)
+            _logger.info(id_ml)
             if (len(id_ml)==2):
                 id = id_ml[1]
-                state = self.env['res.country.state'].search([('code','like',Receiver['state']['id']),('country_id','=',country_id)])
+                state = self.env['res.country.state'].search([('code','like',id),('country_id','=',country_id)])
                 if (len(state)):
                     state_id = state[0].id
                     return state_id
