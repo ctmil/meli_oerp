@@ -627,6 +627,19 @@ class product_product(models.Model):
         ml_pics = {}
         for ix in range(0,len(pictures)):
             ml_pics[pictures[ix]['id']] = True
+
+            duplicates = self.env["product.image"].search([('meli_imagen_id','=',pictures[ix]['id']),('product_tmpl_id','=',product_template.id)])
+            if (duplicates and len(duplicates)>1):
+                _logger.info("Removing template duplicates for "+str(pictures[ix]['id'])+" :"+str(len(duplicates)-1))
+                for img in range(1,len(duplicates)):
+                    img.unlink()
+
+            duplicates = self.env["product.image"].search([('meli_imagen_id','=',pictures[ix]['id']),('product_variant_id','=',product.id)])
+            if (duplicates and len(duplicates)>1):
+                _logger.info("Removing variant duplicates for "+str(pictures[ix]['id'])+" :"+str(len(duplicates)-1))
+                for img in range(1,len(duplicates)):
+                    img.unlink()
+
         _logger.info(ml_pics)
 
         _logger.info("Cleaning product template images")
