@@ -623,11 +623,20 @@ class product_product(models.Model):
             product_template.public_categ_ids = [(4,www_cat_id)]
 
     def _meli_remove_images_unsync( self, product_template, pictures ):
-        ml_images = self.env["product.image"].search([('meli_imagen_id','!=',False),('product_tmpl_id','=',product_template.id)])
+        product = self
         ml_pics = {}
         for ix in range(0,len(pictures)):
             ml_pics[pictures[ix]['id']] = True
-        _logger.info("remove all")
+
+        _logger.info("Cleaning product template images")
+        ml_images = self.env["product.image"].search([('meli_imagen_id','!=',False),('product_tmpl_id','=',product_template.id)])
+        if (ml_images and len(ml_images)):
+            for ml_image in ml_images:
+                if not ml_image.meli_imagen_id in ml_pics:
+                    ml_image.unlink()
+
+        _logger.info("Cleaning product variant images")
+        ml_images = self.env["product.image"].search([('meli_imagen_id','!=',False),('product_variant_id','=',product.id)])
         if (ml_images and len(ml_images)):
             for ml_image in ml_images:
                 if not ml_image.meli_imagen_id in ml_pics:
