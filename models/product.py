@@ -631,14 +631,14 @@ class product_product(models.Model):
             duplicates = self.env["product.image"].search([('meli_imagen_id','=',pictures[ix]['id']),('product_tmpl_id','=',product_template.id)])
             if (duplicates and len(duplicates)>1):
                 _logger.info("Removing template duplicates for "+str(pictures[ix]['id'])+" :"+str(len(duplicates)-1))
-                for img in range(1,len(duplicates)):
-                    img.unlink()
+                for ix in range(1,len(duplicates)):
+                    duplicates[ix].unlink()
 
             duplicates = self.env["product.image"].search([('meli_imagen_id','=',pictures[ix]['id']),('product_variant_id','=',product.id)])
             if (duplicates and len(duplicates)>1):
                 _logger.info("Removing variant duplicates for "+str(pictures[ix]['id'])+" :"+str(len(duplicates)-1))
-                for img in range(1,len(duplicates)):
-                    img.unlink()
+                for ix in range(1,len(duplicates)):
+                    duplicates[ix].unlink()
 
         _logger.info(ml_pics)
 
