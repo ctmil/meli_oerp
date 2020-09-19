@@ -74,9 +74,13 @@ class product_template(models.Model):
 
         custom_context = {}
         force_meli_pub = False
+        force_meli_active = False
         if ("force_meli_pub" in self.env.context):
             force_meli_pub = self.env.context.get("force_meli_pub")
-            custom_context = { "force_meli_pub": force_meli_pub }
+            custom_context = { "force_meli_pub": force_meli_pub, "force_meli_active": force_meli_active }
+        if ("force_meli_active" in self.env.context):
+            force_meli_active = self.env.context.get("force_meli_active")
+            custom_context = { "force_meli_pub": force_meli_pub, "force_meli_active": force_meli_active }
         _logger.info(custom_context)
 
         ret = {}
@@ -2361,6 +2365,12 @@ class product_product(models.Model):
             posting_id = self.env['mercadolibre.posting'].create((posting_fields)).id
         else:
             posting.write(( { 'product_id':product.id, 'name': 'Post: ' + product.meli_title }))
+
+        force_meli_active = False
+        if ("force_meli_active" in self.env.context):
+            force_meli_active = self.env.context.get("force_meli_active")
+        if (force_meli_active==True):
+            product.product_meli_status_active()
 
         return {}
 

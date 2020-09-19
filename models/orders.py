@@ -149,7 +149,16 @@ class mercadolibre_orders(models.Model):
         state_id = False
         if (Receiver and 'state' in Receiver):
             if ('id' in Receiver['state']):
-                state = self.env['res.country.state'].search([('code','like',Receiver['state']['id'])])
+                state = self.env['res.country.state'].search([('code','like',Receiver['state']['id']),('country_id','=',country_id)])
+                if (len(state)):
+                    state_id = state[0].id
+                    return state_id
+            id_ml = Receiver['state']['id'].split("-")
+            _logger.info(Receiver)
+            _logger.info(id_ml)
+            if (len(id_ml)==2):
+                id = id_ml[1]
+                state = self.env['res.country.state'].search([('code','like',id),('country_id','=',country_id)])
                 if (len(state)):
                     state_id = state[0].id
                     return state_id
@@ -435,19 +444,32 @@ class mercadolibre_orders(models.Model):
 
                 #Colombia
                 if ( ('doc_type' in Buyer['billing_info']) and ('l10n_co_document_type' in self.env['res.partner']._fields) ):
-                    if (Buyer['billing_info']['doc_type']=="CC"):
+                    if (Buyer['billing_info']['doc_type']=="CC" or Buyer['billing_info']['doc_type']=="C.C."):
                         meli_buyer_fields['l10n_co_document_type'] = 'national_citizen_id'
+                        if ("fe_tipo_documento" in self.env['res.partner']._fields):
+                            meli_buyer_fields['fe_tipo_documento'] = '13'
                     if (Buyer['billing_info']['doc_type']=="NIT"):
                         meli_buyer_fields['l10n_co_document_type'] = 'rut'
+                        if ("fe_tipo_documento" in self.env['res.partner']._fields):
+                            meli_buyer_fields['fe_tipo_documento'] = '31'
                     if (Buyer['billing_info']['doc_type']=="CE"):
                         meli_buyer_fields['l10n_co_document_type'] = 'foreign_id_card'
+                        if ("fe_tipo_documento" in self.env['res.partner']._fields):
+                            meli_buyer_fields['fe_tipo_documento'] = '22'
 
                     meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
+                    if ("fe_nit" in self.env['res.partner']._fields):
+                        meli_buyer_fields['fe_nit'] = Buyer['billing_info']['doc_number']
 
 
             partner_ids = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ] )
             if (len(partner_ids)>0):
                 partner_id = partner_ids[0]
+            if ("fe_regimen_fiscal" in self.env['res.partner']._fields):
+                if (partner_id and not partner_id.fe_regimen_fiscal):
+                    meli_buyer_fields['fe_regimen_fiscal'] = '49';
+                else:
+                    meli_buyer_fields['fe_regimen_fiscal'] = '49';
             if not partner_id:
                 #_logger.info( "creating partner:" + str(meli_buyer_fields) )
                 partner_id = respartner_obj.create(( meli_buyer_fields ))
