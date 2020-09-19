@@ -645,6 +645,18 @@ class product_product(models.Model):
                 #complete product images:
                 #delete all images...
                 _logger.info("Importing all images after principal...")
+
+                #remove all meli images not in pictures:
+                ml_images = self.env["product.image"].search([('meli_imagen_id','!=',False),('product_tmpl_id','=',product_template.id)])
+                ml_pics = {}
+                for ix in range(0,len(pictures)):
+                    ml_pics[pictures[ix]['id']] = True
+                _logger.info("remove all")
+                if (ml_images and len(ml_images)):
+                    for ml_image in ml_images:
+                        if not ml_image.meli_imagen_id in ml_pics:
+                            ml_image.unlink()
+
                 #_logger.info(pictures)
                 #_logger.info(range(1,len(pictures)))
                 for ix in range(ix_start,len(pictures)):
@@ -684,11 +696,12 @@ class product_product(models.Model):
                         _logger.info(pimage)
                         if (pimage and len(pimage)>1):
                             #unlink all but first
+                            _logger.info("Unlink all duplicates for "+str(pic["id"]))
                             for img in pimage:
                                 img.unlink()
                             pimage = False
-                        if (pimage and pimage.image):
-                            imagebin = base64.b64decode( pimage.image )
+                        if (pimage and get_image_full(pimage)):
+                            imagebin = base64.b64decode( get_image_full(pimage) )
                             bin_diff = meli_imagen_bytes - len(imagebin)
                             _logger.info("Image:"+str(len(imagebin))+" vs URLImage:"+str(meli_imagen_bytes)+" diff:"+str(bin_diff) )
                             bin_updating = (abs(bin_diff)>0)
@@ -697,14 +710,19 @@ class product_product(models.Model):
                         if (template_image_ids(product)):
                             _logger.info(template_image_ids(product))
                             pimage = self.env["product.image"].search([('meli_imagen_id','=',pic["id"]),('product_tmpl_id','=',product_template.id)])
+
+                            #remove duplicate images
                             _logger.info(pimage)
                             if (pimage and len(pimage)>1):
                                 #unlink all but first
+                                _logger.info("Unlink all duplicates for "+str(pic["id"]))
+                                pimage.unlink()
                                 for img in pimage:
                                     img.unlink()
                                 pimage = False
-                            if (pimage and pimage.image):
-                                imagebin = base64.b64decode( pimage.image )
+
+                            if (pimage and get_image_full(pimage)):
+                                imagebin = base64.b64decode( get_image_full(pimage) )
                                 bin_diff = meli_imagen_bytes - len(imagebin)
                                 _logger.info("Image:"+str(len(imagebin))+" vs URLImage:"+str(meli_imagen_bytes)+" diff:"+str(bin_diff) )
                                 bin_updating = (abs(bin_diff)>0)
