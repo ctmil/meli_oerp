@@ -1537,14 +1537,6 @@ class product_product(models.Model):
         product_obj = self.env['product.product']
         product = self
 
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
-
-        #
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
-
         if variant_image_ids(product)==None and template_image_ids(product)==None:
             return { 'status': 'error', 'message': 'no images to upload' }
 
@@ -1557,42 +1549,69 @@ class product_product(models.Model):
             for imix in range(0,len(var_image_ids)):
                 if (company.mercadolibre_do_not_use_first_image and imix==0):
                     continue;
-                _logger.info("Upload multi image: "+str(imix))
+                _logger.info("Upload multi image var: "+str(imix))
                 product_image = var_image_ids[imix]
-                if (get_image_full(product_image)):
-                    imagebin = base64.b64decode( get_image_full(product_image) )
-                    #files = { 'file': ('image.png', imagebin, "image/png"), }
-                    files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
-                    response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
-                    #_logger.info( "meli upload:" + str(response.content) )
-                    rjson = response.json()
-                    if ("error" in rjson):
-                        #raise osv.except_osv( _('MELI WARNING'), _('No se pudo cargar la imagen en MELI! Error: %s , Mensaje: %s, Status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
-                        return rjson
-                    else:
-                        image_ids+= [ { 'id': rjson['id'] }]
-                        c = c + 1
-                        _logger.info( "image_ids:" + str(image_ids) )
-                        image_uploaded = {}
-                        ilink = ""
-                        isize = ""
-                        if ('variations' in rjson):
-                            if (len(rjson['variations'])):
-                                #big one, first one XXX-F
-                                image_uploaded = rjson['variations'][0]
-                        else:
-                            image_uploaded = rjson
+                image_ids+= product._meli_upload_image( product_image )
 
-                        if 'secure_url' in image_uploaded:
-                            ilink = image_uploaded['secure_url']
-                        if 'size' in image_uploaded:
-                            isize = image_uploaded['size']
-                        product_image.meli_imagen_id = rjson['id']
-                        product_image.meli_imagen_max_size = rjson['max_size']
-                        product_image.meli_imagen_link = ilink
-                        product_image.meli_imagen_size = isize
+        #loop over images
+        tpl_image_ids = template_image_ids(product)
+        if (tpl_image_ids and len(tpl_image_ids)):
+            for imix in range(0,len(tpl_image_ids)):
+                if (company.mercadolibre_do_not_use_first_image and imix==0):
+                    continue;
+                _logger.info("Upload multi image tpl: "+str(imix))
+                product_image = tpl_image_ids[imix]
+                image_ids+= product._meli_upload_image( product_image )
 
         product.write( { "meli_multi_imagen_id": "%s" % (image_ids) } )
+
+        return image_ids
+
+    def _meli_upload_image( self, product_image ):
+
+        company = self.env.user.company_id
+
+        CLIENT_ID = company.mercadolibre_client_id
+        CLIENT_SECRET = company.mercadolibre_secret_key
+        ACCESS_TOKEN = company.mercadolibre_access_token
+        REFRESH_TOKEN = company.mercadolibre_refresh_token
+
+        #
+        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+
+        image_ids = []
+        if (get_image_full(product_image)):
+            imagebin = base64.b64decode( get_image_full(product_image) )
+            #files = { 'file': ('image.png', imagebin, "image/png"), }
+            files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
+            response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
+            #_logger.info( "meli upload:" + str(response.content) )
+            rjson = response.json()
+            if ("error" in rjson):
+                #raise osv.except_osv( _('MELI WARNING'), _('No se pudo cargar la imagen en MELI! Error: %s , Mensaje: %s, Status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
+                return rjson
+            else:
+                image_ids+= [ { 'id': rjson['id'] }]
+                c = c + 1
+                _logger.info( "image_ids:" + str(image_ids) )
+                image_uploaded = {}
+                ilink = ""
+                isize = ""
+                if ('variations' in rjson):
+                    if (len(rjson['variations'])):
+                        #big one, first one XXX-F
+                        image_uploaded = rjson['variations'][0]
+                else:
+                    image_uploaded = rjson
+
+                if 'secure_url' in image_uploaded:
+                    ilink = image_uploaded['secure_url']
+                if 'size' in image_uploaded:
+                    isize = image_uploaded['size']
+                product_image.meli_imagen_id = rjson['id']
+                product_image.meli_imagen_max_size = rjson['max_size']
+                product_image.meli_imagen_link = ilink
+                product_image.meli_imagen_size = isize
 
         return image_ids
 
