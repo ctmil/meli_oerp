@@ -570,7 +570,7 @@ class mercadolibre_shipment(models.Model):
 					if (ship_fields["pack_order"]==False):
 						sorder = self.env["sale.order"].search( [ ('meli_order_id','=',ship_fields["order_id"]) ] )
 						if len(sorder):
-							shipment.sale_order = sorder
+							shipment.sale_order = sorder[0]
 							sorder.meli_shipment = shipment
 
 					if (full_orders and ship_fields["pack_order"]):
