@@ -676,15 +676,39 @@ class product_product(models.Model):
                         'product_tmpl_id': product_template.id,
                         'meli_pub': True
                     }
-                    #_logger.info(pimg_fields)
+                    _logger.info(pimg_fields)
                     if (variant_image_ids(product)):
+                        _logger.info("has variant image ids")
+                        _logger.info(variant_image_ids(product))
                         pimage = self.env["product.image"].search([('meli_imagen_id','=',pic["id"]),('product_tmpl_id','=',product_template.id)])
-                        #_logger.info(pimage)
+                        _logger.info(pimage)
+                        if (pimage and len(pimage)>1):
+                            #unlink all but first
+                            for img in pimage:
+                                img.unlink()
+                            pimage = False
                         if (pimage and pimage.image):
                             imagebin = base64.b64decode( pimage.image )
                             bin_diff = meli_imagen_bytes - len(imagebin)
                             _logger.info("Image:"+str(len(imagebin))+" vs URLImage:"+str(meli_imagen_bytes)+" diff:"+str(bin_diff) )
                             bin_updating = (abs(bin_diff)>0)
+                    else:
+                        _logger.info("no variant image ids, using template image ids")
+                        if (template_image_ids(product)):
+                            _logger.info(template_image_ids(product))
+                            pimage = self.env["product.image"].search([('meli_imagen_id','=',pic["id"]),('product_tmpl_id','=',product_template.id)])
+                            _logger.info(pimage)
+                            if (pimage and len(pimage)>1):
+                                #unlink all but first
+                                for img in pimage:
+                                    img.unlink()
+                                pimage = False
+                            if (pimage and pimage.image):
+                                imagebin = base64.b64decode( pimage.image )
+                                bin_diff = meli_imagen_bytes - len(imagebin)
+                                _logger.info("Image:"+str(len(imagebin))+" vs URLImage:"+str(meli_imagen_bytes)+" diff:"+str(bin_diff) )
+                                bin_updating = (abs(bin_diff)>0)
+
 
                     #_logger.info(str(pimage==False))
                     if (not pimage or (pimage and len(pimage)==0)):
