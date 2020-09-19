@@ -1541,7 +1541,6 @@ class product_product(models.Model):
             return { 'status': 'error', 'message': 'no images to upload' }
 
         image_ids = []
-        c = 0
 
         #loop over images
         var_image_ids = variant_image_ids(product)
@@ -1592,7 +1591,7 @@ class product_product(models.Model):
                 return rjson
             else:
                 image_ids+= [ { 'id': rjson['id'] }]
-                c = c + 1
+                #c = c + 1
                 _logger.info( "image_ids:" + str(image_ids) )
                 image_uploaded = {}
                 ilink = ""
