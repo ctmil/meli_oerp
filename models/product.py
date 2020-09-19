@@ -627,9 +627,11 @@ class product_product(models.Model):
         ml_pics = {}
         for ix in range(0,len(pictures)):
             ml_pics[pictures[ix]['id']] = True
+        _logger.info(ml_pics)
 
         _logger.info("Cleaning product template images")
         ml_images = self.env["product.image"].search([('meli_imagen_id','!=',False),('product_tmpl_id','=',product_template.id)])
+        _logger.info(ml_images)
         if (ml_images and len(ml_images)):
             for ml_image in ml_images:
                 if not ml_image.meli_imagen_id in ml_pics:
@@ -637,6 +639,7 @@ class product_product(models.Model):
 
         _logger.info("Cleaning product variant images")
         ml_images = self.env["product.image"].search([('meli_imagen_id','!=',False),('product_variant_id','=',product.id)])
+        _logger.info(ml_images)
         if (ml_images and len(ml_images)):
             for ml_image in ml_images:
                 if not ml_image.meli_imagen_id in ml_pics:
