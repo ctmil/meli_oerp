@@ -622,6 +622,17 @@ class product_product(models.Model):
             #assign
             product_template.public_categ_ids = [(4,www_cat_id)]
 
+    def _meli_remove_images_unsync( self, product_template, pictures ):
+        ml_images = self.env["product.image"].search([('meli_imagen_id','!=',False),('product_tmpl_id','=',product_template.id)])
+        ml_pics = {}
+        for ix in range(0,len(pictures)):
+            ml_pics[pictures[ix]['id']] = True
+        _logger.info("remove all")
+        if (ml_images and len(ml_images)):
+            for ml_image in ml_images:
+                if not ml_image.meli_imagen_id in ml_pics:
+                    ml_image.unlink()
+
     def _meli_set_images( self, product_template, pictures ):
         company = self.env.user.company_id
         CLIENT_ID = company.mercadolibre_client_id
@@ -645,17 +656,6 @@ class product_product(models.Model):
                 #complete product images:
                 #delete all images...
                 _logger.info("Importing all images after principal...")
-
-                #remove all meli images not in pictures:
-                ml_images = self.env["product.image"].search([('meli_imagen_id','!=',False),('product_tmpl_id','=',product_template.id)])
-                ml_pics = {}
-                for ix in range(0,len(pictures)):
-                    ml_pics[pictures[ix]['id']] = True
-                _logger.info("remove all")
-                if (ml_images and len(ml_images)):
-                    for ml_image in ml_images:
-                        if not ml_image.meli_imagen_id in ml_pics:
-                            ml_image.unlink()
 
                 #_logger.info(pictures)
                 #_logger.info(range(1,len(pictures)))
@@ -811,6 +811,8 @@ class product_product(models.Model):
         #TODO:
         pictures = rjson['pictures']
         if pictures and len(pictures):
+            #remove all meli images not in pictures:
+            product._meli_remove_images_unsync( product_template, pictures )
             product._meli_set_images(product_template, pictures)
 
         #categories
@@ -1531,7 +1533,7 @@ class product_product(models.Model):
         #
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
-        if variant_image_ids(product)==None:
+        if variant_image_ids(product)==None and template_image_ids(product)==None:
             return { 'status': 'error', 'message': 'no images to upload' }
 
         image_ids = []
@@ -2114,6 +2116,8 @@ class product_product(models.Model):
 
         #publicando imagenes
         first_image_to_publish = get_first_image_to_publish( product )
+        if (productjson and "pictures" in productjson):
+            product._meli_remove_images_unsync( product_tmpl, productjson["pictures"] )
 
         if first_image_to_publish==None:
             return warningobj.info( title='MELI WARNING', message="Debe cargar una imagen de base en el producto, si chequeo el 'Dont use first image' debe al menos poner una imagen adicional en el producto.", message_html="" )
@@ -2176,7 +2180,7 @@ class product_product(models.Model):
 
         #publicando multiples imagenes
         multi_images_ids = {}
-        if (variant_image_ids(product)):
+        if (variant_image_ids(product) or template_image_ids(product)):
             multi_images_ids = product.product_meli_upload_multi_images()
             _logger.info(multi_images_ids)
             if 'status' in multi_images_ids:
