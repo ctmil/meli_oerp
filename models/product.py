@@ -623,12 +623,27 @@ class product_product(models.Model):
             product_template.public_categ_ids = [(4,www_cat_id)]
 
     def _meli_remove_images_unsync( self, product_template, pictures ):
+
         product = self
+
         ml_pics = {}
+        ml_sizes = {}
+
         for ix in range(0,len(pictures)):
+
             ml_imgid = pictures[ix]['id']
             if (ml_imgid):
-                ml_pics[ml_imgid] = True
+                ml_pics[ml_imgid] = pictures[ix]
+
+                thumbnail_url = pictures[ix]['url']
+                image = urlopen(thumbnail_url).read()
+                meli_imagen_bytes = len(image)
+                if (str(meli_imagen_bytes) in ml_sizes):
+                    _logger.info("Imagen bytes duplicated: "+str(thumbnail_url))
+                    ml_sizes[str(meli_imagen_bytes)+str("__")+str(ix)] = pictures[ix]
+                else:
+                    ml_sizes[str(meli_imagen_bytes)] = pictures[ix]
+
                 _logger.info(ml_imgid)
 
                 duplicates = self.env["product.image"].search([('meli_imagen_id','=',ml_imgid),('product_tmpl_id','=',product_template.id)])
@@ -645,20 +660,20 @@ class product_product(models.Model):
 
         _logger.info(ml_pics)
 
-        _logger.info("Cleaning product template images")
+        _logger.info("Cleaning product template images not in ML")
         ml_images = self.env["product.image"].search([('meli_imagen_id','!=',False),('product_tmpl_id','=',product_template.id)])
         _logger.info(ml_images)
         if (ml_images and len(ml_images)):
             for ml_image in ml_images:
-                if not ml_image.meli_imagen_id in ml_pics:
+                if not ml_image.meli_imagen_id in ml_pics and not ml_image.meli_imagen_bytes in ml_sizes:
                     ml_image.unlink()
 
-        _logger.info("Cleaning product variant images")
+        _logger.info("Cleaning product variant images not in ML")
         ml_images = self.env["product.image"].search([('meli_imagen_id','!=',False),('product_variant_id','=',product.id)])
         _logger.info(ml_images)
         if (ml_images and len(ml_images)):
             for ml_image in ml_images:
-                if not ml_image.meli_imagen_id in ml_pics:
+                if not ml_image.meli_imagen_id in ml_pics and not ml_image.meli_imagen_bytes in ml_sizes:
                     ml_image.unlink()
 
     def _meli_set_images( self, product_template, pictures ):
