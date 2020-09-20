@@ -55,7 +55,9 @@ class product_template_post(models.TransientModel):
 
         context = context or self.env.context
         company = self.env.user.company_id
-        product_ids = context['active_ids']
+        product_ids = []
+        if ('active_ids' in context):
+            product_ids = context['active_ids']
         product_obj = self.env['product.template']
 
         warningobj = self.env['warning']
@@ -115,7 +117,9 @@ class product_template_update(models.TransientModel):
     def product_template_update(self, context=None):
         context = context or self.env.context
         company = self.env.user.company_id
-        product_ids = context['active_ids']
+        product_ids = []
+        if ('active_ids' in context):
+            product_ids = context['active_ids']
         product_obj = self.env['product.template']
 
         #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
