@@ -8,14 +8,14 @@
           <field name="inherit_id" ref="website_sale.view_product_image_form"/>
           <field name="arch" type="xml">
               <xpath expr="//field[@name='video_url']" position="after">
-                <label for="meli_imagen_id" string="Product Image ML ID"/><br/>
-                <field name="meli_imagen_id" string="Product Image ML ID" readonly="1"/>
+                <label for="meli_imagen_id" string="ML Id"/><br/>
+                <field name="meli_imagen_id" readonly="1"/>
 
                 <label for="meli_force_pub" string="Force ML Pub"/><br/>
-                <field name="meli_force_pub" string="Product Image ML Force Publication"/>
+                <field name="meli_force_pub"/>
 
                 <label for="meli_pub" string="ML Pub"/><br/>
-                <field name="meli_pub" string="Product Image ML Publication"/>
+                <field name="meli_pub"/>
               </xpath>
           </field>
         </record>
@@ -36,8 +36,6 @@
               </xpath>
           </field>
         </record>
-
-        product_image_view_kanban
 
         <record id="product_template_search_view_meli" model="ir.ui.view">
             <field name="name">product.template.search.meli</field>
