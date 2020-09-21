@@ -20,6 +20,7 @@
 ##############################################################################
 
 from odoo import fields, osv, models, api
+from odoo.exceptions import ValidationError
 import logging
 from .meli_oerp_config import *
 
@@ -377,10 +378,10 @@ class mercadolibre_shipment(models.Model):
 				'company_id': company.id,
 				'order_id': sorder.id,
 				'meli_order_item_id': 'ENVIO',
-				'price_unit': shipment.shipping_cost,
+				'price_unit': shipment.shipping_cost / 1.21,
 				'product_id': product_shipping_id.id,
 				'product_uom_qty': 1.0,
-				'tax_id': None,
+				#'tax_id': None,
 				'product_uom': product_shipping_id.uom_id.id,
 				'name': "Shipping " + str(shipment.shipping_mode),
 			}
@@ -388,10 +389,22 @@ class mercadolibre_shipment(models.Model):
 																('order_id','=',sorder.id)] )
 			if not saleorderline_item_ids:
 				saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
-				saleorderline_item_ids.tax_id = None
+				#saleorderline_item_ids.tax_id = None
 			else:
+				if 'tax_id' in saleorderline_item_fields:
+					del saleorderline_item_fields['tax_id']
+				#saleorderline_item_fields['tax_id'] = (6,0,[product_shipping_id.taxes_id.ids[0]])
+                                    #raise ValidationError('estamos aca %s'%(saleorderline_item_fields))
+
+				#if 'tax_id' in saleorderline_item_fields:
+				#	del saleorderline_item_fields['tax_id']
+				if 'company_id' in saleorderline_item_fields:
+					del saleorderline_item_fields['company_id']
+
+				_logger.debug('[DEBUG] %s %s'%(saleorderline_item_fields, product_shipping_id.taxes_id.ids[0]))
 				saleorderline_item_ids.write( ( saleorderline_item_fields ) )
-				saleorderline_item_ids.tax_id = None
+				_logger.debug('[DEBUG] Post-write')
+				saleorderline_item_ids.write({'tax_id': [(6,0,[product_shipping_id.taxes_id.ids[0]])]})
 
 	#Return shipment object based on mercadolibre.orders "order"
 	def fetch( self, order ):
