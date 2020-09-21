@@ -10,3 +10,4 @@ class ProductImage(models.Model):
     
     meli_id = fields.Char(u'ID MELI')
     product_attribute_id = fields.Many2one('product.attribute.value', u'Atributo asociado')
+    
