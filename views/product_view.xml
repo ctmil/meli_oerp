@@ -11,10 +11,10 @@
                 <label for="meli_imagen_id" string="Product Image ML ID"/><br/>
                 <field name="meli_imagen_id" string="Product Image ML ID" readonly="1"/>
 
-                <label for="meli_force_pub" string="Product Image ML Force Publication"/><br/>
+                <label for="meli_force_pub" string="Force ML Pub"/><br/>
                 <field name="meli_force_pub" string="Product Image ML Force Publication"/>
 
-                <label for="meli_pub" string="Product Image ML Publication"/><br/>
+                <label for="meli_pub" string="ML Pub"/><br/>
                 <field name="meli_pub" string="Product Image ML Publication"/>
               </xpath>
           </field>
@@ -29,6 +29,10 @@
                 <field name="meli_imagen_id" string="Product Image ML ID" readonly="1"/>
                 <field name="meli_force_pub" string="Product Image ML Force Publication"/>
                 <field name="meli_pub" string="Product Image ML Publication"/>
+              </xpath>
+              <xpath expr="//div[contains(@class,'card-body')]//field[@name='name']" position="after">
+                <field name="meli_force_pub" string="ML Force Pub"/>
+                <field name="meli_imagen_id" string="ML id"/>
               </xpath>
           </field>
         </record>
