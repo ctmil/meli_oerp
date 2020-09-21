@@ -7,7 +7,7 @@
           <field name="model">product.image</field>
           <field name="inherit_id" ref="website_sale.view_product_image_form"/>
           <field name="arch" type="xml">
-              <xpath expr="//filter[@name='video_url']" position="after">
+              <xpath expr="//filter[@name='name']" position="after">
                 <label for="meli_imagen_id" string="Product Image ML ID"/><br/>
                 <field name="meli_imagen_id" string="Product Image ML ID" readonly="1"/>
 
