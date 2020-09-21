@@ -407,6 +407,7 @@ class product_image(models.Model):
     meli_imagen_max_size = fields.Char(string='Max Size')
     meli_imagen_bytes = fields.Integer(string='Size bytes')
     meli_pub = fields.Boolean(string='Publicar en ML',index=True)
+    meli_force_pub = fields.Boolean(string='Publicar en ML y conservar en Odoo',index=True)
 
 product_image()
 
@@ -647,13 +648,13 @@ class product_product(models.Model):
 
                 _logger.info(ml_imgid)
 
-                duplicates = self.env["product.image"].search([('meli_imagen_id','=',ml_imgid),('product_tmpl_id','=',product_template.id)])
+                duplicates = self.env["product.image"].search([('meli_force_pub','=',False),('meli_imagen_id','=',ml_imgid),('product_tmpl_id','=',product_template.id)])
                 if (duplicates and len(duplicates)>1):
                     _logger.info("Removing template duplicates for "+str(ml_imgid)+" :"+str(len(duplicates)-1))
                     for ix in range(1,len(duplicates)):
                         duplicates[ix].unlink()
 
-                duplicates = self.env["product.image"].search([('meli_imagen_id','=',ml_imgid),('product_variant_id','=',product.id)])
+                duplicates = self.env["product.image"].search([('meli_force_pub','=',False),('meli_imagen_id','=',ml_imgid),('product_variant_id','=',product.id)])
                 if (duplicates and len(duplicates)>1):
                     _logger.info("Removing variant duplicates for "+str(ml_imgid)+" :"+str(len(duplicates)-1))
                     for ix in range(1,len(duplicates)):
@@ -663,7 +664,7 @@ class product_product(models.Model):
         _logger.info(ml_bytes)
 
         _logger.info("Cleaning product template images with meli id but not in ML")
-        ml_images = self.env["product.image"].search([('meli_imagen_id','!=',False),('product_tmpl_id','=',product_template.id)])
+        ml_images = self.env["product.image"].search([('meli_force_pub','=',False),('meli_imagen_id','!=',False),('product_tmpl_id','=',product_template.id)])
         _logger.info(ml_images)
         if (ml_images and len(ml_images)):
             for ml_image in ml_images:
@@ -671,7 +672,7 @@ class product_product(models.Model):
                     ml_image.unlink()
 
         _logger.info("Cleaning product variant images with meli id not in ML")
-        ml_images = self.env["product.image"].search([('meli_imagen_id','!=',False),('product_variant_id','=',product.id)])
+        ml_images = self.env["product.image"].search([('meli_force_pub','=',False),('meli_imagen_id','!=',False),('product_variant_id','=',product.id)])
         _logger.info(ml_images)
         if (ml_images and len(ml_images)):
             for ml_image in ml_images:
