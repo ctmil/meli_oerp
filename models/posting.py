@@ -174,3 +174,4 @@ class mercadolibre_posting(models.Model):
     meli_seller_custom_field = fields.Char('Sellect Custom Field or SKU',size=256);
 
 mercadolibre_posting()
+
