@@ -396,7 +396,6 @@ product_template()
 
 class product_image(models.Model):
     _inherit = "product.image"
-
     #website_sale.product_template_form_view
     meli_imagen_id = fields.Char(string='Imagen Id',index=True)
     meli_imagen_link = fields.Char(string='Imagen Link')
