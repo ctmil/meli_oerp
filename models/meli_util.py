@@ -47,3 +47,4 @@ class MeliUtil(models.AbstractModel):
             date_convert = from_zone.localize(date_convert)
         date_convert = date_convert.astimezone(to_zone)
         return date_convert
+    
