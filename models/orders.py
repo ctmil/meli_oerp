@@ -465,6 +465,11 @@ class mercadolibre_orders(models.Model):
             partner_ids = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ] )
             if (len(partner_ids)>0):
                 partner_id = partner_ids[0]
+            if ("fe_regimen_fiscal" in self.env['res.partner']._fields):
+                if (partner_id and not partner_id.fe_regimen_fiscal):
+                    meli_buyer_fields['fe_regimen_fiscal'] = '49';
+                else:
+                    meli_buyer_fields['fe_regimen_fiscal'] = '49';
             if not partner_id:
                 #_logger.info( "creating partner:" + str(meli_buyer_fields) )
                 partner_id = respartner_obj.create(( meli_buyer_fields ))
