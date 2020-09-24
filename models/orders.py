@@ -473,19 +473,19 @@ class mercadolibre_orders(models.Model):
                         meli_buyer_fields['fe_nit'] = Buyer['billing_info']['doc_number']
 
                     if ("fe_primer_nombre" in self.env['res.partner']._fields):
-                        nn = Buyer['billing_info']['first_name'].split(" ")
+                        nn = Buyer['first_name'].split(" ")
                         if (len(nn)>1):
                             meli_buyer_fields['fe_primer_nombre'] = nn[0]
                             meli_buyer_fields['fe_segundo_nombre'] = nn[1]
                         else:
-                            meli_buyer_fields['fe_primer_nombre'] = Buyer['billing_info']['first_name']
+                            meli_buyer_fields['fe_primer_nombre'] = Buyer['first_name']
                     if ("fe_primer_apellido" in self.env['res.partner']._fields):
-                        nn = Buyer['billing_info']['last_name'].split(" ")
+                        nn = Buyer['last_name'].split(" ")
                         if (len(nn)>1):
                             meli_buyer_fields['fe_primer_apellido'] = nn[0]
                             meli_buyer_fields['fe_segundo_apellido'] = nn[1]
                         else:
-                            meli_buyer_fields['fe_primer_nombre'] = Buyer['billing_info']['last_name']
+                            meli_buyer_fields['fe_primer_apellido'] = Buyer['last_name']
 
 
             partner_ids = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ] )
