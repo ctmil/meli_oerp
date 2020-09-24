@@ -394,7 +394,10 @@ class mercadolibre_shipment(models.Model):
 					saleorderline_item_ids.write( ( saleorderline_item_fields ) )
 					#saleorderline_item_ids.tax_id = None
 				else:
-					saleorderline_item_ids.unlink()
+					try:
+						saleorderline_item_ids.unlink()
+					except:
+						_logger.info("Could not unlink.")
 
 
 
