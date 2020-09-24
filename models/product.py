@@ -26,6 +26,7 @@ import pdb
 import logging
 _logger = logging.getLogger(__name__)
 
+import math
 import requests
 import base64
 import mimetypes
@@ -2119,13 +2120,16 @@ class product_product(models.Model):
                 product.meli_available_quantity = product.virtual_available
 
         # Chequea si es fabricable
-
+        product_fab = False
         if (1==1 and product.virtual_available<=0 and product.route_ids):
             for route in product.route_ids:
                 if (route.name in ['Fabricar','Manufacture']):
                     #raise ValidationError("Fabricar")
                     #product.meli_available_quantity = product.meli_available_quantity
                     _logger.info("Fabricar:"+str(product.meli_available_quantity))
+                    product_fab = True
+            if (not product_fab and product.virtual_available==0):
+                product.meli_available_quantity = product.virtual_available
 
         if (1==2 and product.meli_available_quantity<=10000):
             bom_id = self.env['mrp.bom'].search([('product_id','=',product.id)],limit=1)
