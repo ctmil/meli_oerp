@@ -7,7 +7,7 @@
           <field name="model">product.image</field>
           <field name="inherit_id" ref="website_sale.view_product_image_form"/>
           <field name="arch" type="xml">
-              <xpath expr="//field[@name='video_url']" position="after">
+              <xpath expr="//field[@name='product_tmpl_id']" position="after">
                 <label for="meli_imagen_id" string="ML Id"/><br/>
                 <field name="meli_imagen_id" readonly="1"/>
 
@@ -20,7 +20,7 @@
           </field>
         </record>
 
-        <record id="product_image_view_kanban_meli" model="ir.ui.view">
+        <!--record id="product_image_view_kanban_meli" model="ir.ui.view">
           <field name="name">product.image.view.kanban.meli</field>
           <field name="model">product.image</field>
           <field name="inherit_id" ref="website_sale.product_image_view_kanban"/>
@@ -35,7 +35,7 @@
                 <field name="meli_imagen_id" string="ML id"/>
               </xpath>
           </field>
-        </record>
+        </record-->
 
       <record id="product_template_search_view_meli" model="ir.ui.view">
           <field name="name">product.template.search.meli</field>
