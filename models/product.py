@@ -2120,11 +2120,12 @@ class product_product(models.Model):
 
         # Chequea si es fabricable
 
-        if (1==2 and product.meli_available_quantity<=0 and product.route_ids):
+        if (1==1 and product.virtual_available<=0 and product.route_ids):
             for route in product.route_ids:
                 if (route.name in ['Fabricar','Manufacture']):
                     #raise ValidationError("Fabricar")
-                    product.meli_available_quantity = 1
+                    #product.meli_available_quantity = product.meli_available_quantity
+                    _logger.info("Fabricar:"+str(product.meli_available_quantity))
 
         if (1==2 and product.meli_available_quantity<=10000):
             bom_id = self.env['mrp.bom'].search([('product_id','=',product.id)],limit=1)
@@ -2500,10 +2501,16 @@ class product_product(models.Model):
 
         try:
             self.product_update_stock()
+            product_fab = False
+            if (1==1 and product.virtual_available<=0 and product.route_ids):
+                for route in product.route_ids:
+                    if (route.name in ['Fabricar','Manufacture']):
+                        _logger.info("Fabricar:"+str(product.meli_available_quantity))
+                        product_fab = True
 
             #if (product.virtual_available>=0):
-            product.meli_available_quantity = product.virtual_available
-
+            if (not product_fab):
+                product.meli_available_quantity = product.virtual_available
 
             if product.meli_available_quantity<0:
                 product.meli_available_quantity = 0
