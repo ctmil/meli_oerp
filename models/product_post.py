@@ -41,6 +41,7 @@ class product_template_post(models.TransientModel):
     _description = "Wizard de Product Template Posting en MercadoLibre"
 
     force_meli_pub = fields.Boolean(string="Forzar publicación",help="Forzar publicación de todos los seleccionados",default=False)
+    force_meli_active = fields.Boolean(string="Forzar activación",help="Forzar activaciónde todos los seleccionados",default=False)
     type = fields.Selection([('post','Alta'),('put','Editado'),('delete','Borrado')], string='Tipo de operación' );
     posting_date = fields.Date('Fecha del posting');
 	    #'company_id': fields.many2one('res.company',string='Company'),
@@ -54,7 +55,9 @@ class product_template_post(models.TransientModel):
 
         context = context or self.env.context
         company = self.env.user.company_id
-        product_ids = context['active_ids']
+        product_ids = []
+        if ('active_ids' in context):
+            product_ids = context['active_ids']
         product_obj = self.env['product.template']
 
         warningobj = self.env['warning']
@@ -86,7 +89,7 @@ class product_template_post(models.TransientModel):
                 if (self.force_meli_pub and not product.meli_pub):
                     product.meli_pub = True
                 if (product.meli_pub):
-                    res = product.with_context({'force_meli_pub': self.force_meli_pub }).product_template_post()
+                    res = product.with_context({'force_meli_pub': self.force_meli_pub, 'force_meli_active': self.force_meli_active }).product_template_post()
                     if (res and 'name' in res):
                         return res
                     posted_products+=1
@@ -114,7 +117,9 @@ class product_template_update(models.TransientModel):
     def product_template_update(self, context=None):
         context = context or self.env.context
         company = self.env.user.company_id
-        product_ids = context['active_ids']
+        product_ids = []
+        if ('active_ids' in context):
+            product_ids = context['active_ids']
         product_obj = self.env['product.template']
 
         #user_obj = self.pool.get('res.users').browse(cr, uid, uid)

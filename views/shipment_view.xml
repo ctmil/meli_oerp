@@ -286,16 +286,16 @@
                     />
 
 
-                    <report
-                                id="report_invoice_shipment_view"
-                                string="Shipment Report"
-                                model="account.invoice"
-                                report_type="qweb-pdf"
-                                file="meli_oerp.report_invoice_shipment"
-                                name="meli_oerp.report_invoice_shipment"
-                                menu="True"
-                                print_report_name="'Reporte de facturas con etiquetas'"
-                                paperformat="meli_oerp.paperformat_invoice_shipment"
-                            />
+            <report
+                        id="report_invoice_shipment_view"
+                        string="Shipment Report"
+                        model="account.invoice"
+                        report_type="qweb-pdf"
+                        file="meli_oerp.report_invoice_shipment"
+                        name="meli_oerp.report_invoice_shipment"
+                        menu="True"
+                        print_report_name="'Reporte de facturas con etiquetas'"
+                        paperformat="meli_oerp.paperformat_invoice_shipment"
+                    />
     </data>
 </odoo>
