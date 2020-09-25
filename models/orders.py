@@ -442,6 +442,17 @@ class mercadolibre_orders(models.Model):
                     else:
                         _logger.error("res.partner.id_category:" + str(Buyer['billing_info']['doc_type']))
 
+
+                #Chile
+                if ( ('doc_type' in Buyer['billing_info']) and ('l10n_latam_identification_type_id' in self.env['res.partner']._fields) ):
+                    if (Buyer['billing_info']['doc_type']=="RUT"):
+                        meli_buyer_fields['l10n_latam_identification_type_id'] = 4
+                    if (Buyer['billing_info']['doc_type']=="RUN"):
+                        meli_buyer_fields['l10n_latam_identification_type_id'] = 5
+
+                    meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
+
+
                 #Colombia
                 if ( ('doc_type' in Buyer['billing_info']) and ('l10n_co_document_type' in self.env['res.partner']._fields) ):
                     if (Buyer['billing_info']['doc_type']=="CC" or Buyer['billing_info']['doc_type']=="C.C."):
