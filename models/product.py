@@ -26,6 +26,7 @@ import pdb
 import logging
 _logger = logging.getLogger(__name__)
 
+import math
 import requests
 import base64
 import mimetypes
@@ -74,9 +75,13 @@ class product_template(models.Model):
 
         custom_context = {}
         force_meli_pub = False
+        force_meli_active = False
         if ("force_meli_pub" in self.env.context):
             force_meli_pub = self.env.context.get("force_meli_pub")
-            custom_context = { "force_meli_pub": force_meli_pub }
+            custom_context = { "force_meli_pub": force_meli_pub, "force_meli_active": force_meli_active }
+        if ("force_meli_active" in self.env.context):
+            force_meli_active = self.env.context.get("force_meli_active")
+            custom_context = { "force_meli_pub": force_meli_pub, "force_meli_active": force_meli_active }
         _logger.info(custom_context)
 
         ret = {}
@@ -403,6 +408,7 @@ class product_image(models.Model):
     meli_imagen_max_size = fields.Char(string='Max Size')
     meli_imagen_bytes = fields.Integer(string='Size bytes')
     meli_pub = fields.Boolean(string='Publicar en ML',index=True)
+    meli_force_pub = fields.Boolean(string='Publicar en ML y conservar en Odoo',index=True)
 
 product_image()
 
@@ -618,6 +624,62 @@ class product_product(models.Model):
             #assign
             product_template.public_categ_ids = [(4,www_cat_id)]
 
+    def _meli_remove_images_unsync( self, product_template, pictures ):
+
+        product = self
+
+        ml_pics = {}
+        ml_sizes = {}
+        ml_bytes = {}
+
+        for ix in range(0,len(pictures)):
+
+            ml_imgid = pictures[ix]['id']
+            if (ml_imgid):
+                ml_pics[ml_imgid] = pictures[ix]
+
+                thumbnail_url = pictures[ix]['url']
+                image = urlopen(thumbnail_url).read()
+                meli_imagen_bytes = len(image)
+                if (str(meli_imagen_bytes) in ml_sizes):
+                    _logger.info("Imagen bytes duplicated: "+str(thumbnail_url))
+                    ml_bytes[str(meli_imagen_bytes)+str("__")+str(ix)] = pictures[ix]
+                else:
+                    ml_bytes[str(meli_imagen_bytes)] = pictures[ix]
+
+                _logger.info(ml_imgid)
+
+                duplicates = self.env["product.image"].search([('meli_force_pub','=',False),('meli_imagen_id','=',ml_imgid),('product_tmpl_id','=',product_template.id)])
+                if (duplicates and len(duplicates)>1):
+                    _logger.info("Removing template duplicates for "+str(ml_imgid)+" :"+str(len(duplicates)-1))
+                    for ix in range(1,len(duplicates)):
+                        duplicates[ix].unlink()
+
+                duplicates = self.env["product.image"].search([('meli_force_pub','=',False),('meli_imagen_id','=',ml_imgid),('product_variant_id','=',product.id)])
+                if (duplicates and len(duplicates)>1):
+                    _logger.info("Removing variant duplicates for "+str(ml_imgid)+" :"+str(len(duplicates)-1))
+                    for ix in range(1,len(duplicates)):
+                        duplicates[ix].unlink()
+
+        _logger.info(ml_pics)
+        _logger.info(ml_bytes)
+
+        _logger.info("Cleaning product template images with meli id but not in ML")
+        ml_images = self.env["product.image"].search([('meli_force_pub','=',False),('meli_imagen_id','!=',False),('product_tmpl_id','=',product_template.id)])
+        _logger.info(ml_images)
+        if (ml_images and len(ml_images)):
+            for ml_image in ml_images:
+                if not ml_image.meli_imagen_id in ml_pics and not str(ml_image.meli_imagen_bytes) in ml_bytes:
+                    ml_image.unlink()
+
+        _logger.info("Cleaning product variant images with meli id not in ML")
+        ml_images = self.env["product.image"].search([('meli_force_pub','=',False),('meli_imagen_id','!=',False),('product_variant_id','=',product.id)])
+        _logger.info(ml_images)
+        if (ml_images and len(ml_images)):
+            for ml_image in ml_images:
+                if not ml_image.meli_imagen_id in ml_pics and not str(ml_image.meli_imagen_bytes) in ml_bytes:
+                    ml_image.unlink()
+
     def _meli_set_images( self, product_template, pictures ):
         company = self.env.user.company_id
         CLIENT_ID = company.mercadolibre_client_id
@@ -641,6 +703,7 @@ class product_product(models.Model):
                 #complete product images:
                 #delete all images...
                 _logger.info("Importing all images after principal...")
+
                 #_logger.info(pictures)
                 #_logger.info(range(1,len(pictures)))
                 for ix in range(ix_start,len(pictures)):
@@ -672,15 +735,45 @@ class product_product(models.Model):
                         'product_tmpl_id': product_template.id,
                         'meli_pub': True
                     }
-                    #_logger.info(pimg_fields)
+                    _logger.info(pimg_fields)
                     if (variant_image_ids(product)):
+                        _logger.info("has variant image ids")
+                        _logger.info(variant_image_ids(product))
                         pimage = self.env["product.image"].search([('meli_imagen_id','=',pic["id"]),('product_tmpl_id','=',product_template.id)])
-                        #_logger.info(pimage)
-                        if (pimage and pimage.image):
-                            imagebin = base64.b64decode( pimage.image )
+                        _logger.info(pimage)
+                        if (pimage and len(pimage)>1):
+                            #unlink all but first
+                            _logger.info("Unlink all duplicates for "+str(pic["id"]))
+                            for img in pimage:
+                                img.unlink()
+                            pimage = False
+                        if (pimage and get_image_full(pimage)):
+                            imagebin = base64.b64decode( get_image_full(pimage) )
                             bin_diff = meli_imagen_bytes - len(imagebin)
                             _logger.info("Image:"+str(len(imagebin))+" vs URLImage:"+str(meli_imagen_bytes)+" diff:"+str(bin_diff) )
                             bin_updating = (abs(bin_diff)>0)
+                    else:
+                        _logger.info("no variant image ids, using template image ids")
+                        if (template_image_ids(product)):
+                            _logger.info(template_image_ids(product))
+                            pimage = self.env["product.image"].search([('meli_imagen_id','=',pic["id"]),('product_tmpl_id','=',product_template.id)])
+
+                            #remove duplicate images
+                            _logger.info(pimage)
+                            if (pimage and len(pimage)>1):
+                                #unlink all but first
+                                _logger.info("Unlink all duplicates for "+str(pic["id"]))
+                                pimage.unlink()
+                                for img in pimage:
+                                    img.unlink()
+                                pimage = False
+
+                            if (pimage and get_image_full(pimage)):
+                                imagebin = base64.b64decode( get_image_full(pimage) )
+                                bin_diff = meli_imagen_bytes - len(imagebin)
+                                _logger.info("Image:"+str(len(imagebin))+" vs URLImage:"+str(meli_imagen_bytes)+" diff:"+str(bin_diff) )
+                                bin_updating = (abs(bin_diff)>0)
+
 
                     #_logger.info(str(pimage==False))
                     if (not pimage or (pimage and len(pimage)==0)):
@@ -765,6 +858,8 @@ class product_product(models.Model):
         #TODO:
         pictures = rjson['pictures']
         if pictures and len(pictures):
+            #remove all meli images not in pictures:
+            product._meli_remove_images_unsync( product_template, pictures )
             product._meli_set_images(product_template, pictures)
 
         #categories
@@ -1477,6 +1572,39 @@ class product_product(models.Model):
         product_obj = self.env['product.product']
         product = self
 
+        if variant_image_ids(product)==None and template_image_ids(product)==None:
+            return { 'status': 'error', 'message': 'no images to upload' }
+
+        image_ids = []
+
+        #loop over images
+        var_image_ids = variant_image_ids(product)
+        if (var_image_ids and len(var_image_ids)):
+            for imix in range(0,len(var_image_ids)):
+                if (company.mercadolibre_do_not_use_first_image and imix==0):
+                    continue;
+                _logger.info("Upload multi image var: "+str(imix))
+                product_image = var_image_ids[imix]
+                image_ids+= product._meli_upload_image( product_image )
+
+        #loop over images
+        tpl_image_ids = template_image_ids(product)
+        if (tpl_image_ids and len(tpl_image_ids)):
+            for imix in range(0,len(tpl_image_ids)):
+                if (company.mercadolibre_do_not_use_first_image and imix==0):
+                    continue;
+                _logger.info("Upload multi image tpl: "+str(imix))
+                product_image = tpl_image_ids[imix]
+                image_ids+= product._meli_upload_image( product_image )
+
+        product.write( { "meli_multi_imagen_id": "%s" % (image_ids) } )
+
+        return image_ids
+
+    def _meli_upload_image( self, product_image ):
+
+        company = self.env.user.company_id
+
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
         ACCESS_TOKEN = company.mercadolibre_access_token
@@ -1485,54 +1613,39 @@ class product_product(models.Model):
         #
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
-        if variant_image_ids(product)==None:
-            return { 'status': 'error', 'message': 'no images to upload' }
-
         image_ids = []
-        c = 0
+        if (get_image_full(product_image)):
+            imagebin = base64.b64decode( get_image_full(product_image) )
+            #files = { 'file': ('image.png', imagebin, "image/png"), }
+            files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
+            response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
+            #_logger.info( "meli upload:" + str(response.content) )
+            rjson = response.json()
+            if ("error" in rjson):
+                #raise osv.except_osv( _('MELI WARNING'), _('No se pudo cargar la imagen en MELI! Error: %s , Mensaje: %s, Status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
+                return rjson
+            else:
+                image_ids+= [ { 'id': rjson['id'] }]
+                #c = c + 1
+                _logger.info( "image_ids:" + str(image_ids) )
+                image_uploaded = {}
+                ilink = ""
+                isize = ""
+                if ('variations' in rjson):
+                    if (len(rjson['variations'])):
+                        #big one, first one XXX-F
+                        image_uploaded = rjson['variations'][0]
+                else:
+                    image_uploaded = rjson
 
-        #loop over images
-        var_image_ids = variant_image_ids(product)
-        if (var_image_ids and len(var_image_ids)):
-            for imix in range(0,len(var_image_ids)):
-                if (company.mercadolibre_do_not_use_first_image and imix==0):
-                    continue;
-                _logger.info("Upload multi image: "+str(imix))
-                product_image = var_image_ids[imix]
-                if (get_image_full(product_image)):
-                    imagebin = base64.b64decode( get_image_full(product_image) )
-                    #files = { 'file': ('image.png', imagebin, "image/png"), }
-                    files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
-                    response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
-                    #_logger.info( "meli upload:" + str(response.content) )
-                    rjson = response.json()
-                    if ("error" in rjson):
-                        #raise osv.except_osv( _('MELI WARNING'), _('No se pudo cargar la imagen en MELI! Error: %s , Mensaje: %s, Status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
-                        return rjson
-                    else:
-                        image_ids+= [ { 'id': rjson['id'] }]
-                        c = c + 1
-                        _logger.info( "image_ids:" + str(image_ids) )
-                        image_uploaded = {}
-                        ilink = ""
-                        isize = ""
-                        if ('variations' in rjson):
-                            if (len(rjson['variations'])):
-                                #big one, first one XXX-F
-                                image_uploaded = rjson['variations'][0]
-                        else:
-                            image_uploaded = rjson
-
-                        if 'secure_url' in image_uploaded:
-                            ilink = image_uploaded['secure_url']
-                        if 'size' in image_uploaded:
-                            isize = image_uploaded['size']
-                        product_image.meli_imagen_id = rjson['id']
-                        product_image.meli_imagen_max_size = rjson['max_size']
-                        product_image.meli_imagen_link = ilink
-                        product_image.meli_imagen_size = isize
-
-        product.write( { "meli_multi_imagen_id": "%s" % (image_ids) } )
+                if 'secure_url' in image_uploaded:
+                    ilink = image_uploaded['secure_url']
+                if 'size' in image_uploaded:
+                    isize = image_uploaded['size']
+                product_image.meli_imagen_id = rjson['id']
+                product_image.meli_imagen_max_size = rjson['max_size']
+                product_image.meli_imagen_link = ilink
+                product_image.meli_imagen_size = isize
 
         return image_ids
 
@@ -2007,12 +2120,16 @@ class product_product(models.Model):
                 product.meli_available_quantity = product.virtual_available
 
         # Chequea si es fabricable
-
-        if (1==2 and product.meli_available_quantity<=0 and product.route_ids):
+        product_fab = False
+        if (1==1 and product.virtual_available<=0 and product.route_ids):
             for route in product.route_ids:
                 if (route.name in ['Fabricar','Manufacture']):
                     #raise ValidationError("Fabricar")
-                    product.meli_available_quantity = 1
+                    #product.meli_available_quantity = product.meli_available_quantity
+                    _logger.info("Fabricar:"+str(product.meli_available_quantity))
+                    product_fab = True
+            if (not product_fab and product.virtual_available==0):
+                product.meli_available_quantity = product.virtual_available
 
         if (1==2 and product.meli_available_quantity<=10000):
             bom_id = self.env['mrp.bom'].search([('product_id','=',product.id)],limit=1)
@@ -2068,6 +2185,8 @@ class product_product(models.Model):
 
         #publicando imagenes
         first_image_to_publish = get_first_image_to_publish( product )
+        if (productjson and "pictures" in productjson):
+            product._meli_remove_images_unsync( product_tmpl, productjson["pictures"] )
 
         if first_image_to_publish==None:
             return warningobj.info( title='MELI WARNING', message="Debe cargar una imagen de base en el producto, si chequeo el 'Dont use first image' debe al menos poner una imagen adicional en el producto.", message_html="" )
@@ -2130,7 +2249,7 @@ class product_product(models.Model):
 
         #publicando multiples imagenes
         multi_images_ids = {}
-        if (variant_image_ids(product)):
+        if (variant_image_ids(product) or template_image_ids(product)):
             multi_images_ids = product.product_meli_upload_multi_images()
             _logger.info(multi_images_ids)
             if 'status' in multi_images_ids:
@@ -2362,6 +2481,12 @@ class product_product(models.Model):
         else:
             posting.write(( { 'product_id':product.id, 'name': 'Post: ' + product.meli_title }))
 
+        force_meli_active = False
+        if ("force_meli_active" in self.env.context):
+            force_meli_active = self.env.context.get("force_meli_active")
+        if (force_meli_active==True):
+            product.product_meli_status_active()
+
         return {}
 
     def product_post_stock(self):
@@ -2380,10 +2505,16 @@ class product_product(models.Model):
 
         try:
             self.product_update_stock()
+            product_fab = False
+            if (1==1 and product.virtual_available<=0 and product.route_ids):
+                for route in product.route_ids:
+                    if (route.name in ['Fabricar','Manufacture']):
+                        _logger.info("Fabricar:"+str(product.meli_available_quantity))
+                        product_fab = True
 
             #if (product.virtual_available>=0):
-            product.meli_available_quantity = product.virtual_available
-
+            if (not product_fab):
+                product.meli_available_quantity = product.virtual_available
 
             if product.meli_available_quantity<0:
                 product.meli_available_quantity = 0
