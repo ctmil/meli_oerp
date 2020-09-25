@@ -468,6 +468,8 @@ class mercadolibre_orders(models.Model):
                             meli_buyer_fields['fe_tipo_regimen'] = '00'
                         if ("fe_regimen_fiscal" in self.env['res.partner']._fields ):
                             meli_buyer_fields['fe_regimen_fiscal'] = '49'
+                        if ("fe_responsable_fiscal" in self.env['res.partner']._fields ):
+                            meli_buyer_fields['fe_responsable_fiscal'] = [ ( 6, 0, [29] ) ]
 
                     if (Buyer['billing_info']['doc_type']=="NIT"):
                         meli_buyer_fields['l10n_co_document_type'] = 'rut'
@@ -488,6 +490,8 @@ class mercadolibre_orders(models.Model):
                             meli_buyer_fields['fe_tipo_regimen'] = '00'
                         if ("fe_regimen_fiscal" in self.env['res.partner']._fields ):
                             meli_buyer_fields['fe_regimen_fiscal'] = '49'
+                        if ("fe_responsable_fiscal" in self.env['res.partner']._fields ):
+                            meli_buyer_fields['fe_responsable_fiscal'] = [ ( 6, 0, [29] ) ]
 
                     meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
                     if ("fe_nit" in self.env['res.partner']._fields):
