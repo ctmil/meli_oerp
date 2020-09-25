@@ -457,6 +457,8 @@ class mercadolibre_orders(models.Model):
                 if ( ('doc_type' in Buyer['billing_info']) and ('l10n_co_document_type' in self.env['res.partner']._fields) ):
                     if ("fe_es_compania" in self.env['res.partner']._fields ):
                         meli_buyer_fields['fe_es_compania'] = '2'
+                    if ("fe_correo_electronico" in self.env['res.partner']._fields ):
+                        meli_buyer_fields['fe_correo_electronico'] = Buyer['email']
 
                     if (Buyer['billing_info']['doc_type']=="CC" or Buyer['billing_info']['doc_type']=="C.C."):
                         meli_buyer_fields['l10n_co_document_type'] = 'national_citizen_id'
