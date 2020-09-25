@@ -455,18 +455,37 @@ class mercadolibre_orders(models.Model):
 
                 #Colombia
                 if ( ('doc_type' in Buyer['billing_info']) and ('l10n_co_document_type' in self.env['res.partner']._fields) ):
+                    if ("fe_es_compania" in self.env['res.partner']._fields ):
+                        meli_buyer_fields['fe_es_compania'] = '2'
+
                     if (Buyer['billing_info']['doc_type']=="CC" or Buyer['billing_info']['doc_type']=="C.C."):
                         meli_buyer_fields['l10n_co_document_type'] = 'national_citizen_id'
                         if ("fe_tipo_documento" in self.env['res.partner']._fields):
                             meli_buyer_fields['fe_tipo_documento'] = '13'
+                        if ("fe_tipo_regimen" in self.env['res.partner']._fields ):
+                            meli_buyer_fields['fe_tipo_regimen'] = '00'
+                        if ("fe_regimen_fiscal" in self.env['res.partner']._fields ):
+                            meli_buyer_fields['fe_regimen_fiscal'] = '49'
+
                     if (Buyer['billing_info']['doc_type']=="NIT"):
                         meli_buyer_fields['l10n_co_document_type'] = 'rut'
                         if ("fe_tipo_documento" in self.env['res.partner']._fields):
                             meli_buyer_fields['fe_tipo_documento'] = '31'
+                        if ("fe_es_compania" in self.env['res.partner']._fields ):
+                            meli_buyer_fields['fe_es_compania'] = '1'
+                        #if ("fe_tipo_regimen" in self.env['res.partner']._fields ):
+                        #    meli_buyer_fields['fe_tipo_regimen'] = '04'
+                        #if ("fe_regimen_fiscal" in self.env['res.partner']._fields ):
+                        #    meli_buyer_fields['fe_regimen_fiscal'] = '48'
+
                     if (Buyer['billing_info']['doc_type']=="CE"):
                         meli_buyer_fields['l10n_co_document_type'] = 'foreign_id_card'
                         if ("fe_tipo_documento" in self.env['res.partner']._fields):
                             meli_buyer_fields['fe_tipo_documento'] = '22'
+                        if ("fe_tipo_regimen" in self.env['res.partner']._fields ):
+                            meli_buyer_fields['fe_tipo_regimen'] = '00'
+                        if ("fe_regimen_fiscal" in self.env['res.partner']._fields ):
+                            meli_buyer_fields['fe_regimen_fiscal'] = '49'
 
                     meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
                     if ("fe_nit" in self.env['res.partner']._fields):
