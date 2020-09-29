@@ -679,14 +679,19 @@ class product_product(models.Model):
                 if not ml_image.meli_imagen_id in ml_pics and not str(ml_image.meli_imagen_bytes) in ml_bytes:
                     ml_image.unlink()
 
-        _logger.info("Cleaning product variant images with meli id not in ML")
-        ml_images = self.env["product.image"].search([('meli_force_pub','=',False),('meli_imagen_id','!=',False),('product_variant_id','=',product.id)])
-        _logger.info(ml_images)
-        if (ml_images and len(ml_images)):
-            for ml_image in ml_images:
-                if not ml_image.meli_imagen_id in ml_pics and not str(ml_image.meli_imagen_bytes) in ml_bytes:
-                    ml_image.unlink()
-
+        try:
+            _logger.info("Cleaning product variant images with meli id not in ML")
+            ml_images = self.env["product.image"].search([('meli_force_pub','=',False),
+                                                        ('meli_imagen_id','!=',False),
+                                                        ('product_variant_id','=',product.id)])
+            _logger.info(ml_images)
+            if (ml_images and len(ml_images)):
+                for ml_image in ml_images:
+                    if not ml_image.meli_imagen_id in ml_pics and not str(ml_image.meli_imagen_bytes) in ml_bytes:
+                        ml_image.unlink()
+        except:
+            pass;
+            
     def _meli_set_images( self, product_template, pictures ):
         company = self.env.user.company_id
         CLIENT_ID = company.mercadolibre_client_id
