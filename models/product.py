@@ -691,7 +691,7 @@ class product_product(models.Model):
                         ml_image.unlink()
         except:
             pass;
-            
+
     def _meli_set_images( self, product_template, pictures ):
         company = self.env.user.company_id
         CLIENT_ID = company.mercadolibre_client_id
@@ -2326,7 +2326,7 @@ class product_product(models.Model):
                             var_info = productjson["variations"][ix]
                             #_logger.info("Variation to update!!")
                             #_logger.info(var_info)
-                            var_product = None
+                            var_product = product
                             for pvar in product_tmpl.product_variant_ids:
                                 if (pvar._is_product_combination(var_info)):
                                     var_product = pvar
