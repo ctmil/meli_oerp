@@ -649,17 +649,24 @@ class product_product(models.Model):
 
                 _logger.info(ml_imgid)
 
-                duplicates = self.env["product.image"].search([('meli_force_pub','=',False),('meli_imagen_id','=',ml_imgid),('product_tmpl_id','=',product_template.id)])
+                duplicates = self.env["product.image"].search([('meli_force_pub','=',False),
+                                                                ('meli_imagen_id','=',ml_imgid),
+                                                                ('product_tmpl_id','=',product_template.id)])
                 if (duplicates and len(duplicates)>1):
                     _logger.info("Removing template duplicates for "+str(ml_imgid)+" :"+str(len(duplicates)-1))
                     for ix in range(1,len(duplicates)):
                         duplicates[ix].unlink()
 
-                duplicates = self.env["product.image"].search([('meli_force_pub','=',False),('meli_imagen_id','=',ml_imgid),('product_variant_id','=',product.id)])
-                if (duplicates and len(duplicates)>1):
-                    _logger.info("Removing variant duplicates for "+str(ml_imgid)+" :"+str(len(duplicates)-1))
-                    for ix in range(1,len(duplicates)):
-                        duplicates[ix].unlink()
+                try:
+                    duplicates = self.env["product.image"].search([('meli_force_pub','=',False),
+                                                                ('meli_imagen_id','=',ml_imgid),
+                                                                ('product_variant_id','=',product.id)])
+                    if (duplicates and len(duplicates)>1):
+                        _logger.info("Removing variant duplicates for "+str(ml_imgid)+" :"+str(len(duplicates)-1))
+                        for ix in range(1,len(duplicates)):
+                            duplicates[ix].unlink()
+                except:
+                    pass;
 
         _logger.info(ml_pics)
         _logger.info(ml_bytes)
