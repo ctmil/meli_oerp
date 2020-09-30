@@ -269,6 +269,7 @@ class mercadolibre_shipment(models.Model):
 	base_cost = fields.Float(string='Base Cost')
 	shipping_cost = fields.Float(string='Shipping Cost')
 	shipping_list_cost = fields.Float(string='Shipping List Cost')
+	promoted_amount = fields.Float(string='Promoted Amount')
 
 	#state = fields.Selection(string="State",)
 	status = fields.Char(string="Status")
@@ -498,6 +499,11 @@ class mercadolibre_shipment(models.Model):
 
 					"logistic_type": ("logistic_type" in ship_json and ship_json["logistic_type"]) or ""
 				}
+				# raise ValidationError('estamos aca %s'%(ship_json))
+				if 'costs' in ship_json:
+					if 'discounts' in ship_json['costs']:
+						ship_fields['promoted_amount'] = ship_json['costs']['discounts']['promoted_amount']
+                                        
 
 				response2 = meli.get("/shipments/"+ str(ship_id)+"/items",  {'access_token':meli.access_token})
 				if (response2):
