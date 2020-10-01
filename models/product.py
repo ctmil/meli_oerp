@@ -364,7 +364,8 @@ class product_template(models.Model):
                                     ("BOB","Boliviano (BOB)"),
                                     ("BRL","Real (BRL)"),
                                     ("CLP","Peso Chileno (CLP)"),
-                                    ("CRC","Colon Costarricense (CRC)")],
+                                    ("CRC","Colon Costarricense (CRC)"),
+                                    ("UYU","Peso Uruguayo (UYU)")],
                                     string='Moneda')
     meli_condition = fields.Selection([ ("new", "Nuevo"),
                                         ("used", "Usado"),
@@ -2725,7 +2726,8 @@ class product_product(models.Model):
     ("BOB","Boliviano (BOB)"),
     ("BRL","Real (BRL)"),
     ("CLP","Peso Chileno (CLP)"),
-    ("CRC","Colon Costarricense (CRC)")],string='Moneda')
+    ("CRC","Colon Costarricense (CRC)"),
+    ("UYU","Peso Uruguayo (UYU)")],string='Moneda')
     meli_condition = fields.Selection([ ("new", "Nuevo"), ("used", "Usado"), ("not_specified","No especificado")],'Condición del producto')
     meli_warranty = fields.Char(string='Garantía', size=256)
     meli_listing_type = fields.Selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special/Clásica"),("gold_pro","Oro Pro")], string='Tipo de lista')
