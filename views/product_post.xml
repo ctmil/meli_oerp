@@ -25,6 +25,7 @@
                     <group string="Opciones de publicación" col="2">
                       <group>
                         <field name="force_meli_pub"/>
+                        <field name="force_meli_active"/>
                       </group>
                     </group>
                     <footer>

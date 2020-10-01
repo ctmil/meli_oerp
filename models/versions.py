@@ -23,6 +23,10 @@ default_create_variant = True
 def variant_image_ids(self):
     return self.product_image_ids
 
+#template image ids
+def template_image_ids(self):
+    return self.product_image_ids
+
 #att value ids
 def att_value_ids(self):
     return self.attribute_value_ids

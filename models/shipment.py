@@ -164,7 +164,7 @@ class mercadolibre_shipment_print(models.TransientModel):
 					shipment = shipment_obj.search([('shipping_id','=',pick.sale_id.meli_orders[0].shipping_id)])
 					if (shipment):
 						shipid = shipment.id
-			else:					
+			else:
 				continue;
 
 			if (shipid):
@@ -386,12 +386,20 @@ class mercadolibre_shipment(models.Model):
 			}
 			saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),
 																('order_id','=',sorder.id)] )
-			if not saleorderline_item_ids:
+			if not saleorderline_item_ids and (shipment.shipping_cost>0):
 				saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
-				saleorderline_item_ids.tax_id = None
+				#saleorderline_item_ids.tax_id = None
 			else:
-				saleorderline_item_ids.write( ( saleorderline_item_fields ) )
-				saleorderline_item_ids.tax_id = None
+				if (shipment.shipping_cost>0):
+					saleorderline_item_ids.write( ( saleorderline_item_fields ) )
+					#saleorderline_item_ids.tax_id = None
+				else:
+					try:
+						saleorderline_item_ids.unlink()
+					except:
+						_logger.info("Could not unlink.")
+
+
 
 	#Return shipment object based on mercadolibre.orders "order"
 	def fetch( self, order ):
@@ -565,7 +573,7 @@ class mercadolibre_shipment(models.Model):
 					if (ship_fields["pack_order"]==False):
 						sorder = self.env["sale.order"].search( [ ('meli_order_id','=',ship_fields["order_id"]) ] )
 						if len(sorder):
-							shipment.sale_order = sorder
+							shipment.sale_order = sorder[0]
 							sorder.meli_shipment = shipment
 
 					if (full_orders and ship_fields["pack_order"]):

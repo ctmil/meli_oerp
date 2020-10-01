@@ -149,7 +149,16 @@ class mercadolibre_orders(models.Model):
         state_id = False
         if (Receiver and 'state' in Receiver):
             if ('id' in Receiver['state']):
-                state = self.env['res.country.state'].search([('code','like',Receiver['state']['id'])])
+                state = self.env['res.country.state'].search([('code','like',Receiver['state']['id']),('country_id','=',country_id)])
+                if (len(state)):
+                    state_id = state[0].id
+                    return state_id
+            id_ml = Receiver['state']['id'].split("-")
+            _logger.info(Receiver)
+            _logger.info(id_ml)
+            if (len(id_ml)==2):
+                id = id_ml[1]
+                state = self.env['res.country.state'].search([('code','like',id),('country_id','=',country_id)])
                 if (len(state)):
                     state_id = state[0].id
                     return state_id
@@ -433,21 +442,85 @@ class mercadolibre_orders(models.Model):
                     else:
                         _logger.error("res.partner.id_category:" + str(Buyer['billing_info']['doc_type']))
 
-                #Colombia
-                if ( ('doc_type' in Buyer['billing_info']) and ('l10n_co_document_type' in self.env['res.partner']._fields) ):
-                    if (Buyer['billing_info']['doc_type']=="CC"):
-                        meli_buyer_fields['l10n_co_document_type'] = 'national_citizen_id'
-                    if (Buyer['billing_info']['doc_type']=="NIT"):
-                        meli_buyer_fields['l10n_co_document_type'] = 'rut'
-                    if (Buyer['billing_info']['doc_type']=="CE"):
-                        meli_buyer_fields['l10n_co_document_type'] = 'foreign_id_card'
+
+                #Chile
+                if ( ('doc_type' in Buyer['billing_info']) and ('l10n_latam_identification_type_id' in self.env['res.partner']._fields) ):
+                    if (Buyer['billing_info']['doc_type']=="RUT"):
+                        meli_buyer_fields['l10n_latam_identification_type_id'] = 4
+                    if (Buyer['billing_info']['doc_type']=="RUN"):
+                        meli_buyer_fields['l10n_latam_identification_type_id'] = 5
 
                     meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
+
+
+                #Colombia
+                if ( ('doc_type' in Buyer['billing_info']) and ('l10n_co_document_type' in self.env['res.partner']._fields) ):
+                    if ("fe_es_compania" in self.env['res.partner']._fields ):
+                        meli_buyer_fields['fe_es_compania'] = '2'
+                    if ("fe_correo_electronico" in self.env['res.partner']._fields ):
+                        meli_buyer_fields['fe_correo_electronico'] = Buyer['email']
+
+                    if (Buyer['billing_info']['doc_type']=="CC" or Buyer['billing_info']['doc_type']=="C.C."):
+                        meli_buyer_fields['l10n_co_document_type'] = 'national_citizen_id'
+                        if ("fe_tipo_documento" in self.env['res.partner']._fields):
+                            meli_buyer_fields['fe_tipo_documento'] = '13'
+                        if ("fe_tipo_regimen" in self.env['res.partner']._fields ):
+                            meli_buyer_fields['fe_tipo_regimen'] = '00'
+                        if ("fe_regimen_fiscal" in self.env['res.partner']._fields ):
+                            meli_buyer_fields['fe_regimen_fiscal'] = '49'
+                        if ("responsabilidad_fiscal_fe" in self.env['res.partner']._fields ):
+                            meli_buyer_fields['responsabilidad_fiscal_fe'] = [ ( 6, 0, [29] ) ]
+
+                    if (Buyer['billing_info']['doc_type']=="NIT"):
+                        meli_buyer_fields['l10n_co_document_type'] = 'rut'
+                        if ("fe_tipo_documento" in self.env['res.partner']._fields):
+                            meli_buyer_fields['fe_tipo_documento'] = '31'
+                        if ("fe_es_compania" in self.env['res.partner']._fields ):
+                            meli_buyer_fields['fe_es_compania'] = '1'
+                        #if ("fe_tipo_regimen" in self.env['res.partner']._fields ):
+                        #    meli_buyer_fields['fe_tipo_regimen'] = '04'
+                        #if ("fe_regimen_fiscal" in self.env['res.partner']._fields ):
+                        #    meli_buyer_fields['fe_regimen_fiscal'] = '48'
+
+                    if (Buyer['billing_info']['doc_type']=="CE"):
+                        meli_buyer_fields['l10n_co_document_type'] = 'foreign_id_card'
+                        if ("fe_tipo_documento" in self.env['res.partner']._fields):
+                            meli_buyer_fields['fe_tipo_documento'] = '22'
+                        if ("fe_tipo_regimen" in self.env['res.partner']._fields ):
+                            meli_buyer_fields['fe_tipo_regimen'] = '00'
+                        if ("fe_regimen_fiscal" in self.env['res.partner']._fields ):
+                            meli_buyer_fields['fe_regimen_fiscal'] = '49'
+                        if ("responsabilidad_fiscal_fe" in self.env['res.partner']._fields ):
+                            meli_buyer_fields['responsabilidad_fiscal_fe'] = [ ( 6, 0, [29] ) ]
+
+                    meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
+                    if ("fe_nit" in self.env['res.partner']._fields):
+                        meli_buyer_fields['fe_nit'] = Buyer['billing_info']['doc_number']
+
+                    if ("fe_primer_nombre" in self.env['res.partner']._fields):
+                        nn = Buyer['first_name'].split(" ")
+                        if (len(nn)>1):
+                            meli_buyer_fields['fe_primer_nombre'] = nn[0]
+                            meli_buyer_fields['fe_segundo_nombre'] = nn[1]
+                        else:
+                            meli_buyer_fields['fe_primer_nombre'] = Buyer['first_name']
+                    if ("fe_primer_apellido" in self.env['res.partner']._fields):
+                        nn = Buyer['last_name'].split(" ")
+                        if (len(nn)>1):
+                            meli_buyer_fields['fe_primer_apellido'] = nn[0]
+                            meli_buyer_fields['fe_segundo_apellido'] = nn[1]
+                        else:
+                            meli_buyer_fields['fe_primer_apellido'] = Buyer['last_name']
 
 
             partner_ids = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ] )
             if (len(partner_ids)>0):
                 partner_id = partner_ids[0]
+            if ("fe_regimen_fiscal" in self.env['res.partner']._fields):
+                if (partner_id and not partner_id.fe_regimen_fiscal):
+                    meli_buyer_fields['fe_regimen_fiscal'] = '49';
+                else:
+                    meli_buyer_fields['fe_regimen_fiscal'] = '49';
             if not partner_id:
                 #_logger.info( "creating partner:" + str(meli_buyer_fields) )
                 partner_id = respartner_obj.create(( meli_buyer_fields ))

@@ -18,6 +18,8 @@ Para México: https://api.mercadolibre.com/sites/MLM/search?nickname=ESCRIBE_AQU
 
 Para Costa Rica: https://api.mercadolibre.com/sites/MCR/search?nickname=ESCRIBE_AQUI_TU_NICK_NAME
 
+Para Uruguay: https://api.mercadolibre.com/sites/MLU/search?nickname=ESCRIBE_AQUI_TU_NICK_NAME
+
 [...]
 
 Ver http://developers.mercadolibre.com.ar para ver la API.
