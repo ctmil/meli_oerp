@@ -365,7 +365,8 @@ class product_template(models.Model):
                                     ("BRL","Real (BRL)"),
                                     ("CLP","Peso Chileno (CLP)"),
                                     ("CRC","Colon Costarricense (CRC)"),
-                                    ("UYU","Peso Uruguayo (UYU)")],
+                                    ("UYU","Peso Uruguayo (UYU)"),
+                                    ("USD","Dolar Estadounidense (USD)")],
                                     string='Moneda')
     meli_condition = fields.Selection([ ("new", "Nuevo"),
                                         ("used", "Usado"),
@@ -650,17 +651,24 @@ class product_product(models.Model):
 
                 _logger.info(ml_imgid)
 
-                duplicates = self.env["product.image"].search([('meli_force_pub','=',False),('meli_imagen_id','=',ml_imgid),('product_tmpl_id','=',product_template.id)])
+                duplicates = self.env["product.image"].search([('meli_force_pub','=',False),
+                                                                ('meli_imagen_id','=',ml_imgid),
+                                                                ('product_tmpl_id','=',product_template.id)])
                 if (duplicates and len(duplicates)>1):
                     _logger.info("Removing template duplicates for "+str(ml_imgid)+" :"+str(len(duplicates)-1))
                     for ix in range(1,len(duplicates)):
                         duplicates[ix].unlink()
 
-                duplicates = self.env["product.image"].search([('meli_force_pub','=',False),('meli_imagen_id','=',ml_imgid),('product_variant_id','=',product.id)])
-                if (duplicates and len(duplicates)>1):
-                    _logger.info("Removing variant duplicates for "+str(ml_imgid)+" :"+str(len(duplicates)-1))
-                    for ix in range(1,len(duplicates)):
-                        duplicates[ix].unlink()
+                try:
+                    duplicates = self.env["product.image"].search([('meli_force_pub','=',False),
+                                                                ('meli_imagen_id','=',ml_imgid),
+                                                                ('product_variant_id','=',product.id)])
+                    if (duplicates and len(duplicates)>1):
+                        _logger.info("Removing variant duplicates for "+str(ml_imgid)+" :"+str(len(duplicates)-1))
+                        for ix in range(1,len(duplicates)):
+                            duplicates[ix].unlink()
+                except:
+                    pass;
 
         _logger.info(ml_pics)
         _logger.info(ml_bytes)
@@ -673,13 +681,18 @@ class product_product(models.Model):
                 if not ml_image.meli_imagen_id in ml_pics and not str(ml_image.meli_imagen_bytes) in ml_bytes:
                     ml_image.unlink()
 
-        _logger.info("Cleaning product variant images with meli id not in ML")
-        ml_images = self.env["product.image"].search([('meli_force_pub','=',False),('meli_imagen_id','!=',False),('product_variant_id','=',product.id)])
-        _logger.info(ml_images)
-        if (ml_images and len(ml_images)):
-            for ml_image in ml_images:
-                if not ml_image.meli_imagen_id in ml_pics and not str(ml_image.meli_imagen_bytes) in ml_bytes:
-                    ml_image.unlink()
+        try:
+            _logger.info("Cleaning product variant images with meli id not in ML")
+            ml_images = self.env["product.image"].search([('meli_force_pub','=',False),
+                                                        ('meli_imagen_id','!=',False),
+                                                        ('product_variant_id','=',product.id)])
+            _logger.info(ml_images)
+            if (ml_images and len(ml_images)):
+                for ml_image in ml_images:
+                    if not ml_image.meli_imagen_id in ml_pics and not str(ml_image.meli_imagen_bytes) in ml_bytes:
+                        ml_image.unlink()
+        except:
+            pass;
 
     def _meli_set_images( self, product_template, pictures ):
         company = self.env.user.company_id
@@ -2315,7 +2328,7 @@ class product_product(models.Model):
                             var_info = productjson["variations"][ix]
                             #_logger.info("Variation to update!!")
                             #_logger.info(var_info)
-                            var_product = None
+                            var_product = product
                             for pvar in product_tmpl.product_variant_ids:
                                 if (pvar._is_product_combination(var_info)):
                                     var_product = pvar
@@ -2726,8 +2739,7 @@ class product_product(models.Model):
     ("BOB","Boliviano (BOB)"),
     ("BRL","Real (BRL)"),
     ("CLP","Peso Chileno (CLP)"),
-    ("CRC","Colon Costarricense (CRC)"),
-    ("UYU","Peso Uruguayo (UYU)")],string='Moneda')
+    ("CRC","Colon Costarricense (CRC)")],string='Moneda')
     meli_condition = fields.Selection([ ("new", "Nuevo"), ("used", "Usado"), ("not_specified","No especificado")],'Condición del producto')
     meli_warranty = fields.Char(string='Garantía', size=256)
     meli_listing_type = fields.Selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special/Clásica"),("gold_pro","Oro Pro")], string='Tipo de lista')
