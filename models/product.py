@@ -365,7 +365,8 @@ class product_template(models.Model):
                                     ("BRL","Real (BRL)"),
                                     ("CLP","Peso Chileno (CLP)"),
                                     ("CRC","Colon Costarricense (CRC)"),
-                                    ("UYU","Peso Uruguayo (UYU)")],
+                                    ("UYU","Peso Uruguayo (UYU)"),
+                                    ("USD","Dolar Estadounidense (USD)")],
                                     string='Moneda')
     meli_condition = fields.Selection([ ("new", "Nuevo"),
                                         ("used", "Usado"),
