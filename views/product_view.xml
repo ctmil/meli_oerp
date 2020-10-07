@@ -2,6 +2,41 @@
 <odoo>
     <data>
 
+	<!--record id="view_product_image_form_meli" model="ir.ui.view">
+          <field name="name">product.image.view.form.meli</field>
+          <field name="model">product.image</field>
+          <field name="inherit_id" ref="website_sale.view_product_image_form"/>
+          <field name="arch" type="xml">
+              <xpath expr="//field[@name='product_tmpl_id']" position="after">
+                <label for="meli_imagen_id" string="ML Id"/><br/>
+                <field name="meli_imagen_id" readonly="1"/>
+
+                <label for="meli_force_pub" string="Force ML Pub"/><br/>
+                <field name="meli_force_pub"/>
+
+                <label for="meli_pub" string="ML Pub"/><br/>
+                <field name="meli_pub"/>
+              </xpath>
+          </field>
+        </record-->
+
+        <!--record id="product_image_view_kanban_meli" model="ir.ui.view">
+          <field name="name">product.image.view.kanban.meli</field>
+          <field name="model">product.image</field>
+          <field name="inherit_id" ref="website_sale.product_image_view_kanban"/>
+          <field name="arch" type="xml">
+              <xpath expr="//field[@name='id']" position="after">
+                <field name="meli_imagen_id" string="Product Image ML ID" readonly="1"/>
+                <field name="meli_force_pub" string="Product Image ML Force Publication"/>
+                <field name="meli_pub" string="Product Image ML Publication"/>
+              </xpath>
+              <xpath expr="//div[contains(@class,'card-body')]//field[@name='name']" position="after">
+                <field name="meli_force_pub" string="ML Force Pub"/>
+                <field name="meli_imagen_id" string="ML id"/>
+              </xpath>
+          </field>
+        </record-->
+
       <record id="product_template_search_view_meli" model="ir.ui.view">
           <field name="name">product.template.search.meli</field>
           <field name="model">product.template</field>

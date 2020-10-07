@@ -50,7 +50,8 @@ class res_company(models.Model):
                             ("BOB","Boliviano (BOB)"),
                             ("BRL","Real (BRL)"),
                             ("CLP","Peso Chileno (CLP)"),
-                            ("UYU","Peso Uruguayo (UYU)")]
+                            ("UYU","Peso Uruguayo (UYU)"),
+                            ("USD","Dolar Estadounidense (USD)")]
         if (meli):
             response = meli.get("/currencies")
             if (response):
@@ -75,6 +76,7 @@ class res_company(models.Model):
             "BRL": { "name": "Brasil", "id": "MLB", "default_currency_id": "BRL" },
             "CLP": { "name": "Chile", "id": "MLC", "default_currency_id": "CLP" },
             "UYU": { "name": "Uruguay", "id": "MLU", "default_currency_id": "UYU" },
+            "USD": { "name": "Uruguay", "id": "MLU", "default_currency_id": "UYU" },
         }
         response = meli.get("/sites")
         if (response):
@@ -264,7 +266,8 @@ class res_company(models.Model):
                                                 ("BOB","Boliviano (BOB)"),
                                                 ("BRL","Real (BRL)"),
                                                 ("CLP","Peso Chileno (CLP)"),
-                                                ("UYU","Peso Uruguayo (UYU)")],
+                                                ("UYU","Peso Uruguayo (UYU)"),
+                                                ("USD","Dolar Estadounidense (USD)")],
                                                 string='Moneda predeterminada')
     mercadolibre_condition = fields.Selection([ ("new", "Nuevo"),
                                                 ("used", "Usado"),
