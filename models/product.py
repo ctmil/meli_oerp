@@ -401,18 +401,18 @@ class product_template(models.Model):
 
 product_template()
 
-class product_image(models.Model):
-    _inherit = "product.image"
+#class product_image(models.Model):
+#    _inherit = "product.image"
     #website_sale.product_template_form_view
-    meli_imagen_id = fields.Char(string='Imagen Id',index=True)
-    meli_imagen_link = fields.Char(string='Imagen Link')
-    meli_imagen_size = fields.Char(string='Size')
-    meli_imagen_max_size = fields.Char(string='Max Size')
-    meli_imagen_bytes = fields.Integer(string='Size bytes')
-    meli_pub = fields.Boolean(string='Publicar en ML',index=True)
-    meli_force_pub = fields.Boolean(string='Publicar en ML y conservar en Odoo',index=True)
+#    meli_imagen_id = fields.Char(string='Imagen Id',index=True)
+#    meli_imagen_link = fields.Char(string='Imagen Link')
+#    meli_imagen_size = fields.Char(string='Size')
+#    meli_imagen_max_size = fields.Char(string='Max Size')
+#    meli_imagen_bytes = fields.Integer(string='Size bytes')
+#    meli_pub = fields.Boolean(string='Publicar en ML',index=True)
+#    meli_force_pub = fields.Boolean(string='Publicar en ML y conservar en Odoo',index=True)
 
-product_image()
+#product_image()
 
 class product_product(models.Model):
 
@@ -583,7 +583,7 @@ class product_product(models.Model):
                 for path in path_from_root:
                     fullname = fullname + "/" + path["name"]
 
-                    if (company.mercadolibre_create_website_categories):
+                    if (company.mercadolibre_create_website_categories and ('product.public.category' in self.env) ):
                         www_cats = self.env['product.public.category']
                         if www_cats!=False:
                             www_cat_id = www_cats.search([('name','=',path["name"])]).id
@@ -635,6 +635,10 @@ class product_product(models.Model):
         ml_sizes = {}
         ml_bytes = {}
 
+        if not ("product.image" in self.env):
+            return {}
+
+
         for ix in range(0,len(pictures)):
 
             ml_imgid = pictures[ix]['id']
@@ -671,12 +675,12 @@ class product_product(models.Model):
                 except:
                     pass;
 
-        _logger.info(ml_pics)
-        _logger.info(ml_bytes)
+        #_logger.info(ml_pics)
+        #_logger.info(ml_bytes)
 
-        _logger.info("Cleaning product template images with meli id but not in ML")
+        #_logger.info("Cleaning product template images with meli id but not in ML")
         ml_images = self.env["product.image"].search([('meli_force_pub','=',False),('meli_imagen_id','!=',False),('product_tmpl_id','=',product_template.id)])
-        _logger.info(ml_images)
+        #_logger.info(ml_images)
         if (ml_images and len(ml_images)):
             for ml_image in ml_images:
                 if not ml_image.meli_imagen_id in ml_pics and not str(ml_image.meli_imagen_bytes) in ml_bytes:
@@ -687,7 +691,7 @@ class product_product(models.Model):
             ml_images = self.env["product.image"].search([('meli_force_pub','=',False),
                                                         ('meli_imagen_id','!=',False),
                                                         ('product_variant_id','=',product.id)])
-            _logger.info(ml_images)
+            #_logger.info(ml_images)
             if (ml_images and len(ml_images)):
                 for ml_image in ml_images:
                     if not ml_image.meli_imagen_id in ml_pics and not str(ml_image.meli_imagen_bytes) in ml_bytes:
@@ -703,6 +707,9 @@ class product_product(models.Model):
         REFRESH_TOKEN = company.mercadolibre_refresh_token
 
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+
+        if not ("product.image" in self.env):
+            return {}
 
         try:
             product = self
@@ -750,12 +757,12 @@ class product_product(models.Model):
                         'product_tmpl_id': product_template.id,
                         'meli_pub': True
                     }
-                    _logger.info(pimg_fields)
+                    #_logger.info(pimg_fields)
                     if (variant_image_ids(product)):
-                        _logger.info("has variant image ids")
-                        _logger.info(variant_image_ids(product))
+                        #_logger.info("has variant image ids")
+                        #_logger.info(variant_image_ids(product))
                         pimage = self.env["product.image"].search([('meli_imagen_id','=',pic["id"]),('product_tmpl_id','=',product_template.id)])
-                        _logger.info(pimage)
+                        #_logger.info(pimage)
                         if (pimage and len(pimage)>1):
                             #unlink all but first
                             _logger.info("Unlink all duplicates for "+str(pic["id"]))
@@ -2146,7 +2153,7 @@ class product_product(models.Model):
             if (not product_fab and product.virtual_available==0):
                 product.meli_available_quantity = product.virtual_available
 
-        if (1==2 and product.meli_available_quantity<=10000):
+        if (1==2 and product.meli_available_quantity<=10000 and ("mrp.bom" in self.env)):
             bom_id = self.env['mrp.bom'].search([('product_id','=',product.id)],limit=1)
             if bom_id and bom_id.type == 'phantom':
                 _logger.info(bom_id.type)

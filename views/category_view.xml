@@ -53,7 +53,7 @@
             view_mode="form"
             target="new"/>
 
-        <record model="ir.ui.view" id="view_meli_product_public_category_form_view">
+        <!--record model="ir.ui.view" id="view_meli_product_public_category_form_view">
           <field name="name">mercadolibre.website.category.form</field>
           <field name="model">product.public.category</field>
           <field name="inherit_id" ref="website_sale.product_public_category_form_view" />
@@ -62,7 +62,7 @@
                <field name="mercadolibre_category"/>
              </xpath>
           </field>
-        </record>
+        </record-->
 
         <record model="ir.ui.view" id="view_meli_product_attribute_view">
           <field name="name">mercadolibre.category.attribute.tree</field>
