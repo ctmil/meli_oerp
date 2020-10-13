@@ -750,12 +750,12 @@ class product_product(models.Model):
                         'product_tmpl_id': product_template.id,
                         'meli_pub': True
                     }
-                    _logger.info(pimg_fields)
+                    #_logger.info(pimg_fields)
                     if (variant_image_ids(product)):
-                        _logger.info("has variant image ids")
-                        _logger.info(variant_image_ids(product))
+                        #_logger.info("has variant image ids")
+                        #_logger.info(variant_image_ids(product))
                         pimage = self.env["product.image"].search([('meli_imagen_id','=',pic["id"]),('product_tmpl_id','=',product_template.id)])
-                        _logger.info(pimage)
+                        #_logger.info(pimage)
                         if (pimage and len(pimage)>1):
                             #unlink all but first
                             _logger.info("Unlink all duplicates for "+str(pic["id"]))
