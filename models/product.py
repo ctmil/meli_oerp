@@ -2661,11 +2661,13 @@ class product_product(models.Model):
                     product_uom_id = product_uom_id.id
 
                 stock_inventory_fields = {
-                    "product_ids": [(4,product.id)],
+                    #"product_ids": [(4,product.id)],
+                    "product_id": product.id,
                     "filter": "product",
                     "location_id": wh,
                     "name": "INV: "+ product.name
                 }
+
                 #_logger.info("stock_inventory_fields:")
                 #_logger.info(stock_inventory_fields)
                 StockInventory = self.env['stock.inventory'].create(stock_inventory_fields)

@@ -2,7 +2,7 @@
 <odoo>
     <data>
 
-	<!--record id="view_product_image_form_meli" model="ir.ui.view">
+	<record id="view_product_image_form_meli" model="ir.ui.view">
           <field name="name">product.image.view.form.meli</field>
           <field name="model">product.image</field>
           <field name="inherit_id" ref="website_sale.view_product_image_form"/>
@@ -18,7 +18,7 @@
                 <field name="meli_pub"/>
               </xpath>
           </field>
-        </record-->
+        </record>
 
         <!--record id="product_image_view_kanban_meli" model="ir.ui.view">
           <field name="name">product.image.view.kanban.meli</field>
