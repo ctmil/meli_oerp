@@ -611,7 +611,8 @@ class product_product(models.Model):
 
             if www_cat_id:
                 p_cat_id = www_cats.search([('id','=',www_cat_id)])
-                cat_fields['public_category_id'] = www_cat_id
+                if (len(p_cat_id)):
+                    cat_fields['public_category_id'] = www_cat_id
                 #cat_fields['public_category'] = p_cat_id
 
             ml_cat_id = self.env['mercadolibre.category'].create((cat_fields)).id
@@ -749,12 +750,12 @@ class product_product(models.Model):
                         'product_tmpl_id': product_template.id,
                         'meli_pub': True
                     }
-                    _logger.info(pimg_fields)
+                    #_logger.info(pimg_fields)
                     if (variant_image_ids(product)):
-                        _logger.info("has variant image ids")
-                        _logger.info(variant_image_ids(product))
+                        #_logger.info("has variant image ids")
+                        #_logger.info(variant_image_ids(product))
                         pimage = self.env["product.image"].search([('meli_imagen_id','=',pic["id"]),('product_tmpl_id','=',product_template.id)])
-                        _logger.info(pimage)
+                        #_logger.info(pimage)
                         if (pimage and len(pimage)>1):
                             #unlink all but first
                             _logger.info("Unlink all duplicates for "+str(pic["id"]))
@@ -2636,58 +2637,64 @@ class product_product(models.Model):
         uomobj = self.env[uom_model]
         _stock = product.virtual_available
 
-        if (stock!=False):
-            _stock = stock
-            if (_stock<0):
-                _stock = 0
+        try:
+            if (stock!=False):
+                _stock = stock
+                if (_stock<0):
+                    _stock = 0
 
-        if (product.default_code):
-            product.set_bom()
+            if (product.default_code):
+                product.set_bom()
 
-        if (product.meli_default_stock_product):
-            _stock = product.meli_default_stock_product.virtual_available
-            if (_stock<0):
-                _stock = 0
+            if (product.meli_default_stock_product):
+                _stock = product.meli_default_stock_product.virtual_available
+                if (_stock<0):
+                    _stock = 0
 
-        if (_stock>=0 and product.virtual_available!=_stock):
-            _logger.info("Updating stock for variant." + str(_stock) )
-            wh = self.env['stock.location'].search([('usage','=','internal')]).id
-            product_uom_id = uomobj.search([('name','=','Unidad(es)')])
-            if (product_uom_id.id==False):
-                product_uom_id = 1
-            else:
-                product_uom_id = product_uom_id.id
+            if (_stock>=0 and product.virtual_available!=_stock):
+                _logger.info("Updating stock for variant." + str(_stock) )
+                wh = self.env['stock.location'].search([('usage','=','internal')]).id
+                product_uom_id = uomobj.search([('name','=','Unidad(es)')])
+                if (product_uom_id.id==False):
+                    product_uom_id = 1
+                else:
+                    product_uom_id = product_uom_id.id
 
-            stock_inventory_fields = {
-                "product_id": product.id,
-                "filter": "product",
-                "location_id": wh,
-                "name": "INV: "+ product.name
-            }
-            #_logger.info("stock_inventory_fields:")
-            #_logger.info(stock_inventory_fields)
-            StockInventory = self.env['stock.inventory'].create(stock_inventory_fields)
-            #_logger.info("StockInventory:")
-            #_logger.info(StockInventory)
-            if (StockInventory):
-                stock_inventory_field_line = {
-                    "product_qty": _stock,
-                    'theoretical_qty': 0,
+                stock_inventory_fields = {
+                    #"product_ids": [(4,product.id)],
                     "product_id": product.id,
-                    "product_uom_id": product_uom_id,
+                    "filter": "product",
                     "location_id": wh,
-                    'inventory_location_id': wh,
-                    "inventory_id": StockInventory.id,
-                    #"name": "INV "+ nombre
-                    #"state": "confirm",
+                    "name": "INV: "+ product.name
                 }
-                StockInventoryLine = self.env['stock.inventory.line'].create(stock_inventory_field_line)
-                #print "StockInventoryLine:", StockInventoryLine, stock_inventory_field_line
-                #_logger.info("StockInventoryLine:")
-                #_logger.info(stock_inventory_field_line)
-                if (StockInventoryLine):
-                    return_id = stock_inventory_action_done(StockInventory)
-                    #_logger.info("action_done:"+str(return_id))
+
+                #_logger.info("stock_inventory_fields:")
+                #_logger.info(stock_inventory_fields)
+                StockInventory = self.env['stock.inventory'].create(stock_inventory_fields)
+                #_logger.info("StockInventory:")
+                #_logger.info(StockInventory)
+                if (StockInventory):
+                    stock_inventory_field_line = {
+                        "product_qty": _stock,
+                        'theoretical_qty': 0,
+                        "product_id": product.id,
+                        "product_uom_id": product_uom_id,
+                        "location_id": wh,
+                        'inventory_location_id': wh,
+                        "inventory_id": StockInventory.id,
+                        #"name": "INV "+ nombre
+                        #"state": "confirm",
+                    }
+                    StockInventoryLine = self.env['stock.inventory.line'].create(stock_inventory_field_line)
+                    #print "StockInventoryLine:", StockInventoryLine, stock_inventory_field_line
+                    #_logger.info("StockInventoryLine:")
+                    #_logger.info(stock_inventory_field_line)
+                    if (StockInventoryLine):
+                        return_id = stock_inventory_action_done(StockInventory)
+                        #_logger.info("action_done:"+str(return_id))
+        except Exception as e:
+            _logger.info("product_update_stock Exception")
+            _logger.info(e, exc_info=True)
 
 
     def product_post_price(self):
