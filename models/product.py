@@ -2146,7 +2146,7 @@ class product_product(models.Model):
             if (not product_fab and product.virtual_available==0):
                 product.meli_available_quantity = product.virtual_available
 
-        if (1==2 and product.meli_available_quantity<=10000):
+        if (1==2 and product.meli_available_quantity<=10000 and ("mrp.bom" in self.env)):
             bom_id = self.env['mrp.bom'].search([('product_id','=',product.id)],limit=1)
             if bom_id and bom_id.type == 'phantom':
                 _logger.info(bom_id.type)
@@ -2662,10 +2662,12 @@ class product_product(models.Model):
 
                 stock_inventory_fields = {
                     "product_ids": [(4,product.id)],
+                    #"product_id": product.id,
                     "filter": "product",
                     "location_id": wh,
                     "name": "INV: "+ product.name
                 }
+
                 #_logger.info("stock_inventory_fields:")
                 #_logger.info(stock_inventory_fields)
                 StockInventory = self.env['stock.inventory'].create(stock_inventory_fields)

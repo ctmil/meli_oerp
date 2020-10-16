@@ -12,7 +12,7 @@ _logger = logging.getLogger(__name__)
 class StockMove(models.Model):
     _inherit = "stock.move"
 
-    
+
     def action_assign(self, no_prepare=False):
         company = self.env.user.company_id
         for mov in self:
@@ -23,7 +23,9 @@ class StockMove(models.Model):
             #_logger.info("After: virtual av:" + str(mov.product_id.virtual_available))
 
             if mov.product_id:
-                bomlines = self.env['mrp.bom.line'].search([('product_id','=',mov.product_id.id)])
+                bomlines = False
+                if (and ("mrp.bom" in self.env)):
+                    bomlines = self.env['mrp.bom.line'].search([('product_id','=',mov.product_id.id)])
                 if (bomlines and 1==2):
                     for bomline in bomlines:
                         _logger.info("Clone stock: " + str(bomline.bom_id.product_id.virtual_available))
@@ -63,7 +65,7 @@ class StockMove(models.Model):
 
         return True
 
-    
+
     def action_done(self):
         #import pdb; pdb.set_trace()
         company = self.env.user.company_id
@@ -76,7 +78,9 @@ class StockMove(models.Model):
 
 
             if mov.product_id:
-                bomlines = self.env['mrp.bom.line'].search([('product_id','=',mov.product_id.id)])
+                bomlines = False
+                if (and ("mrp.bom" in self.env)):
+                    bomlines = self.env['mrp.bom.line'].search([('product_id','=',mov.product_id.id)])
                 if (bomlines and 1==2):
                     for bomline in bomlines:
                         _logger.info("Clone stock: " + str(bomline.bom_id.product_id.virtual_available))
