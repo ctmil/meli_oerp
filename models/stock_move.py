@@ -24,7 +24,7 @@ class StockMove(models.Model):
 
             if mov.product_id:
                 bomlines = False
-                if (and ("mrp.bom" in self.env)):
+                if ("mrp.bom" in self.env):
                     bomlines = self.env['mrp.bom.line'].search([('product_id','=',mov.product_id.id)])
                 if (bomlines and 1==2):
                     for bomline in bomlines:
@@ -79,7 +79,7 @@ class StockMove(models.Model):
 
             if mov.product_id:
                 bomlines = False
-                if (and ("mrp.bom" in self.env)):
+                if ("mrp.bom" in self.env):
                     bomlines = self.env['mrp.bom.line'].search([('product_id','=',mov.product_id.id)])
                 if (bomlines and 1==2):
                     for bomline in bomlines:
