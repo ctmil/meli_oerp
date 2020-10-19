@@ -329,6 +329,7 @@ class res_company(models.Model):
     mercadolibre_import_search_sku = fields.Boolean(string='Search SKU',help='Search product by default_code')
 
     mercadolibre_seller_user = fields.Many2one("res.users", string="Vendedor", help="Usuario con el que se registrarán las órdenes automáticamente")
+    mercadolibre_remove_unsync_images = fields.Boolean(string='Removing unsync images (ml id defined for image but no longer in ML publication)')
 
     def	meli_logout(self):
         _logger.info('company.meli_logout() ')

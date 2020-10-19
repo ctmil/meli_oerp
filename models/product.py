@@ -630,6 +630,9 @@ class product_product(models.Model):
     def _meli_remove_images_unsync( self, product_template, pictures ):
 
         product = self
+        company = self.env.user.company_id
+        if not (company.mercadolibre_remove_unsync_images):
+            return {}
 
         ml_pics = {}
         ml_sizes = {}
@@ -671,23 +674,23 @@ class product_product(models.Model):
                 except:
                     pass;
 
-        _logger.info(ml_pics)
-        _logger.info(ml_bytes)
+        #_logger.info(ml_pics)
+        #_logger.info(ml_bytes)
 
-        _logger.info("Cleaning product template images with meli id but not in ML")
+        #_logger.info("Cleaning product template images with meli id but not in ML")
         ml_images = self.env["product.image"].search([('meli_force_pub','=',False),('meli_imagen_id','!=',False),('product_tmpl_id','=',product_template.id)])
-        _logger.info(ml_images)
+        #_logger.info(ml_images)
         if (ml_images and len(ml_images)):
             for ml_image in ml_images:
                 if not ml_image.meli_imagen_id in ml_pics and not str(ml_image.meli_imagen_bytes) in ml_bytes:
                     ml_image.unlink()
 
         try:
-            _logger.info("Cleaning product variant images with meli id not in ML")
+            #_logger.info("Cleaning product variant images with meli id not in ML")
             ml_images = self.env["product.image"].search([('meli_force_pub','=',False),
                                                         ('meli_imagen_id','!=',False),
                                                         ('product_variant_id','=',product.id)])
-            _logger.info(ml_images)
+            #_logger.info(ml_images)
             if (ml_images and len(ml_images)):
                 for ml_image in ml_images:
                     if not ml_image.meli_imagen_id in ml_pics and not str(ml_image.meli_imagen_bytes) in ml_bytes:
