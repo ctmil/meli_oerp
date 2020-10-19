@@ -411,6 +411,7 @@ class product_image(models.Model):
     meli_imagen_bytes = fields.Integer(string='Size bytes')
     meli_pub = fields.Boolean(string='Publicar en ML',index=True)
     meli_force_pub = fields.Boolean(string='Publicar en ML y conservar en Odoo',index=True)
+    meli_published = fields.Boolean(string='Publicado en ML',index=True)
 
 product_image()
 
@@ -744,7 +745,7 @@ class product_product(models.Model):
                     meli_imagen_bytes = len(image)
                     pimage = False
                     pimg_fields = {
-                        'name': thumbnail_url+' - '+pic["size"]+' - '+pic["max_size"],
+                        #'name': thumbnail_url+' - '+pic["size"]+' - '+pic["max_size"],
                         'meli_imagen_id': pic["id"],
                         'meli_imagen_link': thumbnail_url,
                         'meli_imagen_size': pic["size"],
@@ -797,6 +798,7 @@ class product_product(models.Model):
                     if (not pimage or (pimage and len(pimage)==0)):
                         _logger.info("Creating new image")
                         bin_updating = True
+                        pimg_fields["name"] = product.meli_title;
                         pimage = self.env["product.image"].create(pimg_fields)
 
                     if (pimage):
@@ -1604,6 +1606,8 @@ class product_product(models.Model):
                 _logger.info("Upload multi image var: "+str(imix))
                 product_image = var_image_ids[imix]
                 image_ids+= product._meli_upload_image( product_image )
+
+        product.write( { "meli_multi_imagen_id": "%s" % (image_ids) } )
 
         #loop over images
         tpl_image_ids = template_image_ids(product)

@@ -8,14 +8,18 @@
           <field name="inherit_id" ref="website_sale.view_product_image_form"/>
           <field name="arch" type="xml">
               <xpath expr="//field[@name='product_tmpl_id']" position="after">
+                <br/>
                 <label for="meli_imagen_id" string="ML Id"/><br/>
                 <field name="meli_imagen_id" readonly="1"/>
-
+                <br/>
                 <label for="meli_force_pub" string="Force ML Pub"/><br/>
                 <field name="meli_force_pub"/>
-
+                <br/>
                 <label for="meli_pub" string="ML Pub"/><br/>
                 <field name="meli_pub"/>
+                <br/>
+                <label for="meli_published" string="ML Published"/><br/>
+                <field name="meli_published"/>
               </xpath>
           </field>
         </record>
