@@ -26,6 +26,7 @@ import pdb
 import logging
 _logger = logging.getLogger(__name__)
 
+import hashlib
 import math
 import requests
 import base64
@@ -409,6 +410,7 @@ class product_image(models.Model):
     meli_imagen_size = fields.Char(string='Size')
     meli_imagen_max_size = fields.Char(string='Max Size')
     meli_imagen_bytes = fields.Integer(string='Size bytes')
+    meli_imagen_hash = fields.Char(string='File Hash Id')
     meli_pub = fields.Boolean(string='Publicar en ML',index=True)
     meli_force_pub = fields.Boolean(string='Publicar en ML y conservar en Odoo',index=True)
     meli_published = fields.Boolean(string='Publicado en ML',index=True)
@@ -679,7 +681,9 @@ class product_product(models.Model):
         #_logger.info(ml_bytes)
 
         #_logger.info("Cleaning product template images with meli id but not in ML")
-        ml_images = self.env["product.image"].search([('meli_force_pub','=',False),('meli_imagen_id','!=',False),('product_tmpl_id','=',product_template.id)])
+        ml_images = self.env["product.image"].search([('meli_force_pub','=',False),
+                                                        ('meli_imagen_id','!=',False),
+                                                        ('product_tmpl_id','=',product_template.id)])
         #_logger.info(ml_images)
         if (ml_images and len(ml_images)):
             for ml_image in ml_images:
@@ -1664,10 +1668,17 @@ class product_product(models.Model):
                     ilink = image_uploaded['secure_url']
                 if 'size' in image_uploaded:
                     isize = image_uploaded['size']
+
                 product_image.meli_imagen_id = rjson['id']
                 product_image.meli_imagen_max_size = rjson['max_size']
                 product_image.meli_imagen_link = ilink
                 product_image.meli_imagen_size = isize
+                try:
+                    hash = hashlib.blake2b()
+                    hash.update(imagebin)
+                    product_image.meli_imagen_hash = hash.hexdigest()
+                except:
+                    pass;
 
         return image_ids
 
