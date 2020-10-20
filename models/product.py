@@ -1567,6 +1567,18 @@ class product_product(models.Model):
         imagebin = base64.b64decode(first_image_to_publish)
         imageb64 = first_image_to_publish
         files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
+        product_image = None
+        try:
+            hash = hashlib.blake2b()
+            hash.update(imagebin)
+            #product_image.meli_imagen_hash = hash.hexdigest()
+            if (company.mercadolibre_do_not_use_first_image):
+                product_image = variant_image_ids(product)[0]
+                if (product_image):
+                    product_image.meli_imagen_hash = hash.hexdigest()
+
+        except:
+            pass;
         response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
 
         rjson = response.json()
@@ -1580,6 +1592,10 @@ class product_product(models.Model):
         if ("id" in rjson):
             #guardar id
             product.write( { "meli_imagen_id": rjson["id"], "meli_imagen_link": rjson["variations"][0]["url"] })
+            if (product_image):
+                product_image.meli_imagen_id = rjson["id"]
+                product_image.meli_imagen_link = rjson["variations"][0]["secure_url"]
+                product_image.meli_imagen_size = rjson["variations"][0]["size"]
             #asociar imagen a producto
             if product.meli_id:
                 return rjson["id"]
@@ -2780,6 +2796,7 @@ class product_product(models.Model):
     meli_imagen_logo = fields.Char(string='Imagen Logo', size=256)
     meli_imagen_id = fields.Char(string='Imagen Id', size=256)
     meli_imagen_link = fields.Char(string='Imagen Link', size=256)
+    meli_imagen_hash = fields.Char(string='Imagen Hash')
     meli_multi_imagen_id = fields.Char(string='Multi Imagen Ids', size=512)
     meli_video = fields.Char( string='Video (id de youtube)', size=256)
 
