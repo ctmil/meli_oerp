@@ -10,7 +10,7 @@
               <xpath expr="//field[@name='product_tmpl_id']" position="after">
                 <br/>
                 <label for="meli_imagen_id" string="ML Id"/><br/>
-                <field name="meli_imagen_id"  readonly="1" readonly="1"/>
+                <field name="meli_imagen_id"  readonly="1"/>
                 <br/>
                 <label for="meli_imagen_hash" string="File Hash"/><br/>
                 <field name="meli_imagen_hash"  readonly="1"/>
