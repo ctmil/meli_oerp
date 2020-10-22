@@ -329,6 +329,7 @@ class res_company(models.Model):
     mercadolibre_import_search_sku = fields.Boolean(string='Search SKU',help='Search product by default_code')
 
     mercadolibre_seller_user = fields.Many2one("res.users", string="Vendedor", help="Usuario con el que se registrarán las órdenes automáticamente")
+    mercadolibre_remove_unsync_images = fields.Boolean(string='Removing unsync images (ml id defined for image but no longer in ML publication)')
 
     def	meli_logout(self):
         _logger.info('company.meli_logout() ')
@@ -539,10 +540,18 @@ class res_company(models.Model):
                     response = meli.get("/items/"+item_id, {'access_token':meli.access_token})
                     rjson3 = response.json()
                     if ( ( not posting_id or len(posting_id)==0 ) and company.mercadolibre_import_search_sku ):
+                        seller_sku = None
                         if ('seller_custom_field' in rjson3 and rjson3['seller_custom_field'] and len(rjson3['seller_custom_field'])):
-                            posting_id = self.env['product.product'].search([('default_code','=',rjson3['seller_custom_field'])])
+                            seller_sku = rjson3['seller_custom_field']
+                        if not seller_sku and "attributes" in rjson3:
+                            for att in rjson3['attributes']:
+                                if att["id"] == "SELLER_SKU":
+                                    seller_sku = att["values"][0]["name"]
+                                    break;
+                        if (seller_sku):
+                            posting_id = self.env['product.product'].search([('default_code','=',seller_sku)])
                             if (not posting_id or len(posting_id)==0):
-                                posting_id = self.env['product.template'].search([('default_code','=',rjson3['seller_custom_field'])])
+                                posting_id = self.env['product.template'].search([('default_code','=',seller_sku)])
                                 _logger.info("Founded template with default code, dont know how to handle it.")
                             else:
                                 posting_id.meli_id = item_id
