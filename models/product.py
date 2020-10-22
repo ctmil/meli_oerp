@@ -1219,6 +1219,7 @@ class product_product(models.Model):
                     product = variant
         else:
             #NO TIENE variantes pero tiene SKU
+            seller_sku = None
             if ("seller_custom_field" in rjson):
                 seller_sku = rjson["seller_custom_field"]
 
