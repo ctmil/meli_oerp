@@ -642,7 +642,10 @@ class mercadolibre_orders(models.Model):
 
                     seller_sku = Item['item']['seller_custom_field']
 
-                    if (not seller_sku and 'seller_sku' in Item['item']):
+                    if (seller_sku):
+                        product_related = product_obj.search([('default_code','=',seller_sku)])
+
+                    if (not product_related and 'seller_sku' in Item['item']):
                         seller_sku = Item['item']['seller_sku']
 
                     if (seller_sku):
@@ -995,7 +998,7 @@ class mercadolibre_orders(models.Model):
     tags = fields.Text(string="Tags")
     pack_order = fields.Boolean(string="Order Pack (Carrito)")
 
-mercadolibre_orders()
+mercadolvoy a subir unos cambios y luego los vemos, pero no puedo reunirme mucho mas de 15 minutos te avisoibre_orders()
 
 
 class mercadolibre_order_items(models.Model):

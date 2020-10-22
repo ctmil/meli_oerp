@@ -26,6 +26,7 @@ import pdb
 import logging
 _logger = logging.getLogger(__name__)
 
+import hashlib
 import math
 import requests
 import base64
@@ -409,8 +410,10 @@ class product_image(models.Model):
     meli_imagen_size = fields.Char(string='Size')
     meli_imagen_max_size = fields.Char(string='Max Size')
     meli_imagen_bytes = fields.Integer(string='Size bytes')
+    meli_imagen_hash = fields.Char(string='File Hash Id')
     meli_pub = fields.Boolean(string='Publicar en ML',index=True)
     meli_force_pub = fields.Boolean(string='Publicar en ML y conservar en Odoo',index=True)
+    meli_published = fields.Boolean(string='Publicado en ML',index=True)
 
 product_image()
 
@@ -628,8 +631,12 @@ class product_product(models.Model):
             product_template.public_categ_ids = [(4,www_cat_id)]
 
     def _meli_remove_images_unsync( self, product_template, pictures ):
-
+        #atencion aplicar meli_imagen_id y meli_published solo si existe efectivamenete en pictures antes y luego de updatear en ML
+        #tambien chequear con hash duplicados... en lugar de meli_imagen_id
         product = self
+        company = self.env.user.company_id
+        if not (company.mercadolibre_remove_unsync_images):
+            return {}
 
         ml_pics = {}
         ml_sizes = {}
@@ -671,23 +678,25 @@ class product_product(models.Model):
                 except:
                     pass;
 
-        _logger.info(ml_pics)
-        _logger.info(ml_bytes)
+        #_logger.info(ml_pics)
+        #_logger.info(ml_bytes)
 
-        _logger.info("Cleaning product template images with meli id but not in ML")
-        ml_images = self.env["product.image"].search([('meli_force_pub','=',False),('meli_imagen_id','!=',False),('product_tmpl_id','=',product_template.id)])
-        _logger.info(ml_images)
+        #_logger.info("Cleaning product template images with meli id but not in ML")
+        ml_images = self.env["product.image"].search([('meli_force_pub','=',False),
+                                                        ('meli_imagen_id','!=',False),
+                                                        ('product_tmpl_id','=',product_template.id)])
+        #_logger.info(ml_images)
         if (ml_images and len(ml_images)):
             for ml_image in ml_images:
                 if not ml_image.meli_imagen_id in ml_pics and not str(ml_image.meli_imagen_bytes) in ml_bytes:
                     ml_image.unlink()
 
         try:
-            _logger.info("Cleaning product variant images with meli id not in ML")
+            #_logger.info("Cleaning product variant images with meli id not in ML")
             ml_images = self.env["product.image"].search([('meli_force_pub','=',False),
                                                         ('meli_imagen_id','!=',False),
                                                         ('product_variant_id','=',product.id)])
-            _logger.info(ml_images)
+            #_logger.info(ml_images)
             if (ml_images and len(ml_images)):
                 for ml_image in ml_images:
                     if not ml_image.meli_imagen_id in ml_pics and not str(ml_image.meli_imagen_bytes) in ml_bytes:
@@ -741,7 +750,7 @@ class product_product(models.Model):
                     meli_imagen_bytes = len(image)
                     pimage = False
                     pimg_fields = {
-                        'name': thumbnail_url+' - '+pic["size"]+' - '+pic["max_size"],
+                        #'name': thumbnail_url+' - '+pic["size"]+' - '+pic["max_size"],
                         'meli_imagen_id': pic["id"],
                         'meli_imagen_link': thumbnail_url,
                         'meli_imagen_size': pic["size"],
@@ -794,6 +803,7 @@ class product_product(models.Model):
                     if (not pimage or (pimage and len(pimage)==0)):
                         _logger.info("Creating new image")
                         bin_updating = True
+                        pimg_fields["name"] = product.meli_title;
                         pimage = self.env["product.image"].create(pimg_fields)
 
                     if (pimage):
@@ -1210,8 +1220,16 @@ class product_product(models.Model):
         else:
             #NO TIENE variantes pero tiene SKU
             if ("seller_custom_field" in rjson):
-                if (rjson["seller_custom_field"]):
-                    product.default_code = rjson["seller_custom_field"]
+                seller_sku = rjson["seller_custom_field"]
+
+            if not seller_sku and "attributes" in rjson:
+                for att in rjson['attributes']:
+                    if att["id"] == "SELLER_SKU":
+                        seller_sku = att["values"][0]["name"]
+                        break;
+
+            if seller_sku:
+                product.default_code = seller_sku
                 product.set_bom()
 
 
@@ -1558,6 +1576,18 @@ class product_product(models.Model):
         imagebin = base64.b64decode(first_image_to_publish)
         imageb64 = first_image_to_publish
         files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
+        product_image = None
+        try:
+            hash = hashlib.blake2b()
+            hash.update(imagebin)
+            #product_image.meli_imagen_hash = hash.hexdigest()
+            if (company.mercadolibre_do_not_use_first_image):
+                product_image = variant_image_ids(product)[0]
+                if (product_image):
+                    product_image.meli_imagen_hash = hash.hexdigest()
+
+        except:
+            pass;
         response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
 
         rjson = response.json()
@@ -1571,6 +1601,10 @@ class product_product(models.Model):
         if ("id" in rjson):
             #guardar id
             product.write( { "meli_imagen_id": rjson["id"], "meli_imagen_link": rjson["variations"][0]["url"] })
+            if (product_image):
+                product_image.meli_imagen_id = rjson["id"]
+                product_image.meli_imagen_link = rjson["variations"][0]["secure_url"]
+                product_image.meli_imagen_size = rjson["variations"][0]["size"]
             #asociar imagen a producto
             if product.meli_id:
                 return rjson["id"]
@@ -1601,6 +1635,8 @@ class product_product(models.Model):
                 _logger.info("Upload multi image var: "+str(imix))
                 product_image = var_image_ids[imix]
                 image_ids+= product._meli_upload_image( product_image )
+
+        product.write( { "meli_multi_imagen_id": "%s" % (image_ids) } )
 
         #loop over images
         tpl_image_ids = template_image_ids(product)
@@ -1657,10 +1693,17 @@ class product_product(models.Model):
                     ilink = image_uploaded['secure_url']
                 if 'size' in image_uploaded:
                     isize = image_uploaded['size']
+
                 product_image.meli_imagen_id = rjson['id']
                 product_image.meli_imagen_max_size = rjson['max_size']
                 product_image.meli_imagen_link = ilink
                 product_image.meli_imagen_size = isize
+                try:
+                    hash = hashlib.blake2b()
+                    hash.update(imagebin)
+                    product_image.meli_imagen_hash = hash.hexdigest()
+                except:
+                    pass;
 
         return image_ids
 
@@ -2146,7 +2189,7 @@ class product_product(models.Model):
             if (not product_fab and product.virtual_available==0):
                 product.meli_available_quantity = product.virtual_available
 
-        if (1==2 and product.meli_available_quantity<=10000 and ("mrp.bom" in self.env)):
+        if (1==2 and product.meli_available_quantity<=10000):
             bom_id = self.env['mrp.bom'].search([('product_id','=',product.id)],limit=1)
             if bom_id and bom_id.type == 'phantom':
                 _logger.info(bom_id.type)
@@ -2762,6 +2805,7 @@ class product_product(models.Model):
     meli_imagen_logo = fields.Char(string='Imagen Logo', size=256)
     meli_imagen_id = fields.Char(string='Imagen Id', size=256)
     meli_imagen_link = fields.Char(string='Imagen Link', size=256)
+    meli_imagen_hash = fields.Char(string='Imagen Hash')
     meli_multi_imagen_id = fields.Char(string='Multi Imagen Ids', size=512)
     meli_video = fields.Char( string='Video (id de youtube)', size=256)
 
