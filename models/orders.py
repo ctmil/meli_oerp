@@ -998,7 +998,7 @@ class mercadolibre_orders(models.Model):
     tags = fields.Text(string="Tags")
     pack_order = fields.Boolean(string="Order Pack (Carrito)")
 
-mercadolvoy a subir unos cambios y luego los vemos, pero no puedo reunirme mucho mas de 15 minutos te avisoibre_orders()
+mercadolibre_orders()
 
 
 class mercadolibre_order_items(models.Model):
