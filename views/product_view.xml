@@ -2,35 +2,79 @@
 <odoo>
     <data>
 
-      <record id="product_template_search_view_meli" model="ir.ui.view">
-          <field name="name">product.template.search.meli</field>
-          <field name="model">product.template</field>
-          <field name="inherit_id" ref="product.product_template_search_view"/>
+        <record id="view_product_image_form_meli" model="ir.ui.view">
+          <field name="name">product.image.view.form.meli</field>
+          <field name="model">product.image</field>
+          <field name="inherit_id" ref="website_sale.view_product_image_form"/>
           <field name="arch" type="xml">
-              <xpath expr="//filter[@name='consumable']" position="after">
-                <field name="meli_publications" string="Product ML Id" filter_domain="[('meli_publications','ilike',self)]"/>
-                <separator/>
-                <filter string="MercadoLibre, A publicar" name="meli_pub_active" domain="[('meli_pub','=',True)]"/>
-                <filter string="MercadoLibre, Publicados" name="meli_id_active" domain="[('meli_publications','ilike','M')]"/>
-                <filter string="MercadoLibre, Activos" name="meli_status_active" domain="[('meli_publications','ilike','active')]"/>
+              <xpath expr="//field[@name='video_url']" position="after">
+                <label for="meli_imagen_id" string="ML Id"/><br/>
+                <field name="meli_imagen_id"  readonly="1"/>
+                <br/>
+                <label for="meli_imagen_hash" string="File Hash"/><br/>
+                <field name="meli_imagen_hash"  readonly="1"/>
+                <br/>
+                <label for="meli_imagen_link" string="ML Link"/><br/>
+                <field name="meli_imagen_link"  readonly="1"/>
+                <br/>
+                <label for="meli_force_pub" string="Force ML Pub"/><br/>
+                <field name="meli_force_pub"/>
+                <br/>
+                <label for="meli_pub" string="ML Pub"/><br/>
+                <field name="meli_pub"/>
+                <br/>
+                <label for="meli_published" string="ML Published"/><br/>
+                <field name="meli_published" />
               </xpath>
           </field>
-      </record>
+        </record>
 
-      <record id="product_search_form_view" model="ir.ui.view">
-          <field name="name">product.product.ml.search</field>
-          <field name="model">product.product</field>
-          <field name="inherit_id" ref="product.product_search_form_view"/>
+        <record id="product_image_view_kanban_meli" model="ir.ui.view">
+          <field name="name">product.image.view.kanban.meli</field>
+          <field name="model">product.image</field>
+          <field name="inherit_id" ref="website_sale.product_image_view_kanban"/>
           <field name="arch" type="xml">
-              <filter name="filter_to_purchase" position="after">
-                <field name="meli_id" string="MercadoLibre Id (ML Id)" filter_domain="[('meli_id','ilike',self)]"/>
-                <separator/>
-                <filter string="MercadoLibre, A publicar" name="meli_pub_active2" domain="[('meli_pub','=',True)]"/>
-                <filter string="MercadoLibre, Publicados" name="meli_id_active2" domain="[('meli_id','ilike','M')]"/>
-                <!--filter string="MercadoLibre, Activos" name="meli_status_active" domain="[('meli_status','ilike','active')]"/-->
-              </filter>
+              <xpath expr="//field[@name='id']" position="after">
+                <field name="meli_imagen_id" string="Product Image ML ID" readonly="1"/>
+                <field name="meli_force_pub" string="Product Image ML Force Publication"/>
+                <field name="meli_pub" string="Product Image ML Publication"/>
+              </xpath>
+              <xpath expr="//div[contains(@class,'card-body')]//field[@name='name']" position="after">
+                <field name="meli_force_pub" string="ML Force Pub"/>
+                <field name="meli_imagen_id" string="ML id"/>
+              </xpath>
           </field>
-      </record>
+        </record>
+
+        <record id="product_template_search_view_meli" model="ir.ui.view">
+            <field name="name">product.template.search.meli</field>
+            <field name="model">product.template</field>
+            <field name="inherit_id" ref="product.product_template_search_view"/>
+            <field name="arch" type="xml">
+                <xpath expr="//filter[@name='consumable']" position="after">
+                  <field name="meli_publications" string="Product ML Id" filter_domain="[('meli_publications','ilike',self)]"/>
+                  <separator/>
+                  <filter string="MercadoLibre, A publicar" name="meli_pub_active" domain="[('meli_pub','=',True)]"/>
+                  <filter string="MercadoLibre, Publicados" name="meli_id_active" domain="[('meli_publications','ilike','M')]"/>
+                  <filter string="MercadoLibre, Activos" name="meli_status_active" domain="[('meli_publications','ilike','active')]"/>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="product_search_form_view" model="ir.ui.view">
+            <field name="name">product.product.ml.search</field>
+            <field name="model">product.product</field>
+            <field name="inherit_id" ref="product.product_search_form_view"/>
+            <field name="arch" type="xml">
+                <filter name="filter_to_purchase" position="after">
+                  <field name="meli_id" string="MercadoLibre Id (ML Id)" filter_domain="[('meli_id','ilike',self)]"/>
+                  <separator/>
+                  <filter string="MercadoLibre, A publicar" name="meli_pub_active2" domain="[('meli_pub','=',True)]"/>
+                  <filter string="MercadoLibre, Publicados" name="meli_id_active2" domain="[('meli_id','ilike','M')]"/>
+                  <!--filter string="MercadoLibre, Activos" name="meli_status_active" domain="[('meli_status','ilike','active')]"/-->
+                </filter>
+            </field>
+        </record>
 
         <record model="ir.ui.view" id="product_tpl_ml_form_view">
           <field name="name">product.tpl.ml.form.inherit</field>

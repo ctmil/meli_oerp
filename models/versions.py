@@ -19,9 +19,14 @@ acc_inv_model  = "account.move"
 default_no_create_variant = "no_variant"
 default_create_variant = "always"
 
-#variant mage ids
+#variant image ids
 def variant_image_ids(self):
     return self.product_variant_image_ids
+
+#template image ids
+def template_image_ids(self):
+    return self.product_template_image_ids
+
 
 #att value ids
 def att_value_ids(self):
