@@ -2784,13 +2784,16 @@ class product_product(models.Model):
 
     meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
     meli_currency = fields.Selection([("ARS","Peso Argentino (ARS)"),
-    ("MXN","Peso Mexicano (MXN)"),
-    ("COP","Peso Colombiano (COP)"),
-    ("PEN","Sol Peruano (PEN)"),
-    ("BOB","Boliviano (BOB)"),
-    ("BRL","Real (BRL)"),
-    ("CLP","Peso Chileno (CLP)"),
-    ("CRC","Colon Costarricense (CRC)")],string='Moneda')
+                                        ("MXN","Peso Mexicano (MXN)"),
+                                        ("COP","Peso Colombiano (COP)"),
+                                        ("PEN","Sol Peruano (PEN)"),
+                                        ("BOB","Boliviano (BOB)"),
+                                        ("BRL","Real (BRL)"),
+                                        ("CLP","Peso Chileno (CLP)"),
+                                        ("CRC","Colon Costarricense (CRC)"),
+                                        ("UYU","Peso Uruguayo (UYU)"),
+                                        ("USD","Dolar Estadounidense (USD)")],
+                                        string='Moneda')
     meli_condition = fields.Selection([ ("new", "Nuevo"), ("used", "Usado"), ("not_specified","No especificado")],'Condición del producto')
     meli_warranty = fields.Char(string='Garantía', size=256)
     meli_listing_type = fields.Selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special/Clásica"),("gold_pro","Oro Pro")], string='Tipo de lista')
