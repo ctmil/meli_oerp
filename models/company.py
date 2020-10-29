@@ -50,10 +50,7 @@ class res_company(models.Model):
                             ("BOB","Boliviano (BOB)"),
                             ("BRL","Real (BRL)"),
                             ("CLP","Peso Chileno (CLP)"),
-<<<<<<< HEAD
                             ("CRC","Colon Costarricense (CRC)"),
-=======
->>>>>>> 4858e1006d377c787bb944e7d31303bfa49caf74
                             ("UYU","Peso Uruguayo (UYU)"),
                             ("USD","Dolar Estadounidense (USD)")]
         if (meli):
@@ -270,10 +267,7 @@ class res_company(models.Model):
                                                 ("BOB","Boliviano (BOB)"),
                                                 ("BRL","Real (BRL)"),
                                                 ("CLP","Peso Chileno (CLP)"),
-<<<<<<< HEAD
                                                 ("CRC","Colon Costarricense (CRC)"),
-=======
->>>>>>> 4858e1006d377c787bb944e7d31303bfa49caf74
                                                 ("UYU","Peso Uruguayo (UYU)"),
                                                 ("USD","Dolar Estadounidense (USD)")],
                                                 string='Moneda predeterminada')
