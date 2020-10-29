@@ -540,10 +540,18 @@ class res_company(models.Model):
                     response = meli.get("/items/"+item_id, {'access_token':meli.access_token})
                     rjson3 = response.json()
                     if ( ( not posting_id or len(posting_id)==0 ) and company.mercadolibre_import_search_sku ):
+                        seller_sku = None
                         if ('seller_custom_field' in rjson3 and rjson3['seller_custom_field'] and len(rjson3['seller_custom_field'])):
-                            posting_id = self.env['product.product'].search([('default_code','=',rjson3['seller_custom_field'])])
+                            seller_sku = rjson3['seller_custom_field']
+                        if not seller_sku and "attributes" in rjson3:
+                            for att in rjson3['attributes']:
+                                if att["id"] == "SELLER_SKU":
+                                    seller_sku = att["values"][0]["name"]
+                                    break;
+                        if (seller_sku):
+                            posting_id = self.env['product.product'].search([('default_code','=',seller_sku)])
                             if (not posting_id or len(posting_id)==0):
-                                posting_id = self.env['product.template'].search([('default_code','=',rjson3['seller_custom_field'])])
+                                posting_id = self.env['product.template'].search([('default_code','=',seller_sku)])
                                 _logger.info("Founded template with default code, dont know how to handle it.")
                             else:
                                 posting_id.meli_id = item_id

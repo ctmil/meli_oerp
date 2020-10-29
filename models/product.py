@@ -631,7 +631,8 @@ class product_product(models.Model):
             product_template.public_categ_ids = [(4,www_cat_id)]
 
     def _meli_remove_images_unsync( self, product_template, pictures ):
-
+        #atencion aplicar meli_imagen_id y meli_published solo si existe efectivamenete en pictures antes y luego de updatear en ML
+        #tambien chequear con hash duplicados... en lugar de meli_imagen_id
         product = self
         company = self.env.user.company_id
         if not (company.mercadolibre_remove_unsync_images):
@@ -802,7 +803,7 @@ class product_product(models.Model):
                     if (not pimage or (pimage and len(pimage)==0)):
                         _logger.info("Creating new image")
                         bin_updating = True
-                        pimg_fields["name"] = product.meli_title;
+                        pimg_fields["name"] = product.meli_title or product.name;
                         pimage = self.env["product.image"].create(pimg_fields)
 
                     if (pimage):
@@ -1218,9 +1219,18 @@ class product_product(models.Model):
                     product = variant
         else:
             #NO TIENE variantes pero tiene SKU
+            seller_sku = None
             if ("seller_custom_field" in rjson):
-                if (rjson["seller_custom_field"]):
-                    product.default_code = rjson["seller_custom_field"]
+                seller_sku = rjson["seller_custom_field"]
+
+            if not seller_sku and "attributes" in rjson:
+                for att in rjson['attributes']:
+                    if att["id"] == "SELLER_SKU":
+                        seller_sku = att["values"][0]["name"]
+                        break;
+
+            if seller_sku:
+                product.default_code = seller_sku
                 product.set_bom()
 
 

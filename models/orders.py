@@ -642,7 +642,10 @@ class mercadolibre_orders(models.Model):
 
                     seller_sku = Item['item']['seller_custom_field']
 
-                    if (not seller_sku and 'seller_sku' in Item['item']):
+                    if (seller_sku):
+                        product_related = product_obj.search([('default_code','=',seller_sku)])
+
+                    if (not product_related and 'seller_sku' in Item['item']):
                         seller_sku = Item['item']['seller_sku']
 
                     if (seller_sku):
