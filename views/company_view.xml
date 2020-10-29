@@ -99,6 +99,7 @@
                                       <field name="name"/>
                                     </tree>
                                   </field>
+                                  <field name="mercadolibre_remove_unsync_images" invisible="0"/>
                                 </group>
                               </group>
                               <group string="Categorías" name="Categories"  col="2">

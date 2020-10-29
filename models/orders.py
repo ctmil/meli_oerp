@@ -154,8 +154,8 @@ class mercadolibre_orders(models.Model):
                     state_id = state[0].id
                     return state_id
             id_ml = Receiver['state']['id'].split("-")
-            _logger.info(Receiver)
-            _logger.info(id_ml)
+            #_logger.info(Receiver)
+            #_logger.info(id_ml)
             if (len(id_ml)==2):
                 id = id_ml[1]
                 state = self.env['res.country.state'].search([('code','like',id),('country_id','=',country_id)])
@@ -642,7 +642,10 @@ class mercadolibre_orders(models.Model):
 
                     seller_sku = Item['item']['seller_custom_field']
 
-                    if (not seller_sku and 'seller_sku' in Item['item']):
+                    if (seller_sku):
+                        product_related = product_obj.search([('default_code','=',seller_sku)])
+
+                    if (not product_related and 'seller_sku' in Item['item']):
                         seller_sku = Item['item']['seller_sku']
 
                     if (seller_sku):

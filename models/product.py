@@ -26,6 +26,7 @@ import pdb
 import logging
 _logger = logging.getLogger(__name__)
 
+import hashlib
 import math
 import requests
 import base64
@@ -365,7 +366,8 @@ class product_template(models.Model):
                                     ("BRL","Real (BRL)"),
                                     ("CLP","Peso Chileno (CLP)"),
                                     ("CRC","Colon Costarricense (CRC)"),
-                                    ("UYU","Peso Uruguayo (UYU)")],
+                                    ("UYU","Peso Uruguayo (UYU)"),
+                                    ("USD","Dolar Estadounidense (USD)")],
                                     string='Moneda')
     meli_condition = fields.Selection([ ("new", "Nuevo"),
                                         ("used", "Usado"),
@@ -408,8 +410,10 @@ class product_image(models.Model):
     meli_imagen_size = fields.Char(string='Size')
     meli_imagen_max_size = fields.Char(string='Max Size')
     meli_imagen_bytes = fields.Integer(string='Size bytes')
+    meli_imagen_hash = fields.Char(string='File Hash Id')
     meli_pub = fields.Boolean(string='Publicar en ML',index=True)
     meli_force_pub = fields.Boolean(string='Publicar en ML y conservar en Odoo',index=True)
+    meli_published = fields.Boolean(string='Publicado en ML',index=True)
 
 product_image()
 
@@ -610,7 +614,8 @@ class product_product(models.Model):
 
             if www_cat_id:
                 p_cat_id = www_cats.search([('id','=',www_cat_id)])
-                cat_fields['public_category_id'] = www_cat_id
+                if (len(p_cat_id)):
+                    cat_fields['public_category_id'] = www_cat_id
                 #cat_fields['public_category'] = p_cat_id
 
             ml_cat_id = self.env['mercadolibre.category'].create((cat_fields)).id
@@ -626,8 +631,12 @@ class product_product(models.Model):
             product_template.public_categ_ids = [(4,www_cat_id)]
 
     def _meli_remove_images_unsync( self, product_template, pictures ):
-
+        #atencion aplicar meli_imagen_id y meli_published solo si existe efectivamenete en pictures antes y luego de updatear en ML
+        #tambien chequear con hash duplicados... en lugar de meli_imagen_id
         product = self
+        company = self.env.user.company_id
+        if not (company.mercadolibre_remove_unsync_images):
+            return {}
 
         ml_pics = {}
         ml_sizes = {}
@@ -669,23 +678,25 @@ class product_product(models.Model):
                 except:
                     pass;
 
-        _logger.info(ml_pics)
-        _logger.info(ml_bytes)
+        #_logger.info(ml_pics)
+        #_logger.info(ml_bytes)
 
-        _logger.info("Cleaning product template images with meli id but not in ML")
-        ml_images = self.env["product.image"].search([('meli_force_pub','=',False),('meli_imagen_id','!=',False),('product_tmpl_id','=',product_template.id)])
-        _logger.info(ml_images)
+        #_logger.info("Cleaning product template images with meli id but not in ML")
+        ml_images = self.env["product.image"].search([('meli_force_pub','=',False),
+                                                        ('meli_imagen_id','!=',False),
+                                                        ('product_tmpl_id','=',product_template.id)])
+        #_logger.info(ml_images)
         if (ml_images and len(ml_images)):
             for ml_image in ml_images:
                 if not ml_image.meli_imagen_id in ml_pics and not str(ml_image.meli_imagen_bytes) in ml_bytes:
                     ml_image.unlink()
 
         try:
-            _logger.info("Cleaning product variant images with meli id not in ML")
+            #_logger.info("Cleaning product variant images with meli id not in ML")
             ml_images = self.env["product.image"].search([('meli_force_pub','=',False),
                                                         ('meli_imagen_id','!=',False),
                                                         ('product_variant_id','=',product.id)])
-            _logger.info(ml_images)
+            #_logger.info(ml_images)
             if (ml_images and len(ml_images)):
                 for ml_image in ml_images:
                     if not ml_image.meli_imagen_id in ml_pics and not str(ml_image.meli_imagen_bytes) in ml_bytes:
@@ -739,7 +750,7 @@ class product_product(models.Model):
                     meli_imagen_bytes = len(image)
                     pimage = False
                     pimg_fields = {
-                        'name': thumbnail_url+' - '+pic["size"]+' - '+pic["max_size"],
+                        #'name': thumbnail_url+' - '+pic["size"]+' - '+pic["max_size"],
                         'meli_imagen_id': pic["id"],
                         'meli_imagen_link': thumbnail_url,
                         'meli_imagen_size': pic["size"],
@@ -748,12 +759,12 @@ class product_product(models.Model):
                         'product_tmpl_id': product_template.id,
                         'meli_pub': True
                     }
-                    _logger.info(pimg_fields)
+                    #_logger.info(pimg_fields)
                     if (variant_image_ids(product)):
-                        _logger.info("has variant image ids")
-                        _logger.info(variant_image_ids(product))
+                        #_logger.info("has variant image ids")
+                        #_logger.info(variant_image_ids(product))
                         pimage = self.env["product.image"].search([('meli_imagen_id','=',pic["id"]),('product_tmpl_id','=',product_template.id)])
-                        _logger.info(pimage)
+                        #_logger.info(pimage)
                         if (pimage and len(pimage)>1):
                             #unlink all but first
                             _logger.info("Unlink all duplicates for "+str(pic["id"]))
@@ -792,6 +803,7 @@ class product_product(models.Model):
                     if (not pimage or (pimage and len(pimage)==0)):
                         _logger.info("Creating new image")
                         bin_updating = True
+                        pimg_fields["name"] = product.meli_title or product.name;
                         pimage = self.env["product.image"].create(pimg_fields)
 
                     if (pimage):
@@ -1207,9 +1219,18 @@ class product_product(models.Model):
                     product = variant
         else:
             #NO TIENE variantes pero tiene SKU
+            seller_sku = None
             if ("seller_custom_field" in rjson):
-                if (rjson["seller_custom_field"]):
-                    product.default_code = rjson["seller_custom_field"]
+                seller_sku = rjson["seller_custom_field"]
+
+            if not seller_sku and "attributes" in rjson:
+                for att in rjson['attributes']:
+                    if att["id"] == "SELLER_SKU":
+                        seller_sku = att["values"][0]["name"]
+                        break;
+
+            if seller_sku:
+                product.default_code = seller_sku
                 product.set_bom()
 
 
@@ -1556,6 +1577,18 @@ class product_product(models.Model):
         imagebin = base64.b64decode(first_image_to_publish)
         imageb64 = first_image_to_publish
         files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
+        product_image = None
+        try:
+            hash = hashlib.blake2b()
+            hash.update(imagebin)
+            #product_image.meli_imagen_hash = hash.hexdigest()
+            if (company.mercadolibre_do_not_use_first_image):
+                product_image = variant_image_ids(product)[0]
+                if (product_image):
+                    product_image.meli_imagen_hash = hash.hexdigest()
+
+        except:
+            pass;
         response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
 
         rjson = response.json()
@@ -1569,6 +1602,10 @@ class product_product(models.Model):
         if ("id" in rjson):
             #guardar id
             product.write( { "meli_imagen_id": rjson["id"], "meli_imagen_link": rjson["variations"][0]["url"] })
+            if (product_image):
+                product_image.meli_imagen_id = rjson["id"]
+                product_image.meli_imagen_link = rjson["variations"][0]["secure_url"]
+                product_image.meli_imagen_size = rjson["variations"][0]["size"]
             #asociar imagen a producto
             if product.meli_id:
                 return rjson["id"]
@@ -1599,6 +1636,8 @@ class product_product(models.Model):
                 _logger.info("Upload multi image var: "+str(imix))
                 product_image = var_image_ids[imix]
                 image_ids+= product._meli_upload_image( product_image )
+
+        product.write( { "meli_multi_imagen_id": "%s" % (image_ids) } )
 
         #loop over images
         tpl_image_ids = template_image_ids(product)
@@ -1655,10 +1694,17 @@ class product_product(models.Model):
                     ilink = image_uploaded['secure_url']
                 if 'size' in image_uploaded:
                     isize = image_uploaded['size']
+
                 product_image.meli_imagen_id = rjson['id']
                 product_image.meli_imagen_max_size = rjson['max_size']
                 product_image.meli_imagen_link = ilink
                 product_image.meli_imagen_size = isize
+                try:
+                    hash = hashlib.blake2b()
+                    hash.update(imagebin)
+                    product_image.meli_imagen_hash = hash.hexdigest()
+                except:
+                    pass;
 
         return image_ids
 
@@ -2635,58 +2681,64 @@ class product_product(models.Model):
         uomobj = self.env[uom_model]
         _stock = product.virtual_available
 
-        if (stock!=False):
-            _stock = stock
-            if (_stock<0):
-                _stock = 0
+        try:
+            if (stock!=False):
+                _stock = stock
+                if (_stock<0):
+                    _stock = 0
 
-        if (product.default_code):
-            product.set_bom()
+            if (product.default_code):
+                product.set_bom()
 
-        if (product.meli_default_stock_product):
-            _stock = product.meli_default_stock_product.virtual_available
-            if (_stock<0):
-                _stock = 0
+            if (product.meli_default_stock_product):
+                _stock = product.meli_default_stock_product.virtual_available
+                if (_stock<0):
+                    _stock = 0
 
-        if (_stock>=0 and product.virtual_available!=_stock):
-            _logger.info("Updating stock for variant." + str(_stock) )
-            wh = self.env['stock.location'].search([('usage','=','internal')]).id
-            product_uom_id = uomobj.search([('name','=','Unidad(es)')])
-            if (product_uom_id.id==False):
-                product_uom_id = 1
-            else:
-                product_uom_id = product_uom_id.id
+            if (_stock>=0 and product.virtual_available!=_stock):
+                _logger.info("Updating stock for variant." + str(_stock) )
+                wh = self.env['stock.location'].search([('usage','=','internal')]).id
+                product_uom_id = uomobj.search([('name','=','Unidad(es)')])
+                if (product_uom_id.id==False):
+                    product_uom_id = 1
+                else:
+                    product_uom_id = product_uom_id.id
 
-            stock_inventory_fields = {
-                "product_id": product.id,
-                "filter": "product",
-                "location_id": wh,
-                "name": "INV: "+ product.name
-            }
-            #_logger.info("stock_inventory_fields:")
-            #_logger.info(stock_inventory_fields)
-            StockInventory = self.env['stock.inventory'].create(stock_inventory_fields)
-            #_logger.info("StockInventory:")
-            #_logger.info(StockInventory)
-            if (StockInventory):
-                stock_inventory_field_line = {
-                    "product_qty": _stock,
-                    'theoretical_qty': 0,
+                stock_inventory_fields = {
+                    #"product_ids": [(4,product.id)],
                     "product_id": product.id,
-                    "product_uom_id": product_uom_id,
+                    "filter": "product",
                     "location_id": wh,
-                    'inventory_location_id': wh,
-                    "inventory_id": StockInventory.id,
-                    #"name": "INV "+ nombre
-                    #"state": "confirm",
+                    "name": "INV: "+ product.name
                 }
-                StockInventoryLine = self.env['stock.inventory.line'].create(stock_inventory_field_line)
-                #print "StockInventoryLine:", StockInventoryLine, stock_inventory_field_line
-                #_logger.info("StockInventoryLine:")
-                #_logger.info(stock_inventory_field_line)
-                if (StockInventoryLine):
-                    return_id = stock_inventory_action_done(StockInventory)
-                    #_logger.info("action_done:"+str(return_id))
+
+                #_logger.info("stock_inventory_fields:")
+                #_logger.info(stock_inventory_fields)
+                StockInventory = self.env['stock.inventory'].create(stock_inventory_fields)
+                #_logger.info("StockInventory:")
+                #_logger.info(StockInventory)
+                if (StockInventory):
+                    stock_inventory_field_line = {
+                        "product_qty": _stock,
+                        'theoretical_qty': 0,
+                        "product_id": product.id,
+                        "product_uom_id": product_uom_id,
+                        "location_id": wh,
+                        'inventory_location_id': wh,
+                        "inventory_id": StockInventory.id,
+                        #"name": "INV "+ nombre
+                        #"state": "confirm",
+                    }
+                    StockInventoryLine = self.env['stock.inventory.line'].create(stock_inventory_field_line)
+                    #print "StockInventoryLine:", StockInventoryLine, stock_inventory_field_line
+                    #_logger.info("StockInventoryLine:")
+                    #_logger.info(stock_inventory_field_line)
+                    if (StockInventoryLine):
+                        return_id = stock_inventory_action_done(StockInventory)
+                        #_logger.info("action_done:"+str(return_id))
+        except Exception as e:
+            _logger.info("product_update_stock Exception")
+            _logger.info(e, exc_info=True)
 
 
     def product_post_price(self):
@@ -2732,13 +2784,16 @@ class product_product(models.Model):
 
     meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
     meli_currency = fields.Selection([("ARS","Peso Argentino (ARS)"),
-    ("MXN","Peso Mexicano (MXN)"),
-    ("COP","Peso Colombiano (COP)"),
-    ("PEN","Sol Peruano (PEN)"),
-    ("BOB","Boliviano (BOB)"),
-    ("BRL","Real (BRL)"),
-    ("CLP","Peso Chileno (CLP)"),
-    ("CRC","Colon Costarricense (CRC)")],string='Moneda')
+                                        ("MXN","Peso Mexicano (MXN)"),
+                                        ("COP","Peso Colombiano (COP)"),
+                                        ("PEN","Sol Peruano (PEN)"),
+                                        ("BOB","Boliviano (BOB)"),
+                                        ("BRL","Real (BRL)"),
+                                        ("CLP","Peso Chileno (CLP)"),
+                                        ("CRC","Colon Costarricense (CRC)"),
+                                        ("UYU","Peso Uruguayo (UYU)"),
+                                        ("USD","Dolar Estadounidense (USD)")],
+                                        string='Moneda')
     meli_condition = fields.Selection([ ("new", "Nuevo"), ("used", "Usado"), ("not_specified","No especificado")],'Condición del producto')
     meli_warranty = fields.Char(string='Garantía', size=256)
     meli_listing_type = fields.Selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special/Clásica"),("gold_pro","Oro Pro")], string='Tipo de lista')
@@ -2754,6 +2809,7 @@ class product_product(models.Model):
     meli_imagen_logo = fields.Char(string='Imagen Logo', size=256)
     meli_imagen_id = fields.Char(string='Imagen Id', size=256)
     meli_imagen_link = fields.Char(string='Imagen Link', size=256)
+    meli_imagen_hash = fields.Char(string='Imagen Hash')
     meli_multi_imagen_id = fields.Char(string='Multi Imagen Ids', size=512)
     meli_video = fields.Char( string='Video (id de youtube)', size=256)
 
