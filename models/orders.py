@@ -653,25 +653,24 @@ class mercadolibre_orders(models.Model):
 
                     if (len(product_related)):
                         _logger.info("order product related by seller_custom_field and default_code:"+str(seller_sku) )
+                        if (not product_related.meli_id and company.mercadolibre_create_product_from_order):
+                            prod_fields = {
+                                'meli_id': Item['item']['id'],
+                                'meli_pub': True,
+                            }
+                            product_related.write((prod_fields))
+                            if (product_related.product_tmpl_id):
+                                product_related.product_tmpl_id.meli_pub = True
+                            product_related.product_meli_get_product()
+                            #if (seller_sku):
+                            #    prod_fields['default_code'] = seller_sku
                     else:
                         combination = []
                         if ('variation_id' in Item['item'] and Item['item']['variation_id'] ):
                             combination = [( 'meli_id_variation','=',Item['item']['variation_id'])]
                         product_related = product_obj.search([('meli_id','=',Item['item']['id'])] + combination)
                         if (product_related and len(product_related)):
-                            _logger.info("Product founded:"+str(Item['item']['id']))
-                            if (not product_related.meli_id and company.mercadolibre_create_product_from_order):
-                                prod_fields = {
-                                    'meli_id': Item['item']['id'],
-                                    'meli_pub': True,
-                                }
-                                product_related.write((prod_fields))
-                                if (product_related.product_tmpl_id):
-                                    product_related.product_tmpl_id.meli_pub = True
-                                product_related.product_meli_get_product()
-                                #if (seller_sku):
-                                #    prod_fields['default_code'] = seller_sku
-                                
+                            _logger.info("Product founded:"+str(Item['item']['id']))                                
                         else:
                             #optional, get product
                             productcreated = None
