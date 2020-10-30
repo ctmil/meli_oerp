@@ -14,7 +14,7 @@
 #	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #	GNU Affero General Public License for more details.
 #
-#	You should have received a copy of the GNU Affero General Public License
+#	You should have received a copy of the GNU Afferotax General Public License
 #	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
@@ -380,7 +380,7 @@ class mercadolibre_shipment(models.Model):
 				'price_unit': shipment.shipping_cost,
 				'product_id': product_shipping_id.id,
 				'product_uom_qty': 1.0,
-				'tax_id': None,
+				#'tax_id': None,
 				'product_uom': product_shipping_id.uom_id.id,
 				'name': "Shipping " + str(shipment.shipping_mode),
 			}
