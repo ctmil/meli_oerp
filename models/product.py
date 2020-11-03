@@ -968,9 +968,9 @@ class product_product(models.Model):
                 tmpl_fields["meli_catalog_listing"] = True
 
             if ("automatic_relist" in rjson):
-                meli_fields["meli_automatic_relist"] = rjson["automatic_relist"]
+                meli_fields["meli_catalog_automatic_relist"] = rjson["automatic_relist"]
                 if (meli_fields["meli_catalog_listing"]==True):
-                    tmpl_fields["meli_automatic_relist"] = True
+                    tmpl_fields["meli_catalog_automatic_relist"] = True
 
             if ("catalog_product_id" in rjson):
                 meli_fields["meli_catalog_product_id"] = rjson["catalog_product_id"]
