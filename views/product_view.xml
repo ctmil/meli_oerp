@@ -150,6 +150,13 @@
                         <field name="meli_pub_variant_attributes"  widget="many2many_checkboxes"  options="{'no_create': True}" domain="[('product_tmpl_id','=',id)]"/>
                         <field name="meli_pub_principal_variant" invisible="0"/>
                       </group>
+                      <separator string="Catalogo" colspan="1"/>
+                      <group name="catalogo">
+                        <field name="meli_catalog_listing"/>
+                        <field name="meli_catalog_product_id"/>
+                        <field name="meli_catalog_item_relations"/>
+                        <field name="meli_catalog_automatic_relist"/>
+                      </group>
 					<!--
                       <separator string="Import fields" colspan="1"/>
                       <group name="Import fields">
@@ -399,6 +406,13 @@
                           <separator string="Descripcion del Producto en ML"
             								colspan="2" />
                           <field name="meli_description" />
+                          <separator string="Catalogo" colspan="1"/>
+                          <group name="catalogo">
+                            <field name="meli_catalog_listing"/>
+                            <field name="meli_catalog_product_id"/>
+                            <field name="meli_catalog_item_relations"/>
+                            <field name="meli_catalog_automatic_relist"/>
+                          </group>
                         </page>
                     </notebook>
                 </data>
