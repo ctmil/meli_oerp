@@ -969,17 +969,17 @@ class product_product(models.Model):
 
             if ("automatic_relist" in rjson):
                 meli_fields["meli_automatic_relist"] = rjson["automatic_relist"]
-                if (meli_fields["catalog_listing"]==True):
+                if (meli_fields["meli_catalog_listing"]==True):
                     tmpl_fields["meli_automatic_relist"] = True
 
             if ("catalog_product_id" in rjson):
                 meli_fields["meli_catalog_product_id"] = rjson["catalog_product_id"]
-                if (meli_fields["catalog_listing"]==True):
+                if (meli_fields["meli_catalog_listing"]==True):
                     tmpl_fields["meli_catalog_product_id"] = rjson["catalog_product_id"]
 
             if ("item_relations" in rjson):
                 meli_fields["meli_catalog_item_relations"] = rjson["item_relations"]
-                if (meli_fields["catalog_listing"]==True):
+                if (meli_fields["meli_catalog_listing"]==True):
                     tmpl_fields["meli_catalog_item_relations"] = rjson["item_relations"]
 
         product.write( meli_fields )
