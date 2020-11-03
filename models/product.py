@@ -403,7 +403,7 @@ class product_template(models.Model):
     meli_catalog_listing = fields.Boolean(string='Catalog Listing', size=256)
     meli_catalog_product_id = fields.Char(string='Catalog Product Id', size=256)
     meli_catalog_item_relations = fields.Char(string='Catalog Item Relations', size=256)
-    meli_automatic_relist = fields.Boolean(string='Catalog Auto Relist', size=256)
+    meli_catalog_automatic_relist = fields.Boolean(string='Catalog Auto Relist', size=256)
 
 product_template()
 
