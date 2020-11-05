@@ -352,6 +352,8 @@ class mercadolibre_orders(models.Model):
             order_fields["tags"] = order_json["tags"]
             if 'pack_order' in order_json["tags"]:
                 order_fields["pack_order"] = True
+            if 'catalog' in order_json["tags"]:
+                order_fields["catalog_order"] = True
 
         partner_id = False
 
@@ -670,7 +672,7 @@ class mercadolibre_orders(models.Model):
                             combination = [( 'meli_id_variation','=',Item['item']['variation_id'])]
                         product_related = product_obj.search([('meli_id','=',Item['item']['id'])] + combination)
                         if (product_related and len(product_related)):
-                            _logger.info("Product founded:"+str(Item['item']['id']))                                
+                            _logger.info("Product founded:"+str(Item['item']['id']))
                         else:
                             #optional, get product
                             productcreated = None
@@ -1008,6 +1010,7 @@ class mercadolibre_orders(models.Model):
     seller = fields.Text( string='Seller' )
     tags = fields.Text(string="Tags")
     pack_order = fields.Boolean(string="Order Pack (Carrito)")
+    catalog_order = fields.Boolean(string="Order From Catalog")
 
 mercadolibre_orders()
 
