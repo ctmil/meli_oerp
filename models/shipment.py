@@ -249,7 +249,7 @@ class mercadolibre_shipment(models.Model):
 
 	_inherit = ['portal.mixin', 'mail.thread', 'mail.activity.mixin']
 
-	name = fields.Char(string='Name')
+	name = fields.Char(string='Name',index=true)
 	site_id = fields.Char('Site id')
 	posting_id = fields.Many2one("mercadolibre.posting",string="Posting")
 	shipping_id = fields.Char('Envio Id',index=true)
@@ -323,9 +323,9 @@ class mercadolibre_shipment(models.Model):
 
 	pack_order = fields.Boolean(string="Carrito de compra")
 
-    _sql_constraints = [
-        ('unique_shipping_id','unique(shipping_id)','Meli Shipping id already exists!'),
-    ]
+	_sql_constraints = [
+		('unique_shipping_id','unique(shipping_id)','Meli Shipping id already exists!'),
+	]
 
 	def create_shipment( self ):
 		return {}
