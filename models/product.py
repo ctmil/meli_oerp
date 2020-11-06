@@ -955,6 +955,7 @@ class product_product(models.Model):
           'meli_dimensions': meli_fields["meli_dimensions"]
         }
 
+
         if (product.name and not company.mercadolibre_overwrite_variant):
             del meli_fields['name']
         if (product_template.name and not company.mercadolibre_overwrite_template):
@@ -2266,6 +2267,10 @@ class product_product(models.Model):
         }
         # _logger.info( body )
         assign_img = False and product.meli_id
+
+        #store id
+        if company.mercadolibre_official_store_id:
+            body["official_store_id"] = company.mercadolibre_official_store_id
 
         #publicando imagenes
         first_image_to_publish = get_first_image_to_publish( product )

@@ -346,7 +346,8 @@ class mercadolibre_orders(models.Model):
             'currency_id': order_json["currency_id"],
             'date_created': ml_datetime(order_json["date_created"]),
             'date_closed': ml_datetime(order_json["date_closed"]),
-            'pack_order': False
+            'pack_order': False,
+            'catalog_order': False
         }
         if 'tags' in order_json:
             order_fields["tags"] = order_json["tags"]
@@ -1011,6 +1012,10 @@ class mercadolibre_orders(models.Model):
     tags = fields.Text(string="Tags")
     pack_order = fields.Boolean(string="Order Pack (Carrito)")
     catalog_order = fields.Boolean(string="Order From Catalog")
+
+    _sql_constraints = [
+        ('unique_order_id', 'unique (order_id)', 'Mei Order id already exists!')
+    ]
 
 mercadolibre_orders()
 
