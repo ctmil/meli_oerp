@@ -400,7 +400,6 @@ class mercadolibre_shipment(models.Model):
 						_logger.info("Could not unlink.")
 
 
-
 	#Return shipment object based on mercadolibre.orders "order"
 	def fetch( self, order ):
 
@@ -695,9 +694,7 @@ class mercadolibre_shipment(models.Model):
 
 		return {}
 
-    _sql_constraints = [
-        ('unique_shipping_id', 'unique(shipping_id)', 'Mei Shipping id already exists!')
-    ]
+    _sql_constraints = [ ('unique_shipping_id', 'unique(shipping_id)', 'Mei Shipping id already exists!')]
 
 mercadolibre_shipment()
 
