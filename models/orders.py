@@ -1079,6 +1079,10 @@ class mercadolibre_buyers(models.Model):
     billing_info_doc_type = fields.Char( string='Billing Info Doc Type')
     billing_info_doc_number = fields.Char( string='Billing Info Doc Number')
 
+    _sql_constraints = [
+        ('unique_buyer_id', 'unique(buyer_id)', 'Mei Buyer id already exists!')
+    ]
+
 mercadolibre_buyers()
 
 class res_partner(models.Model):
@@ -1086,7 +1090,6 @@ class res_partner(models.Model):
 
     meli_buyer_id = fields.Char('Meli Buyer Id')
     meli_buyer = fields.Many2one('mercadolibre.buyers',string='Buyer')
-
 
 res_partner()
 
