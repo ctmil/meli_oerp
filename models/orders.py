@@ -124,6 +124,9 @@ class sale_order(models.Model):
                             _logger.info("do_new_transfer")
                             spick.action_done()
 
+    _sql_constraints = [
+        ('unique_meli_order_id', 'unique(meli_order_id)', 'Mei Order id already exists!')
+    ]
 sale_order()
 
 class mercadolibre_orders(models.Model):
@@ -1014,7 +1017,7 @@ class mercadolibre_orders(models.Model):
     catalog_order = fields.Boolean(string="Order From Catalog")
 
     _sql_constraints = [
-        ('unique_order_id', 'unique (order_id)', 'Mei Order id already exists!')
+        ('unique_order_id', 'unique(order_id)', 'Mei Order id already exists!')
     ]
 
 mercadolibre_orders()
