@@ -21,6 +21,7 @@
 
 from odoo import models, fields, api, osv
 from odoo.tools.translate import _
+from odoo.exceptions import UserError
 
 import pdb
 import logging
@@ -37,6 +38,7 @@ from meli_oerp_config import *
 
 from ..melisdk.meli import Meli
 import string
+import math
 
 class product_template(models.Model):
     _inherit = "product.template"
@@ -245,7 +247,7 @@ class product_template(models.Model):
                                         ("not_specified","No especificado")],
                                         'Condición del producto')
     meli_dimensions = fields.Char( string="Dimensiones del producto", size=128)
-    meli_pub = fields.Boolean('Meli Publication',help='MELI Product',index=True)
+    meli_pub = fields.Boolean('Publicar en Meli',help='MELI Product',index=True)
     meli_master = fields.Boolean('Meli Producto Maestro',help='MELI Product Maestro',index=True)
     meli_warranty = fields.Char(string='Garantía', size=256)
     meli_listing_type = fields.Selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special/Clásica"),("gold_pro","Oro Pro")], string='Tipo de lista')
@@ -298,7 +300,14 @@ class product_product(models.Model):
         #        pricelist = pricelists.id
         #    else:
         #        pricelist = pricelists[0].id
-        self.meli_price = str(self.lst_price)
+        for product in self:
+            str_price = str(product.lst_price)
+            
+            if product.meli_currency:
+                if product.meli_currency == 'COP':
+                    str_price = str(int(math.ceil(product.lst_price)))
+
+            product.meli_price = str_price
         #res = {}
         #for id in self:
         #    res[id] = self.lst_price
@@ -1373,6 +1382,11 @@ class product_product(models.Model):
         price = False
         if (product.meli_price):
             price = product.meli_price
+
+            if product.meli_currency:
+                if product.meli_currency == 'COP':
+                    price = int(math.ceil(product.meli_price))
+
         qty = product.meli_available_quantity
 
         if (product_tmpl.meli_pub_principal_variant.id and price==False):
@@ -1548,22 +1562,35 @@ class product_product(models.Model):
         if company.mercadolibre_pricelist:
             pl = company.mercadolibre_pricelist
 
-        if product_tmpl.meli_price==False or product_tmpl.meli_price==0:
-            product_tmpl.meli_price = product_tmpl.list_price
+        ######### revisar esta parte para el precio ###############
+        # if product_tmpl.meli_price==False or product_tmpl.meli_price==0:
+        #     product_tmpl.meli_price = product_tmpl.list_price
 
-        if product_tmpl.taxes_id:
-            new_price = product_tmpl.meli_price
-            if (pl):
-                return_val = pl.price_get(product.id,1.0)
-                if pl.id in return_val:
-                    new_price = return_val[pl.id]
-            else:
-                new_price = product_tmpl.list_price
-                if (product.lst_price):
-                    new_price = product.lst_price
+        # if product_tmpl.taxes_id:
+        #     new_price = product_tmpl.meli_price
+        #     if (pl):
+        #         return_val = pl.price_get(product.id,1.0)
+        #         if pl.id in return_val:
+        #             new_price = return_val[pl.id]
+        #     else:
+        #         new_price = product_tmpl.list_price
+        #         if (product.lst_price):
+        #             new_price = product.lst_price
 
-            new_price = new_price * ( 1 + ( product_tmpl.taxes_id[0].amount / 100) )
-            new_price = round(new_price,2)
+        #     new_price = new_price * ( 1 + ( product_tmpl.taxes_id[0].amount / 100) )
+        #     new_price = round(new_price,2)
+        ############################################################
+        new_price = product.meli_price
+
+        if product.meli_price==False or product.meli_price=='0':
+            raise UserError(_("¡Error al publicar!\nPor favor fije un precio para el producto en el campo 'Precio de venta'."))
+        
+        if product.meli_currency:
+            if product.meli_currency == 'COP':
+                if new_price != '0':
+                    new_price_int = int(new_price)
+                    new_price = int(math.ceil(new_price_int))
+
             product_tmpl.meli_price = new_price
             product.meli_price=product_tmpl.meli_price
 
@@ -1741,7 +1768,16 @@ class product_product(models.Model):
             "currency_id": product.meli_currency  or '0',
             "condition": product.meli_condition  or '',
             "available_quantity": product.meli_available_quantity  or '0',
-            "warranty": product.meli_warranty or '',
+            "sale_terms":[
+                    {
+                    "id":"WARRANTY_TYPE",
+                    "value_name": "Garantía del vendedor" if product.meli_warranty else 'null'
+                    },
+                    {
+                    "id":"WARRANTY_TIME",
+                    "value_name": product.meli_warranty or 'null'
+                    }
+                ],
             #"pictures": [ { 'source': product.meli_imagen_logo} ] ,
             "video_id": product.meli_video  or '',
         }
@@ -1775,7 +1811,17 @@ class product_product(models.Model):
                 "price": product.meli_price or '0',
                 #"condition": product.meli_condition or '',
                 "available_quantity": product.meli_available_quantity or '0',
-                "warranty": product.meli_warranty or '',
+                #"warranty": product.meli_warranty or '',
+                "sale_terms":[
+                    {
+                    "id":"WARRANTY_TYPE",
+                    "value_name": "Garantía del vendedor" if product.meli_warranty else 'null'
+                    },
+                    {
+                    "id":"WARRANTY_TIME",
+                    "value_name": product.meli_warranty or 'null'
+                    }
+                ],
                 "pictures": [],
                 "video_id": product.meli_video or '',
             }
@@ -2220,6 +2266,25 @@ class product_product(models.Model):
             "price": product.meli_price
         }
         response = meli.put("/items/"+product.meli_id, fields, {'access_token':meli.access_token})
+    
+    def product_post_price_when_save(self):
+        company = self.env.user.company_id
+        warningobj = self.env['warning']
+
+        product_obj = self.env['product.product']
+        product = self
+        product_tmpl = self.product_tmpl_id
+
+        CLIENT_ID = company.mercadolibre_client_id
+        CLIENT_SECRET = company.mercadolibre_secret_key
+        ACCESS_TOKEN = company.mercadolibre_access_token
+        REFRESH_TOKEN = company.mercadolibre_refresh_token
+        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+
+        fields = {
+            "price": product.meli_price
+        }
+        response = meli.put("/items/"+product.meli_id, fields, {'access_token':meli.access_token})
 
     #typical values
     meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
@@ -2227,7 +2292,7 @@ class product_product(models.Model):
     meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre")
     meli_price = fields.Char(string='Precio de venta', size=128)
     meli_dimensions = fields.Char( string="Dimensiones del producto", size=128)
-    meli_pub = fields.Boolean('Meli Publication',help='MELI Product',index=True)
+    meli_pub = fields.Boolean('Publicar en Meli',help='MELI Product',index=True)
 
     meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
     meli_currency = fields.Selection([("ARS","Peso Argentino (ARS)"),
@@ -2238,7 +2303,7 @@ class product_product(models.Model):
     ("BRL","Real (BRL)"),
     ("CLP","Peso Chileno (CLP)")],string='Moneda')
     meli_condition = fields.Selection([ ("new", "Nuevo"), ("used", "Usado"), ("not_specified","No especificado")],'Condición del producto')
-    meli_warranty = fields.Char(string='Garantía', size=256)
+    meli_warranty = fields.Char(string='Garantía (ej. 15 días, 12 meses, 3 años)', size=256)
     meli_listing_type = fields.Selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special/Clásica"),("gold_pro","Oro Pro")], string='Tipo de lista')
 
     #post only fields
@@ -2247,7 +2312,7 @@ class product_product(models.Model):
     meli_description_banner_id = fields.Many2one("mercadolibre.banner","Banner")
     meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
     meli_price = fields.Char(string='Precio de venta', size=128)
-    meli_price_fixed = fields.Boolean(string='Price is fixed')
+    meli_price_fixed = fields.Boolean(string='Precio fijo')
     meli_available_quantity = fields.Integer(string='Cantidad disponible')
     meli_imagen_logo = fields.Char(string='Imagen Logo', size=256)
     meli_imagen_id = fields.Char(string='Imagen Id', size=256)
@@ -2265,6 +2330,15 @@ class product_product(models.Model):
     meli_brand = fields.Char(string="Marca",size=256)
     meli_default_stock_product = fields.Many2one("product.product","Producto de referencia para stock")
     meli_id_variation = fields.Char( string='Id de Variante de Meli', size=256)
+
+    @api.multi
+    def write(self, values):
+        result = super(product_product, self).write(values)
+
+        for product in self:
+            if values.get('meli_price'):
+                self.product_post_price_when_save()
+        return result
 
     _defaults = {
         'meli_imagen_logo': 'None',
