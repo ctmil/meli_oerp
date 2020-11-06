@@ -124,6 +124,9 @@ class sale_order(models.Model):
                             _logger.info("do_new_transfer")
                             spick.action_done()
 
+    _sql_constraints = [
+        ('unique_meli_order_id', 'unique(meli_order_id)', 'Mei Order id already exists!')
+    ]
 sale_order()
 
 class mercadolibre_orders(models.Model):
@@ -346,12 +349,15 @@ class mercadolibre_orders(models.Model):
             'currency_id': order_json["currency_id"],
             'date_created': ml_datetime(order_json["date_created"]),
             'date_closed': ml_datetime(order_json["date_closed"]),
-            'pack_order': False
+            'pack_order': False,
+            'catalog_order': False
         }
         if 'tags' in order_json:
             order_fields["tags"] = order_json["tags"]
             if 'pack_order' in order_json["tags"]:
                 order_fields["pack_order"] = True
+            if 'catalog' in order_json["tags"]:
+                order_fields["catalog_order"] = True
 
         partner_id = False
 
@@ -653,12 +659,23 @@ class mercadolibre_orders(models.Model):
 
                     if (len(product_related)):
                         _logger.info("order product related by seller_custom_field and default_code:"+str(seller_sku) )
+                        if (not product_related.meli_id and company.mercadolibre_create_product_from_order):
+                            prod_fields = {
+                                'meli_id': Item['item']['id'],
+                                'meli_pub': True,
+                            }
+                            product_related.write((prod_fields))
+                            if (product_related.product_tmpl_id):
+                                product_related.product_tmpl_id.meli_pub = True
+                            product_related.product_meli_get_product()
+                            #if (seller_sku):
+                            #    prod_fields['default_code'] = seller_sku
                     else:
                         combination = []
                         if ('variation_id' in Item['item'] and Item['item']['variation_id'] ):
                             combination = [( 'meli_id_variation','=',Item['item']['variation_id'])]
                         product_related = product_obj.search([('meli_id','=',Item['item']['id'])] + combination)
-                        if product_related and len(product_related):
+                        if (product_related and len(product_related)):
                             _logger.info("Product founded:"+str(Item['item']['id']))
                         else:
                             #optional, get product
@@ -997,6 +1014,11 @@ class mercadolibre_orders(models.Model):
     seller = fields.Text( string='Seller' )
     tags = fields.Text(string="Tags")
     pack_order = fields.Boolean(string="Order Pack (Carrito)")
+    catalog_order = fields.Boolean(string="Order From Catalog")
+
+    _sql_constraints = [
+        ('unique_order_id', 'unique(order_id)', 'Mei Order id already exists!')
+    ]
 
 mercadolibre_orders()
 

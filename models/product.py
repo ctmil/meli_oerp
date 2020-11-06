@@ -400,6 +400,11 @@ class product_template(models.Model):
 
     meli_ids = fields.Char(size=2048,string="MercadoLibre Ids.",help="ML Ids de variantes separados por coma.",index=True)
 
+    meli_catalog_listing = fields.Boolean(string='Catalog Listing', size=256)
+    meli_catalog_product_id = fields.Char(string='Catalog Product Id', size=256)
+    meli_catalog_item_relations = fields.Char(string='Catalog Item Relations', size=256)
+    meli_catalog_automatic_relist = fields.Boolean(string='Catalog Auto Relist', size=256)
+
 product_template()
 
 class product_image(models.Model):
@@ -950,12 +955,33 @@ class product_product(models.Model):
           'meli_dimensions': meli_fields["meli_dimensions"]
         }
 
+
         if (product.name and not company.mercadolibre_overwrite_variant):
             del meli_fields['name']
         if (product_template.name and not company.mercadolibre_overwrite_template):
             del tmpl_fields['name']
         if (product_template.description_sale and not company.mercadolibre_overwrite_template):
             del tmpl_fields['description_sale']
+
+        if ("catalog_listing" in rjson):
+            meli_fields["meli_catalog_listing"] = rjson["catalog_listing"]
+            if (meli_fields["meli_catalog_listing"]==True):
+                tmpl_fields["meli_catalog_listing"] = True
+
+            if ("automatic_relist" in rjson):
+                meli_fields["meli_catalog_automatic_relist"] = rjson["automatic_relist"]
+                if (meli_fields["meli_catalog_listing"]==True):
+                    tmpl_fields["meli_catalog_automatic_relist"] = True
+
+            if ("catalog_product_id" in rjson):
+                meli_fields["meli_catalog_product_id"] = rjson["catalog_product_id"]
+                if (meli_fields["meli_catalog_listing"]==True):
+                    tmpl_fields["meli_catalog_product_id"] = rjson["catalog_product_id"]
+
+            if ("item_relations" in rjson):
+                meli_fields["meli_catalog_item_relations"] = rjson["item_relations"]
+                if (meli_fields["meli_catalog_listing"]==True):
+                    tmpl_fields["meli_catalog_item_relations"] = rjson["item_relations"]
 
         product.write( meli_fields )
         product_template.write( tmpl_fields )
@@ -2242,6 +2268,10 @@ class product_product(models.Model):
         # _logger.info( body )
         assign_img = False and product.meli_id
 
+        #store id
+        if company.mercadolibre_official_store_id:
+            body["official_store_id"] = company.mercadolibre_official_store_id
+
         #publicando imagenes
         first_image_to_publish = get_first_image_to_publish( product )
         if (productjson and "pictures" in productjson):
@@ -2824,6 +2854,11 @@ class product_product(models.Model):
     meli_brand = fields.Char(string="Marca",size=256)
     meli_default_stock_product = fields.Many2one("product.product","Producto de referencia para stock")
     meli_id_variation = fields.Char( string='Variation Id',help='Id de Variante de Meli', size=256)
+
+    meli_catalog_listing = fields.Boolean(string='Catalog Listing', size=256)
+    meli_catalog_product_id = fields.Char(string='Catalog Product Id', size=256)
+    meli_catalog_item_relations = fields.Char(string='Catalog Item Relations', size=256)
+    meli_catalog_automatic_relist = fields.Boolean(string='Catalog Auto Relist', size=256)
 
     _defaults = {
         'meli_imagen_logo': 'None',
