@@ -1091,6 +1091,10 @@ class res_partner(models.Model):
     meli_buyer_id = fields.Char('Meli Buyer Id')
     meli_buyer = fields.Many2one('mercadolibre.buyers',string='Buyer')
 
+    _sql_constraints = [
+        ('unique_partner_meli_buyer_id', 'unique(meli_buyer_id)', 'Mei Partner Buyer id already exists!')
+    ]
+
 res_partner()
 
 
