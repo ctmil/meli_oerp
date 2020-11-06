@@ -21,6 +21,7 @@
 
 from odoo import fields, osv, models, _
 from odoo.tools.translate import _
+from odoo.exceptions import UserError
 import pdb
 import logging
 _logger = logging.getLogger(__name__)
@@ -197,8 +198,11 @@ class product_post(models.TransientModel):
         for product_id in product_ids:
             product = product_obj.browse(product_id)
             #import pdb;pdb.set_trace();
+
             if (product.meli_pub):
                 res = product.product_post()
+            else:
+                raise UserError(_("¡Error al publicar! Active la opción Publicar en Meli."))
 
             #Pausa
             if (product.meli_pub==False and product.meli_id):
