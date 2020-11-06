@@ -322,11 +322,11 @@ class mercadolibre_shipment(models.Model):
 	pdfimage_filename = fields.Char(string='Pdf Image Filename')
 
 	pack_order = fields.Boolean(string="Carrito de compra")
-    
+
     _sql_constraints = [
         ('unique_shipping_id','unique(shipping_id)','Meli Shipping id already exists!')
     ]
-    
+
 	def create_shipment( self ):
 		return {}
 
