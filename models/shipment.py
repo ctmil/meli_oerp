@@ -695,6 +695,10 @@ class mercadolibre_shipment(models.Model):
 
 		return {}
 
+    _sql_constraints = [
+        ('unique_shipping_id', 'unique(shipping_id)', 'Mei Shipping id already exists!')
+    ]
+
 mercadolibre_shipment()
 
 
