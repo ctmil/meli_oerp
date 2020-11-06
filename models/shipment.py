@@ -249,20 +249,20 @@ class mercadolibre_shipment(models.Model):
 
 	_inherit = ['portal.mixin', 'mail.thread', 'mail.activity.mixin']
 
-	name = fields.Char(string='Name',index=true)
-	site_id = fields.Char('Site id')
+	name = fields.Char(string='Name',index=True)
+	site_id = fields.Char(string='Site id')
 	posting_id = fields.Many2one("mercadolibre.posting",string="Posting")
-	shipping_id = fields.Char('Envio Id',index=true)
-	order_id =  fields.Char('Order Id')
+	shipping_id = fields.Char(string='Envio Id',index=True)
+	order_id =  fields.Char(string='Order Id',index=True)
 	order = fields.Many2one("mercadolibre.orders",string="Order")
 	orders = fields.Many2many("mercadolibre.orders",string="Orders (carrito)")
 	sale_order = fields.Many2one('sale.order',string="Sale Order",help="Pedido de venta relacionado en Odoo")
 
 	mode = fields.Char('Mode')
-	shipping_mode = fields.Char('Shipping mode')
+	shipping_mode = fields.Char(string='Shipping mode')
 
-	date_created = fields.Datetime('Creation date')
-	last_updated = fields.Datetime('Last updated')
+	date_created = fields.Datetime(string='Creation date')
+	last_updated = fields.Datetime(string='Last updated')
 
 	order_cost = fields.Float(string='Order Cost')
 	base_cost = fields.Float(string='Base Cost')
@@ -272,12 +272,12 @@ class mercadolibre_shipment(models.Model):
 	#state = fields.Selection(string="State",)
 	status = fields.Char(string="Status")
 	substatus = fields.Char(string="Sub Status")
-	status_history = fields.Text("status_history")
-	tracking_number = fields.Char("Tracking number")
-	tracking_method = fields.Char("Tracking method")
+	status_history = fields.Text(string="status_history")
+	tracking_number = fields.Char(string="Tracking number")
+	tracking_method = fields.Char(string="Tracking method")
 
 
-	date_first_printed = fields.Datetime('First Printed date')
+	date_first_printed = fields.Datetime(string='First Printed date')
 
 	receiver_id = fields.Char('Receiver Id')
 	receiver_address_id = fields.Char('Receiver address id')
