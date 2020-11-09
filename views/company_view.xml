@@ -87,7 +87,7 @@
                                   <field name="mercadolibre_buying_mode" invisible="0"/>
                                   <field name="mercadolibre_currency" invisible="0"/>
                                   <field name="mercadolibre_condition" invisible="0"/>
-                                  <field name="mercadolibre_official_store_id" invisble="0"/>
+                                  <!--field name="mercadolibre_official_store_id" invisble="0"/-->
                                 </group>
                                 <group>
                                   <field name="mercadolibre_warranty" invisible="0"/>
