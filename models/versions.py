@@ -25,7 +25,8 @@ def variant_image_ids(self):
 
 #template image ids
 def template_image_ids(self):
-    return self.product_image_ids
+    #return self.product_image_ids
+    return None
 
 #att value ids
 def att_value_ids(self):
