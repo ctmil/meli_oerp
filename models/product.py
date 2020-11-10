@@ -554,6 +554,9 @@ class product_product(models.Model):
 
         product = self
         company = self.env.user.company_id
+        www_cats = False
+        if 'product.public.category' in self.env:
+            www_cats = self.env['product.public.category']
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
         ACCESS_TOKEN = company.mercadolibre_access_token
@@ -568,7 +571,8 @@ class product_product(models.Model):
         if (ml_cat_id):
             #_logger.info( "category exists!" + str(ml_cat_id) )
             mlcatid = ml_cat_id
-            www_cat_id = ml_cat.public_category_id
+            if www_cats:
+                www_cat_id = ml_cat.public_category_id
         else:
             #_logger.info( "Creating category: " + str(category_id) )
             #https://api.mercadolibre.com/categories/MLA1743
@@ -584,7 +588,6 @@ class product_product(models.Model):
                     fullname = fullname + "/" + path["name"]
 
                     if (company.mercadolibre_create_website_categories and ('product.public.category' in self.env) ):
-                        www_cats = self.env['product.public.category']
                         if www_cats!=False:
                             www_cat_id = www_cats.search([('name','=',path["name"])]).id
                             if www_cat_id==False:
@@ -1934,6 +1937,9 @@ class product_product(models.Model):
         _logger.info('[DEBUG] product_post')
         _logger.info(self.env.context)
 
+        www_cats = False
+        if 'product.public.category' in self.env:
+            www_cats = self.env['product.public.category']
 
         product_obj = self.env['product.product']
         product_tpl_obj = self.env['product.template']
@@ -2125,13 +2131,14 @@ class product_product(models.Model):
             _logger.info(attributes)
             product.meli_attributes = str(attributes)
 
-        if product.public_categ_ids:
-            for cat_id in product.public_categ_ids:
-                #_logger.info(cat_id)
-                if (cat_id.mercadolibre_category):
-                    #_logger.info(cat_id.mercadolibre_category)
-                    product.meli_category = cat_id.mercadolibre_category
-                    product_tmpl.meli_category = cat_id.mercadolibre_category
+        if www_cats:
+            if product.public_categ_ids:
+                for cat_id in product.public_categ_ids:
+                    #_logger.info(cat_id)
+                    if (cat_id.mercadolibre_category):
+                        #_logger.info(cat_id.mercadolibre_category)
+                        product.meli_category = cat_id.mercadolibre_category
+                        product_tmpl.meli_category = cat_id.mercadolibre_category
 
         if product_tmpl.meli_category:
             product.meli_category=product_tmpl.meli_category
