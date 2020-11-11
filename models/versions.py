@@ -21,11 +21,15 @@ default_create_variant = "always"
 
 #variant image ids
 def variant_image_ids(self):
-    return self.product_variant_image_ids
+    if 'product_variant_image_ids' in self._fields:
+        return self.product_variant_image_ids
+    return False
 
 #template image ids
 def template_image_ids(self):
-    return self.product_template_image_ids
+    if 'product_template_image_ids' in self._fields:
+        return self.product_template_image_ids
+    return False
 
 
 #att value ids
