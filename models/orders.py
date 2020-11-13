@@ -403,16 +403,26 @@ class mercadolibre_orders(models.Model):
                 city = self.env["l10n_co_cities"].search([('name','like',meli_buyer_fields["city"])])
 
                 if not city and state_id:
+                    _logger.warning("City not found: " + str(state_id))
+                    _logger.info("Search first city for state: " + str(state_id))
                     city = self.env["l10n_co_cities"].search([('state_id','=',state_id)])
 
                 if city:
+                    _logger.info(city)
                     city = city[0]
+
+                    _logger.info("Founded cities for state: " + str(state_id)+ " name: "+str(city.name))
+
                     meli_buyer_fields["cities"] = city.id
-                    if city.id:
-                        postal = self.env["l10n_co_postal"].search([('city_id','=',city.id)])
-                        if postal:
-                            postal = postal[0]
-                            meli_buyer_fields["postal_id"] = postal.id
+
+                    postal = self.env["l10n_co_postal"].search([('city_id','=',city.id)])
+                    if postal:
+                        postal = postal[0]
+                        meli_buyer_fields["postal_id"] = postal.id
+                    else:
+                        _logger.Error("Postal code not found for: " + str(city.name])+ "["+str(city.id])+"]")
+                else:
+                    _logger.Error("City not found for: " + str(meli_buyer_fields["city"]))
 
             buyer_fields = {
                 'name': Buyer['first_name']+' '+Buyer['last_name'],
