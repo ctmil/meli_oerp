@@ -398,6 +398,22 @@ class mercadolibre_orders(models.Model):
                 'meli_buyer_id': Buyer['id']
             }
 
+            if "l10n_co_cities" in self.env:
+                state_id = meli_buyer_fields["state_id"]
+                city = self.env["l10n_co_cities"].search([('name','like',meli_buyer_fields["city"])])
+
+                if not city and state_id:
+                    city = self.env["l10n_co_cities"].search([('state_id','=',state_id)])
+
+                if city:
+                    city = city[0]
+                    meli_buyer_fields["cities"] = city.id
+                    if city.id:
+                        postal = self.env["l10n_co_postal"].search([('city_id','=',city.id)])
+                        if postal:
+                            postal = postal[0]
+                            meli_buyer_fields["postal_id"] = postal.id
+
             buyer_fields = {
                 'name': Buyer['first_name']+' '+Buyer['last_name'],
                 'buyer_id': Buyer['id'],
@@ -657,7 +673,7 @@ class mercadolibre_orders(models.Model):
                     if (seller_sku):
                         product_related = product_obj.search([('default_code','=',seller_sku)])
 
-                    if (len(product_related)):
+                    if (len(product_related)==1):
                         _logger.info("order product related by seller_custom_field and default_code:"+str(seller_sku) )
                         if (not product_related.meli_id and company.mercadolibre_create_product_from_order):
                             prod_fields = {
