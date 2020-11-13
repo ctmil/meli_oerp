@@ -411,7 +411,7 @@ class mercadolibre_orders(models.Model):
                     _logger.info(city)
                     city = city[0]
 
-                    _logger.info("Founded cities for state: " + str(state_id)+ " name: "+str(city.name))
+                    _logger.info("Founded cities for state: " + str(state_id)+ " city_name: "+str(city.city_name))
 
                     meli_buyer_fields["cities"] = city.id
 
