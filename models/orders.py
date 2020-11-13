@@ -423,6 +423,8 @@ class mercadolibre_orders(models.Model):
                         _logger.Error("Postal code not found for: " + str(city.name)+ "["+str(city.id)+"]")
                 else:
                     _logger.Error("City not found for: " + str(meli_buyer_fields["city"]))
+            else:
+                _logger.Warning("l10n_co_cities not found")
 
             buyer_fields = {
                 'name': Buyer['first_name']+' '+Buyer['last_name'],
