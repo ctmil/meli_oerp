@@ -398,7 +398,7 @@ class mercadolibre_orders(models.Model):
                 'meli_buyer_id': Buyer['id']
             }
 
-            if "l10n_co_cities.city" in self.sudo().env:
+            if "l10n_co_cities.city" in self.env:
                 state_id = meli_buyer_fields["state_id"]
                 city = self.env["l10n_co_cities.city"].search([('city_name','like',meli_buyer_fields["city"])])
 
@@ -423,8 +423,7 @@ class mercadolibre_orders(models.Model):
                         _logger.error("Postal code not found for: " + str(city.city_name)+ "["+str(city.id)+"]")
                 else:
                     _logger.error("City not found for: " + str(meli_buyer_fields["city"]))
-            else:
-                _logger.warning("l10n_co_cities.city not found")
+
 
             buyer_fields = {
                 'name': Buyer['first_name']+' '+Buyer['last_name'],
@@ -588,6 +587,10 @@ class mercadolibre_orders(models.Model):
             'meli_date_created': ml_datetime(order_json["date_created"]),
             'meli_date_closed': ml_datetime(order_json["date_closed"]),
         }
+        
+        if ('account.payment.term' in self.env):
+            inmediate = self.env['account.payment.term'].search([])[0]
+            meli_order_fields["payment_term_id"] = inmediate
 
         if (order_json["shipping"]):
             order_fields['shipping'] = self.pretty_json( id, order_json["shipping"] )
@@ -685,7 +688,10 @@ class mercadolibre_orders(models.Model):
                     if (seller_sku):
                         product_related = product_obj.search([('default_code','=',seller_sku)])
 
-                    if (len(product_related)==1):
+                    #if (not product_related):
+                    #   search using item attributes GTIN and SELLER_SKU
+
+                    if (len(product_related)):
                         _logger.info("order product related by seller_custom_field and default_code:"+str(seller_sku) )
                         if (not product_related.meli_id and company.mercadolibre_create_product_from_order):
                             prod_fields = {
