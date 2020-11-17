@@ -398,6 +398,33 @@ class mercadolibre_orders(models.Model):
                 'meli_buyer_id': Buyer['id']
             }
 
+            if "l10n_co_cities.city" in self.env:
+                state_id = meli_buyer_fields["state_id"]
+                city = self.env["l10n_co_cities.city"].search([('city_name','like',meli_buyer_fields["city"])])
+
+                if not city and state_id:
+                    _logger.warning("City not found: " + str(state_id))
+                    _logger.info("Search first city for state: " + str(state_id))
+                    city = self.env["l10n_co_cities.city"].search([('state_id','=',state_id)])
+
+                if city:
+                    _logger.info(city)
+                    city = city[0]
+
+                    _logger.info("Founded cities for state: " + str(state_id)+ " city_name: "+str(city.city_name))
+
+                    meli_buyer_fields["cities"] = city.id
+
+                    postal = self.env["l10n_co_postal.postal_code"].search([('city_id','=',city.id)])
+                    if postal:
+                        postal = postal[0]
+                        meli_buyer_fields["postal_id"] = postal.id
+                    else:
+                        _logger.error("Postal code not found for: " + str(city.city_name)+ "["+str(city.id)+"]")
+                else:
+                    _logger.error("City not found for: " + str(meli_buyer_fields["city"]))
+
+
             buyer_fields = {
                 'name': Buyer['first_name']+' '+Buyer['last_name'],
                 'buyer_id': Buyer['id'],
@@ -560,6 +587,10 @@ class mercadolibre_orders(models.Model):
             'meli_date_created': ml_datetime(order_json["date_created"]),
             'meli_date_closed': ml_datetime(order_json["date_closed"]),
         }
+        
+        if ('account.payment.term' in self.env):
+            inmediate = self.env['account.payment.term'].search([])[0]
+            meli_order_fields["payment_term_id"] = inmediate.id
 
         if (order_json["shipping"]):
             order_fields['shipping'] = self.pretty_json( id, order_json["shipping"] )
@@ -656,6 +687,9 @@ class mercadolibre_orders(models.Model):
 
                     if (seller_sku):
                         product_related = product_obj.search([('default_code','=',seller_sku)])
+
+                    #if (not product_related):
+                    #   search using item attributes GTIN and SELLER_SKU
 
                     if (len(product_related)):
                         _logger.info("order product related by seller_custom_field and default_code:"+str(seller_sku) )

@@ -420,28 +420,28 @@ class product_image(models.Model):
     meli_force_pub = fields.Boolean(string='Publicar en ML y conservar en Odoo',index=True)
     meli_published = fields.Boolean(string='Publicado en ML',index=True)
 
+    _sql_constraints = [
+        ('unique_meli_imagen_id', 'unique(meli_imagen_id)', 'Meli Imagen Id already exists!')
+    ]
+
+    def calculate_hash(self):
+        hexhash = ''
+        for pimage in self:
+            image = get_image_full( pimage )
+            if not image:
+                continue;
+            imagebin = base64.b64decode( image )
+            hash = hashlib.blake2b()
+            hash.update(imagebin)
+            hexhash = hash.hexdigest()
+            pimage.meli_imagen_hash = hexhash
+        return hexhash
+
 product_image()
 
 class product_product(models.Model):
 
     _inherit = "product.product"
-
-    #@api.onchange('lst_price') # if these fields are changed, call method
-    #def check_change_price(self):
-        # GUS
-        #pdb.set_trace();
-        #pricelists = self.env['product.pricelist'].search([])
-        #if pricelists:
-        #    if pricelists.id:
-        #        pricelist = pricelists.id
-        #    else:
-        #        pricelist = pricelists[0].id
-        #self.meli_price = str(self.lst_price)
-        #res = {}
-        #for id in self:
-        #    res[id] = self.lst_price
-        #return res
-
 
     def _meli_set_product_price( self, product_template, meli_price ):
         company = self.env.user.company_id
@@ -2199,42 +2199,7 @@ class product_product(models.Model):
         if product_tmpl.meli_category:
             product.meli_category=product_tmpl.meli_category
 
-
-        if (product.virtual_available):
-            if (product.virtual_available>0):
-                product.meli_available_quantity = product.virtual_available
-
-        # Chequea si es fabricable
-        product_fab = False
-        if (1==1 and product.virtual_available<=0 and product.route_ids):
-            for route in product.route_ids:
-                if (route.name in ['Fabricar','Manufacture']):
-                    #raise ValidationError("Fabricar")
-                    #product.meli_available_quantity = product.meli_available_quantity
-                    _logger.info("Fabricar:"+str(product.meli_available_quantity))
-                    product_fab = True
-            if (not product_fab and product.virtual_available==0):
-                product.meli_available_quantity = product.virtual_available
-
-        if (1==2 and product.meli_available_quantity<=10000):
-            bom_id = self.env['mrp.bom'].search([('product_id','=',product.id)],limit=1)
-            if bom_id and bom_id.type == 'phantom':
-                _logger.info(bom_id.type)
-                #chequear si el componente principal es fabricable
-                for bom_line in bom_id.bom_line_ids:
-                    if (bom_line.product_id.default_code.find(product_tmpl.code_prefix)==0):
-                        _logger.info(product_tmpl.code_prefix)
-                        _logger.info(bom_line.product_id.default_code)
-                        for route in bom_line.product_id.route_ids:
-                            if (route.name in ['Fabricar','Manufacture']):
-                                _logger.info("Fabricar")
-                                product.meli_available_quantity = 1
-                            if (route.name in ['Comprar','Buy']):
-                                _logger.info("Comprar")
-                                product.meli_available_quantity = bom_line.product_id.virtual_available
-
-
-
+        product.meli_available_quantity = product.ilable_quantity()
 
         body = {
             "title": product.meli_title or '',
@@ -2578,6 +2543,47 @@ class product_product(models.Model):
 
         return {}
 
+    def _meli_available_quantity(self):
+
+        product = self
+        product_tmpl = product.product_tmpl_id
+        new_meli_available_quantity = product.meli_available_quantity
+
+        if (product.virtual_available):
+            if (product.virtual_available>0):
+                new_meli_available_quantity = product.virtual_available
+
+        # Chequea si es fabricable
+        product_fab = False
+        if (1==1 and product.virtual_available<=0 and product.route_ids):
+            for route in product.route_ids:
+                if (route.name in ['Fabricar','Manufacture']):
+                    #raise ValidationError("Fabricar")
+                    #product.meli_available_quantity = product.meli_available_quantity
+                    _logger.info("Fabricar:"+str(new_meli_available_quantity))
+                    product_fab = True
+            if (not product_fab and product.virtual_available==0):
+                new_meli_available_quantity = product.virtual_available
+
+        if (1==2 and 'mrp.bom' in self.env and new_meli_available_quantity<=10000):
+            bom_id = self.env['mrp.bom'].search([('product_id','=',product.id)],limit=1)
+            if bom_id and bom_id.type == 'phantom':
+                _logger.info(bom_id.type)
+                #chequear si el componente principal es fabricable
+                for bom_line in bom_id.bom_line_ids:
+                    if (bom_line.product_id.default_code.find(product_tmpl.code_prefix)==0):
+                        _logger.info(product_tmpl.code_prefix)
+                        _logger.info(bom_line.product_id.default_code)
+                        for route in bom_line.product_id.route_ids:
+                            if (route.name in ['Fabricar','Manufacture']):
+                                _logger.info("Fabricar")
+                                new_meli_available_quantity = 1
+                            if (route.name in ['Comprar','Buy']):
+                                _logger.info("Comprar")
+                                new_meli_available_quantity = bom_line.product_id.virtual_available
+
+        return new_meli_available_quantity
+
     def product_post_stock(self):
         company = self.env.user.company_id
         warningobj = self.env['warning']
@@ -2706,6 +2712,7 @@ class product_product(models.Model):
             _logger.info(e, exc_info=True)
             pass
 
+    #update internal product stock based on meli_default_stock_product
     def product_update_stock(self, stock=False):
         product = self
         uomobj = self.env[uom_model]
