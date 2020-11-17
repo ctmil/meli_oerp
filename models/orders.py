@@ -529,6 +529,10 @@ class mercadolibre_orders(models.Model):
                     meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
                     if ("fe_nit" in self.env['res.partner']._fields):
                         meli_buyer_fields['fe_nit'] = Buyer['billing_info']['doc_number']
+                        if (Buyer['billing_info']['doc_type']=="NIT"):
+                            meli_buyer_fields['fe_nit'] = Buyer['billing_info']['doc_number'][0:10]
+                            if ("fe_digito_verificacion" in self.env['res.partner']._fields):
+                                meli_buyer_fields['fe_digito_verificacion'] = Buyer['billing_info']['doc_number'][-1]
 
                     if ("fe_primer_nombre" in self.env['res.partner']._fields):
                         nn = Buyer['first_name'].split(" ")
@@ -940,7 +944,6 @@ class mercadolibre_orders(models.Model):
                 pass
 
         return {}
-
 
     def orders_query_iterate( self, offset=0, context=None ):
 
