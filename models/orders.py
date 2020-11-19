@@ -568,6 +568,15 @@ class mercadolibre_orders(models.Model):
 
                 partner_id.write(meli_buyer_fields)
 
+            if (partner_id):
+                if ("fe_habilitada" in self.env['res.partner']._fields):
+                    try:
+                        partner_id.write( { "fe_habilitada": True } )
+                    except:
+                        _logger.error("No se pudo habilitar la Facturacion Electronica para este usuario")
+                    
+                    
+
             if order and buyer_id:
                 return_id = order.write({'buyer':buyer_id.id})
 
@@ -590,7 +599,7 @@ class mercadolibre_orders(models.Model):
         
         if ('account.payment.term' in self.env):
             inmediate = self.env['account.payment.term'].search([])[0]
-            meli_order_fields["payment_term_id"] = inmediate
+            meli_order_fields["payment_term_id"] = inmediate.id
 
         if (order_json["shipping"]):
             order_fields['shipping'] = self.pretty_json( id, order_json["shipping"] )
