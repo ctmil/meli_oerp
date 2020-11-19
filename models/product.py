@@ -1991,7 +1991,6 @@ class product_product(models.Model):
 
         return res
 
-
     def _product_post(self):
         #import pdb;pdb.set_trace();
         _logger.info('[DEBUG] product_post')
@@ -2199,7 +2198,7 @@ class product_product(models.Model):
         if product_tmpl.meli_category:
             product.meli_category=product_tmpl.meli_category
 
-        product.meli_available_quantity = product.ilable_quantity()
+        product.meli_available_quantity = product._meli_available_quantity()
 
         body = {
             "title": product.meli_title or '',
@@ -2776,7 +2775,6 @@ class product_product(models.Model):
         except Exception as e:
             _logger.info("product_update_stock Exception")
             _logger.info(e, exc_info=True)
-
 
     def product_post_price(self):
         company = self.env.user.company_id
