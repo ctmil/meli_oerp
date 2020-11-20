@@ -9,16 +9,25 @@
           <field name="arch" type="xml">
               <xpath expr="//field[@name='video_url']" position="after">
                 <label for="meli_imagen_id" string="ML Id"/><br/>
-                <field name="meli_imagen_id" readonly="1"/>
-
+                <field name="meli_imagen_id"  readonly="1"/>
+                <br/>
+                <label for="meli_imagen_hash" string="File Hash"/><br/>
+                <field name="meli_imagen_hash"  readonly="1"/>
+                <br/>
+                <label for="meli_imagen_link" string="ML Link"/><br/>
+                <field name="meli_imagen_link"  readonly="1"/>
+                <br/>
                 <label for="meli_force_pub" string="Force ML Pub"/><br/>
                 <field name="meli_force_pub"/>
-
+                <br/>
                 <label for="meli_pub" string="ML Pub"/><br/>
                 <field name="meli_pub"/>
+                <br/>
+                <label for="meli_published" string="ML Published"/><br/>
+                <field name="meli_published" />
               </xpath>
           </field>
-        </record>
+        </record-->
 
         <record id="product_image_view_kanban_meli" model="ir.ui.view">
           <field name="name">product.image.view.kanban.meli</field>
@@ -140,6 +149,13 @@
                         <field name="meli_pub_as_variant" />
                         <field name="meli_pub_variant_attributes"  widget="many2many_checkboxes"  options="{'no_create': True}" domain="[('product_tmpl_id','=',id)]"/>
                         <field name="meli_pub_principal_variant" invisible="0"/>
+                      </group>
+                      <separator string="Catalogo" colspan="1"/>
+                      <group name="catalogo">
+                        <field name="meli_catalog_listing"/>
+                        <field name="meli_catalog_product_id"/>
+                        <field name="meli_catalog_item_relations"/>
+                        <field name="meli_catalog_automatic_relist"/>
                       </group>
 					<!--
                       <separator string="Import fields" colspan="1"/>
@@ -390,6 +406,13 @@
                           <separator string="Descripcion del Producto en ML"
             								colspan="2" />
                           <field name="meli_description" />
+                          <separator string="Catalogo" colspan="1"/>
+                          <group name="catalogo">
+                            <field name="meli_catalog_listing"/>
+                            <field name="meli_catalog_product_id"/>
+                            <field name="meli_catalog_item_relations"/>
+                            <field name="meli_catalog_automatic_relist"/>
+                          </group>
                         </page>
                     </notebook>
                 </data>

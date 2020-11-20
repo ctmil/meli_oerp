@@ -26,6 +26,7 @@ import pdb
 import logging
 _logger = logging.getLogger(__name__)
 
+import hashlib
 import math
 import requests
 import base64
@@ -317,7 +318,8 @@ class product_template(models.Model):
             'title': self.get_title_for_category_predictor(),
             'price': self.get_price_for_category_predictor(),
         }]
-        response = meli.post("/sites/"+self.env.user.company_id._get_ML_sites()+"/category_predictor/predict", vals)
+        #response = meli.post("/sites/"+self.env.user.company_id._get_ML_sites()+"/category_predictor/predict", vals)
+        response = meli.get("/sites/"+self.env.user.company_id._get_ML_sites()+"/domain_discovery/search?q="+self.get_title_for_category_predictor())
         rjson = response.json()
         meli_categ = False
         #_logger.info(rjson)
@@ -325,7 +327,8 @@ class product_template(models.Model):
         if rjson and isinstance(rjson, list):
             if "id" in rjson[0]:
                 #_logger.info("Take first suggestion")
-                meli_categ = self.env['mercadolibre.category'].import_category(rjson[0]['id'])
+                #meli_categ = self.env['mercadolibre.category'].import_category(rjson[0]['id'])
+                meli_categ = self.env['mercadolibre.category'].import_category(rjson[0]['category_id'])
                 if (meli_categ==None):
                     _logger.info("Import category failed.")
         return meli_categ, rjson
@@ -398,6 +401,11 @@ class product_template(models.Model):
     meli_product_supplier = fields.Char(string="Proveedor del producto [meli]")
 
     meli_ids = fields.Char(size=2048,string="MercadoLibre Ids.",help="ML Ids de variantes separados por coma.",index=True)
+
+    meli_catalog_listing = fields.Boolean(string='Catalog Listing', size=256)
+    meli_catalog_product_id = fields.Char(string='Catalog Product Id', size=256)
+    meli_catalog_item_relations = fields.Char(string='Catalog Item Relations', size=256)
+    meli_catalog_automatic_relist = fields.Boolean(string='Catalog Auto Relist', size=256)
 
 product_template()
 
@@ -633,6 +641,9 @@ class product_product(models.Model):
     def _meli_remove_images_unsync( self, product_template, pictures ):
 
         product = self
+        company = self.env.user.company_id
+        if not (company.mercadolibre_remove_unsync_images):
+            return {}
 
         ml_pics = {}
         ml_sizes = {}
@@ -682,7 +693,9 @@ class product_product(models.Model):
         #_logger.info(ml_bytes)
 
         #_logger.info("Cleaning product template images with meli id but not in ML")
-        ml_images = self.env["product.image"].search([('meli_force_pub','=',False),('meli_imagen_id','!=',False),('product_tmpl_id','=',product_template.id)])
+        ml_images = self.env["product.image"].search([('meli_force_pub','=',False),
+                                                        ('meli_imagen_id','!=',False),
+                                                        ('product_tmpl_id','=',product_template.id)])
         #_logger.info(ml_images)
         if (ml_images and len(ml_images)):
             for ml_image in ml_images:
@@ -690,7 +703,7 @@ class product_product(models.Model):
                     ml_image.unlink()
 
         try:
-            _logger.info("Cleaning product variant images with meli id not in ML")
+            #_logger.info("Cleaning product variant images with meli id not in ML")
             ml_images = self.env["product.image"].search([('meli_force_pub','=',False),
                                                         ('meli_imagen_id','!=',False),
                                                         ('product_variant_id','=',product.id)])
@@ -751,7 +764,7 @@ class product_product(models.Model):
                     meli_imagen_bytes = len(image)
                     pimage = False
                     pimg_fields = {
-                        'name': thumbnail_url+' - '+pic["size"]+' - '+pic["max_size"],
+                        #'name': thumbnail_url+' - '+pic["size"]+' - '+pic["max_size"],
                         'meli_imagen_id': pic["id"],
                         'meli_imagen_link': thumbnail_url,
                         'meli_imagen_size': pic["size"],
@@ -804,6 +817,7 @@ class product_product(models.Model):
                     if (not pimage or (pimage and len(pimage)==0)):
                         _logger.info("Creating new image")
                         bin_updating = True
+                        pimg_fields["name"] = product.meli_title or product.name;
                         pimage = self.env["product.image"].create(pimg_fields)
 
                     if (pimage):
@@ -950,12 +964,33 @@ class product_product(models.Model):
           'meli_dimensions': meli_fields["meli_dimensions"]
         }
 
+
         if (product.name and not company.mercadolibre_overwrite_variant):
             del meli_fields['name']
         if (product_template.name and not company.mercadolibre_overwrite_template):
             del tmpl_fields['name']
         if (product_template.description_sale and not company.mercadolibre_overwrite_template):
             del tmpl_fields['description_sale']
+
+        if ("catalog_listing" in rjson):
+            meli_fields["meli_catalog_listing"] = rjson["catalog_listing"]
+            if (meli_fields["meli_catalog_listing"]==True):
+                tmpl_fields["meli_catalog_listing"] = True
+
+            if ("automatic_relist" in rjson):
+                meli_fields["meli_catalog_automatic_relist"] = rjson["automatic_relist"]
+                if (meli_fields["meli_catalog_listing"]==True):
+                    tmpl_fields["meli_catalog_automatic_relist"] = True
+
+            if ("catalog_product_id" in rjson):
+                meli_fields["meli_catalog_product_id"] = rjson["catalog_product_id"]
+                if (meli_fields["meli_catalog_listing"]==True):
+                    tmpl_fields["meli_catalog_product_id"] = rjson["catalog_product_id"]
+
+            if ("item_relations" in rjson):
+                meli_fields["meli_catalog_item_relations"] = rjson["item_relations"]
+                if (meli_fields["meli_catalog_listing"]==True):
+                    tmpl_fields["meli_catalog_item_relations"] = rjson["item_relations"]
 
         product.write( meli_fields )
         product_template.write( tmpl_fields )
@@ -1219,9 +1254,18 @@ class product_product(models.Model):
                     product = variant
         else:
             #NO TIENE variantes pero tiene SKU
+            seller_sku = None
             if ("seller_custom_field" in rjson):
-                if (rjson["seller_custom_field"]):
-                    product.default_code = rjson["seller_custom_field"]
+                seller_sku = rjson["seller_custom_field"]
+
+            if not seller_sku and "attributes" in rjson:
+                for att in rjson['attributes']:
+                    if att["id"] == "SELLER_SKU":
+                        seller_sku = att["values"][0]["name"]
+                        break;
+
+            if seller_sku:
+                product.default_code = seller_sku
                 product.set_bom()
 
 
@@ -1568,6 +1612,18 @@ class product_product(models.Model):
         imagebin = base64.b64decode(first_image_to_publish)
         imageb64 = first_image_to_publish
         files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
+        product_image = None
+        try:
+            hash = hashlib.blake2b()
+            hash.update(imagebin)
+            #product_image.meli_imagen_hash = hash.hexdigest()
+            if (company.mercadolibre_do_not_use_first_image):
+                product_image = variant_image_ids(product)[0]
+                if (product_image):
+                    product_image.meli_imagen_hash = hash.hexdigest()
+
+        except:
+            pass;
         response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
 
         rjson = response.json()
@@ -1581,6 +1637,10 @@ class product_product(models.Model):
         if ("id" in rjson):
             #guardar id
             product.write( { "meli_imagen_id": rjson["id"], "meli_imagen_link": rjson["variations"][0]["url"] })
+            if (product_image):
+                product_image.meli_imagen_id = rjson["id"]
+                product_image.meli_imagen_link = rjson["variations"][0]["secure_url"]
+                product_image.meli_imagen_size = rjson["variations"][0]["size"]
             #asociar imagen a producto
             if product.meli_id:
                 return rjson["id"]
@@ -1611,6 +1671,8 @@ class product_product(models.Model):
                 _logger.info("Upload multi image var: "+str(imix))
                 product_image = var_image_ids[imix]
                 image_ids+= product._meli_upload_image( product_image )
+
+        product.write( { "meli_multi_imagen_id": "%s" % (image_ids) } )
 
         #loop over images
         tpl_image_ids = template_image_ids(product)
@@ -1667,10 +1729,17 @@ class product_product(models.Model):
                     ilink = image_uploaded['secure_url']
                 if 'size' in image_uploaded:
                     isize = image_uploaded['size']
+
                 product_image.meli_imagen_id = rjson['id']
                 product_image.meli_imagen_max_size = rjson['max_size']
                 product_image.meli_imagen_link = ilink
                 product_image.meli_imagen_size = isize
+                try:
+                    hash = hashlib.blake2b()
+                    hash.update(imagebin)
+                    product_image.meli_imagen_hash = hash.hexdigest()
+                except:
+                    pass;
 
         return image_ids
 
@@ -2143,42 +2212,7 @@ class product_product(models.Model):
         if product_tmpl.meli_category:
             product.meli_category=product_tmpl.meli_category
 
-
-        if (product.virtual_available):
-            if (product.virtual_available>0):
-                product.meli_available_quantity = product.virtual_available
-
-        # Chequea si es fabricable
-        product_fab = False
-        if (1==1 and product.virtual_available<=0 and product.route_ids):
-            for route in product.route_ids:
-                if (route.name in ['Fabricar','Manufacture']):
-                    #raise ValidationError("Fabricar")
-                    #product.meli_available_quantity = product.meli_available_quantity
-                    _logger.info("Fabricar:"+str(product.meli_available_quantity))
-                    product_fab = True
-            if (not product_fab and product.virtual_available==0):
-                product.meli_available_quantity = product.virtual_available
-
-        if (1==2 and product.meli_available_quantity<=10000 and ("mrp.bom" in self.env)):
-            bom_id = self.env['mrp.bom'].search([('product_id','=',product.id)],limit=1)
-            if bom_id and bom_id.type == 'phantom':
-                _logger.info(bom_id.type)
-                #chequear si el componente principal es fabricable
-                for bom_line in bom_id.bom_line_ids:
-                    if (bom_line.product_id.default_code.find(product_tmpl.code_prefix)==0):
-                        _logger.info(product_tmpl.code_prefix)
-                        _logger.info(bom_line.product_id.default_code)
-                        for route in bom_line.product_id.route_ids:
-                            if (route.name in ['Fabricar','Manufacture']):
-                                _logger.info("Fabricar")
-                                product.meli_available_quantity = 1
-                            if (route.name in ['Comprar','Buy']):
-                                _logger.info("Comprar")
-                                product.meli_available_quantity = bom_line.product_id.virtual_available
-
-
-
+        product.meli_available_quantity = product._meli_available_quantity()
 
         body = {
             "title": product.meli_title or '',
@@ -2211,6 +2245,10 @@ class product_product(models.Model):
         }
         # _logger.info( body )
         assign_img = False and product.meli_id
+
+        #store id
+        if company.mercadolibre_official_store_id:
+            body["official_store_id"] = company.mercadolibre_official_store_id
 
         #publicando imagenes
         first_image_to_publish = get_first_image_to_publish( product )
@@ -2460,6 +2498,10 @@ class product_product(models.Model):
         if (product.meli_description==False or ( product.meli_description and len(product.meli_description)==0) ):
             return warningobj.info(title='MELI WARNING', message="Debe completar el campo description en la plantilla de MercadoLibre o del producto (Descripción de Ventas)", message_html="<h3>Descripción faltante</h3>")
 
+        #free shipping
+        # https://api.mercadolibre.com/users/{user_id}/shipping_modes?category_id={category_id}&item_price=550
+
+
         if product.meli_id:
             _logger.info(body)
             response = meli.put("/items/"+product.meli_id, body, {'access_token':meli.access_token})
@@ -2517,6 +2559,47 @@ class product_product(models.Model):
             product.product_meli_status_active()
 
         return {}
+
+    def _meli_available_quantity(self):
+
+        product = self
+        product_tmpl = product.product_tmpl_id
+        new_meli_available_quantity = product.meli_available_quantity
+
+        if (product.virtual_available):
+            if (product.virtual_available>0):
+                new_meli_available_quantity = product.virtual_available
+
+        # Chequea si es fabricable
+        product_fab = False
+        if (1==1 and product.virtual_available<=0 and product.route_ids):
+            for route in product.route_ids:
+                if (route.name in ['Fabricar','Manufacture']):
+                    #raise ValidationError("Fabricar")
+                    #product.meli_available_quantity = product.meli_available_quantity
+                    _logger.info("Fabricar:"+str(new_meli_available_quantity))
+                    product_fab = True
+            if (not product_fab and product.virtual_available==0):
+                new_meli_available_quantity = product.virtual_available
+
+        if (1==2 and 'mrp.bom' in self.env and new_meli_available_quantity<=10000):
+            bom_id = self.env['mrp.bom'].search([('product_id','=',product.id)],limit=1)
+            if bom_id and bom_id.type == 'phantom':
+                _logger.info(bom_id.type)
+                #chequear si el componente principal es fabricable
+                for bom_line in bom_id.bom_line_ids:
+                    if (bom_line.product_id.default_code.find(product_tmpl.code_prefix)==0):
+                        _logger.info(product_tmpl.code_prefix)
+                        _logger.info(bom_line.product_id.default_code)
+                        for route in bom_line.product_id.route_ids:
+                            if (route.name in ['Fabricar','Manufacture']):
+                                _logger.info("Fabricar")
+                                new_meli_available_quantity = 1
+                            if (route.name in ['Comprar','Buy']):
+                                _logger.info("Comprar")
+                                new_meli_available_quantity = bom_line.product_id.virtual_available
+
+        return new_meli_available_quantity
 
     def product_post_stock(self):
         company = self.env.user.company_id
@@ -2646,6 +2729,7 @@ class product_product(models.Model):
             _logger.info(e, exc_info=True)
             pass
 
+    #update internal product stock based on meli_default_stock_product
     def product_update_stock(self, stock=False):
         product = self
         uomobj = self.env[uom_model]
@@ -2676,10 +2760,12 @@ class product_product(models.Model):
 
                 stock_inventory_fields = {
                     "product_ids": [(4,product.id)],
+                    #"product_id": product.id,
                     "filter": "product",
                     "location_id": wh,
                     "name": "INV: "+ product.name
                 }
+
                 #_logger.info("stock_inventory_fields:")
                 #_logger.info(stock_inventory_fields)
                 StockInventory = self.env['stock.inventory'].create(stock_inventory_fields)
@@ -2752,13 +2838,16 @@ class product_product(models.Model):
 
     meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
     meli_currency = fields.Selection([("ARS","Peso Argentino (ARS)"),
-    ("MXN","Peso Mexicano (MXN)"),
-    ("COP","Peso Colombiano (COP)"),
-    ("PEN","Sol Peruano (PEN)"),
-    ("BOB","Boliviano (BOB)"),
-    ("BRL","Real (BRL)"),
-    ("CLP","Peso Chileno (CLP)"),
-    ("CRC","Colon Costarricense (CRC)")],string='Moneda')
+                                        ("MXN","Peso Mexicano (MXN)"),
+                                        ("COP","Peso Colombiano (COP)"),
+                                        ("PEN","Sol Peruano (PEN)"),
+                                        ("BOB","Boliviano (BOB)"),
+                                        ("BRL","Real (BRL)"),
+                                        ("CLP","Peso Chileno (CLP)"),
+                                        ("CRC","Colon Costarricense (CRC)"),
+                                        ("UYU","Peso Uruguayo (UYU)"),
+                                        ("USD","Dolar Estadounidense (USD)")],
+                                        string='Moneda')
     meli_condition = fields.Selection([ ("new", "Nuevo"), ("used", "Usado"), ("not_specified","No especificado")],'Condición del producto')
     meli_warranty = fields.Char(string='Garantía', size=256)
     meli_listing_type = fields.Selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special/Clásica"),("gold_pro","Oro Pro")], string='Tipo de lista')
@@ -2774,6 +2863,7 @@ class product_product(models.Model):
     meli_imagen_logo = fields.Char(string='Imagen Logo', size=256)
     meli_imagen_id = fields.Char(string='Imagen Id', size=256)
     meli_imagen_link = fields.Char(string='Imagen Link', size=256)
+    meli_imagen_hash = fields.Char(string='Imagen Hash')
     meli_multi_imagen_id = fields.Char(string='Multi Imagen Ids', size=512)
     meli_video = fields.Char( string='Video (id de youtube)', size=256)
 
@@ -2788,6 +2878,11 @@ class product_product(models.Model):
     meli_brand = fields.Char(string="Marca",size=256)
     meli_default_stock_product = fields.Many2one("product.product","Producto de referencia para stock")
     meli_id_variation = fields.Char( string='Variation Id',help='Id de Variante de Meli', size=256)
+
+    meli_catalog_listing = fields.Boolean(string='Catalog Listing', size=256)
+    meli_catalog_product_id = fields.Char(string='Catalog Product Id', size=256)
+    meli_catalog_item_relations = fields.Char(string='Catalog Item Relations', size=256)
+    meli_catalog_automatic_relist = fields.Boolean(string='Catalog Auto Relist', size=256)
 
     _defaults = {
         'meli_imagen_logo': 'None',

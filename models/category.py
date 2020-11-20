@@ -395,5 +395,9 @@ class mercadolibre_category(models.Model):
     meli_setting_minimum_qty = fields.Float(string="Minimum qty")
     meli_setting_maximum_qty = fields.Float(string="Maximum qty")
 
+    _sql_constraints = [
+    	('unique_meli_category_id','unique(meli_category_id)','Meli Category id already exists!'),
+    ]
+
 
 mercadolibre_category()
