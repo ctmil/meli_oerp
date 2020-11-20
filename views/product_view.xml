@@ -27,7 +27,7 @@
                 <field name="meli_published" />
               </xpath>
           </field>
-        </record-->
+        </record>
 
         <record id="product_image_view_kanban_meli" model="ir.ui.view">
           <field name="name">product.image.view.kanban.meli</field>
