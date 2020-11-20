@@ -325,7 +325,7 @@ class product_template(models.Model):
         #_logger.info(rjson)
         #_logger.info(isinstance(rjson, list))
         if rjson and isinstance(rjson, list):
-            if "id" in rjson[0]:
+            if "category_id" in rjson[0]:
                 #_logger.info("Take first suggestion")
                 #meli_categ = self.env['mercadolibre.category'].import_category(rjson[0]['id'])
                 meli_categ = self.env['mercadolibre.category'].import_category(rjson[0]['category_id'])
