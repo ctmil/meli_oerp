@@ -302,7 +302,9 @@ class res_company(models.Model):
                                                                     default='default')
     mercadolibre_order_confirmation = fields.Selection([ ("manual", "Manual"),
                                                 ("paid_confirm", "Pagado>Confirmado"),
-                                                ("paid_delivered", "Pagado>Entregado")],
+                                                ("paid_delivered", "Pagado>Entregado"),
+                                                ("paid_confirm_with_invoice", "Pagado>Facturado"),
+                                                ("paid_delivered_with_invoice", "Pagado>Facturado y Entregado")],
                                                 string='Acción al recibir un pedido',
                                                 help='Acción al confirmar una orden o pedido de venta')
     mercadolibre_product_attribute_creation = fields.Selection([ ("manual", "Manual"),

@@ -124,6 +124,13 @@ class sale_order(models.Model):
                             _logger.info("do_new_transfer")
                             spick.action_done()
 
+
+        if (company.mercadolibre_order_confirmation=="paid_confirm_with_invoice"):
+            if ( (self.state=="draft" or self.state=="sent") and self.meli_status=="paid"):
+                _logger.info("paid_confirm with invoice ok! confirming sale and create invoice")
+                self.action_confirm()
+                self.action_invoice_create()
+            
     _sql_constraints = [
         ('unique_meli_order_id', 'unique(meli_order_id)', 'Mei Order id already exists!')
     ]
@@ -529,6 +536,10 @@ class mercadolibre_orders(models.Model):
                     meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
                     if ("fe_nit" in self.env['res.partner']._fields):
                         meli_buyer_fields['fe_nit'] = Buyer['billing_info']['doc_number']
+                        if (Buyer['billing_info']['doc_type']=="NIT"):
+                            meli_buyer_fields['fe_nit'] = Buyer['billing_info']['doc_number'][0:10]
+                            if ("fe_digito_verificacion" in self.env['res.partner']._fields):
+                                meli_buyer_fields['fe_digito_verificacion'] = Buyer['billing_info']['doc_number'][-1]
 
                     if ("fe_primer_nombre" in self.env['res.partner']._fields):
                         nn = Buyer['first_name'].split(" ")
