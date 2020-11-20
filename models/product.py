@@ -319,13 +319,15 @@ class product_template(models.Model):
             'price': self.get_price_for_category_predictor(),
         }]
         #response = meli.post("/sites/"+self.env.user.company_id._get_ML_sites()+"/category_predictor/predict", vals)
-        response = meli.get("/sites/"+self.env.user.company_id._get_ML_sites()+"/domain_discovery/search?q="+self.get_title_for_category_predictor())
+        url = "/sites/"+self.env.user.company_id._get_ML_sites()+"/domain_discovery/search?q="+self.get_title_for_category_predictor()
+        _logger.info(url)
+        response = meli.get(url)
         rjson = response.json()
         meli_categ = False
-        #_logger.info(rjson)
-        #_logger.info(isinstance(rjson, list))
+        _logger.info(rjson)
+        _logger.info(isinstance(rjson, list))
         if rjson and isinstance(rjson, list):
-            if "id" in rjson[0]:
+            if "category_id" in rjson[0]:
                 #_logger.info("Take first suggestion")
                 #meli_categ = self.env['mercadolibre.category'].import_category(rjson[0]['id'])
                 meli_categ = self.env['mercadolibre.category'].import_category(rjson[0]['category_id'])
