@@ -318,7 +318,8 @@ class product_template(models.Model):
             'title': self.get_title_for_category_predictor(),
             'price': self.get_price_for_category_predictor(),
         }]
-        response = meli.post("/sites/"+self.env.user.company_id._get_ML_sites()+"/category_predictor/predict", vals)
+        #response = meli.post("/sites/"+self.env.user.company_id._get_ML_sites()+"/category_predictor/predict", vals)
+        response = meli.get("/sites/"+self.env.user.company_id._get_ML_sites()+"/domain_discovery/search?q="+self.get_title_for_category_predictor())
         rjson = response.json()
         meli_categ = False
         #_logger.info(rjson)
@@ -326,7 +327,8 @@ class product_template(models.Model):
         if rjson and isinstance(rjson, list):
             if "id" in rjson[0]:
                 #_logger.info("Take first suggestion")
-                meli_categ = self.env['mercadolibre.category'].import_category(rjson[0]['id'])
+                #meli_categ = self.env['mercadolibre.category'].import_category(rjson[0]['id'])
+                meli_categ = self.env['mercadolibre.category'].import_category(rjson[0]['category_id'])
                 if (meli_categ==None):
                     _logger.info("Import category failed.")
         return meli_categ, rjson
@@ -562,6 +564,9 @@ class product_product(models.Model):
 
         product = self
         company = self.env.user.company_id
+        www_cats = False
+        if 'product.public.category' in self.env:
+            www_cats = self.env['product.public.category']
         CLIENT_ID = company.mercadolibre_client_id
         CLIENT_SECRET = company.mercadolibre_secret_key
         ACCESS_TOKEN = company.mercadolibre_access_token
@@ -576,7 +581,8 @@ class product_product(models.Model):
         if (ml_cat_id):
             #_logger.info( "category exists!" + str(ml_cat_id) )
             mlcatid = ml_cat_id
-            www_cat_id = ml_cat.public_category_id
+            if www_cats:
+                www_cat_id = ml_cat.public_category_id
         else:
             #_logger.info( "Creating category: " + str(category_id) )
             #https://api.mercadolibre.com/categories/MLA1743
@@ -591,8 +597,7 @@ class product_product(models.Model):
                 for path in path_from_root:
                     fullname = fullname + "/" + path["name"]
 
-                    if (company.mercadolibre_create_website_categories):
-                        www_cats = self.env['product.public.category']
+                    if (company.mercadolibre_create_website_categories and ('product.public.category' in self.env) ):
                         if www_cats!=False:
                             www_cat_id = www_cats.search([('name','=',path["name"])]).id
                             if www_cat_id==False:
@@ -646,6 +651,10 @@ class product_product(models.Model):
         ml_pics = {}
         ml_sizes = {}
         ml_bytes = {}
+
+        if not ("product.image" in self.env):
+            return {}
+
 
         for ix in range(0,len(pictures)):
 
@@ -717,6 +726,9 @@ class product_product(models.Model):
         REFRESH_TOKEN = company.mercadolibre_refresh_token
 
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+
+        if not ("product.image" in self.env):
+            return {}
 
         try:
             product = self
@@ -1991,11 +2003,15 @@ class product_product(models.Model):
 
         return res
 
+
     def _product_post(self):
         #import pdb;pdb.set_trace();
         _logger.info('[DEBUG] product_post')
         _logger.info(self.env.context)
 
+        www_cats = False
+        if 'product.public.category' in self.env:
+            www_cats = self.env['product.public.category']
 
         product_obj = self.env['product.product']
         product_tpl_obj = self.env['product.template']
@@ -2187,13 +2203,14 @@ class product_product(models.Model):
             _logger.info(attributes)
             product.meli_attributes = str(attributes)
 
-        if product.public_categ_ids:
-            for cat_id in product.public_categ_ids:
-                #_logger.info(cat_id)
-                if (cat_id.mercadolibre_category):
-                    #_logger.info(cat_id.mercadolibre_category)
-                    product.meli_category = cat_id.mercadolibre_category
-                    product_tmpl.meli_category = cat_id.mercadolibre_category
+        if www_cats:
+            if product.public_categ_ids:
+                for cat_id in product.public_categ_ids:
+                    #_logger.info(cat_id)
+                    if (cat_id.mercadolibre_category):
+                        #_logger.info(cat_id.mercadolibre_category)
+                        product.meli_category = cat_id.mercadolibre_category
+                        product_tmpl.meli_category = cat_id.mercadolibre_category
 
         if product_tmpl.meli_category:
             product.meli_category=product_tmpl.meli_category
@@ -2371,7 +2388,7 @@ class product_product(models.Model):
                             for pvar in product_tmpl.product_variant_ids:
                                 if (pvar._is_product_combination(var_info)):
                                     var_product = pvar
-                                    var_product.meli_available_quantity = var_product.virtual_available
+                                    var_product.meli_available_quantity = var_product.__meli_available_quantity()
                                     vars_updated+=var_product
                             var = {
                                 "id": str(var_info["id"]),
@@ -2483,6 +2500,10 @@ class product_product(models.Model):
         #check fields
         if (product.meli_description==False or ( product.meli_description and len(product.meli_description)==0) ):
             return warningobj.info(title='MELI WARNING', message="Debe completar el campo description en la plantilla de MercadoLibre o del producto (Descripción de Ventas)", message_html="<h3>Descripción faltante</h3>")
+
+        #free shipping
+        # https://api.mercadolibre.com/users/{user_id}/shipping_modes?category_id={category_id}&item_price=550
+
 
         if product.meli_id:
             _logger.info(body)
@@ -2775,6 +2796,7 @@ class product_product(models.Model):
         except Exception as e:
             _logger.info("product_update_stock Exception")
             _logger.info(e, exc_info=True)
+
 
     def product_post_price(self):
         company = self.env.user.company_id
