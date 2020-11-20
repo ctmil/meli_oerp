@@ -426,23 +426,6 @@ class product_product(models.Model):
 
     _inherit = "product.product"
 
-    #@api.onchange('lst_price') # if these fields are changed, call method
-    #def check_change_price(self):
-        # GUS
-        #pdb.set_trace();
-        #pricelists = self.env['product.pricelist'].search([])
-        #if pricelists:
-        #    if pricelists.id:
-        #        pricelist = pricelists.id
-        #    else:
-        #        pricelist = pricelists[0].id
-        #self.meli_price = str(self.lst_price)
-        #res = {}
-        #for id in self:
-        #    res[id] = self.lst_price
-        #return res
-
-
     def _meli_set_product_price( self, product_template, meli_price ):
         company = self.env.user.company_id
         ml_price_converted = meli_price
@@ -639,7 +622,8 @@ class product_product(models.Model):
             product_template.public_categ_ids = [(4,www_cat_id)]
 
     def _meli_remove_images_unsync( self, product_template, pictures ):
-
+        #atencion aplicar meli_imagen_id y meli_published solo si existe efectivamenete en pictures antes y luego de updatear en ML
+        #tambien chequear con hash duplicados... en lugar de meli_imagen_id
         product = self
         company = self.env.user.company_id
         if not (company.mercadolibre_remove_unsync_images):
@@ -2385,7 +2369,7 @@ class product_product(models.Model):
                             for pvar in product_tmpl.product_variant_ids:
                                 if (pvar._is_product_combination(var_info)):
                                     var_product = pvar
-                                    var_product.meli_available_quantity = var_product.virtual_available
+                                    var_product.meli_available_quantity = var_product.__meli_available_quantity()
                                     vars_updated+=var_product
                             var = {
                                 "id": str(var_info["id"]),

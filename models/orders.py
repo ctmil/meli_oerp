@@ -124,6 +124,13 @@ class sale_order(models.Model):
                             _logger.info("do_new_transfer")
                             spick.action_done()
 
+
+        if (company.mercadolibre_order_confirmation=="paid_confirm_with_invoice"):
+            if ( (self.state=="draft" or self.state=="sent") and self.meli_status=="paid"):
+                _logger.info("paid_confirm with invoice ok! confirming sale and create invoice")
+                self.action_confirm()
+                self.action_invoice_create()
+            
     _sql_constraints = [
         ('unique_meli_order_id', 'unique(meli_order_id)', 'Mei Order id already exists!')
     ]
