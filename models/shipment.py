@@ -14,7 +14,7 @@
 #	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #	GNU Affero General Public License for more details.
 #
-#	You should have received a copy of the GNU Afferotax General Public License
+#	You should have received a copy of the GNU Affero General Public License
 #	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
@@ -402,6 +402,7 @@ class mercadolibre_shipment(models.Model):
 						saleorderline_item_ids.unlink()
 					except:
 						_logger.info("Could not unlink.")
+
 
 
 	#Return shipment object based on mercadolibre.orders "order"

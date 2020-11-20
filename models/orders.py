@@ -124,6 +124,13 @@ class sale_order(models.Model):
                             _logger.info("do_new_transfer")
                             spick.action_done()
 
+
+        if (company.mercadolibre_order_confirmation=="paid_confirm_with_invoice"):
+            if ( (self.state=="draft" or self.state=="sent") and self.meli_status=="paid"):
+                _logger.info("paid_confirm with invoice ok! confirming sale and create invoice")
+                self.action_confirm()
+                self.action_invoice_create()
+            
     _sql_constraints = [
         ('unique_meli_order_id', 'unique(meli_order_id)', 'Mei Order id already exists!')
     ]
@@ -398,6 +405,33 @@ class mercadolibre_orders(models.Model):
                 'meli_buyer_id': Buyer['id']
             }
 
+            if "l10n_co_cities.city" in self.env:
+                state_id = meli_buyer_fields["state_id"]
+                city = self.env["l10n_co_cities.city"].search([('city_name','like',meli_buyer_fields["city"])])
+
+                if not city and state_id:
+                    _logger.warning("City not found: " + str(state_id))
+                    _logger.info("Search first city for state: " + str(state_id))
+                    city = self.env["l10n_co_cities.city"].search([('state_id','=',state_id)])
+
+                if city:
+                    _logger.info(city)
+                    city = city[0]
+
+                    _logger.info("Founded cities for state: " + str(state_id)+ " city_name: "+str(city.city_name))
+
+                    meli_buyer_fields["cities"] = city.id
+
+                    postal = self.env["l10n_co_postal.postal_code"].search([('city_id','=',city.id)])
+                    if postal:
+                        postal = postal[0]
+                        meli_buyer_fields["postal_id"] = postal.id
+                    else:
+                        _logger.error("Postal code not found for: " + str(city.city_name)+ "["+str(city.id)+"]")
+                else:
+                    _logger.error("City not found for: " + str(meli_buyer_fields["city"]))
+
+
             buyer_fields = {
                 'name': Buyer['first_name']+' '+Buyer['last_name'],
                 'buyer_id': Buyer['id'],
@@ -502,6 +536,10 @@ class mercadolibre_orders(models.Model):
                     meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
                     if ("fe_nit" in self.env['res.partner']._fields):
                         meli_buyer_fields['fe_nit'] = Buyer['billing_info']['doc_number']
+                        if (Buyer['billing_info']['doc_type']=="NIT"):
+                            meli_buyer_fields['fe_nit'] = Buyer['billing_info']['doc_number'][0:10]
+                            if ("fe_digito_verificacion" in self.env['res.partner']._fields):
+                                meli_buyer_fields['fe_digito_verificacion'] = Buyer['billing_info']['doc_number'][-1]
 
                     if ("fe_primer_nombre" in self.env['res.partner']._fields):
                         nn = Buyer['first_name'].split(" ")
@@ -541,6 +579,15 @@ class mercadolibre_orders(models.Model):
 
                 partner_id.write(meli_buyer_fields)
 
+            if (partner_id):
+                if ("fe_habilitada" in self.env['res.partner']._fields):
+                    try:
+                        partner_id.write( { "fe_habilitada": True } )
+                    except:
+                        _logger.error("No se pudo habilitar la Facturacion Electronica para este usuario")
+                    
+                    
+
             if order and buyer_id:
                 return_id = order.write({'buyer':buyer_id.id})
 
@@ -560,6 +607,10 @@ class mercadolibre_orders(models.Model):
             'meli_date_created': ml_datetime(order_json["date_created"]),
             'meli_date_closed': ml_datetime(order_json["date_closed"]),
         }
+        
+        if ('account.payment.term' in self.env):
+            inmediate = self.env['account.payment.term'].search([])[0]
+            meli_order_fields["payment_term_id"] = inmediate.id
 
         if (order_json["shipping"]):
             order_fields['shipping'] = self.pretty_json( id, order_json["shipping"] )
@@ -656,6 +707,9 @@ class mercadolibre_orders(models.Model):
 
                     if (seller_sku):
                         product_related = product_obj.search([('default_code','=',seller_sku)])
+
+                    #if (not product_related):
+                    #   search using item attributes GTIN and SELLER_SKU
 
                     if (len(product_related)):
                         _logger.info("order product related by seller_custom_field and default_code:"+str(seller_sku) )
