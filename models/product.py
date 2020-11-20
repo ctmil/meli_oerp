@@ -2369,7 +2369,7 @@ class product_product(models.Model):
                             for pvar in product_tmpl.product_variant_ids:
                                 if (pvar._is_product_combination(var_info)):
                                     var_product = pvar
-                                    var_product.meli_available_quantity = var_product.__meli_available_quantity()
+                                    var_product.meli_available_quantity = var_product._meli_available_quantity()
                                     vars_updated+=var_product
                             var = {
                                 "id": str(var_info["id"]),
