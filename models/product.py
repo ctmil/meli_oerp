@@ -2750,11 +2750,11 @@ class product_product(models.Model):
                 product.set_bom()
 
             if (product.meli_default_stock_product):
-                _stock = product.meli_default_stock_product.virtual_available
+                _stock = product.meli_default_stock_product._meli_available_quantity()
                 if (_stock<0):
                     _stock = 0
 
-            if (_stock>=0 and product.virtual_available!=_stock):
+            if (1==2 and _stock>=0 and product._meli_available_quantity()!=_stock):
                 _logger.info("Updating stock for variant." + str(_stock) )
                 wh = self.env['stock.location'].search([('usage','=','internal')]).id
                 product_uom_id = uomobj.search([('name','=','Unidad(es)')])

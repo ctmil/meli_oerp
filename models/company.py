@@ -91,6 +91,9 @@ class res_company(models.Model):
                     ML_sites[_key_] = site
 
         currency = self.mercadolibre_currency
+
+        #_logger.info(ML_sites)
+
         if (currency and currency in ML_sites):
             return ML_sites[currency]["id"]
         return "MLA"
