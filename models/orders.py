@@ -130,7 +130,7 @@ class sale_order(models.Model):
                 _logger.info("paid_confirm with invoice ok! confirming sale and create invoice")
                 self.action_confirm()
                 self.action_invoice_create()
-            
+
     _sql_constraints = [
         ('unique_meli_order_id', 'unique(meli_order_id)', 'Mei Order id already exists!')
     ]
@@ -585,8 +585,8 @@ class mercadolibre_orders(models.Model):
                         partner_id.write( { "fe_habilitada": True } )
                     except:
                         _logger.error("No se pudo habilitar la Facturacion Electronica para este usuario")
-                    
-                    
+
+
 
             if order and buyer_id:
                 return_id = order.write({'buyer':buyer_id.id})
@@ -607,7 +607,7 @@ class mercadolibre_orders(models.Model):
             'meli_date_created': ml_datetime(order_json["date_created"]),
             'meli_date_closed': ml_datetime(order_json["date_closed"]),
         }
-        
+
         if ('account.payment.term' in self.env):
             inmediate = self.env['account.payment.term'].search([])[0]
             meli_order_fields["payment_term_id"] = inmediate.id
