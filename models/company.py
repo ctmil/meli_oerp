@@ -780,7 +780,7 @@ class res_company(models.Model):
             if product_ids:
                 for obj in product_ids:
                     try:
-                        _logger.info( "Product remote to update: " + str(obj.id)  )
+                        #_logger.info( "Product remote to update: " + str(obj.id)  )
                         if (obj.meli_id and (obj.meli_status=='active')):
                             obj.product_post_price()
                     except Exception as e:

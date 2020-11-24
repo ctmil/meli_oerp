@@ -447,8 +447,9 @@ class product_product(models.Model):
 
     _inherit = "product.product"
 
-    def _meli_set_product_price( self, product_template, meli_price ):
+    def _meli_set_product_price( self, product_template, meli_price, force_variant=False ):
         company = self.env.user.company_id
+        product = self
         ml_price_converted = meli_price
         tax_excluded = ml_tax_excluded(self)
 
@@ -475,22 +476,40 @@ class product_product(models.Model):
         if (pl):
             #pass
             pli = self.env['product.pricelist.item']
-            pli_tpl = pli.search([('pricelist_id','in',[pl.id]),('product_tmpl_id','=',product_template.id)])
+            if force_variant:
+                pli_tpl = False
+            else:
+                pli_tpl = pli.search([('pricelist_id','in',[pl.id]),('product_tmpl_id','=',product_template.id)])
+
             pli_var = pli.search([('pricelist_id','in',[pl.id]),('product_id','=',self.id)])
+
             if (pli_tpl or pli_var):
                 return_val = pl.price_get( self.id, 1.0 )
                 if (pl.id in return_val):
                     old_price = return_val[pl.id]
             else:
-                pli_tpl = pli.create({
-                            'product_tmpl_id': product_template.id,
+                if force_variant and not pli_var:
+                    pli_var = pli.create({
+                            'product_id': product.id,
                             'min_quantity': 0,
-                            'applied_on': '1_product',
+                            'applied_on': '0_product_variant',
                             'pricelist_id': pl.id,
                             'compute_price': 'fixed',
                             'currency_id': pl.currency_id.id,
-				            'fixed_price': float(ml_price_converted)
+                            'fixed_price': float(ml_price_converted)
                              })
+                else:
+                    if not force_variant and not pli_tpl:
+                        pli_tpl = pli.create({
+                                'product_tmpl_id': product_template.id,
+                                'min_quantity': 0,
+                                'applied_on': '1_product',
+                                'pricelist_id': pl.id,
+                                'compute_price': 'fixed',
+                                'currency_id': pl.currency_id.id,
+    				            'fixed_price': float(ml_price_converted)
+                                 })
+
         else:
             if (product_template.lst_price<=1.0):
                 product_template.write({'lst_price': ml_price_converted})
@@ -499,7 +518,7 @@ class product_product(models.Model):
         company = self.env.user.company_id
         product = self
         product_tmpl = product.product_tmpl_id
-        _logger.info("set_meli_price: "+str(product_tmpl.list_price)+ " >> "+str(product_tmpl.display_name)+": "+str(product_tmpl.meli_price)+" | "+str(product.display_name)+": "+str(product.meli_price) )
+        #_logger.info("set_meli_price: "+str(product_tmpl.list_price)+ " >> "+str(product_tmpl.display_name)+": "+str(product_tmpl.meli_price)+" | "+str(product.display_name)+": "+str(product.meli_price) )
 
         pl = False
         if company.mercadolibre_pricelist:
@@ -522,10 +541,10 @@ class product_product(models.Model):
             return_val = pl.price_get(product.id,1.0)
             if pl.id in return_val:
                 new_price = return_val[pl.id]
-            _logger.info("return_val: ")
-            _logger.info(return_val)
+            #_logger.info("return_val: ")
+            #_logger.info(return_val)
         else:
-            _logger.info( "new_price: " +str(new_price))
+            #_logger.info( "new_price: " +str(new_price))
             if ( product.lst_price ):
                 new_price = product.lst_price
 
@@ -544,7 +563,7 @@ class product_product(models.Model):
             if (txfixed>0 or txpercent>0):
                 #_logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_converted))
                 new_price = txfixed + new_price * (1.0 + txpercent*0.01)
-                _logger.info("Price adjusted with taxes:"+str(new_price))
+                #_logger.info("Price adjusted with taxes:"+str(new_price))
 
         new_price = round(new_price,2)
 
@@ -555,10 +574,10 @@ class product_product(models.Model):
         product.meli_price = product_tmpl.meli_price
 
         product_tmpl.meli_price = str(int(float(product_tmpl.meli_price)))
-        _logger.info("product_tmpl.meli_price updated: " + str(product_tmpl.meli_price))
+        #_logger.info("product_tmpl.meli_price updated: " + str(product_tmpl.meli_price))
 
         product.meli_price = str(int(float(product.meli_price)))
-        _logger.info("product.meli_price updated: " + str(product.meli_price))
+        #_logger.info("product.meli_price updated: " + str(product.meli_price))
 
         return product.meli_price
 
@@ -838,6 +857,210 @@ class product_product(models.Model):
             _logger.info("_meli_set_images Exception")
             _logger.info(e, exc_info=True)
 
+    def _get_non_variant_attributes( self, attributes ):
+        if (len(attributes) ):
+            for att in attributes:
+                try:
+                    _logger.info(att)
+                    #first search by attribute ml id
+                    ml_attribute = self.env['mercadolibre.category.attribute'].search([('att_id','=',att['id'])])
+                    attribute = []
+
+                    #if the product is already created?
+                    if (ml_attribute and ml_attribute.id):
+                        #_logger.info(ml_attribute)
+                        #TODO: this doesnt work if we have duplicated attributes with several ml ids
+                        attribute = self.env['product.attribute'].search([('meli_default_id_attribute','=',ml_attribute.id)])
+                        #_logger.info(attribute)
+
+                    if (len(attribute) and attribute.id):
+                        attribute_id = attribute.id
+                        attribute_value_id = self.env['product.attribute.value'].search([('attribute_id','=',attribute_id), ('name','=',att['value_name'])]).id
+                        #_logger.info(_logger.info(attribute_id))
+                        if attribute_value_id:
+                            #_logger.info(attribute_value_id)
+                            pass
+                        else:
+                            _logger.info("Creating attribute value:")
+                            _logger.info(att)
+                            if (att['value_name']!=None):
+                                attribute_value_id = self.env['product.attribute.value'].create({'attribute_id': attribute_id, 'name': att['value_name'] }).id
+
+                        if (attribute_value_id):
+                            attribute_line =  self.env[prod_att_line].search([('attribute_id','=',attribute_id),('product_tmpl_id','=',product_template.id)])
+                            if (attribute_line and attribute_line.id):
+                                #_logger.info(attribute_line)
+                                pass
+                            else:
+                                #_logger.info("Creating att line id:")
+                                att_vals = prepare_attribute( product_template.id, attribute_id, attribute_value_id )
+                                attribute_line =  self.env[prod_att_line].create(att_vals)
+
+                            if (attribute_line):
+                                #_logger.info("Check attribute line values id.")
+                                #_logger.info("attribute_line:")
+                                #_logger.info(attribute_line)
+                                if (attribute_line.value_ids):
+                                    #check if values
+                                    #_logger.info("Has value ids:")
+                                    #_logger.info(attribute_line.value_ids.ids)
+                                    if (attribute_value_id in attribute_line.value_ids.ids):
+                                        #_logger.info(attribute_line.value_ids.ids)
+                                        pass
+                                    else:
+                                        #_logger.info("Adding value id")
+                                        attribute_line.value_ids = [(4,attribute_value_id)]
+                                else:
+                                    #_logger.info("Adding value id")
+                                    attribute_line.value_ids = [(4,attribute_value_id)]
+
+                except Exception as e:
+                    _logger.info("Attributes exception:")
+                    _logger.info(e, exc_info=True)
+
+    def _get_variations( self, variations ):
+
+        #recorrer los variations>attribute_combinations y agregarlos como atributos de las variantes
+        _logger.info(variations)
+        published_att_variants = False
+        product = self
+        product_template = product.product_tmpl_id
+
+        vindex = -1
+        for variation in variations:
+            vindex = vindex + 1
+            if ('attribute_combinations' in variation):
+                _attcomb_str = ""
+                variations[vindex]["default_code"] = ""
+                for attcomb in variation['attribute_combinations']:
+                    namecap = attcomb['name']
+                    if (len(namecap)):
+                        att = {
+                            'name': namecap,
+                            'value_name': attcomb['value_name'],
+                            'create_variant': default_create_variant,
+                            'att_id': False
+                        }
+                        if ('id' in attcomb):
+                            if (attcomb["id"]):
+                                if (len(attcomb["id"])):
+                                    att["att_id"] = attcomb["id"]
+                        if (att["att_id"]==False):
+                            namecap = namecap.strip()
+                            namecap = namecap[0].upper()+namecap[1:]
+                            att["name"] = namecap
+                        if ('create_variant' in attcomb):
+                            att['create_variant'] = attcomb['create_variant']
+                        else:
+                            variations[vindex]["default_code"] = variations[vindex]["default_code"]+namecap+":"+attcomb['value_name']+";"
+                        #_logger.info(att)
+                        if (att["att_id"]):
+                            # ML Attribute , we could search first...
+                            #attribute = self.env['product.attribute'].search([('name','=',att['name']),('meli_default_id_attribute','!=',False)])
+                            #if (len(attribute)==0):
+                            # ningun atributo con ese nombre asociado
+                            ml_attribute = self.env['mercadolibre.category.attribute'].search([('att_id','=',att['att_id'])])
+                            attribute = []
+                            if (len(ml_attribute)>1):
+                                ml_attribute = ml_attribute[0]
+                                attribute = self.env['product.attribute'].search([('meli_default_id_attribute','=',ml_attribute.id)])
+                            if (len(ml_attribute)==1):
+                                attribute = self.env['product.attribute'].search([('meli_default_id_attribute','=',ml_attribute.id)])
+                            if (len(attribute)==0):
+                                attribute = self.env['product.attribute'].search([('name','=',att['name'])])
+                        else:
+                            #customizado
+                            #_logger.info("Atributo customizado:"+str(namecap))
+                            attribute = self.env['product.attribute'].search([('name','=',namecap),('meli_default_id_attribute','=',False)])
+                            _logger.info(attribute)
+
+                            if (attcomb['name']!=namecap):
+                                attribute_duplicates = self.env['product.attribute'].search([('name','=',attcomb['name']),('meli_default_id_attribute','=',False)])
+                                _logger.info("attribute_duplicates:")
+                                _logger.info(attribute_duplicates)
+                                if (len(attribute_duplicates)>=1):
+                                    #archive
+                                    _logger.info("attribute_duplicates:",len(attribute_duplicates))
+                                    for attdup in attribute_duplicates:
+                                        _logger.info("duplicate:"+attdup.name+":"+str(attdup.id))
+                                        attdup_line =  self.env[prod_att_line].search([('attribute_id','=',attdup.id),('product_tmpl_id','=',product_template.id)])
+                                        if (len(attdup_line)):
+                                            for attline in attdup_line:
+                                                attline.unlink()
+
+                            #buscar en las lineas existentes
+                            if (len(attribute)>1):
+                                att_line = self.env[prod_att_line].search([('attribute_id','in',attribute.ids),('product_tmpl_id','=',product_template.id)])
+                                _logger.info(att_line)
+                                if (len(att_line)):
+                                    _logger.info("Atributo ya asignado!")
+                                    attribute = att_line.attribute_id
+
+                        attribute_id = False
+                        if (len(attribute)==1):
+                            attribute_id = attribute.id
+                        elif (len(attribute)>1):
+                            _logger.error("Attributes duplicated names!!!")
+                            attribute_id = attribute[0].id
+
+                        #_logger.info(attribute_id)
+                        if attribute_id:
+                            #_logger.info(attribute_id)
+                            pass
+                        else:
+                            #_logger.info("Creating attribute:")
+                            attribute_id = self.env['product.attribute'].create({ 'name': att['name'],'create_variant': att['create_variant'] }).id
+
+                        if (att['create_variant']==default_create_variant):
+                            #_logger.info("published_att_variants")
+                            published_att_variants = True
+
+                        if (attribute_id):
+                            #_logger.info("Publishing attribute")
+                            attribute_value_id = self.env['product.attribute.value'].search([('attribute_id','=',attribute_id),('name','=',att['value_name'])]).id
+                            #_logger.info(_logger.info(attribute_id))
+                            if attribute_value_id:
+                                #_logger.info(attribute_value_id)
+                                pass
+                            else:
+                                _logger.info("Creating attribute value:"+str(att))
+                                if (att['value_name']!=None):
+                                    attribute_value_id = self.env['product.attribute.value'].create({'attribute_id': attribute_id,'name': att['value_name']}).id
+
+                            if (attribute_value_id):
+                                #_logger.info("attribute_value_id:")
+                                #_logger.info(attribute_value_id)
+                                #search for line ids.
+                                attribute_line =  self.env[prod_att_line].search([('attribute_id','=',attribute_id),('product_tmpl_id','=',product_template.id)])
+                                #_logger.info(attribute_line)
+                                if (attribute_line and attribute_line.id):
+                                    #_logger.info(attribute_line)
+                                    pass
+                                else:
+                                    #_logger.info("Creating att line id:")
+                                    att_vals = prepare_attribute( product_template.id, attribute_id, attribute_value_id )
+                                    attribute_line =  self.env[prod_att_line].create(att_vals)
+
+                                if (attribute_line):
+                                    #_logger.info("Check attribute line values id.")
+                                    #_logger.info("attribute_line:")
+                                    #_logger.info(attribute_line)
+                                    if (attribute_line.value_ids):
+                                        #check if values
+                                        #_logger.info("Has value ids:")
+                                        #_logger.info(attribute_line.value_ids.ids)
+                                        if (attribute_value_id in attribute_line.value_ids.ids):
+                                            #_logger.info(attribute_line.value_ids.ids)
+                                            pass
+                                        else:
+                                            #_logger.info("Adding value id")
+                                            attribute_line.value_ids = [(4,attribute_value_id)]
+                                    else:
+                                        #_logger.info("Adding value id")
+                                        attribute_line.value_ids = [(4,attribute_value_id)]
+
+        return published_att_variants
+
     def product_meli_get_product( self ):
         company = self.env.user.company_id
         product_obj = self.env['product.product']
@@ -869,8 +1092,6 @@ class product_product(models.Model):
         except:
             _logger.info( "Rare error" )
             return {}
-
-
 
         des = ''
         desplain = ''
@@ -908,6 +1129,19 @@ class product_product(models.Model):
 
         #categories
         product._meli_set_category( product_template, rjson['category_id'] )
+
+        #prices
+        force_price_for_variant = True
+
+        # if 2 or more variations, its a variant publication, one price for all else one for each product variant as they are independent
+        if "variations" in rjson and len(rjson["variations"])>1:
+            force_price_for_variant = False
+
+        try:
+            if (float(rjson['price'])>=0.0):
+                product._meli_set_product_price( product_template, rjson['price'], force_variant=force_price_for_variant )
+        except:
+            rjson['price'] = 0.0
 
         imagen_id = ''
         meli_dim_str = ''
@@ -968,7 +1202,6 @@ class product_product(models.Model):
           'meli_warranty': meli_fields["meli_warranty"],
           'meli_dimensions': meli_fields["meli_dimensions"]
         }
-
 
         if (product.name and not company.mercadolibre_overwrite_variant):
             del meli_fields['name']
@@ -1035,9 +1268,12 @@ class product_product(models.Model):
             posting.write({'product_id':product.id })
             posting.posting_query_questions()
 
-
         b_search_nonfree_ship = False
         if ('shipping' in rjson):
+
+            if "logistic_type" in rjson["shipping"]:
+                product.meli_shipping_logistic_type = rjson["shipping"]["logistic_type"]
+
             att_shipping = {
                 'name': 'Con envío',
                 'create_variant': default_no_create_variant
@@ -1060,137 +1296,7 @@ class product_product(models.Model):
         #_logger.info(rjson['variations'])
         published_att_variants = False
         if (company.mercadolibre_update_existings_variants and 'variations' in rjson):
-            #recorrer los variations>attribute_combinations y agregarlos como atributos de las variantes
-            #_logger.info(rjson['variations'])
-            vindex = -1
-            for variation in rjson['variations']:
-                vindex = vindex + 1
-                if ('attribute_combinations' in variation):
-                    _attcomb_str = ""
-                    rjson['variations'][vindex]["default_code"] = ""
-                    for attcomb in variation['attribute_combinations']:
-                        namecap = attcomb['name']
-                        if (len(namecap)):
-                            att = {
-                                'name': namecap,
-                                'value_name': attcomb['value_name'],
-                                'create_variant': default_create_variant,
-                                'att_id': False
-                            }
-                            if ('id' in attcomb):
-                                if (attcomb["id"]):
-                                    if (len(attcomb["id"])):
-                                        att["att_id"] = attcomb["id"]
-                            if (att["att_id"]==False):
-                                namecap = namecap.strip()
-                                namecap = namecap[0].upper()+namecap[1:]
-                                att["name"] = namecap
-                            if ('create_variant' in attcomb):
-                                att['create_variant'] = attcomb['create_variant']
-                            else:
-                                rjson['variations'][vindex]["default_code"] = rjson['variations'][vindex]["default_code"]+namecap+":"+attcomb['value_name']+";"
-                            #_logger.info(att)
-                            if (att["att_id"]):
-                                # ML Attribute , we could search first...
-                                #attribute = self.env['product.attribute'].search([('name','=',att['name']),('meli_default_id_attribute','!=',False)])
-                                #if (len(attribute)==0):
-                                # ningun atributo con ese nombre asociado
-                                ml_attribute = self.env['mercadolibre.category.attribute'].search([('att_id','=',att['att_id'])])
-                                attribute = []
-                                if (len(ml_attribute)==1):
-                                    attribute = self.env['product.attribute'].search([('meli_default_id_attribute','=',ml_attribute.id)])
-                                if (len(attribute)==0):
-                                    attribute = self.env['product.attribute'].search([('name','=',att['name'])])
-                            else:
-                                #customizado
-                                #_logger.info("Atributo customizado:"+str(namecap))
-                                attribute = self.env['product.attribute'].search([('name','=',namecap),('meli_default_id_attribute','=',False)])
-                                _logger.info(attribute)
-
-                                if (attcomb['name']!=namecap):
-                                    attribute_duplicates = self.env['product.attribute'].search([('name','=',attcomb['name']),('meli_default_id_attribute','=',False)])
-                                    _logger.info("attribute_duplicates:")
-                                    _logger.info(attribute_duplicates)
-                                    if (len(attribute_duplicates)>=1):
-                                        #archive
-                                        _logger.info("attribute_duplicates:",len(attribute_duplicates))
-                                        for attdup in attribute_duplicates:
-                                            _logger.info("duplicate:"+attdup.name+":"+str(attdup.id))
-                                            attdup_line =  self.env[prod_att_line].search([('attribute_id','=',attdup.id),('product_tmpl_id','=',product_template.id)])
-                                            if (len(attdup_line)):
-                                                for attline in attdup_line:
-                                                    attline.unlink()
-
-                                #buscar en las lineas existentes
-                                if (len(attribute)>1):
-                                    att_line = self.env[prod_att_line].search([('attribute_id','in',attribute.ids),('product_tmpl_id','=',product_template.id)])
-                                    _logger.info(att_line)
-                                    if (len(att_line)):
-                                        _logger.info("Atributo ya asignado!")
-                                        attribute = att_line.attribute_id
-
-                            attribute_id = False
-                            if (len(attribute)==1):
-                                attribute_id = attribute.id
-                            elif (len(attribute)>1):
-                                _logger.error("Attributes duplicated names!!!")
-                                attribute_id = attribute[0].id
-
-                            #_logger.info(attribute_id)
-                            if attribute_id:
-                                #_logger.info(attribute_id)
-                                pass
-                            else:
-                                #_logger.info("Creating attribute:")
-                                attribute_id = self.env['product.attribute'].create({ 'name': att['name'],'create_variant': att['create_variant'] }).id
-
-                            if (att['create_variant']==default_create_variant):
-                                #_logger.info("published_att_variants")
-                                published_att_variants = True
-
-                            if (attribute_id):
-                                #_logger.info("Publishing attribute")
-                                attribute_value_id = self.env['product.attribute.value'].search([('attribute_id','=',attribute_id),('name','=',att['value_name'])]).id
-                                #_logger.info(_logger.info(attribute_id))
-                                if attribute_value_id:
-                                    #_logger.info(attribute_value_id)
-                                    pass
-                                else:
-                                    _logger.info("Creating attribute value:"+str(att))
-                                    if (att['value_name']!=None):
-                                        attribute_value_id = self.env['product.attribute.value'].create({'attribute_id': attribute_id,'name': att['value_name']}).id
-
-                                if (attribute_value_id):
-                                    #_logger.info("attribute_value_id:")
-                                    #_logger.info(attribute_value_id)
-                                    #search for line ids.
-                                    attribute_line =  self.env[prod_att_line].search([('attribute_id','=',attribute_id),('product_tmpl_id','=',product_template.id)])
-                                    #_logger.info(attribute_line)
-                                    if (attribute_line and attribute_line.id):
-                                        #_logger.info(attribute_line)
-                                        pass
-                                    else:
-                                        #_logger.info("Creating att line id:")
-                                        att_vals = prepare_attribute( product_template.id, attribute_id, attribute_value_id )
-                                        attribute_line =  self.env[prod_att_line].create(att_vals)
-
-                                    if (attribute_line):
-                                        #_logger.info("Check attribute line values id.")
-                                        #_logger.info("attribute_line:")
-                                        #_logger.info(attribute_line)
-                                        if (attribute_line.value_ids):
-                                            #check if values
-                                            #_logger.info("Has value ids:")
-                                            #_logger.info(attribute_line.value_ids.ids)
-                                            if (attribute_value_id in attribute_line.value_ids.ids):
-                                                #_logger.info(attribute_line.value_ids.ids)
-                                                pass
-                                            else:
-                                                #_logger.info("Adding value id")
-                                                attribute_line.value_ids = [(4,attribute_value_id)]
-                                        else:
-                                            #_logger.info("Adding value id")
-                                            attribute_line.value_ids = [(4,attribute_value_id)]
+            published_att_variants = self._get_variations( self, rjson['variations'])
 
         #_logger.info("product_uom_id")
         product_uom_id = uomobj.search([('name','=','Unidad(es)')])
@@ -1273,7 +1379,6 @@ class product_product(models.Model):
                 product.default_code = seller_sku
                 product.set_bom()
 
-
         if (company.mercadolibre_update_local_stock):
             product_template.type = 'product'
 
@@ -1332,61 +1437,7 @@ class product_product(models.Model):
                     variant.meli_default_stock_product = ptemp_nfree
 
         if (company.mercadolibre_update_existings_variants and 'attributes' in rjson):
-            if (len(rjson['attributes']) ):
-                for att in rjson['attributes']:
-                    try:
-                        _logger.info(att)
-                        ml_attribute = self.env['mercadolibre.category.attribute'].search([('att_id','=',att['id'])])
-                        attribute = []
-
-                        if (ml_attribute and ml_attribute.id):
-                            #_logger.info(ml_attribute)
-                            attribute = self.env['product.attribute'].search([('meli_default_id_attribute','=',ml_attribute.id)])
-                            #_logger.info(attribute)
-
-                        if (len(attribute) and attribute.id):
-                            attribute_id = attribute.id
-                            attribute_value_id = self.env['product.attribute.value'].search([('attribute_id','=',attribute_id), ('name','=',att['value_name'])]).id
-                            #_logger.info(_logger.info(attribute_id))
-                            if attribute_value_id:
-                                #_logger.info(attribute_value_id)
-                                pass
-                            else:
-                                _logger.info("Creating attribute value:")
-                                _logger.info(att)
-                                if (att['value_name']!=None):
-                                    attribute_value_id = self.env['product.attribute.value'].create({'attribute_id': attribute_id, 'name': att['value_name'] }).id
-
-                            if (attribute_value_id):
-                                attribute_line =  self.env[prod_att_line].search([('attribute_id','=',attribute_id),('product_tmpl_id','=',product_template.id)])
-                                if (attribute_line and attribute_line.id):
-                                    #_logger.info(attribute_line)
-                                    pass
-                                else:
-                                    #_logger.info("Creating att line id:")
-                                    att_vals = prepare_attribute( product_template.id, attribute_id, attribute_value_id )
-                                    attribute_line =  self.env[prod_att_line].create(att_vals)
-
-                                if (attribute_line):
-                                    #_logger.info("Check attribute line values id.")
-                                    #_logger.info("attribute_line:")
-                                    #_logger.info(attribute_line)
-                                    if (attribute_line.value_ids):
-                                        #check if values
-                                        #_logger.info("Has value ids:")
-                                        #_logger.info(attribute_line.value_ids.ids)
-                                        if (attribute_value_id in attribute_line.value_ids.ids):
-                                            #_logger.info(attribute_line.value_ids.ids)
-                                            pass
-                                        else:
-                                            #_logger.info("Adding value id")
-                                            attribute_line.value_ids = [(4,attribute_value_id)]
-                                    else:
-                                        #_logger.info("Adding value id")
-                                        attribute_line.value_ids = [(4,attribute_value_id)]
-                    except Exception as e:
-                        _logger.info("Attributes exception:")
-                        _logger.info(e, exc_info=True)
+            self._get_attributes(self, rjson['attributes'])
 
         return {}
 
@@ -2888,6 +2939,8 @@ class product_product(models.Model):
     meli_catalog_product_id = fields.Char(string='Catalog Product Id', size=256)
     meli_catalog_item_relations = fields.Char(string='Catalog Item Relations', size=256)
     meli_catalog_automatic_relist = fields.Boolean(string='Catalog Auto Relist', size=256)
+
+    meli_shipping_logistic_type = fields.Char(string="Logistic Type",index=True)
 
     _defaults = {
         'meli_imagen_logo': 'None',

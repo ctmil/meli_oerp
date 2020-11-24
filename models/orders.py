@@ -88,6 +88,8 @@ class sale_order(models.Model):
 #       'meli_seller': fields.text( string='Seller' ),
     meli_shipping_id =  fields.Char('Meli Shipping Id')
     meli_shipment = fields.Many2one('mercadolibre.shipment',string='Meli Shipment Obj')
+    meli_shipment_logistic_type = fields.Char(string="Logistic Type",index=True)
+
 
     def confirm_ml(self):
 
@@ -130,7 +132,7 @@ class sale_order(models.Model):
                 _logger.info("paid_confirm with invoice ok! confirming sale and create invoice")
                 self.action_confirm()
                 self.action_invoice_create()
-            
+
     _sql_constraints = [
         ('unique_meli_order_id', 'unique(meli_order_id)', 'Mei Order id already exists!')
     ]
@@ -585,8 +587,8 @@ class mercadolibre_orders(models.Model):
                         partner_id.write( { "fe_habilitada": True } )
                     except:
                         _logger.error("No se pudo habilitar la Facturacion Electronica para este usuario")
-                    
-                    
+
+
 
             if order and buyer_id:
                 return_id = order.write({'buyer':buyer_id.id})
@@ -607,7 +609,7 @@ class mercadolibre_orders(models.Model):
             'meli_date_created': ml_datetime(order_json["date_created"]),
             'meli_date_closed': ml_datetime(order_json["date_closed"]),
         }
-        
+
         if ('account.payment.term' in self.env):
             inmediate = self.env['account.payment.term'].search([])[0]
             meli_order_fields["payment_term_id"] = inmediate.id
@@ -961,7 +963,6 @@ class mercadolibre_orders(models.Model):
 
         return {}
 
-
     def orders_query_iterate( self, offset=0, context=None ):
 
         offset_next = 0
@@ -1057,6 +1058,7 @@ class mercadolibre_orders(models.Model):
     shipping = fields.Text(string="Shipping")
     shipping_id = fields.Char(string="Shipping id")
     shipment = fields.Many2one('mercadolibre.shipment',string='Shipment')
+    shipment_logistic_type = fields.Char(string="Logistic Type",index=True)
 
     fee_amount = fields.Float(string='Fee total amount')
     total_amount = fields.Float(string='Total amount')
