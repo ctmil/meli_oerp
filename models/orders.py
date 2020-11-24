@@ -963,7 +963,6 @@ class mercadolibre_orders(models.Model):
 
         return {}
 
-
     def orders_query_iterate( self, offset=0, context=None ):
 
         offset_next = 0
