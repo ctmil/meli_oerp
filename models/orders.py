@@ -961,7 +961,6 @@ class mercadolibre_orders(models.Model):
 
         return {}
 
-
     def orders_query_iterate( self, offset=0, context=None ):
 
         offset_next = 0
@@ -1076,7 +1075,6 @@ class mercadolibre_orders(models.Model):
 
 mercadolibre_orders()
 
-
 class mercadolibre_order_items(models.Model):
     _name = "mercadolibre.order_items"
     _description = "Producto pedido en MercadoLibre"
@@ -1093,7 +1091,6 @@ class mercadolibre_order_items(models.Model):
     currency_id = fields.Char(string='Currency')
 
 mercadolibre_order_items()
-
 
 class mercadolibre_payments(models.Model):
     _name = "mercadolibre.payments"
@@ -1113,7 +1110,6 @@ class mercadolibre_payments(models.Model):
     fee_amount = fields.Float('Fee Amount')
     shipping_amount = fields.Float('Shipping Amount')
     taxes_amount = fields.Float('Taxes Amount')
-
 
 mercadolibre_payments()
 
@@ -1150,7 +1146,6 @@ class res_partner(models.Model):
     ]
 
 res_partner()
-
 
 class mercadolibre_orders_update(models.TransientModel):
     _name = "mercadolibre.orders.update"

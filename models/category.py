@@ -93,7 +93,6 @@ class product_public_category(models.Model):
 
 product_public_category()
 
-
 class mercadolibre_category_attribute(models.Model):
     _name = "mercadolibre.category.attribute"
     _description = "MercadoLibre Attribute"
@@ -398,6 +397,5 @@ class mercadolibre_category(models.Model):
     _sql_constraints = [
     	('unique_meli_category_id','unique(meli_category_id)','Meli Category id already exists!'),
     ]
-
 
 mercadolibre_category()
