@@ -881,14 +881,19 @@ class product_product(models.Model):
                     _logger.info(e, exc_info=True)
 
     def _get_variations( self, variations ):
+
         #recorrer los variations>attribute_combinations y agregarlos como atributos de las variantes
-        #_logger.info(rjson['variations'])
+        _logger.info(variations)
+        published_att_variants = False
+        product = self
+        product_template = product.product_tmpl_id
+
         vindex = -1
-        for variation in rjson['variations']:
+        for variation in variations:
             vindex = vindex + 1
             if ('attribute_combinations' in variation):
                 _attcomb_str = ""
-                rjson['variations'][vindex]["default_code"] = ""
+                variations[vindex]["default_code"] = ""
                 for attcomb in variation['attribute_combinations']:
                     namecap = attcomb['name']
                     if (len(namecap)):
@@ -909,7 +914,7 @@ class product_product(models.Model):
                         if ('create_variant' in attcomb):
                             att['create_variant'] = attcomb['create_variant']
                         else:
-                            rjson['variations'][vindex]["default_code"] = rjson['variations'][vindex]["default_code"]+namecap+":"+attcomb['value_name']+";"
+                            variations[vindex]["default_code"] = variations[vindex]["default_code"]+namecap+":"+attcomb['value_name']+";"
                         #_logger.info(att)
                         if (att["att_id"]):
                             # ML Attribute , we could search first...
@@ -1015,6 +1020,8 @@ class product_product(models.Model):
                                     else:
                                         #_logger.info("Adding value id")
                                         attribute_line.value_ids = [(4,attribute_value_id)]
+
+        return published_att_variants
 
     def product_meli_get_product( self ):
         company = self.env.user.company_id
@@ -1238,7 +1245,7 @@ class product_product(models.Model):
         #_logger.info(rjson['variations'])
         published_att_variants = False
         if (company.mercadolibre_update_existings_variants and 'variations' in rjson):
-            self._get_variations( self, rjson['variations'])
+            published_att_variants = self._get_variations( self, rjson['variations'])
 
         #_logger.info("product_uom_id")
         product_uom_id = uomobj.search([('name','=','Unidad(es)')])
