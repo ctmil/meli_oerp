@@ -358,7 +358,9 @@ class mercadolibre_shipment(models.Model):
 				sorder.partner_id.phone = shipment.receiver_address_phone
 				#sorder.partner_id.state = ships.receiver_state
 
-			product_shipping_id = product_obj.search(['|','|',('default_code','=','ENVIO'),('default_code','=',shipment.tracking_method),('name','=',shipment.tracking_method)])
+			product_shipping_id = product_obj.search(['|','|',('default_code','=','ENVIO'),
+                        ('default_code','=',shipment.tracking_method),
+                        ('name','=',shipment.tracking_method)] )
 
 			if len(product_shipping_id):
 				product_shipping_id = product_shipping_id[0]
@@ -378,6 +380,10 @@ class mercadolibre_shipment(models.Model):
 
 			if (not product_shipping_id):
 				_logger.info('Failed to create shipping product service')
+				continue
+                
+			if (shipment.tracking_method == "MEL Distribution"):
+				_logger.info('MEL Distribution, not adding to order')
 				continue
 
 			saleorderline_item_fields = {
