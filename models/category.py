@@ -399,4 +399,5 @@ class mercadolibre_category(models.Model):
     	('unique_meli_category_id','unique(meli_category_id)','Meli Category id already exists!'),
     ]
 
+
 mercadolibre_category()
