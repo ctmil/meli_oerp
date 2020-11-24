@@ -93,6 +93,7 @@ class product_public_category(models.Model):
 
 product_public_category()
 
+
 class mercadolibre_category_attribute(models.Model):
     _name = "mercadolibre.category.attribute"
     _description = "MercadoLibre Attribute"

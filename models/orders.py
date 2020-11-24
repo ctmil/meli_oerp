@@ -88,6 +88,8 @@ class sale_order(models.Model):
 #       'meli_seller': fields.text( string='Seller' ),
     meli_shipping_id =  fields.Char('Meli Shipping Id')
     meli_shipment = fields.Many2one('mercadolibre.shipment',string='Meli Shipment Obj')
+    meli_shipment_logistic_type = fields.Char(string="Logistic Type",index=True)
+
 
     def confirm_ml(self):
 
@@ -1056,6 +1058,7 @@ class mercadolibre_orders(models.Model):
     shipping = fields.Text(string="Shipping")
     shipping_id = fields.Char(string="Shipping id")
     shipment = fields.Many2one('mercadolibre.shipment',string='Shipment')
+    shipment_logistic_type = fields.Char(string="Logistic Type",index=True)
 
     fee_amount = fields.Float(string='Fee total amount')
     total_amount = fields.Float(string='Total amount')
