@@ -342,7 +342,7 @@ class mercadolibre_shipment(models.Model):
 			sorder = shipment.sale_order
 			if (not sorder or not order):
 				continue;
-				
+
 			sorder.meli_shipping_cost = shipment.shipping_cost
 			sorder.meli_shipping_list_cost = shipment.shipping_list_cost
 			sorder.meli_shipment_logistic_type = shipment.logistic_type
