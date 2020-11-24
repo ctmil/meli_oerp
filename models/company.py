@@ -771,7 +771,8 @@ class res_company(models.Model):
 
     def meli_update_remote_price(self):
         if (self.mercadolibre_cron_post_update_price):
-            product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False)])
+            #product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False)])
+            product_ids = self.env['product.product'].search([('meli_pub','=',True)])
             _logger.info("product_ids stock to update:" + str(product_ids))
             if product_ids:
                 for obj in product_ids:

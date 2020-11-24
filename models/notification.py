@@ -156,7 +156,7 @@ class MercadolibreNotification(models.Model):
         return ""
 
     def _process_notification_question(self):
-        _logger.info("_process_notification_question")
+        #_logger.info("_process_notification_question")
 
         company = self.env.user.company_id
         meli_util_model = self.env['meli.util']
@@ -198,7 +198,7 @@ class MercadolibreNotification(models.Model):
 
 
     def _process_notification_order(self):
-        _logger.info("_process_notification_order")
+        #_logger.info("_process_notification_order")
 
         company = self.env.user.company_id
         meli_util_model = self.env['meli.util']
@@ -246,7 +246,7 @@ class MercadolibreNotification(models.Model):
                 noti.processing_ended = ml_datetime(str(datetime.now()))
 
     def process_notification(self):
-        _logger.info("_process_notification")
+        #_logger.info("_process_notification")
 
         company = self.env.user.company_id
         meli_util_model = self.env['meli.util']
