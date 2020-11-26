@@ -44,6 +44,9 @@ def get_image_full(self):
     #return self.image_1920
     return self.image
 
+def get_image_full_product(self):
+    return self.image_1920
+
 def set_image_full(self, image):
     #self.image_1920 = image
     self.image = image
@@ -60,7 +63,7 @@ def get_first_image_to_publish(self):
             #Use first image of variant image ids: product.image
             first_image_to_publish = get_image_full(image_ids[0])
     else:
-        first_image_to_publish = get_image_full(product)
+        first_image_to_publish = get_image_full_product(product)
         
     return first_image_to_publish
 
