@@ -729,7 +729,7 @@ class product_product(models.Model):
 
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
-        if not ( in self.env):
+        if not ( "common.product.image.ept" in self.env):
             return {}
 
         try:
