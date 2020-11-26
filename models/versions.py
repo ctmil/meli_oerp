@@ -41,10 +41,12 @@ def att_line_ids(self):
     return self.attribute_line_ids
 
 def get_image_full(self):
-    return self.image_1920
+    #return self.image_1920
+    return self.image
 
 def set_image_full(self, image):
-    self.image_1920 = image
+    #self.image_1920 = image
+    self.image = image
     return True
     
 def get_first_image_to_publish(self):

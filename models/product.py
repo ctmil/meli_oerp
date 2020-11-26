@@ -654,7 +654,7 @@ class product_product(models.Model):
         ml_sizes = {}
         ml_bytes = {}
 
-        if not ( in self.env):
+        if not ( "common.product.image.ept" in self.env):
             return {}
 
 
