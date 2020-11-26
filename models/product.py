@@ -782,7 +782,7 @@ class product_product(models.Model):
                     if (variant_image_ids(product)):
                         #_logger.info("has variant image ids")
                         #_logger.info(variant_image_ids(product))
-                        pimage = self.env[].search([('meli_imagen_id','=',pic["id"]),('template_id','=',product_template.id)])
+                        pimage = self.env["common.product.image.ept"].search([('meli_imagen_id','=',pic["id"]),('template_id','=',product_template.id)])
                         #_logger.info(pimage)
                         if (pimage and len(pimage)>1):
                             #unlink all but first
@@ -823,7 +823,7 @@ class product_product(models.Model):
                         _logger.info("Creating new image")
                         bin_updating = True
                         pimg_fields["name"] = product.meli_title or product.name;
-                        pimage = self.env[].create(pimg_fields)
+                        pimage = self.env["common.product.image.ept"].create(pimg_fields)
 
                     if (pimage):
                         pimage.write(pimg_fields)
