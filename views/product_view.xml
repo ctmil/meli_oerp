@@ -30,8 +30,8 @@
         </record-->
 
         <record id="product_image_view_kanban_meli" model="ir.ui.view">
-          <field name="name">product.image.view.kanban.meli</field>
-          <field name="model">product.image</field>
+          <field name="name">common.product.image.ept.view.kanban.meli</field>
+          <field name="model">common.product.image.ept</field>
           <field name="inherit_id" ref="common_connector_library.view_common_product_image_ept_kanban"/>
           <field name="arch" type="xml">
               <xpath expr="//field[@name='id']" position="after">
