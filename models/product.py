@@ -411,18 +411,18 @@ class product_template(models.Model):
 
 product_template()
 
-#class product_image(models.Model):
-#    _inherit = "product.image"
+class product_image(models.Model):
+    _inherit = "common.product.image.ept"
     #website_sale.product_template_form_view
-#    meli_imagen_id = fields.Char(string='Imagen Id',index=True)
-#    meli_imagen_link = fields.Char(string='Imagen Link')
-#    meli_imagen_size = fields.Char(string='Size')
-#    meli_imagen_max_size = fields.Char(string='Max Size')
-#    meli_imagen_bytes = fields.Integer(string='Size bytes')
-#    meli_pub = fields.Boolean(string='Publicar en ML',index=True)
-#    meli_force_pub = fields.Boolean(string='Publicar en ML y conservar en Odoo',index=True)
+    meli_imagen_id = fields.Char(string='Imagen Id',index=True)
+    meli_imagen_link = fields.Char(string='Imagen Link')
+    meli_imagen_size = fields.Char(string='Size')
+    meli_imagen_max_size = fields.Char(string='Max Size')
+    meli_imagen_bytes = fields.Integer(string='Size bytes')
+    meli_pub = fields.Boolean(string='Publicar en ML',index=True)
+    meli_force_pub = fields.Boolean(string='Publicar en ML y conservar en Odoo',index=True)
 
-#product_image()
+product_image()
 
 class product_product(models.Model):
 
@@ -654,7 +654,7 @@ class product_product(models.Model):
         ml_sizes = {}
         ml_bytes = {}
 
-        if not ("product.image" in self.env):
+        if not ( in self.env):
             return {}
 
 
@@ -675,18 +675,18 @@ class product_product(models.Model):
 
                 _logger.info(ml_imgid)
 
-                duplicates = self.env["product.image"].search([('meli_force_pub','=',False),
+                duplicates = self.env["common.product.image.ept"].search([('meli_force_pub','=',False),
                                                                 ('meli_imagen_id','=',ml_imgid),
-                                                                ('product_tmpl_id','=',product_template.id)])
+                                                                ('template_id','=',product_template.id)])
                 if (duplicates and len(duplicates)>1):
                     _logger.info("Removing template duplicates for "+str(ml_imgid)+" :"+str(len(duplicates)-1))
                     for ix in range(1,len(duplicates)):
                         duplicates[ix].unlink()
 
                 try:
-                    duplicates = self.env["product.image"].search([('meli_force_pub','=',False),
+                    duplicates = self.env["common.product.image.ept"].search([('meli_force_pub','=',False),
                                                                 ('meli_imagen_id','=',ml_imgid),
-                                                                ('product_variant_id','=',product.id)])
+                                                                ('template_id','=',product.id)])
                     if (duplicates and len(duplicates)>1):
                         _logger.info("Removing variant duplicates for "+str(ml_imgid)+" :"+str(len(duplicates)-1))
                         for ix in range(1,len(duplicates)):
@@ -698,9 +698,9 @@ class product_product(models.Model):
         #_logger.info(ml_bytes)
 
         #_logger.info("Cleaning product template images with meli id but not in ML")
-        ml_images = self.env["product.image"].search([('meli_force_pub','=',False),
+        ml_images = self.env["common.product.image.ept"].search([('meli_force_pub','=',False),
                                                         ('meli_imagen_id','!=',False),
-                                                        ('product_tmpl_id','=',product_template.id)])
+                                                        ('template_id','=',product_template.id)])
         #_logger.info(ml_images)
         if (ml_images and len(ml_images)):
             for ml_image in ml_images:
@@ -709,9 +709,9 @@ class product_product(models.Model):
 
         try:
             #_logger.info("Cleaning product variant images with meli id not in ML")
-            ml_images = self.env["product.image"].search([('meli_force_pub','=',False),
+            ml_images = self.env["common.product.image.ept"].search([('meli_force_pub','=',False),
                                                         ('meli_imagen_id','!=',False),
-                                                        ('product_variant_id','=',product.id)])
+                                                        ('product_id','=',product.id)])
             #_logger.info(ml_images)
             if (ml_images and len(ml_images)):
                 for ml_image in ml_images:
@@ -729,7 +729,7 @@ class product_product(models.Model):
 
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
-        if not ("product.image" in self.env):
+        if not ( in self.env):
             return {}
 
         try:
@@ -782,7 +782,7 @@ class product_product(models.Model):
                     if (variant_image_ids(product)):
                         #_logger.info("has variant image ids")
                         #_logger.info(variant_image_ids(product))
-                        pimage = self.env["product.image"].search([('meli_imagen_id','=',pic["id"]),('product_tmpl_id','=',product_template.id)])
+                        pimage = self.env[].search([('meli_imagen_id','=',pic["id"]),('template_id','=',product_template.id)])
                         #_logger.info(pimage)
                         if (pimage and len(pimage)>1):
                             #unlink all but first
@@ -799,7 +799,7 @@ class product_product(models.Model):
                         _logger.info("no variant image ids, using template image ids")
                         if (template_image_ids(product)):
                             _logger.info(template_image_ids(product))
-                            pimage = self.env["product.image"].search([('meli_imagen_id','=',pic["id"]),('product_tmpl_id','=',product_template.id)])
+                            pimage = self.env["common.product.image.ept"].search([('meli_imagen_id','=',pic["id"]),('template_id','=',product_template.id)])
 
                             #remove duplicate images
                             _logger.info(pimage)
@@ -823,7 +823,7 @@ class product_product(models.Model):
                         _logger.info("Creating new image")
                         bin_updating = True
                         pimg_fields["name"] = product.meli_title or product.name;
-                        pimage = self.env["product.image"].create(pimg_fields)
+                        pimage = self.env[].create(pimg_fields)
 
                     if (pimage):
                         pimage.write(pimg_fields)
