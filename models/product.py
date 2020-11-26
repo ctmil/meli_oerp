@@ -428,8 +428,9 @@ class product_product(models.Model):
 
     _inherit = "product.product"
 
-    def _meli_set_product_price( self, product_template, meli_price ):
+    def _meli_set_product_price( self, product_template, meli_price, force_variant=False ):
         company = self.env.user.company_id
+        product = self
         ml_price_converted = meli_price
         tax_excluded = ml_tax_excluded(self)
 
@@ -456,22 +457,40 @@ class product_product(models.Model):
         if (pl):
             #pass
             pli = self.env['product.pricelist.item']
-            pli_tpl = pli.search([('pricelist_id','in',[pl.id]),('product_tmpl_id','=',product_template.id)])
+            if force_variant:
+                pli_tpl = False
+            else:
+                pli_tpl = pli.search([('pricelist_id','in',[pl.id]),('product_tmpl_id','=',product_template.id)])
+
             pli_var = pli.search([('pricelist_id','in',[pl.id]),('product_id','=',self.id)])
+
             if (pli_tpl or pli_var):
                 return_val = pl.price_get( self.id, 1.0 )
                 if (pl.id in return_val):
                     old_price = return_val[pl.id]
             else:
-                pli_tpl = pli.create({
-                            'product_tmpl_id': product_template.id,
+                if force_variant and not pli_var:
+                    pli_var = pli.create({
+                            'product_id': product.id,
                             'min_quantity': 0,
-                            'applied_on': '1_product',
+                            'applied_on': '0_product_variant',
                             'pricelist_id': pl.id,
                             'compute_price': 'fixed',
                             'currency_id': pl.currency_id.id,
-				            'fixed_price': float(ml_price_converted)
+                            'fixed_price': float(ml_price_converted)
                              })
+                else:
+                    if not force_variant and not pli_tpl:
+                        pli_tpl = pli.create({
+                                'product_tmpl_id': product_template.id,
+                                'min_quantity': 0,
+                                'applied_on': '1_product',
+                                'pricelist_id': pl.id,
+                                'compute_price': 'fixed',
+                                'currency_id': pl.currency_id.id,
+    				            'fixed_price': float(ml_price_converted)
+                                 })
+
         else:
             if (product_template.lst_price<=1.0):
                 product_template.write({'lst_price': ml_price_converted})
@@ -820,6 +839,10 @@ class product_product(models.Model):
             _logger.info(e, exc_info=True)
 
     def _get_non_variant_attributes( self, attributes ):
+
+        product = self
+        product_template = product.product_tmpl_id
+
         if (len(attributes) ):
             for att in attributes:
                 try:
@@ -1092,6 +1115,19 @@ class product_product(models.Model):
         #categories
         product._meli_set_category( product_template, rjson['category_id'] )
 
+        #prices
+        force_price_for_variant = True
+
+        # if 2 or more variations, its a variant publication, one price for all else one for each product variant as they are independent
+        if "variations" in rjson and len(rjson["variations"])>1:
+            force_price_for_variant = False
+
+        try:
+            if (float(rjson['price'])>=0.0):
+                product._meli_set_product_price( product_template, rjson['price'], force_variant=force_price_for_variant )
+        except:
+            rjson['price'] = 0.0
+
         imagen_id = ''
         meli_dim_str = ''
         if ('dimensions' in rjson):
@@ -1245,7 +1281,7 @@ class product_product(models.Model):
         #_logger.info(rjson['variations'])
         published_att_variants = False
         if (company.mercadolibre_update_existings_variants and 'variations' in rjson):
-            published_att_variants = self._get_variations( self, rjson['variations'])
+            published_att_variants = self._get_variations( rjson['variations'])
 
         #_logger.info("product_uom_id")
         product_uom_id = uomobj.search([('name','=','Unidad(es)')])
@@ -1386,7 +1422,7 @@ class product_product(models.Model):
                     variant.meli_default_stock_product = ptemp_nfree
 
         if (company.mercadolibre_update_existings_variants and 'attributes' in rjson):
-            self._get_attributes(self, rjson['attributes'])
+            self._get_non_variant_attributes(rjson['attributes'])
 
         return {}
 
@@ -2715,14 +2751,33 @@ class product_product(models.Model):
                     _logger.info("Pause!")
                     product.product_meli_status_pause()
             else:
-                response = meli.put("/items/"+product.meli_id, fields, {'access_token':meli.access_token})
-                if (response.content):
-                    rjson = response.json()
-                    if ('available_quantity' in rjson):
-                        _logger.info( "Posted ok:" + str(rjson['available_quantity']) )
-                    else:
-                        _logger.info( "Error posting stock" )
-                        _logger.info(response.content)
+                if (product.meli_id and not product.meli_id_variation):
+                    response = meli.get("/items/%s" % product.meli_id, {'access_token':meli.access_token})
+                    if (response):
+                        pjson = response.json()
+                        if "variations" in pjson:
+                            if (len(pjson["variations"])==1):
+                                product.meli_id_variation = pjson["variations"][0]["id"]
+
+                if (product.meli_id_variation):
+                    var = {
+                        #"id": str( product.meli_id_variation ),
+                        "available_quantity": product.meli_available_quantity,
+                        #"picture_ids": ['806634-MLM28112717071_092018', '928808-MLM28112717068_092018', '643737-MLM28112717069_092018', '934652-MLM28112717070_092018']
+                    }
+                    responsevar = meli.put("/items/"+product.meli_id+'/variations/'+str( product.meli_id_variation ), var, {'access_token':meli.access_token})
+                    if (responsevar.content):
+                        rjson = responsevar.json()
+                        _logger.info(responsevar.content)
+                else:
+                    response = meli.put("/items/"+product.meli_id, fields, {'access_token':meli.access_token})
+                    if (response.content):
+                        rjson = response.json()
+                        if ('available_quantity' in rjson):
+                            _logger.info( "Posted ok:" + str(rjson['available_quantity']) )
+                        else:
+                            _logger.info( "Error posting stock" )
+                            _logger.info(response.content)
 
                 if (product.meli_available_quantity<=0 and product.meli_status=="active"):
                     product.product_meli_status_pause()
