@@ -23,12 +23,16 @@ default_create_variant = "always"
 def variant_image_ids(self):
     if 'product_variant_image_ids' in self._fields:
         return self.product_variant_image_ids
+    if 'ept_image_ids' in self._fields:
+        return self.ept_image_ids
     return False
 
 #template image ids
 def template_image_ids(self):
     if 'product_template_image_ids' in self._fields:
         return self.product_template_image_ids
+    if 'ept_image_ids' in self._fields:
+        return self.ept_image_ids
     return False
 
 
