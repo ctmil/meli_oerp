@@ -794,7 +794,7 @@ class product_product(models.Model):
                         'meli_imagen_size': pic["size"],
                         'meli_imagen_max_size': pic["max_size"],
                         'meli_imagen_bytes': meli_imagen_bytes,
-                        'product_tmpl_id': product_template.id,
+                        'template_id': product_template.id,
                         'meli_pub': True
                     }
                     #_logger.info(pimg_fields)
