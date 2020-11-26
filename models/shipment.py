@@ -275,6 +275,7 @@ class mercadolibre_shipment(models.Model):
 	status_history = fields.Text(string="status_history")
 	tracking_number = fields.Char(string="Tracking number")
 	tracking_method = fields.Char(string="Tracking method")
+    comments = fields.Char(string="Tracking Custom Comments")
 
 
 	date_first_printed = fields.Datetime(string='First Printed date')
@@ -473,6 +474,7 @@ class mercadolibre_shipment(models.Model):
 					#"status_history": ship_json["status_history"],
 					"tracking_number": ship_json["tracking_number"],
 					"tracking_method": ship_json["tracking_method"],
+                    "comments": ship_json["comments"] or '',
 					"date_first_printed": ml_datetime(ship_json["date_first_printed"]),
 					"receiver_id": ship_json["receiver_id"],
 					"receiver_address_id": ship_json["receiver_address"]["id"],

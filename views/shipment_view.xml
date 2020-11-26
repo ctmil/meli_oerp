@@ -20,6 +20,7 @@
                   <field name="order_cost"/>
                   <field name="base_cost"  invisible="1"/>
                   <field name="tracking_number"/>
+                  <field name="comments"/>
                   <field name="receiver_id"  invisible="1"/>
                   <field name="sender_id"  invisible="1"/>
                   <field name="pdf_file"/>
@@ -71,6 +72,7 @@
                       <group>
                         <field name="tracking_method" />
                         <field name="tracking_number"/>
+                        <field name="comments"/>
                         <field name="mode"/>
                         <field name="shipping_mode"/>
                         <field name="logistic_type"/>
