@@ -2,12 +2,12 @@
 <odoo>
     <data>
 
-        <!--record id="view_product_image_form_meli" model="ir.ui.view">
+        <record id="view_product_image_form_meli" model="ir.ui.view">
           <field name="name">product.image.view.form.meli</field>
           <field name="model">common.product.image.ept</field>
-          <field name="inherit_id" ref=""/>
+          <field name="inherit_id" ref="common_connector_library.view_common_product_image_ept_form"/>
           <field name="arch" type="xml">
-              <xpath expr="//div[@class='oe_kanban_details']" position="inside">
+              <xpath expr="//field[@nale='url']" position="after">
                 <label for="meli_imagen_id" string="ML Id"/><br/>
                 <field name="meli_imagen_id"  readonly="1"/>
                 <br/>
@@ -27,7 +27,7 @@
                 <field name="meli_published" />
               </xpath>
           </field>
-        </record-->
+        </record>
 
         <record id="product_image_view_kanban_meli" model="ir.ui.view">
           <field name="name">common.product.image.ept.view.kanban.meli</field>
