@@ -858,6 +858,10 @@ class product_product(models.Model):
             _logger.info(e, exc_info=True)
 
     def _get_non_variant_attributes( self, attributes ):
+
+        product = self
+        product_template = product.product_tmpl_id
+
         if (len(attributes) ):
             for att in attributes:
                 try:
