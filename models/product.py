@@ -1717,7 +1717,12 @@ class product_product(models.Model):
         product_obj = self.env['product.product']
         product = self
 
+        _logger.info("Upload multi images")
+
         if variant_image_ids(product)==None and template_image_ids(product)==None:
+            _logger.info("No images")
+            _logger.info(variant_image_ids(product))
+            _logger.info(template_image_ids(product))
             return { 'status': 'error', 'message': 'no images to upload' }
 
         image_ids = []
@@ -2376,6 +2381,8 @@ class product_product(models.Model):
 
         #publicando multiples imagenes
         multi_images_ids = {}
+        _logger.info(variant_image_ids(product))
+        _logger.info(template_image_ids(product))
         if (variant_image_ids(product) or template_image_ids(product)):
             multi_images_ids = product.product_meli_upload_multi_images()
             _logger.info(multi_images_ids)

@@ -29,10 +29,12 @@ def variant_image_ids(self):
 
 #template image ids
 def template_image_ids(self):
-    if 'product_template_image_ids' in self._fields:
+    product = self
+    product_template = self.product_tmpl_id
+    if 'product_template_image_ids' in product._fields:
         return self.product_template_image_ids
-    if 'ept_image_ids' in self._fields:
-        return self.ept_image_ids
+    if 'ept_image_ids' in product_template._fields:
+        return product_template.ept_image_ids
     return False
 
 
