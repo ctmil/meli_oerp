@@ -1437,7 +1437,7 @@ class product_product(models.Model):
                     variant.meli_default_stock_product = ptemp_nfree
 
         if (company.mercadolibre_update_existings_variants and 'attributes' in rjson):
-            self._get_non_variant_attributes(self, rjson['attributes'])
+            self._get_non_variant_attributes(rjson['attributes'])
 
         return {}
 
