@@ -196,7 +196,7 @@ class mercadolibre_category(models.Model):
                         attrs = att_obj.search( [ ('cat_id','=',str(category.meli_category_id)),('att_id','=',str(att['id'])),('name','=',str(att['name'])) ] )
                         attrs_field = {
                             'name': att['name'],
-                            'cat_id': str(category.meli_category_id)),
+                            'cat_id': str(category.meli_category_id),
                             'value_type': att['value_type'],
                             'hidden': ('hidden' in att['tags']),
                             'multivalued': ( 'multivalued' in att['tags']),
