@@ -374,10 +374,7 @@ class mercadolibre_shipment(models.Model):
 					"default_code": ship_name,
 					"type": "service",
 					#"taxes_id": None
-				}
-				ship_carrier = {
-					"name": ship_name,					
-				}
+				}				
 				_logger.info(ship_prod)
 				product_shipping_tpl = product_tpl.create((ship_prod))
 				if (product_shipping_tpl):
@@ -388,6 +385,9 @@ class mercadolibre_shipment(models.Model):
 				_logger.info('Failed to create shipping product service')
 				continue
 				
+			ship_carrier = {
+				"name": ship_name,					
+			}
 			ship_carrier["product_id"] = product_shipping_id
 			ship_carrier_id = self.env["delivery.carrier"].search([ ('name','=',ship_carrier['name']) ])
 			if not ship_carrier_id:
