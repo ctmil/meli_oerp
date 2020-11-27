@@ -799,10 +799,10 @@ class product_product(models.Model):
                     }
                     #_logger.info(pimg_fields)
                     if (variant_image_ids(product)):
-                        #_logger.info("has variant image ids")
-                        #_logger.info(variant_image_ids(product))
+                        _logger.info("has variant image ids")
+                        _logger.info(variant_image_ids(product))
                         pimage = self.env["common.product.image.ept"].search([('meli_imagen_id','=',pic["id"]),('template_id','=',product_template.id)])
-                        #_logger.info(pimage)
+                        _logger.info(pimage)
                         if (pimage and len(pimage)>1):
                             #unlink all but first
                             _logger.info("Unlink all duplicates for "+str(pic["id"]))
@@ -966,8 +966,9 @@ class product_product(models.Model):
                             ml_attribute = self.env['mercadolibre.category.attribute'].search([('att_id','=',att['att_id'])])
                             attribute = []
                             if (len(ml_attribute)>1):
-                                ml_attribute = ml_attribute[0]
-                                attribute = self.env['product.attribute'].search([('meli_default_id_attribute','=',ml_attribute.id)])
+                                ml_attribute = self.env['mercadolibre.category.attribute'].search([('att_id','=',att['att_id']),('cat_id','=',product.meli_cat_id)])
+                                if (len(ml_attribute)==1):
+                                    attribute = self.env['product.attribute'].search([('meli_default_id_attribute','=',ml_attribute.id)])
                             if (len(ml_attribute)==1):
                                 attribute = self.env['product.attribute'].search([('meli_default_id_attribute','=',ml_attribute.id)])
                             if (len(attribute)==0):
