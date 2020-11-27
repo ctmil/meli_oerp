@@ -455,8 +455,9 @@ class mercadolibre_shipment(models.Model):
 				_logger.error( ship_json["message"] )
 			else:
 				_logger.info("Saving shipment fields")
+                _logistic_type = ("logistic_type" in ship_json and ship_json["logistic_type"])
 				ship_fields = {
-					"name": "MSO ["+str(ship_id)+"] "+str(ship_json["shipping_option"]["name"]),
+					"name": "MSO ["+str(ship_id)+"] "+str(" < ")+str(ship_json["status"])+" - "+str(ship_json["substatus"])+str(" >"),
 					"order": order.id,
 					"shipping_id": ship_json["id"],
 					"site_id": ship_json["site_id"],
