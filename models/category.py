@@ -194,7 +194,7 @@ class mercadolibre_category(models.Model):
                         _logger.info(att)
                         _logger.info(att['id'])
                         attrs = att_obj.search( [ ('att_id','=',str(att['id'])),('name','=',str(att['name'])) ] )
-                        #attrs = att_obj.search( [ ('cat_id','!=',False),('att_id','=',str(att['id'])),('name','=',str(att['name'])) ] )
+                        #attrs = att_obj.search( [ ('cat_id','=',False),('att_id','=',str(att['id'])),('name','=',str(att['name'])) ] )
                         attrs_field = {
                             'name': att['name'],
                             #'cat_id': str(category.meli_category_id),
