@@ -145,20 +145,20 @@
             </field>
         </record>
 
-    <record id="meli_shipment_search_view" model="ir.ui.view">
-        <field name="name">MercadoLibre Shipment - Search</field>
-        <field name="model">mercadolibre.shipment</field>
-        <field name="arch" type="xml">
-    	    <search string="Search MercadoLibre Shipments Information">
-                <field name="shipping_id" />
-                <field name="status"/>
-                <field name="substatus"/>
-                <field name="tracking_method" />
-                <field name="receiver_address_name"/>
-                <field name="tracking_number"/>
-    	    </search>
-        </field>
-    </record>
+        <record id="meli_shipment_search_view" model="ir.ui.view">
+            <field name="name">MercadoLibre Shipment - Search</field>
+            <field name="model">mercadolibre.shipment</field>
+            <field name="arch" type="xml">
+        	    <search string="Search MercadoLibre Shipments Information">
+                    <field name="shipping_id" />
+                    <field name="status"/>
+                    <field name="substatus"/>
+                    <field name="tracking_method" />
+                    <field name="receiver_address_name"/>
+                    <field name="tracking_number"/>
+        	    </search>
+            </field>
+        </record>
 
 
         <record model="ir.actions.act_window" id="action_meli_shipment_tree">
@@ -285,6 +285,17 @@
                         name="meli_oerp.report_shipment"
                         menu="True"
                         print_report_name="'Reporte de etiquetas'"
+                    />
+
+            <report
+                        id="report_order_shipment_view"
+                        string="Order Shipment Report"
+                        model="sale.order"
+                        report_type="qweb-pdf"
+                        file="meli_oerp.report_order_shipment"
+                        name="meli_oerp.report_order_shipment"
+                        menu="True"
+                        print_report_name="'Reporte de etiquetas desde ordenes'"
                     />
 
 
