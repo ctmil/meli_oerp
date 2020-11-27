@@ -388,7 +388,7 @@ class mercadolibre_shipment(models.Model):
 			ship_carrier = {
 				"name": ship_name,					
 			}
-			ship_carrier["product_id"] = product_shipping_id
+			ship_carrier["product_id"] = product_shipping_id.id
 			ship_carrier_id = self.env["delivery.carrier"].search([ ('name','=',ship_carrier['name']) ])
 			if not ship_carrier_id:
 				ship_carrier_id = self.env["delivery.carrier"].create(ship_carrier)
