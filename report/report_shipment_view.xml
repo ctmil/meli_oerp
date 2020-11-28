@@ -69,63 +69,81 @@
               <t t-raw="0"/>
             </div>
         </template>
-
+        
+        <template id="report_shipment_document">
+          <table style="width: 100%">
+            <tr>
+              <td style="width: 64.5%">
+                <table style="width: 100%">
+                  <tr>
+                    <td style="width: 20%"><b>Destinatario:</b></td>
+                    <td><span t-field="o.receiver_address_name"/></td>
+                  </tr>
+                  <tr>
+                    <td><b>Dirección:</b></td>
+                    <td><span t-field="o.receiver_address_line"/></td>
+                  </tr>
+                  <tr>
+                    <td><b>Teléfono:</b></td>
+                    <td>
+                      <table style="width: 100%">
+                        <tr>
+                          <td style="width: 22.5%"><span t-field="o.receiver_address_phone"/></td>
+                          <td style="width: 15%"><b>Destino:</b></td>
+                          <td style="width: 62.5%"><span t-field="o.receiver_city"/>,<span t-field="o.receiver_state"/>
+                          <!--,<span t-field="o.receiver_country"/>--></td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><b>Tipo de envío:</b></td>
+                    <td style="background-color: #99FF99;"><span t-field="o.logistic_type"/> (<span t-field="o.tracking_method"/>)</td>
+                  </tr>
+                  <tr>
+                    <td><b>Producto(s):</b></td>
+                    <td>
+                      <span t-foreach="o.order.order_items" t-as="item">
+                        <span t-field="item.quantity"/> x <span t-field="item.posting_id.product_id.name"/>,
+                     </span>
+                     </td>
+                  </tr>
+                </table>
+              </td>
+              <td style="width: 35.5%">
+                Remitente: <!--span t-field="company.receiver_address_name"/-->
+              </td>
+            </tr>
+          </table>
+        </template>
 
         <template id="report_shipment">
 						<t t-call="meli_oerp.report_layout">
 							<t t-call="meli_oerp.internal_layout">
-						<div class="page">
-							<t t-foreach="docs" t-as="o">
-										<table style="width: 100%">
-											<tr>
-												<td style="width: 64.5%">
-													<table style="width: 100%">
-														<tr>
-															<td style="width: 20%"><b>Destinatario:</b></td>
-															<td><span t-field="o.receiver_address_name"/></td>
-														</tr>
-														<tr>
-															<td><b>Dirección:</b></td>
-															<td><span t-field="o.receiver_address_line"/></td>
-														</tr>
-														<tr>
-															<td><b>Teléfono:</b></td>
-															<td>
-																<table style="width: 100%">
-																	<tr>
-																		<td style="width: 22.5%"><span t-field="o.receiver_address_phone"/></td>
-																		<td style="width: 15%"><b>Destino:</b></td>
-																		<td style="width: 62.5%"><span t-field="o.receiver_city"/>,<span t-field="o.receiver_state"/>
-																		<!--,<span t-field="o.receiver_country"/>--></td>
-																	</tr>
-																</table>
-															</td>
-														</tr>
-														<tr>
-															<td><b>Tipo de envío:</b></td>
-															<td style="background-color: #99FF99;"><span t-field="o.tracking_method"/></td>
-														</tr>
-														<tr>
-															<td><b>Producto(s):</b></td>
-															<td>
-															  <span t-foreach="o.order.order_items" t-as="item">
-															    <span t-field="item.quantity"/> x <span t-field="item.posting_id.product_id.name"/>,
-															 </span>
-															 </td>
-														</tr>
-													</table>
-												</td>
-												<td style="width: 35.5%">
-													Remitente:
-												</td>
-											</tr>
-										</table>
-							</t>
-						</div>
-						</t>
+    						<div class="page">
+    							<t t-foreach="docs" t-as="o">
+    										<t t-call="meli_oerp.report_shipment_document">
+                        </t>
+    							</t>
+    						</div>
+  						</t>
 						</t>
         </template>
 
+        <template id="report_order_shipment">
+          <t t-call="meli_oerp.report_layout">
+            <t t-call="meli_oerp.internal_layout">
+              <div class="page">
+                <t t-foreach="docs" t-as="o">
+                    <t t-if="o.meli_shipment">
+                      <t t-set="o" t-value="o.meli_shipment"/>
+                      <t t-call="meli_oerp.report_shipment_document"></t>
+                    </t>
+                </t>
+              </div>
+            </t>
+          </t>
+        </template>
 
         <template id="report_layout_minimal" name="Report layout minimal">&lt;!DOCTYPE html&gt;
   			        <html t-att-lang="lang and lang.replace('_', '-')"
