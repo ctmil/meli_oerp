@@ -518,7 +518,7 @@ class product_product(models.Model):
         company = self.env.user.company_id
         product = self
         product_tmpl = product.product_tmpl_id
-        _logger.info("set_meli_price: "+str(product_tmpl.list_price)+ " >> "+str(product_tmpl.display_name)+": "+str(product_tmpl.meli_price)+" | "+str(product.display_name)+": "+str(product.meli_price) )
+        #_logger.info("set_meli_price: "+str(product_tmpl.list_price)+ " >> "+str(product_tmpl.display_name)+": "+str(product_tmpl.meli_price)+" | "+str(product.display_name)+": "+str(product.meli_price) )
 
         pl = False
         if company.mercadolibre_pricelist:
@@ -541,10 +541,10 @@ class product_product(models.Model):
             return_val = pl.price_get(product.id,1.0)
             if pl.id in return_val:
                 new_price = return_val[pl.id]
-            _logger.info("return_val: ")
-            _logger.info(return_val)
+            #_logger.info("return_val: ")
+            #_logger.info(return_val)
         else:
-            _logger.info( "new_price: " +str(new_price))
+            #_logger.info( "new_price: " +str(new_price))
             if ( product.lst_price ):
                 new_price = product.lst_price
 
@@ -563,7 +563,7 @@ class product_product(models.Model):
             if (txfixed>0 or txpercent>0):
                 #_logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_converted))
                 new_price = txfixed + new_price * (1.0 + txpercent*0.01)
-                _logger.info("Price adjusted with taxes:"+str(new_price))
+                #_logger.info("Price adjusted with taxes:"+str(new_price))
 
         new_price = round(new_price,2)
 
@@ -574,10 +574,10 @@ class product_product(models.Model):
         product.meli_price = product_tmpl.meli_price
 
         product_tmpl.meli_price = str(int(float(product_tmpl.meli_price)))
-        _logger.info("product_tmpl.meli_price updated: " + str(product_tmpl.meli_price))
+        #_logger.info("product_tmpl.meli_price updated: " + str(product_tmpl.meli_price))
 
         product.meli_price = str(int(float(product.meli_price)))
-        _logger.info("product.meli_price updated: " + str(product.meli_price))
+        #_logger.info("product.meli_price updated: " + str(product.meli_price))
 
         return product.meli_price
 
@@ -966,8 +966,9 @@ class product_product(models.Model):
                             ml_attribute = self.env['mercadolibre.category.attribute'].search([('att_id','=',att['att_id'])])
                             attribute = []
                             if (len(ml_attribute)>1):
-                                ml_attribute = ml_attribute[0]
-                                attribute = self.env['product.attribute'].search([('meli_default_id_attribute','=',ml_attribute.id)])
+                                ml_attribute = self.env['mercadolibre.category.attribute'].search([('att_id','=',att['att_id']),('cat_id','=',product.meli_cat_id)])
+                                if (len(ml_attribute)==1):
+                                    attribute = self.env['product.attribute'].search([('meli_default_id_attribute','=',ml_attribute.id)])
                             if (len(ml_attribute)==1):
                                 attribute = self.env['product.attribute'].search([('meli_default_id_attribute','=',ml_attribute.id)])
                             if (len(attribute)==0):
