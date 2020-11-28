@@ -65,6 +65,7 @@
                               <field name="meli_order_id" invisible="0"/>
                               <field name="meli_status" invisible="0"/>
                               <field name="meli_shipment" invisible="0"/>
+                              <field name="meli_shipment_logistic_type" invisible="0"/>
                               <field name="meli_status_detail" invisible="0"/>
                               <field name="meli_total_amount" invisible="0"/>
                               <field name="meli_shipping_cost" invisible="0"/>

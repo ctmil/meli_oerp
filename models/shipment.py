@@ -275,6 +275,7 @@ class mercadolibre_shipment(models.Model):
 	status_history = fields.Text(string="status_history")
 	tracking_number = fields.Char(string="Tracking number")
 	tracking_method = fields.Char(string="Tracking method")
+	comments = fields.Char(string="Tracking Custom Comments")
 
 
 	date_first_printed = fields.Datetime(string='First Printed date')
@@ -358,20 +359,22 @@ class mercadolibre_shipment(models.Model):
 				sorder.partner_id.phone = shipment.receiver_address_phone
 				#sorder.partner_id.state = ships.receiver_state
 
+			ship_name = shipment.tracking_method or (shipment.mode=="custom" and "Personalizado")
+
 			product_shipping_id = product_obj.search(['|','|',('default_code','=','ENVIO'),
-                        ('default_code','=',shipment.tracking_method),
-                        ('name','=',shipment.tracking_method)] )
+						('default_code','=',ship_name),
+						('name','=',ship_name)] )
 
 			if len(product_shipping_id):
 				product_shipping_id = product_shipping_id[0]
 			else:
 				product_shipping_id = None
 				ship_prod = {
-					"name": shipment.tracking_method,
-					"default_code": shipment.tracking_method,
+					"name": ship_name,
+					"default_code": ship_name,
 					"type": "service",
 					#"taxes_id": None
-				}
+				}				
 				_logger.info(ship_prod)
 				product_shipping_tpl = product_tpl.create((ship_prod))
 				if (product_shipping_tpl):
@@ -381,7 +384,24 @@ class mercadolibre_shipment(models.Model):
 			if (not product_shipping_id):
 				_logger.info('Failed to create shipping product service')
 				continue
-                
+				
+			ship_carrier = {
+				"name": ship_name,					
+			}
+			ship_carrier["product_id"] = product_shipping_id.id
+			ship_carrier_id = self.env["delivery.carrier"].search([ ('name','=',ship_carrier['name']) ])
+			if not ship_carrier_id:
+				ship_carrier_id = self.env["delivery.carrier"].create(ship_carrier)
+			if (len(ship_carrier_id)>1):
+				ship_carrier_id = ship_carrier_id[0]
+				
+			stock_pickings = self.env["stock.picking"].search([('sale_id','=',sorder.id)])
+			#carrier_id = self.env["delivery.carrier"].search([('name','=',)])
+			for st_pick in stock_pickings:
+				if ship_carrier_id:
+					st_pick.carrier_id = ship_carrier_id
+				st_pick.carrier_tracking_ref = shipment.tracking_number
+				
 			if (shipment.tracking_method == "MEL Distribution"):
 				_logger.info('MEL Distribution, not adding to order')
 				continue
@@ -455,7 +475,7 @@ class mercadolibre_shipment(models.Model):
 			else:
 				_logger.info("Saving shipment fields")
 				ship_fields = {
-					"name": "MSO ["+str(ship_id)+"] "+str(ship_json["shipping_option"]["name"]),
+					"name": "MSO ["+str(ship_id)+"] "+str("")+str(ship_json["status"])+"/"+str(ship_json["substatus"])+str(""),
 					"order": order.id,
 					"shipping_id": ship_json["id"],
 					"site_id": ship_json["site_id"],
@@ -473,6 +493,7 @@ class mercadolibre_shipment(models.Model):
 					#"status_history": ship_json["status_history"],
 					"tracking_number": ship_json["tracking_number"],
 					"tracking_method": ship_json["tracking_method"],
+					"comments": ship_json["comments"] or '',
 					"date_first_printed": ml_datetime(ship_json["date_first_printed"]),
 					"receiver_id": ship_json["receiver_id"],
 					"receiver_address_id": ship_json["receiver_address"]["id"],

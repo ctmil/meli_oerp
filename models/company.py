@@ -774,9 +774,7 @@ class res_company(models.Model):
         if (company.mercadolibre_cron_post_update_price):
             _logger.info("product_ids stock to update:")
             product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False)])
-            #product_ids = self.env['product.product'].search([('meli_pub','=',True)])
-            _logger.info(product_ids)
-            #_logger.info("product_ids stock to update:" + str(product_ids))
+            _logger.info("product_ids stock to update:" + str(product_ids))
             if product_ids:
                 for obj in product_ids:
                     try:

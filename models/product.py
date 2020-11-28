@@ -858,6 +858,10 @@ class product_product(models.Model):
             _logger.info(e, exc_info=True)
 
     def _get_non_variant_attributes( self, attributes ):
+
+        product = self
+        product_template = product.product_tmpl_id
+
         if (len(attributes) ):
             for att in attributes:
                 try:
@@ -962,8 +966,9 @@ class product_product(models.Model):
                             ml_attribute = self.env['mercadolibre.category.attribute'].search([('att_id','=',att['att_id'])])
                             attribute = []
                             if (len(ml_attribute)>1):
-                                ml_attribute = ml_attribute[0]
-                                attribute = self.env['product.attribute'].search([('meli_default_id_attribute','=',ml_attribute.id)])
+                                ml_attribute = self.env['mercadolibre.category.attribute'].search([('att_id','=',att['att_id']),('cat_id','=',product.meli_cat_id)])
+                                if (len(ml_attribute)==1):
+                                    attribute = self.env['product.attribute'].search([('meli_default_id_attribute','=',ml_attribute.id)])
                             if (len(ml_attribute)==1):
                                 attribute = self.env['product.attribute'].search([('meli_default_id_attribute','=',ml_attribute.id)])
                             if (len(attribute)==0):
