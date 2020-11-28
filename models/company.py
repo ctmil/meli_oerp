@@ -772,13 +772,15 @@ class res_company(models.Model):
 
 
     def meli_update_remote_price(self):
-        if (self.mercadolibre_cron_post_update_price):
+        company = self.env.user.company_id
+        if (company.mercadolibre_cron_post_update_price):
+            _logger.info("product_ids stock to update:")
             product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False)])
             _logger.info("product_ids stock to update:" + str(product_ids))
             if product_ids:
                 for obj in product_ids:
                     try:
-                        _logger.info( "Product remote to update: " + str(obj.id)  )
+                        #_logger.info( "Product remote to update: " + str(obj.id)  )
                         if (obj.meli_id and (obj.meli_status=='active')):
                             obj.product_post_price()
                     except Exception as e:
