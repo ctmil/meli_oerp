@@ -301,7 +301,7 @@
 
             <report
                         id="report_invoice_shipment_view"
-                        string="Shipment Report"
+                        string="Invoice Shipment Report (with labels)"
                         model="account.invoice"
                         report_type="qweb-pdf"
                         file="meli_oerp.report_invoice_shipment"

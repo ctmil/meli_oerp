@@ -35,7 +35,7 @@
             <t t-call="web.html_container">
                 <t t-foreach="docs" t-as="o">
                     <t t-set="lang" t-value="o.user_id.lang if o.type in ('in_invoice', 'in_refund') else o.partner_id.lang"/>
-                    <t t-call="meli_oerp.report_invoice_document_with_shipment" t-lang="lang"/>
+                    <t t-call="account.report_invoice_document" t-lang="lang"/>
                     <t t-call="web.report_layout">
         							<t t-call="meli_oerp.internal_layout">
                         <t t-set="shipment" t-value="o._get_shipment()"/>
@@ -49,6 +49,7 @@
                       </t>
                     </t>
                 </t>
+                
                 <t t-call="meli_oerp.report_layout">
                   <t t-call="meli_oerp.internal_layout">
                     <div class="page">
