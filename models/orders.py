@@ -91,7 +91,13 @@ class sale_order(models.Model):
     meli_shipment_logistic_type = fields.Char(string="Logistic Type",index=True)
 
     def _get_meli_invoices(self):
-        return self.env["account.invoice"].search([('origin','=',self.name)])
+        invoices = self.env["account.invoice"].search([('origin','=',self.name)])
+        _logger.info("_get_meli_invoices")
+        _logger.info(self)
+        _logger.info(invoices)
+        if invoices:
+            return invoices[0]
+        return None
 
     def confirm_ml(self):
 
