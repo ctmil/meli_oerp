@@ -311,5 +311,17 @@
                         print_report_name="'Reporte de facturas con etiquetas'"
                         
                     />
+                    
+          <report
+                      id="report_invoice_shipment_from_order_view"
+                      string="Invoice Shipment Report from Order (with labels)"
+                      model="account.invoice"
+                      report_type="qweb-pdf"
+                      file="meli_oerp.report_invoice_shipment_from_order"
+                      name="meli_oerp.report_invoice_shipment_from_order"
+                      menu="True"
+                      print_report_name="'Reporte de facturas con etiquetas'"
+                      
+                  />
     </data>
 </odoo>

@@ -90,6 +90,8 @@ class sale_order(models.Model):
     meli_shipment = fields.Many2one('mercadolibre.shipment',string='Meli Shipment Obj')
     meli_shipment_logistic_type = fields.Char(string="Logistic Type",index=True)
 
+    def _get_meli_invoices(self):
+        return self.env["account.invoice"].search([('origin','=',self.name)])
 
     def confirm_ml(self):
 
