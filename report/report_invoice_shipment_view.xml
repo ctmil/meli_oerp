@@ -31,24 +31,24 @@
       </template-->
 
       <template id="report_invoice_shipment">
-            <t t-call="web.html_container">
-                <t t-foreach="docs" t-as="o">
-                    <t t-set="lang" t-value="o.user_id.lang if o.type in ('in_invoice', 'in_refund') else o.partner_id.lang"/>
-                    <t t-call="account.report_invoice_document" t-lang="lang"/>
-                    <!--t t-call="web.report_layout">
-        							<t t-call="meli_oerp.internal_layout">
-                        <t t-set="shipment" t-value="o._get_shipment()"/>
-                        <div class="page" style="margin: 0px !important;padding: 0px !important;">
-                          <h2>Shipment</h2>
-                          <img
-                            style="margin: 0px !important;padding: 0px !important;" width="650" t-att-src="'data:image/jpeg;base64,%s' % to_text(shipment['pdfimage_file'])"
-                            t-att-title="shipment['shipping_id']"
-                            t-att-alt="shipment['pdfimage_filename']"/>
-                        </div>
-                      </t>
-                    </t-->
-                </t>
-            </t>
+          <t t-call="web.external_layout">
+              <t t-foreach="docs" t-as="o">
+                  <t t-set="lang" t-value="o.user_id.lang if o.type in ('in_invoice', 'in_refund') else o.partner_id.lang"/>
+                  <t t-call="l10n_co_cei.report_invoice_document_custom" t-lang="lang"/>
+                  <t t-call="web.report_layout">
+                    <t t-call="meli_oerp.internal_layout">
+                      <t t-set="shipment" t-value="o._get_shipment()"/>
+                      <div class="page" style="margin: 0px !important;padding: 0px !important;">
+                        <!--h2>Shipment</h2-->
+                        <img
+                          style="margin: 0px !important;padding: 0px !important;" width="650" t-att-src="'data:image/jpeg;base64,%s' % to_text(shipment['pdfimage_file'])"
+                          t-att-title="shipment['shipping_id']"
+                          t-att-alt="shipment['pdfimage_filename']"/>
+                      </div>
+                    </t>
+                  </t>
+              </t>
+          </t>
       </template>
 
 
