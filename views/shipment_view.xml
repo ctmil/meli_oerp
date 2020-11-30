@@ -285,6 +285,7 @@
                         name="meli_oerp.report_shipment"
                         menu="True"
                         print_report_name="'Reporte de etiquetas'"
+                        paperformat="meli_oerp.paperformat_invoice_shipment"
                     />
 
             <report
@@ -308,7 +309,7 @@
                         name="meli_oerp.report_invoice_shipment"
                         menu="True"
                         print_report_name="'Reporte de facturas con etiquetas'"
-                        paperformat="meli_oerp.paperformat_invoice_shipment"
+                        
                     />
     </data>
 </odoo>
