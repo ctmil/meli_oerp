@@ -106,9 +106,10 @@ class mercadolibre_shipment_print(models.TransientModel):
 						images = convert_from_bytes(data, dpi=300,fmt='jpg')
 						if (1==1 and len(images)>1):
 							for image in images:
-								image.save("/tmp/%s-page%d.jpg" % ("Shipment_"+shipment.shipping_id,images.index(image)), "JPEG")
+								image_filename = "/tmp/%s-page%d.jpg" % ("Shipment_"+shipment.shipping_id, images.index(image))
+								image.save(image_filename, "JPEG")
 								if (images.index(image)==0):
-									imgdata = urlopen("file:///tmp/Shipment_"+shipment.shipping_id+"-page1.jpg").read()
+									imgdata = urlopen("file://"+image_filename).read()
 									shipment.pdfimage_file = base64.encodestring(imgdata)
 									shipment.pdfimage_filename = "Shipment_"+shipment.shipping_id+".jpg"
 					except Exception as e:
@@ -187,9 +188,10 @@ class mercadolibre_shipment_print(models.TransientModel):
 						images = convert_from_bytes(data, dpi=300,fmt='jpg')
 						if (1==1 and len(images)>1):
 							for image in images:
-								image.save("/tmp/%s-page%d.jpg" % ("Shipment_"+shipment.shipping_id,images.index(image)), "JPEG")
+								image_filename = "/tmp/%s-page%d.jpg" % ("Shipment_"+shipment.shipping_id, images.index(image))
+								image.save(image_filename, "JPEG")
 								if (images.index(image)==0):
-									imgdata = urlopen("file:///tmp/Shipment_"+shipment.shipping_id+"-page1.jpg").read()
+									imgdata = urlopen("file://"+image_filename).read()
 									shipment.pdfimage_file = base64.encodestring(imgdata)
 									shipment.pdfimage_filename = "Shipment_"+shipment.shipping_id+".jpg"
 					except Exception as e:
@@ -586,9 +588,10 @@ class mercadolibre_shipment(models.Model):
 								data = base64.b64decode( shipment.pdf_file )
 								images = convert_from_bytes(data, dpi=300,fmt='jpg')
 								for image in images:
-									image.save("/tmp/%s-page%d.jpg" % ("Shipment_"+shipment.shipping_id,images.index(image)), "JPEG")
-									if (images.index(image)==1):
-										imgdata = urlopen("file:///tmp/Shipment_"+shipment.shipping_id+"-page1.jpg").read()
+									image_filename = "/tmp/%s-page%d.jpg" % ("Shipment_"+shipment.shipping_id, images.index(image))
+									image.save(image_filename, "JPEG")
+									if (images.index(image)==0):
+										imgdata = urlopen("file://"+image_filename).read()
 										shipment.pdfimage_file = base64.encodestring(imgdata)
 										shipment.pdfimage_filename = "Shipment_"+shipment.shipping_id+".jpg"
 								#if (len(images)):
