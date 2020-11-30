@@ -111,7 +111,12 @@
                 </table>
               </td>
               <td style="width: 35.5%">
-                Remitente: <!--span t-field="company.receiver_address_name"/-->
+                <b>Remitente:</b> 
+                 <t t_if="o.sale_order">
+                   <span t-field="o.sale_order.company_id.name"/> / NIT: <span t-field="o.sale_order.company_id.vat"/><br/> 
+                  - <span t-field="o.sale_order.company_id.street"/> / <span t-field="o.sale_order.company_id.city"/><br/>
+                 <span t-field="o.sale_order.company_id.phone"/>
+                 </t>
               </td>
             </tr>
           </table>
