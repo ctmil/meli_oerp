@@ -776,5 +776,18 @@ class AccountInvoice(models.Model):
 			else:
 				_logger.info("No order found for:"+str(self.origin))
 		return ret
+		
+	@api.model
+	def _get_meli_shipment(self):
+		ret = False
+		if (self.origin):
+			order = self.env["sale.order"].search([('name','=',self.origin)])
+			if (order.id):
+				_logger.info("Order found in _get_shipment:"+str(order.name))
+				#if (order.meli_order_id)
+				if (order.meli_shipment):
+					return order.meli_shipment
 
+		return ret
+		
 AccountInvoice()

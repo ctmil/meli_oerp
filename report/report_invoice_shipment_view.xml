@@ -31,7 +31,7 @@
       </template-->
 
       <template id="report_invoice_shipment">
-          <t t-call="web.external_layout">
+        <t t-call="web.external_layout">
               <t t-foreach="docs" t-as="o">
                   <t t-set="lang" t-value="o.user_id.lang if o.type in ('in_invoice', 'in_refund') else o.partner_id.lang"/>
                   <t t-call="l10n_co_cei.report_invoice_document_custom" t-lang="lang"/>
@@ -49,6 +49,19 @@
                   </t>
               </t>
           </t>
+          <t t-call="meli_oerp.report_layout">
+            <t t-call="meli_oerp.internal_layout">
+              <div class="page">
+                <t t-foreach="docs" t-as="o">
+                    <t t-set="shipment" t-value="o._get_meli_shipment()"/>
+                    <t t-if="shipment">
+                      <t t-set="o" t-value="shipment"/>
+                      <t t-call="meli_oerp.report_shipment_document"></t>
+                    </t>
+                </t>
+              </div>
+            </t>
+        </t>
       </template>
 
 
