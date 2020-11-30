@@ -64,7 +64,7 @@
         </t>
       </template>
 
-        <template id="report_invoice_shipment_from_order_view">
+        <template id="report_invoice_shipment_from_order">
             <t t-call="web.external_layout">
                 <t t-foreach="docs" t-as="o">
                     <t t-set="o" t-value="o._get_meli_invoices()"/>
