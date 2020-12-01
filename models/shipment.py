@@ -362,6 +362,9 @@ class mercadolibre_shipment(models.Model):
 				#sorder.partner_id.state = ships.receiver_state
 
 			ship_name = shipment.tracking_method or (shipment.mode=="custom" and "Personalizado")
+            
+			if not ship_name or len(ship_name)==0:
+				continue;
 
 			product_shipping_id = product_obj.search(['|','|',('default_code','=','ENVIO'),
 						('default_code','=',ship_name),
