@@ -409,7 +409,7 @@ class mercadolibre_shipment(models.Model):
 				
 			if (shipment.tracking_method == "MEL Distribution"):
 				_logger.info('MEL Distribution, not adding to order')
-				continue
+				#continue
 
 			saleorderline_item_fields = {
 				'company_id': company.id,
