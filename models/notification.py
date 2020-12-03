@@ -283,7 +283,7 @@ class MercadolibreNotification(models.Model):
 
         hash = hashlib.md5()
         hash.update( base_str.encode() )
-        hexhash = hash.hexdigest()
+        hexhash = str("i-")+hash.hexdigest()
 
         internals["processing_started"] = date_time
         internals["_id"] = hexhash
