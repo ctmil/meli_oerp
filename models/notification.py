@@ -276,7 +276,7 @@ class MercadolibreNotification(models.Model):
             for noti in received:
                 noti.process_notification()
 
-    def create_internal_notification(self, internals):
+    def start_internal_notification(self, internals):
 
         now = datetime.now()
         date_time = now.strftime("%m/%d/%Y, %H:%M:%S")
@@ -285,6 +285,8 @@ class MercadolibreNotification(models.Model):
         hash = hashlib.blake2b()
         hash.update( base_str.encode() )
         hexhash = hash.hexdigest()
+
+        internals["processing_started"] = ml_datetime( str( datetime.now() ) )
         internals["_id"] = hexhash
         internals["received"] = date_time
         internals["sent"] = date_time
@@ -295,3 +297,8 @@ class MercadolibreNotification(models.Model):
         noti = self.create(vals)
 
         return  noti
+
+    def stop_internal_notification(self, errors="", logs=""):
+        self.processing_ended = ml_datetime( str( datetime.now() ) )
+        self.processing_errors = str(errors)
+        self.processing_logs = str(logs)
