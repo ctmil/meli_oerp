@@ -763,7 +763,7 @@ class res_company(models.Model):
                         icommit+= 1
                         try:
                             _logger.info( "Update Stock: #" + str(icommit) +'/'+str(maxcommits)+ ' meli_id:'+str(obj.meli_id)  )
-                            logs+= str(obj.meli_id)+":"+str(obj.meli_id)+":"+str(obj.meli_available_quantity)+","
+                            logs+= str(obj.meli_id)+":"+str(obj.meli_id)+":"+str(obj.meli_available_quantity)+", "
                             obj.product_post_stock()
                         except Exception as e:
                             _logger.info("meli_update_remote_stock > Exception founded!")
