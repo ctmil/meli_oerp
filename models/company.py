@@ -740,22 +740,24 @@ class res_company(models.Model):
 
     def meli_update_remote_stock(self):
         company = self.env.user.company_id
-        logs = ""
         if (company.mercadolibre_cron_post_update_stock):
             product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False)])
             _logger.info("product_ids stock to update:" + str(product_ids))
             _logger.info("updating stock #" + str(len(product_ids)))
             icommit = 0
             maxcommits = len(product_ids)
+            internals = {
+                "application_id": company.mercadolibre_client_id,
+                "user_id": company.mercadolibre_seller_id,
+                "topic": "internal",
+                "resource": "meli_update_remote_stock #"+str(maxcommits),
+                "state": "PROCESSING"
+            }
+            noti = self.env["mercadolibre.notification"].start_internal_notification( internals )
+            logs = ""
+            errors = ""
             try:
-                internals = {
-                    "application_id": company.mercadolibre_client_id,
-                    "user_id": company.mercadolibre_seller_id,
-                    "topic": "internal",
-                    "resource": "meli_update_remote_stock #"+str(maxcommits),
-                    "state": "PROCESSING"
-                }
-                noti = self.env["mercadolibre.notification"].start_internal_notification( internals )
+
 
                 for obj in product_ids:
                     #_logger.info( "Product check if active: " + str(obj.id)+ ' meli_id:'+str(obj.meli_id)  )
@@ -763,17 +765,20 @@ class res_company(models.Model):
                         icommit+= 1
                         try:
                             _logger.info( "Update Stock: #" + str(icommit) +'/'+str(maxcommits)+ ' meli_id:'+str(obj.meli_id)  )
-                            logs+= str(obj.meli_id)+":"+str(obj.meli_id)+":"+str(obj.meli_available_quantity)+", "
                             obj.product_post_stock()
+                            logs+= str(obj.default_code)+" "+str(obj.meli_id)+": "+str(obj.meli_available_quantity)+", "
                         except Exception as e:
                             _logger.info("meli_update_remote_stock > Exception founded!")
                             _logger.info(e, exc_info=True)
+                            logs+= str(obj.default_code)+" "+str(obj.meli_id)+": "+str(obj.meli_available_quantity)+", "
+                            errors+= str(obj.default_code)+" "+str(obj.meli_id)+" >> "+str(e.args[0])+str(", ")
 
-                noti.stop_internal_notification(errors="",logs=str(logs))
+                noti.stop_internal_notification(errors=errors,logs=logs)
 
             except Exception as e:
                 _logger.info("meli_update_remote_stock > Exception founded!")
                 _logger.info(e, exc_info=True)
+                noti.stop_internal_notification( errors=errors , logs=logs )
 
         return {}
 
