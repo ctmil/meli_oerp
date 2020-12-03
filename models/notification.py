@@ -33,6 +33,8 @@ from odoo import tools
 from . import versions
 from .versions import *
 
+import hashlib
+
 #https://api.mercadolibre.com/questions/search?item_id=MLA508223205
 #https://api.mercadolibre.com/myfeeds?app_id=3219083410743656&offset=1&limit=5&access_token=APP_USR-3219083410743656-110520-aac05cf817595680f2f2bfed74062e3f-387126569
 #
@@ -272,3 +274,23 @@ class MercadolibreNotification(models.Model):
         if (received and len(received)):
             for noti in received:
                 noti.process_notification()
+
+    def create_internal_notification(self, internals):
+
+        now = datetime.now()
+        date_time = now.strftime("%m/%d/%Y, %H:%M:%S")
+        base_str = str(internals["application_id"]) + str(internals["user_id"]) + str(date_time)
+
+        hash = hashlib.blake2b()
+        hash.update( base_str.encode() )
+        hexhash = hash.hexdigest()
+        internals["_id"] = hexhash
+        internals["received"] = date_time
+        internals["sent"] = date_time
+        internals["attempts"] = 1
+        internals["state"] = "RECEIVED"
+
+        vals = self._prepare_values(values=internals)
+        noti = self.create(vals)
+
+        return  noti
