@@ -54,6 +54,11 @@
 								<field name="processing_errors" />
 							</group>
 						</group>
+						<group>
+							<group>
+								<field name="processing_logs" />
+						</group>
+					</group>
 					</sheet>
 				</form>
 			</field>
