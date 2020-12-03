@@ -769,7 +769,7 @@ class res_company(models.Model):
                             _logger.info("meli_update_remote_stock > Exception founded!")
                             _logger.info(e, exc_info=True)
 
-                noti.stop_internal_notification(errros="",logs=str(logs))
+                noti.stop_internal_notification(errors="",logs=str(logs))
 
             except Exception as e:
                 _logger.info("meli_update_remote_stock > Exception founded!")
