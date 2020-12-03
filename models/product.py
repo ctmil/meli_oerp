@@ -2687,7 +2687,7 @@ class product_product(models.Model):
 
             #if (product.virtual_available>=0):
             if (not product_fab):
-                product.meli_available_quantity = product.virtual_available
+                product.meli_available_quantity = product._meli_available_quantity()
 
             if product.meli_available_quantity<0:
                 product.meli_available_quantity = 0
