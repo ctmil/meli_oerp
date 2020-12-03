@@ -281,7 +281,7 @@ class MercadolibreNotification(models.Model):
         date_time = ml_datetime( str( datetime.now() ) )
         base_str = str(internals["application_id"]) + str(internals["user_id"]) + str(date_time)
 
-        hash = hashlib.blake2b()
+        hash = hashlib.md5()
         hash.update( base_str.encode() )
         hexhash = hash.hexdigest()
 
