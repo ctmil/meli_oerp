@@ -278,15 +278,14 @@ class MercadolibreNotification(models.Model):
 
     def start_internal_notification(self, internals):
 
-        now = datetime.now()
-        date_time = now.strftime("%m/%d/%Y, %H:%M:%S")
+        date_time = ml_datetime( str( datetime.now() ) )
         base_str = str(internals["application_id"]) + str(internals["user_id"]) + str(date_time)
 
         hash = hashlib.blake2b()
         hash.update( base_str.encode() )
         hexhash = hash.hexdigest()
 
-        internals["processing_started"] = ml_datetime( str( datetime.now() ) )
+        internals["processing_started"] = date_time
         internals["_id"] = hexhash
         internals["received"] = date_time
         internals["sent"] = date_time
