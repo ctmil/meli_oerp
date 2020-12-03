@@ -765,13 +765,13 @@ class res_company(models.Model):
                         try:
                             _logger.info( "Update Stock: #" + str(icommit) +'/'+str(maxcommits)+ ' meli_id:'+str(obj.meli_id)  )
                             logs+= str(obj.meli_id)+":"+str(obj.meli_id)+":"+str(obj.meli_available_quantity)+","
-                            obj.product_post_stock()                            
+                            obj.product_post_stock()
                         except Exception as e:
                             _logger.info("meli_update_remote_stock > Exception founded!")
                             _logger.info(e, exc_info=True)
 
                 noti.processing_ended = ml_datetime(str(datetime.now()))
-                noti.processing_errors = str(logs)
+                noti.processing_logs = str(logs)
 
             except Exception as e:
                 _logger.info("meli_update_remote_stock > Exception founded!")

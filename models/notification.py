@@ -73,7 +73,8 @@ class MercadolibreNotification(models.Model):
 		], string='Notification State', index=True )
     processing_started = fields.Datetime( string="Processing started" )
     processing_ended = fields.Datetime( string="Processing ended" )
-    processing_errors = fields.Text( string="Processing errors log" )
+    processing_errors = fields.Text( string="Processing Errors log" )
+    processing_logs = fields.Text( string="Processing Logs" )
 
     _sql_constraints = [
         #('ref_uniq', 'unique(notification_id, application_id, user_id, topic)', 'Notification Id must be unique!'),
