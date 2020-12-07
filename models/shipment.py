@@ -362,7 +362,7 @@ class mercadolibre_shipment(models.Model):
 				#sorder.partner_id.state = ships.receiver_state
 
 			ship_name = shipment.tracking_method or (shipment.mode=="custom" and "Personalizado")
-            
+			
 			if not ship_name or len(ship_name)==0:
 				continue;
 
@@ -403,14 +403,28 @@ class mercadolibre_shipment(models.Model):
 			stock_pickings = self.env["stock.picking"].search([('sale_id','=',sorder.id),('name','like','OUT')])
 			#carrier_id = self.env["delivery.carrier"].search([('name','=',)])
 			for st_pick in stock_pickings:
-				if ( 1==2 and ship_carrier_id ):
-					st_pick.carrier_id = ship_carrier_id
+				#if ( 1==2 and ship_carrier_id ):
+				#	st_pick.carrier_id = ship_carrier_id
 				st_pick.carrier_tracking_ref = shipment.tracking_number
 				
 			if (shipment.tracking_method == "MEL Distribution"):
 				_logger.info('MEL Distribution, not adding to order')
 				#continue
 
+			sorder.carrier_id = ship_carrier_id
+			vals = sorder.carrier_id.rate_shipment(order_sudo)
+			if vals.get('success'):
+				delivery_price = shipment.shipping_cost
+				delivery_message = vals.get('warning_message', False)
+				delivery_price = vals['price']
+				display_price = vals['carrier_price']
+				_logger.info(vals)
+				sorder.set_delivery_line(sorder.carrier_id, delivery_price)
+				sorder.write({
+					'recompute_delivery_price': False,
+					'delivery_message': delivery_message,
+				})
+			
 			saleorderline_item_fields = {
 				'company_id': company.id,
 				'order_id': sorder.id,
@@ -424,11 +438,12 @@ class mercadolibre_shipment(models.Model):
 			}
 			saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),
 																('order_id','=',sorder.id)] )
+			
 			if not saleorderline_item_ids and (shipment.shipping_cost>0):
-				saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
-				#saleorderline_item_ids.tax_id = None
+				#saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
+				pass;
 			else:
-				if (shipment.shipping_cost>0):
+				if (1==2 and shipment.shipping_cost>0):
 					saleorderline_item_ids.write( ( saleorderline_item_fields ) )
 					#saleorderline_item_ids.tax_id = None
 				else:
