@@ -411,7 +411,7 @@ class mercadolibre_shipment(models.Model):
 				_logger.info('MEL Distribution, not adding to order')
 				#continue
 
-			if (ship_carrier_id):
+			if (ship_carrier_id and not sorder.carrier_id):
 				sorder.carrier_id = ship_carrier_id
 				#vals = sorder.carrier_id.rate_shipment(sorder)
 				#if vals.get('success'):
@@ -423,7 +423,7 @@ class mercadolibre_shipment(models.Model):
 				#_logger.info(vals)
 				sorder._create_delivery_line(sorder.carrier_id, delivery_price)
 				sorder.write({
-					'recompute_delivery_price': False,
+					#'recompute_delivery_price': False,
 					'delivery_message': delivery_message,
 				})
 			
