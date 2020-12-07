@@ -411,14 +411,16 @@ class mercadolibre_shipment(models.Model):
 				_logger.info('MEL Distribution, not adding to order')
 				#continue
 
-			sorder.carrier_id = ship_carrier_id
-			vals = sorder.carrier_id.rate_shipment(order_sudo)
-			if vals.get('success'):
+			if (ship_carrier_id):
+				sorder.carrier_id = ship_carrier_id
+				#vals = sorder.carrier_id.rate_shipment(sorder)
+				#if vals.get('success'):
+				#delivery_message = vals.get('warning_message', False)
+				delivery_message = "Defined by MELI"
+				#delivery_price = vals['price']
 				delivery_price = shipment.shipping_cost
-				delivery_message = vals.get('warning_message', False)
-				delivery_price = vals['price']
-				display_price = vals['carrier_price']
-				_logger.info(vals)
+				#display_price = vals['carrier_price']
+				#_logger.info(vals)
 				sorder.set_delivery_line(sorder.carrier_id, delivery_price)
 				sorder.write({
 					'recompute_delivery_price': False,
