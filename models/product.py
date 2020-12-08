@@ -425,7 +425,7 @@ class product_image(models.Model):
     meli_published = fields.Boolean(string='Publicado en ML',index=True)
 
     _sql_constraints = [
-        ('unique_meli_imagen_id', 'unique(meli_imagen_id)', 'Meli Imagen Id already exists!')
+        ('unique_meli_imagen_id', 'unique(product_tmpl_id,product_variant_id,meli_imagen_id)', 'Meli Imagen Id already exists!')
     ]
 
     def calculate_hash(self):
@@ -967,6 +967,8 @@ class product_product(models.Model):
                             attribute = []
                             if (len(ml_attribute)>1):
                                 ml_attribute = self.env['mercadolibre.category.attribute'].search([('att_id','=',att['att_id']),('cat_id','=',product.meli_cat_id)])
+                                if not ml_attribute:
+                                    ml_attribute = self.env['mercadolibre.category.attribute'].search([('att_id','=',att['att_id'])])[0]
                                 if (len(ml_attribute)==1):
                                     attribute = self.env['product.attribute'].search([('meli_default_id_attribute','=',ml_attribute.id)])
                             if (len(ml_attribute)==1):

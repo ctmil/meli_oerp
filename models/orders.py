@@ -93,11 +93,13 @@ class sale_order(models.Model):
     def action_done(self):
         res = super(sale_order,self).action_done()
         try:
-            for order in self:
-                for line in order.order_line:
-                    if line.product_id and line.product_id.meli_id and line.product_id.meli_pub:
-                        _logger.info("Order done: product_post_stock: "+str(line.product_id.meli_id))
-                        line.product_id.product_post_stock()
+            company = self.env.user.company_id
+            if (company.mercadolibre_cron_post_update_stock):
+                for order in self:
+                    for line in order.order_line:
+                        if line.product_id and line.product_id.meli_id and line.product_id.meli_pub:
+                            _logger.info("Order done: product_post_stock: "+str(line.product_id.meli_id))
+                            line.product_id.product_post_stock()
         except:
             pass;
         return res
