@@ -33,6 +33,8 @@ from odoo import tools
 from . import versions
 from .versions import *
 
+import hashlib
+
 #https://api.mercadolibre.com/questions/search?item_id=MLA508223205
 #https://api.mercadolibre.com/myfeeds?app_id=3219083410743656&offset=1&limit=5&access_token=APP_USR-3219083410743656-110520-aac05cf817595680f2f2bfed74062e3f-387126569
 #
@@ -71,7 +73,8 @@ class MercadolibreNotification(models.Model):
 		], string='Notification State', index=True )
     processing_started = fields.Datetime( string="Processing started" )
     processing_ended = fields.Datetime( string="Processing ended" )
-    processing_errors = fields.Text( string="Processing errors log" )
+    processing_errors = fields.Text( string="Processing Errors log" )
+    processing_logs = fields.Text( string="Processing Logs" )
 
     _sql_constraints = [
         #('ref_uniq', 'unique(notification_id, application_id, user_id, topic)', 'Notification Id must be unique!'),
@@ -272,3 +275,30 @@ class MercadolibreNotification(models.Model):
         if (received and len(received)):
             for noti in received:
                 noti.process_notification()
+
+    def start_internal_notification(self, internals):
+
+        date_time = ml_datetime( str( datetime.now() ) )
+        base_str = str(internals["application_id"]) + str(internals["user_id"]) + str(date_time)
+
+        hash = hashlib.md5()
+        hash.update( base_str.encode() )
+        hexhash = str("i-")+hash.hexdigest()
+
+        internals["processing_started"] = date_time
+        internals["_id"] = hexhash
+        internals["received"] = date_time
+        internals["sent"] = date_time
+        internals["attempts"] = 1
+        internals["state"] = "RECEIVED"
+
+        vals = self._prepare_values(values=internals)
+        noti = self.create(vals)
+
+        return  noti
+
+    def stop_internal_notification(self, errors="", logs=""):
+        self.processing_ended = ml_datetime( str( datetime.now() ) )
+        self.processing_errors = str(errors)
+        self.processing_logs = str(logs)
+        self.state = 'SUCCESS'

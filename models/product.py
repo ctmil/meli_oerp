@@ -425,7 +425,7 @@ class product_image(models.Model):
     meli_published = fields.Boolean(string='Publicado en ML',index=True)
 
     #_sql_constraints = [
-    #    ('unique_meli_imagen_id', 'unique(meli_imagen_id)', 'Meli Imagen Id already exists!')
+    #    ('unique_meli_imagen_id', 'unique(product_tmpl_id,product_variant_id,meli_imagen_id)', 'Meli Imagen Id already exists!')
     #]
 
     def calculate_hash(self):
@@ -2696,7 +2696,7 @@ class product_product(models.Model):
 
             #if (product.virtual_available>=0):
             if (not product_fab):
-                product.meli_available_quantity = product.virtual_available
+                product.meli_available_quantity = product._meli_available_quantity()
 
             if product.meli_available_quantity<0:
                 product.meli_available_quantity = 0
