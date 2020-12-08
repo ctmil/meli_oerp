@@ -611,6 +611,7 @@ class mercadolibre_orders(models.Model):
             return {'error': 'No partner founded or created for ML Order' }
         #process base order fields
         meli_order_fields = {
+            'name': "%i" % ( order_json["id"] ),
             'partner_id': partner_id.id,
             'pricelist_id': plistid.id,
             'meli_order_id': '%i' % (order_json["id"]),
