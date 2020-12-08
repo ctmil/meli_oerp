@@ -90,6 +90,19 @@ class sale_order(models.Model):
     meli_shipment = fields.Many2one('mercadolibre.shipment',string='Meli Shipment Obj')
     meli_shipment_logistic_type = fields.Char(string="Logistic Type",index=True)
 
+    def action_done(self):
+        res = super(sale_order,self).action_done()
+        try:
+            company = self.env.user.company_id
+            if (company.mercadolibre_cron_post_update_stock):
+                for order in self:
+                    for line in order.order_line:
+                        if line.product_id and line.product_id.meli_id and line.product_id.meli_pub:
+                            _logger.info("Order done: product_post_stock: "+str(line.product_id.meli_id))
+                            line.product_id.product_post_stock()
+        except:
+            pass;
+        return res
 
     def confirm_ml(self):
 

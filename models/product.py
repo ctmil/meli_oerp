@@ -424,9 +424,9 @@ class product_image(models.Model):
     meli_force_pub = fields.Boolean(string='Publicar en ML y conservar en Odoo',index=True)
     meli_published = fields.Boolean(string='Publicado en ML',index=True)
 
-    #_sql_constraints = [
-    #    ('unique_meli_imagen_id', 'unique(meli_imagen_id)', 'Meli Imagen Id already exists!')
-    #]
+    _sql_constraints = [
+        ('unique_meli_imagen_id', 'unique(product_tmpl_id,product_variant_id,meli_imagen_id)', 'Meli Imagen Id already exists!')
+    ]
 
     def calculate_hash(self):
         hexhash = ''
@@ -967,6 +967,8 @@ class product_product(models.Model):
                             attribute = []
                             if (len(ml_attribute)>1):
                                 ml_attribute = self.env['mercadolibre.category.attribute'].search([('att_id','=',att['att_id']),('cat_id','=',product.meli_cat_id)])
+                                if not ml_attribute:
+                                    ml_attribute = self.env['mercadolibre.category.attribute'].search([('att_id','=',att['att_id'])])[0]
                                 if (len(ml_attribute)==1):
                                     attribute = self.env['product.attribute'].search([('meli_default_id_attribute','=',ml_attribute.id)])
                             if (len(ml_attribute)==1):
@@ -2687,7 +2689,7 @@ class product_product(models.Model):
 
             #if (product.virtual_available>=0):
             if (not product_fab):
-                product.meli_available_quantity = product.virtual_available
+                product.meli_available_quantity = product._meli_available_quantity()
 
             if product.meli_available_quantity<0:
                 product.meli_available_quantity = 0
