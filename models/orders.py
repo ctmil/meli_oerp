@@ -104,6 +104,15 @@ class sale_order(models.Model):
             pass;
         return res
 
+    def _get_meli_invoices(self):
+        invoices = self.env[acc_inv_model].search([('origin','=',self.name)])
+        _logger.info("_get_meli_invoices")
+        _logger.info(self)
+        _logger.info(invoices)
+        if invoices:
+            return invoices[0]
+        return None
+
     def confirm_ml(self):
 
         company = self.env.user.company_id
