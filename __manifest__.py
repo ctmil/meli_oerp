@@ -8,11 +8,11 @@
 
 {
     'name': 'MercadoLibre Publisher',
-    'version': '13.2.20.73',
+    'version': '13.2.20.74',
     'author': 'Moldeo Interactive',
     'website': 'https://www.moldeointeractive.com',
     "category": "Sales",
-    "depends": ['base', 'product','sale_management','stock','common_connector_library'],
+    "depends": ['base', 'product','sale_management','stock','common_connector_library', 'delivery'],
     'data': [
         'security/meli_oerp_security.xml',
         'security/ir.model.access.csv',

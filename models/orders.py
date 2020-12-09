@@ -104,6 +104,15 @@ class sale_order(models.Model):
             pass;
         return res
 
+    def _get_meli_invoices(self):
+        invoices = self.env[acc_inv_model].search([('origin','=',self.name)])
+        _logger.info("_get_meli_invoices")
+        _logger.info(self)
+        _logger.info(invoices)
+        if invoices:
+            return invoices[0]
+        return None
+
     def confirm_ml(self):
 
         company = self.env.user.company_id
@@ -613,7 +622,7 @@ class mercadolibre_orders(models.Model):
             return {'error': 'No partner founded or created for ML Order' }
         #process base order fields
         meli_order_fields = {
-            'name': "%i" % ( order_json["id"] ),
+            #'name': "%i" % ( order_json["id"] ),
             'partner_id': partner_id.id,
             'pricelist_id': plistid.id,
             'meli_order_id': '%i' % (order_json["id"]),
