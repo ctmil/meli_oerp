@@ -421,11 +421,7 @@ class mercadolibre_shipment(models.Model):
 				delivery_price = shipment.shipping_cost
 				#display_price = vals['carrier_price']
 				#_logger.info(vals)
-				sorder._create_delivery_line(sorder.carrier_id, delivery_price)
-				sorder.write({
-					#'recompute_delivery_price': False,
-					'delivery_message': delivery_message,
-				})
+				_set_delivery_line(sorder, delivery_price, delivery_message )				
 			
 			saleorderline_item_fields = {
 				'company_id': company.id,
