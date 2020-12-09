@@ -87,7 +87,8 @@ class res_company(models.Model):
                 #_logger.info("site:")
                 #_logger.info(site)
                 _key_ = site["default_currency_id"]
-                ML_sites[_key_] = site
+                if (_key_!="USD"):
+                    ML_sites[_key_] = site
 
         currency = self.mercadolibre_currency
 
@@ -332,6 +333,8 @@ class res_company(models.Model):
 
     mercadolibre_seller_user = fields.Many2one("res.users", string="Vendedor", help="Usuario con el que se registrarán las órdenes automáticamente")
     mercadolibre_remove_unsync_images = fields.Boolean(string='Removing unsync images (ml id defined for image but no longer in ML publication)')
+
+    mercadolibre_official_store_id = fields.Char(string="Official Store Id")
 
     def	meli_logout(self):
         _logger.info('company.meli_logout() ')
@@ -740,40 +743,55 @@ class res_company(models.Model):
         if (company.mercadolibre_cron_post_update_stock):
             product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False)])
             _logger.info("product_ids stock to update:" + str(product_ids))
-            self._cr.autocommit(False)
+            _logger.info("updating stock #" + str(len(product_ids)))
             icommit = 0
-            micom = 5
+            maxcommits = len(product_ids)
+            internals = {
+                "application_id": company.mercadolibre_client_id,
+                "user_id": company.mercadolibre_seller_id,
+                "topic": "internal",
+                "resource": "meli_update_remote_stock #"+str(maxcommits),
+                "state": "PROCESSING"
+            }
+            noti = self.env["mercadolibre.notification"].start_internal_notification( internals )
+            logs = ""
+            errors = ""
             try:
+
+
                 for obj in product_ids:
-                    _logger.info( "Product check if active: " + str(obj.id)+ ' meli_id:'+str(obj.meli_id)  )
+                    #_logger.info( "Product check if active: " + str(obj.id)+ ' meli_id:'+str(obj.meli_id)  )
                     if (obj.meli_id):
                         icommit+= 1
-                        if (icommit>=micom):
-                            self._cr.commit()
-                            icommit = 0
-                            #return {}
                         try:
-                            _logger.info( "Product remote to update Stock: " + str(obj.id)+ ' meli_id:'+str(obj.meli_id)  )
+                            _logger.info( "Update Stock: #" + str(icommit) +'/'+str(maxcommits)+ ' meli_id:'+str(obj.meli_id)  )
                             obj.product_post_stock()
+                            logs+= str(obj.default_code)+" "+str(obj.meli_id)+": "+str(obj.meli_available_quantity)+", "
                         except Exception as e:
                             _logger.info("meli_update_remote_stock > Exception founded!")
                             _logger.info(e, exc_info=True)
+                            logs+= str(obj.default_code)+" "+str(obj.meli_id)+": "+str(obj.meli_available_quantity)+", "
+                            errors+= str(obj.default_code)+" "+str(obj.meli_id)+" >> "+str(e.args[0])+str(", ")
+
+                noti.stop_internal_notification(errors=errors,logs=logs)
 
             except Exception as e:
                 _logger.info("meli_update_remote_stock > Exception founded!")
                 _logger.info(e, exc_info=True)
-                self._cr.rollback()
+                noti.stop_internal_notification( errors=errors , logs=logs )
+
         return {}
 
 
     def meli_update_remote_price(self):
-        if (self.mercadolibre_cron_post_update_price):
+        company = self.env.user.company_id
+        if (company.mercadolibre_cron_post_update_price):
             product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False)])
             _logger.info("product_ids stock to update:" + str(product_ids))
             if product_ids:
                 for obj in product_ids:
                     try:
-                        _logger.info( "Product remote to update: " + str(obj.id)  )
+                        #_logger.info( "Product remote to update: " + str(obj.id)  )
                         if (obj.meli_id and (obj.meli_status=='active')):
                             obj.product_post_price()
                     except Exception as e:

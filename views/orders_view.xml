@@ -47,6 +47,7 @@
                     <field name="date_closed"/>
                     <field name="tags" invisible="1"/>
                     <field name="pack_order" string="Es Carrito"/>
+                    <field name="catalog_order" string="Es de Catalogo"/>
                 </tree>
             </field>
         </record>
@@ -142,6 +143,8 @@
                         <field name="date_closed"/>
                         <field name="buyer"/>
                         <field name="seller"/>
+                        <field name="pack_order"/>
+                        <field name="catalog_order"/>
                     </group>
                     <group>
                         <field name="total_amount" widget="monetary"/>
