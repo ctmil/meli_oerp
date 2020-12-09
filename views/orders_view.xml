@@ -2,33 +2,31 @@
 <odoo>
     <data>
 
-      <record id="sale_order_view_search_inherit_meli" model="ir.ui.view">
-          <field name="name">sale.order.search.inherit.meli</field>
-          <field name="model">sale.order</field>
-          <field name="inherit_id" ref="sale.sale_order_view_search_inherit_sale"/>
-          <field name="arch" type="xml">
-              <xpath expr="//filter[@name='my_sale_orders_filter']" position="after">
-                <field name="meli_order_id" string="MercadoLibre Order Id"/>
-                <separator/>
-                <filter string="MercadoLibre Orders" name="sale_orders_ml" domain="[('meli_order_id','!=',False)]" />
-              </xpath>
-          </field>
-      </record>
+        <record id="sale_order_view_search_inherit_meli" model="ir.ui.view">
+            <field name="name">sale.order.search.inherit.meli</field>
+            <field name="model">sale.order</field>
+            <field name="inherit_id" ref="sale.sale_order_view_search_inherit_sale"/>
+            <field name="arch" type="xml">
+                <xpath expr="//filter[@name='my_sale_orders_filter']" position="after">
+                  <field name="meli_order_id" string="MercadoLibre Order Id"/>
+                  <separator/>
+                  <filter string="MercadoLibre Orders" name="sale_orders_ml" domain="[('meli_order_id','!=',False)]" />
+                </xpath>
+            </field>
+        </record>
 
-      <record id="sale_order_view_search_inherit_quotation_meli" model="ir.ui.view">
-          <field name="name">sale.order.search.inherit.quotation.meli</field>
-          <field name="model">sale.order</field>
-          <field name="inherit_id" ref="sale.sale_order_view_search_inherit_quotation"/>
-          <field name="arch" type="xml">
-              <xpath expr="//filter[@name='my_sale_orders_filter']" position="after">
-                <field name="meli_order_id" string="MercadoLibre Order Id"/>
-                <separator/>
-                <filter string="MercadoLibre Quotations" name="sale_orders_ml" domain="[('meli_order_id','!=',False)]" />
-              </xpath>
-          </field>
-      </record>
-
-
+        <record id="sale_order_view_search_inherit_quotation_meli" model="ir.ui.view">
+            <field name="name">sale.order.search.inherit.quotation.meli</field>
+            <field name="model">sale.order</field>
+            <field name="inherit_id" ref="sale.sale_order_view_search_inherit_quotation"/>
+            <field name="arch" type="xml">
+                <xpath expr="//filter[@name='my_sale_orders_filter']" position="after">
+                  <field name="meli_order_id" string="MercadoLibre Order Id"/>
+                  <separator/>
+                  <filter string="MercadoLibre Quotations" name="sale_orders_ml" domain="[('meli_order_id','!=',False)]" />
+                </xpath>
+            </field>
+        </record>
 
         <record model="ir.ui.view" id="view_meli_orders_tree">
             <field name="name">mercadolibre.orders.tree</field>
@@ -221,48 +219,48 @@
             </field>
         </record>
 
-    <record id="meli_orders_search_view" model="ir.ui.view">
-        <field name="name">mercadolibre.orders.search</field>
-        <field name="model">mercadolibre.orders</field>
-        <field name="arch" type="xml">
-	         <search string="Search MercadoLibre Orders Information">
-             <field name="order_id" string="Order ID"/>
-             <field name="status" string="Status"/>
-             <field name="buyer" string="Comprador"/>
-             <!--field name="seller" string="Vendedor"/-->
-	         </search>
-        </field>
-    </record>
+        <record id="meli_orders_search_view" model="ir.ui.view">
+            <field name="name">mercadolibre.orders.search</field>
+            <field name="model">mercadolibre.orders</field>
+            <field name="arch" type="xml">
+    	         <search string="Search MercadoLibre Orders Information">
+                 <field name="order_id" string="Order ID"/>
+                 <field name="status" string="Status"/>
+                 <field name="buyer" string="Comprador"/>
+                 <!--field name="seller" string="Vendedor"/-->
+    	         </search>
+            </field>
+        </record>
 
-    <record id="meli_buyers_search_view" model="ir.ui.view">
-        <field name="name">mercadolibre.buyers.search</field>
-        <field name="model">mercadolibre.buyers</field>
-        <field name="arch" type="xml">
-    	    <search string="Search MercadoLibre Buyers Information">
-              <field name="nickname" string="Usuario ML"/>
-              <field name="first_name" string="Nombre ML"/>
-              <field name="last_name" string="Apellido ML"/>
-              <field name="email" string="Email ML"/>
-              <field name="phone" string="Phone ML"/>
-              <field name="alternative_phone" string="Alternative Phone ML"/>
-              <field name="billing_info" string="Documento Id ML"/>
-    	    </search>
-        </field>
-    </record>
+        <record id="meli_buyers_search_view" model="ir.ui.view">
+            <field name="name">mercadolibre.buyers.search</field>
+            <field name="model">mercadolibre.buyers</field>
+            <field name="arch" type="xml">
+        	    <search string="Search MercadoLibre Buyers Information">
+                  <field name="nickname" string="Usuario ML"/>
+                  <field name="first_name" string="Nombre ML"/>
+                  <field name="last_name" string="Apellido ML"/>
+                  <field name="email" string="Email ML"/>
+                  <field name="phone" string="Phone ML"/>
+                  <field name="alternative_phone" string="Alternative Phone ML"/>
+                  <field name="billing_info" string="Documento Id ML"/>
+        	    </search>
+            </field>
+        </record>
 
-    <record id="view_orders_update" model="ir.ui.view">
-          <field name="name">Actualizar Orden de ML</field>
-          <field name="model">mercadolibre.orders.update</field>
-          <field name="type">form</field>
-          <field name="arch" type="xml">
-            <form string="Update Order" version="7.0">
-                <footer>
-                    <button name="order_update" string="Update Order"  type="object" class="oe_highlight"  />
-                    <button string="Cancel" class="oe_link" special="cancel" />
-                </footer>
-            </form>
-          </field>
-    </record>
+        <record id="view_orders_update" model="ir.ui.view">
+              <field name="name">Actualizar Orden de ML</field>
+              <field name="model">mercadolibre.orders.update</field>
+              <field name="type">form</field>
+              <field name="arch" type="xml">
+                <form string="Update Order" version="7.0">
+                    <footer>
+                        <button name="order_update" string="Update Order"  type="object" class="oe_highlight"  />
+                        <button string="Cancel" class="oe_link" special="cancel" />
+                    </footer>
+                </form>
+              </field>
+        </record>
 
         <record model="ir.actions.act_window" id="action_meli_orders_tree">
             <field name="name">Ordenes</field>
