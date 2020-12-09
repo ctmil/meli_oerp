@@ -90,6 +90,28 @@ class sale_order(models.Model):
     meli_shipment = fields.Many2one('mercadolibre.shipment',string='Meli Shipment Obj')
     meli_shipment_logistic_type = fields.Char(string="Logistic Type",index=True)
 
+    def action_done(self):
+        res = super(sale_order,self).action_done()
+        try:
+            company = self.env.user.company_id
+            if (company.mercadolibre_cron_post_update_stock):
+                for order in self:
+                    for line in order.order_line:
+                        if line.product_id and line.product_id.meli_id and line.product_id.meli_pub:
+                            _logger.info("Order done: product_post_stock: "+str(line.product_id.meli_id))
+                            line.product_id.product_post_stock()
+        except:
+            pass;
+        return res
+
+    def _get_meli_invoices(self):
+        invoices = self.env[acc_inv_model].search([('origin','=',self.name)])
+        _logger.info("_get_meli_invoices")
+        _logger.info(self)
+        _logger.info(invoices)
+        if invoices:
+            return invoices[0]
+        return None
 
     def confirm_ml(self):
 
@@ -367,6 +389,8 @@ class mercadolibre_orders(models.Model):
                 order_fields["pack_order"] = True
             if 'catalog' in order_json["tags"]:
                 order_fields["catalog_order"] = True
+                #debemos buscar el codigo relacionado pero al producto real del catalogo: que se encuentra.
+
 
         partner_id = False
 
@@ -598,6 +622,7 @@ class mercadolibre_orders(models.Model):
             return {'error': 'No partner founded or created for ML Order' }
         #process base order fields
         meli_order_fields = {
+            #'name': "%i" % ( order_json["id"] ),
             'partner_id': partner_id.id,
             'pricelist_id': plistid.id,
             'meli_order_id': '%i' % (order_json["id"]),
@@ -674,6 +699,9 @@ class mercadolibre_orders(models.Model):
                 post_related_obj = ''
                 product_related_obj = ''
                 product_related_obj_id = False
+
+                #prepare for catalogs:
+
 
                 post_related = posting_obj.search([('meli_id','=',Item['item']['id'])])
                 if (post_related):
@@ -1073,7 +1101,7 @@ class mercadolibre_orders(models.Model):
     catalog_order = fields.Boolean(string="Order From Catalog")
 
     _sql_constraints = [
-        ('unique_order_id', 'unique(order_id)', 'Mei Order id already exists!')
+        ('unique_order_id', 'unique(order_id)', 'Meli Order id already exists!')
     ]
 
 mercadolibre_orders()

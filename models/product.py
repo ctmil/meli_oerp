@@ -425,7 +425,7 @@ class product_image(models.Model):
     meli_published = fields.Boolean(string='Publicado en ML',index=True)
 
     _sql_constraints = [
-        ('unique_meli_imagen_id', 'unique(meli_imagen_id)', 'Meli Imagen Id already exists!')
+        ('unique_meli_imagen_id', 'unique(product_tmpl_id,product_variant_id,meli_imagen_id)', 'Meli Imagen Id already exists!')
     ]
 
     def calculate_hash(self):
@@ -967,6 +967,8 @@ class product_product(models.Model):
                             attribute = []
                             if (len(ml_attribute)>1):
                                 ml_attribute = self.env['mercadolibre.category.attribute'].search([('att_id','=',att['att_id']),('cat_id','=',product.meli_cat_id)])
+                                if not ml_attribute:
+                                    ml_attribute = self.env['mercadolibre.category.attribute'].search([('att_id','=',att['att_id'])])[0]
                                 if (len(ml_attribute)==1):
                                     attribute = self.env['product.attribute'].search([('meli_default_id_attribute','=',ml_attribute.id)])
                             if (len(ml_attribute)==1):
@@ -1301,7 +1303,7 @@ class product_product(models.Model):
         #_logger.info(rjson['variations'])
         published_att_variants = False
         if (company.mercadolibre_update_existings_variants and 'variations' in rjson):
-            published_att_variants = self._get_variations( self, rjson['variations'])
+            published_att_variants = self._get_variations( rjson['variations'])
 
         #_logger.info("product_uom_id")
         product_uom_id = uomobj.search([('name','=','Unidad(es)')])
@@ -1442,7 +1444,7 @@ class product_product(models.Model):
                     variant.meli_default_stock_product = ptemp_nfree
 
         if (company.mercadolibre_update_existings_variants and 'attributes' in rjson):
-            self._get_attributes(self, rjson['attributes'])
+            self._get_non_variant_attributes(rjson['attributes'])
 
         return {}
 
@@ -2687,7 +2689,7 @@ class product_product(models.Model):
 
             #if (product.virtual_available>=0):
             if (not product_fab):
-                product.meli_available_quantity = product.virtual_available
+                product.meli_available_quantity = product._meli_available_quantity()
 
             if product.meli_available_quantity<0:
                 product.meli_available_quantity = 0
@@ -2771,14 +2773,33 @@ class product_product(models.Model):
                     _logger.info("Pause!")
                     product.product_meli_status_pause()
             else:
-                response = meli.put("/items/"+product.meli_id, fields, {'access_token':meli.access_token})
-                if (response.content):
-                    rjson = response.json()
-                    if ('available_quantity' in rjson):
-                        _logger.info( "Posted ok:" + str(rjson['available_quantity']) )
-                    else:
-                        _logger.info( "Error posting stock" )
-                        _logger.info(response.content)
+                if (product.meli_id and not product.meli_id_variation):
+                    response = meli.get("/items/%s" % product.meli_id, {'access_token':meli.access_token})
+                    if (response):
+                        pjson = response.json()
+                        if "variations" in pjson:
+                            if (len(pjson["variations"])==1):
+                                product.meli_id_variation = pjson["variations"][0]["id"]
+
+                if (product.meli_id_variation):
+                    var = {
+                        #"id": str( product.meli_id_variation ),
+                        "available_quantity": product.meli_available_quantity,
+                        #"picture_ids": ['806634-MLM28112717071_092018', '928808-MLM28112717068_092018', '643737-MLM28112717069_092018', '934652-MLM28112717070_092018']
+                    }
+                    responsevar = meli.put("/items/"+product.meli_id+'/variations/'+str( product.meli_id_variation ), var, {'access_token':meli.access_token})
+                    if (responsevar.content):
+                        rjson = responsevar.json()
+                        _logger.info(responsevar.content)
+                else:
+                    response = meli.put("/items/"+product.meli_id, fields, {'access_token':meli.access_token})
+                    if (response.content):
+                        rjson = response.json()
+                        if ('available_quantity' in rjson):
+                            _logger.info( "Posted ok:" + str(rjson['available_quantity']) )
+                        else:
+                            _logger.info( "Error posting stock" )
+                            _logger.info(response.content)
 
                 if (product.meli_available_quantity<=0 and product.meli_status=="active"):
                     product.product_meli_status_pause()
