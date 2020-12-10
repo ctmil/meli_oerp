@@ -2840,7 +2840,7 @@ class product_product(models.Model):
                 else:
                     product_uom_id = product_uom_id.id
 
-                stock_inventory_fields = _get_inventory_fields(product, wh)
+                stock_inventory_fields = get_inventory_fields(product, wh)
 
                 #_logger.info("stock_inventory_fields:")
                 #_logger.info(stock_inventory_fields)
