@@ -88,3 +88,19 @@ def ml_tax_excluded(self):
     if (company and company.mercadolibre_tax_included not in ['auto']):
         tax_excluded = (company.mercadolibre_tax_included in ['tax_excluded'])
     return tax_excluded
+
+def get_inventory_fields( product, warehouse ):
+    return {
+            "product_ids": [(4,product.id)],
+            #"product_id": product.id,
+            "filter": "product",
+            "location_id": warehouse,
+            "name": "INV: "+ product.name
+            }
+
+def set_delivery_line( sorder, delivery_price, delivery_message ):
+    sorder.set_delivery_line(sorder.carrier_id, delivery_price)
+    sorder.write({
+    	'recompute_delivery_price': False,
+    	'delivery_message': delivery_message,
+    })

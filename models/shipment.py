@@ -421,11 +421,7 @@ class mercadolibre_shipment(models.Model):
 				delivery_price = shipment.shipping_cost
 				#display_price = vals['carrier_price']
 				#_logger.info(vals)
-				sorder.set_delivery_line(sorder.carrier_id, delivery_price)
-				sorder.write({
-					'recompute_delivery_price': False,
-					'delivery_message': delivery_message,
-				})
+				set_delivery_line(sorder, delivery_price, delivery_message )				
 			
 			saleorderline_item_fields = {
 				'company_id': company.id,
@@ -608,9 +604,10 @@ class mercadolibre_shipment(models.Model):
 								data = base64.b64decode( shipment.pdf_file )
 								images = convert_from_bytes(data, dpi=300,fmt='jpg')
 								for image in images:
-									image.save("/tmp/%s-page%d.jpg" % ("Shipment_"+shipment.shipping_id,images.index(image)), "JPEG")
-									if (images.index(image)==1):
-										imgdata = urlopen("file:///tmp/Shipment_"+shipment.shipping_id+"-page1.jpg").read()
+									image_filename = "/tmp/%s-page%d.jpg" % ("Shipment_"+shipment.shipping_id, images.index(image))
+									image.save(image_filename, "JPEG")
+									if (images.index(image)==0):
+										imgdata = urlopen("file://"+image_filename).read()
 										shipment.pdfimage_file = base64.encodestring(imgdata)
 										shipment.pdfimage_filename = "Shipment_"+shipment.shipping_id+".jpg"
 								#if (len(images)):
@@ -650,7 +647,7 @@ class mercadolibre_shipment(models.Model):
 								#'meli_order_id': '%i' % (order_json["id"]),
 								'meli_order_id': packed_order_ids,
 								'meli_orders': [(6, 0, all_orders_ids)],
-								'meli_shipping_id': shipment.id,
+								'meli_shipping_id': shipment.shipping_id,
 								'meli_shipping': shipment,
 								'meli_shipment': shipment.id,
 								'meli_status': all_orders[0]["status"],
