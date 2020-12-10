@@ -89,7 +89,7 @@ def ml_tax_excluded(self):
         tax_excluded = (company.mercadolibre_tax_included in ['tax_excluded'])
     return tax_excluded
 
-def _get_inventory_fields( product, warehouse ):
+def get_inventory_fields( product, warehouse ):
     return {
             "product_ids": [(4,product.id)],
             #"product_id": product.id,
