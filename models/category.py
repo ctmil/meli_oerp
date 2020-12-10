@@ -49,7 +49,7 @@ class mercadolibre_category_import(models.TransientModel):
         company = self.env.user.company_id
         #mlcat_ids = context['active_ids']
         #mlcat_obj = self.env['mercadolibre.category']
-        _logger.info("_get_default_meli_category_id")
+        _logger.info("_get_default_meli_recursive_import")
         _logger.info(context)
 
     meli_category_id = fields.Char(string="MercadoLibre Category ID",help="MercadoLibre Category ID (ML????????)",default=_get_default_meli_category_id)
@@ -82,6 +82,9 @@ class mercadolibre_category_import(models.TransientModel):
             }
 
         _logger.info(context)
+        if ( self.meli_category_id ):
+            catid = self.env["mercadolibre.category"].import_all_categories( self.meli_category_id, self.meli_recursive_import )
+
 
 mercadolibre_category_import()
 
@@ -345,7 +348,7 @@ class mercadolibre_category(models.Model):
         return ml_cat_id
 
 
-    def import_all_categories(self, category_root ):
+    def import_all_categories(self, category_root, recursive_import=False ):
         company = self.env.user.company_id
 
         warningobj = self.env['warning']
@@ -358,7 +361,7 @@ class mercadolibre_category(models.Model):
 
         meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
-        RECURSIVE_IMPORT = company.mercadolibre_recursive_import
+        RECURSIVE_IMPORT = recursive_import or company.mercadolibre_recursive_import
 
         if (category_root):
             response = meli.get("/categories/"+str(category_root), {'access_token':meli.access_token} )
