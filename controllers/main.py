@@ -43,6 +43,8 @@ class MercadoLibre(http.Controller):
         _logger.info("meli_notify")
         #_logger.info(kw)
         company = request.env.user.company_id
+        _logger.info(request.env.user)
+        _logger.info(company)
         result = company.meli_notifications()
         if (result and "error" in result):
             return Response(result["error"],content_type='text/html;charset=utf-8',status=result["status"])
