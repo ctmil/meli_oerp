@@ -800,7 +800,7 @@ class res_company(models.Model):
 
 
     def meli_notifications(self):
-        #_logger.info("meli_notifications")
+        _logger.info("meli_notifications")
         notifications = self.env['mercadolibre.notification']
         if (self.mercadolibre_process_notifications):
             return notifications.fetch_lasts()
