@@ -1307,18 +1307,20 @@ class product_product(models.Model):
             vindex = -1
             for variation in rjson['variations']:
                 vindex = vindex+1
-                _logger.info(variation)
+                #_logger.info(variation)
                 _logger.info(rjson['variations'][vindex])
-                vid = rjson['variations'][vindex]["id"]
-                resvar = meli.get("/items/"+str(product.meli_id)+"/variations/"+str(vid), {'access_token':meli.access_token})
-                vjson = resvar.json()
-                if ( "error" in vjson ):
-                    continue;
-                if ("attributes" in vjson):
-                    rjson['variations'][vindex]["attributes"] = vjson["attributes"]
-                    for att in vjson["attributes"]:
-                        if ("id" in att and att["id"] == "SELLER_SKU"):
-                            rjson['variations'][vindex]["seller_sku"] = att["value_name"]
+                if 'id' in rjson['variations'][vindex]:
+                    _logger.info(vid)
+                    vid = rjson['variations'][vindex]['id']
+                    resvar = meli.get("/items/"+str(product.meli_id)+"/variations/"+str(vid), {'access_token':meli.access_token})
+                    vjson = resvar.json()
+                    if ( "error" in vjson ):
+                        continue;
+                    if ("attributes" in vjson):
+                        rjson['variations'][vindex]["attributes"] = vjson["attributes"]
+                        for att in vjson["attributes"]:
+                            if ("id" in att and att["id"] == "SELLER_SKU"):
+                                rjson['variations'][vindex]["seller_sku"] = att["value_name"]
             _logger.info(rjson['variations'])
 
         published_att_variants = False
