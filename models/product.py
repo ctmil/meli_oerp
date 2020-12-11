@@ -1315,7 +1315,7 @@ class product_product(models.Model):
                 if ("attributes" in vjson):
                     rjson['variations'][vindex]["attributes"] = vjson["attributes"]
                     for att in vjson["attributes"]:
-                        if "id" in vjson["attributes"][att] and vjson["attributes"][att]["id"] == "SELLER_SKU"):
+                        if ("id" in vjson["attributes"][att] and vjson["attributes"][att]["id"] == "SELLER_SKU"):
                             rjson['variations'][vindex]["seller_sku"] = vjson["attributes"][att]["value_name"]
             _logger.info(rjson['variations'])
 
@@ -2290,8 +2290,8 @@ class product_product(models.Model):
                         product.meli_category = cat_id.mercadolibre_category
                         product_tmpl.meli_category = cat_id.mercadolibre_category
 
-        if product_tmpl.meli_category and not product.meli_category:
-            product.meli_category = product_tmpl.meli_category
+        if product_tmpl.meli_category:
+            product.meli_category=product_tmpl.meli_category
 
         product.meli_available_quantity = product._meli_available_quantity()
 
