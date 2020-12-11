@@ -1315,8 +1315,8 @@ class product_product(models.Model):
                 if ("attributes" in vjson):
                     rjson['variations'][vindex]["attributes"] = vjson["attributes"]
                     for att in vjson["attributes"]:
-                        if ("id" in vjson["attributes"][att] and vjson["attributes"][att]["id"] == "SELLER_SKU"):
-                            rjson['variations'][vindex]["seller_sku"] = vjson["attributes"][att]["value_name"]
+                        if ("id" in att and att["id"] == "SELLER_SKU"):
+                            rjson['variations'][vindex]["seller_sku"] = att["value_name"]
             _logger.info(rjson['variations'])
 
         published_att_variants = False
