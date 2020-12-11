@@ -1329,7 +1329,7 @@ class product_product(models.Model):
                 #associate var ids for every variant
                 product_template.meli_pub_as_variant = True
                 if (not product_template.meli_pub_principal_variant
-                    or if not product_template.meli_pub_principal_variant.id == product.id):
+                    or not product_template.meli_pub_principal_variant.id == product.id):
                     for variant in product_template.product_variant_ids:
                         if not product_template.meli_pub_principal_variant:
                             product_template.meli_pub_principal_variant = variant
