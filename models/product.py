@@ -1303,14 +1303,16 @@ class product_product(models.Model):
 
         #_logger.info(rjson['variations'])
         #COMPLETING ATTRIBUTES VARIATION INFORMATION FROM /items/[MLID]/variations/[VARID]...
-        if 'variations' in rjson:
+        if ('variations' in rjson and and 1==1):
             vindex = -1
+            realmeliv = 0
             for variation in rjson['variations']:
                 vindex = vindex+1
                 #_logger.info(variation)
                 _logger.info(rjson['variations'][vindex])
                 if 'id' in rjson['variations'][vindex]:
                     _logger.info(vid)
+                    realmeliv = realmeliv+1
                     vid = rjson['variations'][vindex]['id']
                     resvar = meli.get("/items/"+str(product.meli_id)+"/variations/"+str(vid), {'access_token':meli.access_token})
                     vjson = resvar.json()
@@ -1322,6 +1324,20 @@ class product_product(models.Model):
                             if ("id" in att and att["id"] == "SELLER_SKU"):
                                 rjson['variations'][vindex]["seller_sku"] = att["value_name"]
             _logger.info(rjson['variations'])
+
+            if ( realmeliv>0 and 1==1 ):
+                #associate var ids for every variant
+                product_template.meli_pub_as_variant = True
+                if (not product_template.meli_pub_principal_variant
+                    or if not product_template.meli_pub_principal_variant.id = product.id):
+                    for variant in product_template.product_variant_ids:
+                        if not product_template.meli_pub_principal_variant:
+                            product_template.meli_pub_principal_variant = variant
+                        for variation in rjson['variations']:
+                            if "seller_sku" in variation and variant.default_code == variation["seller_sku"]:
+                                variant.meli_id_variation = variation["id"]
+                                variant.meli_pub = True
+                                variant.meli_id = product.meli_id
 
         published_att_variants = False
         if (company.mercadolibre_update_existings_variants and 'variations' in rjson):
@@ -1370,10 +1386,13 @@ class product_product(models.Model):
                     #_logger.info(variation)
                     #_logger.info("variation[default_code]: " + variation["default_code"])
                     if (len(variation["default_code"]) and (variation["default_code"] in _v_default_code)):
-                        if ("seller_custom_field" in variation):
+                        if ("seller_custom_field" in variation or "seller_sku" in variation):
                             #_logger.info("has_sku")
                             #_logger.info(variation["seller_custom_field"])
-                            variant.default_code = variation["seller_custom_field"]
+                            try:
+                                variant.default_code = variation["seller_custom_field"] or variation["seller_sku"]
+                            except:
+                                pass;
                             variant.meli_id_variation = variation["id"]
                             has_sku = True
                         else:
