@@ -926,6 +926,7 @@ class product_product(models.Model):
 
         #recorrer los variations>attribute_combinations y agregarlos como atributos de las variantes
         _logger.info(variations)
+
         published_att_variants = False
         product = self
         product_template = product.product_tmpl_id
@@ -1301,6 +1302,23 @@ class product_product(models.Model):
             rjson['variations'].append({'attribute_combinations': [ att_shipping ]})
 
         #_logger.info(rjson['variations'])
+        #COMPLETING ATTRIBUTES VARIATION INFORMATION FROM /items/[MLID]/variations/[VARID]...
+        if 'variations' in rjson:
+            vindex = -1
+            for variation in rjson['variations']:
+                vindex = vindex+1
+                vid = variations[vindex]["id"]
+                resvar = meli.get("/items/"+str(product.meli_id)+"/variations/"+str(vid), {'access_token':meli.access_token})
+                vjson = resvar.json()
+                if ( "error" in vjson ):
+                    continue;
+                if ("attributes" in vjson):
+                    rjson['variations'][vindex]["attributes"] = vjson["attributes"]
+                    for att in vjson["attributes"]:
+                        if "id" in vjson["attributes"][att] and vjson["attributes"][att]["id"] == "SELLER_SKU"):
+                            rjson['variations'][vindex]["seller_sku"] = vjson["attributes"][att]["value_name"]
+            _logger.info(rjson['variations'])
+
         published_att_variants = False
         if (company.mercadolibre_update_existings_variants and 'variations' in rjson):
             published_att_variants = self._get_variations( rjson['variations'])
