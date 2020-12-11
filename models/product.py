@@ -1329,7 +1329,7 @@ class product_product(models.Model):
                 #associate var ids for every variant
                 product_template.meli_pub_as_variant = True
                 if (not product_template.meli_pub_principal_variant
-                    or if not product_template.meli_pub_principal_variant.id = product.id):
+                    or if not product_template.meli_pub_principal_variant.id == product.id):
                     for variant in product_template.product_variant_ids:
                         if not product_template.meli_pub_principal_variant:
                             product_template.meli_pub_principal_variant = variant
@@ -1338,7 +1338,7 @@ class product_product(models.Model):
                                 variant.meli_id_variation = variation["id"]
                                 variant.meli_pub = True
                                 variant.meli_id = product.meli_id
-                                variant.meli_available_quantity = variation[""]
+                                variant.meli_available_quantity = variation["available_quantity"]
 
         published_att_variants = False
         if (company.mercadolibre_update_existings_variants and 'variations' in rjson):
