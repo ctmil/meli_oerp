@@ -2290,8 +2290,8 @@ class product_product(models.Model):
                         product.meli_category = cat_id.mercadolibre_category
                         product_tmpl.meli_category = cat_id.mercadolibre_category
 
-        if product_tmpl.meli_category:
-            product.meli_category=product_tmpl.meli_category
+        if product_tmpl.meli_category and not product.meli_category:
+            product.meli_category = product_tmpl.meli_category
 
         product.meli_available_quantity = product._meli_available_quantity()
 
