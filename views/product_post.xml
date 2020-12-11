@@ -42,6 +42,11 @@
               <field name="type">form</field>
               <field name="arch" type="xml">
                 <form string="Update from MercadoLibre">
+                    <group string="Opciones de importación" col="2">
+                      <group>
+                        <field name="force_meli_pub"/>
+                      </group>
+                    </group>
                     <footer>
                         <button name="product_template_update" string="Update from MELI"  type="object" class="oe_highlight"  />
                         <button string="Cancel" class="oe_link" special="cancel" />

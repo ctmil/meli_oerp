@@ -105,6 +105,7 @@ class product_template_update(models.TransientModel):
     _name = "mercadolibre.product.template.update"
     _description = "Wizard de Product Template Update en MercadoLibre"
 
+    force_meli_pub = fields.Boolean(string="Forzar importación",help="Forzar importación de todos los seleccionados",default=False)
     type = fields.Selection([('post','Alta'),('put','Editado'),('delete','Borrado')], string='Tipo de operación' );
     posting_date = fields.Date('Fecha del posting');
 	    #'company_id': fields.many2one('res.company',string='Company'),
@@ -150,6 +151,10 @@ class product_template_update(models.TransientModel):
         for product_id in product_ids:
             product = product_obj.browse(product_id)
             if (product):
+                if self.force_meli_pub and not product.meli_pub:
+                    product.meli_pub = True
+                    for variant in product.product_variant_ids:
+                        variant.meli_pub = True
                 if (product.meli_pub):
                     res = product.product_template_update()
 
