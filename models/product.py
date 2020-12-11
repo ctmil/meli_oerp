@@ -1303,7 +1303,7 @@ class product_product(models.Model):
 
         #_logger.info(rjson['variations'])
         #COMPLETING ATTRIBUTES VARIATION INFORMATION FROM /items/[MLID]/variations/[VARID]...
-        if ('variations' in rjson and and 1==1):
+        if ('variations' in rjson and 1==1):
             vindex = -1
             realmeliv = 0
             for variation in rjson['variations']:
@@ -1338,6 +1338,7 @@ class product_product(models.Model):
                                 variant.meli_id_variation = variation["id"]
                                 variant.meli_pub = True
                                 variant.meli_id = product.meli_id
+                                variant.meli_available_quantity = variation[""]
 
         published_att_variants = False
         if (company.mercadolibre_update_existings_variants and 'variations' in rjson):
