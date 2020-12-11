@@ -285,7 +285,7 @@ class product_product_update(models.TransientModel):
                     for variant in product.product_tmpl_id.product_variant_ids:
                         variant.meli_pub = True
                 if (product.meli_pub):
-                    res = product.product_template_update()
+                    res = product.product_meli_get_product()
 
             if 'name' in res:
                 return res
