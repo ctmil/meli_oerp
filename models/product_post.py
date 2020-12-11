@@ -247,7 +247,7 @@ class product_product_update(models.TransientModel):
         product_ids = []
         if ('active_ids' in context):
             product_ids = context['active_ids']
-        product_obj = self.env['product.template']
+        product_obj = self.env['product.product']
 
         #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
         #user_obj.company_id.meli_login()
