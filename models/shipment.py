@@ -324,6 +324,9 @@ class mercadolibre_shipment(models.Model):
 	pdfimage_file = fields.Binary(string='Pdf Image File',attachment=True)
 	pdfimage_filename = fields.Char(string='Pdf Image Filename')
 
+	company_id = fields.Many2one("res.company",string="Company")
+	seller_id = fields.Many2one("res.partner",string="Seller")
+
 	pack_order = fields.Boolean(string="Carrito de compra")
 
 	_sql_constraints = [
@@ -349,7 +352,7 @@ class mercadolibre_shipment(models.Model):
 			sorder.meli_shipping_cost = shipment.shipping_cost
 			sorder.meli_shipping_list_cost = shipment.shipping_list_cost
 			sorder.meli_shipment_logistic_type = shipment.logistic_type
-			
+
 			order.shipping_cost = shipment.shipping_cost
 			order.shipping_list_cost = shipment.shipping_list_cost
 			order.shipment_logistic_type = shipment.logistic_type
@@ -362,7 +365,7 @@ class mercadolibre_shipment(models.Model):
 				#sorder.partner_id.state = ships.receiver_state
 
 			ship_name = shipment.tracking_method or (shipment.mode=="custom" and "Personalizado")
-			
+
 			if not ship_name or len(ship_name)==0:
 				continue;
 
@@ -379,7 +382,7 @@ class mercadolibre_shipment(models.Model):
 					"default_code": ship_name,
 					"type": "service",
 					#"taxes_id": None
-				}				
+				}
 				_logger.info(ship_prod)
 				product_shipping_tpl = product_tpl.create((ship_prod))
 				if (product_shipping_tpl):
@@ -389,9 +392,9 @@ class mercadolibre_shipment(models.Model):
 			if (not product_shipping_id):
 				_logger.info('Failed to create shipping product service')
 				continue
-				
+
 			ship_carrier = {
-				"name": ship_name,					
+				"name": ship_name,
 			}
 			ship_carrier["product_id"] = product_shipping_id.id
 			ship_carrier_id = self.env["delivery.carrier"].search([ ('name','=',ship_carrier['name']) ])
@@ -399,14 +402,14 @@ class mercadolibre_shipment(models.Model):
 				ship_carrier_id = self.env["delivery.carrier"].create(ship_carrier)
 			if (len(ship_carrier_id)>1):
 				ship_carrier_id = ship_carrier_id[0]
-				
+
 			stock_pickings = self.env["stock.picking"].search([('sale_id','=',sorder.id),('name','like','OUT')])
 			#carrier_id = self.env["delivery.carrier"].search([('name','=',)])
 			for st_pick in stock_pickings:
 				#if ( 1==2 and ship_carrier_id ):
 				#	st_pick.carrier_id = ship_carrier_id
 				st_pick.carrier_tracking_ref = shipment.tracking_number
-				
+
 			if (shipment.tracking_method == "MEL Distribution"):
 				_logger.info('MEL Distribution, not adding to order')
 				#continue
@@ -421,8 +424,8 @@ class mercadolibre_shipment(models.Model):
 				delivery_price = shipment.shipping_cost
 				#display_price = vals['carrier_price']
 				#_logger.info(vals)
-				set_delivery_line(sorder, delivery_price, delivery_message )				
-			
+				set_delivery_line(sorder, delivery_price, delivery_message )
+
 			saleorderline_item_fields = {
 				'company_id': company.id,
 				'order_id': sorder.id,
@@ -436,7 +439,7 @@ class mercadolibre_shipment(models.Model):
 			}
 			saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),
 																('order_id','=',sorder.id)] )
-			
+
 			if not saleorderline_item_ids and (shipment.shipping_cost>0):
 				#saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
 				pass;
@@ -494,6 +497,8 @@ class mercadolibre_shipment(models.Model):
 				_logger.info("Saving shipment fields")
 				ship_fields = {
 					"name": "MSO ["+str(ship_id)+"] "+str("")+str(ship_json["status"])+"/"+str(ship_json["substatus"])+str(""),
+					'company_id': company.id,
+		            'seller_id': self.env.user.partner_id.id,
 					"order": order.id,
 					"shipping_id": ship_json["id"],
 					"site_id": ship_json["site_id"],
@@ -792,7 +797,7 @@ class AccountInvoice(models.Model):
 			else:
 				_logger.info("No order found for:"+str(self.origin))
 		return ret
-		
+
 	@api.model
 	def _get_meli_shipment(self):
 		ret = False
@@ -805,5 +810,5 @@ class AccountInvoice(models.Model):
 					return order.meli_shipment
 
 		return ret
-		
+
 AccountInvoice()

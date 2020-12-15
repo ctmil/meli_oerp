@@ -36,6 +36,8 @@
             <field name="type">tree</field>
             <field name="arch" type="xml">
                 <tree string="Ordenes" default_order="date_created desc">
+                    <field name="company_id"/>
+                    <field name="seller_id"/>
                     <field name="name"/>
                     <field name="order_id"/>
                     <field name="shipping_id" invisible="0"/>
@@ -153,6 +155,8 @@
                         <field name="fee_amount"  widget="monetary"/>
                         <field name="paid_amount"  widget="monetary"/>
                         <field name="currency_id"/>
+                        <field name="company_id"/>
+                        <field name="seller_id"/>
                     </group>
                   </group>
                   <notebook>
@@ -228,6 +232,8 @@
              <field name="order_id" string="Order ID"/>
              <field name="status" string="Status"/>
              <field name="buyer" string="Comprador"/>
+             <field name="company_id" string="Compania"/>
+             <field name="seller_id" string="Vendedor"/>
              <!--field name="seller" string="Vendedor"/-->
 	         </search>
         </field>

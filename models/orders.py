@@ -623,6 +623,8 @@ class mercadolibre_orders(models.Model):
         #process base order fields
         meli_order_fields = {
             #'name': "%i" % ( order_json["id"] ),
+            'company_id': company.id,
+            'seller_id': self.env.user.partner_id.id,
             'partner_id': partner_id.id,
             'pricelist_id': plistid.id,
             'meli_order_id': '%i' % (order_json["id"]),
@@ -1099,6 +1101,8 @@ class mercadolibre_orders(models.Model):
     tags = fields.Text(string="Tags")
     pack_order = fields.Boolean(string="Order Pack (Carrito)")
     catalog_order = fields.Boolean(string="Order From Catalog")
+    company_id = fields.Many2one("res.company",string="Company")
+    seller_id = fields.Many2one("res.partner",string="Seller")
 
     _sql_constraints = [
         ('unique_order_id', 'unique(order_id)', 'Meli Order id already exists!')
