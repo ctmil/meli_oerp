@@ -382,6 +382,8 @@ class mercadolibre_shipment(models.Model):
 					"default_code": ship_name,
 					"type": "service",
 					#"taxes_id": None
+					#"categ_id": 279,
+					#"company_id": company.id
 				}
 				_logger.info(ship_prod)
 				product_shipping_tpl = product_tpl.create((ship_prod))

@@ -1307,7 +1307,7 @@ class product_product(models.Model):
             vindex = -1
             for variation in rjson['variations']:
                 vindex = vindex+1
-                vid = variations[vindex]["id"]
+                vid = rjson['variations'][vindex]["id"]
                 resvar = meli.get("/items/"+str(product.meli_id)+"/variations/"+str(vid), {'access_token':meli.access_token})
                 vjson = resvar.json()
                 if ( "error" in vjson ):
