@@ -497,10 +497,13 @@ class mercadolibre_shipment(models.Model):
 				_logger.error( ship_json["message"] )
 			else:
 				_logger.info("Saving shipment fields")
+				seller_id = None
+				if company.mercadolibre_seller_user:
+					seller_id = company.mercadolibre_seller_user.id
 				ship_fields = {
 					"name": "MSO ["+str(ship_id)+"] "+str("")+str(ship_json["status"])+"/"+str(ship_json["substatus"])+str(""),
 					'company_id': company.id,
-					'seller_id': company.mercadolibre_seller_user,
+					'seller_id': seller_id,
 					"order": order.id,
 					"shipping_id": ship_json["id"],
 					"site_id": ship_json["site_id"],
