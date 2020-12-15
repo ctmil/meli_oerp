@@ -75,6 +75,8 @@ class MercadolibreNotification(models.Model):
     processing_ended = fields.Datetime( string="Processing ended" )
     processing_errors = fields.Text( string="Processing Errors log" )
     processing_logs = fields.Text( string="Processing Logs" )
+    company_id = fields.Many2one("res.company",string="Company")
+    seller_id = fields.Many2one("res.users",string="Seller")
 
     _sql_constraints = [
         #('ref_uniq', 'unique(notification_id, application_id, user_id, topic)', 'Notification Id must be unique!'),
@@ -82,6 +84,7 @@ class MercadolibreNotification(models.Model):
     ]
 
     def _prepare_values(self, values):
+        company = self.env.user.company_id
         vals = {
             "notification_id": values["_id"],
             "application_id": values["application_id"],
@@ -91,7 +94,9 @@ class MercadolibreNotification(models.Model):
             "received": values["received"],
             "sent": values["sent"],
             "attempts": values["attempts"],
-            "state": "RECEIVED"
+            "state": "RECEIVED",
+            'company_id': company.id,
+            'seller_id': company.mercadolibre_seller_user
         }
         return vals
 

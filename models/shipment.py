@@ -325,7 +325,7 @@ class mercadolibre_shipment(models.Model):
 	pdfimage_filename = fields.Char(string='Pdf Image Filename')
 
 	company_id = fields.Many2one("res.company",string="Company")
-	seller_id = fields.Many2one("res.partner",string="Seller")
+	seller_id = fields.Many2one("res.users",string="Seller")
 
 	pack_order = fields.Boolean(string="Carrito de compra")
 
@@ -498,7 +498,7 @@ class mercadolibre_shipment(models.Model):
 				ship_fields = {
 					"name": "MSO ["+str(ship_id)+"] "+str("")+str(ship_json["status"])+"/"+str(ship_json["substatus"])+str(""),
 					'company_id': company.id,
-					'seller_id': self.env.user.partner_id.id,
+					'seller_id': company.mercadolibre_seller_user,
 					"order": order.id,
 					"shipping_id": ship_json["id"],
 					"site_id": ship_json["site_id"],

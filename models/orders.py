@@ -460,8 +460,6 @@ class mercadolibre_orders(models.Model):
 
             buyer_fields = {
                 'name': Buyer['first_name']+' '+Buyer['last_name'],
-                'seller_id': self.env.user.partner_id.id,
-                'partner_id': partner_id.id,
                 'buyer_id': Buyer['id'],
                 'nickname': Buyer['nickname'],
                 'email': Buyer['email'],
@@ -626,6 +624,8 @@ class mercadolibre_orders(models.Model):
         meli_order_fields = {
             #'name': "%i" % ( order_json["id"] ),
             'company_id': company.id,
+            'seller_id': company.mercadolibre_seller_user,
+            'partner_id': partner_id.id,
             'pricelist_id': plistid.id,
             'meli_order_id': '%i' % (order_json["id"]),
             'meli_status': order_json["status"],
@@ -1102,7 +1102,7 @@ class mercadolibre_orders(models.Model):
     pack_order = fields.Boolean(string="Order Pack (Carrito)")
     catalog_order = fields.Boolean(string="Order From Catalog")
     company_id = fields.Many2one("res.company",string="Company")
-    seller_id = fields.Many2one("res.partner",string="Seller")
+    seller_id = fields.Many2one("res.users",string="Seller")
 
     _sql_constraints = [
         ('unique_order_id', 'unique(order_id)', 'Meli Order id already exists!')
