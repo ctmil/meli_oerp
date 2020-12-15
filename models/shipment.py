@@ -498,7 +498,7 @@ class mercadolibre_shipment(models.Model):
 				ship_fields = {
 					"name": "MSO ["+str(ship_id)+"] "+str("")+str(ship_json["status"])+"/"+str(ship_json["substatus"])+str(""),
 					'company_id': company.id,
-		            'seller_id': self.env.user.partner_id.id,
+					'seller_id': self.env.user.partner_id.id,
 					"order": order.id,
 					"shipping_id": ship_json["id"],
 					"site_id": ship_json["site_id"],

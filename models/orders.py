@@ -460,6 +460,8 @@ class mercadolibre_orders(models.Model):
 
             buyer_fields = {
                 'name': Buyer['first_name']+' '+Buyer['last_name'],
+                'seller_id': self.env.user.partner_id.id,
+                'partner_id': partner_id.id,
                 'buyer_id': Buyer['id'],
                 'nickname': Buyer['nickname'],
                 'email': Buyer['email'],
@@ -624,8 +626,6 @@ class mercadolibre_orders(models.Model):
         meli_order_fields = {
             #'name': "%i" % ( order_json["id"] ),
             'company_id': company.id,
-            'seller_id': self.env.user.partner_id.id,
-            'partner_id': partner_id.id,
             'pricelist_id': plistid.id,
             'meli_order_id': '%i' % (order_json["id"]),
             'meli_status': order_json["status"],
