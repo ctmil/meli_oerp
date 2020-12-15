@@ -1148,7 +1148,8 @@ class product_product(models.Model):
         try:
             if (float(rjson['price'])>=0.0):
                 product._meli_set_product_price( product_template, rjson['price'], force_variant=force_price_for_variant )
-        except:
+        except Exception as e:
+            _logger.info(e, exc_info=True)
             rjson['price'] = 0.0
 
         imagen_id = ''
