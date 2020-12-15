@@ -371,6 +371,8 @@ class mercadolibre_orders(models.Model):
 
         order_fields = {
             'name': "MO [%i]" % ( order_json["id"] ),
+            'company_id': company.id,
+            'seller_id': company.mercadolibre_seller_user,
             'order_id': '%i' % (order_json["id"]),
             'status': order_json["status"],
             'status_detail': order_json["status_detail"] or '' ,
@@ -623,8 +625,6 @@ class mercadolibre_orders(models.Model):
         #process base order fields
         meli_order_fields = {
             #'name': "%i" % ( order_json["id"] ),
-            'company_id': company.id,
-            'seller_id': company.mercadolibre_seller_user,
             'partner_id': partner_id.id,
             'pricelist_id': plistid.id,
             'meli_order_id': '%i' % (order_json["id"]),
