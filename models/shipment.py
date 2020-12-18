@@ -517,7 +517,7 @@ class mercadolibre_shipment(models.Model):
 					"sender_id": ship_json["sender_id"],
 					"logistic_type": ("logistic_type" in ship_json and ship_json["logistic_type"]) or ""
 				}
-				if "receiver_address" in ship_json:
+				if "receiver_address" in ship_json and ship_json["receiver_address"]:
 					ship_fields.update({
 						"receiver_address_id": ship_json["receiver_address"]["id"],
 						"receiver_address_phone": ship_json["receiver_address"]["receiver_phone"],
@@ -536,7 +536,7 @@ class mercadolibre_shipment(models.Model):
 						"receiver_longitude": ship_json["receiver_address"]["longitude"]
 					})
 
-				if "sender_address" in ship_json:
+				if "sender_address" in ship_json and ship_json["sender_address"]:
 					ship_fields.update({
 						"sender_address_id": ship_json["sender_address"]["id"],
 						"sender_address_line": ship_json["sender_address"]["address_line"],
