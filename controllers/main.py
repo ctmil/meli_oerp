@@ -10,6 +10,10 @@ from odoo import fields, osv, http
 from odoo.http import Controller, Response, request, route, JsonRequest
 from odoo.addons.web.controllers.main import content_disposition
 from odoo.tools import date_utils
+import json
+import sys
+import pprint
+pp = pprint.PrettyPrinter(indent=4)
 
 import pdb
 import logging
