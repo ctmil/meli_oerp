@@ -799,11 +799,11 @@ class res_company(models.Model):
                         _logger.info(e, exc_info=True)
 
 
-    def meli_notifications(self):
+    def meli_notifications(self, data=False):
         _logger.info("meli_notifications")
         notifications = self.env['mercadolibre.notification']
         if (self.mercadolibre_process_notifications):
-            return notifications.fetch_lasts()
+            return notifications.fetch_lasts(data)
         return {}
 
     def meli_set_automatic_tax_included(self):

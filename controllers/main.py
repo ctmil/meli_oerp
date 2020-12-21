@@ -6,15 +6,19 @@ from odoo import http, api
 
 from ..melisdk.meli import Meli
 
-from odoo import fields, osv
-from odoo.http import Controller, Response, request, route
+from odoo import fields, osv, http
+from odoo.http import Controller, Response, request, route, JsonRequest
+from odoo.addons.web.controllers.main import content_disposition
+from odoo.tools import date_utils
+import json
+import sys
+import pprint
+pp = pprint.PrettyPrinter(indent=4)
 
 import pdb
 import logging
 _logger = logging.getLogger(__name__)
 
-
-from odoo.addons.web.controllers.main import content_disposition
 
 class MercadoLibre(http.Controller):
     @http.route('/meli/', auth='public')
@@ -45,7 +49,11 @@ class MercadoLibre(http.Controller):
         company = request.env.user.company_id
         _logger.info(request.env.user)
         _logger.info(company)
-        result = company.meli_notifications()
+        #_logger.info(kw)
+        #_logger.info(request)
+        data = json.loads(request.httprequest.data)
+        _logger.info(data)
+        result = company.meli_notifications(data)
         if (result and "error" in result):
             return Response(result["error"],content_type='text/html;charset=utf-8',status=result["status"])
         else:
