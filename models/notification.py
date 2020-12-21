@@ -103,7 +103,7 @@ class MercadolibreNotification(models.Model):
         }
         return vals
 
-    def fetch_lasts(self):
+    def fetch_lasts(self, data=False):
         company = self.env.user.company_id
         _logger.info("fetch_lasts: "+str(company.name))
         _logger.info("user: "+str(self.env.user.name))
@@ -114,57 +114,74 @@ class MercadolibreNotification(models.Model):
         ACCESS_TOKEN = company.mercadolibre_access_token
         REFRESH_TOKEN = company.mercadolibre_refresh_token
 
+        messages = []
+
         try:
-            #_logger.info("access_token:"+str(ACCESS_TOKEN))
+            if data:
+                if (not "_id" in data):
+                    date_time = ml_datetime( str( datetime.now() ) )
+                    base_str = str(data["application_id"]) + str(data["user_id"]) + str(date_time)
+                    hash = hashlib.md5()
+                    hash.update( base_str.encode() )
+                    hexhash = str("n")+hash.hexdigest()
+                    data["_id"] = hexhash
+                messages.append(data)
+
+            #must upgrade to /missed_feeds
             response = meli.get("/myfeeds", {'app_id': company.mercadolibre_client_id,'offset': 1, 'limit': 10,'access_token':meli.access_token} )
             rjson = response.json()
-            #_logger.info(rjson)
+
             if ("messages" in rjson):
                 for n in rjson["messages"]:
-                    try:
-                        if ("_id" in n):
-                            if (n["topic"]=="questions"):
-                                nn = self.search([('notification_id','=',n["_id"])])
-                                if (len(nn)==0):
-                                    vals = self._prepare_values(values=n)
-                                    noti = self.create(vals)
-                                    _logger.info("Created new QUESTION notification")
-                                    if (noti):
-                                        noti._process_notification_question()
+                    messages.append(n)
 
-                            if (n["topic"] in ["order","created_orders","orders_v2"]):
-                                nn = self.search([('notification_id','=',n["_id"])])
-                                if (len(nn)==0):
-                                    vals = self._prepare_values(values=n)
-                                    noti = self.create(vals)
-                                    _logger.info("Created new ORDER notification.")
-                                    if (noti):
-                                        noti._process_notification_order()
-
-                            if (1==2 and n["topic"]=="items"):
-                                nn = self.search([('notification_id','=',n["_id"])])
-                                if (len(nn)==0):
-                                    vals = self._prepare_values(values=n)
-                                    noti = self.create(vals)
-                                    _logger.info("Created new ITEM notification.")
-
-                            if (n["topic"] in ["payments"]):
-                                nn = self.search([('notification_id','=',n["_id"])])
-                                if (len(nn)==0):
-                                    vals = self._prepare_values(values=n)
-                                    noti = self.create(vals)
-                                    _logger.info("Created new PAYMENT notification.")
-
-                    except Exception as e:
-                        _logger.error("Error creating notification.")
-                        _logger.info(e, exc_info=True)
-                        return {"error": "Error creating notification.", "status": "520" }
-                        pass;
         except Exception as e:
-            _logger.error("Error connecting to Meli")
+            _logger.error("Error connecting to Meli, myfeeds")
             _logger.info(e, exc_info=True)
             return {"error": "Error connecting to Meli.", "status": "520" }
             pass;
+
+        #process all notifications
+        for n in messages:
+            try:
+                if ("_id" in n):
+                    if (n["topic"]=="questions"):
+                        nn = self.search([('notification_id','=',n["_id"])])
+                        if (len(nn)==0):
+                            vals = self._prepare_values(values=n)
+                            noti = self.create(vals)
+                            _logger.info("Created new QUESTION notification")
+                            if (noti):
+                                noti._process_notification_question()
+
+                    if (n["topic"] in ["order","created_orders","orders_v2"]):
+                        nn = self.search([('notification_id','=',n["_id"])])
+                        if (len(nn)==0):
+                            vals = self._prepare_values(values=n)
+                            noti = self.create(vals)
+                            _logger.info("Created new ORDER notification.")
+                            if (noti):
+                                noti._process_notification_order()
+
+                    if (1==2 and n["topic"]=="items"):
+                        nn = self.search([('notification_id','=',n["_id"])])
+                        if (len(nn)==0):
+                            vals = self._prepare_values(values=n)
+                            noti = self.create(vals)
+                            _logger.info("Created new ITEM notification.")
+
+                    if (n["topic"] in ["payments"]):
+                        nn = self.search([('notification_id','=',n["_id"])])
+                        if (len(nn)==0):
+                            vals = self._prepare_values(values=n)
+                            noti = self.create(vals)
+                            _logger.info("Created new PAYMENT notification.")
+
+            except Exception as e:
+                _logger.error("Error creating notification.")
+                _logger.info(e, exc_info=True)
+                return {"error": "Error creating notification.", "status": "520" }
+                pass;
 
         self.process_notifications()
 
