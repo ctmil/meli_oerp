@@ -193,7 +193,7 @@ class res_company(models.Model):
     mercadolibre_cron_post_update_stock = fields.Boolean(string='Cron Post Updated Stock')
     mercadolibre_cron_post_update_price = fields.Boolean(string='Cron Post Updated Price')
     mercadolibre_create_website_categories = fields.Boolean(string='Create Website Categories')
-    mercadolibre_calculate_taxes = fields.Boolean(string='Calculate_taxes')
+    mercadolibre_calculate_taxes = fields.Boolean(string='Calculate Taxes')
     mercadolibre_pricelist = fields.Many2one( "product.pricelist", "Product Pricelist default", help="Select price list for ML product"
         "when published from Odoo to ML")
 
