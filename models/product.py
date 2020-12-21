@@ -1148,7 +1148,8 @@ class product_product(models.Model):
         try:
             if (float(rjson['price'])>=0.0):
                 product._meli_set_product_price( product_template, rjson['price'], force_variant=force_price_for_variant )
-        except:
+        except Exception as e:
+            _logger.info(e, exc_info=True)
             rjson['price'] = 0.0
 
         imagen_id = ''
@@ -2038,7 +2039,7 @@ class product_product(models.Model):
         #_logger.info('_self_combinations')
         #_logger.info(_self_combinations)
 
-        if 'attribute_combinations' in _self_combinations:
+        if (_self_combinations and 'attribute_combinations' in _self_combinations):
             for att in _self_combinations['attribute_combinations']:
                 #_logger.info(att)
                 _map_combinations[att["name"]] = att["value_name"]
@@ -2314,8 +2315,8 @@ class product_product(models.Model):
                         product.meli_category = cat_id.mercadolibre_category
                         product_tmpl.meli_category = cat_id.mercadolibre_category
 
-        if product_tmpl.meli_category:
-            product.meli_category=product_tmpl.meli_category
+        if product_tmpl.meli_category and not product.meli_category:
+            product.meli_category = product_tmpl.meli_category
 
         product.meli_available_quantity = product._meli_available_quantity()
 
@@ -2506,13 +2507,14 @@ class product_product(models.Model):
                         _logger.info(_updated_ids)
                         _new_candidates = product_tmpl.product_variant_ids.filtered(lambda pv: pv.id not in _updated_ids)
                         _logger.info(_new_candidates)
-                        for aix in range(len(_all_variations)):
-                            var_info = _all_variations[aix]
-                            for pvar in _new_candidates:
-                                if (pvar._is_product_combination(var_info)):
-                                    varias["variations"].append(var_info)
-                                    _logger.info("news:")
-                                    _logger.info(var_info)
+                        if _all_variations:
+                            for aix in range(len(_all_variations)):
+                                var_info = _all_variations[aix]
+                                for pvar in _new_candidates:
+                                    if (pvar._is_product_combination(var_info)):
+                                        varias["variations"].append(var_info)
+                                        _logger.info("news:")
+                                        _logger.info(var_info)
 
                         _logger.info(varias)
                         responsevar = meli.put("/items/"+product.meli_id, varias, {'access_token':meli.access_token})
@@ -2791,16 +2793,17 @@ class product_product(models.Model):
                     if found_comb==False:
                         #add combination!!
                         addvar = self._combination()
-                        if ('picture_ids' in addvar):
-                            if len(pictures_v)>=len(addvar["picture_ids"]):
-                                addvar["picture_ids"] = pictures_v
-                        if (company.mercadolibre_post_default_code):
-                            addvar["seller_custom_field"] = product.default_code
-                        addvar["price"] = same_price
-                        _logger.info("Add variation!")
-                        _logger.info(addvar)
-                        responsevar = meli.post("/items/"+product.meli_id+"/variations", addvar, {'access_token':meli.access_token})
-                        _logger.info(responsevar.json())
+                        if addvar:
+                            if ('picture_ids' in addvar):
+                                if len(pictures_v)>=len(addvar["picture_ids"]):
+                                    addvar["picture_ids"] = pictures_v
+                            if (company.mercadolibre_post_default_code):
+                                addvar["seller_custom_field"] = product.default_code
+                            addvar["price"] = same_price
+                            _logger.info("Add variation!")
+                            _logger.info(addvar)
+                            responsevar = meli.post("/items/"+product.meli_id+"/variations", addvar, {'access_token':meli.access_token})
+                            _logger.info(responsevar.json())
                 _logger.info("Available:"+str(product_tmpl.virtual_available))
                 best_available = 0
                 for vr in product_tmpl.product_variant_ids:
