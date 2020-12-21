@@ -926,6 +926,7 @@ class product_product(models.Model):
 
         #recorrer los variations>attribute_combinations y agregarlos como atributos de las variantes
         _logger.info(variations)
+
         published_att_variants = False
         product = self
         product_template = product.product_tmpl_id
@@ -1147,7 +1148,8 @@ class product_product(models.Model):
         try:
             if (float(rjson['price'])>=0.0):
                 product._meli_set_product_price( product_template, rjson['price'], force_variant=force_price_for_variant )
-        except:
+        except Exception as e:
+            _logger.info(e, exc_info=True)
             rjson['price'] = 0.0
 
         imagen_id = ''
@@ -1301,6 +1303,44 @@ class product_product(models.Model):
             rjson['variations'].append({'attribute_combinations': [ att_shipping ]})
 
         #_logger.info(rjson['variations'])
+        #COMPLETING ATTRIBUTES VARIATION INFORMATION FROM /items/[MLID]/variations/[VARID]...
+        if ('variations' in rjson and 1==1):
+            vindex = -1
+            realmeliv = 0
+            for variation in rjson['variations']:
+                vindex = vindex+1
+                #_logger.info(variation)
+                _logger.info(rjson['variations'][vindex])
+                if 'id' in rjson['variations'][vindex]:
+                    _logger.info(vid)
+                    realmeliv = realmeliv+1
+                    vid = rjson['variations'][vindex]['id']
+                    resvar = meli.get("/items/"+str(product.meli_id)+"/variations/"+str(vid), {'access_token':meli.access_token})
+                    vjson = resvar.json()
+                    if ( "error" in vjson ):
+                        continue;
+                    if ("attributes" in vjson):
+                        rjson['variations'][vindex]["attributes"] = vjson["attributes"]
+                        for att in vjson["attributes"]:
+                            if ("id" in att and att["id"] == "SELLER_SKU"):
+                                rjson['variations'][vindex]["seller_sku"] = att["value_name"]
+            _logger.info(rjson['variations'])
+
+            if ( realmeliv>0 and 1==1 ):
+                #associate var ids for every variant
+                product_template.meli_pub_as_variant = True
+                if (not product_template.meli_pub_principal_variant
+                    or not product_template.meli_pub_principal_variant.id == product.id):
+                    for variant in product_template.product_variant_ids:
+                        if not product_template.meli_pub_principal_variant:
+                            product_template.meli_pub_principal_variant = variant
+                        for variation in rjson['variations']:
+                            if "seller_sku" in variation and variant.default_code == variation["seller_sku"]:
+                                variant.meli_id_variation = variation["id"]
+                                variant.meli_pub = True
+                                variant.meli_id = product.meli_id
+                                variant.meli_available_quantity = variation["available_quantity"]
+
         published_att_variants = False
         if (company.mercadolibre_update_existings_variants and 'variations' in rjson):
             published_att_variants = self._get_variations( rjson['variations'])
@@ -1348,10 +1388,13 @@ class product_product(models.Model):
                     #_logger.info(variation)
                     #_logger.info("variation[default_code]: " + variation["default_code"])
                     if (len(variation["default_code"]) and (variation["default_code"] in _v_default_code)):
-                        if ("seller_custom_field" in variation):
+                        if ("seller_custom_field" in variation or "seller_sku" in variation):
                             #_logger.info("has_sku")
                             #_logger.info(variation["seller_custom_field"])
-                            variant.default_code = variation["seller_custom_field"]
+                            try:
+                                variant.default_code = variation["seller_custom_field"] or variation["seller_sku"]
+                            except:
+                                pass;
                             variant.meli_id_variation = variation["id"]
                             has_sku = True
                         else:
@@ -1996,7 +2039,7 @@ class product_product(models.Model):
         #_logger.info('_self_combinations')
         #_logger.info(_self_combinations)
 
-        if 'attribute_combinations' in _self_combinations:
+        if (_self_combinations and 'attribute_combinations' in _self_combinations):
             for att in _self_combinations['attribute_combinations']:
                 #_logger.info(att)
                 _map_combinations[att["name"]] = att["value_name"]
@@ -2272,8 +2315,8 @@ class product_product(models.Model):
                         product.meli_category = cat_id.mercadolibre_category
                         product_tmpl.meli_category = cat_id.mercadolibre_category
 
-        if product_tmpl.meli_category:
-            product.meli_category=product_tmpl.meli_category
+        if product_tmpl.meli_category and not product.meli_category:
+            product.meli_category = product_tmpl.meli_category
 
         product.meli_available_quantity = product._meli_available_quantity()
 
@@ -2464,13 +2507,14 @@ class product_product(models.Model):
                         _logger.info(_updated_ids)
                         _new_candidates = product_tmpl.product_variant_ids.filtered(lambda pv: pv.id not in _updated_ids)
                         _logger.info(_new_candidates)
-                        for aix in range(len(_all_variations)):
-                            var_info = _all_variations[aix]
-                            for pvar in _new_candidates:
-                                if (pvar._is_product_combination(var_info)):
-                                    varias["variations"].append(var_info)
-                                    _logger.info("news:")
-                                    _logger.info(var_info)
+                        if _all_variations:
+                            for aix in range(len(_all_variations)):
+                                var_info = _all_variations[aix]
+                                for pvar in _new_candidates:
+                                    if (pvar._is_product_combination(var_info)):
+                                        varias["variations"].append(var_info)
+                                        _logger.info("news:")
+                                        _logger.info(var_info)
 
                         _logger.info(varias)
                         responsevar = meli.put("/items/"+product.meli_id, varias, {'access_token':meli.access_token})
@@ -2749,16 +2793,17 @@ class product_product(models.Model):
                     if found_comb==False:
                         #add combination!!
                         addvar = self._combination()
-                        if ('picture_ids' in addvar):
-                            if len(pictures_v)>=len(addvar["picture_ids"]):
-                                addvar["picture_ids"] = pictures_v
-                        if (company.mercadolibre_post_default_code):
-                            addvar["seller_custom_field"] = product.default_code
-                        addvar["price"] = same_price
-                        _logger.info("Add variation!")
-                        _logger.info(addvar)
-                        responsevar = meli.post("/items/"+product.meli_id+"/variations", addvar, {'access_token':meli.access_token})
-                        _logger.info(responsevar.json())
+                        if addvar:
+                            if ('picture_ids' in addvar):
+                                if len(pictures_v)>=len(addvar["picture_ids"]):
+                                    addvar["picture_ids"] = pictures_v
+                            if (company.mercadolibre_post_default_code):
+                                addvar["seller_custom_field"] = product.default_code
+                            addvar["price"] = same_price
+                            _logger.info("Add variation!")
+                            _logger.info(addvar)
+                            responsevar = meli.post("/items/"+product.meli_id+"/variations", addvar, {'access_token':meli.access_token})
+                            _logger.info(responsevar.json())
                 _logger.info("Available:"+str(product_tmpl.virtual_available))
                 best_available = 0
                 for vr in product_tmpl.product_variant_ids:

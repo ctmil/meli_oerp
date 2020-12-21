@@ -7,6 +7,8 @@
 			<field name="model">mercadolibre.notification</field>
 			<field name="arch" type="xml">
 				<tree create="0" edit="1" delete="1" default_order='sent desc, notification_id desc'>
+					<field name="company_id" />
+					<field name="seller_id" />
 					<field name="notification_id" />
 					<field name="sent" />
 					<field name="topic" />
@@ -31,6 +33,8 @@
 							<h1><field name="notification_id"/></h1>
 							<field name='user_id'/>
 							<field name='application_id'/>
+							<field name="company_id" />
+							<field name="seller_id" />
 						</div>
 						<div class="oe_button_box" name="button_box_mel" style="width: auto;">
 							<button name='process_notification' type="object"
@@ -69,6 +73,8 @@
 			<field name="model">mercadolibre.notification</field>
 			<field name="arch" type="xml">
 				<search  string="Search MercadoLibre Notifications Information">
+					<field name="company_id" />
+					<field name="seller_id" />
 					<field name="notification_id" />
 					<field name="sent" />
 					<field name="topic" />
