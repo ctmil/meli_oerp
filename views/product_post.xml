@@ -42,8 +42,32 @@
               <field name="type">form</field>
               <field name="arch" type="xml">
                 <form string="Update from MercadoLibre">
+                    <group string="Opciones de importación" col="2">
+                      <group>
+                        <field name="force_meli_pub"/>
+                      </group>
+                    </group>
                     <footer>
                         <button name="product_template_update" string="Update from MELI"  type="object" class="oe_highlight"  />
+                        <button string="Cancel" class="oe_link" special="cancel" />
+                    </footer>
+                </form>
+              </field>
+        </record>
+
+        <record id="view_product_product_update" model="ir.ui.view">
+              <field name="name">Import/Update from Mercado Libre</field>
+              <field name="model">mercadolibre.product.product.update</field>
+              <field name="type">form</field>
+              <field name="arch" type="xml">
+                <form string="Import/Update from MercadoLibre">
+                    <group string="Opciones de importación" col="2">
+                      <group>
+                        <field name="force_meli_pub"/>
+                      </group>
+                    </group>
+                    <footer>
+                        <button name="product_product_update" string="Import/Update from MELI"  type="object" class="oe_highlight"  />
                         <button string="Cancel" class="oe_link" special="cancel" />
                     </footer>
                 </form>

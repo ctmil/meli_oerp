@@ -368,9 +368,13 @@ class mercadolibre_orders(models.Model):
                     sorder = sorder_s
             #if (sorder_s and len(sorder_s)>0):
             #    sorder = saleorder_obj.browse(sorder_s[0] )
-
+        seller_id = None
+        if company.mercadolibre_seller_user:
+            seller_id = company.mercadolibre_seller_user.id
         order_fields = {
             'name': "MO [%i]" % ( order_json["id"] ),
+            'company_id': company.id,
+            'seller_id': seller_id,
             'order_id': '%i' % (order_json["id"]),
             'status': order_json["status"],
             'status_detail': order_json["status_detail"] or '' ,
@@ -1099,6 +1103,8 @@ class mercadolibre_orders(models.Model):
     tags = fields.Text(string="Tags")
     pack_order = fields.Boolean(string="Order Pack (Carrito)")
     catalog_order = fields.Boolean(string="Order From Catalog")
+    company_id = fields.Many2one("res.company",string="Company")
+    seller_id = fields.Many2one("res.users",string="Seller")
 
     _sql_constraints = [
         ('unique_order_id', 'unique(order_id)', 'Meli Order id already exists!')

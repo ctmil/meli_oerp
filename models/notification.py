@@ -75,6 +75,8 @@ class MercadolibreNotification(models.Model):
     processing_ended = fields.Datetime( string="Processing ended" )
     processing_errors = fields.Text( string="Processing Errors log" )
     processing_logs = fields.Text( string="Processing Logs" )
+    company_id = fields.Many2one("res.company",string="Company")
+    seller_id = fields.Many2one("res.users",string="Seller")
 
     _sql_constraints = [
         #('ref_uniq', 'unique(notification_id, application_id, user_id, topic)', 'Notification Id must be unique!'),
@@ -82,22 +84,31 @@ class MercadolibreNotification(models.Model):
     ]
 
     def _prepare_values(self, values):
+        company = self.env.user.company_id
+        seller_id = None
+        if company.mercadolibre_seller_user:
+            seller_id = company.mercadolibre_seller_user.id
         vals = {
             "notification_id": values["_id"],
             "application_id": values["application_id"],
             "user_id": values["user_id"],
             "topic": values["topic"],
             "resource": values["resource"],
-            "received": values["received"],
-            "sent": values["sent"],
+            "received": ml_datetime(values["received"]),
+            "sent": ml_datetime(values["sent"]),
             "attempts": values["attempts"],
-            "state": "RECEIVED"
+            "state": "RECEIVED",
+            'company_id': company.id,
+            'seller_id': seller_id
         }
         return vals
 
     def fetch_lasts(self):
-        _logger.info("fetch_lasts")
         company = self.env.user.company_id
+        _logger.info("fetch_lasts: "+str(company.name))
+        _logger.info("user: "+str(self.env.user.name))
+        if company.mercadolibre_seller_user:
+            _logger.info("seller user: "+str(company.mercadolibre_seller_user.name))
         meli_util_model = self.env['meli.util']
         meli = meli_util_model.get_new_instance(company)
         ACCESS_TOKEN = company.mercadolibre_access_token
@@ -144,12 +155,14 @@ class MercadolibreNotification(models.Model):
                                     noti = self.create(vals)
                                     _logger.info("Created new PAYMENT notification.")
 
-                    except:
+                    except Exception as e:
                         _logger.error("Error creating notification.")
+                        _logger.info(e, exc_info=True)
                         return {"error": "Error creating notification.", "status": "520" }
                         pass;
-        except:
+        except Exception as e:
             _logger.error("Error connecting to Meli")
+            _logger.info(e, exc_info=True)
             return {"error": "Error connecting to Meli.", "status": "520" }
             pass;
 

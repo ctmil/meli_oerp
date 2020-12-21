@@ -324,6 +324,9 @@ class mercadolibre_shipment(models.Model):
 	pdfimage_file = fields.Binary(string='Pdf Image File',attachment=True)
 	pdfimage_filename = fields.Char(string='Pdf Image Filename')
 
+	company_id = fields.Many2one("res.company",string="Company")
+	seller_id = fields.Many2one("res.users",string="Seller")
+
 	pack_order = fields.Boolean(string="Carrito de compra")
 
 	_sql_constraints = [
@@ -379,6 +382,8 @@ class mercadolibre_shipment(models.Model):
 					"default_code": ship_name,
 					"type": "service",
 					#"taxes_id": None
+					#"categ_id": 279,
+					#"company_id": company.id
 				}
 				_logger.info(ship_prod)
 				product_shipping_tpl = product_tpl.create((ship_prod))
@@ -492,8 +497,13 @@ class mercadolibre_shipment(models.Model):
 				_logger.error( ship_json["message"] )
 			else:
 				_logger.info("Saving shipment fields")
+				seller_id = None
+				if company.mercadolibre_seller_user:
+					seller_id = company.mercadolibre_seller_user.id
 				ship_fields = {
 					"name": "MSO ["+str(ship_id)+"] "+str("")+str(ship_json["status"])+"/"+str(ship_json["substatus"])+str(""),
+					'company_id': company.id,
+					'seller_id': seller_id,
 					"order": order.id,
 					"shipping_id": ship_json["id"],
 					"site_id": ship_json["site_id"],
