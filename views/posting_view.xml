@@ -108,7 +108,7 @@
         <menuitem id="menu_meli_postings"
             action="action_meli_postings_tree"
             parent="menu_meli"
-            name="Ventas" />
+            name="Ventas publicadas" />
 
         <act_window id="action_update_meli_postings"
             name="Update ML Post"
