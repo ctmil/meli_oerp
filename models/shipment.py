@@ -524,37 +524,41 @@ class mercadolibre_shipment(models.Model):
 					"comments": ship_json["comments"] or '',
 					"date_first_printed": ml_datetime(ship_json["date_first_printed"]),
 					"receiver_id": ship_json["receiver_id"],
-					"receiver_address_id": ship_json["receiver_address"]["id"],
-					"receiver_address_phone": ship_json["receiver_address"]["receiver_phone"],
-					"receiver_address_name": ship_json["receiver_address"]["receiver_name"],
-					"receiver_address_line": ship_json["receiver_address"]["address_line"],
-					"receiver_address_comment": ship_json["receiver_address"]["comment"],
-					"receiver_street_name": ship_json["receiver_address"]["street_name"],
-					"receiver_street_number": ship_json["receiver_address"]["street_number"],
-					"receiver_city": ship_json["receiver_address"]["city"]["name"],
-					"receiver_city_code": ship_json["receiver_address"]["city"]["id"],
-					"receiver_state": ship_json["receiver_address"]["state"]["name"],
-					"receiver_state_code": ship_json["receiver_address"]["state"]["id"],
-					"receiver_country": ship_json["receiver_address"]["country"]["name"],
-					"receiver_country_code": ship_json["receiver_address"]["country"]["id"],
-					"receiver_latitude": ship_json["receiver_address"]["latitude"],
-					"receiver_longitude": ship_json["receiver_address"]["longitude"],
-
 					"sender_id": ship_json["sender_id"],
-					"sender_address_id": ship_json["sender_address"]["id"],
-					"sender_address_line": ship_json["sender_address"]["address_line"],
-					"sender_address_comment": ship_json["sender_address"]["comment"],
-					"sender_street_name": ship_json["sender_address"]["street_name"],
-					"sender_street_number": ship_json["sender_address"]["street_number"],
-					"sender_city": ship_json["sender_address"]["city"]["name"],
-					"sender_state": ship_json["sender_address"]["state"]["name"],
-					"sender_country": ship_json["sender_address"]["country"]["name"],
-					"sender_latitude": ship_json["sender_address"]["latitude"],
-					"sender_longitude": ship_json["sender_address"]["longitude"],
-
-
 					"logistic_type": ("logistic_type" in ship_json and ship_json["logistic_type"]) or ""
 				}
+				if "receiver_address" in ship_json and ship_json["receiver_address"]:
+					ship_fields.update({
+						"receiver_address_id": ship_json["receiver_address"]["id"],
+						"receiver_address_phone": ship_json["receiver_address"]["receiver_phone"],
+						"receiver_address_name": ship_json["receiver_address"]["receiver_name"],
+						"receiver_address_line": ship_json["receiver_address"]["address_line"],
+						"receiver_address_comment": ship_json["receiver_address"]["comment"],
+						"receiver_street_name": ship_json["receiver_address"]["street_name"],
+						"receiver_street_number": ship_json["receiver_address"]["street_number"],
+						"receiver_city": ship_json["receiver_address"]["city"]["name"],
+						"receiver_city_code": ship_json["receiver_address"]["city"]["id"],
+						"receiver_state": ship_json["receiver_address"]["state"]["name"],
+						"receiver_state_code": ship_json["receiver_address"]["state"]["id"],
+						"receiver_country": ship_json["receiver_address"]["country"]["name"],
+						"receiver_country_code": ship_json["receiver_address"]["country"]["id"],
+						"receiver_latitude": ship_json["receiver_address"]["latitude"],
+						"receiver_longitude": ship_json["receiver_address"]["longitude"]
+					})
+
+				if "sender_address" in ship_json and ship_json["sender_address"]:
+					ship_fields.update({
+						"sender_address_id": ship_json["sender_address"]["id"],
+						"sender_address_line": ship_json["sender_address"]["address_line"],
+						"sender_address_comment": ship_json["sender_address"]["comment"],
+						"sender_street_name": ship_json["sender_address"]["street_name"],
+						"sender_street_number": ship_json["sender_address"]["street_number"],
+						"sender_city": ship_json["sender_address"]["city"]["name"],
+						"sender_state": ship_json["sender_address"]["state"]["name"],
+						"sender_country": ship_json["sender_address"]["country"]["name"],
+						"sender_latitude": ship_json["sender_address"]["latitude"],
+						"sender_longitude": ship_json["sender_address"]["longitude"],
+					});
 
 				response2 = meli.get("/shipments/"+ str(ship_id)+"/items",  {'access_token':meli.access_token})
 				if (response2):
