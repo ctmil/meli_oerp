@@ -290,8 +290,8 @@ class product_product(models.Model):
     _inherit = "product.product"
 
     #@api.one
-    @api.onchange('lst_price') # if these fields are changed, call method
-    def check_change_price(self):
+    #@api.onchange('lst_price') # if these fields are changed, call method
+    #def check_change_price(self):
         # GUS
         #pdb.set_trace();
         #pricelists = self.env['product.pricelist'].search([])
@@ -300,14 +300,7 @@ class product_product(models.Model):
         #        pricelist = pricelists.id
         #    else:
         #        pricelist = pricelists[0].id
-        for product in self:
-            str_price = str(product.lst_price)
-            
-            if product.meli_currency:
-                if product.meli_currency == 'COP':
-                    str_price = str(int(math.ceil(product.lst_price)))
-
-            product.meli_price = str_price
+        #self.meli_price = str(self.lst_price)
         #res = {}
         #for id in self:
         #    res[id] = self.lst_price
@@ -558,7 +551,8 @@ class product_product(models.Model):
             if (len(rjson['pictures'])>0):
                 imagen_id = rjson['pictures'][0]['id']
 
-        product._meli_set_price( product_template, rjson['price'] )
+        if (product.lst_price <= 1.0):
+            product._meli_set_price( product_template, rjson['price'] )
 
         meli_fields = {
             'name': rjson['title'].encode("utf-8"),
@@ -1082,9 +1076,9 @@ class product_product(models.Model):
         url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
 
         return {
-	        "type": "ir.actions.act_url",
-	        "url": url_login_meli,
-	        "target": "new",
+            "type": "ir.actions.act_url",
+            "url": url_login_meli,
+            "target": "new",
         }
 
     def product_meli_status_close( self ):
@@ -1382,11 +1376,6 @@ class product_product(models.Model):
         price = False
         if (product.meli_price):
             price = product.meli_price
-
-            if product.meli_currency:
-                if product.meli_currency == 'COP':
-                    price = int(math.ceil(product.meli_price))
-
         qty = product.meli_available_quantity
 
         if (product_tmpl.meli_pub_principal_variant.id and price==False):
@@ -1562,35 +1551,24 @@ class product_product(models.Model):
         if company.mercadolibre_pricelist:
             pl = company.mercadolibre_pricelist
 
-        ######### revisar esta parte para el precio ###############
-        # if product_tmpl.meli_price==False or product_tmpl.meli_price==0:
-        #     product_tmpl.meli_price = product_tmpl.list_price
+        if product_tmpl.meli_price==False or product_tmpl.meli_price==0:
+            product_tmpl.meli_price = product_tmpl.list_price
 
-        # if product_tmpl.taxes_id:
-        #     new_price = product_tmpl.meli_price
-        #     if (pl):
-        #         return_val = pl.price_get(product.id,1.0)
-        #         if pl.id in return_val:
-        #             new_price = return_val[pl.id]
-        #     else:
-        #         new_price = product_tmpl.list_price
-        #         if (product.lst_price):
-        #             new_price = product.lst_price
+        if not product.meli_price_fixed:
+            if (pl):
+                new_price = product_tmpl.meli_price
+                return_val = pl.price_get(product.id,1.0)
+                if pl.id in return_val:
+                    new_price = return_val[pl.id]
+            else:
+                new_price = product_tmpl.list_price
+                if (product.lst_price):
+                    new_price = product.lst_price
 
-        #     new_price = new_price * ( 1 + ( product_tmpl.taxes_id[0].amount / 100) )
-        #     new_price = round(new_price,2)
-        ############################################################
-        new_price = product.meli_price
+            if company.mercadolibre_calcute_taxes and product_tmpl.taxes_id:
+                new_price = new_price * (1 + ( product_tmpl.taxes_id[0].amount / 100))
 
-        if product.meli_price==False or product.meli_price=='0':
-            raise UserError(_("¡Error al publicar!\nPor favor fije un precio para el producto en el campo 'Precio de venta'."))
-        
-        if product.meli_currency:
-            if product.meli_currency == 'COP':
-                if new_price != '0':
-                    new_price_int = int(new_price)
-                    new_price = int(math.ceil(new_price_int))
-
+            new_price = round(new_price,2)
             product_tmpl.meli_price = new_price
             product.meli_price=product_tmpl.meli_price
 
@@ -1612,9 +1590,6 @@ class product_product(models.Model):
                             values+= " "+value.name
 
                 product.meli_title = string.replace(product.meli_title,product.name,product.name+" "+values)
-
-
-
 
         force_template_title = False
         if (product_tmpl.meli_title and force_template_title):
@@ -1650,6 +1625,8 @@ class product_product(models.Model):
 
         if product.meli_price==False:
             product.meli_price=product_tmpl.meli_price
+        if product.meli_currency and product.meli_currency == 'COP':
+            product.meli_price = int(math.ceil(float(product.meli_price)))
         if product.meli_currency==False:
             product.meli_currency=product_tmpl.meli_currency
         if product.meli_condition==False:
@@ -1768,16 +1745,17 @@ class product_product(models.Model):
             "currency_id": product.meli_currency  or '0',
             "condition": product.meli_condition  or '',
             "available_quantity": product.meli_available_quantity  or '0',
+            #"warranty": product.meli_warranty or '',
             "sale_terms":[
-                    {
-                    "id":"WARRANTY_TYPE",
-                    "value_name": "Garantía del vendedor" if product.meli_warranty else 'null'
-                    },
-                    {
-                    "id":"WARRANTY_TIME",
-                    "value_name": product.meli_warranty or 'null'
-                    }
-                ],
+                {
+                "id":"WARRANTY_TYPE",
+                "value_name": "Garantía del vendedor" if product.meli_warranty else 'null'
+                },
+                {
+                "id":"WARRANTY_TIME",
+                "value_name": product.meli_warranty or 'null'
+                }
+            ],
             #"pictures": [ { 'source': product.meli_imagen_logo} ] ,
             "video_id": product.meli_video  or '',
         }
@@ -2239,9 +2217,9 @@ class product_product(models.Model):
         if product_tmpl.meli_price==False or product_tmpl.meli_price==0:
             product_tmpl.meli_price = product_tmpl.list_price
 
-        if product_tmpl.taxes_id:
-            new_price = product_tmpl.meli_price
+        if not product.meli_price_fixed:
             if (pl):
+                new_price = product_tmpl.meli_price
                 return_val = pl.price_get(product.id,1.0)
                 if pl.id in return_val:
                     new_price = return_val[pl.id]
@@ -2250,7 +2228,9 @@ class product_product(models.Model):
                 if (product.lst_price):
                     new_price = product.lst_price
 
-            new_price = new_price * ( 1 + ( product_tmpl.taxes_id[0].amount / 100) )
+            if company.mercadolibre_calcute_taxes and product_tmpl.taxes_id:
+                new_price = new_price * (1 + ( product_tmpl.taxes_id[0].amount / 100))
+
             new_price = round(new_price,2)
             product_tmpl.meli_price = new_price
             product.meli_price=product_tmpl.meli_price
@@ -2262,24 +2242,8 @@ class product_product(models.Model):
             if product_tmpl.meli_price:
                 product.meli_price = product_tmpl.meli_price
 
-        fields = {
-            "price": product.meli_price
-        }
-        response = meli.put("/items/"+product.meli_id, fields, {'access_token':meli.access_token})
-    
-    def product_post_price_when_save(self):
-        company = self.env.user.company_id
-        warningobj = self.env['warning']
-
-        product_obj = self.env['product.product']
-        product = self
-        product_tmpl = self.product_tmpl_id
-
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+        if product.meli_currency and product.meli_currency == 'COP':
+            product.meli_price = int(math.ceil(float(product.meli_price)))
 
         fields = {
             "price": product.meli_price
@@ -2330,15 +2294,6 @@ class product_product(models.Model):
     meli_brand = fields.Char(string="Marca",size=256)
     meli_default_stock_product = fields.Many2one("product.product","Producto de referencia para stock")
     meli_id_variation = fields.Char( string='Id de Variante de Meli', size=256)
-
-    @api.multi
-    def write(self, values):
-        result = super(product_product, self).write(values)
-
-        for product in self:
-            if values.get('meli_price'):
-                self.product_post_price_when_save()
-        return result
 
     _defaults = {
         'meli_imagen_logo': 'None',
