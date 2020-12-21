@@ -324,6 +324,9 @@ class mercadolibre_shipment(models.Model):
 	pdfimage_file = fields.Binary(string='Pdf Image File',attachment=True)
 	pdfimage_filename = fields.Char(string='Pdf Image Filename')
 
+	company_id = fields.Many2one("res.company",string="Company")
+	seller_id = fields.Many2one("res.users",string="Seller")
+
 	pack_order = fields.Boolean(string="Carrito de compra")
 
 	_sql_constraints = [
@@ -349,7 +352,7 @@ class mercadolibre_shipment(models.Model):
 			sorder.meli_shipping_cost = shipment.shipping_cost
 			sorder.meli_shipping_list_cost = shipment.shipping_list_cost
 			sorder.meli_shipment_logistic_type = shipment.logistic_type
-			
+
 			order.shipping_cost = shipment.shipping_cost
 			order.shipping_list_cost = shipment.shipping_list_cost
 			order.shipment_logistic_type = shipment.logistic_type
@@ -362,7 +365,7 @@ class mercadolibre_shipment(models.Model):
 				#sorder.partner_id.state = ships.receiver_state
 
 			ship_name = shipment.tracking_method or (shipment.mode=="custom" and "Personalizado")
-			
+
 			if not ship_name or len(ship_name)==0:
 				continue;
 
@@ -379,7 +382,9 @@ class mercadolibre_shipment(models.Model):
 					"default_code": ship_name,
 					"type": "service",
 					#"taxes_id": None
-				}				
+					#"categ_id": 279,
+					#"company_id": company.id
+				}
 				_logger.info(ship_prod)
 				product_shipping_tpl = product_tpl.create((ship_prod))
 				if (product_shipping_tpl):
@@ -389,9 +394,9 @@ class mercadolibre_shipment(models.Model):
 			if (not product_shipping_id):
 				_logger.info('Failed to create shipping product service')
 				continue
-				
+
 			ship_carrier = {
-				"name": ship_name,					
+				"name": ship_name,
 			}
 			ship_carrier["product_id"] = product_shipping_id.id
 			ship_carrier_id = self.env["delivery.carrier"].search([ ('name','=',ship_carrier['name']) ])
@@ -399,14 +404,14 @@ class mercadolibre_shipment(models.Model):
 				ship_carrier_id = self.env["delivery.carrier"].create(ship_carrier)
 			if (len(ship_carrier_id)>1):
 				ship_carrier_id = ship_carrier_id[0]
-				
+
 			stock_pickings = self.env["stock.picking"].search([('sale_id','=',sorder.id),('name','like','OUT')])
 			#carrier_id = self.env["delivery.carrier"].search([('name','=',)])
 			for st_pick in stock_pickings:
 				#if ( 1==2 and ship_carrier_id ):
 				#	st_pick.carrier_id = ship_carrier_id
 				st_pick.carrier_tracking_ref = shipment.tracking_number
-				
+
 			if (shipment.tracking_method == "MEL Distribution"):
 				_logger.info('MEL Distribution, not adding to order')
 				#continue
@@ -421,8 +426,8 @@ class mercadolibre_shipment(models.Model):
 				delivery_price = shipment.shipping_cost
 				#display_price = vals['carrier_price']
 				#_logger.info(vals)
-				set_delivery_line(sorder, delivery_price, delivery_message )				
-			
+				set_delivery_line(sorder, delivery_price, delivery_message )
+
 			saleorderline_item_fields = {
 				'company_id': company.id,
 				'order_id': sorder.id,
@@ -436,7 +441,7 @@ class mercadolibre_shipment(models.Model):
 			}
 			saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),
 																('order_id','=',sorder.id)] )
-			
+
 			if not saleorderline_item_ids and (shipment.shipping_cost>0):
 				#saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
 				pass;
@@ -492,8 +497,13 @@ class mercadolibre_shipment(models.Model):
 				_logger.error( ship_json["message"] )
 			else:
 				_logger.info("Saving shipment fields")
+				seller_id = None
+				if company.mercadolibre_seller_user:
+					seller_id = company.mercadolibre_seller_user.id
 				ship_fields = {
 					"name": "MSO ["+str(ship_id)+"] "+str("")+str(ship_json["status"])+"/"+str(ship_json["substatus"])+str(""),
+					'company_id': company.id,
+					'seller_id': seller_id,
 					"order": order.id,
 					"shipping_id": ship_json["id"],
 					"site_id": ship_json["site_id"],
@@ -514,37 +524,41 @@ class mercadolibre_shipment(models.Model):
 					"comments": ship_json["comments"] or '',
 					"date_first_printed": ml_datetime(ship_json["date_first_printed"]),
 					"receiver_id": ship_json["receiver_id"],
-					"receiver_address_id": ship_json["receiver_address"]["id"],
-					"receiver_address_phone": ship_json["receiver_address"]["receiver_phone"],
-					"receiver_address_name": ship_json["receiver_address"]["receiver_name"],
-					"receiver_address_line": ship_json["receiver_address"]["address_line"],
-					"receiver_address_comment": ship_json["receiver_address"]["comment"],
-					"receiver_street_name": ship_json["receiver_address"]["street_name"],
-					"receiver_street_number": ship_json["receiver_address"]["street_number"],
-					"receiver_city": ship_json["receiver_address"]["city"]["name"],
-					"receiver_city_code": ship_json["receiver_address"]["city"]["id"],
-					"receiver_state": ship_json["receiver_address"]["state"]["name"],
-					"receiver_state_code": ship_json["receiver_address"]["state"]["id"],
-					"receiver_country": ship_json["receiver_address"]["country"]["name"],
-					"receiver_country_code": ship_json["receiver_address"]["country"]["id"],
-					"receiver_latitude": ship_json["receiver_address"]["latitude"],
-					"receiver_longitude": ship_json["receiver_address"]["longitude"],
-
 					"sender_id": ship_json["sender_id"],
-					"sender_address_id": ship_json["sender_address"]["id"],
-					"sender_address_line": ship_json["sender_address"]["address_line"],
-					"sender_address_comment": ship_json["sender_address"]["comment"],
-					"sender_street_name": ship_json["sender_address"]["street_name"],
-					"sender_street_number": ship_json["sender_address"]["street_number"],
-					"sender_city": ship_json["sender_address"]["city"]["name"],
-					"sender_state": ship_json["sender_address"]["state"]["name"],
-					"sender_country": ship_json["sender_address"]["country"]["name"],
-					"sender_latitude": ship_json["sender_address"]["latitude"],
-					"sender_longitude": ship_json["sender_address"]["longitude"],
-
-
 					"logistic_type": ("logistic_type" in ship_json and ship_json["logistic_type"]) or ""
 				}
+				if "receiver_address" in ship_json and ship_json["receiver_address"]:
+					ship_fields.update({
+						"receiver_address_id": ship_json["receiver_address"]["id"],
+						"receiver_address_phone": ship_json["receiver_address"]["receiver_phone"],
+						"receiver_address_name": ship_json["receiver_address"]["receiver_name"],
+						"receiver_address_line": ship_json["receiver_address"]["address_line"],
+						"receiver_address_comment": ship_json["receiver_address"]["comment"],
+						"receiver_street_name": ship_json["receiver_address"]["street_name"],
+						"receiver_street_number": ship_json["receiver_address"]["street_number"],
+						"receiver_city": ship_json["receiver_address"]["city"]["name"],
+						"receiver_city_code": ship_json["receiver_address"]["city"]["id"],
+						"receiver_state": ship_json["receiver_address"]["state"]["name"],
+						"receiver_state_code": ship_json["receiver_address"]["state"]["id"],
+						"receiver_country": ship_json["receiver_address"]["country"]["name"],
+						"receiver_country_code": ship_json["receiver_address"]["country"]["id"],
+						"receiver_latitude": ship_json["receiver_address"]["latitude"],
+						"receiver_longitude": ship_json["receiver_address"]["longitude"]
+					})
+
+				if "sender_address" in ship_json and ship_json["sender_address"]:
+					ship_fields.update({
+						"sender_address_id": ship_json["sender_address"]["id"],
+						"sender_address_line": ship_json["sender_address"]["address_line"],
+						"sender_address_comment": ship_json["sender_address"]["comment"],
+						"sender_street_name": ship_json["sender_address"]["street_name"],
+						"sender_street_number": ship_json["sender_address"]["street_number"],
+						"sender_city": ship_json["sender_address"]["city"]["name"],
+						"sender_state": ship_json["sender_address"]["state"]["name"],
+						"sender_country": ship_json["sender_address"]["country"]["name"],
+						"sender_latitude": ship_json["sender_address"]["latitude"],
+						"sender_longitude": ship_json["sender_address"]["longitude"],
+					});
 
 				response2 = meli.get("/shipments/"+ str(ship_id)+"/items",  {'access_token':meli.access_token})
 				if (response2):
@@ -792,7 +806,7 @@ class AccountInvoice(models.Model):
 			else:
 				_logger.info("No order found for:"+str(self.origin))
 		return ret
-		
+
 	@api.model
 	def _get_meli_shipment(self):
 		ret = False
@@ -805,5 +819,5 @@ class AccountInvoice(models.Model):
 					return order.meli_shipment
 
 		return ret
-		
+
 AccountInvoice()

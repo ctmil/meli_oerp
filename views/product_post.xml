@@ -42,8 +42,32 @@
               <field name="type">form</field>
               <field name="arch" type="xml">
                 <form string="Update from MercadoLibre">
+                    <group string="Opciones de importación" col="2">
+                      <group>
+                        <field name="force_meli_pub"/>
+                      </group>
+                    </group>
                     <footer>
                         <button name="product_template_update" string="Update from MELI"  type="object" class="oe_highlight"  />
+                        <button string="Cancel" class="oe_link" special="cancel" />
+                    </footer>
+                </form>
+              </field>
+        </record>
+
+        <record id="view_product_product_update" model="ir.ui.view">
+              <field name="name">Import/Update from Mercado Libre</field>
+              <field name="model">mercadolibre.product.product.update</field>
+              <field name="type">form</field>
+              <field name="arch" type="xml">
+                <form string="Import/Update from MercadoLibre">
+                    <group string="Opciones de importación" col="2">
+                      <group>
+                        <field name="force_meli_pub"/>
+                      </group>
+                    </group>
+                    <footer>
+                        <button name="product_product_update" string="Import/Update from MELI"  type="object" class="oe_highlight"  />
                         <button string="Cancel" class="oe_link" special="cancel" />
                     </footer>
                 </form>
@@ -87,6 +111,15 @@
           binding_views="list,form"
           view_mode="form"
           target="new"/>
+
+        <act_window id="action_product_product_update"
+            name="Importar/Update desde ML"
+            binding_model="product.product"
+            res_model="mercadolibre.product.product.update"
+            binding_type="action"
+            binding_views="list,form"
+            view_mode="form"
+            target="new"/>
 
     <!--record id="action_product_post" model="ir.actions.act_window">
         <field name="name">MELI Post</field>

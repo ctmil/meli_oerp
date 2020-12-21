@@ -75,6 +75,8 @@ class MercadolibreNotification(models.Model):
     processing_ended = fields.Datetime( string="Processing ended" )
     processing_errors = fields.Text( string="Processing Errors log" )
     processing_logs = fields.Text( string="Processing Logs" )
+    company_id = fields.Many2one("res.company",string="Company")
+    seller_id = fields.Many2one("res.users",string="Seller")
 
     _sql_constraints = [
         #('ref_uniq', 'unique(notification_id, application_id, user_id, topic)', 'Notification Id must be unique!'),
@@ -82,76 +84,104 @@ class MercadolibreNotification(models.Model):
     ]
 
     def _prepare_values(self, values):
+        company = self.env.user.company_id
+        seller_id = None
+        if company.mercadolibre_seller_user:
+            seller_id = company.mercadolibre_seller_user.id
         vals = {
             "notification_id": values["_id"],
             "application_id": values["application_id"],
             "user_id": values["user_id"],
             "topic": values["topic"],
             "resource": values["resource"],
-            "received": values["received"],
-            "sent": values["sent"],
+            "received": ml_datetime(values["received"]),
+            "sent": ml_datetime(values["sent"]),
             "attempts": values["attempts"],
-            "state": "RECEIVED"
+            "state": "RECEIVED",
+            'company_id': company.id,
+            'seller_id': seller_id
         }
         return vals
 
-    def fetch_lasts(self):
-        _logger.info("fetch_lasts")
+    def fetch_lasts(self, data=False):
         company = self.env.user.company_id
+        _logger.info("fetch_lasts: "+str(company.name))
+        _logger.info("user: "+str(self.env.user.name))
+        if company.mercadolibre_seller_user:
+            _logger.info("seller user: "+str(company.mercadolibre_seller_user.name))
         meli_util_model = self.env['meli.util']
         meli = meli_util_model.get_new_instance(company)
         ACCESS_TOKEN = company.mercadolibre_access_token
         REFRESH_TOKEN = company.mercadolibre_refresh_token
 
+        messages = []
+
         try:
-            #_logger.info("access_token:"+str(ACCESS_TOKEN))
+            if data:
+                if (not "_id" in data):
+                    date_time = ml_datetime( str( datetime.now() ) )
+                    base_str = str(data["application_id"]) + str(data["user_id"]) + str(date_time)
+                    hash = hashlib.md5()
+                    hash.update( base_str.encode() )
+                    hexhash = str("n")+hash.hexdigest()
+                    data["_id"] = hexhash
+                messages.append(data)
+
+            #must upgrade to /missed_feeds
             response = meli.get("/myfeeds", {'app_id': company.mercadolibre_client_id,'offset': 1, 'limit': 10,'access_token':meli.access_token} )
             rjson = response.json()
-            #_logger.info(rjson)
+
             if ("messages" in rjson):
                 for n in rjson["messages"]:
-                    try:
-                        if ("_id" in n):
-                            if (n["topic"]=="questions"):
-                                nn = self.search([('notification_id','=',n["_id"])])
-                                if (len(nn)==0):
-                                    vals = self._prepare_values(values=n)
-                                    noti = self.create(vals)
-                                    _logger.info("Created new QUESTION notification")
-                                    if (noti):
-                                        noti._process_notification_question()
+                    messages.append(n)
 
-                            if (n["topic"] in ["order","created_orders","orders_v2"]):
-                                nn = self.search([('notification_id','=',n["_id"])])
-                                if (len(nn)==0):
-                                    vals = self._prepare_values(values=n)
-                                    noti = self.create(vals)
-                                    _logger.info("Created new ORDER notification.")
-                                    if (noti):
-                                        noti._process_notification_order()
-
-                            if (1==2 and n["topic"]=="items"):
-                                nn = self.search([('notification_id','=',n["_id"])])
-                                if (len(nn)==0):
-                                    vals = self._prepare_values(values=n)
-                                    noti = self.create(vals)
-                                    _logger.info("Created new ITEM notification.")
-
-                            if (n["topic"] in ["payments"]):
-                                nn = self.search([('notification_id','=',n["_id"])])
-                                if (len(nn)==0):
-                                    vals = self._prepare_values(values=n)
-                                    noti = self.create(vals)
-                                    _logger.info("Created new PAYMENT notification.")
-
-                    except:
-                        _logger.error("Error creating notification.")
-                        return {"error": "Error creating notification.", "status": "520" }
-                        pass;
-        except:
-            _logger.error("Error connecting to Meli")
+        except Exception as e:
+            _logger.error("Error connecting to Meli, myfeeds")
+            _logger.info(e, exc_info=True)
             return {"error": "Error connecting to Meli.", "status": "520" }
             pass;
+
+        #process all notifications
+        for n in messages:
+            try:
+                if ("_id" in n):
+                    if (n["topic"]=="questions"):
+                        nn = self.search([('notification_id','=',n["_id"])])
+                        if (len(nn)==0):
+                            vals = self._prepare_values(values=n)
+                            noti = self.create(vals)
+                            _logger.info("Created new QUESTION notification")
+                            if (noti):
+                                noti._process_notification_question()
+
+                    if (n["topic"] in ["order","created_orders","orders_v2"]):
+                        nn = self.search([('notification_id','=',n["_id"])])
+                        if (len(nn)==0):
+                            vals = self._prepare_values(values=n)
+                            noti = self.create(vals)
+                            _logger.info("Created new ORDER notification.")
+                            if (noti):
+                                noti._process_notification_order()
+
+                    if (1==2 and n["topic"]=="items"):
+                        nn = self.search([('notification_id','=',n["_id"])])
+                        if (len(nn)==0):
+                            vals = self._prepare_values(values=n)
+                            noti = self.create(vals)
+                            _logger.info("Created new ITEM notification.")
+
+                    if (n["topic"] in ["payments"]):
+                        nn = self.search([('notification_id','=',n["_id"])])
+                        if (len(nn)==0):
+                            vals = self._prepare_values(values=n)
+                            noti = self.create(vals)
+                            _logger.info("Created new PAYMENT notification.")
+
+            except Exception as e:
+                _logger.error("Error creating notification.")
+                _logger.info(e, exc_info=True)
+                return {"error": "Error creating notification.", "status": "520" }
+                pass;
 
         self.process_notifications()
 
