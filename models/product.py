@@ -1565,7 +1565,7 @@ class product_product(models.Model):
                 if (product.lst_price):
                     new_price = product.lst_price
 
-            if company.mercadolibre_calcute_taxes and product_tmpl.taxes_id:
+            if company.mercadolibre_calculate_taxes and product_tmpl.taxes_id:
                 new_price = new_price * (1 + ( product_tmpl.taxes_id[0].amount / 100))
 
             new_price = round(new_price,2)
@@ -2228,7 +2228,7 @@ class product_product(models.Model):
                 if (product.lst_price):
                     new_price = product.lst_price
 
-            if company.mercadolibre_calcute_taxes and product_tmpl.taxes_id:
+            if company.mercadolibre_calculate_taxes and product_tmpl.taxes_id:
                 new_price = new_price * (1 + ( product_tmpl.taxes_id[0].amount / 100))
 
             new_price = round(new_price,2)
