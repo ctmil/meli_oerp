@@ -616,8 +616,6 @@ class mercadolibre_orders(models.Model):
                     except:
                         _logger.error("No se pudo habilitar la Facturacion Electronica para este usuario")
 
-
-
             if order and buyer_id:
                 return_id = order.write({'buyer':buyer_id.id})
 
