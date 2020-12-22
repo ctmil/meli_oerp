@@ -428,9 +428,9 @@ class mercadolibre_shipment(models.Model):
 				#_logger.info(vals)
 				oline = set_delivery_line(sorder, delivery_price, delivery_message )
 				if delivery_price<=0.0 and oline:
-                    _logger.info(oline)
+					_logger.info(oline)
 					oline.write({ "qty_to_invoice": 0.0 })
-                    _logger.info(oline.qty_to_invoice)
+					_logger.info(oline.qty_to_invoice)
 
 			saleorderline_item_fields = {
 				'company_id': company.id,
@@ -641,14 +641,14 @@ class mercadolibre_shipment(models.Model):
 					_logger.info(e, exc_info=True)
 					pass;
 
-                #associate order if it was non pack order created bir orders.py
+				#associate order if it was non pack order created bir orders.py
 				if (ship_fields["pack_order"]==False):
 					sorder = self.env["sale.order"].search( [ ('meli_order_id','=',ship_fields["order_id"]) ] )
 					if len(sorder):
 						shipment.sale_order = sorder[0]
 						sorder.meli_shipment = shipment
 
-                #if its a pack order, create it, oif full_orders were fetched (we can force this now)
+				#if its a pack order, create it, oif full_orders were fetched (we can force this now)
 				if (full_orders and ship_fields["pack_order"]):
 					plistid = None
 					if company.mercadolibre_pricelist:
