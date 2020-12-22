@@ -97,6 +97,10 @@ class sale_order(models.Model):
             if (company.mercadolibre_cron_post_update_stock):
                 for order in self:
                     for line in order.order_line:
+                        if line.is_delivery and line.price_unit<=0.0:
+                            _logger.info(line)
+                            line.write({ "qty_to_invoice": 0.0 })
+                            _logger.info(line.qty_to_invoice)
                         if line.product_id and line.product_id.meli_id and line.product_id.meli_pub:
                             _logger.info("Order done: product_post_stock: "+str(line.product_id.meli_id))
                             line.product_id.product_post_stock()
