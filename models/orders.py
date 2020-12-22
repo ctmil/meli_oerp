@@ -991,6 +991,14 @@ class mercadolibre_orders(models.Model):
 
         #could be packed sorder or standard one product item order
         if sorder:
+            for line in sorder.order_line:
+                _logger.info(line)
+                _logger.info(line.is_delivery)
+                _logger.info(line.price_unit)
+                if line.is_delivery and line.price_unit<=0.0:
+                    _logger.info(line)
+                    line.write({ "qty_to_invoice": 0.0 })
+                    _logger.info(line.qty_to_invoice)
             if (company.mercadolibre_order_confirmation!="manual"):
                 sorder.confirm_ml()
             if (sorder.meli_status=="cancelled"):
