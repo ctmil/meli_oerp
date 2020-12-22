@@ -592,7 +592,7 @@ class mercadolibre_shipment(models.Model):
 									coma = ","
 						full_orders = ( len(items_json) == len(all_orders) )
 						_logger.info(items_json)
-						_logger.info(full_orders)
+						_logger.info("full_orders:"+str(full_orders))
 						if (full_orders):
 							#We can create order with all items now
 							ship_fields["orders"] = [(6, 0, all_orders_ids)]
