@@ -426,7 +426,9 @@ class mercadolibre_shipment(models.Model):
 				delivery_price = shipment.shipping_cost
 				#display_price = vals['carrier_price']
 				#_logger.info(vals)
-				set_delivery_line(sorder, delivery_price, delivery_message )
+				oline = set_delivery_line(sorder, delivery_price, delivery_message )
+				if delivery_price<=0.0:
+					oline.qty_to_invoice = 0.0
 
 			saleorderline_item_fields = {
 				'company_id': company.id,
