@@ -91,10 +91,9 @@ class sale_order(models.Model):
     meli_shipment_logistic_type = fields.Char(string="Logistic Type",index=True)
 
     def action_confirm(self):
-        _logger.info("meli order action done")
+        _logger.info("meli order action_confirm")
         res = super(sale_order,self).action_confirm()
         try:
-            company = self.env.user.company_id
             for order in self:
                 for line in order.order_line:
                     _logger.info(line)
@@ -106,13 +105,23 @@ class sale_order(models.Model):
                         _logger.info(line.qty_to_invoice)
         except:
             pass;
+
+        try:
+            company = self.env.user.company_id
+            for order in self:
+                for line in order.order_line:
+                    if (company.mercadolibre_cron_post_update_stock):
+                        if line.product_id and line.product_id.meli_id and line.product_id.meli_pub:
+                            _logger.info("Order done: product_post_stock: "+str(line.product_id.meli_id))
+                            line.product_id.product_post_stock()
+        except:
+            pass;
         return res
 
     def action_done(self):
         _logger.info("meli order action done")
         res = super(sale_order,self).action_done()
         try:
-            company = self.env.user.company_id
             for order in self:
                 for line in order.order_line:
                     _logger.info(line)
@@ -122,9 +131,14 @@ class sale_order(models.Model):
                         _logger.info(line)
                         line.write({ "qty_to_invoice": 0.0 })
                         _logger.info(line.qty_to_invoice)
-            if (company.mercadolibre_cron_post_update_stock):
-                for order in self:
-                    for line in order.order_line:
+        except:
+            pass;
+
+        try:
+            company = self.env.user.company_id
+            for order in self:
+                for line in order.order_line:
+                    if (company.mercadolibre_cron_post_update_stock):
                         if line.product_id and line.product_id.meli_id and line.product_id.meli_pub:
                             _logger.info("Order done: product_post_stock: "+str(line.product_id.meli_id))
                             line.product_id.product_post_stock()
