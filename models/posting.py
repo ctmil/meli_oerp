@@ -111,10 +111,15 @@ class mercadolibre_posting(models.Model):
                 ML_status = product_json["error"]
             else:
                 ML_status = product_json["status"]
-                ML_permalink = product_json["permalink"]
-                ML_price = product_json["price"]
+                post = { 'meli_status': ML_status }
+                if "permalink" in product_json:
+                    ML_permalink = product_json["permalink"]
+                    post["meli_permalink"] = ML_permalink
+                if "price" in product_json:
+                    ML_price = product_json["price"]
+                    post["meli_price"] = ML_price
                 #ML_sku = product_json["seller_custom_field"]
-                posting.write( { 'meli_status': ML_status, 'meli_permalink': ML_permalink, 'meli_price': ML_price } )
+                posting.write( post )
 
             if (not company.mercadolibre_cron_get_questions):
                 return {}
