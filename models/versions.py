@@ -99,8 +99,9 @@ def get_inventory_fields( product, warehouse ):
             }
 
 def set_delivery_line( sorder, delivery_price, delivery_message ):
-    sorder.set_delivery_line(sorder.carrier_id, delivery_price)
+    oline = sorder.set_delivery_line(sorder.carrier_id, delivery_price)
     sorder.write({
     	'recompute_delivery_price': False,
     	'delivery_message': delivery_message,
     })
+    return oline

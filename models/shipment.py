@@ -592,7 +592,7 @@ class mercadolibre_shipment(models.Model):
 									coma = ","
 						full_orders = ( len(items_json) == len(all_orders) )
 						_logger.info(items_json)
-						_logger.info(full_orders)
+						_logger.info("full_orders:"+str(full_orders))
 						if (full_orders):
 							#We can create order with all items now
 							ship_fields["orders"] = [(6, 0, all_orders_ids)]
@@ -608,124 +608,126 @@ class mercadolibre_shipment(models.Model):
 					_logger.info("Updating shipment: " + str(ship_id))
 					shipment.write((ship_fields))
 
-					try:
-						_logger.info("ships.pdf_filename:")
-						_logger.info(shipment.pdf_filename)
-						if (1==1 and shipment.pdf_filename):
-							_logger.info("We have a pdf file")
-							if (shipment.pdfimage_filename==False):
-								_logger.info("Try create a pdf image file")
-								data = base64.b64decode( shipment.pdf_file )
-								images = convert_from_bytes(data, dpi=300,fmt='jpg')
-								for image in images:
-									image_filename = "/tmp/%s-page%d.jpg" % ("Shipment_"+shipment.shipping_id, images.index(image))
-									image.save(image_filename, "JPEG")
-									if (images.index(image)==0):
-										imgdata = urlopen("file://"+image_filename).read()
-										shipment.pdfimage_file = base64.encodestring(imgdata)
-										shipment.pdfimage_filename = "Shipment_"+shipment.shipping_id+".jpg"
-								#if (len(images)):
-								#	_logger.info(images)
-									#for image in images:
-									#base64.b64decode( pimage.image )
-								#	image = images[1]
-								#	ships.pdfimage_file = base64.encodestring(image.tobytes())
-								#	ships.pdfimage_filename = "Shipment_"+ships.shipping_id+".jpg"
-					except Exception as e:
-						_logger.info("Error converting pdf to jpg: try installing pdf2image and poppler-utils, like this:")
-						_logger.info("sudo apt install poppler-utils && sudo pip install pdf2image")
-						_logger.info(e, exc_info=True)
-						pass;
+				try:
+					_logger.info("ships.pdf_filename:")
+					_logger.info(shipment.pdf_filename)
+					if (1==1 and shipment.pdf_filename):
+						_logger.info("We have a pdf file")
+						if (shipment.pdfimage_filename==False):
+							_logger.info("Try create a pdf image file")
+							data = base64.b64decode( shipment.pdf_file )
+							images = convert_from_bytes(data, dpi=300,fmt='jpg')
+							for image in images:
+								image_filename = "/tmp/%s-page%d.jpg" % ("Shipment_"+shipment.shipping_id, images.index(image))
+								image.save(image_filename, "JPEG")
+								if (images.index(image)==0):
+									imgdata = urlopen("file://"+image_filename).read()
+									shipment.pdfimage_file = base64.encodestring(imgdata)
+									shipment.pdfimage_filename = "Shipment_"+shipment.shipping_id+".jpg"
+							#if (len(images)):
+							#	_logger.info(images)
+								#for image in images:
+								#base64.b64decode( pimage.image )
+							#	image = images[1]
+							#	ships.pdfimage_file = base64.encodestring(image.tobytes())
+							#	ships.pdfimage_filename = "Shipment_"+ships.shipping_id+".jpg"
+				except Exception as e:
+					_logger.info("Error converting pdf to jpg: try installing pdf2image and poppler-utils, like this:")
+					_logger.info("sudo apt install poppler-utils && sudo pip install pdf2image")
+					_logger.info(e, exc_info=True)
+					pass;
 
-					if (ship_fields["pack_order"]==False):
-						sorder = self.env["sale.order"].search( [ ('meli_order_id','=',ship_fields["order_id"]) ] )
-						if len(sorder):
-							shipment.sale_order = sorder[0]
-							sorder.meli_shipment = shipment
+				#associate order if it was non pack order created bir orders.py
+				if (ship_fields["pack_order"]==False):
+					sorder = self.env["sale.order"].search( [ ('meli_order_id','=',ship_fields["order_id"]) ] )
+					if len(sorder):
+						shipment.sale_order = sorder[0]
+						sorder.meli_shipment = shipment
 
-					if (full_orders and ship_fields["pack_order"]):
-						plistid = None
-						if company.mercadolibre_pricelist:
-							plistid = company.mercadolibre_pricelist
+				#if its a pack order, create it, oif full_orders were fetched (we can force this now)
+				if (full_orders and ship_fields["pack_order"]):
+					plistid = None
+					if company.mercadolibre_pricelist:
+						plistid = company.mercadolibre_pricelist
+					else:
+						plistids = pricelist_obj.search([])[0]
+						if plistids:
+							plistid = plistids
+
+					#buyer_ids = buyers_obj.search([  ('buyer_id','=',buyer_fields['buyer_id'] ) ] )
+					partner_id = respartner_obj.search([  ('meli_buyer_id','=',ship_fields['receiver_id'] ) ] )
+					if (partner_id.id):
+						meli_order_fields = {
+							'partner_id': partner_id.id,
+							'pricelist_id': plistid.id,
+							#'meli_order_id': '%i' % (order_json["id"]),
+							'meli_order_id': packed_order_ids,
+							'meli_orders': [(6, 0, all_orders_ids)],
+							'meli_shipping_id': shipment.shipping_id,
+							'meli_shipping': shipment,
+							'meli_shipment': shipment.id,
+							'meli_status': all_orders[0]["status"],
+							'meli_status_detail': all_orders[0]["status_detail"] or '' ,
+							'meli_total_amount': shipment.order_cost,
+							'meli_shipping_cost': shipment.shipping_cost,
+							'meli_shipping_list_cost': shipment.shipping_list_cost,
+							'meli_paid_amount': shipment.order_cost,
+							'meli_fee_amount': 0.0,
+							'meli_currency_id': all_orders[0]["currency_id"],
+							'meli_date_created': ml_datetime(all_orders[0]["date_created"]),
+							'meli_date_closed': ml_datetime(all_orders[0]["date_closed"]),
+						}
+						sorder_pack = self.env["sale.order"].search( [ ('meli_order_id','=',meli_order_fields["meli_order_id"]) ] )
+
+						if (company.mercadolibre_seller_user):
+							meli_order_fields["user_id"] = company.mercadolibre_seller_user.id
+
+						if (len(sorder_pack)):
+							sorder_pack = sorder_pack[0]
+							sorder_pack.write(meli_order_fields)
 						else:
-							plistids = pricelist_obj.search([])[0]
-							if plistids:
-								plistid = plistids
+							sorder_pack = self.env["sale.order"].create(meli_order_fields)
 
-						#buyer_ids = buyers_obj.search([  ('buyer_id','=',buyer_fields['buyer_id'] ) ] )
-						partner_id = respartner_obj.search([  ('meli_buyer_id','=',ship_fields['receiver_id'] ) ] )
-						if (partner_id.id):
-							meli_order_fields = {
-								'partner_id': partner_id.id,
-								'pricelist_id': plistid.id,
-								#'meli_order_id': '%i' % (order_json["id"]),
-								'meli_order_id': packed_order_ids,
-								'meli_orders': [(6, 0, all_orders_ids)],
-								'meli_shipping_id': shipment.shipping_id,
-								'meli_shipping': shipment,
-								'meli_shipment': shipment.id,
-								'meli_status': all_orders[0]["status"],
-								'meli_status_detail': all_orders[0]["status_detail"] or '' ,
-								'meli_total_amount': shipment.order_cost,
-								'meli_shipping_cost': shipment.shipping_cost,
-								'meli_shipping_list_cost': shipment.shipping_list_cost,
-								'meli_paid_amount': shipment.order_cost,
-								'meli_fee_amount': 0.0,
-								'meli_currency_id': all_orders[0]["currency_id"],
-								'meli_date_created': ml_datetime(all_orders[0]["date_created"]),
-								'meli_date_closed': ml_datetime(all_orders[0]["date_closed"]),
-							}
-							sorder_pack = self.env["sale.order"].search( [ ('meli_order_id','=',meli_order_fields["meli_order_id"]) ] )
+						if (sorder_pack.id):
+							shipment.sale_order = sorder_pack
 
-							if (company.mercadolibre_seller_user):
-								meli_order_fields["user_id"] = company.mercadolibre_seller_user.id
+							order.sale_order = sorder_pack
+							order.shipping_cost = shipment.shipping_cost
+							order.shipping_list_cost = shipment.shipping_list_cost
 
-							if (len(sorder_pack)):
-								sorder_pack = sorder_pack[0]
-								sorder_pack.write(meli_order_fields)
-							else:
-								sorder_pack = self.env["sale.order"].create(meli_order_fields)
+							#creating and updating all items related to ml.orders
+							sorder_pack.meli_fee_amount = 0.0
+							for mOrder in all_orders:
+								#Each Order one product with one price and one quantity
+								product_related_obj = mOrder.order_items[0].product_id or mOrder.order_items[0].posting_id.product_id
+								if not (product_related_obj):
+									_logger.error("Error adding order line: product not found in database: " + str(mOrder.order_items[0]["order_item_title"]) )
+									continue;
+								unit_price = mOrder.order_items[0]["unit_price"]
+								saleorderline_item_fields = {
+									'company_id': company.id,
+									'order_id': shipment.sale_order.id,
+									'meli_order_item_id': mOrder.order_items[0]["order_item_id"],
+									'meli_order_item_variation_id': mOrder.order_items[0]["order_item_variation_id"],
+									'price_unit': float(unit_price),
+									'product_id': product_related_obj.id,
+									'product_uom_qty': mOrder.order_items[0]["quantity"],
+									'product_uom': product_related_obj.uom_id.id,
+									'name': mOrder.order_items[0]["order_item_title"],
+								}
+								if (mOrder.fee_amount):
+									sorder_pack.meli_fee_amount = sorder_pack.meli_fee_amount + mOrder.fee_amount
 
-							if (sorder_pack.id):
-								shipment.sale_order = sorder_pack
+								saleorderline_item_fields.update( order._set_product_unit_price( product_related_obj, mOrder.order_items[0] ) )
 
-								order.sale_order = sorder_pack
-								order.shipping_cost = shipment.shipping_cost
-								order.shipping_list_cost = shipment.shipping_list_cost
+								saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),
+																					('meli_order_item_variation_id','=',saleorderline_item_fields['meli_order_item_variation_id']),
+																					('order_id','=',shipment.sale_order.id)] )
 
-								#creating and updating all items related to ml.orders
-								sorder_pack.meli_fee_amount = 0.0
-								for mOrder in all_orders:
-									#Each Order one product with one price and one quantity
-									product_related_obj = mOrder.order_items[0].product_id or mOrder.order_items[0].posting_id.product_id
-									if not (product_related_obj):
-										_logger.error("Error adding order line: product not found in database: " + str(mOrder.order_items[0]["order_item_title"]) )
-										continue;
-									unit_price = mOrder.order_items[0]["unit_price"]
-									saleorderline_item_fields = {
-										'company_id': company.id,
-										'order_id': shipment.sale_order.id,
-										'meli_order_item_id': mOrder.order_items[0]["order_item_id"],
-										'meli_order_item_variation_id': mOrder.order_items[0]["order_item_variation_id"],
-										'price_unit': float(unit_price),
-										'product_id': product_related_obj.id,
-										'product_uom_qty': mOrder.order_items[0]["quantity"],
-										'product_uom': product_related_obj.uom_id.id,
-										'name': mOrder.order_items[0]["order_item_title"],
-									}
-									if (mOrder.fee_amount):
-										sorder_pack.meli_fee_amount = sorder_pack.meli_fee_amount + mOrder.fee_amount
-
-									saleorderline_item_fields.update( order._set_product_unit_price( product_related_obj, mOrder.order_items[0] ) )
-
-									saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),
-																						('meli_order_item_variation_id','=',saleorderline_item_fields['meli_order_item_variation_id']),
-																						('order_id','=',shipment.sale_order.id)] )
-
-									if not saleorderline_item_ids:
-										saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
-									else:
-										saleorderline_item_ids.write( ( saleorderline_item_fields ) )
+								if not saleorderline_item_ids:
+									saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
+								else:
+									saleorderline_item_ids.write( ( saleorderline_item_fields ) )
 
 
 		if (shipment):
