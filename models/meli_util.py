@@ -7,6 +7,10 @@ import odoo.addons.decimal_precision as dp
 from odoo.tools.translate import _
 
 import requests
+try:
+    from urllib import urlencode
+except ImportError:
+    from urllib.parse import urlencode
 import logging
 _logger = logging.getLogger(__name__)
 
@@ -17,6 +21,8 @@ from ..melisdk.meli import Meli
 import meli
 from meli.rest import ApiException
 from meli.api_client import ApiClient
+
+from datetime import datetime
 
 configuration = meli.Configuration(
     host = "https://api.mercadolibre.com"
@@ -33,6 +39,8 @@ class MeliApi( meli.RestClientApi ):
     rjson = {}
 
     user = {}
+
+    AUTH_URL = "https://auth.mercadolibre.com.ar/authorization"
 
     def json(self):
         return self.rjson
@@ -61,8 +69,15 @@ class MeliApi( meli.RestClientApi ):
             }
         return self
 
-    def auth_url(self, redirect_URI=""):
+    def auth_url(self, redirect_URI=None):
+        now = datetime.now()
         url = ""
+        if redirect_URI:
+            self.redirect_uri = REDIRECT_URI
+        random_id = str(now)
+        params = { 'client_id': self.client_id, 'response_type':'code', 'redirect_uri':self.redirect_uri,'state': random_id}
+        url = self.AUTH_URL  + '?' + urlencode(params)
+        _logger.info("Authorize Login "+str(url))
         return url
 
 
