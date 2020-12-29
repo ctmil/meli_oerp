@@ -1,1 +1,2 @@
 pdf2image
+#sudo pip install git+https://github.com/mercadolibre/python-sdk.git
