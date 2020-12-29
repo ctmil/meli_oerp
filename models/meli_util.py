@@ -172,7 +172,7 @@ class MeliUtil(models.AbstractModel):
 
         #api_response = api_instance.get_token(grant_type=grant_type, client_id=CLIENT_ID, client_secret=CLIENT_SECRET, redirect_uri=REDIRECT_URI, code=CODE, refresh_token=REFRESH_TOKEN)
         #taken from res.company get_meli_state()
-        api_rest_client.needlogin_state = True
+        api_rest_client.needlogin_state = False
         message = "Login to ML needed in Odoo."
 
         #pdb.set_trace()
@@ -221,9 +221,6 @@ class MeliUtil(models.AbstractModel):
             else:
                 api_rest_client.needlogin_state = True
 
-            if api_rest_client.access_token=='' or api_rest_client.access_token==False:
-                api_rest_client.needlogin_state = True
-
             #        except requests.exceptions.HTTPError as e:
             #            _logger.info( "And you get an HTTPError:", e.message )
 
@@ -232,6 +229,10 @@ class MeliUtil(models.AbstractModel):
             api_rest_client.needlogin_state = True
             error_msg = 'MELI WARNING: NO INTERNET CONNECTION TO API.MERCADOLIBRE.COM: complete the Cliend Id, and Secret Key and try again '
             _logger.error(error_msg)
+
+
+        if api_rest_client.access_token=='' or api_rest_client.access_token==False:
+            api_rest_client.needlogin_state = True
 
         try:
             if api_rest_client.needlogin_state:
@@ -254,6 +255,7 @@ class MeliUtil(models.AbstractModel):
                     ).with_context(context).sudo().send_mail( (company.id), force_send=True)
         except Exception as e:
             _logger.error(e)
+
 
         #_logger.info("ML_state: need login? "+str(ML_state))
         for comp in company:
