@@ -41,6 +41,7 @@ class res_company(models.Model):
 
     def _get_ML_currencies(self):
         #https://api.mercadolibre.com/currencies
+        company = self.env.user.company_id
         meli = self.env['meli.util'].get_new_instance(company)
         ML_currencies = [ ("ARS","Peso Argentino (ARS)"),
                             ("MXN","Peso Mexicano (MXN)"),
@@ -65,6 +66,7 @@ class res_company(models.Model):
 
     def _get_ML_sites(self):
         # to check api.mercadolibre.com/sites  > MLA
+        company = self.env.user.company_id
         meli = self.env['meli.util'].get_new_instance(company)
         ML_sites = {
             "ARS": { "name": "Argentina", "id": "MLA", "default_currency_id": "ARS" },
@@ -101,8 +103,6 @@ class res_company(models.Model):
         #False if logged ok
         #True if need login
         _logger.info('company get_meli_state() ')
-        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        #company = user_obj.company_id
         company = self.env.user.company_id
         warningobj = self.pool.get('warning')
 
