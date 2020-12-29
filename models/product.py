@@ -1812,7 +1812,7 @@ class product_product(models.Model):
         ML_sub_status = ""
         ML_permalink = ""
         ML_state = False
-        meli = None
+        #meli = None
 
         if meli.need_login():
             ML_status = "unknown"

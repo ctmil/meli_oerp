@@ -256,8 +256,6 @@ class MeliUtil(models.AbstractModel):
         except Exception as e:
             _logger.error(e)
 
-
-        #_logger.info("ML_state: need login? "+str(ML_state))
         for comp in company:
             comp.mercadolibre_state = api_rest_client.needlogin_state
 
