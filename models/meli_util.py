@@ -56,10 +56,10 @@ class MeliUtil(models.AbstractModel):
     _name = 'meli.util'
     _description = u'Utilidades para Mercado Libre'
 
-    needlogin_state = fields.Boolean(string="MercadoLibre Connection State",compute=get_meli_state)
-
     def get_meli_state( self ):
         return self.get_new_instance()
+
+    needlogin_state = fields.Boolean(string="MercadoLibre Connection State",compute=get_meli_state)
 
     @api.model
     def get_new_instance(self, company=None):
