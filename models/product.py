@@ -2053,7 +2053,7 @@ class product_product(models.Model):
         warningobj = self.env['warning']
 
         meli = self.env['meli.util'].get_new_instance(company)
-        if meli.needed_login_state:
+        if meli.need_login:
             return meli.redirect_login()
         #return {}
         #description_sale =  product_tmpl.description_sale

@@ -66,7 +66,7 @@ class mercadolibre_shipment_print(models.TransientModel):
 		warningobj = self.env['warning']
 
 		meli = self.env['meli.util'].get_new_instance(company)
-        if meli.needed_login_state:
+        if meli.need_login():
             return meli.redirect_login()
 
 		_logger.info("shipment_print")
@@ -133,7 +133,7 @@ class mercadolibre_shipment_print(models.TransientModel):
 		warningobj = self.env['warning']
 
 		meli = self.env['meli.util'].get_new_instance(company)
-        if meli.needed_login_state:
+        if meli.need_login():
             return meli.redirect_login()
 
 		full_ids = ""
@@ -460,7 +460,7 @@ class mercadolibre_shipment(models.Model):
 		shipment_obj = self.env['mercadolibre.shipment']
 
 		meli = self.env['meli.util'].get_new_instance(company)
-        if meli.needed_login_state:
+        if meli.need_login():
             return meli.redirect_login()
 
 		ship_id = False
@@ -733,7 +733,7 @@ class mercadolibre_shipment(models.Model):
 		shipment_obj = self.env['mercadolibre.shipment']
 
 		meli = self.env['meli.util'].get_new_instance(company)
-        if meli.needed_login_state:
+        if meli.need_login():
             return meli.redirect_login()
 
 		#orders_query = "/orders/search?seller="+company.mercadolibre_seller_id+"&sort=date_desc"

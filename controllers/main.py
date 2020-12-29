@@ -26,7 +26,7 @@ class MercadoLibre(http.Controller):
         company = request.env.user.company_id
         meli_util_model = request.env['meli.util']
         meli = meli_util_model.get_new_instance(company)
-        if meli.neededlogin_state:
+        if meli.need_login():
             return "<a href='"+meli.auth_url()+"'>Login Please</a>"
 
         return "MercadoLibre Publisher for Odoo - Copyright Moldeo Interactive 2021"

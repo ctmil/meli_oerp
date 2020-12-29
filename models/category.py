@@ -65,7 +65,7 @@ class mercadolibre_category_import(models.TransientModel):
         warningobj = self.env['warning']
 
         meli = self.env['meli.util'].get_new_instance(company)
-        if meli.neededlogin_state:
+        if meli.need_login():
             return meli.redirect_login()
 
         _logger.info(context)

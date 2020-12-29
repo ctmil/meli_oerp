@@ -44,6 +44,9 @@ class MeliApi( meli.RestClientApi ):
 
     user = {}
 
+    def need_login(self):
+        return self.needlogin_state
+
     def json(self):
         return self.rjson
 

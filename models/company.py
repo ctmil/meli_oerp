@@ -322,7 +322,7 @@ class res_company(models.Model):
         product_obj = self.pool.get('product.product')
 
         meli = self.env['meli.util'].get_new_instance(company)
-        if meli.neededlogin_state:
+        if meli.need_login():
             return meli.redirect_login()
 
         results = []
