@@ -62,22 +62,13 @@ class mercadolibre_shipment_print(models.TransientModel):
 		context = context or self.env.context
 		company = self.env.user.company_id
 		shipment_ids = context['active_ids']
-		#product_obj = self.env['product.template']
 		shipment_obj = self.env['mercadolibre.shipment']
 		warningobj = self.env['warning']
 
-		CLIENT_ID = company.mercadolibre_client_id
-		CLIENT_SECRET = company.mercadolibre_secret_key
-		ACCESS_TOKEN = company.mercadolibre_access_token
-		REFRESH_TOKEN = company.mercadolibre_refresh_token
+		meli = self.env['meli.util'].get_new_instance(company)
+        if meli.needed_login_state:
+            return meli.redirect_login()
 
-		#
-		meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN )
-
-		#user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-		#user_obj.company_id.meli_login()
-		#company = user_obj.company_id
-		#warningobj = self.env['warning']
 		_logger.info("shipment_print")
 		_logger.info(shipment_ids)
 
@@ -141,12 +132,9 @@ class mercadolibre_shipment_print(models.TransientModel):
 		shipment_obj = self.env['mercadolibre.shipment']
 		warningobj = self.env['warning']
 
-		CLIENT_ID = company.mercadolibre_client_id
-		CLIENT_SECRET = company.mercadolibre_secret_key
-		ACCESS_TOKEN = company.mercadolibre_access_token
-		REFRESH_TOKEN = company.mercadolibre_refresh_token
-
-		meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN )
+		meli = self.env['meli.util'].get_new_instance(company)
+        if meli.needed_login_state:
+            return meli.redirect_login()
 
 		full_ids = ""
 		comma = ""
@@ -471,13 +459,9 @@ class mercadolibre_shipment(models.Model):
 		orders_obj = self.env['mercadolibre.orders']
 		shipment_obj = self.env['mercadolibre.shipment']
 
-		CLIENT_ID = company.mercadolibre_client_id
-		CLIENT_SECRET = company.mercadolibre_secret_key
-		ACCESS_TOKEN = company.mercadolibre_access_token
-		REFRESH_TOKEN = company.mercadolibre_refresh_token
-
-		#
-		meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN )
+		meli = self.env['meli.util'].get_new_instance(company)
+        if meli.needed_login_state:
+            return meli.redirect_login()
 
 		ship_id = False
 		shipment = None
@@ -748,13 +732,9 @@ class mercadolibre_shipment(models.Model):
 		orders_obj = self.env['mercadolibre.orders']
 		shipment_obj = self.env['mercadolibre.shipment']
 
-		CLIENT_ID = company.mercadolibre_client_id
-		CLIENT_SECRET = company.mercadolibre_secret_key
-		ACCESS_TOKEN = company.mercadolibre_access_token
-		REFRESH_TOKEN = company.mercadolibre_refresh_token
-
-		#
-		meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN )
+		meli = self.env['meli.util'].get_new_instance(company)
+        if meli.needed_login_state:
+            return meli.redirect_login()
 
 		#orders_query = "/orders/search?seller="+company.mercadolibre_seller_id+"&sort=date_desc"
 

@@ -41,8 +41,7 @@ class res_company(models.Model):
 
     def _get_ML_currencies(self):
         #https://api.mercadolibre.com/currencies
-        meli_util_model = self.env['meli.util']
-        meli = meli_util_model.get_new_instance()
+        meli = self.env['meli.util'].get_new_instance(company)
         ML_currencies = [ ("ARS","Peso Argentino (ARS)"),
                             ("MXN","Peso Mexicano (MXN)"),
                             ("COP","Peso Colombiano (COP)"),
@@ -66,8 +65,7 @@ class res_company(models.Model):
 
     def _get_ML_sites(self):
         # to check api.mercadolibre.com/sites  > MLA
-        meli_util_model = self.env['meli.util']
-        meli = meli_util_model.get_new_instance()
+        meli = self.env['meli.util'].get_new_instance(company)
         ML_sites = {
             "ARS": { "name": "Argentina", "id": "MLA", "default_currency_id": "ARS" },
             "MXN": { "name": "México", "id": "MLM", "default_currency_id": "MXN" },
@@ -108,8 +106,8 @@ class res_company(models.Model):
         company = self.env.user.company_id
         warningobj = self.pool.get('warning')
 
-        meli_util_model = self.env['meli.util']
-        meli = meli_util_model.get_new_instance()
+        meli = self.env['meli.util'].get_new_instance(company)
+
 
     def cron_meli_process( self ):
 
@@ -281,28 +279,10 @@ class res_company(models.Model):
         _logger.info('company.meli_login() ')
         self.ensure_one()
         company = self.env.user.company_id
-        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        #company = user_obj.company_id
 
-        #CLIENT_ID = company.mercadolibre_client_id
-        #CLIENT_SECRET = company.mercadolibre_secret_key
-        #REDIRECT_URI = company.mercadolibre_redirect_uri
-        #meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
-        #url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
-        url_login_meli = ""
+        meli = self.env['meli.util'].get_new_instance(company)
 
-        meli_util_model = self.env['meli.util']
-        meli = meli_util_model.get_new_instance()
-        _logger.info(meli)
-        url_login_meli = meli.auth_url(redirect_URI=company.mercadolibre_redirect_uri)
-        _logger.info( "OK company.meli_login() called: url is ", url_login_meli )
-
-        return {
-            "type": "ir.actions.act_url",
-            "url": url_login_meli,
-            "target": "self",
-        }
-
+        return meli.redirect_login()
 
     def meli_query_get_questions(self):
 
@@ -341,34 +321,17 @@ class res_company(models.Model):
         company = self.env.user.company_id
         product_obj = self.pool.get('product.product')
 
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
-        REDIRECT_URI = company.mercadolibre_redirect_uri
-
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
-
-        url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
+        meli = self.env['meli.util'].get_new_instance(company)
+        if meli.neededlogin_state:
+            return meli.redirect_login()
 
         results = []
         response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token,'offset': 0 })
         rjson = response.json()
         _logger.info( rjson )
 
-        #if 'Error' in rjson:
-            #if ( rjson["Error"] == "The specified resource is not available at the moment." ):
-        #    return warningobj.info( title='MELI ERROR', message=rjson["Error"], message_html="" )
-
         if 'error' in rjson:
-            if rjson['message']=='invalid_token' or rjson['message']=='expired_token':
-                ACCESS_TOKEN = ''
-                REFRESH_TOKEN = ''
-                company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
-            return {
-            "type": "ir.actions.act_url",
-            "url": url_login_meli,
-            "target": "new",}
+            _logger.error(rjson)
 
 
         if 'results' in rjson:
@@ -543,15 +506,8 @@ class res_company(models.Model):
         company = self.env.user.company_id
         product_obj = self.env['product.product']
 
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
-        REDIRECT_URI = company.mercadolibre_redirect_uri
-
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
-
-        url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
+        meli = self.env['meli.util'].get_new_instance(company)
+        url_login_meli = meli.auth_url()
 
         product_ids = self.env['product.product'].search([('meli_id','!=',False)])
         if product_ids:
@@ -582,15 +538,9 @@ class res_company(models.Model):
         company = self.env.user.company_id
         product_obj = self.env['product.product']
 
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
-        REDIRECT_URI = company.mercadolibre_redirect_uri
+        meli = self.env['meli.util'].get_new_instance(company)
+        url_login_meli = meli.auth_url()
 
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
-
-        url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
         #product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False)])
         product_ids = self.env['product.template'].search([('meli_pub','=',True)])
         _logger.info("product_ids to update or create:" + str(product_ids))
@@ -737,15 +687,8 @@ class res_company(models.Model):
         company = self.env.user.company_id
         product_obj = self.pool.get('product.product')
 
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
-        REDIRECT_URI = company.mercadolibre_redirect_uri
-
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
-
-        url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
+        meli = self.env['meli.util'].get_new_instance(company)
+        url_login_meli = meli.auth_url()
 
         results = []
         offset = 0

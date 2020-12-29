@@ -54,22 +54,9 @@ class product_template(models.Model):
         company = self.env.user.company_id
         warningobj = self.env['warning']
 
-        REDIRECT_URI = company.mercadolibre_redirect_uri
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
-
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
-
-        if ACCESS_TOKEN=='':
-            meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
-            url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
-            return {
-                "type": "ir.actions.act_url",
-                "url": url_login_meli,
-                "target": "new",
-            }
+        meli = self.env['meli.util'].get_new_instance(company)
+        if meli.neededlogin_state:
+            return meli.redirect_login()
 
         _logger.info("Product Template Post")
         _logger.info(self.env.context)
@@ -144,22 +131,9 @@ class product_template(models.Model):
         warningobj = self.env['warning']
         ret = {}
 
-        REDIRECT_URI = company.mercadolibre_redirect_uri
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
-
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
-
-        if ACCESS_TOKEN=='':
-            meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
-            url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
-            return {
-                "type": "ir.actions.act_url",
-                "url": url_login_meli,
-                "target": "new",
-            }
+        meli = self.env['meli.util'].get_new_instance(company)
+        if meli.neededlogin_state:
+            return meli.redirect_login()
 
         _logger.info("Product Template Update")
 
@@ -588,11 +562,9 @@ class product_product(models.Model):
         www_cats = False
         if 'product.public.category' in self.env:
             www_cats = self.env['product.public.category']
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+        meli = self.env['meli.util'].get_new_instance(company)
+        if meli.neededlogin_state:
+            return meli.redirect_login()
 
         mlcatid = False
         www_cat_id = False
@@ -741,12 +713,7 @@ class product_product(models.Model):
 
     def _meli_set_images( self, product_template, pictures ):
         company = self.env.user.company_id
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
-
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+        meli = self.env['meli.util'].get_new_instance(company)
 
         if not ("product.image" in self.env):
             return {}
@@ -1082,12 +1049,7 @@ class product_product(models.Model):
         product_template_obj = self.env['product.template']
         product_template = product_template_obj.browse(product.product_tmpl_id.id)
 
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
-
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+        meli = self.env['meli.util'].get_new_instance(company)
 
         try:
             response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token})
@@ -1595,31 +1557,19 @@ class product_product(models.Model):
 
         company = self.env.user.company_id
 
-        REDIRECT_URI = company.mercadolibre_redirect_uri
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
-
-        url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
-
-        return {
-	        "type": "ir.actions.act_url",
-	        "url": url_login_meli,
-	        "target": "new",
-        }
+        meli = self.env['meli.util'].get_new_instance(company)
+        if meli.neededlogin_state:
+            return meli.redirect_login()
 
     def product_meli_status_close( self ):
         company = self.env.user.company_id
         product_obj = self.env['product.product']
         product = self
 
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
-
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
-
+        meli = self.env['meli.util'].get_new_instance(company)
+        if meli.neededlogin_state:
+            return meli.redirect_login()
+        
         response = meli.put("/items/"+product.meli_id, { 'status': 'closed' }, {'access_token':meli.access_token})
 
         return {}
@@ -1629,12 +1579,9 @@ class product_product(models.Model):
         product_obj = self.env['product.product']
         product = self
 
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
-
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+        meli = self.env['meli.util'].get_new_instance(company)
+        if meli.neededlogin_state:
+            return meli.redirect_login()
 
         response = meli.put("/items/"+product.meli_id, { 'status': 'paused' }, {'access_token':meli.access_token})
 
@@ -1644,12 +1591,10 @@ class product_product(models.Model):
         company = self.env.user.company_id
         product_obj = self.env['product.product']
 
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
-
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+        meli = self.env['meli.util'].get_new_instance(company)
+        if meli.neededlogin_state:
+            return meli.redirect_login()
+            
         if (meli):
             pass;
         else:
@@ -1675,12 +1620,9 @@ class product_product(models.Model):
         if product.meli_status!='closed':
             self.product_meli_status_close()
 
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
-
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+        meli = self.env['meli.util'].get_new_instance(company)
+        if meli.neededlogin_state:
+            return meli.redirect_login()
 
         response = meli.put("/items/"+product.meli_id, { 'deleted': 'true' }, {'access_token':meli.access_token})
 
@@ -1702,13 +1644,9 @@ class product_product(models.Model):
         product_obj = self.env['product.product']
         product = self
 
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
-
-        #
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+        meli = self.env['meli.util'].get_new_instance(company)
+        if meli.neededlogin_state:
+            return meli.redirect_login()
 
         first_image_to_publish = get_first_image_to_publish( product )
 
@@ -1798,13 +1736,9 @@ class product_product(models.Model):
 
         company = self.env.user.company_id
 
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
-
-        #
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+        meli = self.env['meli.util'].get_new_instance(company)
+        if meli.neededlogin_state:
+            return meli.redirect_login()
 
         image_ids = []
         if (get_image_full(product_image)):
@@ -1877,10 +1811,7 @@ class product_product(models.Model):
         warningobj = self.env['warning']
         product_obj = self.env['product.product']
 
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
+        meli = self.env['meli.util'].get_new_instance(company)
 
         ML_status = "unknown"
         ML_sub_status = ""
@@ -1888,15 +1819,13 @@ class product_product(models.Model):
         ML_state = False
         meli = None
 
-        if (ACCESS_TOKEN=='' or ACCESS_TOKEN==False):
+        if meli.neededlogin_state:
             ML_status = "unknown"
             ML_permalink = ""
             ML_state = True
-        else:
-            meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
-
+        
         for product in self:
-            if product.meli_id and meli:
+            if product.meli_id and not meli.neededlogin_state:
                 response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token} )
                 rjson = response.json()
                 if "status" in rjson:
@@ -2123,23 +2052,9 @@ class product_product(models.Model):
         company = self.env.user.company_id
         warningobj = self.env['warning']
 
-        REDIRECT_URI = company.mercadolibre_redirect_uri
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
-
-
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
-
-        if ACCESS_TOKEN=='':
-            meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
-            url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
-            return {
-                "type": "ir.actions.act_url",
-                "url": url_login_meli,
-                "target": "new",
-            }
+        meli = self.env['meli.util'].get_new_instance(company)
+        if meli.needed_login_state:
+            return meli.redirect_login()
         #return {}
         #description_sale =  product_tmpl.description_sale
         translation = self.env['ir.translation'].search([('res_id','=',product_tmpl.id),
@@ -2524,8 +2439,7 @@ class product_product(models.Model):
                             error_msg = 'MELI RESP.: <h6>Mensaje de error</h6> %s<br/><h6>Mensaje</h6> %s<br/><h6>status</h6> %s<br/><h6>cause</h6> %s<br/>' % (rjsonv["error"], rjsonv["message"], rjsonv["status"], rjsonv["cause"])
                             _logger.error(error_msg)
                             if (rjsonv["error"]=="forbidden"):
-                                meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
-                                url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
+                                url_login_meli = meli.auth_url()
                                 return warningobj.info( title='MELI WARNING', message="Debe iniciar sesión en MELI con el usuario correcto.", message_html="<br><br>"+error_msg)
                             else:
                                 return warningobj.info( title='MELI WARNING', message="Completar todos los campos y revise el mensaje siguiente.", message_html="<br><br>"+error_msg )
@@ -2631,8 +2545,7 @@ class product_product(models.Model):
                 error_msg+= '<h3>'+str(rjson["cause"][0]["message"])+'</h3>'
             #expired token
             if "message" in rjson and (rjson["error"]=="forbidden" or rjson["message"]=='invalid_token' or rjson["message"]=="expired_token"):
-                meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
-                url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
+                url_login_meli = meli.auth_url()
                 return warningobj.info( title='MELI WARNING', message="Debe iniciar sesión en MELI:  "+str(rjson["message"]), message_html="<br><br>"+error_msg)
             else:
                  #Any other errors
@@ -2716,11 +2629,9 @@ class product_product(models.Model):
         product = self
         product_tmpl = self.product_tmpl_id
 
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+        meli = self.env['meli.util'].get_new_instance(company)
+        if meli.needed_login_state:
+            return meli.redirect_login()
 
         try:
             self.product_update_stock()
@@ -2924,11 +2835,9 @@ class product_product(models.Model):
         product = self
         product_tmpl = self.product_tmpl_id
 
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+        meli = self.env['meli.util'].get_new_instance(company)
+        #if meli.needed_login_state:
+        #    return meli.redirect_login()
 
         product.set_meli_price()
 
