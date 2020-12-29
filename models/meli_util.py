@@ -6,6 +6,7 @@ from odoo import models, api, fields
 import odoo.addons.decimal_precision as dp
 from odoo.tools.translate import _
 
+import requests
 from .meli_oerp_config import REDIRECT_URI
 from ..melisdk.meli import Meli
 
