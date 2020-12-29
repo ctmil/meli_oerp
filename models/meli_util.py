@@ -99,7 +99,7 @@ class MeliUtil(models.AbstractModel):
             if not (company.mercadolibre_seller_id==False):
                 response = api_rest_client.get("/users/"+str(company.mercadolibre_seller_id), {'access_token':api_rest_client.access_token} )
 
-                _logger.info("get_new_instance check connection response:"+str(response.content))
+                _logger.info("get_new_instance check connection response:"+str(response))
                 rjson = response.json()
                 if "error" in rjson:
                     needlogin_state = True
