@@ -29,26 +29,33 @@ class MeliApi( meli.RestClientApi ):
     access_token = ""
     refresh_token = ""
     redirect_uri = ""
+    response = ""
+    rjson = {}
+
+    def json(self):
+        return rjson
 
     def get(self, path, params={}):
         try:
             atok = ("access_token" in params and params["access_token"]) or ""
             response = self.resource_get(resource=path, access_token=atok)
-            return response
+            rjson = response
         except ApiException as e:
-            return {
+            rjson =  {
                 "error": "%s" % e
             }
+        return self
 
     def post(self, path, body=None, params={}):
         try:
             atok = ("access_token" in params and params["access_token"]) or ""
             response = self.resource_post(resource=path, access_token=atok, body=body )
-            return response
+            rjson = response
         except ApiException as e:
-            return {
+            rjson = {
                 "error": "%s" % e
             }
+        return self
 
     def auth_url(self, redirect_URI=""):
         url = ""
