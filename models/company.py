@@ -294,6 +294,7 @@ class res_company(models.Model):
         meli_util_model = self.env['meli.util']
         meli = meli_util_model.get_new_instance()
         _logger.info(meli)
+        url_login_meli = meli.auth_url()
         _logger.info( "OK company.meli_login() called: url is ", url_login_meli )
 
         return {
