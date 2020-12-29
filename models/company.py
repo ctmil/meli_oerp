@@ -82,7 +82,7 @@ class res_company(models.Model):
         response = meli.get("/sites")
         if (response):
             sites = response.json()
-            #_logger.info(sites)
+            _logger.info(sites)
             for site in sites:
                 #_logger.info("site:")
                 #_logger.info(site)
@@ -108,12 +108,8 @@ class res_company(models.Model):
         company = self.env.user.company_id
         warningobj = self.pool.get('warning')
 
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
-
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+        meli_util_model = self.env['meli.util']
+        meli = meli_util_model.get_new_instance()
         ML_state = False
         message = "Login to ML needed in Odoo."
         #pdb.set_trace()
