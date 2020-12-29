@@ -7,6 +7,9 @@ import odoo.addons.decimal_precision as dp
 from odoo.tools.translate import _
 
 import requests
+import logging
+_logger = logging.getLogger(__name__)
+
 from .meli_oerp_config import REDIRECT_URI
 from ..melisdk.meli import Meli
 
