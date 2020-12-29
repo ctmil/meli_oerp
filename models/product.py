@@ -1075,7 +1075,7 @@ class product_product(models.Model):
 
         #TODO: traer la descripcion: con
         #https://api.mercadolibre.com/items/{ITEM_ID}/description?access_token=$ACCESS_TOKEN
-        if rjson and rjson['descriptions']:
+        if rjson and 'descriptions' in rjson and rjson['descriptions']:
             response2 = meli.get("/items/"+product.meli_id+"/description", {'access_token':meli.access_token})
             rjson2 = response2.json()
             if 'text' in rjson2:
@@ -1086,7 +1086,7 @@ class product_product(models.Model):
                 desplain = des
 
         #TODO: verificar q es un video
-        if rjson['video_id']:
+        if 'video_id' in rjson and rjson['video_id']:
             vid = rjson['video_id']
 
         #TODO: traer las imagenes
