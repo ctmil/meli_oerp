@@ -77,7 +77,7 @@ class MeliUtil(models.AbstractModel):
         #app_instance = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
 
         api_client = ApiClient()
-        api_rest_client = meli.RestClientApi(api_client)
+        api_rest_client = MeliApi(api_client)
         api_rest_client.client_id = company.mercadolibre_client_id
         api_rest_client.client_secret = company.mercadolibre_secret_key
         api_rest_client.access_token = company.mercadolibre_access_token
