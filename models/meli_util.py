@@ -39,7 +39,7 @@ class MeliApi( meli.RestClientApi ):
         try:
             atok = ("access_token" in params and params["access_token"]) or ""
             self.response = self.resource_get(resource=path, access_token=atok)
-            self.rjson = response
+            self.rjson = self.response
         except ApiException as e:
             self.rjson =  {
                 "error": "%s" % e
@@ -50,7 +50,7 @@ class MeliApi( meli.RestClientApi ):
         try:
             atok = ("access_token" in params and params["access_token"]) or ""
             self.response = self.resource_post(resource=path, access_token=atok, body=body )
-            self.rjson = response
+            self.rjson = self.response
         except ApiException as e:
             self.rjson = {
                 "error": "%s" % e
