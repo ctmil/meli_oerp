@@ -9,7 +9,8 @@ from odoo.tools.translate import _
 from .meli_oerp_config import REDIRECT_URI
 from ..melisdk.meli import Meli
 
-from ..melisdk.sdk3 import meli
+#from ..melisdk.sdk3 import meli
+import meli
 from meli.rest import ApiException
 from meli.api_client import ApiClient
 
