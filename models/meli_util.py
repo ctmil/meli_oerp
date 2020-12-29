@@ -98,6 +98,18 @@ class MeliApi( meli.RestClientApi ):
             }
         return self
 
+    def upload(self, path, files, params={}):
+        try:
+            atok = ("access_token" in params and params["access_token"]) or ""
+            #_logger.info("MeliApi.delete(%s,%s)  %s" % (path,str(atok),str(body)) )
+            self.response = self.resource_post(resource=path, files=files, access_token=atok )
+            self.rjson = self.response
+        except ApiException as e:
+            self.rjson = {
+                "error": "%s" % e
+            }
+        return self
+
     def auth_url(self, redirect_URI=None):
         now = datetime.now()
         url = ""
@@ -229,7 +241,6 @@ class MeliUtil(models.AbstractModel):
             api_rest_client.needlogin_state = True
             error_msg = 'MELI WARNING: NO INTERNET CONNECTION TO API.MERCADOLIBRE.COM: complete the Cliend Id, and Secret Key and try again '
             _logger.error(error_msg)
-
 
         if api_rest_client.access_token=='' or api_rest_client.access_token==False:
             api_rest_client.needlogin_state = True
