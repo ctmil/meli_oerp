@@ -114,7 +114,7 @@ class MeliApi( meli.RestClientApi ):
         return {
             "type": "ir.actions.act_url",
             "url": url_login_meli,
-            "target": "new",
+            "target": "self",
         }
 
     def authorize(self, code, redirect_uri=None):
