@@ -55,7 +55,7 @@ class product_template(models.Model):
         warningobj = self.env['warning']
 
         meli = self.env['meli.util'].get_new_instance(company)
-        if meli.neededlogin_state:
+        if meli.need_login():
             return meli.redirect_login()
 
         _logger.info("Product Template Post")
@@ -132,7 +132,7 @@ class product_template(models.Model):
         ret = {}
 
         meli = self.env['meli.util'].get_new_instance(company)
-        if meli.neededlogin_state:
+        if meli.need_login():
             return meli.redirect_login()
 
         _logger.info("Product Template Update")
@@ -563,7 +563,7 @@ class product_product(models.Model):
         if 'product.public.category' in self.env:
             www_cats = self.env['product.public.category']
         meli = self.env['meli.util'].get_new_instance(company)
-        if meli.neededlogin_state:
+        if meli.need_login():
             return meli.redirect_login()
 
         mlcatid = False
@@ -1558,7 +1558,7 @@ class product_product(models.Model):
         company = self.env.user.company_id
 
         meli = self.env['meli.util'].get_new_instance(company)
-        if meli.neededlogin_state:
+        if meli.need_login():
             return meli.redirect_login()
 
     def product_meli_status_close( self ):
@@ -1567,7 +1567,7 @@ class product_product(models.Model):
         product = self
 
         meli = self.env['meli.util'].get_new_instance(company)
-        if meli.neededlogin_state:
+        if meli.need_login():
             return meli.redirect_login()
         
         response = meli.put("/items/"+product.meli_id, { 'status': 'closed' }, {'access_token':meli.access_token})
@@ -1580,7 +1580,7 @@ class product_product(models.Model):
         product = self
 
         meli = self.env['meli.util'].get_new_instance(company)
-        if meli.neededlogin_state:
+        if meli.need_login():
             return meli.redirect_login()
 
         response = meli.put("/items/"+product.meli_id, { 'status': 'paused' }, {'access_token':meli.access_token})
@@ -1592,7 +1592,7 @@ class product_product(models.Model):
         product_obj = self.env['product.product']
 
         meli = self.env['meli.util'].get_new_instance(company)
-        if meli.neededlogin_state:
+        if meli.need_login():
             return meli.redirect_login()
             
         if (meli):
@@ -1621,7 +1621,7 @@ class product_product(models.Model):
             self.product_meli_status_close()
 
         meli = self.env['meli.util'].get_new_instance(company)
-        if meli.neededlogin_state:
+        if meli.need_login():
             return meli.redirect_login()
 
         response = meli.put("/items/"+product.meli_id, { 'deleted': 'true' }, {'access_token':meli.access_token})
@@ -1645,7 +1645,7 @@ class product_product(models.Model):
         product = self
 
         meli = self.env['meli.util'].get_new_instance(company)
-        if meli.neededlogin_state:
+        if meli.need_login():
             return meli.redirect_login()
 
         first_image_to_publish = get_first_image_to_publish( product )
@@ -1737,7 +1737,7 @@ class product_product(models.Model):
         company = self.env.user.company_id
 
         meli = self.env['meli.util'].get_new_instance(company)
-        if meli.neededlogin_state:
+        if meli.need_login():
             return meli.redirect_login()
 
         image_ids = []
@@ -1819,13 +1819,13 @@ class product_product(models.Model):
         ML_state = False
         meli = None
 
-        if meli.neededlogin_state:
+        if meli.need_login():
             ML_status = "unknown"
             ML_permalink = ""
             ML_state = True
         
         for product in self:
-            if product.meli_id and not meli.neededlogin_state:
+            if product.meli_id and not meli.need_login():
                 response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token} )
                 rjson = response.json()
                 if "status" in rjson:
@@ -2053,7 +2053,7 @@ class product_product(models.Model):
         warningobj = self.env['warning']
 
         meli = self.env['meli.util'].get_new_instance(company)
-        if meli.need_login:
+        if meli.need_login():
             return meli.redirect_login()
         #return {}
         #description_sale =  product_tmpl.description_sale
@@ -2630,7 +2630,7 @@ class product_product(models.Model):
         product_tmpl = self.product_tmpl_id
 
         meli = self.env['meli.util'].get_new_instance(company)
-        if meli.needed_login_state:
+        if meli.need_login():
             return meli.redirect_login()
 
         try:
@@ -2836,7 +2836,7 @@ class product_product(models.Model):
         product_tmpl = self.product_tmpl_id
 
         meli = self.env['meli.util'].get_new_instance(company)
-        #if meli.needed_login_state:
+        #if meli.need_login():
         #    return meli.redirect_login()
 
         product.set_meli_price()
