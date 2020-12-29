@@ -27,20 +27,13 @@ class MercadoLibre(http.Controller):
         cr, uid, context = request.cr, request.uid, request.context
         #company = request.registry.get('res.company').browse(cr,uid,1)
         company = request.env.user.company_id
-        REDIRECT_URI = company.mercadolibre_redirect_uri
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
+        meli_util_model = request.env['meli.util']
+        meli = meli_util_model.get_new_instance()
 
-        if (ACCESS_TOKEN==''):
-            meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
-            return "<a href='"+meli.auth_url(redirect_URI=REDIRECT_URI)+"'>Login</a>"
+        if (company.mercadolibre_access_token==''):
+            return "<a href='"+meli.auth_url(redirect_URI=company.mercadolibre_redirect_uri)+"'>Login</a>"
 
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
-        response = meli.get("/items/MLA533830652")
-
-        return "MercadoLibre for Odoo 8/9/10/11/12/13 - Moldeo Interactive: %s " % response.content
+        return "MercadoLibre Publisher for Odoo - Copyright Moldeo Interactive 2021"
 
     @http.route(['/meli_notify'], type='json', auth='public')
     def meli_notify(self,**kw):
@@ -64,27 +57,21 @@ class MercadoLibreLogin(http.Controller):
     @http.route(['/meli_login'], type='http', auth="user", methods=['GET'], website=True)
     def index(self, **codes ):
         cr, uid, context = request.cr, request.uid, request.context
-        #company = request.registry.get('res.company').browse(cr,uid,1)
         company = request.env.user.company_id
-        REDIRECT_URI = company.mercadolibre_redirect_uri
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
+        meli_util_model = request.env['meli.util']
+        meli = meli_util_model.get_new_instance(company)
 
         codes.setdefault('code','none')
         codes.setdefault('error','none')
         if codes['error']!='none':
             message = "ERROR: %s" % codes['error']
-            return "<h5>"+message+"</h5><br/>Retry: <a href='"+meli.auth_url(redirect_URI=REDIRECT_URI)+"'>Login</a>"
+            return "<h5>"+message+"</h5><br/>Retry (check your redirect_uri field in MercadoLibre company configuration, also the actual user and public user default company must be the same company ): <a href='"+meli.auth_url(redirect_URI=company.mercadolibre_redirect_uri)+"'>Login</a>"
 
         if codes['code']!='none':
-            _logger.info( "Meli: Authorize: REDIRECT_URI: %s, code: %s" % ( REDIRECT_URI, codes['code'] ) )
-            meli.authorize( codes['code'], REDIRECT_URI)
-            ACCESS_TOKEN = meli.access_token
-            REFRESH_TOKEN = meli.refresh_token
-            company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': codes['code'] } )
-            return 'LOGGED WIT CODE: %s <br>ACCESS_TOKEN: %s <br>REFRESH_TOKEN: %s <br>MercadoLibre for Odoo 8 - Moldeo Interactive <br><a href="javascript:window.history.go(-2);">Volver a Odoo</a> <script>window.history.go(-2)</script>' % ( codes['code'], ACCESS_TOKEN, REFRESH_TOKEN )
+            _logger.info( "Meli: Authorize: REDIRECT_URI: %s, code: %s" % ( company.mercadolibre_redirect_uri, codes['code'] ) )
+            resp = meli.authorize( codes['code'], company.mercadolibre_redirect_uri)
+            company.write({'mercadolibre_access_token': meli.access_token, 'mercadolibre_refresh_token': meli.refresh_token, 'mercadolibre_code': codes['code'] } )
+            return 'LOGGED WIT CODE: %s <br>ACCESS_TOKEN: %s <br>REFRESH_TOKEN: %s <br>MercadoLibre Publisher for Odoo - Copyright Moldeo Interactive <br><a href="javascript:window.history.go(-2);">Volver a Odoo</a> <script>window.history.go(-2)</script>' % ( codes['code'], ACCESS_TOKEN, REFRESH_TOKEN )
         else:
             return "<a href='"+meli.auth_url(redirect_URI=REDIRECT_URI)+"'>Login</a>"
 

@@ -30,17 +30,18 @@ configuration = meli.Configuration(
 
 class MeliApi( meli.RestClientApi ):
 
+    AUTH_URL = "https://auth.mercadolibre.com.ar/authorization"
+
     client_id = ""
     client_secret = ""
     access_token = ""
     refresh_token = ""
     redirect_uri = ""
     response = ""
+    code = ""
     rjson = {}
 
     user = {}
-
-    AUTH_URL = "https://auth.mercadolibre.com.ar/authorization"
 
     def json(self):
         return self.rjson
@@ -79,6 +80,27 @@ class MeliApi( meli.RestClientApi ):
         url = self.AUTH_URL  + '?' + urlencode(params)
         _logger.info("Authorize Login "+str(url))
         return url
+
+    def authorize(self, code, redirect_uri=None):
+        api_client = ApiClient()
+        api_auth_client = meli.OAuth20Api(api_client)
+        if redirect_uri:
+            self.redirect_uri = redirect_uri
+        grant_type = 'authorization_code'
+        response_info = api_auth_client.get_token(grant_type=grant_type,
+                                            client_id=self.client_id,
+                                            client_secret=self.client_secret,
+                                            redirect_uri=self.redirect_uri,
+                                            code=code,
+                                            refresh_token=self.refresh_token)
+        _logger.info("MeliApi authorize:"+str(response_info))
+        if 'access_token' in response_info:
+            self.access_token = response_info['access_token']
+            if 'refresh_token' in response_info:
+                self.refresh_token = response_info['refresh_token']
+            else:
+                self.refresh_token = ''
+        return response_info
 
 
 class MeliUtil(models.AbstractModel):
@@ -143,18 +165,19 @@ class MeliUtil(models.AbstractModel):
                             try:
                                 #refresh = meli.get_refresh_token()
                                 refresh = api_auth_client.get_token(grant_type=grant_type,
-                                client_id=CLIENT_ID,
-                                client_secret=CLIENT_SECRET,
-                                redirect_uri=REDIRECT_URI,
-                                code=CODE,
-                                refresh_token=REFRESH_TOKEN)
+                                                                    client_id=CLIENT_ID,
+                                                                    client_secret=CLIENT_SECRET,
+                                                                    redirect_uri=REDIRECT_URI,
+                                                                    code=CODE,
+                                                                    refresh_token=REFRESH_TOKEN)
                                 _logger.info("need to refresh:"+str(refresh))
                                 if (refresh):
                                     refjson = refresh.json()
                                     api_rest_client.access_token = refjson["access_token"]
                                     api_rest_client.refresh_token = refjson["refresh_token"]
-                                    company.write({'mercadolibre_access_token': api_rest_client.access_token,
-                                    'mercadolibre_refresh_token': api_rest_client.refresh_token, 'mercadolibre_code': '' } )
+                                    company.write({ 'mercadolibre_access_token': api_rest_client.access_token,
+                                                    'mercadolibre_refresh_token': api_rest_client.refresh_token,
+                                                    'mercadolibre_code': '' } )
                                     needlogin_state = False
                             except Exception as e:
                                 _logger.error(e)
