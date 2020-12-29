@@ -1069,10 +1069,6 @@ class product_product(models.Model):
         if 'error' in rjson:
             return {}
 
-        #if "content" in response:
-        #    _logger.info(response.content)
-        #    _logger.info( "product_meli_get_product > response.content: " + response.content )
-
         #TODO: traer la descripcion: con
         #https://api.mercadolibre.com/items/{ITEM_ID}/description?access_token=$ACCESS_TOKEN
         if rjson and 'descriptions' in rjson and rjson['descriptions']:
@@ -1626,8 +1622,8 @@ class product_product(models.Model):
 
         response = meli.put("/items/"+product.meli_id, { 'deleted': 'true' }, {'access_token':meli.access_token})
 
-        #_logger.info( "product_meli_delete: " + response.content )
         rjson = response.json()
+        _logger.info( rjson )
         ML_status = rjson["status"]
         if "error" in rjson:
             ML_status = rjson["error"]
@@ -1746,7 +1742,6 @@ class product_product(models.Model):
             #files = { 'file': ('image.png', imagebin, "image/png"), }
             files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
             response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
-            #_logger.info( "meli upload:" + str(response.content) )
             rjson = response.json()
             if ("error" in rjson):
                 #raise osv.except_osv( _('MELI WARNING'), _('No se pudo cargar la imagen en MELI! Error: %s , Mensaje: %s, Status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
@@ -2533,7 +2528,6 @@ class product_product(models.Model):
             response = meli.post("/items", body, {'access_token':meli.access_token})
 
         #check response
-        # _logger.info( response.content )
         rjson = response.json()
         _logger.info(rjson)
 
@@ -2744,18 +2738,18 @@ class product_product(models.Model):
                         #"picture_ids": ['806634-MLM28112717071_092018', '928808-MLM28112717068_092018', '643737-MLM28112717069_092018', '934652-MLM28112717070_092018']
                     }
                     responsevar = meli.put("/items/"+product.meli_id+'/variations/'+str( product.meli_id_variation ), var, {'access_token':meli.access_token})
-                    if (responsevar.content):
+                    if (responsevar):
                         rjson = responsevar.json()
-                        _logger.info(responsevar.content)
+                        _logger.info(rjson)
                 else:
                     response = meli.put("/items/"+product.meli_id, fields, {'access_token':meli.access_token})
-                    if (response.content):
+                    if (response):
                         rjson = response.json()
                         if ('available_quantity' in rjson):
                             _logger.info( "Posted ok:" + str(rjson['available_quantity']) )
                         else:
                             _logger.info( "Error posting stock" )
-                            _logger.info(response.content)
+                            _logger.info(rjson)
 
                 if (product.meli_available_quantity<=0 and product.meli_status=="active"):
                     product.product_meli_status_pause()

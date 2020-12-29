@@ -334,9 +334,8 @@ class mercadolibre_category(models.Model):
         if (category_root):
             response = meli.get("/categories/"+str(category_root), {'access_token':meli.access_token} )
 
-            _logger.info( "response.content:", response.content )
-
             rjson = response.json()
+            _logger.info( "response:", rjson )
             if ("name" in rjson):
                 # en el html deberia ir el link  para chequear on line esa categoría corresponde a sus productos.
                 warningobj.info( title='MELI WARNING', message="Preparando importación de todas las categorías en "+str(category_root), message_html=response )
