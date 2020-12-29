@@ -153,12 +153,12 @@ class MeliUtil(models.AbstractModel):
         if not company:
             company = self.env.user.company_id
 
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
-        REDIRECT_URI = company.mercadolibre_redirect_uri
-        CODE = company.mercadolibre_code
+        #CLIENT_ID = company.mercadolibre_client_id
+        #CLIENT_SECRET = company.mercadolibre_secret_key
+        #ACCESS_TOKEN = company.mercadolibre_access_token
+        #REFRESH_TOKEN = company.mercadolibre_refresh_token
+        #REDIRECT_URI = company.mercadolibre_redirect_uri
+        #CODE = company.mercadolibre_code
 
         api_client = ApiClient()
         api_rest_client = MeliApi(api_client)
@@ -180,13 +180,13 @@ class MeliUtil(models.AbstractModel):
             if not (company.mercadolibre_seller_id==False):
                 response = api_rest_client.get("/users/"+str(company.mercadolibre_seller_id), {'access_token':api_rest_client.access_token} )
 
-                _logger.info("get_new_instance check connection response:"+str(response))
+                _logger.info("get_new_instance connection response:"+str(response))
                 rjson = response.json()
-                _logger.info(rjson)
+                #_logger.info(rjson)
                 if "error" in rjson:
                     api_rest_client.needlogin_state = True
 
-                    #_logger.info(rjson)
+                    _logger.error(rjson)
 
                     if rjson["error"]=="not_found":
                         api_rest_client.needlogin_state = True
@@ -198,16 +198,17 @@ class MeliUtil(models.AbstractModel):
                             try:
                                 #refresh = meli.get_refresh_token()
                                 refresh = api_auth_client.get_token(grant_type=grant_type,
-                                                                    client_id=CLIENT_ID,
-                                                                    client_secret=CLIENT_SECRET,
-                                                                    redirect_uri=REDIRECT_URI,
-                                                                    code=CODE,
-                                                                    refresh_token=REFRESH_TOKEN)
+                                                                    client_id=company.mercadolibre_client_id,
+                                                                    client_secret=company.mercadolibre_secret_key,
+                                                                    redirect_uri=company.mercadolibre_redirect_uri,
+                                                                    code=company.mercadolibre_code,
+                                                                    refresh_token=company.mercadolibre_refresh_token)
                                 _logger.info("need to refresh:"+str(refresh))
                                 if (refresh):
                                     refjson = refresh.json()
                                     api_rest_client.access_token = refjson["access_token"]
                                     api_rest_client.refresh_token = refjson["refresh_token"]
+                                    api_rest_client.code = ''
                                     company.write({ 'mercadolibre_access_token': api_rest_client.access_token,
                                                     'mercadolibre_refresh_token': api_rest_client.refresh_token,
                                                     'mercadolibre_code': '' } )
@@ -220,7 +221,7 @@ class MeliUtil(models.AbstractModel):
             else:
                 api_rest_client.needlogin_state = True
 
-            if ACCESS_TOKEN=='' or ACCESS_TOKEN==False:
+            if api_rest_client.access_token=='' or api_rest_client.access_token==False:
                 api_rest_client.needlogin_state = True
 
         except requests.exceptions.ConnectionError as e:
