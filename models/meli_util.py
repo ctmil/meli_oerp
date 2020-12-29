@@ -32,12 +32,15 @@ class MeliApi( meli.RestClientApi ):
     response = ""
     rjson = {}
 
+    user = {}
+
     def json(self):
         return self.rjson
 
     def get(self, path, params={}):
         try:
             atok = ("access_token" in params and params["access_token"]) or ""
+            _logger.info("MeliApi.get(%s,%s)" % (path,str(atok)) )
             self.response = self.resource_get(resource=path, access_token=atok)
             self.rjson = self.response
         except ApiException as e:
@@ -49,6 +52,7 @@ class MeliApi( meli.RestClientApi ):
     def post(self, path, body=None, params={}):
         try:
             atok = ("access_token" in params and params["access_token"]) or ""
+            _logger.info("MeliApi.post(%s,%s)  %s" % (path,str(atok),str(body)) )
             self.response = self.resource_post(resource=path, access_token=atok, body=body )
             self.rjson = self.response
         except ApiException as e:
@@ -139,6 +143,9 @@ class MeliUtil(models.AbstractModel):
                                     needlogin_state = False
                             except Exception as e:
                                 _logger.error(e)
+                else:
+                    #saving user info, brand, official store ids, etc...
+                    response.user = rjson
             else:
                 needlogin_state = True
 
