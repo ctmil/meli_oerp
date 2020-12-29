@@ -180,7 +180,7 @@ class MeliUtil(models.AbstractModel):
             if not (company.mercadolibre_seller_id==False):
                 response = api_rest_client.get("/users/"+str(company.mercadolibre_seller_id), {'access_token':api_rest_client.access_token} )
 
-                _logger.info("get_new_instance connection response:"+str(response))
+                #_logger.info("get_new_instance connection response:"+str(response))
                 rjson = response.json()
                 #_logger.info(rjson)
                 if "error" in rjson:
