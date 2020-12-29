@@ -267,15 +267,7 @@ class res_company(models.Model):
         _logger.info('company.meli_logout() ')
         self.ensure_one()
         company = self.env.user.company_id
-        #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
-        #company = user_obj.company_id
-
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = ''
-        REFRESH_TOKEN = ''
-
-        company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
+        company.write({'mercadolibre_access_token': '', 'mercadolibre_refresh_token': '', 'mercadolibre_code': '' } )
         url_logout_meli = '/web?debug=#'
         _logger.info( url_logout_meli )
         return {
@@ -292,15 +284,16 @@ class res_company(models.Model):
         #user_obj = self.pool.get('res.users').browse(cr, uid, uid)
         #company = user_obj.company_id
 
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        REDIRECT_URI = company.mercadolibre_redirect_uri
+        #CLIENT_ID = company.mercadolibre_client_id
+        #CLIENT_SECRET = company.mercadolibre_secret_key
+        #REDIRECT_URI = company.mercadolibre_redirect_uri
+        #meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
+        #url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
+        url_login_meli = ""
 
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
-
-        url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
-        #url_login_oerp = "/meli_login"
-
+        meli_util_model = self.env['meli.util']
+        meli = meli_util_model.get_new_instance()
+        _logger.info(meli)
         _logger.info( "OK company.meli_login() called: url is ", url_login_meli )
 
         return {

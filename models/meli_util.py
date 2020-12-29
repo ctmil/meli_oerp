@@ -108,8 +108,11 @@ class MeliUtil(models.AbstractModel):
 
                 _logger.info("get_new_instance check connection response:"+str(response))
                 rjson = response.json()
+                _logger.info(rjson)
                 if "error" in rjson:
                     needlogin_state = True
+
+                    #_logger.info(rjson)
 
                     if rjson["error"]=="not_found":
                         needlogin_state = True
