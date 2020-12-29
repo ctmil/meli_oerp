@@ -172,7 +172,7 @@ class MeliUtil(models.AbstractModel):
 
         #api_response = api_instance.get_token(grant_type=grant_type, client_id=CLIENT_ID, client_secret=CLIENT_SECRET, redirect_uri=REDIRECT_URI, code=CODE, refresh_token=REFRESH_TOKEN)
         #taken from res.company get_meli_state()
-        api_rest_client.needlogin_state = False
+        api_rest_client.needlogin_state = True
         message = "Login to ML needed in Odoo."
 
         #pdb.set_trace()
@@ -224,33 +224,36 @@ class MeliUtil(models.AbstractModel):
             if api_rest_client.access_token=='' or api_rest_client.access_token==False:
                 api_rest_client.needlogin_state = True
 
+            #        except requests.exceptions.HTTPError as e:
+            #            _logger.info( "And you get an HTTPError:", e.message )
+
         except requests.exceptions.ConnectionError as e:
             #raise osv.except_osv( _('MELI WARNING'), _('NO INTERNET CONNECTION TO API.MERCADOLIBRE.COM: complete the Cliend Id, and Secret Key and try again'))
             api_rest_client.needlogin_state = True
             error_msg = 'MELI WARNING: NO INTERNET CONNECTION TO API.MERCADOLIBRE.COM: complete the Cliend Id, and Secret Key and try again '
             _logger.error(error_msg)
 
-        #        except requests.exceptions.HTTPError as e:
-        #            _logger.info( "And you get an HTTPError:", e.message )
+        try:
+            if api_rest_client.needlogin_state:
 
-        if api_rest_client.needlogin_state:
+                company.write({'mercadolibre_access_token': '', 'mercadolibre_refresh_token': '', 'mercadolibre_code': '' } )
 
-            company.write({'mercadolibre_access_token': '', 'mercadolibre_refresh_token': '', 'mercadolibre_code': '' } )
+                if (company.mercadolibre_refresh_token and company.mercadolibre_cron_mail):
+                    # we put the job_exception in context to be able to print it inside
+                    # the email template
+                    context = {
+                        'job_exception': message,
+                        'dbname': self._cr.dbname,
+                    }
 
-            if (company.mercadolibre_refresh_token and company.mercadolibre_cron_mail):
-                # we put the job_exception in context to be able to print it inside
-                # the email template
-                context = {
-                    'job_exception': message,
-                    'dbname': self._cr.dbname,
-                }
+                    _logger.debug(
+                        "Sending scheduler error email with context=%s", context)
 
-                _logger.debug(
-                    "Sending scheduler error email with context=%s", context)
-
-                self.env['mail.template'].browse(
-                    company.mercadolibre_cron_mail.id
-                ).with_context(context).sudo().send_mail( (company.id), force_send=True)
+                    self.env['mail.template'].browse(
+                        company.mercadolibre_cron_mail.id
+                    ).with_context(context).sudo().send_mail( (company.id), force_send=True)
+        except Exception as e:
+            _logger.error(e)
 
         #_logger.info("ML_state: need login? "+str(ML_state))
         for comp in company:
