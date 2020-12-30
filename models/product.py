@@ -2431,7 +2431,7 @@ class product_product(models.Model):
                         rjsonv = responsevar.json()
                         _logger.info(rjsonv)
                         if ("error" in rjsonv):
-                            error_msg = 'MELI RESP.: <h6>Mensaje de error</h6> %s<br/><h6>Mensaje</h6> %s<br/><h6>status</h6> %s<br/><h6>cause</h6> %s<br/>' % (rjsonv["error"], rjsonv["message"], rjsonv["status"], rjsonv["cause"])
+                            error_msg = 'MELI RESP.: <h6>Mensaje de error</h6><br/><h6>Mensaje</h6> %s<br/><h6>Status</h6> %s<br/><h6>Cause</h6> %s<br/><h7>Error completo:</h7><span>%s</span><br/>' % (rjsonv["message"], rjsonv["status"], rjsonv["cause"], rjsonv["error"])
                             _logger.error(error_msg)
                             if (rjsonv["error"]=="forbidden"):
                                 url_login_meli = meli.auth_url()
