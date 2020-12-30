@@ -20,6 +20,8 @@ import logging
 _logger = logging.getLogger(__name__)
 
 
+from ..models.versions import *
+
 class MercadoLibre(http.Controller):
     @http.route('/meli/', auth='public')
     def index(self):
@@ -47,6 +49,26 @@ class MercadoLibre(http.Controller):
             return Response(result["error"],content_type='text/html;charset=utf-8',status=result["status"])
         else:
             return ""
+
+    @http.route('/meli/image/<int:product_id>', type='http', auth="public")
+    @http.route('/meli/image/<int:product_id>/<int:image_id>', type='http', auth="public")
+    def meli_image(self, product_id, image_id=None, **kw):
+
+        #browse and read image data to browser
+        product = request.env["product.product"].browse(int(product_id))
+
+        if image_id:
+            filename = '%s_%s' % ("product.image".replace('.', '_'), str(product_id)+str("_")+str(image_id))
+            product_image = request.env["product.image"].browse( int(image_id) )
+            if product_image:
+                filecontent = base64.b64decode( get_image_full( product_image ) )
+        else:
+            filename = '%s_%s' % ("product.image".replace('.', '_'), product_id)
+            filecontent = base64.b64decode( get_image_full( product ) )
+
+        return request.make_response(filecontent,
+                                     [('Content-Type', 'application/octet-stream'),
+                                      ('Content-Disposition', content_disposition(filename))])
 
 class MercadoLibreLogin(http.Controller):
 
