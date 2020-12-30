@@ -20,27 +20,18 @@ import logging
 _logger = logging.getLogger(__name__)
 
 
+from ..models.versions import *
+
 class MercadoLibre(http.Controller):
     @http.route('/meli/', auth='public')
     def index(self):
-
-        cr, uid, context = request.cr, request.uid, request.context
-        #company = request.registry.get('res.company').browse(cr,uid,1)
         company = request.env.user.company_id
-        REDIRECT_URI = company.mercadolibre_redirect_uri
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
+        meli_util_model = request.env['meli.util']
+        meli = meli_util_model.get_new_instance(company)
+        if meli.need_login():
+            return "<a href='"+meli.auth_url()+"'>Login Please</a>"
 
-        if (ACCESS_TOKEN==''):
-            meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
-            return "<a href='"+meli.auth_url(redirect_URI=REDIRECT_URI)+"'>Login</a>"
-
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
-        response = meli.get("/items/MLA533830652")
-
-        return "MercadoLibre for Odoo 8/9/10/11/12/13 - Moldeo Interactive: %s " % response.content
+        return "MercadoLibre Publisher for Odoo - Copyright Moldeo Interactive 2021"
 
     @http.route(['/meli_notify'], type='json', auth='public')
     def meli_notify(self,**kw):
@@ -59,45 +50,61 @@ class MercadoLibre(http.Controller):
         else:
             return ""
 
+    @http.route('/meli/image/<int:product_id>', type='http', auth="public")
+    @http.route('/meli/image/<int:product_id>/<int:image_id>', type='http', auth="public")
+    def meli_image(self, product_id, image_id=None, **kw):
+
+        #browse and read image data to browser
+        product = request.env["product.product"].browse(int(product_id))
+
+        if image_id:
+            filename = '%s_%s' % ("product.image".replace('.', '_'), str(product_id)+str("_")+str(image_id))
+            product_image = request.env["product.image"].browse( int(image_id) )
+            if product_image:
+                filecontent = base64.b64decode( get_image_full( product_image ) )
+            else:
+                return ""
+        else:
+            filename = '%s_%s' % ("meli.image".replace('.', '_'), product_id)
+            filecontent = base64.b64decode( get_image_full( product ) )
+
+        return request.make_response(filecontent,
+                                     [('Content-Type', 'application/octet-stream'),
+                                      ('Content-Disposition', content_disposition(filename))])
+
+
 class MercadoLibreLogin(http.Controller):
 
     @http.route(['/meli_login'], type='http', auth="user", methods=['GET'], website=True)
     def index(self, **codes ):
-        cr, uid, context = request.cr, request.uid, request.context
-        #company = request.registry.get('res.company').browse(cr,uid,1)
         company = request.env.user.company_id
-        REDIRECT_URI = company.mercadolibre_redirect_uri
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
+        meli_util_model = request.env['meli.util']
+        meli = meli_util_model.get_new_instance(company)
 
         codes.setdefault('code','none')
         codes.setdefault('error','none')
         if codes['error']!='none':
             message = "ERROR: %s" % codes['error']
-            return "<h5>"+message+"</h5><br/>Retry: <a href='"+meli.auth_url(redirect_URI=REDIRECT_URI)+"'>Login</a>"
+            return "<h5>"+message+"</h5><br/>Retry (check your redirect_uri field in MercadoLibre company configuration, also the actual user and public user default company must be the same company ): <a href='"+meli.auth_url(redirect_URI=company.mercadolibre_redirect_uri)+"'>Login</a>"
 
         if codes['code']!='none':
-            _logger.info( "Meli: Authorize: REDIRECT_URI: %s, code: %s" % ( REDIRECT_URI, codes['code'] ) )
-            meli.authorize( codes['code'], REDIRECT_URI)
-            ACCESS_TOKEN = meli.access_token
-            REFRESH_TOKEN = meli.refresh_token
-            company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': codes['code'] } )
-            return 'LOGGED WIT CODE: %s <br>ACCESS_TOKEN: %s <br>REFRESH_TOKEN: %s <br>MercadoLibre for Odoo 8 - Moldeo Interactive <br><a href="javascript:window.history.go(-2);">Volver a Odoo</a> <script>window.history.go(-2)</script>' % ( codes['code'], ACCESS_TOKEN, REFRESH_TOKEN )
+            _logger.info( "Meli: Authorize: REDIRECT_URI: %s, code: %s" % ( company.mercadolibre_redirect_uri, codes['code'] ) )
+            resp = meli.authorize( codes['code'], company.mercadolibre_redirect_uri)
+            company.write({'mercadolibre_access_token': meli.access_token, 'mercadolibre_refresh_token': meli.refresh_token, 'mercadolibre_code': codes['code'] } )
+            return 'LOGGED WITH CODE: %s <br>ACCESS_TOKEN: %s <br>REFRESH_TOKEN: %s <br>MercadoLibre Publisher for Odoo - Copyright Moldeo Interactive <br><a href="javascript:window.history.go(-2);">Volver a Odoo</a> <script>window.history.go(-2)</script>' % ( codes['code'], meli.access_token, meli.refresh_token )
         else:
-            return "<a href='"+meli.auth_url(redirect_URI=REDIRECT_URI)+"'>Login</a>"
+            return "<a href='"+meli.auth_url()+"'>Try to Login Again Please</a>"
 
 class MercadoLibreAuthorize(http.Controller):
     @http.route('/meli_authorize/', auth='public')
     def index(self):
-        return "AUTHORIZE: MercadoLibre for Odoo 8 - Moldeo Interactive"
+        return "AUTHORIZE: MercadoLibre for Odoo - Moldeo Interactive"
 
 
 class MercadoLibreLogout(http.Controller):
     @http.route('/meli_logout/', auth='public')
     def index(self):
-        return "LOGOUT: MercadoLibre for Odoo 8 - Moldeo Interactive"
+        return "LOGOUT: MercadoLibre for Odoo - Moldeo Interactive"
 
 class Download(http.Controller):
     """

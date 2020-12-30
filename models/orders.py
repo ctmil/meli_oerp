@@ -156,46 +156,50 @@ class sale_order(models.Model):
         return None
 
     def confirm_ml(self):
+        try:
+            company = self.env.user.company_id
+            stock_picking = self.env["stock.picking"]
 
-        company = self.env.user.company_id
-        stock_picking = self.env["stock.picking"]
+            if (self.meli_status=="cancelled"):
+                self.action_cancel()
 
-        if (self.meli_status=="cancelled"):
-            self.action_cancel()
+            if (company.mercadolibre_order_confirmation=="paid_confirm"):
 
-        if (company.mercadolibre_order_confirmation=="paid_confirm"):
+                if ( (self.state=="draft" or self.state=="sent") and self.meli_status=="paid"):
+                    _logger.info("paid_confirm ok! confirming sale")
+                    self.action_confirm()
 
-            if ( (self.state=="draft" or self.state=="sent") and self.meli_status=="paid"):
-                _logger.info("paid_confirm ok! confirming sale")
-                self.action_confirm()
+            if (company.mercadolibre_order_confirmation=="paid_delivered"):
 
-        if (company.mercadolibre_order_confirmation=="paid_delivered"):
+                if ( (self.state=="draft" or self.state=="sent") and self.meli_status=="paid"):
+                    _logger.info("paid_delivered ok! confirming sale")
+                    self.action_confirm()
 
-            if ( (self.state=="draft" or self.state=="sent") and self.meli_status=="paid"):
-                _logger.info("paid_delivered ok! confirming sale")
-                self.action_confirm()
-
-            if (self.state=="sale" or self.state=="done"):
-                #spick = stock_picking.search([('order_id','=',self.id)])
-                _logger.info("paid_delivered ok! delivering")
-                for spick in self.picking_ids:
-                    _logger.info(spick)
-                    if (spick.move_line_ids):
-                        _logger.info(spick.move_line_ids)
-                        if (len(spick.move_line_ids)>=1):
-                            for pop in spick.move_line_ids:
-                                _logger.info(pop)
-                                if (pop.qty_done==0.0 and pop.product_qty>=0.0):
-                                    pop.qty_done = pop.product_qty
-                            _logger.info("do_new_transfer")
-                            spick.action_done()
+                if (self.state=="sale" or self.state=="done"):
+                    #spick = stock_picking.search([('order_id','=',self.id)])
+                    _logger.info("paid_delivered ok! delivering")
+                    for spick in self.picking_ids:
+                        _logger.info(spick)
+                        if (spick.move_line_ids):
+                            _logger.info(spick.move_line_ids)
+                            if (len(spick.move_line_ids)>=1):
+                                for pop in spick.move_line_ids:
+                                    _logger.info(pop)
+                                    if (pop.qty_done==0.0 and pop.product_qty>=0.0):
+                                        pop.qty_done = pop.product_qty
+                                _logger.info("do_new_transfer")
+                                spick.action_done()
 
 
-        if (company.mercadolibre_order_confirmation=="paid_confirm_with_invoice"):
-            if ( (self.state=="draft" or self.state=="sent") and self.meli_status=="paid"):
-                _logger.info("paid_confirm with invoice ok! confirming sale and create invoice")
-                self.action_confirm()
-                self.action_invoice_create()
+            if (company.mercadolibre_order_confirmation=="paid_confirm_with_invoice"):
+                if ( (self.state=="draft" or self.state=="sent") and self.meli_status=="paid"):
+                    _logger.info("paid_confirm with invoice ok! confirming sale and create invoice")
+                    self.action_confirm()
+                    self.action_invoice_create()
+        except Exception as e:
+            _logger.info("Confirm Order Exception")
+            _logger.error(e, exc_info=True)
+            pass
 
     _sql_constraints = [
         ('unique_meli_order_id', 'unique(meli_order_id)', 'Mei Order id already exists!')
@@ -354,6 +358,7 @@ class mercadolibre_orders(models.Model):
         order_json = data["order_json"]
         #_logger.info( "data:" + str(data) )
         company = self.env.user.company_id
+        meli = self.env['meli.util'].get_new_instance(company)
 
         saleorder_obj = self.env['sale.order']
         saleorderline_obj = self.env['sale.order.line']
@@ -810,15 +815,7 @@ class mercadolibre_orders(models.Model):
                             productcreated = None
                             product_related = None
 
-                            try:
-                                CLIENT_ID = company.mercadolibre_client_id
-                                CLIENT_SECRET = company.mercadolibre_secret_key
-                                ACCESS_TOKEN = company.mercadolibre_access_token
-                                REFRESH_TOKEN = company.mercadolibre_refresh_token
-
-                                #
-                                meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN )
-
+                            try:                               
                                 response3 = meli.get("/items/"+str(Item['item']['id']), {'access_token':meli.access_token})
                                 rjson3 = response3.json()
                                 prod_fields = {
@@ -1017,13 +1014,7 @@ class mercadolibre_orders(models.Model):
         log_msg = 'orders_update_order: %s' % (order.order_id)
         _logger.info(log_msg)
 
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
-
-        #
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN )
+        meli = self.env['meli.util'].get_new_instance(company)
 
         response = meli.get("/orders/"+order.order_id, {'access_token':meli.access_token})
         order_json = response.json()
@@ -1035,7 +1026,7 @@ class mercadolibre_orders(models.Model):
         else:
             try:
                 self.orders_update_order_json( {"id": order.id, "order_json": order_json } )
-                self._cr.commit()
+                #self._cr.commit()
             except Exception as e:
                 _logger.info("orders_update_order > Error actualizando ORDEN")
                 _logger.error(e, exc_info=True)
@@ -1051,15 +1042,10 @@ class mercadolibre_orders(models.Model):
 
         orders_obj = self.env['mercadolibre.orders']
 
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
-
-        #
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN )
+        meli = self.env['meli.util'].get_new_instance(company)
 
         orders_query = "/orders/search?seller="+company.mercadolibre_seller_id+"&sort=date_desc"
+        #orders_query+= "&limit=10"
 
         if (offset):
             orders_query = orders_query + "&offset="+str(offset).strip()
