@@ -70,7 +70,7 @@ class MeliApi( meli.RestClientApi ):
             self.rjson = self.response
         except ApiException as e:
             self.rjson = {
-                "error": "%s" % e
+                "error": "%s" % e.body
             }
         return self
 
@@ -82,7 +82,7 @@ class MeliApi( meli.RestClientApi ):
             self.rjson = self.response
         except ApiException as e:
             self.rjson = {
-                "error": "%s" % e
+                "error": "%s" % e.body
             }
         return self
 
@@ -94,7 +94,7 @@ class MeliApi( meli.RestClientApi ):
             self.rjson = self.response
         except ApiException as e:
             self.rjson = {
-                "error": "%s" % e
+                "error": "%s" % e.body
             }
         return self
 
@@ -118,7 +118,7 @@ class MeliApi( meli.RestClientApi ):
             _logger.info(self.rjson)
         except ApiException as e:
             self.rjson = {
-                "error": "%s" % e
+                "error": "%s" % e.body
             }
         return self
 
