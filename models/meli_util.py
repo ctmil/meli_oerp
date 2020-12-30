@@ -61,7 +61,7 @@ class MeliApi( meli.RestClientApi ):
                 "error": "%s" % e,
                 "status": e.status,
                 "cause": e.reason,
-                "message": e.body["message"]
+                "message": e.body
             }
         return self
 
@@ -76,7 +76,7 @@ class MeliApi( meli.RestClientApi ):
                 "error": "%s" % e,
                 "status": e.status,
                 "cause": e.reason,
-                "message": e.body["message"]
+                "message": e.body
             }
         return self
 
@@ -91,7 +91,7 @@ class MeliApi( meli.RestClientApi ):
                 "error": "%s" % e,
                 "status": e.status,
                 "cause": e.reason,
-                "message": e.body["message"]
+                "message": e.body
             }
         return self
 
@@ -106,7 +106,7 @@ class MeliApi( meli.RestClientApi ):
                 "error": "%s" % e,
                 "status": e.status,
                 "cause": e.reason,
-                "message": e.body["message"]
+                "message": e.body
             }
         return self
 
