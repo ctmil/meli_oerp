@@ -82,7 +82,7 @@ class res_company(models.Model):
         response = meli.get("/sites")
         if (response):
             sites = response.json()
-            _logger.info(sites)
+            #_logger.info(sites)
             for site in sites:
                 #_logger.info("site:")
                 #_logger.info(site)
