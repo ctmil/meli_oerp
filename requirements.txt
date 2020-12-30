@@ -1,1 +1,2 @@
 pdf2image
+git+https://github.com/mercadolibre/python-sdk.git

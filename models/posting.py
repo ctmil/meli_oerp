@@ -91,14 +91,7 @@ class mercadolibre_posting(models.Model):
 
             log_msg = 'posting_query_questions: %s' % (posting.meli_id)
             #_logger.info(log_msg)
-
-            CLIENT_ID = company.mercadolibre_client_id
-            CLIENT_SECRET = company.mercadolibre_secret_key
-            ACCESS_TOKEN = company.mercadolibre_access_token
-            REFRESH_TOKEN = company.mercadolibre_refresh_token
-
-            #
-            meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN )
+            meli = self.env['meli.util'].get_new_instance(company)
             if (posting.meli_id):
                 pass;
             else:
