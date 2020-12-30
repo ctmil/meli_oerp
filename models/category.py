@@ -160,7 +160,6 @@ class mercadolibre_category(models.Model):
 
         meli = self.env['meli.util'].get_new_instance(company)
 
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
         for category in self:
             if (category.meli_category_id
                 and category.is_branch==False
