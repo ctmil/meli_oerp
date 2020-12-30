@@ -1742,7 +1742,7 @@ class product_product(models.Model):
             #files = { 'file': ('image.png', imagebin, "image/png"), }
             files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
             response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
-            rjson = response.json()
+            rjson = response.json()            
             if ("error" in rjson):
                 #raise osv.except_osv( _('MELI WARNING'), _('No se pudo cargar la imagen en MELI! Error: %s , Mensaje: %s, Status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
                 return rjson
