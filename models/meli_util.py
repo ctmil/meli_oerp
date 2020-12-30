@@ -103,6 +103,7 @@ class MeliApi( meli.RestClientApi ):
             atok = ("access_token" in params and params["access_token"]) or ""
             params = {"access_token":atok}
             headers = {}
+            uri = configuration.host+"path"
             #_logger.info("MeliApi.delete(%s,%s)  %s" % (path,str(atok),str(body)) )
             #self.response = self.resource_post(resource=path, access_token=atok, body=files )
             #self.rjson = self.response
