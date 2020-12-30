@@ -358,6 +358,7 @@ class mercadolibre_orders(models.Model):
         order_json = data["order_json"]
         #_logger.info( "data:" + str(data) )
         company = self.env.user.company_id
+        meli = self.env['meli.util'].get_new_instance(company)
 
         saleorder_obj = self.env['sale.order']
         saleorderline_obj = self.env['sale.order.line']
@@ -670,7 +671,7 @@ class mercadolibre_orders(models.Model):
             return {'error': 'No partner founded or created for ML Order' }
         #process base order fields
         meli_order_fields = {
-            #'name': "%i" % ( order_json["id"] ),
+            'name': "ML %i" % ( order_json["id"] ),
             'partner_id': partner_id.id,
             'pricelist_id': plistid.id,
             'meli_order_id': '%i' % (order_json["id"]),
@@ -814,15 +815,7 @@ class mercadolibre_orders(models.Model):
                             productcreated = None
                             product_related = None
 
-                            try:
-                                CLIENT_ID = company.mercadolibre_client_id
-                                CLIENT_SECRET = company.mercadolibre_secret_key
-                                ACCESS_TOKEN = company.mercadolibre_access_token
-                                REFRESH_TOKEN = company.mercadolibre_refresh_token
-
-                                #
-                                meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN )
-
+                            try:                               
                                 response3 = meli.get("/items/"+str(Item['item']['id']), {'access_token':meli.access_token})
                                 rjson3 = response3.json()
                                 prod_fields = {
@@ -1021,13 +1014,7 @@ class mercadolibre_orders(models.Model):
         log_msg = 'orders_update_order: %s' % (order.order_id)
         _logger.info(log_msg)
 
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
-
-        #
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN )
+        meli = self.env['meli.util'].get_new_instance(company)
 
         response = meli.get("/orders/"+order.order_id, {'access_token':meli.access_token})
         order_json = response.json()
@@ -1055,13 +1042,7 @@ class mercadolibre_orders(models.Model):
 
         orders_obj = self.env['mercadolibre.orders']
 
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
-
-        #
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN )
+        meli = self.env['meli.util'].get_new_instance(company)
 
         orders_query = "/orders/search?seller="+company.mercadolibre_seller_id+"&sort=date_desc"
         #orders_query+= "&limit=10"
