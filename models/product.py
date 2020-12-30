@@ -2557,9 +2557,9 @@ class product_product(models.Model):
                             pvar.meli_id_variation = _var["id"]
 
 
-        posting_fields = {'posting_date': str(datetime.now()),'meli_id':rjson['id'],'product_id':product.id,'name': 'Post: ' + product.meli_title }
+        posting_fields = {'posting_date': str(datetime.now()),'meli_id': product.meli_id,'product_id':product.id,'name': 'Post: ' + product.meli_title }
 
-        posting = self.env['mercadolibre.posting'].search( [('meli_id','=',rjson['id'])])
+        posting = self.env['mercadolibre.posting'].search( [('meli_id','=',product.meli_id)])
         posting_id = posting.id
 
         if not posting_id:
