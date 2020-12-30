@@ -57,8 +57,11 @@ class MeliApi( meli.RestClientApi ):
             self.response = self.resource_get(resource=path, access_token=atok)
             self.rjson = self.response
         except ApiException as e:
-            self.rjson =  {
-                "error": "%s" % e
+            self.rjson = {
+                "error": "%s" % e,
+                "status": e.status,
+                "cause": e.reason,
+                "message": e.body["message"]
             }
         return self
 
@@ -73,7 +76,7 @@ class MeliApi( meli.RestClientApi ):
                 "error": "%s" % e,
                 "status": e.status,
                 "cause": e.reason,
-                "message": e.body
+                "message": e.body["message"]
             }
         return self
 
@@ -88,7 +91,7 @@ class MeliApi( meli.RestClientApi ):
                 "error": "%s" % e,
                 "status": e.status,
                 "cause": e.reason,
-                "message": e.body
+                "message": e.body["message"]
             }
         return self
 
@@ -103,7 +106,7 @@ class MeliApi( meli.RestClientApi ):
                 "error": "%s" % e,
                 "status": e.status,
                 "cause": e.reason,
-                "message": e.body
+                "message": e.body["message"]
             }
         return self
 
