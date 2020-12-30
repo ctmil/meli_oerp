@@ -72,8 +72,8 @@ class MeliApi( meli.RestClientApi ):
             self.rjson = {
                 "error": "%s" % e,
                 "status": e.status,
-                "message": e.message,
-                "cause": e.reason
+                "cause": e.reason,
+                "message": e.body
             }
         return self
 
@@ -87,8 +87,8 @@ class MeliApi( meli.RestClientApi ):
             self.rjson = {
                 "error": "%s" % e,
                 "status": e.status,
-                "message": e.message,
-                "cause": e.reason
+                "cause": e.reason,
+                "message": e.body
             }
         return self
 
@@ -102,8 +102,8 @@ class MeliApi( meli.RestClientApi ):
             self.rjson = {
                 "error": "%s" % e,
                 "status": e.status,
-                "message": e.message,
-                "cause": e.reason
+                "cause": e.reason,
+                "message": e.body
             }
         return self
 
