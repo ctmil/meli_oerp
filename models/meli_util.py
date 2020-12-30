@@ -105,13 +105,16 @@ class MeliApi( meli.RestClientApi ):
             params = {"access_token":atok}
             headers = {}
             uri = configuration.host+str(path)
-            _logger.info(files)
+            #_logger.info(files)
+            for f in files:
+                _logger.info(f)
             _logger.info(headers)
             #_logger.info("MeliApi.delete(%s,%s)  %s" % (path,str(atok),str(body)) )
             #self.response = self.resource_post(resource=path, access_token=atok, body=files )
             #self.rjson = self.response
             self.response = requests.post(uri, files=files, params=urlencode(params), headers=headers)
-            self.rjson = self.response
+            _logger.info(self.response)
+            self.rjson = self.response.json()
             _logger.info(self.rjson)
         except ApiException as e:
             self.rjson = {
