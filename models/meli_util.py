@@ -101,10 +101,11 @@ class MeliApi( meli.RestClientApi ):
     def upload(self, path, files, params={}):
         try:
             atok = ("access_token" in params and params["access_token"]) or ""
-            headers = {'Accept': 'application/json', 'User-Agent':self.SDK_VERSION, 'Content-type':'multipart/form-data'}
+            headers = {'Accept': 'application/json', 'Content-type':'multipart/form-data'}
             params = {"access_token":atok}
             headers = {}
             uri = configuration.host+str(path)
+            _logger.info(files)
             _logger.info(headers)
             #_logger.info("MeliApi.delete(%s,%s)  %s" % (path,str(atok),str(body)) )
             #self.response = self.resource_post(resource=path, access_token=atok, body=files )
