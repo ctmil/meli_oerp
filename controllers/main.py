@@ -62,13 +62,16 @@ class MercadoLibre(http.Controller):
             product_image = request.env["product.image"].browse( int(image_id) )
             if product_image:
                 filecontent = base64.b64decode( get_image_full( product_image ) )
+            else:
+                return ""
         else:
-            filename = '%s_%s' % ("product.image".replace('.', '_'), product_id)
+            filename = '%s_%s' % ("meli.image".replace('.', '_'), product_id)
             filecontent = base64.b64decode( get_image_full( product ) )
 
         return request.make_response(filecontent,
                                      [('Content-Type', 'application/octet-stream'),
                                       ('Content-Disposition', content_disposition(filename))])
+
 
 class MercadoLibreLogin(http.Controller):
 
