@@ -7,6 +7,7 @@ import odoo.addons.decimal_precision as dp
 from odoo.tools.translate import _
 
 import requests
+import json
 try:
     from urllib import urlencode
 except ImportError:
