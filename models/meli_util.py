@@ -54,16 +54,19 @@ class MeliApi( meli.RestClientApi ):
     def get(self, path, params={}):
         try:
             atok = ("access_token" in params and params["access_token"]) or ""
-            #_logger.info("MeliApi.get(%s,%s)" % (path,str(atok)) )
+            _logger.info("MeliApi.get(%s,%s)" % (path,str(atok)) )
             self.response = self.resource_get(resource=path, access_token=atok)
             self.rjson = self.response
         except ApiException as e:
             self.rjson = {
-                "error": "%s" % e,
+                "error": "%s" % str("get error"),
                 "status": e.status,
                 "cause": e.reason,
                 "message": e.body
             }
+            pass;
+        except:
+            pass;
         return self
 
     def post(self, path, body=None, params={}):
@@ -74,11 +77,14 @@ class MeliApi( meli.RestClientApi ):
             self.rjson = self.response
         except ApiException as e:
             self.rjson = {
-                "error": "%s" % e,
+                "error": "%s" % str("post error"),
                 "status": e.status,
                 "cause": e.reason,
-                "message": json.loads(e.body)["message"]
+                "message": e.body
             }
+            pass;
+        except:
+            pass;
         return self
 
     def put(self, path, body=None, params={}):
@@ -89,11 +95,14 @@ class MeliApi( meli.RestClientApi ):
             self.rjson = self.response
         except ApiException as e:
             self.rjson = {
-                "error": "%s" % e,
+                "error": "%s" % str("put error"),
                 "status": e.status,
                 "cause": e.reason,
                 "message": e.body
             }
+            pass;
+        except:
+            pass;
         return self
 
     def delete(self, path, params={}):
@@ -109,6 +118,8 @@ class MeliApi( meli.RestClientApi ):
                 "cause": e.reason,
                 "message": e.body
             }
+        except:
+            pass;
         return self
 
     def upload(self, path, files, params={}):
@@ -133,6 +144,8 @@ class MeliApi( meli.RestClientApi ):
             self.rjson = {
                 "error": "%s" % e
             }
+        except:
+            pass;
         return self
 
     def auth_url(self, redirect_URI=None):
@@ -254,6 +267,8 @@ class MeliUtil(models.AbstractModel):
                                 _logger.error(e)
                 else:
                     #saving user info, brand, official store ids, etc...
+                    #if "phone" in rjson:
+                    #    _logger.info("phone:")
                     response.user = rjson
             else:
                 api_rest_client.needlogin_state = True

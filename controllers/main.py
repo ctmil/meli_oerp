@@ -40,6 +40,7 @@ class MercadoLibre(http.Controller):
         company = request.env.user.company_id
         _logger.info(request.env.user)
         _logger.info(company)
+        #_logger.info(company.display_name)
         #_logger.info(kw)
         #_logger.info(request)
         data = json.loads(request.httprequest.data)

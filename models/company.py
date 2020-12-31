@@ -103,7 +103,7 @@ class res_company(models.Model):
         #False if logged ok
         #True if need login
         _logger.info('company get_meli_state() ')
-        company = self.env.user.company_id
+        company = self or self.env.user.company_id
         warningobj = self.pool.get('warning')
 
         meli = self.env['meli.util'].get_new_instance(company)
@@ -671,10 +671,11 @@ class res_company(models.Model):
 
 
     def meli_notifications(self, data=False):
+        company = self
         _logger.info("meli_notifications")
         notifications = self.env['mercadolibre.notification']
         if (self.mercadolibre_process_notifications):
-            return notifications.fetch_lasts(data)
+            return notifications.fetch_lasts( data, company )
         return {}
 
     def meli_set_automatic_tax_included(self):
