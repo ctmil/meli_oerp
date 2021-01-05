@@ -75,13 +75,13 @@ class mercadolibre_category_import(models.TransientModel):
 
 mercadolibre_category_import()
 
-class product_public_category(models.Model):
-
-    _inherit="product.public.category"
-
-    mercadolibre_category = fields.Many2one( "mercadolibre.category", string="Mercado Libre Category")
-
-product_public_category()
+#class product_public_category(models.Model):
+#
+#    _inherit="product.public.category"
+#
+#    mercadolibre_category = fields.Many2one( "mercadolibre.category", string="Mercado Libre Category")
+#
+#roduct_public_category()
 
 
 class mercadolibre_category_attribute(models.Model):

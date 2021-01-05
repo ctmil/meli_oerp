@@ -59,11 +59,14 @@ class MeliApi( meli.RestClientApi ):
             self.rjson = self.response
         except ApiException as e:
             self.rjson = {
-                "error": "%s" % e,
+                "error": "%s" % str("get error"),
                 "status": e.status,
                 "cause": e.reason,
                 "message": e.body
             }
+            pass;
+        except:
+            pass;
         return self
 
     def post(self, path, body=None, params={}):
@@ -74,11 +77,14 @@ class MeliApi( meli.RestClientApi ):
             self.rjson = self.response
         except ApiException as e:
             self.rjson = {
-                "error": "%s" % e,
+                "error": "%s" % str("post error"),
                 "status": e.status,
                 "cause": e.reason,
-                "message": json.loads(e.body)["message"]
+                "message": e.body
             }
+            pass;
+        except:
+            pass;
         return self
 
     def put(self, path, body=None, params={}):
@@ -89,11 +95,14 @@ class MeliApi( meli.RestClientApi ):
             self.rjson = self.response
         except ApiException as e:
             self.rjson = {
-                "error": "%s" % e,
+                "error": "%s" % str("put error"),
                 "status": e.status,
                 "cause": e.reason,
                 "message": e.body
             }
+            pass;
+        except:
+            pass;
         return self
 
     def delete(self, path, params={}):
@@ -109,6 +118,8 @@ class MeliApi( meli.RestClientApi ):
                 "cause": e.reason,
                 "message": e.body
             }
+        except:
+            pass;
         return self
 
     def upload(self, path, files, params={}):
@@ -119,20 +130,22 @@ class MeliApi( meli.RestClientApi ):
             headers = {}
             uri = configuration.host+str(path)
             #_logger.info(files)
-            for f in files:
-                _logger.info(f)
+            #for f in files:
+            #    _logger.info(f)
             _logger.info(headers)
             #_logger.info("MeliApi.delete(%s,%s)  %s" % (path,str(atok),str(body)) )
             #self.response = self.resource_post(resource=path, access_token=atok, body=files )
             #self.rjson = self.response
             self.response = requests.post(uri, files=files, params=urlencode(params), headers=headers)
-            _logger.info(self.response)
+            #_logger.info(self.response)
             self.rjson = self.response.json()
-            _logger.info(self.rjson)
+            #_logger.info(self.rjson)
         except Exception as e:
             self.rjson = {
                 "error": "%s" % e
             }
+        except:
+            pass;
         return self
 
     def auth_url(self, redirect_URI=None):
@@ -143,7 +156,7 @@ class MeliApi( meli.RestClientApi ):
         random_id = str(now)
         params = { 'client_id': self.client_id, 'response_type':'code', 'redirect_uri':self.redirect_uri,'state': random_id}
         url = self.AUTH_URL  + '?' + urlencode(params)
-        _logger.info("Authorize Login here: "+str(url))
+        #_logger.info("Authorize Login here: "+str(url))
         return url
 
     def redirect_login(self):
@@ -166,7 +179,7 @@ class MeliApi( meli.RestClientApi ):
                                             redirect_uri=self.redirect_uri,
                                             code=code,
                                             refresh_token=self.refresh_token)
-        _logger.info("MeliApi authorize:"+str(response_info))
+        #_logger.info("MeliApi authorize:"+str(response_info))
         if 'access_token' in response_info:
             self.access_token = response_info['access_token']
             if 'refresh_token' in response_info:
@@ -254,6 +267,8 @@ class MeliUtil(models.AbstractModel):
                                 _logger.error(e)
                 else:
                     #saving user info, brand, official store ids, etc...
+                    #if "phone" in rjson:
+                    #    _logger.info("phone:")
                     response.user = rjson
             else:
                 api_rest_client.needlogin_state = True
@@ -272,10 +287,10 @@ class MeliUtil(models.AbstractModel):
 
         try:
             if api_rest_client.needlogin_state:
-
+                _logger.error("Need login for "+str(company.name))
                 company.write({'mercadolibre_access_token': '', 'mercadolibre_refresh_token': '', 'mercadolibre_code': '' } )
 
-                if (company.mercadolibre_refresh_token and company.mercadolibre_cron_mail):
+                if (company.mercadolibre_cron_refresh and company.mercadolibre_cron_mail):
                     # we put the job_exception in context to be able to print it inside
                     # the email template
                     context = {
@@ -283,12 +298,13 @@ class MeliUtil(models.AbstractModel):
                         'dbname': self._cr.dbname,
                     }
 
-                    _logger.debug(
+                    _logger.info(
                         "Sending scheduler error email with context=%s", context)
-
-                    self.env['mail.template'].browse(
-                        company.mercadolibre_cron_mail.id
-                    ).with_context(context).sudo().send_mail( (company.id), force_send=True)
+                    _logger.info("Sending to company:" + str(company.name)+ " mail:" + str(company.email)  )
+                    rese = self.env['mail.template'].browse(
+                                company.mercadolibre_cron_mail.id
+                            ).with_context(context).sudo().send_mail( (company.id), force_send=True)
+                    _logger.info("Result sending:" + str(rese) )
         except Exception as e:
             _logger.error(e)
 
