@@ -1456,8 +1456,8 @@ class product_product(models.Model):
         product_template = self.product_tmpl_id
         uomobj = self.env[uom_model]
         if (not ("mrp.bom" in self.env)):
-            _logger.info("mrp.bom not found")
-            _logger.error("Must install Manufacturing Module")
+            #_logger.info("no module mrp.bom")
+            #_logger.error("Must install Manufacturing Module")
             return {}
         bom = self.env["mrp.bom"]
         bom_l = self.env["mrp.bom.line"]
@@ -1565,7 +1565,7 @@ class product_product(models.Model):
         meli = self.env['meli.util'].get_new_instance(company)
         if meli.need_login():
             return meli.redirect_login()
-        
+
         response = meli.put("/items/"+product.meli_id, { 'status': 'closed' }, {'access_token':meli.access_token})
 
         return {}
@@ -1590,7 +1590,7 @@ class product_product(models.Model):
         meli = self.env['meli.util'].get_new_instance(company)
         if meli.need_login():
             return meli.redirect_login()
-            
+
         if (meli):
             pass;
         else:
