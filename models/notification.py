@@ -103,8 +103,9 @@ class MercadolibreNotification(models.Model):
         }
         return vals
 
-    def fetch_lasts(self, data=False):
-        company = self.env.user.company_id
+    def fetch_lasts(self, data=False, company=None):
+        if not company:
+            company = self.env.user.company_id
         _logger.info("fetch_lasts: "+str(company.name))
         _logger.info("user: "+str(self.env.user.name))
         if company.mercadolibre_seller_user:
@@ -128,12 +129,12 @@ class MercadolibreNotification(models.Model):
                 messages.append(data)
 
             #must upgrade to /missed_feeds
-            response = meli.get("/myfeeds", {'app_id': company.mercadolibre_client_id,'offset': 1, 'limit': 10,'access_token':meli.access_token} )
-            rjson = response.json()
+            #response = meli.get("/myfeeds", {'app_id': company.mercadolibre_client_id,'offset': 1, 'limit': 10,'access_token':meli.access_token} )
+            #rjson = response.json()
 
-            if ("messages" in rjson):
-                for n in rjson["messages"]:
-                    messages.append(n)
+            #if ("messages" in rjson):
+            #    for n in rjson["messages"]:
+            #        messages.append(n)
 
         except Exception as e:
             _logger.error("Error connecting to Meli, myfeeds")
@@ -183,7 +184,7 @@ class MercadolibreNotification(models.Model):
                 return {"error": "Error creating notification.", "status": "520" }
                 pass;
 
-        self.process_notifications()
+        self.process_notifications(limit=1)
 
         #ok send ACK 200
         return ""
@@ -298,11 +299,17 @@ class MercadolibreNotification(models.Model):
                     noti._process_notification_order()
 
 
-    def process_notifications(self):
+    def process_notifications(self, limit=None):
         #process all
-        _logger.info("Processing received notifications")
-        received = self.search([('state','=','RECEIVED')])
+        _logger.info("Processing received notifications #")
+        received = None
+        if (limit==None):
+            received = self.search([('topic','like','orders_v2'),('state','=','RECEIVED')], order='id desc', limit=10)
+        else:
+            received = self.search([('topic','like','orders_v2'),('state','=','RECEIVED')], order='id desc', limit=1)
+        
         if (received and len(received)):
+            _logger.info( "#" + str(len(received)) )
             for noti in received:
                 noti.process_notification()
 

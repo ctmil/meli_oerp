@@ -1742,7 +1742,7 @@ class product_product(models.Model):
             #files = { 'file': ('image.png', imagebin, "image/png"), }
             files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
             response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
-            rjson = response.json()            
+            rjson = response.json()
             if ("error" in rjson):
                 #raise osv.except_osv( _('MELI WARNING'), _('No se pudo cargar la imagen en MELI! Error: %s , Mensaje: %s, Status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
                 return rjson
@@ -1818,7 +1818,7 @@ class product_product(models.Model):
             ML_status = "unknown"
             ML_permalink = ""
             ML_state = True
-        
+
         for product in self:
             if product.meli_id and not meli.need_login():
                 response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token} )
@@ -2528,6 +2528,7 @@ class product_product(models.Model):
             response = meli.post("/items", body, {'access_token':meli.access_token})
 
         #check response
+        # _logger.info( response )
         rjson = response.json()
         _logger.info(rjson)
 

@@ -241,8 +241,10 @@
                 src_model="stock.picking"
                 res_model="mercadolibre.shipment.print"
                 view_id="view_mercadolibre_stock_picking_print"
-                view_type="form" view_mode="form"
-                key2="client_action_multi" target="new"/>
+                view_type="form"
+                view_mode="form"
+                key2="client_action_multi"
+                target="new"/>
 
 
             <record id="view_mercadolibre_shipment_update" model="ir.ui.view">
@@ -273,8 +275,10 @@
                 name="Update"
                 src_model="mercadolibre.shipment"
                 res_model="mercadolibre.shipment.update"
-                view_type="form" view_mode="form"
-                key2="client_action_multi" target="new"/>
+                view_type="form"
+                view_mode="form"
+                key2="client_action_multi"
+                target="new"/>
 
             <report
                         id="report_shipment_view"
