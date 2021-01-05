@@ -38,7 +38,6 @@
             <field name="name">Preguntas</field>
             <field name="type">ir.actions.act_window</field>
             <field name="res_model">mercadolibre.questions</field>
-            <!--field name="view_type">form</field-->
             <field name="view_mode">tree,form</field>
             <!--<field name="search_view_id" ref="meli_questions_search_view"/>-->
         </record>

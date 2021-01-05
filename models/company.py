@@ -82,7 +82,7 @@ class res_company(models.Model):
         response = meli.get("/sites")
         if (response):
             sites = response.json()
-            _logger.info(sites)
+            #_logger.info(sites)
             for site in sites:
                 #_logger.info("site:")
                 #_logger.info(site)
@@ -102,8 +102,9 @@ class res_company(models.Model):
         # recoger el estado y devolver True o False (meli)
         #False if logged ok
         #True if need login
-        _logger.info('company get_meli_state() ')
-        company = self.env.user.company_id
+        #_logger.info('company get_meli_state() ')
+        company = self or self.env.user.company_id
+        #_logger.info(company)
         warningobj = self.pool.get('warning')
 
         meli = self.env['meli.util'].get_new_instance(company)
@@ -671,10 +672,11 @@ class res_company(models.Model):
 
 
     def meli_notifications(self, data=False):
+        company = self
         _logger.info("meli_notifications")
         notifications = self.env['mercadolibre.notification']
         if (self.mercadolibre_process_notifications):
-            return notifications.fetch_lasts(data)
+            return notifications.fetch_lasts( data, company )
         return {}
 
     def meli_set_automatic_tax_included(self):
