@@ -2,11 +2,11 @@
 <odoo>
     <data>
 
-		<record model="ir.actions.act_url" id="meli_login_action">
-			<field name="name">meli_login_action</field>
-			<field name="url">/meli_login</field>
-			<field name="target">new</field>
-		</record>
+        <record model="ir.actions.act_url" id="meli_login_action">
+        	<field name="name">meli_login_action</field>
+        	<field name="url">/meli_login</field>
+        	<field name="target">new</field>
+        </record>
 
         <record model="ir.ui.view" id="view_company_page_mercadolibre">
             <field name="name">res.company.form.meli</field>

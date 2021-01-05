@@ -671,7 +671,7 @@ class mercadolibre_orders(models.Model):
             return {'error': 'No partner founded or created for ML Order' }
         #process base order fields
         meli_order_fields = {
-            #'name': "%i" % ( order_json["id"] ),
+            'name': "ML %i" % ( order_json["id"] ),
             'partner_id': partner_id.id,
             'pricelist_id': plistid.id,
             'meli_order_id': '%i' % (order_json["id"]),
@@ -1045,7 +1045,7 @@ class mercadolibre_orders(models.Model):
         meli = self.env['meli.util'].get_new_instance(company)
 
         orders_query = "/orders/search?seller="+company.mercadolibre_seller_id+"&sort=date_desc"
-        #orders_query+= "&limit=10"
+        #TODO: "create parameter for": orders_query+= "&limit=10"
 
         if (offset):
             orders_query = orders_query + "&offset="+str(offset).strip()

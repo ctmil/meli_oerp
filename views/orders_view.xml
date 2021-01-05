@@ -231,6 +231,8 @@
                  <field name="order_id" string="Order ID"/>
                  <field name="status" string="Status"/>
                  <field name="buyer" string="Comprador"/>
+                 <field name="company_id" string="Compania"/>
+                 <field name="seller_id" string="Vendedor"/>
                  <!--field name="seller" string="Vendedor"/-->
     	         </search>
             </field>
@@ -320,8 +322,10 @@
                 name="Update ML Orders"
                 src_model="mercadolibre.orders"
                 res_model="mercadolibre.orders.update"
-                view_type="form" view_mode="form"
-                key2="client_action_multi" target="new"/>
+                view_type="form"
+                view_mode="form"
+                key2="client_action_multi"
+                target="new"/>
 
 
 
