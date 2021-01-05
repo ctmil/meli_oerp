@@ -17,8 +17,7 @@
           <field name="dpi">90</field>
       </record>
 
-<!--
-      <template id="report_invoice_shipment"  inherit_id="account.report_invoice_document" primary="True">
+      <!--template id="report_invoice_shipment"  inherit_id="account.report_invoice_document" primary="True">
           <t t-call="web.html_container">
               <t t-foreach="docs" t-as="o">
                   <t t-set="lang" t-value="o.user_id.lang if o.type in ('in_invoice', 'in_refund') else o.partner_id.lang"/>

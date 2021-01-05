@@ -102,8 +102,9 @@ class res_company(models.Model):
         # recoger el estado y devolver True o False (meli)
         #False if logged ok
         #True if need login
-        _logger.info('company get_meli_state() ')
+        #_logger.info('company get_meli_state() ')
         company = self or self.env.user.company_id
+        #_logger.info(company)
         warningobj = self.pool.get('warning')
 
         meli = self.env['meli.util'].get_new_instance(company)
