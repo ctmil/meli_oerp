@@ -64,22 +64,9 @@ class mercadolibre_category_import(models.TransientModel):
 
         warningobj = self.env['warning']
 
-        REDIRECT_URI = company.mercadolibre_redirect_uri
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
-
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
-
-        if ACCESS_TOKEN=='' or ACCESS_TOKEN==False:
-            meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET)
-            url_login_meli = meli.auth_url(redirect_URI=REDIRECT_URI)
-            return {
-                "type": "ir.actions.act_url",
-                "url": url_login_meli,
-                "target": "new",
-            }
+        meli = self.env['meli.util'].get_new_instance(company)
+        if meli.need_login():
+            return meli.redirect_login()
 
         _logger.info(context)
         if ( self.meli_category_id ):
@@ -140,12 +127,7 @@ class mercadolibre_category(models.Model):
         att_obj = self.env['mercadolibre.category.attribute']
         prod_att_obj = self.env['product.attribute']
 
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
-
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+        meli = self.env['meli.util'].get_new_instance(company)
 
         for category in self:
             if (category and category.meli_category_id):
@@ -176,12 +158,8 @@ class mercadolibre_category(models.Model):
         att_obj = self.env['mercadolibre.category.attribute']
         prod_att_obj = self.env['product.attribute']
 
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
+        meli = self.env['meli.util'].get_new_instance(company)
 
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
         for category in self:
             if (category.meli_category_id
                 and category.is_branch==False
@@ -295,12 +273,7 @@ class mercadolibre_category(models.Model):
         warningobj = self.env['warning']
         category_obj = self.env['mercadolibre.category']
 
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
-
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+        meli = self.env['meli.util'].get_new_instance(company)
         ml_cat_id = None
         if (category_id):
             is_branch = False
@@ -354,21 +327,15 @@ class mercadolibre_category(models.Model):
         warningobj = self.env['warning']
         category_obj = self.env['mercadolibre.category']
 
-        CLIENT_ID = company.mercadolibre_client_id
-        CLIENT_SECRET = company.mercadolibre_secret_key
-        ACCESS_TOKEN = company.mercadolibre_access_token
-        REFRESH_TOKEN = company.mercadolibre_refresh_token
-
-        meli = Meli(client_id=CLIENT_ID,client_secret=CLIENT_SECRET, access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+        meli = self.env['meli.util'].get_new_instance(company)
 
         RECURSIVE_IMPORT = recursive_import or company.mercadolibre_recursive_import
 
         if (category_root):
             response = meli.get("/categories/"+str(category_root), {'access_token':meli.access_token} )
 
-            _logger.info( "response.content:", response.content )
-
             rjson = response.json()
+            _logger.info( "response:", rjson )
             if ("name" in rjson):
                 # en el html deberia ir el link  para chequear on line esa categoría corresponde a sus productos.
                 warningobj.info( title='MELI WARNING', message="Preparando importación de todas las categorías en "+str(category_root), message_html=response )
