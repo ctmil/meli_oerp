@@ -1456,8 +1456,8 @@ class product_product(models.Model):
         product_template = self.product_tmpl_id
         uomobj = self.env[uom_model]
         if (not ("mrp.bom" in self.env)):
-            _logger.info("mrp.bom not found")
-            _logger.error("Must install Manufacturing Module")
+            #_logger.info("no module mrp.bom")
+            #_logger.error("Must install Manufacturing Module")
             return {}
         bom = self.env["mrp.bom"]
         bom_l = self.env["mrp.bom.line"]
