@@ -42,7 +42,7 @@ def get_image_full(self):
 def set_image_full(self, image):
     self.image_1920 = image
     return True
-    
+
 def get_first_image_to_publish(self):
     company = self.env.user.company_id
     product = self
@@ -55,7 +55,7 @@ def get_first_image_to_publish(self):
             first_image_to_publish = get_image_full(image_ids[0])
     else:
         first_image_to_publish = get_image_full(product)
-        
+
     return first_image_to_publish
 
 def prepare_attribute( product_template_id, attribute_id, attribute_value_id ):
@@ -93,14 +93,15 @@ def get_inventory_fields( product, warehouse ):
     return {
             "product_ids": [(4,product.id)],
             #"product_id": product.id,
-            "filter": "product",
+            #"filter": "product",
             "location_id": warehouse,
             "name": "INV: "+ product.name
             }
 
 def set_delivery_line( sorder, delivery_price, delivery_message ):
-    sorder.set_delivery_line(sorder.carrier_id, delivery_price)
+    oline = sorder.set_delivery_line(sorder.carrier_id, delivery_price)
     sorder.write({
     	'recompute_delivery_price': False,
     	'delivery_message': delivery_message,
     })
+    return oline

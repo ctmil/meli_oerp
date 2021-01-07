@@ -19,7 +19,6 @@
         <record model="ir.actions.act_window" id="action_warning">
             <field name="name">Warning</field>
             <field name="res_model">warning</field>
-            <!--field name="view_type">form</field-->
             <field name="view_mode">form</field>
             <field name="view_id" ref="warning_form" />
             <field name="target">new</field>

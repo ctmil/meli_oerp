@@ -165,7 +165,6 @@
             <field name="name">Envios</field>
             <field name="type">ir.actions.act_window</field>
             <field name="res_model">mercadolibre.shipment</field>
-            <!--field name="view_type">form</field-->
             <field name="view_mode">tree,form</field>
             <field name="search_view_id" ref="meli_shipment_search_view"/>
         </record>
@@ -196,9 +195,7 @@
         <record id="action_mercadolibre_shipment_print" model="ir.actions.act_window">
             <field name="name">Imprimir Guias de MercadoLibre</field>
             <field name="type">ir.actions.act_window</field>
-            <!--field name="src_model">mercadolibre.shipment</field-->
             <field name="res_model">mercadolibre.shipment.print</field>
-            <!--field name="view_type">form</field-->
             <field name="view_mode">form</field>
             <field name="target">new</field>
         </record>
@@ -230,13 +227,11 @@
             <field name="name">Imprimir Guias de MercadoLibre (Inv.)</field>
             <field name="type">ir.actions.act_window</field>
             <field name="res_model">mercadolibre.shipment.print</field>
-            <!--field name="view_type">form</field-->
             <field name="view_mode">form</field>
             <field name="target">new</field>
         </record>
-        
 
-	<act_window id="action_mercadolibre_stock_picking_print"
+        <act_window id="action_mercadolibre_stock_picking_print"
                 name="Imprimir Guias de MercadoLibre (Inv.)"
                 binding_model="stock.picking"
                 res_model="mercadolibre.shipment.print"
@@ -244,7 +239,6 @@
                 binding_views="list,form"
                 view_mode="form"
                 target="new"/>
-
 
 
             <record id="view_mercadolibre_shipment_update" model="ir.ui.view">
@@ -264,9 +258,7 @@
             <record id="action_mercadolibre_shipment_update" model="ir.actions.act_window">
                 <field name="name">Update Shipment</field>
                 <field name="type">ir.actions.act_window</field>
-                <!--field name="src_model">mercadolibre.shipment</field-->
                 <field name="res_model">mercadolibre.shipment.update</field>
-                <!--field name="view_type">form</field-->
                 <field name="view_mode">form</field>
                 <field name="target">new</field>
             </record>
