@@ -642,6 +642,9 @@ class mercadolibre_shipment(models.Model):
 					partner_id = respartner_obj.search([  ('meli_buyer_id','=',ship_fields['receiver_id'] ) ] )
 					if (partner_id.id):
 						meli_order_fields = {
+							#TODO: "add parameter for pack_id":
+			            	#'name': "ML %i" % ( all_orders[0]["pack_id"] ),
+							'name': "ML %i" % ( all_orders[0]["order_id"] ),
 							'partner_id': partner_id.id,
 							'pricelist_id': plistid.id,
 							#'meli_order_id': '%i' % (order_json["id"]),
