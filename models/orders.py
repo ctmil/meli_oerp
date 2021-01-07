@@ -1114,6 +1114,8 @@ class mercadolibre_orders(models.Model):
                                     ("payment_in_process","Pago en proceso"),
         #The order has a related payment and it has been accredited.
                                     ("paid","Pagado"),
+        #The order has a related partial payment and it has been accredited.
+                                    ("'partially_paid'","Parcialmente Pagado"),
         #The order has not completed by some reason.
                                     ("cancelled","Cancelado")], string='Order Status')
 
