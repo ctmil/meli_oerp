@@ -67,6 +67,8 @@ class sale_order(models.Model):
                                     ("payment_in_process","Pago en proceso"),
         #The order has a related payment and it has been accredited.
                                     ("paid","Pagado"),
+        #The order has a related partial payment and it has been accredited.
+                                    ("'partially_paid'","Parcialmente Pagado"),
         #The order has not completed by some reason.
                                     ("cancelled","Cancelado")], string='Order Status');
 
@@ -815,7 +817,7 @@ class mercadolibre_orders(models.Model):
                             productcreated = None
                             product_related = None
 
-                            try:                               
+                            try:
                                 response3 = meli.get("/items/"+str(Item['item']['id']), {'access_token':meli.access_token})
                                 rjson3 = response3.json()
                                 prod_fields = {
