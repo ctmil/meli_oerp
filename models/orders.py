@@ -68,7 +68,7 @@ class sale_order(models.Model):
         #The order has a related payment and it has been accredited.
                                     ("paid","Pagado"),
         #The order has a related partial payment and it has been accredited.
-                                    ("'partially_paid'","Parcialmente Pagado"),
+                                    ("partially_paid","Parcialmente Pagado"),
         #The order has not completed by some reason.
                                     ("cancelled","Cancelado")], string='Order Status');
 
@@ -1115,7 +1115,7 @@ class mercadolibre_orders(models.Model):
         #The order has a related payment and it has been accredited.
                                     ("paid","Pagado"),
         #The order has a related partial payment and it has been accredited.
-                                    ("'partially_paid'","Parcialmente Pagado"),
+                                    ("partially_paid","Parcialmente Pagado"),
         #The order has not completed by some reason.
                                     ("cancelled","Cancelado")], string='Order Status')
 
