@@ -664,7 +664,7 @@ class mercadolibre_shipment(models.Model):
 							'meli_date_created': ml_datetime(all_orders[0]["date_created"]),
 							'meli_date_closed': ml_datetime(all_orders[0]["date_closed"]),
 						}
-						if ("pack_id" in order_json and all_orders[0]["pack_id"]):
+						if ("pack_id" in all_orders[0] and all_orders[0]["pack_id"]):
 							meli_order_fields['name'] = "ML %s" % ( str(all_orders[0]["pack_id"]) )
 							meli_order_fields['pack_id'] = all_orders[0]["pack_id"]                    
 						sorder_pack = self.env["sale.order"].search( [ ('meli_order_id','=',meli_order_fields["meli_order_id"]) ] )
