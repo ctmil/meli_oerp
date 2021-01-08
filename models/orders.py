@@ -686,6 +686,8 @@ class mercadolibre_orders(models.Model):
             'meli_date_created': ml_datetime(order_json["date_created"]),
             'meli_date_closed': ml_datetime(order_json["date_closed"]),
         }
+        if ("pack_id" in order_json and order_json["pack_id"]):
+            meli_order_fields['name'] = "ML %i" % ( order_json["pack_id"] )
 
         if ('account.payment.term' in self.env):
             inmediate = self.env['account.payment.term'].search([])[0]
@@ -1104,6 +1106,7 @@ class mercadolibre_orders(models.Model):
 
     name = fields.Char(string='Order Name',index=True)
     order_id = fields.Char(string='Order Id',index=True)
+    pack_id = fields.Char(string='Pack Id',index=True)
     sale_order = fields.Many2one('sale.order',string="Sale Order",help='Pedido de venta de Odoo')
 
     status = fields.Selection( [

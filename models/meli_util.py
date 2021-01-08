@@ -188,6 +188,23 @@ class MeliApi( meli.RestClientApi ):
                 self.refresh_token = ''
         return response_info
 
+    def get_refresh_token(self, code=None, redirect_uri=None):
+        api_client = ApiClient()
+        api_auth_client = meli.OAuth20Api(api_client)
+        grant_type = 'refresh_token'
+        response_info = api_auth_client.get_token(grant_type=grant_type,
+                                            client_id=self.client_id,
+                                            client_secret=self.client_secret,
+                                            redirect_uri=self.redirect_uri,
+                                            code=code,
+                                            refresh_token=self.refresh_token)
+        if 'access_token' in response_info:
+            self.access_token = response_info['access_token']
+            if 'refresh_token' in response_info:
+                self.refresh_token = response_info['refresh_token']
+            else:
+                self.refresh_token = ''
+        return response_info
 
 class MeliUtil(models.AbstractModel):
 
@@ -247,12 +264,7 @@ class MeliUtil(models.AbstractModel):
                             api_rest_client.needlogin_state = True
                             try:
                                 #refresh = meli.get_refresh_token()
-                                refresh = api_auth_client.get_token(grant_type=grant_type,
-                                                                    client_id=company.mercadolibre_client_id,
-                                                                    client_secret=company.mercadolibre_secret_key,
-                                                                    redirect_uri=company.mercadolibre_redirect_uri,
-                                                                    code=company.mercadolibre_code,
-                                                                    refresh_token=company.mercadolibre_refresh_token)
+                                refresh = api_rest_client.get_refresh_token()
                                 _logger.info("need to refresh:"+str(refresh))
                                 if (refresh):
                                     refjson = refresh.json()
