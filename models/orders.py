@@ -436,6 +436,8 @@ class mercadolibre_orders(models.Model):
             'pack_order': False,
             'catalog_order': False
         }
+        if "pack_id" in order_json and order_json["pack_id"]:
+            order_fields['pack_id'] = order_json["pack_id"]
         if 'tags' in order_json:
             order_fields["tags"] = order_json["tags"]
             if 'pack_order' in order_json["tags"]:
@@ -688,7 +690,7 @@ class mercadolibre_orders(models.Model):
         }
         if ("pack_id" in order_json and order_json["pack_id"]):
             meli_order_fields['name'] = "ML %s" % ( str(order_json["pack_id"]) )
-            meli_order_fields['pack_id'] = order_json["pack_id"]
+            #meli_order_fields['pack_id'] = order_json["pack_id"]
 
         if ('account.payment.term' in self.env):
             inmediate = self.env['account.payment.term'].search([])[0]
