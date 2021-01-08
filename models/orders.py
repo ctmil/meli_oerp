@@ -674,7 +674,7 @@ class mercadolibre_orders(models.Model):
         #process base order fields
         meli_order_fields = {
             #TODO: "add parameter for":
-            'name': "ML %i" % ( order_json["id"] ),
+            'name': "ML %s" % ( str(order_json["id"]) ),
             'partner_id': partner_id.id,
             'pricelist_id': plistid.id,
             'meli_order_id': '%i' % (order_json["id"]),
@@ -687,7 +687,7 @@ class mercadolibre_orders(models.Model):
             'meli_date_closed': ml_datetime(order_json["date_closed"]),
         }
         if ("pack_id" in order_json and order_json["pack_id"]):
-            meli_order_fields['name'] = "ML %i" % ( order_json["pack_id"] )
+            meli_order_fields['name'] = "ML %s" % ( str(order_json["pack_id"]) )
             meli_order_fields['pack_id'] = order_json["pack_id"]
 
         if ('account.payment.term' in self.env):
