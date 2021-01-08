@@ -702,7 +702,7 @@ class mercadolibre_shipment(models.Model):
 									'product_id': product_related_obj.id,
 									'product_uom_qty': mOrder.order_items[0]["quantity"],
 									'product_uom': product_related_obj.uom_id.id,
-									'name': mOrder.order_items[0]["order_item_title"],
+									'name': product_related_obj.display_name or mOrder.order_items[0]["order_item_title"],
 								}
 								if (mOrder.fee_amount):
 									sorder_pack.meli_fee_amount = sorder_pack.meli_fee_amount + mOrder.fee_amount
