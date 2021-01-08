@@ -666,6 +666,7 @@ class mercadolibre_shipment(models.Model):
 						}
 						if ("pack_id" in order_json and all_orders[0]["pack_id"]):
 							meli_order_fields['name'] = "ML %i" % ( all_orders[0]["pack_id"] )
+							meli_order_fields['pack_id'] = all_orders[0]["pack_id"]                    
 						sorder_pack = self.env["sale.order"].search( [ ('meli_order_id','=',meli_order_fields["meli_order_id"]) ] )
 
 						if (company.mercadolibre_seller_user):

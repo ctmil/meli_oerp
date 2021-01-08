@@ -688,6 +688,7 @@ class mercadolibre_orders(models.Model):
         }
         if ("pack_id" in order_json and order_json["pack_id"]):
             meli_order_fields['name'] = "ML %i" % ( order_json["pack_id"] )
+            meli_order_fields['pack_id'] = order_json["pack_id"]
 
         if ('account.payment.term' in self.env):
             inmediate = self.env['account.payment.term'].search([])[0]
