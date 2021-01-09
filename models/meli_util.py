@@ -231,7 +231,7 @@ class MeliUtil(models.AbstractModel):
         api_rest_client = MeliApi(api_client)
         api_rest_client.client_id = company.mercadolibre_client_id
         api_rest_client.client_secret = company.mercadolibre_secret_key
-        api_rest_client.access_token = company.mercadolibre_access_token
+        api_rest_client.access_token = company.mercadolibre_access_token or ''
         api_rest_client.refresh_token = company.mercadolibre_refresh_token
         api_rest_client.redirect_uri = company.mercadolibre_redirect_uri
         api_auth_client = meli.OAuth20Api(api_client)
@@ -244,7 +244,7 @@ class MeliUtil(models.AbstractModel):
 
         #pdb.set_trace()
         try:
-            if not (company.mercadolibre_seller_id==False):
+            if not (company.mercadolibre_seller_id==False) and api_rest_client.access_token!='':
                 response = api_rest_client.get("/users/"+str(company.mercadolibre_seller_id), {'access_token':api_rest_client.access_token} )
 
                 #_logger.info("get_new_instance connection response:"+str(response))
@@ -328,10 +328,10 @@ class MeliUtil(models.AbstractModel):
         try:
             if api_rest_client.needlogin_state:
                 _logger.error("Need login for "+str(company.name))
-                company.write({'mercadolibre_access_token': '', 'mercadolibre_refresh_token': '', 'mercadolibre_code': '' } )
-
+                
                 if (company.mercadolibre_cron_refresh and company.mercadolibre_cron_mail):
-                    company.mercadolibre_cron_refresh = False
+                    company.write({'mercadolibre_access_token': '', 'mercadolibre_refresh_token': '', 'mercadolibre_code': '', 'mercadolibre_cron_refresh': False } )
+
                     # we put the job_exception in context to be able to print it inside
                     # the email template
                     context = {
@@ -346,6 +346,8 @@ class MeliUtil(models.AbstractModel):
                                 company.mercadolibre_cron_mail.id
                             ).with_context(context).sudo().send_mail( (company.id), force_send=True)
                     _logger.info("Result sending:" + str(rese) )
+                company.write({'mercadolibre_access_token': '', 'mercadolibre_refresh_token': '', 'mercadolibre_code': '', 'mercadolibre_cron_refresh': False } )
+
         except Exception as e:
             _logger.error(e)
 
