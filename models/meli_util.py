@@ -191,12 +191,12 @@ class MeliApi( meli.RestClientApi ):
     def get_refresh_token(self, code=None, redirect_uri=None):
         api_client = ApiClient()
         api_auth_client = meli.OAuth20Api(api_client)
-        grant_type = 'refresh_token'
+        grant_type = 'refresh_token'        
         response_info = api_auth_client.get_token(grant_type=grant_type,
                                             client_id=self.client_id,
                                             client_secret=self.client_secret,
-                                            redirect_uri=self.redirect_uri,
-                                            code=code,
+                                            #redirect_uri=self.redirect_uri,
+                                            #code=code,
                                             refresh_token=self.refresh_token)
         if 'access_token' in response_info:
             self.access_token = response_info['access_token']
@@ -251,37 +251,65 @@ class MeliUtil(models.AbstractModel):
                 rjson = response.json()
                 #_logger.info(rjson)
                 if "error" in rjson:
-                    api_rest_client.needlogin_state = True
-
-                    _logger.error(rjson)
-
-                    if rjson["error"]=="not_found":
+                    
+                    if company.mercadolibre_cron_refresh:
+                        internals = {
+                            "application_id": company.mercadolibre_client_id,
+                            "user_id": company.mercadolibre_seller_id,
+                            "topic": "internal",
+                            "resource": "get_new_instance #"+str(company.name),
+                            "state": "PROCESSING"
+                        }
+                        noti = self.env["mercadolibre.notification"].start_internal_notification( internals )
+                        
+                        errors = str(rjson)+"\n"
+                        logs = str(rjson)+"\n"
+                        
                         api_rest_client.needlogin_state = True
 
-                    if "message" in rjson:
-                        message = rjson["message"]
-                        if (rjson["message"]=="expired_token" or rjson["message"]=="invalid_token"):
+                        _logger.error(rjson)
+
+                        if rjson["error"]=="not_found":
                             api_rest_client.needlogin_state = True
-                            try:
-                                #refresh = meli.get_refresh_token()
-                                refresh = api_rest_client.get_refresh_token()
-                                _logger.info("need to refresh:"+str(refresh))
-                                if (refresh):
-                                    refjson = refresh.json()
-                                    api_rest_client.access_token = refjson["access_token"]
-                                    api_rest_client.refresh_token = refjson["refresh_token"]
-                                    api_rest_client.code = ''
-                                    company.write({ 'mercadolibre_access_token': api_rest_client.access_token,
-                                                    'mercadolibre_refresh_token': api_rest_client.refresh_token,
-                                                    'mercadolibre_code': '' } )
-                                    api_rest_client.needlogin_state = False
-                            except Exception as e:
-                                _logger.error(e)
+                            logs+= "NOT FOUND"+"\n"
+
+                        if "message" in rjson:
+                            message = rjson["message"]
+                            logs+= message+"\n"
+                            if (message=="expired_token" or message=="invalid_token"):
+                                api_rest_client.needlogin_state = True
+                                try:
+                                    #refresh = meli.get_refresh_token()
+                                    refresh = api_rest_client.get_refresh_token()
+                                    _logger.info("Refresh result: "+str(refresh))
+                                    if (refresh):
+                                        refjson = refresh.json()
+                                        logs+= str(refjson)+"\n"
+                                        if "access_token" in refjson:
+                                            api_rest_client.access_token = refjson["access_token"]
+                                            api_rest_client.refresh_token = refjson["refresh_token"]
+                                            api_rest_client.code = ''
+                                            company.write({ 'mercadolibre_access_token': api_rest_client.access_token,
+                                                            'mercadolibre_refresh_token': api_rest_client.refresh_token,
+                                                            'mercadolibre_code': '' } )
+                                            api_rest_client.needlogin_state = False
+                                except Exception as e:
+                                    errors += str(e) 
+                                    logs += str(e) 
+                                    _logger.error(e)
+                                    pass;
+                                except:
+                                    pass;
+                        
+                        noti.stop_internal_notification( errors=errors , logs=logs )
+                    
                 else:
                     #saving user info, brand, official store ids, etc...
                     #if "phone" in rjson:
                     #    _logger.info("phone:")
                     response.user = rjson
+                    
+                
             else:
                 api_rest_client.needlogin_state = True
 
@@ -303,6 +331,7 @@ class MeliUtil(models.AbstractModel):
                 company.write({'mercadolibre_access_token': '', 'mercadolibre_refresh_token': '', 'mercadolibre_code': '' } )
 
                 if (company.mercadolibre_cron_refresh and company.mercadolibre_cron_mail):
+                    company.mercadolibre_cron_refresh = False
                     # we put the job_exception in context to be able to print it inside
                     # the email template
                     context = {
