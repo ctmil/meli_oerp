@@ -275,6 +275,9 @@ class MeliUtil(models.AbstractModel):
 
                         if "message" in rjson:
                             message = rjson["message"]
+                            if "message" in message:
+                                #message is e.body, fix thiss
+                                message = message["message"]
                             logs+= message+"\n"
                             _logger.info("message: " +str(message))
                             if (message=="expired_token" or message=="invalid_token"):
