@@ -191,7 +191,7 @@ class MeliApi( meli.RestClientApi ):
     def get_refresh_token(self, code=None, redirect_uri=None):
         api_client = ApiClient()
         api_auth_client = meli.OAuth20Api(api_client)
-        grant_type = 'refresh_token'        
+        grant_type = 'refresh_token'
         response_info = api_auth_client.get_token(grant_type=grant_type,
                                             client_id=self.client_id,
                                             client_secret=self.client_secret,
@@ -251,7 +251,7 @@ class MeliUtil(models.AbstractModel):
                 rjson = response.json()
                 #_logger.info(rjson)
                 if "error" in rjson:
-                    
+
                     if company.mercadolibre_cron_refresh:
                         internals = {
                             "application_id": company.mercadolibre_client_id,
@@ -261,10 +261,10 @@ class MeliUtil(models.AbstractModel):
                             "state": "PROCESSING"
                         }
                         noti = self.env["mercadolibre.notification"].start_internal_notification( internals )
-                        
+
                         errors = str(rjson)+"\n"
                         logs = str(rjson)+"\n"
-                        
+
                         api_rest_client.needlogin_state = True
 
                         _logger.error(rjson)
@@ -276,6 +276,7 @@ class MeliUtil(models.AbstractModel):
                         if "message" in rjson:
                             message = rjson["message"]
                             logs+= message+"\n"
+                            _logger.info("message: " +str(message))
                             if (message=="expired_token" or message=="invalid_token"):
                                 api_rest_client.needlogin_state = True
                                 try:
@@ -294,22 +295,22 @@ class MeliUtil(models.AbstractModel):
                                                             'mercadolibre_code': '' } )
                                             api_rest_client.needlogin_state = False
                                 except Exception as e:
-                                    errors += str(e) 
-                                    logs += str(e) 
+                                    errors += str(e)
+                                    logs += str(e)
                                     _logger.error(e)
                                     pass;
                                 except:
                                     pass;
-                        
+
                         noti.stop_internal_notification( errors=errors , logs=logs )
-                    
+
                 else:
                     #saving user info, brand, official store ids, etc...
                     #if "phone" in rjson:
                     #    _logger.info("phone:")
                     response.user = rjson
-                    
-                
+
+
             else:
                 api_rest_client.needlogin_state = True
 
@@ -328,7 +329,7 @@ class MeliUtil(models.AbstractModel):
         try:
             if api_rest_client.needlogin_state:
                 _logger.error("Need login for "+str(company.name))
-                
+
                 if (company.mercadolibre_cron_refresh and company.mercadolibre_cron_mail):
                     company.write({'mercadolibre_access_token': '', 'mercadolibre_refresh_token': '', 'mercadolibre_code': '', 'mercadolibre_cron_refresh': False } )
 
