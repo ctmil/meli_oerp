@@ -277,8 +277,13 @@ class MeliUtil(models.AbstractModel):
                             message = rjson["message"]
                             if "message" in message:
                                 #message is e.body, fix thiss
-                                message = message["message"]
-                            logs+= message+"\n"
+                                try:
+                                    mesjson = json.loads(message)
+                                    message = mesjson["message"]
+                                except:
+                                    message = "invalid_token"
+                                    pass;
+                            logs+= str(message)+"\n"
                             _logger.info("message: " +str(message))
                             if (message=="expired_token" or message=="invalid_token"):
                                 api_rest_client.needlogin_state = True
