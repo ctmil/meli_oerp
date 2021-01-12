@@ -279,7 +279,7 @@ class MeliUtil(models.AbstractModel):
                                 #message is e.body, fix thiss
                                 try:
                                     mesjson = json.loads(message)
-                                    message = mesjson
+                                    message = mesjson["message"]
                                 except:
                                     message = "invalid_token"
                                     pass;
