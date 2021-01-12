@@ -8,7 +8,7 @@
 
 {
     'name': 'MercadoLibre Publisher',
-    'version': '12.0.21.07',
+    'version': '12.0.21.08',
     'author': 'Moldeo Interactive',
     'website': 'https://www.moldeointeractive.com',
     "category": "Sales",
