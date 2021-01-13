@@ -292,7 +292,8 @@ class MeliUtil(models.AbstractModel):
                                     refresh = api_rest_client.get_refresh_token()
                                     _logger.info("Refresh result: "+str(refresh))
                                     if (refresh):
-                                        refjson = refresh.json()
+                                        #refjson = refresh.json()
+                                        refjson = refresh
                                         logs+= str(refjson)+"\n"
                                         if "access_token" in refjson:
                                             api_rest_client.access_token = refjson["access_token"]

@@ -19,6 +19,9 @@ acc_inv_model  = "account.invoice"
 default_no_create_variant = "no_variant"
 default_create_variant = "always"
 
+#'unique(product_tmpl_id,meli_imagen_id)'
+unique_meli_imagen_id_fields = 'unique(product_tmpl_id,meli_imagen_id)'
+
 #variant mage ids
 def variant_image_ids(self):
     return self.product_image_ids
