@@ -399,7 +399,7 @@ class product_image(models.Model):
     meli_published = fields.Boolean(string='Publicado en ML',index=True)
 
     _sql_constraints = [
-        ('unique_meli_imagen_id', 'unique(product_tmpl_id,product_variant_id,meli_imagen_id)', 'Meli Imagen Id already exists!')
+        ('unique_meli_imagen_id', unique_meli_imagen_id_fields, 'Meli Imagen Id already exists!')
     ]
 
     def calculate_hash(self):

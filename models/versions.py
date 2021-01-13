@@ -19,7 +19,10 @@ acc_inv_model  = "account.move"
 default_no_create_variant = "no_variant"
 default_create_variant = "always"
 
-#variant image ids
+#'unique(product_tmpl_id,meli_imagen_id)'
+unique_meli_imagen_id_fields = 'unique(product_tmpl_id,product_variant_id,meli_imagen_id)'
+
+#variant mage ids
 def variant_image_ids(self):
     return self.product_variant_image_ids
 
