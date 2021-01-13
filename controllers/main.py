@@ -9,7 +9,7 @@ from ..melisdk.meli import Meli
 from odoo import fields, osv, http
 from odoo.http import Controller, Response, request, route, JsonRequest
 from odoo.addons.web.controllers.main import content_disposition
-from odoo.tools import date_utils
+#from odoo.tools import date_utils
 import json
 import sys
 import pprint
@@ -91,8 +91,8 @@ class MercadoLibreLogin(http.Controller):
         if codes['code']!='none':
             _logger.info( "Meli: Authorize: REDIRECT_URI: %s, code: %s" % ( company.mercadolibre_redirect_uri, codes['code'] ) )
             resp = meli.authorize( codes['code'], company.mercadolibre_redirect_uri)
-            company.write( { 'mercadolibre_access_token': meli.access_token, 
-                             'mercadolibre_refresh_token': meli.refresh_token, 
+            company.write( { 'mercadolibre_access_token': meli.access_token,
+                             'mercadolibre_refresh_token': meli.refresh_token,
                              'mercadolibre_code': codes['code'],
                              'mercadolibre_cron_refresh': True } )
             return 'LOGGED WITH CODE: %s <br>ACCESS_TOKEN: %s <br>REFRESH_TOKEN: %s <br>MercadoLibre Publisher for Odoo - Copyright Moldeo Interactive <br><a href="javascript:window.history.go(-2);">Volver a Odoo</a> <script>window.history.go(-2)</script>' % ( codes['code'], meli.access_token, meli.refresh_token )

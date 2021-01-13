@@ -385,38 +385,6 @@ class product_template(models.Model):
 
 product_template()
 
-class product_image(models.Model):
-    _inherit = "product.image"
-    #website_sale.product_template_form_view
-    meli_imagen_id = fields.Char(string='Imagen Id',index=True)
-    meli_imagen_link = fields.Char(string='Imagen Link')
-    meli_imagen_size = fields.Char(string='Size')
-    meli_imagen_max_size = fields.Char(string='Max Size')
-    meli_imagen_bytes = fields.Integer(string='Size bytes')
-    meli_imagen_hash = fields.Char(string='File Hash Id')
-    meli_pub = fields.Boolean(string='Publicar en ML',index=True)
-    meli_force_pub = fields.Boolean(string='Publicar en ML y conservar en Odoo',index=True)
-    meli_published = fields.Boolean(string='Publicado en ML',index=True)
-
-    _sql_constraints = [
-        ('unique_meli_imagen_id', unique_meli_imagen_id_fields, 'Meli Imagen Id already exists!')
-    ]
-
-    def calculate_hash(self):
-        hexhash = ''
-        for pimage in self:
-            image = get_image_full( pimage )
-            if not image:
-                continue;
-            imagebin = base64.b64decode( image )
-            hash = hashlib.blake2b()
-            hash.update(imagebin)
-            hexhash = hash.hexdigest()
-            pimage.meli_imagen_hash = hexhash
-        return hexhash
-
-product_image()
-
 class product_product(models.Model):
 
     _inherit = "product.product"
@@ -1565,7 +1533,7 @@ class product_product(models.Model):
         meli = self.env['meli.util'].get_new_instance(company)
         if meli.need_login():
             return meli.redirect_login()
-        
+
         response = meli.put("/items/"+product.meli_id, { 'status': 'closed' }, {'access_token':meli.access_token})
 
         return {}
@@ -1590,7 +1558,7 @@ class product_product(models.Model):
         meli = self.env['meli.util'].get_new_instance(company)
         if meli.need_login():
             return meli.redirect_login()
-            
+
         if (meli):
             pass;
         else:
