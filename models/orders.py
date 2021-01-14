@@ -67,6 +67,8 @@ class sale_order(models.Model):
                                     ("payment_in_process","Pago en proceso"),
         #The order has a related payment and it has been accredited.
                                     ("paid","Pagado"),
+        #The order has a related partial payment and it has been accredited.
+                                    ("partially_paid","Parcialmente Pagado"),
         #The order has not completed by some reason.
                                     ("cancelled","Cancelado")], string='Order Status');
 
@@ -434,6 +436,8 @@ class mercadolibre_orders(models.Model):
             'pack_order': False,
             'catalog_order': False
         }
+        if "pack_id" in order_json and order_json["pack_id"]:
+            order_fields['pack_id'] = order_json["pack_id"]
         if 'tags' in order_json:
             order_fields["tags"] = order_json["tags"]
             if 'pack_order' in order_json["tags"]:
@@ -672,7 +676,7 @@ class mercadolibre_orders(models.Model):
         #process base order fields
         meli_order_fields = {
             #TODO: "add parameter for":
-            'name': "ML %i" % ( order_json["id"] ),
+            'name': "ML %s" % ( str(order_json["id"]) ),
             'partner_id': partner_id.id,
             'pricelist_id': plistid.id,
             'meli_order_id': '%i' % (order_json["id"]),
@@ -684,6 +688,9 @@ class mercadolibre_orders(models.Model):
             'meli_date_created': ml_datetime(order_json["date_created"]),
             'meli_date_closed': ml_datetime(order_json["date_closed"]),
         }
+        if ("pack_id" in order_json and order_json["pack_id"]):
+            meli_order_fields['name'] = "ML %s" % ( str(order_json["pack_id"]) )
+            #meli_order_fields['pack_id'] = order_json["pack_id"]
 
         if ('account.payment.term' in self.env):
             inmediate = self.env['account.payment.term'].search([])[0]
@@ -816,7 +823,7 @@ class mercadolibre_orders(models.Model):
                             productcreated = None
                             product_related = None
 
-                            try:                               
+                            try:
                                 response3 = meli.get("/items/"+str(Item['item']['id']), {'access_token':meli.access_token})
                                 rjson3 = response3.json()
                                 prod_fields = {
@@ -911,7 +918,7 @@ class mercadolibre_orders(models.Model):
                         'product_id': product_related_obj.id,
                         'product_uom_qty': Item['quantity'],
                         'product_uom': product_related_obj.uom_id.id,
-                        'name': Item['item']['title'],
+                        'name': product_related_obj.display_name or Item['item']['title'],
                     }
                     saleorderline_item_fields.update( self._set_product_unit_price( product_related_obj, Item ) )
 
@@ -1102,6 +1109,7 @@ class mercadolibre_orders(models.Model):
 
     name = fields.Char(string='Order Name',index=True)
     order_id = fields.Char(string='Order Id',index=True)
+    pack_id = fields.Char(string='Pack Id',index=True)
     sale_order = fields.Many2one('sale.order',string="Sale Order",help='Pedido de venta de Odoo')
 
     status = fields.Selection( [
@@ -1113,6 +1121,8 @@ class mercadolibre_orders(models.Model):
                                     ("payment_in_process","Pago en proceso"),
         #The order has a related payment and it has been accredited.
                                     ("paid","Pagado"),
+        #The order has a related partial payment and it has been accredited.
+                                    ("partially_paid","Parcialmente Pagado"),
         #The order has not completed by some reason.
                                     ("cancelled","Cancelado")], string='Order Status')
 

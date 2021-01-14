@@ -107,7 +107,7 @@ class res_company(models.Model):
         #_logger.info(company)
         warningobj = self.pool.get('warning')
 
-        meli = self.env['meli.util'].get_new_instance(company)
+        return self.env['meli.util'].get_new_instance(company)
 
 
     def cron_meli_process( self ):
@@ -117,7 +117,9 @@ class res_company(models.Model):
         company = self.env.user.company_id
         warningobj = self.pool.get('warning')
 
-        self.get_meli_state()
+        apistate = self.get_meli_state()
+        if apistate.needlogin_state:
+            return True
 
         if (company.mercadolibre_cron_get_update_products):
             _logger.info("company.mercadolibre_cron_get_update_products")
@@ -145,7 +147,9 @@ class res_company(models.Model):
         company = self.env.user.company_id
         warningobj = self.pool.get('warning')
 
-        self.get_meli_state()
+        apistate = self.get_meli_state()
+        if apistate.needlogin_state:
+            return True
 
         if (company.mercadolibre_cron_get_orders):
             _logger.info("company.mercadolibre_cron_get_orders")

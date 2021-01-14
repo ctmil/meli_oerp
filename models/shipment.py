@@ -642,6 +642,9 @@ class mercadolibre_shipment(models.Model):
 					partner_id = respartner_obj.search([  ('meli_buyer_id','=',ship_fields['receiver_id'] ) ] )
 					if (partner_id.id):
 						meli_order_fields = {
+							#TODO: "add parameter for pack_id":
+							#'name': "ML %i" % ( all_orders[0]["pack_id"] ),
+							'name': "ML %s" % ( str(all_orders[0]["order_id"]) ),
 							'partner_id': partner_id.id,
 							'pricelist_id': plistid.id,
 							#'meli_order_id': '%i' % (order_json["id"]),
@@ -661,6 +664,9 @@ class mercadolibre_shipment(models.Model):
 							'meli_date_created': ml_datetime(all_orders[0]["date_created"]),
 							'meli_date_closed': ml_datetime(all_orders[0]["date_closed"]),
 						}
+						if ("pack_id" in all_orders[0] and all_orders[0]["pack_id"]):
+							meli_order_fields['name'] = "ML %s" % ( str(all_orders[0]["pack_id"]) )
+							#meli_order_fields['pack_id'] = all_orders[0]["pack_id"]                    
 						sorder_pack = self.env["sale.order"].search( [ ('meli_order_id','=',meli_order_fields["meli_order_id"]) ] )
 
 						if (company.mercadolibre_seller_user):
@@ -697,7 +703,7 @@ class mercadolibre_shipment(models.Model):
 									'product_id': product_related_obj.id,
 									'product_uom_qty': mOrder.order_items[0]["quantity"],
 									'product_uom': product_related_obj.uom_id.id,
-									'name': mOrder.order_items[0]["order_item_title"],
+									'name': product_related_obj.display_name or mOrder.order_items[0]["order_item_title"],
 								}
 								if (mOrder.fee_amount):
 									sorder_pack.meli_fee_amount = sorder_pack.meli_fee_amount + mOrder.fee_amount
