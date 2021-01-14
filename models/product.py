@@ -1533,7 +1533,7 @@ class product_product(models.Model):
         meli = self.env['meli.util'].get_new_instance(company)
         if meli.need_login():
             return meli.redirect_login()
-
+        
         response = meli.put("/items/"+product.meli_id, { 'status': 'closed' }, {'access_token':meli.access_token})
 
         return {}
@@ -1558,7 +1558,7 @@ class product_product(models.Model):
         meli = self.env['meli.util'].get_new_instance(company)
         if meli.need_login():
             return meli.redirect_login()
-
+            
         if (meli):
             pass;
         else:
