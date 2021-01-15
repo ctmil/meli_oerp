@@ -514,7 +514,8 @@ class res_company(models.Model):
         meli = self.env['meli.util'].get_new_instance(company)
         url_login_meli = meli.auth_url()
 
-        product_ids = self.env['product.product'].search([('meli_id','!=',False)])
+        product_ids = self.env['product.product'].search([('meli_id','!=',False),
+                                                          '|',('company_id','=',False),('company_id','=',company.id)])
         if product_ids:
             cn = 0
             ct = len(product_ids)
@@ -547,7 +548,8 @@ class res_company(models.Model):
         url_login_meli = meli.auth_url()
 
         #product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False)])
-        product_ids = self.env['product.template'].search([('meli_pub','=',True)])
+        product_ids = self.env['product.template'].search([('meli_pub','=',True),
+                                                          '|',('company_id','=',False),('company_id','=',company.id)])
         _logger.info("product_ids to update or create:" + str(product_ids))
 
         ret_messages = []
@@ -617,7 +619,10 @@ class res_company(models.Model):
     def meli_update_remote_stock(self):
         company = self.env.user.company_id
         if (company.mercadolibre_cron_post_update_stock):
-            product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False)])
+            product_ids = self.env['product.product'].search([
+                ('meli_pub','=',True),
+                ('meli_id','!=',False),
+                '|',('company_id','=',False),('company_id','=',company.id)])
             _logger.info("product_ids stock to update:" + str(product_ids))
             _logger.info("updating stock #" + str(len(product_ids)))
             icommit = 0
@@ -662,7 +667,8 @@ class res_company(models.Model):
     def meli_update_remote_price(self):
         company = self.env.user.company_id
         if (company.mercadolibre_cron_post_update_price):
-            product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False)])
+            product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False),
+                                                              '|',('company_id','=',False),('company_id','=',company.id)])
             _logger.info("product_ids stock to update:" + str(product_ids))
             if product_ids:
                 for obj in product_ids:
@@ -808,7 +814,8 @@ class res_company(models.Model):
                         #self._cr.commit()
                         icommit = 0
                     _logger.info( item_id + "("+str(iitem)+"/"+str(rjson['paging']['total'])+")" )
-                    posting_id = self.env['product.product'].search([('meli_id','=',item_id)])
+                    posting_id = self.env['product.product'].search([('meli_id','=',item_id),
+                                                                      '|',('company_id','=',False),('company_id','=',company.id)])
                     if (posting_id):
                         _logger.info( "meli_pause_all Item already in database: " + str(posting_id[0]) )
                         #response = meli.get("/items/"+item_id, {'access_token':meli.access_token})
