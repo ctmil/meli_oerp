@@ -362,7 +362,7 @@ class MeliUtil(models.AbstractModel):
             _logger.error(e)
 
         for comp in company:
-            if comp.mercadolibre_state!=api_rest_client.needlogin_state:
+            if 1==1:#comp.mercadolibre_state!=api_rest_client.needlogin_state:
                 comp.mercadolibre_state = api_rest_client.needlogin_state
 
         return api_rest_client
