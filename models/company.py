@@ -135,7 +135,9 @@ class res_company(models.Model):
             #company = self or self.env.user.company_id
             _logger.info('company get_meli_state() '+company.name)
             #warningobj = self.pool.get('warning')
-            self.env['meli.util'].get_new_instance(company)
+            meli = self.env['meli.util'].get_new_instance(company)
+            if meli:
+                company.mercadolibre_state = meli.needlogin_state
 
 
     def cron_meli_process( self ):
