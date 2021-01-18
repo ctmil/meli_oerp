@@ -91,6 +91,7 @@ class MercadolibreNotification(models.Model):
         vals = {
             "notification_id": values["_id"],
             "application_id": values["application_id"],
+            "processing_started": values["processing_started"] or "",
             "user_id": values["user_id"],
             "topic": values["topic"],
             "resource": values["resource"],
@@ -119,6 +120,9 @@ class MercadolibreNotification(models.Model):
 
         try:
             if data:
+                if company.mercadolibre_client_id != data["application_id"]:
+                    return {"error": "company.mercadolibre_client_id and application_id does not match!", "status": "520" }
+
                 if (not "_id" in data):
                     date_time = ml_datetime( str( datetime.now() ) )
                     base_str = str(data["application_id"]) + str(data["user_id"]) + str(date_time)
@@ -307,7 +311,7 @@ class MercadolibreNotification(models.Model):
             received = self.search([('topic','like','orders_v2'),('state','=','RECEIVED')], order='id desc', limit=10)
         else:
             received = self.search([('topic','like','orders_v2'),('state','=','RECEIVED')], order='id desc', limit=1)
-        
+
         if (received and len(received)):
             _logger.info( "#" + str(len(received)) )
             for noti in received:
