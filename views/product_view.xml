@@ -3,16 +3,24 @@
     <data>
 
         <record model="ir.ui.view" id="product_tpl_ml_form_view">
-          <field name="name">product.tpl.ml.form.inherit</field>
-          <field name="model">product.template</field>
-          <field name="inherit_id" ref="product.product_template_only_form_view" />
-          <field name="arch" type="xml">
+        <field name="name">product.tpl.ml.form.inherit</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_only_form_view" />
+        <field name="arch" type="xml">
             <label for="sale_ok" position="after">
-                  <field name="meli_pub" />
-                  <label for="meli_pub" />
-                  <field name="meli_publications" readonly="1"></field>
-                  <field name="meli_variants_status" readonly="1"></field>
-              </label>
+                <div>
+                    <field name="meli_pub"/>
+                    <label for="meli_pub"/>
+                </div>
+                <div>
+                    <field name="meli_publications" readonly="1"/>
+                    <label for="meli_publications"/>
+                </div>
+                <div>
+                    <field name="meli_variants_status" readonly="1"/>
+                    <label for="meli_variants_status"/>
+                </div>
+            </label>
             <data>
                 <notebook>
                     <page string="MercadoLibre Plantilla">
@@ -121,14 +129,16 @@
             <field name="model">product.product</field>
             <field name="inherit_id" ref="product.product_normal_form_view" />
             <field name="arch" type="xml">
-              <label for="sale_ok" position="after">
-                    <field name="meli_pub" />
-                    <label for="meli_pub" />
-                    <field name="meli_master" />
-                    <label for="meli_master" />
-
+                <label for="sale_ok" position="after">
+                    <div>
+                        <field name="meli_pub"/>
+                        <label for="meli_pub"/>
+                    </div>
+                    <div>
+                        <field name="meli_master" readonly="1"/>
+                        <label for="meli_master"/>
+                    </div>
                 </label>
-
                 <data>
                     <notebook>
                         <page string="MercadoLibre">
@@ -175,12 +185,12 @@
                             <br/>
                             <field name="meli_title" />
                             <field name="meli_description_banner_id" on_change="product_on_change_meli_banner( meli_description_banner_id)" />
-                            <field name="meli_description" />
+                            <field name="meli_description" attrs="{'required':[('meli_pub','=',True)]}"/>/>
                             <field name="meli_brand"/>
                             <field name="meli_model"/>
 
-                            <field name="meli_category" />
-                            <field name="meli_listing_type" />
+                            <field name="meli_category" attrs="{'required':[('meli_pub','=',True)]}" />
+                            <field name="meli_listing_type" attrs="{'required':[('meli_pub','=',True)]}"/>
                             <field name="meli_buying_mode" />
 
                             <field name="meli_price_fixed" />
