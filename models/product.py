@@ -385,38 +385,6 @@ class product_template(models.Model):
 
 product_template()
 
-class product_image(models.Model):
-    _inherit = "common.product.image.ept"
-    #website_sale.product_template_form_view
-    meli_imagen_id = fields.Char(string='Imagen Id',index=True)
-    meli_imagen_link = fields.Char(string='Imagen Link')
-    meli_imagen_size = fields.Char(string='Size')
-    meli_imagen_max_size = fields.Char(string='Max Size')
-    meli_imagen_bytes = fields.Integer(string='Size bytes')
-    meli_imagen_hash = fields.Char(string='File Hash Id')
-    meli_pub = fields.Boolean(string='Publicar en ML',index=True)
-    meli_force_pub = fields.Boolean(string='Publicar en ML y conservar en Odoo',index=True)
-    meli_published = fields.Boolean(string='Publicado en ML',index=True)
-
-    #_sql_constraints = [
-    #    ('unique_meli_imagen_id', 'unique(product_tmpl_id,product_variant_id,meli_imagen_id)', 'Meli Imagen Id already exists!')
-    #]
-
-    def calculate_hash(self):
-        hexhash = ''
-        for pimage in self:
-            image = get_image_full( pimage )
-            if not image:
-                continue;
-            imagebin = base64.b64decode( image )
-            hash = hashlib.blake2b()
-            hash.update(imagebin)
-            hexhash = hash.hexdigest()
-            pimage.meli_imagen_hash = hexhash
-        return hexhash
-
-product_image()
-
 class product_product(models.Model):
 
     _inherit = "product.product"
@@ -1565,32 +1533,33 @@ class product_product(models.Model):
         meli = self.env['meli.util'].get_new_instance(company)
         if meli.need_login():
             return meli.redirect_login()
-        
+
         response = meli.put("/items/"+product.meli_id, { 'status': 'closed' }, {'access_token':meli.access_token})
 
         return {}
 
-    def product_meli_status_pause( self ):
+    def product_meli_status_pause( self, meli=False ):
         company = self.env.user.company_id
         product_obj = self.env['product.product']
         product = self
-
-        meli = self.env['meli.util'].get_new_instance(company)
-        if meli.need_login():
-            return meli.redirect_login()
+        if not meli:
+            meli = self.env['meli.util'].get_new_instance(company)
+            if meli.need_login():
+                return meli.redirect_login()
 
         response = meli.put("/items/"+product.meli_id, { 'status': 'paused' }, {'access_token':meli.access_token})
 
         return {}
 
-    def product_meli_status_active( self ):
+    def product_meli_status_active( self, meli=False ):
         company = self.env.user.company_id
         product_obj = self.env['product.product']
 
-        meli = self.env['meli.util'].get_new_instance(company)
-        if meli.need_login():
-            return meli.redirect_login()
-            
+        if not meli:
+            meli = self.env['meli.util'].get_new_instance(company)
+            if meli.need_login():
+                return meli.redirect_login()
+
         if (meli):
             pass;
         else:
@@ -2617,7 +2586,7 @@ class product_product(models.Model):
 
         return new_meli_available_quantity
 
-    def product_post_stock(self):
+    def product_post_stock(self, meli=None):
         company = self.env.user.company_id
         warningobj = self.env['warning']
 
@@ -2625,12 +2594,13 @@ class product_product(models.Model):
         product = self
         product_tmpl = self.product_tmpl_id
 
-        meli = self.env['meli.util'].get_new_instance(company)
-        if meli.need_login():
-            return meli.redirect_login()
+        if not meli:
+            meli = self.env['meli.util'].get_new_instance(company)
+            if meli.need_login():
+                return meli.redirect_login()
 
         try:
-            self.product_update_stock()
+            #self.product_update_stock()
             product_fab = False
             if (1==1 and product.virtual_available<=0 and product.route_ids):
                 for route in product.route_ids:
@@ -2652,8 +2622,8 @@ class product_product(models.Model):
         #    product.meli_available_quantity = 50
 
             _logger.info("post stock:"+str(product.meli_available_quantity))
-            _logger.info("product_tmpl.meli_pub_as_variant:"+str(product_tmpl.meli_pub_as_variant))
-            _logger.info(product_tmpl.meli_pub_principal_variant.id)
+            #_logger.info("product_tmpl.meli_pub_as_variant:"+str(product_tmpl.meli_pub_as_variant))
+            #_logger.info(product_tmpl.meli_pub_principal_variant.id)
             if (product_tmpl.meli_pub_as_variant):
                 productjson = False
                 if (product_tmpl.meli_pub_principal_variant.id==False and len(product_tmpl.product_variant_ids)):
@@ -2667,7 +2637,7 @@ class product_product(models.Model):
                             productjson = response.json()
 
                 #chequeamos la variacion de este producto
-                if ( productjson and len(productjson["variations"]) ):
+                if ( productjson and "variations" in productjson and len(productjson["variations"]) ):
                     varias = {
                         "variations": []
                     }
@@ -2682,8 +2652,8 @@ class product_product(models.Model):
                                 pictures_v = productjson["variations"][ix]["picture_ids"]
                         same_price = productjson["variations"][ix]["price"]
                         if (self._is_product_combination(productjson["variations"][ix])):
-                            _logger.info("_is_product_combination! Post stock to variation")
-                            _logger.info(productjson["variations"][ix])
+                            #_logger.info("_is_product_combination! Post stock to variation")
+                            #_logger.info(productjson["variations"][ix])
                             found_comb = True
                             product.meli_id_variation = productjson["variations"][ix]["id"]
                             var = {
@@ -2693,9 +2663,9 @@ class product_product(models.Model):
                             }
                             varias["variations"].append(var)
                             #_logger.info(varias)
-                            _logger.info(var)
+                            #_logger.info(var)
                             responsevar = meli.put("/items/"+product.meli_id+'/variations/'+str( product.meli_id_variation ), var, {'access_token':meli.access_token})
-                            _logger.info(responsevar.json())
+                            #_logger.info(responsevar.json())
 
                     if found_comb==False:
                         #add combination!!
@@ -2707,11 +2677,11 @@ class product_product(models.Model):
                             if (company.mercadolibre_post_default_code):
                                 addvar["seller_custom_field"] = product.default_code
                             addvar["price"] = same_price
-                            _logger.info("Add variation!")
-                            _logger.info(addvar)
+                            #_logger.info("Add variation!")
+                            #_logger.info(addvar)
                             responsevar = meli.post("/items/"+product.meli_id+"/variations", addvar, {'access_token':meli.access_token})
-                            _logger.info(responsevar.json())
-                _logger.info("Available:"+str(product_tmpl.virtual_available))
+                            #_logger.info(responsevar.json())
+                #_logger.info("Available:"+str(product_tmpl.virtual_available))
                 best_available = 0
                 for vr in product_tmpl.product_variant_ids:
                     sum = vr.virtual_available
@@ -2742,7 +2712,7 @@ class product_product(models.Model):
                     responsevar = meli.put("/items/"+product.meli_id+'/variations/'+str( product.meli_id_variation ), var, {'access_token':meli.access_token})
                     if (responsevar):
                         rjson = responsevar.json()
-                        _logger.info(rjson)
+                        #_logger.info(rjson)
                 else:
                     response = meli.put("/items/"+product.meli_id, fields, {'access_token':meli.access_token})
                     if (response):
@@ -2754,14 +2724,16 @@ class product_product(models.Model):
                             _logger.info(rjson)
 
                 if (product.meli_available_quantity<=0 and product.meli_status=="active"):
-                    product.product_meli_status_pause()
+                    product.product_meli_status_pause(meli=meli)
                 elif (product.meli_available_quantity>0 and product.meli_status=="paused"):
-                    product.product_meli_status_active()
+                    product.product_meli_status_active(meli=meli)
 
         except Exception as e:
             _logger.info("product_post_stock > exception error")
             _logger.info(e, exc_info=True)
-            pass
+            pass;
+
+        return {}
 
     #update internal product stock based on meli_default_stock_product
     def product_update_stock(self, stock=False):
