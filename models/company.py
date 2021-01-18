@@ -25,6 +25,7 @@ import logging
 _logger = logging.getLogger(__name__)
 
 import pdb
+import threading
 
 from .meli_oerp_config import *
 from .warning import warning
@@ -76,6 +77,7 @@ class res_company(models.Model):
             "BOB": { "name": "Bolivia", "id": "MBO", "default_currency_id": "BOB" },
             "BRL": { "name": "Brasil", "id": "MLB", "default_currency_id": "BRL" },
             "CLP": { "name": "Chile", "id": "MLC", "default_currency_id": "CLP" },
+            "CRC": {"name": "Costa Rica", "id": "MCR", "default_currency_id": "CRC"},
             "UYU": { "name": "Uruguay", "id": "MLU", "default_currency_id": "UYU" },
             "USD": { "name": "Uruguay", "id": "MLU", "default_currency_id": "UYU" },
         }
@@ -104,7 +106,7 @@ class res_company(models.Model):
         #True if need login
         #_logger.info('company get_meli_state() ')
         company = self or self.env.user.company_id
-        #_logger.info(company)
+        _logger.info('company get_meli_state() '+company.name)
         warningobj = self.pool.get('warning')
 
         return self.env['meli.util'].get_new_instance(company)
@@ -135,7 +137,7 @@ class res_company(models.Model):
 
         if (company.mercadolibre_cron_post_update_stock):
             _logger.info("company.mercadolibre_cron_post_update_stock")
-            self.meli_update_remote_stock()
+            self.meli_update_remote_stock(meli=apistate)
 
         if (company.mercadolibre_cron_post_update_price):
             _logger.info("company.mercadolibre_cron_post_update_price")
@@ -514,7 +516,8 @@ class res_company(models.Model):
         meli = self.env['meli.util'].get_new_instance(company)
         url_login_meli = meli.auth_url()
 
-        product_ids = self.env['product.product'].search([('meli_id','!=',False)])
+        product_ids = self.env['product.product'].search([('meli_id','!=',False),
+                                                          '|',('company_id','=',False),('company_id','=',company.id)])
         if product_ids:
             cn = 0
             ct = len(product_ids)
@@ -547,7 +550,8 @@ class res_company(models.Model):
         url_login_meli = meli.auth_url()
 
         #product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False)])
-        product_ids = self.env['product.template'].search([('meli_pub','=',True)])
+        product_ids = self.env['product.template'].search([('meli_pub','=',True),
+                                                          '|',('company_id','=',False),('company_id','=',company.id)])
         _logger.info("product_ids to update or create:" + str(product_ids))
 
         ret_messages = []
@@ -614,13 +618,18 @@ class res_company(models.Model):
         return {}
 
 
-    def meli_update_remote_stock(self):
+    def meli_update_remote_stock(self, meli=False):
         company = self.env.user.company_id
         if (company.mercadolibre_cron_post_update_stock):
-            product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False)])
+            auto_commit = not getattr(threading.currentThread(), 'testing', False)
+            product_ids = self.env['product.product'].search([
+                ('meli_pub','=',True),
+                ('meli_id','!=',False),
+                '|',('company_id','=',False),('company_id','=',company.id)])
             _logger.info("product_ids stock to update:" + str(product_ids))
-            _logger.info("updating stock #" + str(len(product_ids)))
+            _logger.info("updating stock #" + str(len(product_ids)) + " on " + str(company.name))
             icommit = 0
+            icount = 0
             maxcommits = len(product_ids)
             internals = {
                 "application_id": company.mercadolibre_client_id,
@@ -632,29 +641,49 @@ class res_company(models.Model):
             noti = self.env["mercadolibre.notification"].start_internal_notification( internals )
             logs = ""
             errors = ""
+
             try:
-
-
+                if auto_commit:
+                    self.env.cr.commit()
                 for obj in product_ids:
                     #_logger.info( "Product check if active: " + str(obj.id)+ ' meli_id:'+str(obj.meli_id)  )
                     if (obj.meli_id):
                         icommit+= 1
+                        icount+= 1
                         try:
-                            _logger.info( "Update Stock: #" + str(icommit) +'/'+str(maxcommits)+ ' meli_id:'+str(obj.meli_id)  )
-                            obj.product_post_stock()
-                            logs+= str(obj.default_code)+" "+str(obj.meli_id)+": "+str(obj.meli_available_quantity)+", "
+                            _logger.info( "Update Stock: #" + str(icount) +'/'+str(maxcommits)+ ' meli_id:'+str(obj.meli_id)  )
+                            obj.product_post_stock(meli=meli)
+                            logs+= str(obj.default_code)+" "+str(obj.meli_id)+": "+str(obj.meli_available_quantity)+"\n"
+
+                            if ((icommit==40 or (icount==maxcommits)) and 1==1):
+                                noti.processing_errors = errors
+                                noti.processing_logs = logs
+                                noti.resource = "meli_update_remote_stock #"+str(icount) +'/'+str(maxcommits)
+                                _logger.info("meli_update_remote_stock commiting")
+                                icommit=0
+                                if auto_commit:
+                                    self.env.cr.commit()
+
                         except Exception as e:
                             _logger.info("meli_update_remote_stock > Exception founded!")
                             _logger.info(e, exc_info=True)
                             logs+= str(obj.default_code)+" "+str(obj.meli_id)+": "+str(obj.meli_available_quantity)+", "
-                            errors+= str(obj.default_code)+" "+str(obj.meli_id)+" >> "+str(e.args[0])+str(", ")
+                            #errors+= str(obj.default_code)+" "+str(obj.meli_id)+" >> "+str(e.args[0])+str(", ")
+                            errors+= str(obj.default_code)+" "+str(obj.meli_id)+" >> "+str(e)+"\n"
+                            if auto_commit:
+                                self.env.cr.rollback()
 
+                noti.resource = "meli_update_remote_stock #"+str(icount) +'/'+str(maxcommits)
                 noti.stop_internal_notification(errors=errors,logs=logs)
 
             except Exception as e:
                 _logger.info("meli_update_remote_stock > Exception founded!")
                 _logger.info(e, exc_info=True)
+                if auto_commit:
+                    self.env.cr.rollback()
                 noti.stop_internal_notification( errors=errors , logs=logs )
+                if auto_commit:
+                    self.env.cr.commit()
 
         return {}
 
@@ -662,7 +691,8 @@ class res_company(models.Model):
     def meli_update_remote_price(self):
         company = self.env.user.company_id
         if (company.mercadolibre_cron_post_update_price):
-            product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False)])
+            product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False),
+                                                              '|',('company_id','=',False),('company_id','=',company.id)])
             _logger.info("product_ids stock to update:" + str(product_ids))
             if product_ids:
                 for obj in product_ids:
@@ -808,7 +838,8 @@ class res_company(models.Model):
                         #self._cr.commit()
                         icommit = 0
                     _logger.info( item_id + "("+str(iitem)+"/"+str(rjson['paging']['total'])+")" )
-                    posting_id = self.env['product.product'].search([('meli_id','=',item_id)])
+                    posting_id = self.env['product.product'].search([('meli_id','=',item_id),
+                                                                      '|',('company_id','=',False),('company_id','=',company.id)])
                     if (posting_id):
                         _logger.info( "meli_pause_all Item already in database: " + str(posting_id[0]) )
                         #response = meli.get("/items/"+item_id, {'access_token':meli.access_token})
