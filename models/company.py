@@ -40,6 +40,31 @@ class res_company(models.Model):
     def meli_get_object( self ):
         return True
 
+    def get_ML_AUTH_URL(self):
+
+        AUTH_URL = "https://auth.mercadolibre.com.ar"
+
+        ML_AUTH_URL = {
+            "MLA": { "name": "Argentina", "AUTH_URL": "https://auth.mercadolibre.com.ar" },
+            "MLM": { "name": "México", "AUTH_URL": "https://auth.mercadolibre.com.mx" },
+            "MCO": { "name": "Colombia", "AUTH_URL": "https://auth.mercadolibre.com.co" },
+            "MPE": { "name": "Perú", "AUTH_URL": "https://auth.mercadolibre.com.pe" },
+            "MBO": { "name": "Bolivia", "AUTH_URL": "https://auth.mercadolibre.com.bo" },
+            "MLB": { "name": "Brasil", "AUTH_URL": "https://auth.mercadolibre.com.br" },
+            "MLC": { "name": "Chile", "AUTH_URL": "https://auth.mercadolibre.cl" },
+            "MCR": {"name": "Costa Rica", "AUTH_URL": "https://auth.mercadolibre.com.cr" },
+            "MLV": { "name": "Venezuela", "AUTH_URL": "https://auth.mercadolibre.com.ve" },
+            "MRD": { "name": "Dominicana", "AUTH_URL": "https://auth.mercadolibre.com.do" },
+            "MPA": { "name": "Panamá", "AUTH_URL": "https://auth.mercadolibre.com.pa" },
+            "MPY": { "name": "Paraguay", "AUTH_URL": "https://auth.mercadolibre.com.py" },
+            "MEC": { "name": "Ecuador", "AUTH_URL": "https://auth.mercadolibre.com.ec" },
+        }
+        MLsite = self._get_ML_sites()
+        if MLsite in ML_AUTH_URL:
+            AUTH_URL =  ML_AUTH_URL[MLsite]["AUTH_URL"] or AUTH_URL
+
+        return AUTH_URL
+
     def _get_ML_currencies(self):
         #https://api.mercadolibre.com/currencies
         company = self.env.user.company_id
