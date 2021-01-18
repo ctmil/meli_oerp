@@ -77,6 +77,7 @@ class res_company(models.Model):
             "BOB": { "name": "Bolivia", "id": "MBO", "default_currency_id": "BOB" },
             "BRL": { "name": "Brasil", "id": "MLB", "default_currency_id": "BRL" },
             "CLP": { "name": "Chile", "id": "MLC", "default_currency_id": "CLP" },
+            "CRC": {"name": "Costa Rica", "id": "MCR", "default_currency_id": "CRC"},
             "UYU": { "name": "Uruguay", "id": "MLU", "default_currency_id": "UYU" },
             "USD": { "name": "Uruguay", "id": "MLU", "default_currency_id": "UYU" },
         }
