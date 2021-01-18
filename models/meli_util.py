@@ -361,6 +361,8 @@ class MeliUtil(models.AbstractModel):
             if (last_token!=comp.mercadolibre_access_token):#comp.mercadolibre_state!=api_rest_client.needlogin_state:
                 _logger.info("mercadolibre_state : "+str(api_rest_client.needlogin_state))
                 comp.mercadolibre_state = api_rest_client.needlogin_state
+            else:
+                _logger.info("mercadolibre_state already set: "+str(api_rest_client.needlogin_state))
 
         return api_rest_client
 
