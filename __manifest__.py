@@ -8,7 +8,7 @@
 
 {
     'name': 'MercadoLibre Publisher',
-    'version': '13.2.21.13',
+    'version': '13.2.21.14',
     'author': 'Moldeo Interactive',
     'website': 'https://www.moldeointeractive.com',
     "category": "Sales",
@@ -33,7 +33,7 @@
 	'views/shipment_view.xml',
 	'views/notifications_view.xml'
     ],
-    "external_dependencies": {"python": ['pdf2image']},
+    "external_dependencies": {"python": ['pdf2image','meli']},
     'demo_xml': [],
     'active': False,
     'installable': True,
