@@ -40,7 +40,7 @@ class res_company(models.Model):
     def meli_get_object( self ):
         return True
 
-    def get_ML_AUTH_URL(self):
+    def get_ML_AUTH_URL(self,meli=False):
 
         AUTH_URL = "https://auth.mercadolibre.com.ar"
 
@@ -59,7 +59,7 @@ class res_company(models.Model):
             "MPY": { "name": "Paraguay", "AUTH_URL": "https://auth.mercadolibre.com.py" },
             "MEC": { "name": "Ecuador", "AUTH_URL": "https://auth.mercadolibre.com.ec" },
         }
-        MLsite = self._get_ML_sites()
+        MLsite = self._get_ML_sites(meli)
         if MLsite in ML_AUTH_URL:
             AUTH_URL =  ML_AUTH_URL[MLsite]["AUTH_URL"] or AUTH_URL
 
@@ -90,10 +90,11 @@ class res_company(models.Model):
         return ML_currencies
 
 
-    def _get_ML_sites(self):
+    def _get_ML_sites(self,meli=False):
         # to check api.mercadolibre.com/sites  > MLA
         company = self.env.user.company_id
-        meli = self.env['meli.util'].get_new_instance(company)
+        if not meli:
+            meli = self.env['meli.util'].get_new_instance(company)
         ML_sites = {
             "ARS": { "name": "Argentina", "id": "MLA", "default_currency_id": "ARS" },
             "MXN": { "name": "México", "id": "MLM", "default_currency_id": "MXN" },
