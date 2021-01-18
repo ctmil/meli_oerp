@@ -32,6 +32,7 @@ configuration = meli.Configuration(
 class MeliApi( meli.RestClientApi ):
 
     AUTH_URL = "https://auth.mercadolibre.com.ar/authorization"
+
     needlogin_state = True
 
     client_id = ""
@@ -220,13 +221,6 @@ class MeliUtil(models.AbstractModel):
         if not company:
             company = self.env.user.company_id
 
-        #CLIENT_ID = company.mercadolibre_client_id
-        #CLIENT_SECRET = company.mercadolibre_secret_key
-        #ACCESS_TOKEN = company.mercadolibre_access_token
-        #REFRESH_TOKEN = company.mercadolibre_refresh_token
-        #REDIRECT_URI = company.mercadolibre_redirect_uri
-        #CODE = company.mercadolibre_code
-
         api_client = ApiClient()
         api_rest_client = MeliApi(api_client)
         api_rest_client.client_id = company.mercadolibre_client_id
@@ -234,6 +228,7 @@ class MeliUtil(models.AbstractModel):
         api_rest_client.access_token = company.mercadolibre_access_token or ''
         api_rest_client.refresh_token = company.mercadolibre_refresh_token
         api_rest_client.redirect_uri = company.mercadolibre_redirect_uri
+        api_rest_client.AUTH_URL = company.get_ML_AUTH_URL(meli=api_rest_client)
         api_auth_client = meli.OAuth20Api(api_client)
         grant_type = 'authorization_code' # or 'refresh_token' if you need get one new token
         last_token = api_rest_client.access_token
@@ -364,7 +359,10 @@ class MeliUtil(models.AbstractModel):
 
         for comp in company:
             if (last_token!=comp.mercadolibre_access_token):#comp.mercadolibre_state!=api_rest_client.needlogin_state:
+                _logger.info("mercadolibre_state : "+str(api_rest_client.needlogin_state))
                 comp.mercadolibre_state = api_rest_client.needlogin_state
+            #else:
+            #    _logger.info("mercadolibre_state already set: "+str(api_rest_client.needlogin_state))
 
         return api_rest_client
 

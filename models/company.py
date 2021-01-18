@@ -40,6 +40,31 @@ class res_company(models.Model):
     def meli_get_object( self ):
         return True
 
+    def get_ML_AUTH_URL(self,meli=False):
+
+        AUTH_URL = "https://auth.mercadolibre.com.ar"
+
+        ML_AUTH_URL = {
+            "MLA": { "name": "Argentina", "AUTH_URL": "https://auth.mercadolibre.com.ar" },
+            "MLM": { "name": "México", "AUTH_URL": "https://auth.mercadolibre.com.mx" },
+            "MCO": { "name": "Colombia", "AUTH_URL": "https://auth.mercadolibre.com.co" },
+            "MPE": { "name": "Perú", "AUTH_URL": "https://auth.mercadolibre.com.pe" },
+            "MBO": { "name": "Bolivia", "AUTH_URL": "https://auth.mercadolibre.com.bo" },
+            "MLB": { "name": "Brasil", "AUTH_URL": "https://auth.mercadolibre.com.br" },
+            "MLC": { "name": "Chile", "AUTH_URL": "https://auth.mercadolibre.cl" },
+            "MCR": {"name": "Costa Rica", "AUTH_URL": "https://auth.mercadolibre.com.cr" },
+            "MLV": { "name": "Venezuela", "AUTH_URL": "https://auth.mercadolibre.com.ve" },
+            "MRD": { "name": "Dominicana", "AUTH_URL": "https://auth.mercadolibre.com.do" },
+            "MPA": { "name": "Panamá", "AUTH_URL": "https://auth.mercadolibre.com.pa" },
+            "MPY": { "name": "Paraguay", "AUTH_URL": "https://auth.mercadolibre.com.py" },
+            "MEC": { "name": "Ecuador", "AUTH_URL": "https://auth.mercadolibre.com.ec" },
+        }
+        MLsite = self._get_ML_sites(meli=meli)
+        if MLsite in ML_AUTH_URL:
+            AUTH_URL =  ML_AUTH_URL[MLsite]["AUTH_URL"] or AUTH_URL
+
+        return AUTH_URL+"/authorization"
+
     def _get_ML_currencies(self):
         #https://api.mercadolibre.com/currencies
         company = self.env.user.company_id
@@ -65,10 +90,11 @@ class res_company(models.Model):
         return ML_currencies
 
 
-    def _get_ML_sites(self):
+    def _get_ML_sites(self,meli=False):
         # to check api.mercadolibre.com/sites  > MLA
         company = self.env.user.company_id
-        meli = self.env['meli.util'].get_new_instance(company)
+        if not meli:
+            meli = self.env['meli.util'].get_new_instance(company)
         ML_sites = {
             "ARS": { "name": "Argentina", "id": "MLA", "default_currency_id": "ARS" },
             "MXN": { "name": "México", "id": "MLM", "default_currency_id": "MXN" },
@@ -105,11 +131,13 @@ class res_company(models.Model):
         #False if logged ok
         #True if need login
         #_logger.info('company get_meli_state() ')
-        company = self or self.env.user.company_id
-        _logger.info('company get_meli_state() '+company.name)
-        warningobj = self.pool.get('warning')
-
-        return self.env['meli.util'].get_new_instance(company)
+        for company in self:
+            #company = self or self.env.user.company_id
+            _logger.info('company get_meli_state() '+company.name)
+            #warningobj = self.pool.get('warning')
+            meli = self.env['meli.util'].get_new_instance(company)
+            if meli:
+                company.mercadolibre_state = meli.needlogin_state
 
 
     def cron_meli_process( self ):
@@ -119,7 +147,7 @@ class res_company(models.Model):
         company = self.env.user.company_id
         warningobj = self.pool.get('warning')
 
-        apistate = self.get_meli_state()
+        apistate = self.env['meli.util'].get_new_instance(company)
         if apistate.needlogin_state:
             return True
 
@@ -149,7 +177,7 @@ class res_company(models.Model):
         company = self.env.user.company_id
         warningobj = self.pool.get('warning')
 
-        apistate = self.get_meli_state()
+        apistate = self.env['meli.util'].get_new_instance(company)
         if apistate.needlogin_state:
             return True
 
