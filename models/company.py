@@ -63,7 +63,7 @@ class res_company(models.Model):
         if MLsite in ML_AUTH_URL:
             AUTH_URL =  ML_AUTH_URL[MLsite]["AUTH_URL"] or AUTH_URL
 
-        return AUTH_URL
+        return AUTH_URL+"/authorization"
 
     def _get_ML_currencies(self):
         #https://api.mercadolibre.com/currencies
