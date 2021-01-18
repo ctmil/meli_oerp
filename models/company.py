@@ -59,7 +59,7 @@ class res_company(models.Model):
             "MPY": { "name": "Paraguay", "AUTH_URL": "https://auth.mercadolibre.com.py" },
             "MEC": { "name": "Ecuador", "AUTH_URL": "https://auth.mercadolibre.com.ec" },
         }
-        MLsite = self._get_ML_sites(meli)
+        MLsite = self._get_ML_sites(meli=meli)
         if MLsite in ML_AUTH_URL:
             AUTH_URL =  ML_AUTH_URL[MLsite]["AUTH_URL"] or AUTH_URL
 
@@ -110,10 +110,10 @@ class res_company(models.Model):
         response = meli.get("/sites")
         if (response):
             sites = response.json()
-            #_logger.info(sites)
+            _logger.info(sites)
             for site in sites:
-                #_logger.info("site:")
-                #_logger.info(site)
+                _logger.info("site:")
+                _logger.info(site)
                 _key_ = site["default_currency_id"]
                 if (_key_!="USD"):
                     ML_sites[_key_] = site
@@ -131,11 +131,12 @@ class res_company(models.Model):
         #False if logged ok
         #True if need login
         #_logger.info('company get_meli_state() ')
-        company = self or self.env.user.company_id
-        _logger.info('company get_meli_state() '+company.name)
-        warningobj = self.pool.get('warning')
+        for company in self:
+            #company = self or self.env.user.company_id
+            _logger.info('company get_meli_state() '+company.name)
+            warningobj = self.pool.get('warning')
 
-        return self.env['meli.util'].get_new_instance(company)
+            self.env['meli.util'].get_new_instance(company)
 
 
     def cron_meli_process( self ):
@@ -145,7 +146,7 @@ class res_company(models.Model):
         company = self.env.user.company_id
         warningobj = self.pool.get('warning')
 
-        apistate = self.get_meli_state()
+        apistate = self.env['meli.util'].get_new_instance(company)
         if apistate.needlogin_state:
             return True
 
@@ -175,7 +176,7 @@ class res_company(models.Model):
         company = self.env.user.company_id
         warningobj = self.pool.get('warning')
 
-        apistate = self.get_meli_state()
+        apistate = self.env['meli.util'].get_new_instance(company)
         if apistate.needlogin_state:
             return True
 
