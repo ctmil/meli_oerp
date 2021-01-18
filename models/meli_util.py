@@ -236,6 +236,7 @@ class MeliUtil(models.AbstractModel):
         api_rest_client.redirect_uri = company.mercadolibre_redirect_uri
         api_auth_client = meli.OAuth20Api(api_client)
         grant_type = 'authorization_code' # or 'refresh_token' if you need get one new token
+        last_token = api_rest_client.access_token
 
         #api_response = api_instance.get_token(grant_type=grant_type, client_id=CLIENT_ID, client_secret=CLIENT_SECRET, redirect_uri=REDIRECT_URI, code=CODE, refresh_token=REFRESH_TOKEN)
         #taken from res.company get_meli_state()
@@ -362,7 +363,7 @@ class MeliUtil(models.AbstractModel):
             _logger.error(e)
 
         for comp in company:
-            if comp.mercadolibre_state!=api_rest_client.needlogin_state:
+            if (last_token!=comp.mercadolibre_access_token):#comp.mercadolibre_state!=api_rest_client.needlogin_state:
                 comp.mercadolibre_state = api_rest_client.needlogin_state
 
         return api_rest_client
