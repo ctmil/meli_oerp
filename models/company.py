@@ -134,8 +134,7 @@ class res_company(models.Model):
         for company in self:
             #company = self or self.env.user.company_id
             _logger.info('company get_meli_state() '+company.name)
-            warningobj = self.pool.get('warning')
-
+            #warningobj = self.pool.get('warning')
             self.env['meli.util'].get_new_instance(company)
 
 
