@@ -2594,7 +2594,7 @@ class product_product(models.Model):
         product = self
         product_tmpl = self.product_tmpl_id
 
-        if not meli:
+        if not meli or not meli.client_id:
             meli = self.env['meli.util'].get_new_instance(company)
             if meli.need_login():
                 return meli.redirect_login()
@@ -2703,7 +2703,7 @@ class product_product(models.Model):
                     product.product_meli_status_pause()
             else:
                 if (product.meli_id and not product.meli_id_variation):
-                    _logger.info(meli)
+                    _logger.info("meli:"+str(meli))
                     response = meli.get("/items/%s" % product.meli_id, {'access_token':meli.access_token})
                     if (response):
                         pjson = response.json()
