@@ -2703,7 +2703,7 @@ class product_product(models.Model):
                     product.product_meli_status_pause()
             else:
                 if (product.meli_id and not product.meli_id_variation):
-                    _logger.info("meli:"+str(meli))
+                    #_logger.info("meli:"+str(meli))
                     response = meli.get("/items/%s" % product.meli_id, {'access_token':meli.access_token})
                     if (response):
                         pjson = response.json()
