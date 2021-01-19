@@ -2608,7 +2608,6 @@ class product_product(models.Model):
                         _logger.info("Fabricar:"+str(product.meli_available_quantity))
                         product_fab = True
 
-            #if (product.virtual_available>=0):
             if (not product_fab):
                 product.meli_available_quantity = product._meli_available_quantity()
 
@@ -2618,8 +2617,6 @@ class product_product(models.Model):
             fields = {
                 "available_quantity": product.meli_available_quantity
             }
-        #if (product.meli_available_quantity<=0):
-        #    product.meli_available_quantity = 50
 
             _logger.info("post stock:"+str(product.meli_available_quantity))
             #_logger.info("product_tmpl.meli_pub_as_variant:"+str(product_tmpl.meli_pub_as_variant))
@@ -2666,6 +2663,11 @@ class product_product(models.Model):
                             #_logger.info(var)
                             responsevar = meli.put("/items/"+product.meli_id+'/variations/'+str( product.meli_id_variation ), var, {'access_token':meli.access_token})
                             #_logger.info(responsevar.json())
+                            if responsevar:
+                                rjson = responsevar.json()
+                                if rjson:
+                                    if "error" in rjson:
+                                        return rjson
 
                     if found_comb==False:
                         #add combination!!
@@ -2680,6 +2682,11 @@ class product_product(models.Model):
                             #_logger.info("Add variation!")
                             #_logger.info(addvar)
                             responsevar = meli.post("/items/"+product.meli_id+"/variations", addvar, {'access_token':meli.access_token})
+                            if responsevar:
+                                rjson = responsevar.json()
+                                if rjson:
+                                    if "error" in rjson:
+                                        return rjson
                             #_logger.info(responsevar.json())
                 #_logger.info("Available:"+str(product_tmpl.virtual_available))
                 best_available = 0
@@ -2712,16 +2719,17 @@ class product_product(models.Model):
                     responsevar = meli.put("/items/"+product.meli_id+'/variations/'+str( product.meli_id_variation ), var, {'access_token':meli.access_token})
                     if (responsevar):
                         rjson = responsevar.json()
-                        #_logger.info(rjson)
+                        if rjson:
+                            if "error" in rjson:
+                                return rjson
                 else:
                     response = meli.put("/items/"+product.meli_id, fields, {'access_token':meli.access_token})
                     if (response):
                         rjson = response.json()
                         if ('available_quantity' in rjson):
                             _logger.info( "Posted ok:" + str(rjson['available_quantity']) )
-                        else:
-                            _logger.info( "Error posting stock" )
-                            _logger.info(rjson)
+                        if "error" in rjson:
+                            return rjson
 
                 if (product.meli_available_quantity<=0 and product.meli_status=="active"):
                     product.product_meli_status_pause(meli=meli)
