@@ -2197,7 +2197,7 @@ class product_product(models.Model):
         if product_tmpl.meli_category and not product.meli_category:
             product.meli_category = product_tmpl.meli_category
 
-        product.meli_available_quantity = product._meli_available_quantity()
+        product.meli_available_quantity = product._meli_available_quantity(meli=meli)
 
         body = {
             "title": product.meli_title or '',
@@ -2370,7 +2370,7 @@ class product_product(models.Model):
                             for pvar in product_tmpl.product_variant_ids:
                                 if (pvar._is_product_combination(var_info)):
                                     var_product = pvar
-                                    var_product.meli_available_quantity = var_product._meli_available_quantity()
+                                    var_product.meli_available_quantity = var_product._meli_available_quantity(meli=meli)
                                     vars_updated+=var_product
                             var = {
                                 "id": str(var_info["id"]),
@@ -2545,14 +2545,14 @@ class product_product(models.Model):
 
         return {}
 
-    def _meli_available_quantity(self):
+    def _meli_available_quantity(self,meli=meli):
 
         product = self
         product_tmpl = product.product_tmpl_id
         new_meli_available_quantity = product.meli_available_quantity
 
         if (product.virtual_available):
-            if (product.virtual_available>0):
+            if (product.virtual_available>=0):
                 new_meli_available_quantity = product.virtual_available
 
         # Chequea si es fabricable
@@ -2609,7 +2609,7 @@ class product_product(models.Model):
                         product_fab = True
 
             if (not product_fab):
-                product.meli_available_quantity = product._meli_available_quantity()
+                product.meli_available_quantity = product._meli_available_quantity(meli=meli)
 
             if product.meli_available_quantity<0:
                 product.meli_available_quantity = 0
@@ -2744,7 +2744,7 @@ class product_product(models.Model):
         return {}
 
     #update internal product stock based on meli_default_stock_product
-    def product_update_stock(self, stock=False):
+    def product_update_stock(self, stock=False, meli=False):
         product = self
         uomobj = self.env[uom_model]
         _stock = product.virtual_available
@@ -2759,7 +2759,7 @@ class product_product(models.Model):
                 product.set_bom()
 
             if (product.meli_default_stock_product):
-                _stock = product.meli_default_stock_product._meli_available_quantity()
+                _stock = product.meli_default_stock_product._meli_available_quantity(meli=meli)
                 if (_stock<0):
                     _stock = 0
 
