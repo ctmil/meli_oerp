@@ -2586,7 +2586,7 @@ class product_product(models.Model):
 
         return new_meli_available_quantity
 
-    def product_post_stock(self, meli=None):
+    def product_post_stock(self, meli=False):
         company = self.env.user.company_id
         warningobj = self.env['warning']
 
@@ -2703,6 +2703,7 @@ class product_product(models.Model):
                     product.product_meli_status_pause()
             else:
                 if (product.meli_id and not product.meli_id_variation):
+                    _logger.info(meli)
                     response = meli.get("/items/%s" % product.meli_id, {'access_token':meli.access_token})
                     if (response):
                         pjson = response.json()
