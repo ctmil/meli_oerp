@@ -2545,7 +2545,7 @@ class product_product(models.Model):
 
         return {}
 
-    def _meli_available_quantity(self,meli=meli):
+    def _meli_available_quantity(self,meli=False):
 
         product = self
         product_tmpl = product.product_tmpl_id
