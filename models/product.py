@@ -2197,7 +2197,7 @@ class product_product(models.Model):
         if product_tmpl.meli_category and not product.meli_category:
             product.meli_category = product_tmpl.meli_category
 
-        product.meli_available_quantity = product._meli_available_quantity()
+        product.meli_available_quantity = product._meli_available_quantity(meli=meli)
 
         body = {
             "title": product.meli_title or '',
@@ -2370,7 +2370,7 @@ class product_product(models.Model):
                             for pvar in product_tmpl.product_variant_ids:
                                 if (pvar._is_product_combination(var_info)):
                                     var_product = pvar
-                                    var_product.meli_available_quantity = var_product._meli_available_quantity()
+                                    var_product.meli_available_quantity = var_product._meli_available_quantity(meli=meli)
                                     vars_updated+=var_product
                             var = {
                                 "id": str(var_info["id"]),
@@ -2545,14 +2545,14 @@ class product_product(models.Model):
 
         return {}
 
-    def _meli_available_quantity(self):
+    def _meli_available_quantity(self,meli=False):
 
         product = self
         product_tmpl = product.product_tmpl_id
         new_meli_available_quantity = product.meli_available_quantity
 
         if (product.virtual_available):
-            if (product.virtual_available>0):
+            if (product.virtual_available>=0):
                 new_meli_available_quantity = product.virtual_available
 
         # Chequea si es fabricable
@@ -2586,7 +2586,7 @@ class product_product(models.Model):
 
         return new_meli_available_quantity
 
-    def product_post_stock(self, meli=None):
+    def product_post_stock(self, meli=False):
         company = self.env.user.company_id
         warningobj = self.env['warning']
 
@@ -2594,7 +2594,7 @@ class product_product(models.Model):
         product = self
         product_tmpl = self.product_tmpl_id
 
-        if not meli:
+        if not meli or not hasattr(meli, 'client_id'):
             meli = self.env['meli.util'].get_new_instance(company)
             if meli.need_login():
                 return meli.redirect_login()
@@ -2608,9 +2608,8 @@ class product_product(models.Model):
                         _logger.info("Fabricar:"+str(product.meli_available_quantity))
                         product_fab = True
 
-            #if (product.virtual_available>=0):
             if (not product_fab):
-                product.meli_available_quantity = product._meli_available_quantity()
+                product.meli_available_quantity = product._meli_available_quantity(meli=meli)
 
             if product.meli_available_quantity<0:
                 product.meli_available_quantity = 0
@@ -2618,8 +2617,6 @@ class product_product(models.Model):
             fields = {
                 "available_quantity": product.meli_available_quantity
             }
-        #if (product.meli_available_quantity<=0):
-        #    product.meli_available_quantity = 50
 
             _logger.info("post stock:"+str(product.meli_available_quantity))
             #_logger.info("product_tmpl.meli_pub_as_variant:"+str(product_tmpl.meli_pub_as_variant))
@@ -2666,6 +2663,11 @@ class product_product(models.Model):
                             #_logger.info(var)
                             responsevar = meli.put("/items/"+product.meli_id+'/variations/'+str( product.meli_id_variation ), var, {'access_token':meli.access_token})
                             #_logger.info(responsevar.json())
+                            if responsevar:
+                                rjson = responsevar.json()
+                                if rjson:
+                                    if "error" in rjson:
+                                        return rjson
 
                     if found_comb==False:
                         #add combination!!
@@ -2680,6 +2682,11 @@ class product_product(models.Model):
                             #_logger.info("Add variation!")
                             #_logger.info(addvar)
                             responsevar = meli.post("/items/"+product.meli_id+"/variations", addvar, {'access_token':meli.access_token})
+                            if responsevar:
+                                rjson = responsevar.json()
+                                if rjson:
+                                    if "error" in rjson:
+                                        return rjson
                             #_logger.info(responsevar.json())
                 #_logger.info("Available:"+str(product_tmpl.virtual_available))
                 best_available = 0
@@ -2696,6 +2703,7 @@ class product_product(models.Model):
                     product.product_meli_status_pause()
             else:
                 if (product.meli_id and not product.meli_id_variation):
+                    #_logger.info("meli:"+str(meli))
                     response = meli.get("/items/%s" % product.meli_id, {'access_token':meli.access_token})
                     if (response):
                         pjson = response.json()
@@ -2712,16 +2720,17 @@ class product_product(models.Model):
                     responsevar = meli.put("/items/"+product.meli_id+'/variations/'+str( product.meli_id_variation ), var, {'access_token':meli.access_token})
                     if (responsevar):
                         rjson = responsevar.json()
-                        #_logger.info(rjson)
+                        if rjson:
+                            if "error" in rjson:
+                                return rjson
                 else:
                     response = meli.put("/items/"+product.meli_id, fields, {'access_token':meli.access_token})
                     if (response):
                         rjson = response.json()
                         if ('available_quantity' in rjson):
                             _logger.info( "Posted ok:" + str(rjson['available_quantity']) )
-                        else:
-                            _logger.info( "Error posting stock" )
-                            _logger.info(rjson)
+                        if "error" in rjson:
+                            return rjson
 
                 if (product.meli_available_quantity<=0 and product.meli_status=="active"):
                     product.product_meli_status_pause(meli=meli)
@@ -2736,7 +2745,7 @@ class product_product(models.Model):
         return {}
 
     #update internal product stock based on meli_default_stock_product
-    def product_update_stock(self, stock=False):
+    def product_update_stock(self, stock=False, meli=False):
         product = self
         uomobj = self.env[uom_model]
         _stock = product.virtual_available
@@ -2751,7 +2760,7 @@ class product_product(models.Model):
                 product.set_bom()
 
             if (product.meli_default_stock_product):
-                _stock = product.meli_default_stock_product._meli_available_quantity()
+                _stock = product.meli_default_stock_product._meli_available_quantity(meli=meli)
                 if (_stock<0):
                     _stock = 0
 
