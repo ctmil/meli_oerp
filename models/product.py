@@ -2594,7 +2594,7 @@ class product_product(models.Model):
         product = self
         product_tmpl = self.product_tmpl_id
 
-        if not meli or not meli.client_id:
+        if not meli or not hasattr(meli, 'client_id'):
             meli = self.env['meli.util'].get_new_instance(company)
             if meli.need_login():
                 return meli.redirect_login()
