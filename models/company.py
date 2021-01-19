@@ -680,8 +680,11 @@ class res_company(models.Model):
                         icount+= 1
                         try:
                             _logger.info( "Update Stock: #" + str(icount) +'/'+str(maxcommits)+ ' meli_id:'+str(obj.meli_id)  )
-                            obj.product_post_stock(meli=meli)
+                            resjson = obj.product_post_stock(meli=meli)
                             logs+= str(obj.default_code)+" "+str(obj.meli_id)+": "+str(obj.meli_available_quantity)+"\n"
+                            if "error" in resjson:
+                                errors+= str(obj.default_code)+" "+str(obj.meli_id)+" >> "+str(resjson)+"\n"
+
 
                             if ((icommit==40 or (icount==maxcommits)) and 1==1):
                                 noti.processing_errors = errors
