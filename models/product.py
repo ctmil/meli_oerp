@@ -353,8 +353,8 @@ class product_template(models.Model):
                                         'Condición del producto')
     meli_dimensions = fields.Char( string="Dimensiones del producto", size=128)
     meli_pub = fields.Boolean('Meli Publication',help='MELI Product',index=True)
-    meli_master = fields.Boolean('Meli Producto Maestro',help='MELI Product Maestro',index=True)
-    meli_warranty = fields.Char(string='Garantía', size=256)
+    meli_master = fields.Boolean('Meli Producto Maestro', help='MELI Product Maestro',index=True)
+    meli_warranty = fields.Char(string='Garantía', size=256, help='Garantía del producto. Es obligatorio y debe ser un número seguido por una unidad temporal. Ej. 2 meses, 3 años.')
     meli_listing_type = fields.Selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special/Clásica"),("gold_pro","Oro Pro")], string='Tipo de lista')
     meli_attributes = fields.Text(string='Atributos')
 
