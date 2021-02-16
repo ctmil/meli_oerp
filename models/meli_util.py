@@ -55,6 +55,11 @@ class MeliApi( meli.RestClientApi ):
     def get(self, path, params={}):
         try:
             atok = ("access_token" in params and params["access_token"]) or ""
+            if atok:
+                del params["access_token"]
+            params = urlencode(params)
+            if params and len(params):
+                path = path+"?"+str(params)
             #_logger.info("MeliApi.get(%s,%s)" % (path,str(atok)) )
             self.response = self.resource_get(resource=path, access_token=atok)
             self.rjson = self.response
