@@ -236,7 +236,7 @@ class res_company(models.Model):
                                                 ("not_specified","No especificado")],
                                                 string='Condición',
                                                 help='Condición del producto predeterminado')
-    mercadolibre_warranty = fields.Char(string='Garantía', size=256)
+    mercadolibre_warranty = fields.Char(string='Garantía', size=256, help='Garantía del producto predeterminado. Es obligatorio y debe ser un número seguido por una unidad temporal. Ej. 2 meses, 3 años.')
     mercadolibre_listing_type = fields.Selection([("free","Libre"),
                                                 ("bronze","Bronce"),
                                                 ("silver","Plata"),
@@ -248,7 +248,7 @@ class res_company(models.Model):
                                                 help='Tipo de lista  predeterminada para todos los productos')
     mercadolibre_attributes = fields.Boolean(string='Apply product attributes')
     mercadolibre_exclude_attributes = fields.Many2many('product.attribute.value',
-        string='Valores excluidos',help='Seleccionar valores que serán excluidos para las publicaciones de variantes')
+        string='Valores excluidos', help='Seleccionar valores que serán excluidos para las publicaciones de variantes')
     mercadolibre_update_local_stock = fields.Boolean(string='Cron Get Products and take Stock from ML')
     mercadolibre_product_template_override_variant = fields.Boolean(string='Product template override Variant')
     mercadolibre_product_template_override_method = fields.Selection(string='Método para Sobreescribir',
