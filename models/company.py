@@ -379,7 +379,7 @@ class res_company(models.Model):
             response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search",
                                 {'access_token':meli.access_token,
                                 'search_type': 'scan',
-                                'limit': '3000' })
+                                'limit': '100' })
             rjson = response.json()
             _logger.info( rjson )
             condition_last_off = False
@@ -396,7 +396,7 @@ class res_company(models.Model):
                     'access_token':meli.access_token,
                     'search_type': 'scan',
                     'scroll_id': scroll_id,
-                    'limit': '3000'
+                    'limit': '100'
                     })
                 rjson2 = response.json()
                 if 'error' in rjson2:
@@ -793,7 +793,7 @@ class res_company(models.Model):
                                 'limit': '100' })
             rjson = response.json()
             _logger.info( rjson )
-            condition_last_off = True
+            condition_last_off = False
             if ('scroll_id' in rjson):
                 scroll_id = rjson['scroll_id']
                 ioff = rjson['paging']['limit']
