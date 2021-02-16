@@ -383,6 +383,7 @@ class res_company(models.Model):
             rjson = response.json()
             _logger.info( rjson )
             condition_last_off = False
+            ioff = 0
             if ('scroll_id' in rjson):
                 scroll_id = rjson['scroll_id']
                 ioff = rjson['paging']['limit']
