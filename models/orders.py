@@ -724,6 +724,8 @@ class mercadolibre_orders(models.Model):
             #user
             if (company.mercadolibre_seller_user):
                 meli_order_fields["user_id"] = company.mercadolibre_seller_user.id
+            if (company.mercadolibre_seller_team):
+                meli_order_fields["team_id"] = company.mercadolibre_seller_team.id
 
             if 'pack_order' in order_json["tags"]:
                 _logger.info("Pack Order, dont create sale.order, leave it to mercadolibre.shipment")

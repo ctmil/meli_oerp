@@ -31,7 +31,6 @@ from .meli_oerp_config import *
 from .warning import warning
 
 import requests
-from ..melisdk.meli import Meli
 
 class res_company(models.Model):
     _name = "res.company"
@@ -292,6 +291,7 @@ class res_company(models.Model):
     mercadolibre_import_search_sku = fields.Boolean(string='Search SKU',help='Search product by default_code')
 
     mercadolibre_seller_user = fields.Many2one("res.users", string="Vendedor", help="Usuario con el que se registrarán las órdenes automáticamente")
+    mercadolibre_seller_team = fields.Many2one("crm.team", string="Equipo de ventas", help="Equipo de ventas asociado a las ventas de ML")
     mercadolibre_remove_unsync_images = fields.Boolean(string='Removing unsync images (ml id defined for image but no longer in ML publication)')
 
     mercadolibre_official_store_id = fields.Char(string="Official Store Id")
@@ -373,22 +373,32 @@ class res_company(models.Model):
             results = rjson['results']
 
         #download?
-        totalmax = rjson['paging']['total']
+        totalmax = 0
+        if 'paging' in rjson:
+            totalmax = rjson['paging']['total']
+
+        _logger.info( "totalmax: "+str(totalmax) )
+
         scroll_id = False
         if (totalmax>1000):
             #USE SCAN METHOD....
+            _logger.info( "use scan method: "+str(totalmax) )
             response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search",
                                 {'access_token':meli.access_token,
                                 'search_type': 'scan',
                                 'limit': '100' })
             rjson = response.json()
             _logger.info( rjson )
+
             condition_last_off = True
+            ioff = 0
+
             if ('scroll_id' in rjson):
                 scroll_id = rjson['scroll_id']
                 ioff = rjson['paging']['limit']
                 results = rjson['results']
                 condition_last_off = False
+
             while (condition_last_off!=True):
                 _logger.info( "Prefetch products ("+str(ioff)+"/"+str(rjson['paging']['total'])+")" )
                 response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search",
@@ -400,6 +410,7 @@ class res_company(models.Model):
                     })
                 rjson2 = response.json()
                 if 'error' in rjson2:
+                    _logger.error(rjson2)
                     if rjson2['message']=='invalid_token' or rjson2['message']=='expired_token':
                         ACCESS_TOKEN = ''
                         REFRESH_TOKEN = ''
@@ -411,6 +422,7 @@ class res_company(models.Model):
                         "target": "new",}
                     condition_last_off = True
                 else:
+                    _logger.info(rjson2)
                     results += rjson2['results']
                     ioff+= rjson2['paging']['limit']
                     if ('scroll_id' in rjson2):
@@ -810,6 +822,7 @@ class res_company(models.Model):
                     })
                 rjson2 = response.json()
                 if 'error' in rjson2:
+                    _logger.error( rjson2 )
                     if rjson2['message']=='invalid_token' or rjson2['message']=='expired_token':
                         ACCESS_TOKEN = ''
                         REFRESH_TOKEN = ''
