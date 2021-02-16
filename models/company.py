@@ -377,13 +377,14 @@ class res_company(models.Model):
         scroll_id = False
         if (totalmax>1000):
             #USE SCAN METHOD....
+            _logger.info( "use scan method: "+str(totalmax) )
             response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search",
                                 {'access_token':meli.access_token,
                                 'search_type': 'scan',
                                 'limit': '100' })
             rjson = response.json()
             _logger.info( rjson )
-            
+
             condition_last_off = False
             ioff = 0
 
@@ -416,6 +417,7 @@ class res_company(models.Model):
                         "target": "new",}
                     condition_last_off = True
                 else:
+                    _logger.info(rjson2)
                     results += rjson2['results']
                     ioff+= rjson2['paging']['limit']
                     if ('scroll_id' in rjson2):
