@@ -31,7 +31,6 @@ from .meli_oerp_config import *
 from .warning import warning
 
 import requests
-from ..melisdk.meli import Meli
 
 class res_company(models.Model):
     _name = "res.company"
@@ -383,7 +382,7 @@ class res_company(models.Model):
                                 'limit': '100' })
             rjson = response.json()
             _logger.info( rjson )
-            condition_last_off = True
+            condition_last_off = False
             if ('scroll_id' in rjson):
                 scroll_id = rjson['scroll_id']
                 ioff = rjson['paging']['limit']
