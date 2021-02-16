@@ -373,6 +373,7 @@ class res_company(models.Model):
 
         #download?
         totalmax = rjson['paging']['total']
+        _logger.info( "totalmax: "+str(totalmax) )
         scroll_id = False
         if (totalmax>1000):
             #USE SCAN METHOD....
@@ -382,13 +383,16 @@ class res_company(models.Model):
                                 'limit': '100' })
             rjson = response.json()
             _logger.info( rjson )
+            
             condition_last_off = False
             ioff = 0
+
             if ('scroll_id' in rjson):
                 scroll_id = rjson['scroll_id']
                 ioff = rjson['paging']['limit']
                 results = rjson['results']
                 condition_last_off = False
+
             while (condition_last_off!=True):
                 _logger.info( "Prefetch products ("+str(ioff)+"/"+str(rjson['paging']['total'])+")" )
                 response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search",
@@ -400,6 +404,7 @@ class res_company(models.Model):
                     })
                 rjson2 = response.json()
                 if 'error' in rjson2:
+                    _logger.error(rjson2)
                     if rjson2['message']=='invalid_token' or rjson2['message']=='expired_token':
                         ACCESS_TOKEN = ''
                         REFRESH_TOKEN = ''
