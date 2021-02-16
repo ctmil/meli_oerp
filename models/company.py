@@ -379,7 +379,7 @@ class res_company(models.Model):
             response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search",
                                 {'access_token':meli.access_token,
                                 'search_type': 'scan',
-                                'limit': '100' })
+                                'limit': '3000' })
             rjson = response.json()
             _logger.info( rjson )
             condition_last_off = False
@@ -396,7 +396,7 @@ class res_company(models.Model):
                     'access_token':meli.access_token,
                     'search_type': 'scan',
                     'scroll_id': scroll_id,
-                    'limit': '100'
+                    'limit': '3000'
                     })
                 rjson2 = response.json()
                 if 'error' in rjson2:
