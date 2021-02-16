@@ -57,7 +57,7 @@ class MeliApi( meli.RestClientApi ):
             atok = ("access_token" in params and params["access_token"]) or ""
             if atok:
                 del params["access_token"]
-            params = urlencode(params)
+            #params = urlencode(params)
             #if params and len(params):
             #    path = path+"?"+str(params)
             #_logger.info("MeliApi.get(%s,%s)" % (path,str(atok)) )
