@@ -810,6 +810,7 @@ class res_company(models.Model):
                     })
                 rjson2 = response.json()
                 if 'error' in rjson2:
+                    _logger.error( rjson2 )
                     if rjson2['message']=='invalid_token' or rjson2['message']=='expired_token':
                         ACCESS_TOKEN = ''
                         REFRESH_TOKEN = ''
