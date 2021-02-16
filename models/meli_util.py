@@ -58,10 +58,10 @@ class MeliApi( meli.RestClientApi ):
             if atok:
                 del params["access_token"]
             params = urlencode(params)
-            if params and len(params):
-                path = path+"?"+str(params)
+            #if params and len(params):
+            #    path = path+"?"+str(params)
             #_logger.info("MeliApi.get(%s,%s)" % (path,str(atok)) )
-            self.response = self.resource_get(resource=path, access_token=atok)
+            self.response = self.resource_get(resource=path, access_token=atok,dict(params))
             self.rjson = self.response
         except ApiException as e:
             self.rjson = {
