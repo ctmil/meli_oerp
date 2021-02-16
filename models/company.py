@@ -372,8 +372,12 @@ class res_company(models.Model):
             results = rjson['results']
 
         #download?
-        totalmax = rjson['paging']['total']
+        totalmax = 0
+        if 'paging' in rjson:
+            totalmax = rjson['paging']['total']
+
         _logger.info( "totalmax: "+str(totalmax) )
+
         scroll_id = False
         if (totalmax>1000):
             #USE SCAN METHOD....
