@@ -301,6 +301,13 @@
             <field name="model">mercadolibre.orders</field>
         </record>
         -->
+        <!--record model="ir.actions.server" id="update_meli_orders">
+            <field name="name">Actualizar Ordenes</field>
+            <field name="key2">client_action_multi</field>
+            <field name="value" eval="'ir.actions.act_window,' +str(ref('action_update_meli_orders'))" />
+            <field name="key">action</field>
+            <field name="model">mercadolibre.orders</field>
+        </record-->
 
         <menuitem id="menu_meli" name="MercadoLibre" parent="sale.sale_menu_root" sequence="9"/>
 
