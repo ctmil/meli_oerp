@@ -319,6 +319,7 @@ class res_company(models.Model):
 
         return meli.redirect_login()
 
+
     def meli_query_get_questions(self):
 
         _logger.info("meli_query_get_questions")

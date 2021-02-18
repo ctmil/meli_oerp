@@ -52,18 +52,20 @@ class MeliApi( meli.RestClientApi ):
     def json(self):
         return self.rjson
 
+    def call_get(self, resource=None, access_token=None, **params ):
+        return {}
+
     def get(self, path, params={}):
         try:
             atok = ("access_token" in params and params["access_token"]) or ""
             if atok:
                 del params["access_token"]
-            #params = urlencode(params)
-            #
-            #    path = path+"?"+str(params)
+            if params:
+                path+="?"+urlencode(params)
             #_logger.info("MeliApi.get(%s,%s)" % (path,str(atok)) )
             self.response = self.resource_get(resource=path, access_token=atok)
-            if params:
-               self.response = self.resource_get(resource=path, access_token=atok,**params)
+            #if params:
+            #   self.response = self.call_get( resource=path, access_token=atok, **params)
             self.rjson = self.response
         except ApiException as e:
             self.rjson = {
@@ -162,7 +164,7 @@ class MeliApi( meli.RestClientApi ):
         if redirect_URI:
             self.redirect_uri = redirect_URI
         random_id = str(now)
-        params = { 'client_id': self.client_id, 'response_type':'code', 'redirect_uri':self.redirect_uri,'state': random_id}
+        params = { 'client_id': self.client_id, 'response_type':'code', 'redirect_uri':self.redirect_uri, 'state': random_id}
         url = self.AUTH_URL  + '?' + urlencode(params)
         #_logger.info("Authorize Login here: "+str(url))
         return url
