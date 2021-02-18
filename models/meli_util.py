@@ -58,10 +58,15 @@ class MeliApi( meli.RestClientApi ):
     def get(self, path, params={}):
         try:
             atok = ("access_token" in params and params["access_token"]) or ""
+            scroll_id = ("scroll_id" in params and params["scroll_id"]) or None
             if atok:
                 del params["access_token"]
+            if scroll_id:
+                del params["scroll_id"]
             if params:
                 path+="?"+urlencode(params)
+                if scroll_id:
+                    path+="&scroll_id="+scroll_id
             #_logger.info("MeliApi.get(%s,%s)" % (path,str(atok)) )
             self.response = self.resource_get(resource=path, access_token=atok)
             #if params:
