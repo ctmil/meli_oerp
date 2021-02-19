@@ -802,7 +802,7 @@ class product_product(models.Model):
                 try:
                     _logger.info(att)
                     #first search by attribute ml id
-                    ml_attribute = self.env['mercadolibre.category.attribute'].search([('att_id','=',att['id'])])
+                    ml_attribute = self.env['mercadolibre.category.attribute'].search([('att_id','=',att['id'])],limit=1)
                     attribute = []
 
                     #if the product is already created?
