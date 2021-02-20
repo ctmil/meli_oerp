@@ -1945,7 +1945,7 @@ class product_product(models.Model):
         return res
 
 
-    def _product_post(self):
+    def _product_post(self, meli=None, config=None ):
         #import pdb;pdb.set_trace();
         _logger.info('[DEBUG] product_post')
         _logger.info(self.env.context)
@@ -1959,11 +1959,14 @@ class product_product(models.Model):
         product = self
         product_tmpl = self.product_tmpl_id
         company = self.env.user.company_id
+        if not config:
+            config = company
         warningobj = self.env['warning']
 
-        meli = self.env['meli.util'].get_new_instance(company)
-        if meli.need_login():
-            return meli.redirect_login()
+        if not meli:
+            meli = self.env['meli.util'].get_new_instance(company)
+            if meli.need_login():
+                return meli.redirect_login()
         #return {}
         #description_sale =  product_tmpl.description_sale
         translation = self.env['ir.translation'].search([('res_id','=',product_tmpl.id),
@@ -1981,30 +1984,30 @@ class product_product(models.Model):
                 productjson = response.json()
 
         #check from company's default
-        if company.mercadolibre_listing_type and product_tmpl.meli_listing_type==False:
-            product_tmpl.meli_listing_type = company.mercadolibre_listing_type
+        if config.mercadolibre_listing_type and product_tmpl.meli_listing_type==False:
+            product_tmpl.meli_listing_type = config.mercadolibre_listing_type
 
-        if company.mercadolibre_currency and product_tmpl.meli_currency==False:
-            product_tmpl.meli_currency = company.mercadolibre_currency
+        if config.mercadolibre_currency and product_tmpl.meli_currency==False:
+            product_tmpl.meli_currency = config.mercadolibre_currency
 
-        if company.mercadolibre_condition and product_tmpl.meli_condition==False:
-            product_tmpl.meli_condition = company.mercadolibre_condition
+        if config.mercadolibre_condition and product_tmpl.meli_condition==False:
+            product_tmpl.meli_condition = config.mercadolibre_condition
 
-        if company.mercadolibre_warranty and product_tmpl.meli_warranty==False:
-            product_tmpl.meli_warranty = company.mercadolibre_warranty
+        if config.mercadolibre_warranty and product_tmpl.meli_warranty==False:
+            product_tmpl.meli_warranty = config.mercadolibre_warranty
 
         if product_tmpl.meli_title==False or ( product_tmpl.meli_title and len(product_tmpl.meli_title)==0 ):
             product_tmpl.meli_title = product_tmpl.name
 
         product.set_meli_price()
 
-        if company.mercadolibre_buying_mode and product_tmpl.meli_buying_mode==False:
-            product_tmpl.meli_buying_mode = company.mercadolibre_buying_mode
+        if config.mercadolibre_buying_mode and product_tmpl.meli_buying_mode==False:
+            product_tmpl.meli_buying_mode = config.mercadolibre_buying_mode
 
         #Si la descripcion de template esta vacia la asigna del description_sale
-        force_template_description = ( company.mercadolibre_product_template_override_variant
-                                        and company.mercadolibre_product_template_override_method
-                                        and company.mercadolibre_product_template_override_method in ['default','description','title_and_description']
+        force_template_description = ( config.mercadolibre_product_template_override_variant
+                                        and config.mercadolibre_product_template_override_method
+                                        and config.mercadolibre_product_template_override_method in ['default','description','title_and_description']
                                         )
         if force_template_description or product_tmpl.meli_description==False or ( product_tmpl.meli_description and len(product_tmpl.meli_description)==0):
             product_tmpl.meli_description = product_tmpl.description_sale
@@ -2027,9 +2030,9 @@ class product_product(models.Model):
                 if (not product_tmpl.meli_pub_as_variant):
                     product.meli_title = string.replace(product.meli_title,product.name,product.name+" "+values)
 
-        force_template_title = ( company.mercadolibre_product_template_override_variant
-                                 and company.mercadolibre_product_template_override_method
-                                 and company.mercadolibre_product_template_override_method in ['title','title_and_description']
+        force_template_title = ( config.mercadolibre_product_template_override_variant
+                                 and config.mercadolibre_product_template_override_method
+                                 and config.mercadolibre_product_template_override_method in ['title','title_and_description']
                                 )
 
         if ( product_tmpl.meli_title and force_template_title):
@@ -2177,8 +2180,8 @@ class product_product(models.Model):
         assign_img = False and product.meli_id
 
         #store id
-        if company.mercadolibre_official_store_id:
-            body["official_store_id"] = company.mercadolibre_official_store_id
+        if config.mercadolibre_official_store_id:
+            body["official_store_id"] = config.mercadolibre_official_store_id
 
         #publicando imagenes
         first_image_to_publish = get_first_image_to_publish( product )
@@ -2278,7 +2281,7 @@ class product_product(models.Model):
 
         if (not variations_candidates):
             #SKU ?
-            if (product.default_code and company.mercadolibre_post_default_code):
+            if (product.default_code and config.mercadolibre_post_default_code):
                 #TODO: flag for publishing SKU as attribute in single variant mode?? maybe
                 #attribute = { "id": "SELLER_SKU", "value_name": product.default_code }
                 #attributes.append(attribute)
