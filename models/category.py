@@ -72,6 +72,53 @@ class mercadolibre_category_import(models.TransientModel):
         if ( self.meli_category_id ):
             catid = self.env["mercadolibre.category"].import_all_categories( self.meli_category_id, self.meli_recursive_import )
 
+
+
+mercadolibre_category_import()
+
+class product_public_category(models.Model):
+
+    _inherit="product.public.category"
+
+    mercadolibre_category = fields.Many2one( "mercadolibre.category", string="Mercado Libre Category")
+
+product_public_category()
+
+
+class mercadolibre_category_attribute(models.Model):
+    _name = "mercadolibre.category.attribute"
+    _description = "MercadoLibre Attribute"
+
+    cat_id = fields.Char(string="Category Id (ML)",index=True)
+    att_id = fields.Char(string="Attribute Id (ML)",index=True)
+    name = fields.Char(string="Attribute Name (ML)",index=True)
+
+    value_type = fields.Char(string="Value Type",index=True)
+
+    hidden = fields.Boolean(string="Hidden")
+    variation_attribute = fields.Boolean(string="Variation Attribute")
+    multivalued = fields.Boolean(string="Multivalued")
+
+    tooltip = fields.Text(string="Tooltip")
+    values = fields.Text(string="Values")
+    type = fields.Char(string="Type")
+
+    required = fields.Boolean(string="Required by ML")
+
+mercadolibre_category_attribute()
+
+class product_attribute(models.Model):
+
+    _inherit="product.attribute"
+
+    mercadolibre_attribute_id = fields.Many2one( "mercadolibre.category.attribute", string="MercadoLibre Attribute")
+
+product_attribute()
+
+class mercadolibre_category(models.Model):
+    _name = "mercadolibre.category"
+    _description = "Categories of MercadoLibre"
+
     def meli_get_category( self, category_id, meli=None, create_missing_website=True ):
 
         company = self.env.user.company_id
@@ -143,52 +190,6 @@ class mercadolibre_category_import(models.TransientModel):
                 mlcatid = ml_cat_id
 
         return mlcatid, www_cat_id
-
-mercadolibre_category_import()
-
-class product_public_category(models.Model):
-
-    _inherit="product.public.category"
-
-    mercadolibre_category = fields.Many2one( "mercadolibre.category", string="Mercado Libre Category")
-
-product_public_category()
-
-
-class mercadolibre_category_attribute(models.Model):
-    _name = "mercadolibre.category.attribute"
-    _description = "MercadoLibre Attribute"
-
-    cat_id = fields.Char(string="Category Id (ML)",index=True)
-    att_id = fields.Char(string="Attribute Id (ML)",index=True)
-    name = fields.Char(string="Attribute Name (ML)",index=True)
-
-    value_type = fields.Char(string="Value Type",index=True)
-
-    hidden = fields.Boolean(string="Hidden")
-    variation_attribute = fields.Boolean(string="Variation Attribute")
-    multivalued = fields.Boolean(string="Multivalued")
-
-    tooltip = fields.Text(string="Tooltip")
-    values = fields.Text(string="Values")
-    type = fields.Char(string="Type")
-
-    required = fields.Boolean(string="Required by ML")
-
-mercadolibre_category_attribute()
-
-class product_attribute(models.Model):
-
-    _inherit="product.attribute"
-
-    mercadolibre_attribute_id = fields.Many2one( "mercadolibre.category.attribute", string="MercadoLibre Attribute")
-
-product_attribute()
-
-class mercadolibre_category(models.Model):
-    _name = "mercadolibre.category"
-    _description = "Categories of MercadoLibre"
-
 
     def _get_category_url( self ):
         company = self.env.user.company_id
