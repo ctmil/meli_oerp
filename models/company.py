@@ -236,7 +236,7 @@ class res_company(models.Model):
                                                 ("not_specified","No especificado")],
                                                 string='Condición',
                                                 help='Condición del producto predeterminado')
-    mercadolibre_warranty = fields.Char(string='Garantía', size=256)
+    mercadolibre_warranty = fields.Char(string='Garantía', size=256, help='Garantía del producto predeterminado. Es obligatorio y debe ser un número seguido por una unidad temporal. Ej. 2 meses, 3 años.')
     mercadolibre_listing_type = fields.Selection([("free","Libre"),
                                                 ("bronze","Bronce"),
                                                 ("silver","Plata"),
@@ -248,7 +248,7 @@ class res_company(models.Model):
                                                 help='Tipo de lista  predeterminada para todos los productos')
     mercadolibre_attributes = fields.Boolean(string='Apply product attributes')
     mercadolibre_exclude_attributes = fields.Many2many('product.attribute.value',
-        string='Valores excluidos',help='Seleccionar valores que serán excluidos para las publicaciones de variantes')
+        string='Valores excluidos', help='Seleccionar valores que serán excluidos para las publicaciones de variantes')
     mercadolibre_update_local_stock = fields.Boolean(string='Cron Get Products and take Stock from ML')
     mercadolibre_product_template_override_variant = fields.Boolean(string='Product template override Variant')
     mercadolibre_product_template_override_method = fields.Selection(string='Método para Sobreescribir',
@@ -291,6 +291,7 @@ class res_company(models.Model):
     mercadolibre_import_search_sku = fields.Boolean(string='Search SKU',help='Search product by default_code')
 
     mercadolibre_seller_user = fields.Many2one("res.users", string="Vendedor", help="Usuario con el que se registrarán las órdenes automáticamente")
+    mercadolibre_seller_team = fields.Many2one("crm.team", string="Equipo de ventas", help="Equipo de ventas asociado a las ventas de ML")
     mercadolibre_remove_unsync_images = fields.Boolean(string='Removing unsync images (ml id defined for image but no longer in ML publication)')
 
     mercadolibre_official_store_id = fields.Char(string="Official Store Id")
@@ -317,6 +318,7 @@ class res_company(models.Model):
         meli = self.env['meli.util'].get_new_instance(company)
 
         return meli.redirect_login()
+
 
     def meli_query_get_questions(self):
 
@@ -389,7 +391,7 @@ class res_company(models.Model):
             rjson = response.json()
             _logger.info( rjson )
 
-            condition_last_off = False
+            condition_last_off = True
             ioff = 0
 
             if ('scroll_id' in rjson):
@@ -793,11 +795,9 @@ class res_company(models.Model):
 
         #download?
         totalmax = rjson['paging']['total']
-        _logger.info( "totalmax: "+str(totalmax) )
         scroll_id = False
         if (totalmax>1000):
             #USE SCAN METHOD....
-            _logger.info( "Use scan method" )
             response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search",
                                 {'access_token':meli.access_token,
                                 'search_type': 'scan',
@@ -806,14 +806,12 @@ class res_company(models.Model):
                                 'limit': '100' })
             rjson = response.json()
             _logger.info( rjson )
-
-            condition_last_off = False
+            condition_last_off = True
             if ('scroll_id' in rjson):
                 scroll_id = rjson['scroll_id']
                 ioff = rjson['paging']['limit']
                 results = rjson['results']
                 condition_last_off = False
-
             while (condition_last_off!=True):
                 _logger.info( "Prefetch products ("+str(ioff)+"/"+str(rjson['paging']['total'])+")" )
                 response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search",
