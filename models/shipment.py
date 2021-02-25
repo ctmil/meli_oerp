@@ -251,7 +251,7 @@ class mercadolibre_shipment(models.Model):
 	site_id = fields.Char(string='Site id')
 	posting_id = fields.Many2one("mercadolibre.posting",string="Posting")
 	shipping_id = fields.Char(string='Envio Id',index=True)
-	order_id =  fields.Char(string='Order Id',index=True)
+	order_id = fields.Char(string='Order Id',index=True)
 	order = fields.Many2one("mercadolibre.orders",string="Order")
 	orders = fields.Many2many("mercadolibre.orders",string="Orders (carrito)")
 	sale_order = fields.Many2one('sale.order',string="Sale Order",help="Pedido de venta relacionado en Odoo")
@@ -595,6 +595,7 @@ class mercadolibre_shipment(models.Model):
 				#_logger.info(ships)
 				if (len(shipment)==0):
 					_logger.info("Importing shipment: " + str(ship_id))
+                    _logger.info(str(ship_fields))
 					shipment = shipment_obj.create((ship_fields))
 					if (shipment):
 						_logger.info("Created shipment ok!")
