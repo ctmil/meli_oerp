@@ -138,7 +138,7 @@ class mercadolibre_shipment_print(models.TransientModel):
 		warningobj = self.env['warning']
 
 		if not meli:
-		meli = self.env['meli.util'].get_new_instance(company)
+			meli = self.env['meli.util'].get_new_instance(company)
 			if meli.need_login():
 				return meli.redirect_login()
 
