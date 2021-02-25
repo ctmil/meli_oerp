@@ -235,10 +235,10 @@ class mercadolibre_orders(models.Model):
                 if (len(state)):
                     state_id = state[0].id
                     return state_id
-            id_ml = Receiver['state']['id'].split("-")
+            id_ml = 'id' in Receiver['state'] and Receiver['state']['id'].split("-")
             #_logger.info(Receiver)
             #_logger.info(id_ml)
-            if (len(id_ml)==2):
+            if (id_ml and len(id_ml)==2):
                 id = id_ml[1]
                 state = self.env['res.country.state'].search([('code','like',id),('country_id','=',country_id)])
                 if (len(state)):
@@ -352,7 +352,25 @@ class mercadolibre_orders(models.Model):
     def pretty_json( self, ids, data, indent=0, context=None ):
         return json.dumps( data, sort_keys=False, indent=4 )
 
-    def orders_update_order_json( self, data, context=None ):
+    def prepare_ml_order_vals( self, meli=None, rjson=None ):
+        vals = {}
+        return vals
+
+    def prepare_sale_order_vals( self, meli=None, rjson=None ):
+        vals = {}
+        return vals
+
+    def search_sale_order( self, order_id, meli=None, rjson=None ):
+        sorder = None
+
+        return sorder
+
+    def search_ml_order( self, order_id, meli=None, rjson=None ):
+        mlorder = None
+
+        return mlorder
+
+    def orders_update_order_json( self, data, context=None, config=None, meli=None ):
 
         _logger.info("orders_update_order_json > data "+str(data['id']) + " json:" + str(data['order_json']['id']) )
 
@@ -360,7 +378,12 @@ class mercadolibre_orders(models.Model):
         order_json = data["order_json"]
         #_logger.info( "data:" + str(data) )
         company = self.env.user.company_id
-        meli = self.env['meli.util'].get_new_instance(company)
+
+        if not config:
+            config = company
+
+        if not meli:
+            meli = self.env['meli.util'].get_new_instance(company)
 
         saleorder_obj = self.env['sale.order']
         saleorderline_obj = self.env['sale.order.line']
@@ -370,8 +393,8 @@ class mercadolibre_orders(models.Model):
         respartner_obj = self.env['res.partner']
 
         plistid = None
-        if company.mercadolibre_pricelist:
-            plistid = company.mercadolibre_pricelist
+        if config.mercadolibre_pricelist:
+            plistid = config.mercadolibre_pricelist
         else:
             plistids = pricelist_obj.search([])[0]
             if plistids:
@@ -418,11 +441,11 @@ class mercadolibre_orders(models.Model):
             #if (sorder_s and len(sorder_s)>0):
             #    sorder = saleorder_obj.browse(sorder_s[0] )
         seller_id = None
-        if company.mercadolibre_seller_user:
-            seller_id = company.mercadolibre_seller_user.id
+        if config.mercadolibre_seller_user:
+            seller_id = config.mercadolibre_seller_user.id
         order_fields = {
             'name': "MO [%i]" % ( order_json["id"] ),
-            'company_id': company.id,
+            'company_id': config.id,
             'seller_id': seller_id,
             'order_id': '%i' % (order_json["id"]),
             'status': order_json["status"],
@@ -722,10 +745,10 @@ class mercadolibre_orders(models.Model):
             _logger.info("Adding new sale.order: " )
             #_logger.info(meli_order_fields)
             #user
-            if (company.mercadolibre_seller_user):
-                meli_order_fields["user_id"] = company.mercadolibre_seller_user.id
-            if (company.mercadolibre_seller_team):
-                meli_order_fields["team_id"] = company.mercadolibre_seller_team.id
+            if (config.mercadolibre_seller_user):
+                meli_order_fields["user_id"] = config.mercadolibre_seller_user.id
+            if (config.mercadolibre_seller_team):
+                meli_order_fields["team_id"] = config.mercadolibre_seller_team.id
 
             if 'pack_order' in order_json["tags"]:
                 _logger.info("Pack Order, dont create sale.order, leave it to mercadolibre.shipment")
@@ -802,7 +825,7 @@ class mercadolibre_orders(models.Model):
 
                     if (len(product_related)):
                         _logger.info("order product related by seller_custom_field and default_code:"+str(seller_sku) )
-                        if (not product_related.meli_id and company.mercadolibre_create_product_from_order):
+                        if (not product_related.meli_id and config.mercadolibre_create_product_from_order):
                             prod_fields = {
                                 'meli_id': Item['item']['id'],
                                 'meli_pub': True,
@@ -838,7 +861,7 @@ class mercadolibre_orders(models.Model):
                                     prod_fields['default_code'] = seller_sku
                                 #prod_fields['default_code'] = rjson3['id']
                                 #productcreated = False
-                                if company.mercadolibre_create_product_from_order:
+                                if config.mercadolibre_create_product_from_order:
                                     productcreated = self.env['product.product'].create((prod_fields))
                                 if (productcreated):
                                     if (productcreated.product_tmpl_id):
@@ -912,7 +935,7 @@ class mercadolibre_orders(models.Model):
 
                 if (sorder):
                     saleorderline_item_fields = {
-                        'company_id': company.id,
+                        'company_id': config.id,
                         'order_id': sorder.id,
                         'meli_order_item_id': Item['item']['id'],
                         'meli_order_item_variation_id': Item['item']['variation_id'],
@@ -950,7 +973,7 @@ class mercadolibre_orders(models.Model):
                     'status': Payment['status'] or '',
                     'date_created': ml_datetime(Payment['date_created']),
                     'date_last_modified': ml_datetime(Payment['date_last_modified']),
-                    'mercadopago_url': mp_payment_url+'?access_token='+str(company.mercadolibre_access_token),
+                    'mercadopago_url': mp_payment_url+'?access_token='+str(config.mercadolibre_access_token),
                     'full_payment': '',
                     'fee_amount': 0,
                     'shipping_amount': 0,
@@ -958,7 +981,7 @@ class mercadolibre_orders(models.Model):
                 }
 
                 headers = {'Accept': 'application/json', 'User-Agent': 'Odoo', 'Content-type':'application/json'}
-                params = { 'access_token': company.mercadolibre_access_token }
+                params = { 'access_token': config.mercadolibre_access_token }
                 mp_response = requests.get( mp_payment_url, params=urlencode(params), headers=headers )
                 if (mp_response):
                     payment_fields["full_payment"] = mp_response.json()
@@ -983,7 +1006,7 @@ class mercadolibre_orders(models.Model):
         #if order:
         #    return_id = self.env['mercadolibre.orders'].update
 
-        if company.mercadolibre_cron_get_orders_shipment:
+        if config.mercadolibre_cron_get_orders_shipment:
             _logger.info("Updating order: Shipment")
             if (order and order.shipping_id):
                 shipment = shipment_obj.fetch( order )
@@ -1006,7 +1029,7 @@ class mercadolibre_orders(models.Model):
                     _logger.info(line)
                     line.write({ "qty_to_invoice": 0.0 })
                     _logger.info(line.qty_to_invoice)
-            if (company.mercadolibre_order_confirmation!="manual"):
+            if (config.mercadolibre_order_confirmation!="manual"):
                 sorder.confirm_ml()
             if (sorder.meli_status=="cancelled"):
                 sorder.action_cancel()

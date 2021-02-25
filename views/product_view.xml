@@ -321,6 +321,12 @@
                               attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"
                               class="oe_stat_button"
               								icon="fa-globe"/>
+                              <button name='product_post_price' type="object"
+                                string="Publicar Price"
+                                title="Publicar Price en ML"
+                                attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"
+                                class="oe_stat_button"
+                								icon="fa-globe"/>
                             <button name='product_meli_status_active' type="object"
                               string="Activar"
                               title="Activar producto en ML"
