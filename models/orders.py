@@ -1034,7 +1034,7 @@ class mercadolibre_orders(models.Model):
 
         return {}
 
-    def orders_update_order( self, context=None, meli=None ):
+    def orders_update_order( self, context=None, meli=None, config=None ):
 
         #get with an item id
         company = self.env.user.company_id
@@ -1047,6 +1047,9 @@ class mercadolibre_orders(models.Model):
 
         if not meli:
             meli = self.env['meli.util'].get_new_instance(company)
+            
+        if not config:
+            config = company
 
         response = meli.get("/orders/"+order.order_id, {'access_token':meli.access_token})
         order_json = response.json()
@@ -1057,7 +1060,7 @@ class mercadolibre_orders(models.Model):
             _logger.error( order_json["message"] )
         else:
             try:
-                self.orders_update_order_json( {"id": order.id, "order_json": order_json } )
+                self.orders_update_order_json( {"id": order.id, "order_json": order_json }, meli=meli, config=config )
                 #self._cr.commit()
             except Exception as e:
                 _logger.info("orders_update_order > Error actualizando ORDEN")
@@ -1109,7 +1112,7 @@ class mercadolibre_orders(models.Model):
                     #_logger.info( order_json )
                     pdata = {"id": False, "order_json": order_json}
                     try:
-                        self.orders_update_order_json( data=pdata, meli=meli, config=config )
+                        self.orders_update_order_json( data=pdata, config=config, meli=meli )
                         self._cr.commit()
                     except Exception as e:
                         _logger.info("orders_query_iterate > Error actualizando ORDEN")
