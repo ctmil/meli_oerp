@@ -1047,7 +1047,7 @@ class mercadolibre_orders(models.Model):
 
         if not meli:
             meli = self.env['meli.util'].get_new_instance(company)
-            
+
         if not config:
             config = company
 
@@ -1071,6 +1071,7 @@ class mercadolibre_orders(models.Model):
 
     def orders_query_iterate( self, offset=0, context=None, config=None, meli=None ):
 
+        _logger.info("mercadolibre.orders >> orders_query_iterate: meli: "+str(meli)+" config:"+str(config))
         offset_next = 0
 
         company = self.env.user.company_id
@@ -1126,6 +1127,7 @@ class mercadolibre_orders(models.Model):
 
     def orders_query_recent( self, meli=None, config=None ):
 
+        _logger.info("mercadolibre.orders >> orders_query_recent: meli: "+str(meli)+" config:"+str(config))
         self._cr.autocommit(False)
 
         try:
