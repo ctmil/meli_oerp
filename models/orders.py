@@ -422,7 +422,7 @@ class mercadolibre_orders(models.Model):
                         sorder = sorder_s
         else:
         #we search for existing order with same order_id => "id"
-            order_s = order_obj.search([ ('order_id','=','%i' % (order_json["id"])) ] )
+            order_s = order_obj.search([ ('order_id','=','%s' % (str(order_json["id"]))) ] )
             if (order_s):
                 if (len(order_s)>1):
                     order = order_s[0]
@@ -430,7 +430,7 @@ class mercadolibre_orders(models.Model):
                     order = order_s
             #    order = order_obj.browse(order_s[0] )
 
-            sorder_s = saleorder_obj.search([ ('meli_order_id','=','%i' % (order_json["id"])) ] )
+            sorder_s = saleorder_obj.search([ ('meli_order_id','=','%s' % (str(order_json["id"]))) ] )
             if (sorder_s):
                 if (len(sorder_s)>1):
                     sorder = sorder_s[0]
@@ -442,10 +442,10 @@ class mercadolibre_orders(models.Model):
         if config.mercadolibre_seller_user:
             seller_id = config.mercadolibre_seller_user.id
         order_fields = {
-            'name': "MO [%i]" % ( order_json["id"] ),
+            'name': "MO [%s]" % ( str(order_json["id"]) ),
             'company_id': config.id,
             'seller_id': seller_id,
-            'order_id': '%i' % (order_json["id"]),
+            'order_id': '%s' % (str(order_json["id"])),
             'status': order_json["status"],
             'status_detail': order_json["status_detail"] or '' ,
             'fee_amount': 0.0,
@@ -700,7 +700,7 @@ class mercadolibre_orders(models.Model):
             'name': "ML %s" % ( str(order_json["id"]) ),
             'partner_id': partner_id.id,
             'pricelist_id': plistid.id,
-            'meli_order_id': '%i' % (order_json["id"]),
+            'meli_order_id': '%s' % (str(order_json["id"])),
             'meli_status': order_json["status"],
             'meli_status_detail': order_json["status_detail"] or '' ,
             'meli_total_amount': order_json["total_amount"],
@@ -1051,7 +1051,7 @@ class mercadolibre_orders(models.Model):
         if not config:
             config = company
 
-        response = meli.get("/orders/"+order.order_id, {'access_token':meli.access_token})
+        response = meli.get("/orders/"+str(order.order_id), {'access_token':meli.access_token})
         order_json = response.json()
         #_logger.info( order_json )
 
