@@ -971,7 +971,7 @@ class mercadolibre_orders(models.Model):
                     'status': Payment['status'] or '',
                     'date_created': ml_datetime(Payment['date_created']),
                     'date_last_modified': ml_datetime(Payment['date_last_modified']),
-                    'mercadopago_url': mp_payment_url+'?access_token='+str(config.mercadolibre_access_token),
+                    'mercadopago_url': mp_payment_url+'?access_token='+str(meli.access_token),
                     'full_payment': '',
                     'fee_amount': 0,
                     'shipping_amount': 0,
@@ -979,7 +979,7 @@ class mercadolibre_orders(models.Model):
                 }
 
                 headers = {'Accept': 'application/json', 'User-Agent': 'Odoo', 'Content-type':'application/json'}
-                params = { 'access_token': config.mercadolibre_access_token }
+                params = { 'access_token': meli.access_token }
                 mp_response = requests.get( mp_payment_url, params=urlencode(params), headers=headers )
                 if (mp_response):
                     payment_fields["full_payment"] = mp_response.json()
