@@ -1007,7 +1007,7 @@ class mercadolibre_orders(models.Model):
         if config.mercadolibre_cron_get_orders_shipment:
             _logger.info("Updating order: Shipment")
             if (order and order.shipping_id):
-                shipment = shipment_obj.fetch( order )
+                shipment = shipment_obj.fetch( order, meli=meli, config=config )
                 if (shipment):
                     order.shipment = shipment
                     #TODO: enhance with _order_update_pack()...
