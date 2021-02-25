@@ -352,9 +352,43 @@ class mercadolibre_orders(models.Model):
     def pretty_json( self, ids, data, indent=0, context=None ):
         return json.dumps( data, sort_keys=False, indent=4 )
 
-    def prepare_ml_order_vals( self, meli=None, rjson=None ):
-        vals = {}
-        return vals
+    def prepare_ml_order_vals( self, meli=None, order_json=None, config=None ):
+
+        company = self.env.user.company_id
+
+        if not config:
+            config = company
+
+        seller_id = None
+        if config.mercadolibre_seller_user:
+            seller_id = config.mercadolibre_seller_user.id
+
+        order_fields = {
+            'name': "MO [%s]" % ( str(order_json["id"]) ),
+            'company_id': company.id,
+            'seller_id': seller_id,
+            'order_id': '%s' % (str(order_json["id"])),
+            'status': order_json["status"],
+            'status_detail': order_json["status_detail"] or '' ,
+            'fee_amount': 0.0,
+            'total_amount': order_json["total_amount"],
+            'paid_amount': order_json["paid_amount"],
+            'currency_id': order_json["currency_id"],
+            'date_created': ml_datetime(order_json["date_created"]),
+            'date_closed': ml_datetime(order_json["date_closed"]),
+            'pack_order': False,
+            'catalog_order': False
+        }
+        if "pack_id" in order_json and order_json["pack_id"]:
+            order_fields['pack_id'] = order_json["pack_id"]
+        if 'tags' in order_json:
+            order_fields["tags"] = order_json["tags"]
+            if 'pack_order' in order_json["tags"]:
+                order_fields["pack_order"] = True
+            if 'catalog' in order_json["tags"]:
+                order_fields["catalog_order"] = True
+                #debemos buscar el codigo relacionado pero al producto real del catalogo: que se encuentra.
+        return order_fields
 
     def prepare_sale_order_vals( self, meli=None, rjson=None ):
         vals = {}
@@ -441,32 +475,8 @@ class mercadolibre_orders(models.Model):
         seller_id = None
         if config.mercadolibre_seller_user:
             seller_id = config.mercadolibre_seller_user.id
-        order_fields = {
-            'name': "MO [%s]" % ( str(order_json["id"]) ),
-            'company_id': config.id,
-            'seller_id': seller_id,
-            'order_id': '%s' % (str(order_json["id"])),
-            'status': order_json["status"],
-            'status_detail': order_json["status_detail"] or '' ,
-            'fee_amount': 0.0,
-            'total_amount': order_json["total_amount"],
-            'paid_amount': order_json["paid_amount"],
-            'currency_id': order_json["currency_id"],
-            'date_created': ml_datetime(order_json["date_created"]),
-            'date_closed': ml_datetime(order_json["date_closed"]),
-            'pack_order': False,
-            'catalog_order': False
-        }
-        if "pack_id" in order_json and order_json["pack_id"]:
-            order_fields['pack_id'] = order_json["pack_id"]
-        if 'tags' in order_json:
-            order_fields["tags"] = order_json["tags"]
-            if 'pack_order' in order_json["tags"]:
-                order_fields["pack_order"] = True
-            if 'catalog' in order_json["tags"]:
-                order_fields["catalog_order"] = True
-                #debemos buscar el codigo relacionado pero al producto real del catalogo: que se encuentra.
 
+        order_fields = self.prepare_ml_order_vals( order_json=order_json, meli=meli, config=config )
 
         partner_id = False
 
