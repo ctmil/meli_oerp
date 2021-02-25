@@ -40,6 +40,8 @@ class MeliApi( meli.RestClientApi ):
     access_token = ""
     refresh_token = ""
     redirect_uri = ""
+    seller_id = ""
+
     response = ""
     code = ""
     rjson = {}
@@ -242,6 +244,7 @@ class MeliUtil(models.AbstractModel):
         api_rest_client.access_token = company.mercadolibre_access_token or ''
         api_rest_client.refresh_token = company.mercadolibre_refresh_token
         api_rest_client.redirect_uri = company.mercadolibre_redirect_uri
+        api_rest_client.seller_id = company.mercadolibre_seller_id
         api_rest_client.AUTH_URL = company.get_ML_AUTH_URL(meli=api_rest_client)
         api_auth_client = meli.OAuth20Api(api_client)
         grant_type = 'authorization_code' # or 'refresh_token' if you need get one new token

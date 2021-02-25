@@ -378,10 +378,8 @@ class mercadolibre_orders(models.Model):
         order_json = data["order_json"]
         #_logger.info( "data:" + str(data) )
         company = self.env.user.company_id
-
         if not config:
             config = company
-
         if not meli:
             meli = self.env['meli.util'].get_new_instance(company)
 
@@ -1036,7 +1034,7 @@ class mercadolibre_orders(models.Model):
 
         return {}
 
-    def orders_update_order( self, context=None ):
+    def orders_update_order( self, context=None, meli=None ):
 
         #get with an item id
         company = self.env.user.company_id
@@ -1047,7 +1045,8 @@ class mercadolibre_orders(models.Model):
         log_msg = 'orders_update_order: %s' % (order.order_id)
         _logger.info(log_msg)
 
-        meli = self.env['meli.util'].get_new_instance(company)
+        if not meli:
+            meli = self.env['meli.util'].get_new_instance(company)
 
         response = meli.get("/orders/"+order.order_id, {'access_token':meli.access_token})
         order_json = response.json()
@@ -1067,23 +1066,26 @@ class mercadolibre_orders(models.Model):
 
         return {}
 
-    def orders_query_iterate( self, offset=0, context=None ):
+    def orders_query_iterate( self, offset=0, context=None, config=None, meli=None ):
 
         offset_next = 0
 
         company = self.env.user.company_id
+        if not config:
+            config = company
 
         orders_obj = self.env['mercadolibre.orders']
 
-        meli = self.env['meli.util'].get_new_instance(company)
+        if not meli:
+            meli = self.env['meli.util'].get_new_instance(company)
 
-        orders_query = "/orders/search?seller="+company.mercadolibre_seller_id+"&sort=date_desc"
+        orders_query = "/orders/search?seller="+str(meli.seller_id)+"&sort=date_desc"
         #TODO: "create parameter for": orders_query+= "&limit=10"
 
         if (offset):
             orders_query = orders_query + "&offset="+str(offset).strip()
 
-        response = meli.get( orders_query, {'access_token':meli.access_token})
+        response = meli.get( orders_query, {'access_token': meli.access_token})
         orders_json = response.json()
 
         if "error" in orders_json:
@@ -1107,7 +1109,7 @@ class mercadolibre_orders(models.Model):
                     #_logger.info( order_json )
                     pdata = {"id": False, "order_json": order_json}
                     try:
-                        self.orders_update_order_json( pdata )
+                        self.orders_update_order_json( data=pdata, meli=meli, config=config )
                         self._cr.commit()
                     except Exception as e:
                         _logger.info("orders_query_iterate > Error actualizando ORDEN")
@@ -1115,16 +1117,16 @@ class mercadolibre_orders(models.Model):
                         pass
 
         if (offset_next>0):
-            self.orders_query_iterate(offset_next)
+            self.orders_query_iterate( offset=offset_next, meli=meli, config=config )
 
         return {}
 
-    def orders_query_recent( self ):
+    def orders_query_recent( self, meli=None, config=None ):
 
         self._cr.autocommit(False)
 
         try:
-            self.orders_query_iterate( 0 )
+            self.orders_query_iterate( offset=0, meli=meli, config=config )
         except Exception as e:
             _logger.info("orders_query_recent > Error iterando ordenes")
             _logger.error(e, exc_info=True)
