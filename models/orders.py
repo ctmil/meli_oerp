@@ -817,22 +817,27 @@ class mercadolibre_orders(models.Model):
                     product_related = product_obj.search([('meli_id','=',Item['item']['id']),('meli_id_variation','=',str(Item['item']['variation_id']))])
                 if ( ('seller_custom_field' in Item['item'] or 'seller_sku' in Item['item'])  and len(product_related)==0):
 
-                    seller_sku = Item['item']['seller_custom_field']
-
+                    #1ST attempt "seller_sku" or "seller_custom_field"
+                    seller_sku = ('seller_sku' in Item['item'] and Item['item']['seller_sku']) or ('seller_custom_field' in Item['item'] and Item['item']['seller_custom_field'])
                     if (seller_sku):
                         product_related = product_obj.search([('default_code','=',seller_sku)])
 
-                    if (not product_related and 'seller_sku' in Item['item']):
-                        seller_sku = Item['item']['seller_sku']
-
+                    #2ND attempt only old "seller_custom_field"
+                    if (not product_related and 'seller_custom_field' in Item['item']):
+                        seller_sku = ('seller_custom_field' in Item['item'] and Item['item']['seller_custom_field'])
                     if (seller_sku):
                         product_related = product_obj.search([('default_code','=',seller_sku)])
 
+                    #TODO: 3RD attempt using barcode
                     #if (not product_related):
                     #   search using item attributes GTIN and SELLER_SKU
 
                     if (len(product_related)):
                         _logger.info("order product related by seller_custom_field and default_code:"+str(seller_sku) )
+
+                        if (len(product_related)>1):
+                            product_related = product_related[0]
+
                         if (not product_related.meli_id and config.mercadolibre_create_product_from_order):
                             prod_fields = {
                                 'meli_id': Item['item']['id'],
