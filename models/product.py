@@ -1287,14 +1287,15 @@ class product_product(models.Model):
         else:
             #NO TIENE variantes pero tiene SKU
             seller_sku = None
-            if ("seller_custom_field" in rjson):
-                seller_sku = rjson["seller_custom_field"]
 
             if not seller_sku and "attributes" in rjson:
                 for att in rjson['attributes']:
                     if att["id"] == "SELLER_SKU":
                         seller_sku = att["values"][0]["name"]
                         break;
+
+            if (not seller_sku and "seller_custom_field" in rjson):
+                seller_sku = rjson["seller_custom_field"]
 
             if seller_sku:
                 product.default_code = seller_sku
