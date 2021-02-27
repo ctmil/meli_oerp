@@ -949,6 +949,15 @@ class product_product(models.Model):
 
         return published_att_variants
 
+    def is_variant_in_combination( self, ml_var_comb_default_code, var_default_code ):
+        splits = ml_var_comb_default_code.split(";")
+        is_in = True
+        for att in splits:
+            if not att in var_default_code:
+                is_in = False
+                break;
+        return is_in
+
     def product_meli_get_product( self ):
         company = self.env.user.company_id
         product_obj = self.env['product.product']
@@ -1258,7 +1267,7 @@ class product_product(models.Model):
                 for variation in rjson['variations']:
                     #_logger.info(variation)
                     #_logger.info("variation[default_code]: " + variation["default_code"])
-                    if (len(variation["default_code"]) and (variation["default_code"] in _v_default_code)):
+                    if (len(variation["default_code"]) and variant.is_variant_in_combination( variation["default_code"], _v_default_code )):
                         if ("seller_custom_field" in variation or "seller_sku" in variation):
                             #_logger.info("has_sku")
                             #_logger.info(variation["seller_custom_field"])
