@@ -31,11 +31,15 @@
 					<sheet>
 						<div class="oe_title">
 							<h1><field name="notification_id"/></h1>
-							<field name='user_id'/>
-							<field name='application_id'/>
-							<field name="company_id" />
-							<field name="seller_id" />
 						</div>
+						<group>
+							<group name="application" string="Application">
+								<field name='user_id'/>
+								<field name='application_id'/>
+								<field name="company_id" />
+								<field name="seller_id" />
+							</group>
+						</group>
 						<div class="oe_button_box" name="button_box_mel" style="width: auto;">
 							<button name='process_notification' type="object"
 								string="Procesar"
