@@ -377,7 +377,8 @@ class mercadolibre_orders(models.Model):
             'date_created': ml_datetime(order_json["date_created"]),
             'date_closed': ml_datetime(order_json["date_closed"]),
             'pack_order': False,
-            'catalog_order': False
+            'catalog_order': False,
+            'seller': ("seller" in order_json and str(order_json["seller"])) or ''
         }
         if "pack_id" in order_json and order_json["pack_id"]:
             order_fields['pack_id'] = order_json["pack_id"]
