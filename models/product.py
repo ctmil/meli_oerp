@@ -251,8 +251,10 @@ class product_template(models.Model):
 
     @api.onchange('meli_pub') # if these fields are changed, call method
     def change_meli_pub(self):
+        _logger.info(self)
         _logger.info("onchange meli_pub:"+str(self.meli_pub))
-        #product = self._origin
+        ##product = self._origin
+        product = self
         for variant in product.product_variant_ids:
             _logger.info("onchange meli_pub variant before::"+str(variant.meli_pub))
             variant.write({'meli_pub':self.meli_pub})
