@@ -48,7 +48,6 @@ from .versions import *
 class product_template(models.Model):
     _inherit = "product.template"
 
-
     def product_template_post(self):
         product_obj = self.env['product.template']
         company = self.env.user.company_id
