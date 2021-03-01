@@ -255,7 +255,7 @@ class product_template(models.Model):
         product = self._origin
         for variant in product.product_variant_ids:
             _logger.info("onchange meli_pub variant before::"+str(variant.meli_pub))
-            variant.write({'meli_pub':self.meli_pub})
+            variant.write({'meli_pub':product.meli_pub})
 
     def get_title_for_meli(self):
         return self.name
