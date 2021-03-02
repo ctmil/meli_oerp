@@ -406,7 +406,7 @@ class mercadolibre_orders(models.Model):
         return mlorder
 
     def search_meli_product( self, meli_item=None, config=None ):
-
+        product_obj = self.env['product.product']
         if not meli_item:
             return None
         meli_id = meli_item['id']
