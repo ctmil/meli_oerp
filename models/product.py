@@ -1739,13 +1739,13 @@ class product_product(models.Model):
         ML_state = False
         #meli = None
 
-        if meli.need_login():
+        if meli and meli.need_login():
             ML_status = "unknown"
             ML_permalink = ""
             ML_state = True
 
         for product in self:
-            if product.meli_id and not meli.need_login():
+            if product.meli_id and meli and not meli.need_login():
                 response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token} )
                 rjson = response.json()
                 if "status" in rjson:

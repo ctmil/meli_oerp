@@ -405,6 +405,19 @@ class mercadolibre_orders(models.Model):
 
         return mlorder
 
+    def search_meli_product( self, meli_item=None, config=None ):
+
+        if not meli_item:
+            return None
+        meli_id = meli_item['id']
+        meli_id_variation = ("variation_id" in meli_item and meli_item['variation_id'])
+        if (meli_id_variation):
+            product_related = product_obj.search([ ('meli_id','=',meli_id), ('meli_id_variation','=',meli_id_variation) ])
+        else:
+            product_related = product_obj.search([('meli_id','=', meli_id)])
+        return product_related
+
+
     def orders_update_order_json( self, data, context=None, config=None, meli=None ):
 
         _logger.info("orders_update_order_json > data "+str(data['id']) + " json:" + str(data['order_json']['id']) )
@@ -813,9 +826,7 @@ class mercadolibre_orders(models.Model):
                     _logger.info( "No post related, exiting" )
                     return { 'error': 'No post related, exiting'}
 
-                product_related = product_obj.search([('meli_id','=',Item['item']['id'])])
-                if ("variation_id" in Item["item"]):
-                    product_related = product_obj.search([('meli_id','=',Item['item']['id']),('meli_id_variation','=',str(Item['item']['variation_id']))])
+                product_related = self.search_meli_product(meli_item=Item['item'],config=config)
                 if ( ('seller_custom_field' in Item['item'] or 'seller_sku' in Item['item'])  and len(product_related)==0):
 
                     #1ST attempt "seller_sku" or "seller_custom_field"
