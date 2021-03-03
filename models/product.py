@@ -1027,8 +1027,9 @@ class product_product(models.Model):
         except IOError as e:
             _logger.info( "I/O error({0}): {1}".format(e.errno, e.strerror) )
             return {}
-        except:
+        except Exception as E:
             _logger.info( "Rare error" )
+            _logger.info(E, exc_info=True)
             return {}
 
         des = ''
