@@ -117,7 +117,8 @@
                         <tree>
                           <field string="Id Pub" name="meli_id"/>
                           <field string="Id Var" name="meli_id_variation"/>
-                          <field string="Variant" name="name"/>
+                          <field string="Sku" name="default_code"/>
+                          <field string="Variant" name="display_name"/>
                           <field string="Status" name="meli_status"/>
                           <field string="Sub Status" name="meli_sub_status"/>
                           <field string="ML Title" name="meli_title"/>
@@ -321,6 +322,12 @@
                               attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"
                               class="oe_stat_button"
               								icon="fa-globe"/>
+                              <button name='product_post_price' type="object"
+                                string="Publicar Price"
+                                title="Publicar Price en ML"
+                                attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"
+                                class="oe_stat_button"
+                								icon="fa-globe"/>
                             <button name='product_meli_status_active' type="object"
                               string="Activar"
                               title="Activar producto en ML"
