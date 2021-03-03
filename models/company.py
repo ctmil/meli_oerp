@@ -31,7 +31,6 @@ from .meli_oerp_config import *
 from .warning import warning
 
 import requests
-from ..melisdk.meli import Meli
 
 class res_company(models.Model):
     _name = "res.company"
