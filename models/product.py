@@ -614,9 +614,9 @@ class product_product(models.Model):
 
         try:
             #_logger.info("Cleaning product variant images with meli id not in ML")
-            ml_images = self.env["product.image"].search([('meli_force_pub','=',False),
-                                                        ('meli_imagen_id','!=',False),
-                                                        ('product_variant_id','=',product.id)])
+            ml_images = self.env["product.image"].search([  ('meli_force_pub','=',False),
+                                                            ('meli_imagen_id','!=',False),
+                                                            ('product_variant_id','=',product.id)])
             #_logger.info(ml_images)
             if (ml_images and len(ml_images)):
                 for ml_image in ml_images:
@@ -806,7 +806,7 @@ class product_product(models.Model):
     def _get_variations( self, variations ):
 
         #recorrer los variations>attribute_combinations y agregarlos como atributos de las variantes
-        _logger.info(variations)
+        _logger.info("_get_variations:"+str(len(variations)))
 
         published_att_variants = False
         product = self
