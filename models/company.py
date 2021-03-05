@@ -31,7 +31,6 @@ from .meli_oerp_config import *
 from .warning import warning
 
 import requests
-from ..melisdk.meli import Meli
 
 class res_company(models.Model):
     _name = "res.company"
@@ -142,7 +141,7 @@ class res_company(models.Model):
 
     def cron_meli_process( self ):
 
-        _logger.info('company cron_meli_process() ')
+        _logger.info('company cron_meli_process() '+str(self))
 
         company = self.env.user.company_id
         warningobj = self.pool.get('warning')
@@ -150,6 +149,8 @@ class res_company(models.Model):
         apistate = self.env['meli.util'].get_new_instance(company)
         if apistate.needlogin_state:
             return True
+
+        _logger.info(str(company.name))
 
         if (company.mercadolibre_cron_get_update_products):
             _logger.info("company.mercadolibre_cron_get_update_products")
@@ -169,7 +170,7 @@ class res_company(models.Model):
 
         if (company.mercadolibre_cron_post_update_price):
             _logger.info("company.mercadolibre_cron_post_update_price")
-            self.meli_update_remote_price()
+            self.meli_update_remote_price(meli=apistate)
 
     def cron_meli_orders(self):
         _logger.info('company cron_meli_orders() ')
@@ -237,7 +238,7 @@ class res_company(models.Model):
                                                 ("not_specified","No especificado")],
                                                 string='Condición',
                                                 help='Condición del producto predeterminado')
-    mercadolibre_warranty = fields.Char(string='Garantía', size=256)
+    mercadolibre_warranty = fields.Char(string='Garantía', size=256, help='Garantía del producto predeterminado. Es obligatorio y debe ser un número seguido por una unidad temporal. Ej. 2 meses, 3 años.')
     mercadolibre_listing_type = fields.Selection([("free","Libre"),
                                                 ("bronze","Bronce"),
                                                 ("silver","Plata"),
@@ -249,7 +250,7 @@ class res_company(models.Model):
                                                 help='Tipo de lista  predeterminada para todos los productos')
     mercadolibre_attributes = fields.Boolean(string='Apply product attributes')
     mercadolibre_exclude_attributes = fields.Many2many('product.attribute.value',
-        string='Valores excluidos',help='Seleccionar valores que serán excluidos para las publicaciones de variantes')
+        string='Valores excluidos', help='Seleccionar valores que serán excluidos para las publicaciones de variantes')
     mercadolibre_update_local_stock = fields.Boolean(string='Cron Get Products and take Stock from ML')
     mercadolibre_product_template_override_variant = fields.Boolean(string='Product template override Variant')
     mercadolibre_product_template_override_method = fields.Selection(string='Método para Sobreescribir',
@@ -292,6 +293,7 @@ class res_company(models.Model):
     mercadolibre_import_search_sku = fields.Boolean(string='Search SKU',help='Search product by default_code')
 
     mercadolibre_seller_user = fields.Many2one("res.users", string="Vendedor", help="Usuario con el que se registrarán las órdenes automáticamente")
+    mercadolibre_seller_team = fields.Many2one("crm.team", string="Equipo de ventas", help="Equipo de ventas asociado a las ventas de ML")
     mercadolibre_remove_unsync_images = fields.Boolean(string='Removing unsync images (ml id defined for image but no longer in ML publication)')
 
     mercadolibre_official_store_id = fields.Char(string="Official Store Id")
@@ -373,22 +375,32 @@ class res_company(models.Model):
             results = rjson['results']
 
         #download?
-        totalmax = rjson['paging']['total']
+        totalmax = 0
+        if 'paging' in rjson:
+            totalmax = rjson['paging']['total']
+
+        _logger.info( "totalmax: "+str(totalmax) )
+
         scroll_id = False
         if (totalmax>1000):
             #USE SCAN METHOD....
+            _logger.info( "use scan method: "+str(totalmax) )
             response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search",
                                 {'access_token':meli.access_token,
                                 'search_type': 'scan',
                                 'limit': '100' })
             rjson = response.json()
             _logger.info( rjson )
+
             condition_last_off = True
+            ioff = 0
+
             if ('scroll_id' in rjson):
                 scroll_id = rjson['scroll_id']
                 ioff = rjson['paging']['limit']
                 results = rjson['results']
                 condition_last_off = False
+
             while (condition_last_off!=True):
                 _logger.info( "Prefetch products ("+str(ioff)+"/"+str(rjson['paging']['total'])+")" )
                 response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search",
@@ -400,6 +412,7 @@ class res_company(models.Model):
                     })
                 rjson2 = response.json()
                 if 'error' in rjson2:
+                    _logger.error(rjson2)
                     if rjson2['message']=='invalid_token' or rjson2['message']=='expired_token':
                         ACCESS_TOKEN = ''
                         REFRESH_TOKEN = ''
@@ -411,6 +424,7 @@ class res_company(models.Model):
                         "target": "new",}
                     condition_last_off = True
                 else:
+                    #_logger.info(rjson2)
                     results += rjson2['results']
                     ioff+= rjson2['paging']['limit']
                     if ('scroll_id' in rjson2):
@@ -685,7 +699,6 @@ class res_company(models.Model):
                             if "error" in resjson:
                                 errors+= str(obj.default_code)+" "+str(obj.meli_id)+" >> "+str(resjson)+"\n"
 
-
                             if ((icommit==40 or (icount==maxcommits)) and 1==1):
                                 noti.processing_errors = errors
                                 noti.processing_logs = logs
@@ -719,22 +732,80 @@ class res_company(models.Model):
         return {}
 
 
-    def meli_update_remote_price(self):
+    def meli_update_remote_price(self, meli=False):
         company = self.env.user.company_id
         if (company.mercadolibre_cron_post_update_price):
+            auto_commit = not getattr(threading.currentThread(), 'testing', False)
             product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False),
                                                               '|',('company_id','=',False),('company_id','=',company.id)])
-            _logger.info("product_ids stock to update:" + str(product_ids))
-            if product_ids:
-                for obj in product_ids:
-                    try:
-                        #_logger.info( "Product remote to update: " + str(obj.id)  )
-                        if (obj.meli_id and (obj.meli_status=='active')):
-                            obj.product_post_price()
-                    except Exception as e:
-                        _logger.info("meli_update_remote_price > Exception founded!")
-                        _logger.info(e, exc_info=True)
+            _logger.info("product_ids price to update:" + str(product_ids))
+            _logger.info("updating price #" + str(len(product_ids)) + " on " + str(company.name))
 
+            icommit = 0
+            icount = 0
+            maxcommits = len(product_ids)
+
+            #meli = self.env['meli.util'].get_new_instance(company)
+
+            if product_ids and meli:
+
+                internals = {
+                    "application_id": company.mercadolibre_client_id,
+                    "user_id": company.mercadolibre_seller_id,
+                    "topic": "internal",
+                    "resource": "meli_update_remote_price #"+str(maxcommits),
+                    "state": "PROCESSING"
+                }
+                noti = self.env["mercadolibre.notification"].start_internal_notification( internals )
+                logs = ""
+                errors = ""
+                try:
+                    if auto_commit:
+                        self.env.cr.commit()
+                    for obj in product_ids:
+
+                        icommit+= 1
+                        icount+= 1
+                        #_logger.info( "Product remote to update: " + str(obj.id)  )
+                        if (obj.meli_id):
+                            try:
+                                _logger.info( "Update Price: #" + str(icount) +'/'+str(maxcommits)+ ' meli_id:'+str(obj.meli_id)  )
+                                resjson = obj.product_post_price(meli=meli)
+                                logs+= str(obj.default_code)+" "+str(obj.meli_id)+": "+str(obj.meli_price)+"\n"
+                                if "error" in resjson:
+                                    errors+= str(obj.default_code)+" "+str(obj.meli_id)+" >> "+str(resjson)+"\n"
+
+                                if ((icommit==40 or (icount==maxcommits)) and 1==1):
+                                    noti.processing_errors = errors
+                                    noti.processing_logs = logs
+                                    noti.resource = "meli_update_remote_price #"+str(icount) +'/'+str(maxcommits)
+                                    _logger.info("meli_update_remote_price commiting")
+                                    icommit=0
+                                    if auto_commit:
+                                        self.env.cr.commit()
+
+                            except Exception as e:
+                                _logger.info("meli_update_remote_price > Exception founded!")
+                                _logger.info(e, exc_info=True)
+                                logs+= str(obj.default_code)+" "+str(obj.meli_id)+": "+str(obj.meli_price)+", "
+                                #errors+= str(obj.default_code)+" "+str(obj.meli_id)+" >> "+str(e.args[0])+str(", ")
+                                errors+= str(obj.default_code)+" "+str(obj.meli_id)+" >> "+str(e)+"\n"
+                                if auto_commit:
+                                    self.env.cr.rollback()
+
+                    noti.resource = "meli_update_remote_price #"+str(icount) +'/'+str(maxcommits)
+                    noti.stop_internal_notification(errors=errors,logs=logs)
+
+                except Exception as e:
+                    _logger.info("meli_update_remote_price > Exception founded!")
+                    _logger.info(e, exc_info=True)
+                    if auto_commit:
+                        self.env.cr.rollback()
+                    noti.stop_internal_notification( errors=errors , logs=logs )
+                    if auto_commit:
+                        self.env.cr.commit()
+
+        return {}
 
     def meli_notifications(self, data=False):
         company = self
@@ -810,6 +881,7 @@ class res_company(models.Model):
                     })
                 rjson2 = response.json()
                 if 'error' in rjson2:
+                    _logger.error( rjson2 )
                     if rjson2['message']=='invalid_token' or rjson2['message']=='expired_token':
                         ACCESS_TOKEN = ''
                         REFRESH_TOKEN = ''

@@ -40,6 +40,8 @@ class MeliApi( meli.RestClientApi ):
     access_token = ""
     refresh_token = ""
     redirect_uri = ""
+    seller_id = ""
+
     response = ""
     code = ""
     rjson = {}
@@ -52,11 +54,25 @@ class MeliApi( meli.RestClientApi ):
     def json(self):
         return self.rjson
 
+    def call_get(self, resource=None, access_token=None, **params ):
+        return {}
+
     def get(self, path, params={}):
         try:
             atok = ("access_token" in params and params["access_token"]) or ""
+            scroll_id = ("scroll_id" in params and params["scroll_id"]) or None
+            if atok:
+                del params["access_token"]
+            if scroll_id:
+                del params["scroll_id"]
+            if params:
+                path+="?"+urlencode(params)
+                if scroll_id:
+                    path+="&scroll_id="+scroll_id
             #_logger.info("MeliApi.get(%s,%s)" % (path,str(atok)) )
             self.response = self.resource_get(resource=path, access_token=atok)
+            #if params:
+            #   self.response = self.call_get( resource=path, access_token=atok, **params)
             self.rjson = self.response
         except ApiException as e:
             self.rjson = {
@@ -155,7 +171,7 @@ class MeliApi( meli.RestClientApi ):
         if redirect_URI:
             self.redirect_uri = redirect_URI
         random_id = str(now)
-        params = { 'client_id': self.client_id, 'response_type':'code', 'redirect_uri':self.redirect_uri,'state': random_id}
+        params = { 'client_id': self.client_id, 'response_type':'code', 'redirect_uri':self.redirect_uri, 'state': random_id}
         url = self.AUTH_URL  + '?' + urlencode(params)
         #_logger.info("Authorize Login here: "+str(url))
         return url
@@ -228,6 +244,7 @@ class MeliUtil(models.AbstractModel):
         api_rest_client.access_token = company.mercadolibre_access_token or ''
         api_rest_client.refresh_token = company.mercadolibre_refresh_token
         api_rest_client.redirect_uri = company.mercadolibre_redirect_uri
+        api_rest_client.seller_id = company.mercadolibre_seller_id
         api_rest_client.AUTH_URL = company.get_ML_AUTH_URL(meli=api_rest_client)
         api_auth_client = meli.OAuth20Api(api_client)
         grant_type = 'authorization_code' # or 'refresh_token' if you need get one new token

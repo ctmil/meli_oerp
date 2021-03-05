@@ -118,6 +118,77 @@ class mercadolibre_category(models.Model):
     _name = "mercadolibre.category"
     _description = "Categories of MercadoLibre"
 
+    def meli_get_category( self, category_id, meli=None, create_missing_website=True ):
+
+        company = self.env.user.company_id
+        www_cats = False
+        if 'product.public.category' in self.env:
+            www_cats = self.env['product.public.category']
+        if not meli:
+            meli = self.env['meli.util'].get_new_instance(company)
+        if meli.need_login():
+            return meli.redirect_login()
+
+        mlcatid = False
+        www_cat_id = False
+
+        ml_cat = self.env['mercadolibre.category'].search([('meli_category_id','=',category_id)],limit=1)
+        ml_cat_id = ml_cat.id
+        if (ml_cat_id):
+            #_logger.info( "category exists!" + str(ml_cat_id) )
+            mlcatid = ml_cat_id
+            if www_cats:
+                www_cat_id = ml_cat.public_category_id
+        else:
+            #_logger.info( "Creating category: " + str(category_id) )
+            #https://api.mercadolibre.com/categories/MLA1743
+            response_cat = meli.get("/categories/"+str(category_id), {'access_token':meli.access_token})
+            rjson_cat = response_cat.json()
+            #_logger.info( "category:" + str(rjson_cat) )
+            fullname = ""
+            if ("path_from_root" in rjson_cat):
+                path_from_root = rjson_cat["path_from_root"]
+                p_id = False
+                #pdb.set_trace()
+                for path in path_from_root:
+                    fullname = fullname + "/" + path["name"]
+
+                    if (create_missing_website and ('product.public.category' in self.env) ):
+                        if www_cats!=False:
+                            www_cat_id = www_cats.search([('name','=',path["name"])]).id
+                            if www_cat_id==False:
+                                www_cat_fields = {
+                                  'name': path["name"],
+                                  #'parent_id': p_id,
+                                  #'sequence': 1
+                                }
+                                if p_id:
+                                    www_cat_fields['parent_id'] = p_id
+                                www_cat_id = www_cats.create((www_cat_fields)).id
+                                if www_cat_id:
+                                    _logger.info("Website Category created:"+fullname)
+
+                            p_id = www_cat_id
+
+            #fullname = fullname + "/" + rjson_cat['name']
+            #_logger.info( "category fullname:" + fullname )
+            cat_fields = {
+                'name': fullname,
+                'meli_category_id': ''+str(category_id),
+                'public_category_id': 0,
+            }
+
+            if www_cat_id:
+                p_cat_id = www_cats.search([('id','=',www_cat_id)])
+                if (len(p_cat_id)):
+                    cat_fields['public_category_id'] = www_cat_id
+                #cat_fields['public_category'] = p_cat_id
+
+            ml_cat_id = self.env['mercadolibre.category'].create((cat_fields)).id
+            if (ml_cat_id):
+                mlcatid = ml_cat_id
+
+        return mlcatid, www_cat_id
 
     def _get_category_url( self ):
         company = self.env.user.company_id
