@@ -48,7 +48,6 @@ from .versions import *
 class product_template(models.Model):
     _inherit = "product.template"
 
-
     def product_template_post(self):
         product_obj = self.env['product.template']
         company = self.env.user.company_id
@@ -253,6 +252,7 @@ class product_template(models.Model):
     def change_meli_pub(self):
         _logger.info("onchange meli_pub:"+str(self.meli_pub))
         product = self._origin
+        #product = self
         for variant in product.product_variant_ids:
             _logger.info("onchange meli_pub variant before::"+str(variant.meli_pub))
             variant.write({'meli_pub':self.meli_pub})
@@ -527,9 +527,10 @@ class product_product(models.Model):
 
         product = self
         company = self.env.user.company_id
-
+        www_cats = False
+        if 'product.public.category' in self.env:
+            www_cats = self.env['product.public.category']
         meli = self.env['meli.util'].get_new_instance(company)
-
         if meli.need_login():
             return meli.redirect_login()
 
@@ -613,9 +614,9 @@ class product_product(models.Model):
 
         try:
             #_logger.info("Cleaning product variant images with meli id not in ML")
-            ml_images = self.env["product.image"].search([('meli_force_pub','=',False),
-                                                        ('meli_imagen_id','!=',False),
-                                                        ('product_variant_id','=',product.id)])
+            ml_images = self.env["product.image"].search([  ('meli_force_pub','=',False),
+                                                            ('meli_imagen_id','!=',False),
+                                                            ('product_variant_id','=',product.id)])
             #_logger.info(ml_images)
             if (ml_images and len(ml_images)):
                 for ml_image in ml_images:
@@ -805,7 +806,7 @@ class product_product(models.Model):
     def _get_variations( self, variations ):
 
         #recorrer los variations>attribute_combinations y agregarlos como atributos de las variantes
-        _logger.info(variations)
+        _logger.info("_get_variations:"+str(len(variations)))
 
         published_att_variants = False
         product = self
@@ -949,6 +950,15 @@ class product_product(models.Model):
 
         return published_att_variants
 
+    def is_variant_in_combination( self, ml_var_comb_default_code, var_default_code ):
+        splits = ml_var_comb_default_code.split(";")
+        is_in = True
+        for att in splits:
+            if not att in var_default_code:
+                is_in = False
+                break;
+        return is_in
+
     def product_meli_get_product( self ):
         company = self.env.user.company_id
         product_obj = self.env['product.product']
@@ -972,8 +982,9 @@ class product_product(models.Model):
         except IOError as e:
             _logger.info( "I/O error({0}): {1}".format(e.errno, e.strerror) )
             return {}
-        except:
+        except Exception as E:
             _logger.info( "Rare error" )
+            _logger.info(E, exc_info=True)
             return {}
 
         des = ''
@@ -1186,8 +1197,9 @@ class product_product(models.Model):
                     _logger.info(vid)
                     realmeliv = realmeliv+1
                     vid = rjson['variations'][vindex]['id']
-                    resvar = meli.get("/items/"+str(product.meli_id)+"/variations/"+str(vid), {'access_token':meli.access_token})
-                    vjson = resvar.json()
+                    #resvar = meli.get("/items/"+str(product.meli_id)+"/variations/"+str(vid), {'access_token':meli.access_token})
+                    #vjson = resvar.json()
+                    vjson = variation
                     if ( "error" in vjson ):
                         continue;
                     if ("attributes" in vjson):
@@ -1258,7 +1270,7 @@ class product_product(models.Model):
                 for variation in rjson['variations']:
                     #_logger.info(variation)
                     #_logger.info("variation[default_code]: " + variation["default_code"])
-                    if (len(variation["default_code"]) and (variation["default_code"] in _v_default_code)):
+                    if (len(variation["default_code"]) and variant.is_variant_in_combination( variation["default_code"], _v_default_code )):
                         if ("seller_custom_field" in variation or "seller_sku" in variation):
                             #_logger.info("has_sku")
                             #_logger.info(variation["seller_custom_field"])
@@ -1287,14 +1299,15 @@ class product_product(models.Model):
         else:
             #NO TIENE variantes pero tiene SKU
             seller_sku = None
-            if ("seller_custom_field" in rjson):
-                seller_sku = rjson["seller_custom_field"]
 
             if not seller_sku and "attributes" in rjson:
                 for att in rjson['attributes']:
                     if att["id"] == "SELLER_SKU":
                         seller_sku = att["values"][0]["name"]
                         break;
+
+            if (not seller_sku and "seller_custom_field" in rjson):
+                seller_sku = rjson["seller_custom_field"]
 
             if seller_sku:
                 product.default_code = seller_sku
@@ -1728,13 +1741,13 @@ class product_product(models.Model):
         ML_state = False
         #meli = None
 
-        if meli.need_login():
+        if meli and meli.need_login():
             ML_status = "unknown"
             ML_permalink = ""
             ML_state = True
 
         for product in self:
-            if product.meli_id and not meli.need_login():
+            if product.meli_id and meli and not meli.need_login():
                 response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token} )
                 rjson = response.json()
                 if "status" in rjson:
@@ -2761,7 +2774,7 @@ class product_product(models.Model):
             _logger.info(e, exc_info=True)
 
 
-    def product_post_price(self):
+    def product_post_price(self, meli=None):
         company = self.env.user.company_id
         warningobj = self.env['warning']
 
@@ -2769,16 +2782,52 @@ class product_product(models.Model):
         product = self
         product_tmpl = self.product_tmpl_id
 
-        meli = self.env['meli.util'].get_new_instance(company)
-        #if meli.need_login():
-        #    return meli.redirect_login()
+        if not meli:
+            meli = self.env['meli.util'].get_new_instance(company)
+            if meli.need_login():
+                return meli.redirect_login()
 
         product.set_meli_price()
 
         fields = {
             "price": product.meli_price
         }
-        response = meli.put("/items/"+product.meli_id, fields, {'access_token':meli.access_token})
+
+        if (product.meli_id and not product.meli_id_variation):
+            #_logger.info("meli:"+str(meli))
+            response = meli.get("/items/%s" % product.meli_id, {'access_token':meli.access_token})
+            if (response):
+                pjson = response.json()
+                if "variations" in pjson:
+                    if (len(pjson["variations"])==1):
+                        product.meli_id_variation = pjson["variations"][0]["id"]
+
+        if (product.meli_id_variation):
+            #_logger.info("Posting using product.meli_id_variation")
+            var = {
+                #"id": str( product.meli_id_variation ),
+                "price": product.meli_price,
+                #"picture_ids": ['806634-MLM28112717071_092018', '928808-MLM28112717068_092018', '643737-MLM28112717069_092018', '934652-MLM28112717070_092018']
+            }
+            responsevar = meli.put("/items/"+product.meli_id+'/variations/'+str( product.meli_id_variation ), var, {'access_token':meli.access_token})
+            if (responsevar):
+                rjson = responsevar.json()
+                if rjson:
+                    #_logger.info(rjson)
+                    if (len(rjson) and rjson[0] and 'price' in rjson[0]):
+                        _logger.info( "Posted price ok " + str(product.meli_id) + ": " + str(rjson[0]['price']) )
+                    if "error" in rjson:
+                        _logger.error(rjson)
+                        return rjson
+        else:
+            _logger.info("product_post_price:"+str(fields))
+            response = meli.put("/items/"+product.meli_id, fields, {'access_token':meli.access_token})
+            if response:
+                rjson = response.json()
+                if "error" in rjson:
+                    _logger.error(rjson)
+                    return rjson
+        return {}
 
     def get_title_for_meli(self):
         return self.name

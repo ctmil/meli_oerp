@@ -319,7 +319,7 @@ class MercadolibreNotification(models.Model):
                 noti.process_notification()
 
     def start_internal_notification(self, internals):
-
+        noti = None
         date_time = ml_datetime( str( datetime.now() ) )
         base_str = str(internals["application_id"]) + str(internals["user_id"]) + str(date_time)
 
@@ -335,7 +335,8 @@ class MercadolibreNotification(models.Model):
         internals["state"] = "RECEIVED"
 
         vals = self._prepare_values(values=internals)
-        noti = self.create(vals)
+        if vals:
+            noti = self.create(vals)
 
         return  noti
 

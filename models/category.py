@@ -73,7 +73,6 @@ class mercadolibre_category_import(models.TransientModel):
             catid = self.env["mercadolibre.category"].import_all_categories( self.meli_category_id, self.meli_recursive_import )
 
 
-
 mercadolibre_category_import()
 
 class product_public_category(models.Model):
