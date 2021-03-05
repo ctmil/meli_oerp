@@ -167,6 +167,11 @@ class product_template(models.Model):
 
     def product_template_stats(self):
         _logger.info("product_template_stats")
+        for product in self:
+            _pubs = ""
+            _stats = ""
+            product.meli_publications = _pubs
+            product.meli_variants_status = _stats
 
     def _product_template_stats(self):
 
