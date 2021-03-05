@@ -379,7 +379,7 @@ class mercadolibre_shipment(models.Model):
 					"type": "service",
 					#"taxes_id": None
 					#"categ_id": 279,
-					#"company_id": config.id
+					#"company_id": company.id
 				}
 				_logger.info(ship_prod)
 				product_shipping_tpl = product_tpl.create((ship_prod))
@@ -425,7 +425,7 @@ class mercadolibre_shipment(models.Model):
 				set_delivery_line(sorder, delivery_price, delivery_message )
 
 			saleorderline_item_fields = {
-				'company_id': config.id,
+				'company_id': company.id,
 				'order_id': sorder.id,
 				'meli_order_item_id': 'ENVIO',
 				'price_unit': shipment.shipping_cost,
@@ -496,12 +496,12 @@ class mercadolibre_shipment(models.Model):
 					seller_id = config.mercadolibre_seller_user.id
 				ship_fields = {
 					"name": "MSO ["+str(ship_id)+"] "+str("")+str(ship_json["status"])+"/"+str(ship_json["substatus"])+str(""),
-					'company_id': config.id,
+					'company_id': company.id,
 					'seller_id': seller_id,
 					"order": order.id,
-					"shipping_id": str(ship_json["id"]),
+					"shipping_id": ship_json["id"],
 					"site_id": ship_json["site_id"],
-					"order_id": str(ship_json["order_id"]),
+					"order_id": ship_json["order_id"],
 					"mode": ship_json["mode"],
 					"shipping_mode": ship_json["shipping_option"]["name"],
 					"date_created": ml_datetime(ship_json["date_created"]),
@@ -595,7 +595,7 @@ class mercadolibre_shipment(models.Model):
 				#_logger.info(ships)
 				if (len(shipment)==0):
 					_logger.info("Importing shipment: " + str(ship_id))
-					_logger.info(str(ship_fields))
+					#_logger.info(str(ship_fields))
 					shipment = shipment_obj.create((ship_fields))
 					if (shipment):
 						_logger.info("Created shipment ok!")
@@ -661,7 +661,7 @@ class mercadolibre_shipment(models.Model):
 							#'meli_order_id': '%i' % (order_json["id"]),
 							'meli_order_id': packed_order_ids,
 							'meli_orders': [(6, 0, all_orders_ids)],
-							'meli_shipping_id': str(shipment.shipping_id),
+							'meli_shipping_id': shipment.shipping_id,
 							'meli_shipping': shipment,
 							'meli_shipment': shipment.id,
 							'meli_status': all_orders[0]["status"],
@@ -708,7 +708,7 @@ class mercadolibre_shipment(models.Model):
 									continue;
 								unit_price = mOrder.order_items[0]["unit_price"]
 								saleorderline_item_fields = {
-									'company_id': config.id,
+									'company_id': company.id,
 									'order_id': shipment.sale_order.id,
 									'meli_order_item_id': mOrder.order_items[0]["order_item_id"],
 									'meli_order_item_variation_id': mOrder.order_items[0]["order_item_variation_id"],
