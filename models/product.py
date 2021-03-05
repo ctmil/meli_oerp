@@ -248,7 +248,7 @@ class product_template(models.Model):
                     variant.product_meli_delete()
         return {}
 
-    @api.onchange('meli_pub') # if these fields are changed, call method
+    @api.onchange('meli_pub')
     def _onchange_meli_pub( self ):
         product = self
         _logger.info("_onchange_meli_pub meli_pub:"+str(product.meli_pub))
