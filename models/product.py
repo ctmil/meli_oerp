@@ -487,8 +487,11 @@ class product_product(models.Model):
             #_logger.info(return_val)
         else:
             #_logger.info( "new_price: " +str(new_price))
-            if ( product.lst_price ):
-                new_price = product.lst_price
+            if ( product.meli_price_fixed and product.meli_price):
+                new_price = product.meli_price or product_tmpl_id.meli_price or 0
+            else:
+                if ( product.lst_price ):
+                    new_price = product.lst_price
 
         tax_excluded = ml_tax_excluded(self)
         if ( tax_excluded and product_tmpl.taxes_id ):
@@ -2845,7 +2848,7 @@ class product_product(models.Model):
     meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
     meli_description = fields.Text(string='Descripción')
     meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre")
-    meli_price = fields.Char(string='Precio de venta', size=128)
+    meli_price = fields.Char( string='Precio',help='Precio de venta en ML', size=128)
     meli_dimensions = fields.Char( string="Dimensiones del producto", size=128)
     meli_pub = fields.Boolean('Meli Publication',help='MELI Product',index=True)
 
@@ -2870,7 +2873,6 @@ class product_product(models.Model):
     meli_id = fields.Char(string='ML Id', help='Id del item asignado por Meli', size=256, index=True)
     meli_description_banner_id = fields.Many2one("mercadolibre.banner","Banner")
     meli_buying_mode = fields.Selection(string='Método',help='Método de compra',selection=[("buy_it_now","Compre ahora"),("classified","Clasificado")])
-    meli_price = fields.Char( string='Precio',help='Precio de venta en ML', size=128)
     meli_price_fixed = fields.Boolean(string='Price is fixed')
     meli_available_quantity = fields.Integer(string='Cantidades', help='Cantidad disponible a publicar en ML')
     meli_imagen_logo = fields.Char(string='Imagen Logo', size=256)
