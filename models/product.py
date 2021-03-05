@@ -251,7 +251,7 @@ class product_template(models.Model):
     @api.onchange('meli_pub')
     def _onchange_meli_pub( self ):
         product = self
-        _logger.info("_onchange_meli_pub meli_pub:"+str(product.meli_pub))
+        _logger.info("_onchange_meli_pub meli_pub:"+str(product))
     #    for product in self:
     #        _logger.info("onchange meli_pub:"+str(product))
             #product = self._origin
