@@ -488,7 +488,7 @@ class product_product(models.Model):
         else:
             #_logger.info( "new_price: " +str(new_price))
             if ( product.meli_price_fixed and product.meli_price):
-                new_price = product.meli_price or product_tmpl_id.meli_price or 0
+                new_price = int(float(product.meli_price)) or int(float(product_tmpl_id.meli_price)) or 0
             else:
                 if ( product.lst_price ):
                     new_price = product.lst_price
