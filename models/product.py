@@ -1742,12 +1742,15 @@ class product_product(models.Model):
 
 
     def product_get_meli_update( self ):
-        _logger.info("product_get_meli_update")
+        _logger.info("product_get_meli_update: " + str(self) )
         company = self.env.user.company_id
         warningobj = self.env['warning']
         product_obj = self.env['product.product']
 
         meli = self.env['meli.util'].get_new_instance(company)
+        if not meli.access_token:
+            _logger.info("returning: "+str(meli))
+            return {}
 
         ML_status = "unknown"
         ML_sub_status = ""
