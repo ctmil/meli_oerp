@@ -1747,16 +1747,22 @@ class product_product(models.Model):
         warningobj = self.env['warning']
         product_obj = self.env['product.product']
 
-        meli = self.env['meli.util'].get_new_instance(company)
-        if not meli.access_token:
-            _logger.info("returning: "+str(meli))
-            return {}
+
 
         ML_status = "unknown"
         ML_sub_status = ""
         ML_permalink = ""
         ML_state = False
         #meli = None
+        self.meli_status = ML_status
+        self.meli_sub_status = ML_sub_status
+        self.meli_permalink = ML_permalink
+        self.meli_state = ML_state
+
+        meli = self.env['meli.util'].get_new_instance(company)
+        if not meli.access_token:
+            _logger.info("returning: "+str(meli))
+            return {}
 
         if meli and meli.need_login():
             ML_status = "unknown"
