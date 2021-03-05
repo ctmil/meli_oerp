@@ -499,9 +499,9 @@ class mercadolibre_shipment(models.Model):
 					'company_id': company.id,
 					'seller_id': seller_id,
 					"order": order.id,
-					"shipping_id": str(ship_json["id"]),
+					"shipping_id": ship_json["id"],
 					"site_id": ship_json["site_id"],
-					"order_id": str(ship_json["order_id"]),
+					"order_id": ship_json["order_id"],
 					"mode": ship_json["mode"],
 					"shipping_mode": ship_json["shipping_option"]["name"],
 					"date_created": ml_datetime(ship_json["date_created"]),
@@ -595,7 +595,7 @@ class mercadolibre_shipment(models.Model):
 				#_logger.info(ships)
 				if (len(shipment)==0):
 					_logger.info("Importing shipment: " + str(ship_id))
-					_logger.info(str(ship_fields))
+					#_logger.info(str(ship_fields))
 					shipment = shipment_obj.create((ship_fields))
 					if (shipment):
 						_logger.info("Created shipment ok!")
@@ -661,7 +661,7 @@ class mercadolibre_shipment(models.Model):
 							#'meli_order_id': '%i' % (order_json["id"]),
 							'meli_order_id': packed_order_ids,
 							'meli_orders': [(6, 0, all_orders_ids)],
-							'meli_shipping_id': str(shipment.shipping_id),
+							'meli_shipping_id': shipment.shipping_id,
 							'meli_shipping': shipment,
 							'meli_shipment': shipment.id,
 							'meli_status': all_orders[0]["status"],

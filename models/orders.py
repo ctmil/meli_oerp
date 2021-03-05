@@ -960,7 +960,7 @@ class mercadolibre_orders(models.Model):
 
                 if (sorder):
                     saleorderline_item_fields = {
-                        'company_id': config.id,
+                        'company_id': company.id,
                         'order_id': sorder.id,
                         'meli_order_item_id': Item['item']['id'],
                         'meli_order_item_variation_id': Item['item']['variation_id'],
