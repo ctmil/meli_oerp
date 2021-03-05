@@ -2777,7 +2777,7 @@ class product_product(models.Model):
             _logger.info(e, exc_info=True)
 
 
-    def product_post_price(self, meli=None):
+    def product_post_price(self, context=None, meli=None):
         company = self.env.user.company_id
         warningobj = self.env['warning']
 
