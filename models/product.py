@@ -165,8 +165,10 @@ class product_template(models.Model):
 
         return variations
 
-
     def product_template_stats(self):
+        _logger.info("product_template_stats")
+
+    def _product_template_stats(self):
 
         for product in self:
             _pubs = ""
@@ -1731,6 +1733,7 @@ class product_product(models.Model):
 
 
     def product_get_meli_update( self ):
+        _logger.info("product_get_meli_update")
         company = self.env.user.company_id
         warningobj = self.env['warning']
         product_obj = self.env['product.product']
