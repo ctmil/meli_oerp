@@ -165,7 +165,7 @@ class product_template(models.Model):
 
         return variations
 
-    def product_template_stats(self):
+    def _product_template_stats(self):
         _logger.info("product_template_stats")
         for product in self:
             _pubs = ""
@@ -173,7 +173,7 @@ class product_template(models.Model):
             product.meli_publications = _pubs
             product.meli_variants_status = _stats
 
-    def _product_template_stats(self):
+    def product_template_stats(self):
 
         for product in self:
             _pubs = ""
@@ -255,10 +255,10 @@ class product_template(models.Model):
                     variant.product_meli_delete()
         return {}
 
-    @api.onchange('meli_pub')
-    def _onchange_meli_pub( self ):
-        product = self
-        _logger.info("_onchange_meli_pub meli_pub:"+str(product))
+    #@api.onchange('meli_pub')
+    #def _onchange_meli_pub( self ):
+    #    product = self
+    #    _logger.info("_onchange_meli_pub meli_pub:"+str(product))
     #    for product in self:
     #        _logger.info("onchange meli_pub:"+str(product))
             #product = self._origin
