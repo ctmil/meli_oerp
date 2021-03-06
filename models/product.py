@@ -255,17 +255,17 @@ class product_template(models.Model):
                     variant.product_meli_delete()
         return {}
 
-    #@api.onchange('meli_pub')
-    #def _onchange_meli_pub( self ):
-    #    product = self
-    #    _logger.info("_onchange_meli_pub meli_pub:"+str(product))
-    #    for product in self:
-    #        _logger.info("onchange meli_pub:"+str(product))
+    @api.onchange('meli_pub')
+    def _onchange_meli_pub( self ):
+        product = self
+        _logger.info("_onchange_meli_pub meli_pub:"+str(product))
+        for product in self:
+            _logger.info("onchange meli_pub:"+str(product))
             #product = self._origin
             #product = self
-            #for variant in product.product_variant_ids:
-            #    _logger.info("onchange meli_pub variant before::"+str(variant.meli_pub))
-                #variant.write({'meli_pub':self.meli_pub})
+            for variant in product.product_variant_ids:
+                _logger.info("onchange meli_pub variant before::"+str(variant.meli_pub))
+                variant.write({'meli_pub':self.meli_pub})
 
     def get_title_for_meli(self):
         return self.name
