@@ -1758,11 +1758,11 @@ class product_product(models.Model):
         self.meli_sub_status = ML_sub_status
         self.meli_permalink = ML_permalink
         self.meli_state = ML_state
-        return {}
+        #return {}
         meli = self.env['meli.util'].get_new_instance(company)
-        if not meli.access_token:
-            _logger.info("returning: "+str(meli))
-            return {}
+        #if not meli.access_token:
+        #    _logger.info("returning: "+str(meli))
+            #return {}
 
         if meli and meli.need_login():
             ML_status = "unknown"
