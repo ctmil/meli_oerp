@@ -1742,7 +1742,7 @@ class product_product(models.Model):
 
 
     def product_get_meli_update( self ):
-        _logger.info("product_get_meli_update: " + str(self) )
+        #_logger.info("product_get_meli_update: " + str(self) )
         company = self.env.user.company_id
         warningobj = self.env['warning']
         product_obj = self.env['product.product']
