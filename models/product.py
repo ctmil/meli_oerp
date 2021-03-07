@@ -1754,10 +1754,10 @@ class product_product(models.Model):
         ML_permalink = ""
         ML_state = False
         #meli = None
-        self.meli_status = ML_status
-        self.meli_sub_status = ML_sub_status
-        self.meli_permalink = ML_permalink
-        self.meli_state = ML_state
+        #self.meli_status = ML_status
+        #self.meli_sub_status = ML_sub_status
+        #self.meli_permalink = ML_permalink
+        #self.meli_state = ML_state
         #return {}
         meli = self.env['meli.util'].get_new_instance(company)
         #if not meli.access_token:
