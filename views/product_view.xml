@@ -114,10 +114,11 @@
                       <separator string="Variants" colspan="1"/>
                       <field name="product_variant_ids" options="{'no_create': True}" domain="[('meli_id','!=',None)]">
                         <tree>
+                          <field string="ML Pub" name="meli_pub"/>
+                          <field string="Variant" name="name"/>
                           <field string="Id Pub" name="meli_id"/>
                           <field string="Id Var" name="meli_id_variation"/>
                           <field string="Sku" name="default_code"/>
-                          <field string="Variant" name="display_name"/>
                           <field string="Status" name="meli_status"/>
                           <field string="Sub Status" name="meli_sub_status"/>
                           <field string="ML Title" name="meli_title"/>

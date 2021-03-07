@@ -265,7 +265,7 @@ class product_template(models.Model):
             #product = self
             for variant in product.product_variant_ids:
                 _logger.info("onchange meli_pub variant before::"+str(variant.meli_pub))
-                variant.write({'meli_pub':self.meli_pub})
+                variant.write({'meli_pub':product.meli_pub})
 
     def get_title_for_meli(self):
         return self.name
@@ -2902,10 +2902,10 @@ class product_product(models.Model):
     meli_multi_imagen_id = fields.Char(string='Multi Imagen Ids', size=512)
     meli_video = fields.Char( string='Video (id de youtube)', size=256)
 
-    meli_permalink = fields.Char( compute=product_get_meli_update, size=256, string='Link',help='PermaLink in MercadoLibre', store=False )
-    meli_state = fields.Boolean( compute=product_get_meli_update, string='Login',help="Inicio de sesión requerida", store=False )
-    meli_status = fields.Char( compute=product_get_meli_update, size=128, string='Status', help="Estado del producto en ML", store=False )
-    meli_sub_status = fields.Char( compute=product_get_meli_update, size=128, string='Sub status',help="Sub Estado del producto en ML", store=False )
+    meli_permalink = fields.Char( compute=product_get_meli_update, size=256, string='Link',help='PermaLink in MercadoLibre' )
+    meli_state = fields.Boolean( compute=product_get_meli_update, string='Login',help="Inicio de sesión requerida" )
+    meli_status = fields.Char( compute=product_get_meli_update, size=128, string='Status', help="Estado del producto en ML" )
+    meli_sub_status = fields.Char( compute=product_get_meli_update, size=128, string='Sub status',help="Sub Estado del producto en ML" )
 
     meli_attributes = fields.Text(string='Atributos')
 
