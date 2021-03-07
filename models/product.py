@@ -165,6 +165,13 @@ class product_template(models.Model):
 
         return variations
 
+    def _product_template_stats(self):
+        _logger.info("product_template_stats")
+        for product in self:
+            _pubs = ""
+            _stats = ""
+            product.meli_publications = _pubs
+            product.meli_variants_status = _stats
 
     def product_template_stats(self):
 
@@ -248,14 +255,17 @@ class product_template(models.Model):
                     variant.product_meli_delete()
         return {}
 
-    @api.onchange('meli_pub') # if these fields are changed, call method
-    def change_meli_pub(self):
-        _logger.info("onchange meli_pub:"+str(self.meli_pub))
-        product = self._origin
-        #product = self
-        for variant in product.product_variant_ids:
-            _logger.info("onchange meli_pub variant before::"+str(variant.meli_pub))
-            variant.write({'meli_pub':self.meli_pub})
+    @api.onchange('meli_pub')
+    def _onchange_meli_pub( self ):
+        product = self
+        _logger.info("_onchange_meli_pub meli_pub:"+str(product))
+        for product in self:
+            _logger.info("onchange meli_pub:"+str(product))
+            #product = self._origin
+            #product = self
+            for variant in product.product_variant_ids:
+                _logger.info("onchange meli_pub variant before::"+str(variant.meli_pub))
+                variant.write({'meli_pub':product.meli_pub})
 
     def get_title_for_meli(self):
         return self.name
@@ -1732,17 +1742,27 @@ class product_product(models.Model):
 
 
     def product_get_meli_update( self ):
+        #_logger.info("product_get_meli_update: " + str(self) )
         company = self.env.user.company_id
         warningobj = self.env['warning']
         product_obj = self.env['product.product']
 
-        meli = self.env['meli.util'].get_new_instance(company)
+
 
         ML_status = "unknown"
         ML_sub_status = ""
         ML_permalink = ""
         ML_state = False
         #meli = None
+        self.meli_status = ML_status
+        self.meli_sub_status = ML_sub_status
+        self.meli_permalink = ML_permalink
+        self.meli_state = ML_state
+        #return {}
+        meli = self.env['meli.util'].get_new_instance(company)
+        #if not meli.access_token:
+        #    _logger.info("returning: "+str(meli))
+            #return {}
 
         if meli and meli.need_login():
             ML_status = "unknown"
@@ -2797,7 +2817,7 @@ class product_product(models.Model):
         }
 
         if (product.meli_id and not product.meli_id_variation):
-            _logger.info("meli:"+str(meli))
+            #_logger.info("meli:"+str(meli))
             response = meli.get("/items/%s" % product.meli_id, {'access_token':meli.access_token})
             if (response):
                 pjson = response.json()
@@ -2882,10 +2902,10 @@ class product_product(models.Model):
     meli_multi_imagen_id = fields.Char(string='Multi Imagen Ids', size=512)
     meli_video = fields.Char( string='Video (id de youtube)', size=256)
 
-    meli_permalink = fields.Char( compute=product_get_meli_update, size=256, string='Link',help='PermaLink in MercadoLibre', store=False )
-    meli_state = fields.Boolean( compute=product_get_meli_update, string='Login',help="Inicio de sesión requerida", store=False )
-    meli_status = fields.Char( compute=product_get_meli_update, size=128, string='Status', help="Estado del producto en ML", store=False )
-    meli_sub_status = fields.Char( compute=product_get_meli_update, size=128, string='Sub status',help="Sub Estado del producto en ML", store=False )
+    meli_permalink = fields.Char( compute=product_get_meli_update, size=256, string='Link',help='PermaLink in MercadoLibre' )
+    meli_state = fields.Boolean( compute=product_get_meli_update, string='Login',help="Inicio de sesión requerida" )
+    meli_status = fields.Char( compute=product_get_meli_update, size=128, string='Status', help="Estado del producto en ML" )
+    meli_sub_status = fields.Char( compute=product_get_meli_update, size=128, string='Sub status',help="Sub Estado del producto en ML" )
 
     meli_attributes = fields.Text(string='Atributos')
 
