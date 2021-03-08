@@ -124,7 +124,7 @@ class product_template(models.Model):
 
         return ret
 
-    def product_template_update(self):
+    def product_template_update(self, meli_id=None):
         product_obj = self.env['product.template']
         company = self.env.user.company_id
         warningobj = self.env['warning']
@@ -139,13 +139,13 @@ class product_template(models.Model):
         for product in self:
             if (product.meli_pub_as_variant and product.meli_pub_principal_variant.id):
                 _logger.info("Updating principal variant")
-                ret = product.meli_pub_principal_variant.product_meli_get_product()
+                ret = product.meli_pub_principal_variant.product_meli_get_product(meli_id=meli_id)
             else:
                 for variant in product.product_variant_ids:
                     _logger.info("Variant:", variant)
                     if (variant.meli_pub):
                         _logger.info("Updating variant")
-                        ret = variant.product_meli_get_product()
+                        ret = variant.product_meli_get_product(meli_id=meli_id)
                         if ('name' in ret):
                             return ret
 
@@ -972,14 +972,16 @@ class product_product(models.Model):
                 break;
         return is_in
 
-    def product_meli_get_product( self ):
+    def product_meli_get_product( self, meli_id=None ):
         company = self.env.user.company_id
         product_obj = self.env['product.product']
         uomobj = self.env[uom_model]
         #pdb.set_trace()
-        product = self
 
-        _logger.info("product_meli_get_product")
+        product = self
+        meli_id = meli_id or product.meli_id
+
+        _logger.info("product_meli_get_product: meli_id: "+str(meli_id))
         _logger.info(product.default_code)
 
         product_template_obj = self.env['product.template']
@@ -988,7 +990,7 @@ class product_product(models.Model):
         meli = self.env['meli.util'].get_new_instance(company)
 
         try:
-            response = meli.get("/items/"+product.meli_id, {'access_token':meli.access_token})
+            response = meli.get("/items/"+str(meli_id), { 'access_token': meli.access_token } )
             #_logger.info(response)
             rjson = response.json()
             #_logger.info(rjson)
