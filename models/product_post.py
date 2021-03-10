@@ -65,7 +65,7 @@ class product_template_post(models.TransientModel):
         meli = self.env['meli.util'].get_new_instance(company)
         if meli.need_login():
             return meli.redirect_login()
-        
+
         res = {}
         _logger.info("context in product_template_post:")
         _logger.info(self.env.context)
@@ -94,8 +94,12 @@ class product_template_update(models.TransientModel):
     _description = "Wizard de Product Template Update en MercadoLibre"
 
     force_meli_pub = fields.Boolean(string="Forzar importación",help="Forzar importación de todos los seleccionados",default=False)
-    type = fields.Selection([('post','Alta'),('put','Editado'),('delete','Borrado')], string='Tipo de operación' );
-    posting_date = fields.Date('Fecha del posting');
+    type = fields.Selection([('post','Alta'),('put','Editado'),('delete','Borrado')], string='Tipo de operación' )
+    posting_date = fields.Date('Fecha del posting')
+
+    meli_id = fields.Char(string="MercadoLibre Id (MLMXXXXXXX) a importar.")
+    force_create_variants = fields.Boolean(string="Forzar creacion/cambios de variantes",help="Forzar creacion de variantes (Modifica el producto de Odoo / Rompe Stock)",default=False)
+
 	    #'company_id': fields.many2one('res.company',string='Company'),
 	    #'mercadolibre_state': fields.related( 'res.company', 'mercadolibre_state', string="State" )
 
@@ -112,11 +116,14 @@ class product_template_update(models.TransientModel):
         product_obj = self.env['product.template']
 
         warningobj = self.env['warning']
-        
+
         meli = self.env['meli.util'].get_new_instance(company)
         if meli.need_login():
             return meli.redirect_login()
-        
+
+        meli_id = False
+        if self.meli_id:
+            meli_id = self.meli_id
         res = {}
         for product_id in product_ids:
             product = product_obj.browse(product_id)
@@ -126,7 +133,7 @@ class product_template_update(models.TransientModel):
                     for variant in product.product_variant_ids:
                         variant.meli_pub = True
                 if (product.meli_pub):
-                    res = product.product_template_update()
+                    res = product.product_template_update(meli_id=meli_id)
 
             if 'name' in res:
                 return res
@@ -159,7 +166,7 @@ class product_post(models.TransientModel):
         meli = self.env['meli.util'].get_new_instance(company)
         if meli.need_login():
             return meli.redirect_login()
-            
+
         res = {}
         for product_id in product_ids:
             product = product_obj.browse(product_id)
@@ -202,11 +209,11 @@ class product_product_update(models.TransientModel):
         product_obj = self.env['product.product']
 
         warningobj = self.env['warning']
-        
+
         meli = self.env['meli.util'].get_new_instance(company)
         if meli.need_login():
             return meli.redirect_login()
-            
+
         res = {}
         for product_id in product_ids:
             product = product_obj.browse(product_id)
