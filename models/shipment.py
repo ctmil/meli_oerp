@@ -675,6 +675,35 @@ class mercadolibre_shipment(models.Model):
 							'meli_date_created': ml_datetime(all_orders[0]["date_created"]),
 							'meli_date_closed': ml_datetime(all_orders[0]["date_closed"]),
 						}
+						#TODO: agregar un campo para diferencia cada delivery res partner al shipment y orden asociado, crear un binding usando values diferentes... y listo
+						partner_shipping_id = None
+						deliv_id = self.env["res.partner"].search([("parent_id","=",partner_id.id),
+																("type","=","delivery"),
+																#('street','=',partner_id.street)
+																],
+															limit=1)
+						if not deliv_id or len(deliv_id)==0:
+							_logger.info("Create partner delivery")
+							respartner_obj = self.env['res.partner']
+							try:
+								deliv_id = respartner_obj.create(pdelivery_fields)
+								if deliv_id:
+									_logger.info("Created Res Partner Delivery "+str(deliv_id))
+									partner_shipping_id = deliv_id
+							except:
+								_logger.error("Created res.partner delivery issue.")
+								pass;
+						else:
+							try:
+								deliv_id.write(pdelivery_fields)
+								partner_shipping_id = deliv_id
+							except:
+								_logger.error("Updating res.partner delivery issue.")
+								pass;
+								
+						if partner_shipping_id:
+							meli_order_fields['partner_shipping_id'] = partner_shipping_id.id
+							
 						if ("pack_id" in all_orders[0] and all_orders[0]["pack_id"]):
 							meli_order_fields['name'] = "ML %s" % ( str(all_orders[0]["pack_id"]) )
 							#meli_order_fields['pack_id'] = all_orders[0]["pack_id"]

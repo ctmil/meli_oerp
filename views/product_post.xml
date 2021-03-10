@@ -45,6 +45,8 @@
                     <group string="Opciones de importación" col="2">
                       <group>
                         <field name="force_meli_pub"/>
+                        <field name="meli_id"/>
+                        <!--field name="force_create_variants"/-->
                       </group>
                     </group>
                     <footer>
