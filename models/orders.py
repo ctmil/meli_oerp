@@ -493,6 +493,7 @@ class mercadolibre_orders(models.Model):
         order_fields = self.prepare_ml_order_vals( order_json=order_json, meli=meli, config=config )
 
         partner_id = False
+        partner_shipping_id = False
 
         if 'buyer' in order_json:
             Buyer = order_json['buyer']
@@ -696,14 +697,55 @@ class mercadolibre_orders(models.Model):
                 partner_id = respartner_obj.create(( meli_buyer_fields ))
             else:
                 partner_id = partner_ids
-                _logger.info("Updating partner")
+                _logger.info("Updating partner (do not update principal, always create new one)")
                 _logger.info(meli_buyer_fields)
 
                 if (partner_id.email==buyer_fields["email"]):
                     #eliminar email de ML que no es valido
                     meli_buyer_fields["email"] = ''
+                #crear nueva direccion de entrega
+                #partner_id.write( meli_buyer_fields )
 
-                partner_id.write(meli_buyer_fields)
+            if (partner_id and 1==2):
+                pdelivery_fields = {
+                    "type": "delivery",
+                    "parent_id": partner_id.id,
+                    'name': meli_buyer_fields['name'],
+                    'street': meli_buyer_fields['street'],
+                    #'street2': meli_buyer_fields['name'],
+                    'city': meli_buyer_fields['city'],
+                    'country_id': meli_buyer_fields['country_id'],
+                    'state_id': meli_buyer_fields['state_id'],
+                    #'zip': meli_buyer_fields['name'],
+                    #"comment": ("location_addressNotes" in contactfields and contactfields["location_addressNotes"]) or ""
+                    #'producteca_bindings': [(6, 0, [client.id])]
+                    #'phone': self.full_phone( contactfields,billing=True ),
+                    #'email':contactfields['billingInfo_email'],
+                    #'producteca_bindings': [(6, 0, [client.id])]
+                }
+                #TODO: agregar un campo para diferencia cada delivery res partner al shipment y orden asociado, crear un binding usando values diferentes... y listo
+                deliv_id = self.env["res.partner"].search([("parent_id","=",pdelivery_fields['parent_id']),
+                                                            ("type","=","delivery"),
+                                                            ('street','=',pdelivery_fields['street'])],
+                                                            limit=1)
+                if not deliv_id or len(deliv_id)==0:
+                    _logger.info("Create partner delivery")
+                    respartner_obj = self.env['res.partner']
+                    try:
+                        deliv_id = respartner_obj.create(pdelivery_fields)
+                        if deliv_id:
+                            _logger.info("Created Res Partner Delivery "+str(deliv_id))
+                            partner_shipping_id = deliv_id
+                    except:
+                        _logger.error("Created res.partner delivery issue.")
+                        pass;
+                else:
+                    try:
+                        deliv_id.write(pdelivery_fields)
+                        partner_shipping_id = deliv_id
+                    except:
+                        _logger.error("Updating res.partner delivery issue.")
+                        pass;
 
             if (partner_id):
                 if ("fe_habilitada" in self.env['res.partner']._fields):
@@ -733,6 +775,9 @@ class mercadolibre_orders(models.Model):
             'meli_date_created': ml_datetime(order_json["date_created"]),
             'meli_date_closed': ml_datetime(order_json["date_closed"]),
         }
+        if partner_shipping_id:
+            meli_order_fields['partner_shipping_id'] = partner_shipping_id.id
+
         if ("pack_id" in order_json and order_json["pack_id"]):
             meli_order_fields['name'] = "ML %s" % ( str(order_json["pack_id"]) )
             #meli_order_fields['pack_id'] = order_json["pack_id"]
