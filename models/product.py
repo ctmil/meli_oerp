@@ -165,13 +165,6 @@ class product_template(models.Model):
 
         return variations
 
-    def _product_template_stats(self):
-        _logger.info("product_template_stats")
-        for product in self:
-            _pubs = ""
-            _stats = ""
-            product.meli_publications = _pubs
-            product.meli_variants_status = _stats
 
     def product_template_stats(self):
 
@@ -967,7 +960,8 @@ class product_product(models.Model):
         splits = ml_var_comb_default_code.split(";")
         is_in = True
         for att in splits:
-            if not att in var_default_code:
+            att_closed = att+";"
+            if not att_closed in var_default_code:
                 is_in = False
                 break;
         return is_in
@@ -990,7 +984,7 @@ class product_product(models.Model):
         meli = self.env['meli.util'].get_new_instance(company)
 
         try:
-            response = meli.get("/items/"+str(meli_id), { 'access_token': meli.access_token } )
+            response = meli.get("/items/"+str(meli_id), { 'access_token': meli.access_token, 'include_attributes': 'all' } )
             #_logger.info(response)
             rjson = response.json()
             #_logger.info(rjson)
