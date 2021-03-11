@@ -28,15 +28,26 @@
         'data/cron_jobs.xml',
         'data/error_template_data.xml',
         'data/parameters_data.xml',
-	'report/report_shipment_view.xml',
+	    'report/report_shipment_view.xml',
         'report/report_invoice_shipment_view.xml',
-	'views/shipment_view.xml',
-	'views/notifications_view.xml'
+    	'views/shipment_view.xml',
+    	'views/notifications_view.xml'
     ],
+    'price': '350.00',
+    'currency': 'USD',
     "external_dependencies": {"python": ['pdf2image','meli']},
+    'images': [ 'static/description/main_screenshot.png',
+                'static/description/meli_oerp_screenshot.png',
+                'static/description/meli_oerp_configuration_1.png',
+                'static/description/meli_oerp_configuration_2.png',
+                'static/description/meli_oerp_configuration_3.png',
+                'static/description/meli_oerp_configuration_4.png',
+                'static/description/moldeo_interactive_logo.png',
+                'static/description/odoo_to_meli.png'],
     'demo_xml': [],
     'active': False,
     'installable': True,
     'application': True,
+    'license': 'GPL-3'
 
 }
