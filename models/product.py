@@ -459,15 +459,15 @@ class product_product(models.Model):
             if (product_template.lst_price<=1.0):
                 product_template.write({'lst_price': ml_price_converted})
 
-    def set_meli_price(self):
+    def set_meli_price( self, config=None, plist=None ):
         company = self.env.user.company_id
+        config = config or company
+        company = (config and 'company_id' in config._fields and config.company_id) or company
         product = self
         product_tmpl = product.product_tmpl_id
         #_logger.info("set_meli_price: "+str(product_tmpl.list_price)+ " >> "+str(product_tmpl.display_name)+": "+str(product_tmpl.meli_price)+" | "+str(product.display_name)+": "+str(product.meli_price) )
 
-        pl = False
-        if company.mercadolibre_pricelist:
-            pl = company.mercadolibre_pricelist
+        pl = config.mercadolibre_pricelist or plist
 
         # NEW OR NULL
         # > Set template meli price
