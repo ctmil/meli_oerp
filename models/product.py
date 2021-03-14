@@ -2294,7 +2294,8 @@ class product_product(models.Model):
             _logger.info(multi_images_ids)
             if 'status' in multi_images_ids:
                 _logger.error(multi_images_ids)
-                return warningobj.info( title='MELI WARNING', message="Error publicando imagenes", message_html="Error: "+str(("error" in multi_images_ids and multi_images_ids["error"]) or "")+" Status:"+str(("status" in multi_images_ids and multi_images_ids["status"]) or "") )
+                #return warningobj.info( title='MELI WARNING', message="Error publicando imagenes", message_html="Error: "+str(("error" in multi_images_ids and multi_images_ids["error"]) or "")+" Status:"+str(("status" in multi_images_ids and multi_images_ids["status"]) or "") )
+                return warningobj.info( title='MELI WARNING', message="Error publicando imagenes", message_html="Error: "+str(multi_images_ids))
 
         if product.meli_imagen_id:
             if 'pictures' in body.keys():
