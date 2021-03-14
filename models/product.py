@@ -1569,16 +1569,18 @@ class product_product(models.Model):
 
         return {}
 
-    def product_meli_upload_image( self ):
+    def product_meli_upload_image( self, meli=False, config=False ):
 
         company = self.env.user.company_id
+        config = config or company
 
         product_obj = self.env['product.product']
         product = self
 
-        meli = self.env['meli.util'].get_new_instance(company)
-        if meli.need_login():
-            return meli.redirect_login()
+        if not meli:
+            meli = self.env['meli.util'].get_new_instance(company)
+            if meli.need_login():
+                return meli.redirect_login()
 
         first_image_to_publish = get_first_image_to_publish( product )
 
@@ -1593,7 +1595,7 @@ class product_product(models.Model):
             hash = hashlib.blake2b()
             hash.update(imagebin)
             #product_image.meli_imagen_hash = hash.hexdigest()
-            if (company.mercadolibre_do_not_use_first_image):
+            if (config.mercadolibre_do_not_use_first_image):
                 product_image = variant_image_ids(product)[0]
                 if (product_image):
                     product_image.meli_imagen_hash = hash.hexdigest()
@@ -1626,15 +1628,16 @@ class product_product(models.Model):
 
         return { 'status': 'success', 'message': 'uploaded and assigned' }
 
-    def product_meli_upload_multi_images( self  ):
+    def product_meli_upload_multi_images( self, meli=False, config=False  ):
 
         company = self.env.user.company_id
+        config = config or company
 
         product_obj = self.env['product.product']
         product = self
 
         if variant_image_ids(product)==None and template_image_ids(product)==None:
-            return { 'status': 'error', 'message': 'no images to upload' }
+            return { 'error': 'product_meli_upload_multi_images error no images to upload', 'status': 'error', 'message': 'no images to upload' }
 
         image_ids = []
 
@@ -1646,7 +1649,7 @@ class product_product(models.Model):
                     continue;
                 _logger.info("Upload multi image var: "+str(imix))
                 product_image = var_image_ids[imix]
-                image_ids+= product._meli_upload_image( product_image )
+                image_ids+= product._meli_upload_image( product_image, meli=meli, config=config )
 
         product.write( { "meli_multi_imagen_id": "%s" % (image_ids) } )
 
@@ -1658,18 +1661,21 @@ class product_product(models.Model):
                     continue;
                 _logger.info("Upload multi image tpl: "+str(imix))
                 product_image = tpl_image_ids[imix]
-                image_ids+= product._meli_upload_image( product_image )
+                image_ids+= product._meli_upload_image( product_image, meli=meli, config=config )
 
         product.write( { "meli_multi_imagen_id": "%s" % (image_ids) } )
 
         return image_ids
 
-    def _meli_upload_image( self, product_image ):
+    def _meli_upload_image( self, product_image, meli=False, config=False ):
 
         company = self.env.user.company_id
+        config = config or company
 
-        meli = self.env['meli.util'].get_new_instance(company)
-        if meli.need_login():
+        if not meli:
+            meli = self.env['meli.util'].get_new_instance(company)
+
+        if meli and meli.need_login():
             return meli.redirect_login()
 
         image_ids = []
@@ -2226,7 +2232,7 @@ class product_product(models.Model):
             return warningobj.info( title='MELI WARNING', message="Debe cargar una imagen de base en el producto, si chequeo el 'Dont use first image' debe al menos poner una imagen adicional en el producto.", message_html="" )
         else:
             # _logger.info( "try uploading image..." )
-            resim = product.product_meli_upload_image()
+            resim = product.product_meli_upload_image(meli=meli,config=config)
             if "status" in resim:
                 if (resim["status"]=="error" or resim["status"]=="warning"):
                     error_msg = 'MELI: mensaje de error:   ', resim
@@ -2284,11 +2290,11 @@ class product_product(models.Model):
         #publicando multiples imagenes
         multi_images_ids = {}
         if (variant_image_ids(product) or template_image_ids(product)):
-            multi_images_ids = product.product_meli_upload_multi_images()
+            multi_images_ids = product.product_meli_upload_multi_images(meli=meli,config=config)
             _logger.info(multi_images_ids)
             if 'status' in multi_images_ids:
                 _logger.error(multi_images_ids)
-                return warningobj.info( title='MELI WARNING', message="Error publicando imagenes", message_html="Error: "+str(multi_images_ids["error"])+" Status:"+str(multi_images_ids["status"]) )
+                return warningobj.info( title='MELI WARNING', message="Error publicando imagenes", message_html="Error: "+str("error" in multi_images_ids and multi_images_ids["error"])+" Status:"+str("status" in multi_images_ids and multi_images_ids["status"]) )
 
         if product.meli_imagen_id:
             if 'pictures' in body.keys():
