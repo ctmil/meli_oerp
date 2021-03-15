@@ -459,15 +459,15 @@ class product_product(models.Model):
             if (product_template.lst_price<=1.0):
                 product_template.write({'lst_price': ml_price_converted})
 
-    def set_meli_price(self):
+    def set_meli_price( self, config=None, plist=None ):
         company = self.env.user.company_id
+        config = config or company
+        company = (config and 'company_id' in config._fields and config.company_id) or company
         product = self
         product_tmpl = product.product_tmpl_id
         #_logger.info("set_meli_price: "+str(product_tmpl.list_price)+ " >> "+str(product_tmpl.display_name)+": "+str(product_tmpl.meli_price)+" | "+str(product.display_name)+": "+str(product.meli_price) )
 
-        pl = False
-        if company.mercadolibre_pricelist:
-            pl = company.mercadolibre_pricelist
+        pl = config.mercadolibre_pricelist or plist
 
         # NEW OR NULL
         # > Set template meli price
@@ -1569,16 +1569,18 @@ class product_product(models.Model):
 
         return {}
 
-    def product_meli_upload_image( self ):
+    def product_meli_upload_image( self, meli=False, config=False ):
 
         company = self.env.user.company_id
+        config = config or company
 
         product_obj = self.env['product.product']
         product = self
 
-        meli = self.env['meli.util'].get_new_instance(company)
-        if meli.need_login():
-            return meli.redirect_login()
+        if not meli:
+            meli = self.env['meli.util'].get_new_instance(company)
+            if meli.need_login():
+                return meli.redirect_login()
 
         first_image_to_publish = get_first_image_to_publish( product )
 
@@ -1593,7 +1595,7 @@ class product_product(models.Model):
             hash = hashlib.blake2b()
             hash.update(imagebin)
             #product_image.meli_imagen_hash = hash.hexdigest()
-            if (company.mercadolibre_do_not_use_first_image):
+            if (config.mercadolibre_do_not_use_first_image):
                 product_image = variant_image_ids(product)[0]
                 if (product_image):
                     product_image.meli_imagen_hash = hash.hexdigest()
@@ -1626,15 +1628,16 @@ class product_product(models.Model):
 
         return { 'status': 'success', 'message': 'uploaded and assigned' }
 
-    def product_meli_upload_multi_images( self  ):
+    def product_meli_upload_multi_images( self, meli=False, config=False  ):
 
         company = self.env.user.company_id
+        config = config or company
 
         product_obj = self.env['product.product']
         product = self
 
         if variant_image_ids(product)==None and template_image_ids(product)==None:
-            return { 'status': 'error', 'message': 'no images to upload' }
+            return { 'error': 'product_meli_upload_multi_images error no images to upload', 'status': 'error', 'message': 'no images to upload' }
 
         image_ids = []
 
@@ -1646,7 +1649,7 @@ class product_product(models.Model):
                     continue;
                 _logger.info("Upload multi image var: "+str(imix))
                 product_image = var_image_ids[imix]
-                image_ids+= product._meli_upload_image( product_image )
+                image_ids+= product._meli_upload_image( product_image, meli=meli, config=config )
 
         product.write( { "meli_multi_imagen_id": "%s" % (image_ids) } )
 
@@ -1658,18 +1661,21 @@ class product_product(models.Model):
                     continue;
                 _logger.info("Upload multi image tpl: "+str(imix))
                 product_image = tpl_image_ids[imix]
-                image_ids+= product._meli_upload_image( product_image )
+                image_ids+= product._meli_upload_image( product_image, meli=meli, config=config )
 
         product.write( { "meli_multi_imagen_id": "%s" % (image_ids) } )
 
         return image_ids
 
-    def _meli_upload_image( self, product_image ):
+    def _meli_upload_image( self, product_image, meli=False, config=False ):
 
         company = self.env.user.company_id
+        config = config or company
 
-        meli = self.env['meli.util'].get_new_instance(company)
-        if meli.need_login():
+        if not meli:
+            meli = self.env['meli.util'].get_new_instance(company)
+
+        if meli and meli.need_login():
             return meli.redirect_login()
 
         image_ids = []
@@ -1909,6 +1915,7 @@ class product_product(models.Model):
         #_logger.info('_self_combinations')
         #_logger.info(_self_combinations)
 
+        #create odoo internal analog combination dictionary to compare with ML
         if (_self_combinations and 'attribute_combinations' in _self_combinations):
             for att in _self_combinations['attribute_combinations']:
                 #_logger.info(att)
@@ -1919,6 +1926,7 @@ class product_product(models.Model):
 
         _is_p_comb = True
 
+        #compara atributo por atributo, valor del atributo exacto de ML con el de Odoo (TODO: specific ml attribute lines for ML template, one2one ML att/value maps )
         if ('attribute_combinations' in variation):
             #check if every att combination exist in this product
             for att in variation['attribute_combinations']:
@@ -2224,7 +2232,7 @@ class product_product(models.Model):
             return warningobj.info( title='MELI WARNING', message="Debe cargar una imagen de base en el producto, si chequeo el 'Dont use first image' debe al menos poner una imagen adicional en el producto.", message_html="" )
         else:
             # _logger.info( "try uploading image..." )
-            resim = product.product_meli_upload_image()
+            resim = product.product_meli_upload_image(meli=meli,config=config)
             if "status" in resim:
                 if (resim["status"]=="error" or resim["status"]=="warning"):
                     error_msg = 'MELI: mensaje de error:   ', resim
@@ -2282,11 +2290,12 @@ class product_product(models.Model):
         #publicando multiples imagenes
         multi_images_ids = {}
         if (variant_image_ids(product) or template_image_ids(product)):
-            multi_images_ids = product.product_meli_upload_multi_images()
+            multi_images_ids = product.product_meli_upload_multi_images(meli=meli,config=config)
             _logger.info(multi_images_ids)
             if 'status' in multi_images_ids:
                 _logger.error(multi_images_ids)
-                return warningobj.info( title='MELI WARNING', message="Error publicando imagenes", message_html="Error: "+str(multi_images_ids["error"])+" Status:"+str(multi_images_ids["status"]) )
+                #return warningobj.info( title='MELI WARNING', message="Error publicando imagenes", message_html="Error: "+str(("error" in multi_images_ids and multi_images_ids["error"]) or "")+" Status:"+str(("status" in multi_images_ids and multi_images_ids["status"]) or "") )
+                return warningobj.info( title='MELI WARNING', message="Error publicando imagenes", message_html="Error: "+str(multi_images_ids))
 
         if product.meli_imagen_id:
             if 'pictures' in body.keys():
@@ -2525,7 +2534,7 @@ class product_product(models.Model):
 
         return {}
 
-    def _meli_available_quantity(self,meli=False):
+    def _meli_available_quantity( self, meli=False, config=None ):
 
         product = self
         product_tmpl = product.product_tmpl_id
@@ -2566,13 +2575,16 @@ class product_product(models.Model):
 
         return new_meli_available_quantity
 
-    def product_post_stock(self, meli=False):
+    def product_post_stock( self, context=None, meli=False, config=None ):
+        context = context or self.env.context
+        _logger.info("meli_oerp product_post_stock context: " + str(context))
         company = self.env.user.company_id
         warningobj = self.env['warning']
 
         product_obj = self.env['product.product']
         product = self
         product_tmpl = self.product_tmpl_id
+        config = config or company
 
         if not meli or not hasattr(meli, 'client_id'):
             meli = self.env['meli.util'].get_new_instance(company)
@@ -2589,7 +2601,7 @@ class product_product(models.Model):
                         product_fab = True
 
             if (not product_fab):
-                product.meli_available_quantity = product._meli_available_quantity(meli=meli)
+                product.meli_available_quantity = product._meli_available_quantity(meli=meli,config=config)
 
             if product.meli_available_quantity<0:
                 product.meli_available_quantity = 0
@@ -2609,7 +2621,7 @@ class product_product(models.Model):
                 if (product_tmpl.meli_pub_principal_variant.id):
                     base_meli_id = product_tmpl.meli_pub_principal_variant.meli_id
                     if (base_meli_id):
-                        response = meli.get("/items/%s" % base_meli_id, {'access_token':meli.access_token})
+                        response = meli.get("/items/%s" % base_meli_id, {'access_token':meli.access_token, 'include_attributes': 'all'})
                         if (response):
                             productjson = response.json()
 
@@ -2633,6 +2645,7 @@ class product_product(models.Model):
                             #_logger.info("_is_product_combination! Post stock to variation")
                             #_logger.info(productjson["variations"][ix])
                             found_comb = True
+                            #reset meli_id_variation (TODO: resetting must be done outside)
                             product.meli_id_variation = productjson["variations"][ix]["id"]
                             var = {
                                 #"id": str( product.meli_id_variation ),
@@ -2660,7 +2673,7 @@ class product_product(models.Model):
                             if ('picture_ids' in addvar):
                                 if len(pictures_v)>=len(addvar["picture_ids"]):
                                     addvar["picture_ids"] = pictures_v
-                            if (company.mercadolibre_post_default_code):
+                            if (config.mercadolibre_post_default_code): #TODO: fixing SKU must be specific parameter
                                 addvar["seller_custom_field"] = product.default_code
                             addvar["price"] = same_price
                             #_logger.info("Add variation!")
