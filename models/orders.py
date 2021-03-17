@@ -1088,6 +1088,9 @@ class mercadolibre_orders(models.Model):
                         shipment.sale_order = sorder
                     else:
                         sorder = shipment.sale_order
+                        if sorder:
+                            sorder.meli_date_created = order.date_created
+                            sorder.meli_date_closed = order.date_closed
 
         #could be packed sorder or standard one product item order
         if sorder:
