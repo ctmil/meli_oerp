@@ -1089,6 +1089,7 @@ class mercadolibre_orders(models.Model):
                     else:
                         sorder = shipment.sale_order
                         if sorder:
+                            _logger.info("fixing meli_date_created")
                             sorder.meli_date_created = order.date_created
                             sorder.meli_date_closed = order.date_closed
 
