@@ -484,7 +484,7 @@ class mercadolibre_shipment(models.Model):
 		response = meli.get("/shipments/"+ str(ship_id),  {'access_token':meli.access_token})
 		if (response):
 			ship_json = response.json()
-			_logger.info( ship_json )
+			#_logger.info( ship_json )
 
 			if "error" in ship_json:
 				_logger.error( ship_json["error"] )
@@ -574,19 +574,19 @@ class mercadolibre_shipment(models.Model):
 						packed_order_ids =""
 						for item in items_json:
 							#check mercadolibre_orders for full pack
-							if item["order_id"]:
+							if "order_id" in item:
 								#search order, if not present search orders...
 								#search by meli_order_id in mercadolibre.orders
-								_logger.info(item)
-								item_order = orders_obj.search( [("order_id",'=',item["order_id"])] )
-								if (len(item_order)==1):
+								#_logger.info(item)
+								item_order = orders_obj.search( [("order_id",'=',item["order_id"])], limit=1 )
+								if len(item_order):
 									all_orders.append(item_order)
 									all_orders_ids.append(item_order.id)
-									packed_order_ids+= coma+item["order_id"]
+									packed_order_ids+= coma + item["order_id"]
 									coma = ","
 						full_orders = ( len(items_json) == len(all_orders) )
-						_logger.info(items_json)
-						_logger.info("full_orders:"+str(full_orders))
+						#_logger.info(items_json)
+						#_logger.info("full_orders:"+str(full_orders))
 						if (full_orders):
 							#We can create order with all items now
 							ship_fields["orders"] = [(6, 0, all_orders_ids)]
@@ -672,8 +672,8 @@ class mercadolibre_shipment(models.Model):
 							'meli_paid_amount': shipment.order_cost,
 							'meli_fee_amount': 0.0,
 							'meli_currency_id': all_orders[0]["currency_id"],
-							'meli_date_created': ml_datetime(all_orders[0]["date_created"]),
-							'meli_date_closed': ml_datetime(all_orders[0]["date_closed"]),
+							'meli_date_created': ml_datetime(all_orders[0]["date_created"]) or all_orders[0]["date_created"],
+							'meli_date_closed': ml_datetime(all_orders[0]["date_closed"]) or all_orders[0]["date_created"],
 						}
 						#TODO: agregar un campo para diferencia cada delivery res partner al shipment y orden asociado, crear un binding usando values diferentes... y listo
 						partner_shipping_id = None
@@ -682,6 +682,28 @@ class mercadolibre_shipment(models.Model):
 																#('street','=',partner_id.street)
 																],
 															limit=1)
+						Receiver = ship_json["receiver_address"]
+						pdelivery_fields = {
+							"type": "delivery",
+							"parent_id": partner_id.id,
+							'name': ship_fields['receiver_address_name'],
+							'street': ship_fields['receiver_address_line'],
+							#'street2': meli_buyer_fields['name'],
+							'city': orders_obj.city(Receiver),
+			                'country_id': orders_obj.country(Receiver),
+			                'state_id': orders_obj.state(orders_obj.country(Receiver),Receiver),
+							#'zip': meli_buyer_fields['name'],
+							#"comment": ("location_addressNotes" in contactfields and contactfields["location_addressNotes"]) or ""
+							#'producteca_bindings': [(6, 0, [client.id])]
+							#'phone': self.full_phone( contactfields,billing=True ),
+							#'email':contactfields['billingInfo_email'],
+							#'producteca_bindings': [(6, 0, [client.id])]
+						}
+						#TODO: agregar un campo para diferencia cada delivery res partner al shipment y orden asociado, crear un binding usando values diferentes... y listo
+						deliv_id = self.env["res.partner"].search([("parent_id","=",pdelivery_fields['parent_id']),
+																	("type","=","delivery"),
+																	('street','=',pdelivery_fields['street'])],
+																	limit=1)
 						if not deliv_id or len(deliv_id)==0:
 							_logger.info("Create partner delivery")
 							respartner_obj = self.env['res.partner']
@@ -690,8 +712,9 @@ class mercadolibre_shipment(models.Model):
 								if deliv_id:
 									_logger.info("Created Res Partner Delivery "+str(deliv_id))
 									partner_shipping_id = deliv_id
-							except:
+							except Exception as e:
 								_logger.error("Created res.partner delivery issue.")
+								_logger.info(e, exc_info=True)
 								pass;
 						else:
 							try:
@@ -700,10 +723,10 @@ class mercadolibre_shipment(models.Model):
 							except:
 								_logger.error("Updating res.partner delivery issue.")
 								pass;
-								
+
 						if partner_shipping_id:
 							meli_order_fields['partner_shipping_id'] = partner_shipping_id.id
-							
+
 						if ("pack_id" in all_orders[0] and all_orders[0]["pack_id"]):
 							meli_order_fields['name'] = "ML %s" % ( str(all_orders[0]["pack_id"]) )
 							#meli_order_fields['pack_id'] = all_orders[0]["pack_id"]
@@ -716,6 +739,9 @@ class mercadolibre_shipment(models.Model):
 
 						if (len(sorder_pack)):
 							sorder_pack = sorder_pack[0]
+							_logger.info("Update sale.order pack")
+							#_logger.info(all_orders[0])
+							#_logger.info(meli_order_fields)
 							sorder_pack.write(meli_order_fields)
 						else:
 							sorder_pack = self.env["sale.order"].create(meli_order_fields)
