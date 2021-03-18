@@ -268,6 +268,20 @@
               </field>
         </record>
 
+        <record id="view_orders_cancel" model="ir.ui.view">
+              <field name="name">Cancelar Orden</field>
+              <field name="model">sale.order.cancel</field>
+              <field name="type">form</field>
+              <field name="arch" type="xml">
+                <form string="Cancel Order" version="7.0">
+                    <footer>
+                        <button name="cancel_order" string="Cancel Orders"  type="object" class="oe_highlight"  />
+                        <button string="Cancel" class="oe_link" special="cancel" />
+                    </footer>
+                </form>
+              </field>
+        </record>
+
         <record model="ir.actions.act_window" id="action_meli_orders_tree">
             <field name="name">Ordenes</field>
             <field name="type">ir.actions.act_window</field>
@@ -296,7 +310,17 @@
             <field name="target">new</field>
         </record>
 
-<!--
+        <record id="action_cancel_orders" model="ir.actions.act_window">
+            <field name="name">Cancelar Ordenes</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="src_model">sale.order</field>
+            <field name="res_model">sale.order.cancel</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+
+        <!--
         <record model="ir.values" id="update_meli_orders">
             <field name="name">Actualizar Ordenes</field>
             <field name="key2">client_action_multi</field>
@@ -304,7 +328,7 @@
             <field name="key">action</field>
             <field name="model">mercadolibre.orders</field>
         </record>
--->
+        -->
 
         <menuitem id="menu_meli" name="MercadoLibre" parent="sale.sale_menu_root" sequence="9"/>
 
@@ -328,6 +352,14 @@
                 target="new"/>
 
 
+            <act_window id="action_cancel_orders"
+                name="Cancel Orders"
+                src_model="sale.order"
+                res_model="sale.order.cancel"
+                view_type="form"
+                view_mode="form"
+                key2="client_action_multi"
+                target="new"/>
 
 
     </data>
