@@ -144,19 +144,30 @@ class MeliApi( meli.RestClientApi ):
             atok = ("access_token" in params and params["access_token"]) or ""
             headers = {'Accept': 'application/json', 'Content-type':'multipart/form-data'}
             params = {"access_token":atok}
+            #headers = {'Authorization': 'Bearer '+atok}
             headers = {}
             uri = configuration.host+str(path)
-            #_logger.info(files)
-            #for f in files:
-            #    _logger.info(f)
             _logger.info(headers)
-            #_logger.info("MeliApi.delete(%s,%s)  %s" % (path,str(atok),str(body)) )
-            #self.response = self.resource_post(resource=path, access_token=atok, body=files )
-            #self.rjson = self.response
             self.response = requests.post(uri, files=files, params=urlencode(params), headers=headers)
-            #_logger.info(self.response)
             self.rjson = self.response.json()
-            #_logger.info(self.rjson)
+        except Exception as e:
+            self.rjson = {
+                "error": "%s" % e
+            }
+        except:
+            pass;
+        return self
+
+    def uploadfiles( self, path, files, params={}):
+        try:
+            atok = ("access_token" in params and params["access_token"]) or ""
+            headers = {'Accept': 'application/json', 'Content-type':'multipart/form-data'}
+            params = {}
+            headers = {'Authorization': 'Bearer '+atok}
+            uri = configuration.host+str(path)
+            _logger.info(headers)
+            self.response = requests.post(uri, files=files, params=urlencode(params), headers=headers)
+            self.rjson = self.response.json()
         except Exception as e:
             self.rjson = {
                 "error": "%s" % e
