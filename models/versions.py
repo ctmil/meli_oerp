@@ -46,7 +46,7 @@ def get_image_full(self):
 def set_image_full(self, image):
     self.image = image
     return True
-    
+
 def get_first_image_to_publish(self):
     company = self.env.user.company_id
     product = self
@@ -59,7 +59,7 @@ def get_first_image_to_publish(self):
             first_image_to_publish = get_image_full(image_ids[0])
     else:
         first_image_to_publish = get_image_full(product)
-        
+
     return first_image_to_publish
 
 def prepare_attribute( product_template_id, attribute_id, attribute_value_id ):
@@ -78,8 +78,10 @@ def stock_inventory_action_done( self ):
 def ml_datetime(datestr):
     try:
         #return parse(datestr).isoformat().replace("T"," ")
+        datestr = str(datestr)
         return parse(datestr).strftime('%Y-%m-%d %H:%M:%S')
     except:
+        _logger.error(type(datestr))
         _logger.error(datestr)
         return None
 
