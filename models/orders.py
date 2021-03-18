@@ -98,13 +98,13 @@ class sale_order(models.Model):
         try:
             for order in self:
                 for line in order.order_line:
-                    _logger.info(line)
-                    _logger.info(line.is_delivery)
-                    _logger.info(line.price_unit)
+                    #_logger.info(line)
+                    #_logger.info(line.is_delivery)
+                    #_logger.info(line.price_unit)
                     if line.is_delivery and line.price_unit<=0.0:
-                        _logger.info(line)
+                        #_logger.info(line)
                         line.write({ "qty_to_invoice": 0.0 })
-                        _logger.info(line.qty_to_invoice)
+                        #_logger.info(line.qty_to_invoice)
         except:
             pass;
 
@@ -126,13 +126,13 @@ class sale_order(models.Model):
         try:
             for order in self:
                 for line in order.order_line:
-                    _logger.info(line)
-                    _logger.info(line.is_delivery)
-                    _logger.info(line.price_unit)
+                    #_logger.info(line)
+                    #_logger.info(line.is_delivery)
+                    #_logger.info(line.price_unit)
                     if line.is_delivery and line.price_unit<=0.0:
-                        _logger.info(line)
+                        #_logger.info(line)
                         line.write({ "qty_to_invoice": 0.0 })
-                        _logger.info(line.qty_to_invoice)
+                        #_logger.info(line.qty_to_invoice)
         except:
             pass;
 
@@ -150,9 +150,9 @@ class sale_order(models.Model):
 
     def _get_meli_invoices(self):
         invoices = self.env[acc_inv_model].search([('origin','=',self.name)])
-        _logger.info("_get_meli_invoices")
-        _logger.info(self)
-        _logger.info(invoices)
+        #_logger.info("_get_meli_invoices")
+        #_logger.info(self)
+        #_logger.info(invoices)
         if invoices:
             return invoices[0]
         return None
@@ -807,6 +807,7 @@ class mercadolibre_orders(models.Model):
 
         if (sorder and sorder.id):
             _logger.info("Updating sale.order: %s" % (sorder.id))
+            #_logger.info(meli_order_fields)
             sorder.write( meli_order_fields )
         else:
             _logger.info("Adding new sale.order: " )
@@ -1088,17 +1089,21 @@ class mercadolibre_orders(models.Model):
                         shipment.sale_order = sorder
                     else:
                         sorder = shipment.sale_order
+                        if sorder:
+                            _logger.info("fixing meli_date_created")
+                            sorder.meli_date_created = order.date_created
+                            sorder.meli_date_closed = order.date_closed
 
         #could be packed sorder or standard one product item order
         if sorder:
             for line in sorder.order_line:
-                _logger.info(line)
-                _logger.info(line.is_delivery)
-                _logger.info(line.price_unit)
+                #_logger.info(line)
+                #_logger.info(line.is_delivery)
+                #_logger.info(line.price_unit)
                 if line.is_delivery and line.price_unit<=0.0:
-                    _logger.info(line)
+                    #_logger.info(line)
                     line.write({ "qty_to_invoice": 0.0 })
-                    _logger.info(line.qty_to_invoice)
+                    #_logger.info(line.qty_to_invoice)
             if (config.mercadolibre_order_confirmation!="manual"):
                 sorder.confirm_ml()
             if (sorder.meli_status=="cancelled"):
@@ -1364,3 +1369,32 @@ class mercadolibre_orders_update(models.TransientModel):
         return {}
 
 mercadolibre_orders_update()
+
+class sale_order_cancel(models.TransientModel):
+    _name = "sale.order.cancel"
+    _description = "Cancel Order"
+
+    def cancel_order(self, context=None):
+        context = context or self.env.context
+        orders_ids = context['active_ids']
+        orders_obj = self.env['sale.order']
+
+        self._cr.autocommit(False)
+        try:
+
+            for order_id in orders_ids:
+
+                _logger.info("cancel_order: %s " % (order_id) )
+
+                order = orders_obj.browse(order_id)
+                if order:
+                    order.action_cancel()
+
+        except Exception as e:
+            _logger.info("order_update > Error cancelando ordenes")
+            _logger.error(e, exc_info=True)
+            self._cr.rollback()
+
+        return {}
+
+sale_order_cancel()
