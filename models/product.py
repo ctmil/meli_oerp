@@ -2478,13 +2478,13 @@ class product_product(models.Model):
 
 
         if product.meli_id:
-            _logger.info(body)
+            _logger.info("update post:"+str(body))
             response = meli.put("/items/"+product.meli_id, body, {'access_token':meli.access_token})
             resdescription = meli.put("/items/"+product.meli_id+"/description", bodydescription, {'access_token':meli.access_token})
             rjsondes = resdescription.json()
         else:
             assign_img = True and product.meli_imagen_id
-            _logger.info(body)
+            _logger.info("first post:" + str(body))
             response = meli.post("/items", body, {'access_token':meli.access_token})
 
         #check response
