@@ -459,7 +459,7 @@ class product_product(models.Model):
             if (product_template.lst_price<=1.0):
                 product_template.write({'lst_price': ml_price_converted})
 
-    def set_meli_price( self, config=None, plist=None ):
+    def set_meli_price( self, meli=None, config=None, plist=None ):
         company = self.env.user.company_id
         config = config or company
         company = (config and 'company_id' in config._fields and config.company_id) or company
@@ -529,21 +529,23 @@ class product_product(models.Model):
 
         return product.meli_price
 
-    def _meli_set_category( self, product_template, category_id ):
+    def _meli_set_category( self, product_template, category_id, meli=None, config=None ):
 
         product = self
         company = self.env.user.company_id
+        config = config or company
         www_cats = False
         if 'product.public.category' in self.env:
             www_cats = self.env['product.public.category']
-        meli = self.env['meli.util'].get_new_instance(company)
-        if meli.need_login():
-            return meli.redirect_login()
+        if not meli:
+            meli = self.env['meli.util'].get_new_instance(company)
+            if meli.need_login():
+                return meli.redirect_login()
 
         mlcatid = False
         www_cat_id = False
 
-        mlcatid, www_cat_id = self.env["mercadolibre.category"].meli_get_category( category_id, create_missing_website=company.mercadolibre_create_website_categories )
+        mlcatid, www_cat_id = self.env["mercadolibre.category"].meli_get_category( category_id, create_missing_website=config.mercadolibre_create_website_categories )
 
         if (mlcatid):
             product.write( {'meli_category': mlcatid} )
@@ -553,12 +555,14 @@ class product_product(models.Model):
             #assign
             product_template.public_categ_ids = [(4,www_cat_id)]
 
-    def _meli_remove_images_unsync( self, product_template, pictures ):
+    def _meli_remove_images_unsync( self, product_template, pictures, meli=None, config=None ):
         #atencion aplicar meli_imagen_id y meli_published solo si existe efectivamenete en pictures antes y luego de updatear en ML
         #tambien chequear con hash duplicados... en lugar de meli_imagen_id
         product = self
         company = self.env.user.company_id
-        if not (company.mercadolibre_remove_unsync_images):
+        config = config or company
+
+        if not (config.mercadolibre_remove_unsync_images):
             return {}
 
         ml_pics = {}
@@ -631,9 +635,12 @@ class product_product(models.Model):
         except:
             pass;
 
-    def _meli_set_images( self, product_template, pictures ):
+    def _meli_set_images( self, product_template, pictures, meli=None, config=None ):
         company = self.env.user.company_id
-        meli = self.env['meli.util'].get_new_instance(company)
+        config = config or company
+
+        if not meli:
+            meli = self.env['meli.util'].get_new_instance(company)
 
         if not ("product.image" in self.env):
             return {}
@@ -641,7 +648,7 @@ class product_product(models.Model):
         try:
             product = self
             ix_start = 0
-            if (not company.mercadolibre_do_not_use_first_image):
+            if (not config.mercadolibre_do_not_use_first_image):
                 ix_start = 1
                 thumbnail_url = pictures[0]['url']
                 image = urlopen(thumbnail_url).read()
@@ -2040,7 +2047,7 @@ class product_product(models.Model):
         if product_tmpl.meli_title==False or ( product_tmpl.meli_title and len(product_tmpl.meli_title)==0 ):
             product_tmpl.meli_title = product_tmpl.name
 
-        product.set_meli_price()
+        product.set_meli_price(meli=meli,config=config)
 
         if config.mercadolibre_buying_mode and product_tmpl.meli_buying_mode==False:
             product_tmpl.meli_buying_mode = config.mercadolibre_buying_mode
@@ -2186,7 +2193,7 @@ class product_product(models.Model):
         if product_tmpl.meli_category and not product.meli_category:
             product.meli_category = product_tmpl.meli_category
 
-        product.meli_available_quantity = product._meli_available_quantity(meli=meli)
+        product.meli_available_quantity = product._meli_available_quantity(meli=meli,config=config)
 
         body = {
             "title": product.meli_title or '',
@@ -2360,7 +2367,7 @@ class product_product(models.Model):
                             for pvar in product_tmpl.product_variant_ids:
                                 if (pvar._is_product_combination(var_info)):
                                     var_product = pvar
-                                    var_product.meli_available_quantity = var_product._meli_available_quantity(meli=meli)
+                                    var_product.meli_available_quantity = var_product._meli_available_quantity(meli=meli,config=config)
                                     vars_updated+=var_product
                             var = {
                                 "id": str(var_info["id"]),
@@ -2749,7 +2756,7 @@ class product_product(models.Model):
         return {}
 
     #update internal product stock based on meli_default_stock_product
-    def product_update_stock(self, stock=False, meli=False):
+    def product_update_stock(self, stock=False, meli=False, config=None):
         product = self
         uomobj = self.env[uom_model]
         _stock = product.virtual_available
@@ -2764,11 +2771,11 @@ class product_product(models.Model):
                 product.set_bom()
 
             if (product.meli_default_stock_product):
-                _stock = product.meli_default_stock_product._meli_available_quantity(meli=meli)
+                _stock = product.meli_default_stock_product._meli_available_quantity(meli=meli,config=config)
                 if (_stock<0):
                     _stock = 0
 
-            if (1==2 and _stock>=0 and product._meli_available_quantity()!=_stock):
+            if (1==2 and _stock>=0 and product._meli_available_quantity(meli=meli,config=config)!=_stock):
                 _logger.info("Updating stock for variant." + str(_stock) )
                 wh = self.env['stock.location'].search([('usage','=','internal')]).id
                 product_uom_id = uomobj.search([('name','=','Unidad(es)')])
