@@ -1985,10 +1985,11 @@ class product_product(models.Model):
         return res
 
 
-    def _product_post(self, meli=None, config=None ):
+    def _product_post( self, meli=None, config=None ):
+
         #import pdb;pdb.set_trace();
         _logger.info('[DEBUG] product_post')
-        _logger.info(self.env.context)
+        _logger.info("self.env.context:" + str(self.env.context))
 
         www_cats = False
         if 'product.public.category' in self.env:
@@ -2483,6 +2484,7 @@ class product_product(models.Model):
             rjsondes = resdescription.json()
         else:
             assign_img = True and product.meli_imagen_id
+            _logger.info(body)
             response = meli.post("/items", body, {'access_token':meli.access_token})
 
         #check response
