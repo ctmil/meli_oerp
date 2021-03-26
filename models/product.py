@@ -2032,6 +2032,7 @@ class product_product(models.Model):
                 productjson = response.json()
 
         #check from company's default
+        #_product_post_set_template_configuration
         if config.mercadolibre_listing_type and product_tmpl.meli_listing_type==False:
             product_tmpl.meli_listing_type = config.mercadolibre_listing_type
 
@@ -2047,8 +2048,6 @@ class product_product(models.Model):
         if product_tmpl.meli_title==False or ( product_tmpl.meli_title and len(product_tmpl.meli_title)==0 ):
             product_tmpl.meli_title = product_tmpl.name
 
-        product.set_meli_price(meli=meli,config=config)
-
         if config.mercadolibre_buying_mode and product_tmpl.meli_buying_mode==False:
             product_tmpl.meli_buying_mode = config.mercadolibre_buying_mode
 
@@ -2060,6 +2059,7 @@ class product_product(models.Model):
         if force_template_description or product_tmpl.meli_description==False or ( product_tmpl.meli_description and len(product_tmpl.meli_description)==0):
             product_tmpl.meli_description = product_tmpl.description_sale
 
+        #_product_post_set_title
         if (
             ( product.meli_title==False or len(product.meli_title)==0 )
             or
@@ -2089,11 +2089,15 @@ class product_product(models.Model):
         if ( product.meli_title and len(product.meli_title)>60 ):
             return warningobj.info( title='MELI WARNING', message="La longitud del título ("+str(len(product.meli_title))+") es superior a 60 caracteres.", message_html=product.meli_title )
 
+        #_product_post_set_price
+        product.set_meli_price(meli=meli,config=config)
+
         if product.meli_price==False or product.meli_price==0.0:
             if product_tmpl.meli_price:
                 _logger.info("Assign tmpl price:"+str(product_tmpl.meli_price))
                 product.meli_price = product_tmpl.meli_price
 
+        #_product_post_set_base_configuration
         if product.meli_description==False or force_template_description:
             product.meli_description = product_tmpl.meli_description
 
@@ -2135,6 +2139,7 @@ class product_product(models.Model):
         if (product_tmpl.meli_model):
             product.meli_model = product_tmpl.meli_model
 
+        #_product_post_set_attributes
         attributes = []
         variations_candidates = False
         if product_tmpl.attribute_line_ids:
@@ -2181,6 +2186,7 @@ class product_product(models.Model):
             _logger.info(attributes)
             product.meli_attributes = str(attributes)
 
+        #_product_post_set_category
         if www_cats:
             if product.public_categ_ids:
                 for cat_id in product.public_categ_ids:
@@ -2193,8 +2199,10 @@ class product_product(models.Model):
         if product_tmpl.meli_category and not product.meli_category:
             product.meli_category = product_tmpl.meli_category
 
+        #_product_post_set_quantity
         product.meli_available_quantity = product._meli_available_quantity(meli=meli,config=config)
 
+        #_product_post_set_body
         body = {
             "title": product.meli_title or '',
             "category_id": product.meli_category.meli_category_id or '0',
@@ -2295,6 +2303,9 @@ class product_product(models.Model):
         else:
             body["description"] = bodydescription
 
+        if len(attributes):
+            body["attributes"] =  attributes
+
         #publicando multiples imagenes
         multi_images_ids = {}
         if (variant_image_ids(product) or template_image_ids(product)):
@@ -2305,6 +2316,7 @@ class product_product(models.Model):
                 #return warningobj.info( title='MELI WARNING', message="Error publicando imagenes", message_html="Error: "+str(("error" in multi_images_ids and multi_images_ids["error"]) or "")+" Status:"+str(("status" in multi_images_ids and multi_images_ids["status"]) or "") )
                 return warningobj.info( title='MELI WARNING', message="Error publicando imagenes", message_html="Error: "+str(multi_images_ids))
 
+        #_product_post_set_body
         if product.meli_imagen_id:
             if 'pictures' in body.keys():
                 body["pictures"] = [ { 'id': product.meli_imagen_id } ]
@@ -2324,9 +2336,6 @@ class product_product(models.Model):
                     body["pictures"] = [ { 'source': product.meli_imagen_logo} ]
         else:
             imagen_producto = ""
-
-        if len(attributes):
-            body["attributes"] =  attributes
 
         if (not variations_candidates):
             #SKU ?
@@ -2482,7 +2491,6 @@ class product_product(models.Model):
 
         #free shipping
         # https://api.mercadolibre.com/users/{user_id}/shipping_modes?category_id={category_id}&item_price=550
-
 
         if product.meli_id:
             _logger.info("update post:"+str(body))
@@ -2938,6 +2946,8 @@ class product_product(models.Model):
     meli_catalog_automatic_relist = fields.Boolean(string='Catalog Auto Relist', size=256)
 
     meli_shipping_logistic_type = fields.Char(string="Logistic Type",index=True)
+
+    meli_inventory_id = fields.Char(string="Inventory Id",index=True)
 
     _defaults = {
         'meli_imagen_logo': 'None',
