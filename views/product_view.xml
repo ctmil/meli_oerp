@@ -428,5 +428,16 @@
             </field>
         </record>
 
+        <record model="ir.ui.view" id="product_attribute_ml_view_form">
+          <field name="name">product.attribute.ml.view.form</field>
+          <field name="model">product.attribute</field>
+          <field name="inherit_id" ref="product.product_attribute_view_form" />
+          <field name="arch" type="xml">
+            <field name="name" position="after">
+              <field name="meli_default_id_attribute" />
+            </field>
+          </field>
+        </record>
+
     </data>
 </odoo>
