@@ -161,6 +161,8 @@ class product_template(models.Model):
                     if (var):
                         if (variations==False):
                             variations = []
+                        var_attributes = variant._update_sku_attribute( attributes=("attributes" and var["attributes"]), set_sku=config.mercadolibre_post_default_code )
+                        var_attributes and var.update({"attributes": var_attributes })
                         variations.append(var)
 
         return variations
@@ -1984,13 +1986,41 @@ class product_product(models.Model):
             if (variant_principal):
                 product.meli_id = variant_principal.meli_id
 
+    #Add/Update SELLER_SKU attribute, only if present in Odoo, also can update GTIN (barcode)
+    def _update_sku_attribute( self, attributes=[], set_sku=True, set_barcode=False ):
+
+        variant = self
+
+        updated_attributes = []
+        sku_updated = False
+        barcode_updated = False
+
+        for att in attributes:
+
+            if (set_sku and "id" in att and att["id"]=="SELLER_SKU" and variant.default_code):
+                sku_updated = True
+                att = { "id": att["id"], "value_name": variant.default_code }
+
+            elif (set_barcode and "id" in att and att["id"]=="GTIN" and variant.barcode):
+                barcode_updated = True
+                att = { "id": att["id"], "value_name": variant.barcode }
+
+            updated_attributes.append(att)
+
+        if not sku_updated and set_sku and variant.default_code:
+            updated_attributes.append( { "id": "SELLER_SKU", "value_name": variant.default_code } )
+
+        if not barcode_updated and set_barcode and variant.barcode:
+            updated_attributes.append( { "id": "GTIN", "value_name": variant.barcode } )
+
+        return updated_attributes
+
     def product_post(self):
         res = []
         for product in self:
             res.append(product._product_post())
 
         return res
-
 
     def _product_post( self, meli=None, config=None ):
 
@@ -2027,7 +2057,7 @@ class product_product(models.Model):
 
         productjson = False
         if (product.meli_id):
-            response = meli.get("/items/%s" % product.meli_id, {'access_token':meli.access_token})
+            response = meli.get("/items/%s" % product.meli_id, {'access_token':meli.access_token, 'include_attributes': 'all' })
             if (response):
                 productjson = response.json()
 
@@ -2338,12 +2368,11 @@ class product_product(models.Model):
             imagen_producto = ""
 
         if (not variations_candidates):
-            #SKU ?
             if (product.default_code and config.mercadolibre_post_default_code):
-                #TODO: flag for publishing SKU as attribute in single variant mode?? maybe
-                #attribute = { "id": "SELLER_SKU", "value_name": product.default_code }
-                #attributes.append(attribute)
-                #product.meli_attributes = str(attributes)
+                #SKU as attribute is default now
+                attribute = { "id": "SELLER_SKU", "value_name": product.default_code }
+                attributes.append(attribute)
+                product.meli_attributes = str(attributes)
                 body["seller_custom_field"] = product.default_code
 
 
@@ -2362,10 +2391,13 @@ class product_product(models.Model):
                             "pictures": body["pictures"],
                             "variations": []
                         }
+
+                        #TODO: add pictures from real variant images
                         var_pics = []
                         if (len(body["pictures"])):
                             for pic in body["pictures"]:
                                 var_pics.append(pic['id'])
+
                         _logger.info("Variations already posted, must update them only")
                         vars_updated = self.env["product.product"]
                         for ix in range(len(productjson["variations"]) ):
@@ -2376,14 +2408,18 @@ class product_product(models.Model):
                             for pvar in product_tmpl.product_variant_ids:
                                 if (pvar._is_product_combination(var_info)):
                                     var_product = pvar
+                                    #upgrade variant stock
                                     var_product.meli_available_quantity = var_product._meli_available_quantity(meli=meli,config=config)
                                     vars_updated+=var_product
+                            #TODO: add SKU
+                            var_attributes = var_product._update_sku_attribute( attributes=("attributes" and var_info["attributes"]), set_sku=config.mercadolibre_post_default_code)
                             var = {
                                 "id": str(var_info["id"]),
                                 "price": str(product_tmpl.meli_price),
                                 "available_quantity": var_product.meli_available_quantity,
-                                "picture_ids": var_pics
+                                "picture_ids": var_pics,
                             }
+                            var_attributes and var.update({"attributes": var_attributes })
                             varias["variations"].append(var)
                         #variations = product_tmpl._variations()
                         #varias["variations"] = variations
@@ -2397,6 +2433,8 @@ class product_product(models.Model):
                                 var_info = _all_variations[aix]
                                 for pvar in _new_candidates:
                                     if (pvar._is_product_combination(var_info)):
+                                        var_attributes = pvar._update_sku_attribute( attributes=("attributes" and var_info["attributes"]), set_sku=config.mercadolibre_post_default_code )
+                                        var_attributes and var_info.update({"attributes": var_attributes })
                                         varias["variations"].append(var_info)
                                         _logger.info("news:")
                                         _logger.info(var_info)
@@ -2467,6 +2505,8 @@ class product_product(models.Model):
                         "available_quantity": product.meli_available_quantity,
                         "picture_ids": var_pics
                     }
+                    var_attributes = product._update_sku_attribute( attributes=("attributes" and var_info["attributes"]), set_sku=config.mercadolibre_post_default_code )
+                    var_attributes and var.update({"attributes": var_attributes })
                     varias["variations"].append(var)
 
                     #WARNING: only for single variation
