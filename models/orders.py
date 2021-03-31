@@ -405,7 +405,7 @@ class mercadolibre_orders(models.Model):
 
         return mlorder
 
-    def search_meli_product( self, meli_item=None, config=None ):
+    def search_meli_product( self, meli=None, meli_item=None, config=None ):
         product_obj = self.env['product.product']
         if not meli_item:
             return None
@@ -872,8 +872,8 @@ class mercadolibre_orders(models.Model):
                     _logger.info( "No post related, exiting" )
                     return { 'error': 'No post related, exiting'}
 
-                product_related = self.search_meli_product(meli_item=Item['item'],config=config)
-                if ( ('seller_custom_field' in Item['item'] or 'seller_sku' in Item['item'])  and len(product_related)==0):
+                product_related = self.search_meli_product( meli=meli, meli_item=Item['item'], config=config )
+                if ( len(product_related)==0 and ('seller_custom_field' in Item['item'] or 'seller_sku' in Item['item'])):
 
                     #1ST attempt "seller_sku" or "seller_custom_field"
                     seller_sku = ('seller_sku' in Item['item'] and Item['item']['seller_sku']) or ('seller_custom_field' in Item['item'] and Item['item']['seller_custom_field'])
