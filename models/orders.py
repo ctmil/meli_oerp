@@ -93,7 +93,7 @@ class sale_order(models.Model):
     meli_shipment_logistic_type = fields.Char(string="Logistic Type",index=True)
 
     def action_confirm(self):
-        _logger.info("meli order action_confirm")
+        _logger.info("meli order action_confirm: " + str(self.mapped("name")) )
         res = super(sale_order,self).action_confirm()
         try:
             for order in self:
@@ -110,6 +110,8 @@ class sale_order(models.Model):
 
         try:
             company = self.env.user.company_id
+            _logger.info("Company: "+str(company))
+            _logger.info("Order done: company.mercadolibre_cron_post_update_stock: "+str(company.mercadolibre_cron_post_update_stock))
             for order in self:
                 for line in order.order_line:
                     if (company.mercadolibre_cron_post_update_stock):
@@ -121,7 +123,7 @@ class sale_order(models.Model):
         return res
 
     def action_done(self):
-        _logger.info("meli order action done")
+        _logger.info("meli order action done: " + str(self.mapped("name")) )
         res = super(sale_order,self).action_done()
         try:
             for order in self:
@@ -138,6 +140,8 @@ class sale_order(models.Model):
 
         try:
             company = self.env.user.company_id
+            _logger.info("Company: "+str(company))
+            _logger.info("Order done: company.mercadolibre_cron_post_update_stock: "+str(company.mercadolibre_cron_post_update_stock))
             for order in self:
                 for line in order.order_line:
                     if (company.mercadolibre_cron_post_update_stock):
@@ -157,21 +161,24 @@ class sale_order(models.Model):
             return invoices[0]
         return None
 
-    def confirm_ml(self):
+    def confirm_ml( self, meli=None, config=None ):
         try:
-            company = self.env.user.company_id
+            _logger.info("meli_oerp confirm_ml")
+            company = (config and 'company_id' in config._fields and config.company_id) or self.env.user.company_id
+            config = config or company
+
             stock_picking = self.env["stock.picking"]
 
             if (self.meli_status=="cancelled"):
                 self.action_cancel()
 
-            if (company.mercadolibre_order_confirmation=="paid_confirm"):
+            if (config.mercadolibre_order_confirmation=="paid_confirm"):
 
                 if ( (self.state=="draft" or self.state=="sent") and self.meli_status=="paid"):
                     _logger.info("paid_confirm ok! confirming sale")
                     self.action_confirm()
 
-            if (company.mercadolibre_order_confirmation=="paid_delivered"):
+            if (config.mercadolibre_order_confirmation=="paid_delivered"):
 
                 if ( (self.state=="draft" or self.state=="sent") and self.meli_status=="paid"):
                     _logger.info("paid_delivered ok! confirming sale")
@@ -193,7 +200,7 @@ class sale_order(models.Model):
                                 spick.action_done()
 
 
-            if (company.mercadolibre_order_confirmation=="paid_confirm_with_invoice"):
+            if (config.mercadolibre_order_confirmation=="paid_confirm_with_invoice"):
                 if ( (self.state=="draft" or self.state=="sent") and self.meli_status=="paid"):
                     _logger.info("paid_confirm with invoice ok! confirming sale and create invoice")
                     self.action_confirm()
@@ -1105,7 +1112,7 @@ class mercadolibre_orders(models.Model):
                     line.write({ "qty_to_invoice": 0.0 })
                     #_logger.info(line.qty_to_invoice)
             if (config.mercadolibre_order_confirmation!="manual"):
-                sorder.confirm_ml()
+                sorder.confirm_ml(meli=meli,config=config)
             if (sorder.meli_status=="cancelled"):
                 sorder.action_cancel()
 
