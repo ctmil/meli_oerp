@@ -1252,6 +1252,9 @@ class mercadolibre_orders(models.Model):
             response = meli.get("/orders/"+str(order.order_id), {'access_token':meli.access_token})
             order_json = response.json()
             if "id" in order_json:
+                if (str(order.status)!=str(order_json["status"])):
+                    #full update if status changed!
+                    order.orders_update_order(meli=meli,config=config)
                 order.status = order_json["status"] or ''
                 order.status_detail = order_json["status_detail"] or ''
                 if order.sale_order:

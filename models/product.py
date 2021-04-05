@@ -151,7 +151,7 @@ class product_template(models.Model):
 
         return ret
 
-    def _variations(self):
+    def _variations(self, config=None):
         variations = False
         for product_tmpl in self:
             for variant in product_tmpl.product_variant_ids:
@@ -2423,7 +2423,7 @@ class product_product(models.Model):
                             varias["variations"].append(var)
                         #variations = product_tmpl._variations()
                         #varias["variations"] = variations
-                        _all_variations = product_tmpl._variations()
+                        _all_variations = product_tmpl._variations(config=config)
                         _updated_ids = vars_updated.mapped('id')
                         _logger.info(_updated_ids)
                         _new_candidates = product_tmpl.product_variant_ids.filtered(lambda pv: pv.id not in _updated_ids)
@@ -2473,7 +2473,7 @@ class product_product(models.Model):
                          #_logger.debug(responsevar.json())
                         return {}
                     else:
-                        variations = product_tmpl._variations()
+                        variations = product_tmpl._variations(config=config)
                         _logger.info("Variations:")
                         _logger.info(variations)
                         if (variations):
