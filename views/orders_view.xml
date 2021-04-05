@@ -40,6 +40,8 @@
                     <field name="order_id"/>
                     <field name="shipping_id" invisible="0"/>
                     <field name="status"/>
+                    <field name="shipment_status" invisible="0" optional="show"/>
+                    <field name="shipment_substatus" invisible="0" optional="hide"/>
                     <field name="buyer"/>
                     <field name="total_amount"/>
                     <field name="paid_amount"/>
@@ -64,6 +66,7 @@
                             <group>
                               <field name="meli_order_id" invisible="0"/>
                               <field name="meli_status" invisible="0"/>
+                              <field name="meli_status_brief" invisible="0"/>
                               <field name="meli_shipment" invisible="0"/>
                               <field name="meli_shipment_logistic_type" invisible="0"/>
                               <field name="meli_status_detail" invisible="0"/>
