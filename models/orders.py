@@ -526,7 +526,12 @@ class mercadolibre_orders(models.Model):
                                 'id': Shipment.receiver_city_code
                             }
                         }
-
+                    else:
+                        shipres = meli.get("/shipments/"+ str(order_json['shipping']['id']),  {'access_token':meli.access_token })
+                        if shipres:
+                            shpjson = shipres.json()
+                            if "receiver_address" in shpjson:
+                                Receiver = shpjson["receiver_address"]
 
             meli_buyer_fields = {
                 'name': Buyer['first_name']+' '+Buyer['last_name'],
@@ -713,6 +718,7 @@ class mercadolibre_orders(models.Model):
                 if not partner_id.state_id:
                     partner_update.update({ 'state_id': self.state(self.country(Receiver), Receiver)})
                 if partner_update:
+                    _logger.info("Updating:"+str(partner_update))
                     partner_id.write(partner_update)
 
 
