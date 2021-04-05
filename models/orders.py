@@ -323,33 +323,10 @@ class mercadolibre_orders(models.Model):
 
         return full_phone
 
-    def _set_product_unit_price( self, product_related_obj, Item ):
-        product_template = product_related_obj.product_tmpl_id
-        ml_price_converted = float(Item['unit_price'])
-        #11.0
-        #tax_excluded = self.env.user.has_group('sale.group_show_price_subtotal')
-        #12.0 and 13.0
-        tax_excluded = ml_tax_excluded(self)
-        if ( tax_excluded and product_template.taxes_id ):
-            txfixed = 0
-            txpercent = 0
-            #_logger.info("Adjust taxes")
-            for txid in product_template.taxes_id:
-                if (txid.type_tax_use=="sale" and not txid.price_include):
-                    if (txid.amount_type=="percent"):
-                        txpercent = txpercent + txid.amount
-                    if (txid.amount_type=="fixed"):
-                        txfixed = txfixed + txid.amount
-                    #_logger.info(txid.amount)
-            if (txfixed>0 or txpercent>0):
-                #_logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_converted))
-                ml_price_converted = txfixed + ml_price_converted / (1.0 + txpercent*0.01)
-                _logger.info("Price adjusted with taxes:"+str(ml_price_converted))
-
-        ml_price_converted = round(ml_price_converted,2)
+    def _set_product_unit_price( self, product_related_obj, Item, config=None ):
 
         upd_line = {
-            "price_unit": ml_price_converted,
+            "price_unit": ml_product_price_conversion( self, product_related_obj=product_related_obj, price=Item['unit_price'], config=config )
         }
         #else:
         #    if ( float(Item['unit_price']) == product_template.lst_price and not self.env.user.has_group('sale.group_show_price_subtotal')):
@@ -713,7 +690,7 @@ class mercadolibre_orders(models.Model):
                 _logger.info(meli_buyer_fields)
                 #complete country at most:
                 partner_update = {}
-                
+
                 if not partner_id.country_id:
                     partner_update.update({'country_id': self.country(Receiver)})
                 if not partner_id.state_id:
