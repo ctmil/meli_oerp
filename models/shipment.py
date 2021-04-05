@@ -413,6 +413,9 @@ class mercadolibre_shipment(models.Model):
 				#continue
 
 			delivery_price = ml_product_price_conversion( self, product_related_obj=product_shipping_id, price=shipment.shipping_cost, config=config ),
+            if type(delivery_price)==tuple and len(delivery_price):
+                delivery_price = delivery_price[0]
+                
 			_logger.info("delivery_price:"+str(delivery_price))
 			if (ship_carrier_id and not sorder.carrier_id):
 				sorder.carrier_id = ship_carrier_id
