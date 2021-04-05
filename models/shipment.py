@@ -412,6 +412,11 @@ class mercadolibre_shipment(models.Model):
 				_logger.info('MEL Distribution, not adding to order')
 				#continue
 
+			delivery_price = ml_product_price_conversion( self, product_related_obj=product_shipping_id, price=shipment.shipping_cost, config=config ),
+			if type(delivery_price)==tuple and len(delivery_price):
+				delivery_price = delivery_price[0]
+                
+			_logger.info("delivery_price:"+str(delivery_price))
 			if (ship_carrier_id and not sorder.carrier_id):
 				sorder.carrier_id = ship_carrier_id
 				#vals = sorder.carrier_id.rate_shipment(sorder)
@@ -419,16 +424,14 @@ class mercadolibre_shipment(models.Model):
 				#delivery_message = vals.get('warning_message', False)
 				delivery_message = "Defined by MELI"
 				#delivery_price = vals['price']
-				delivery_price = shipment.shipping_cost
-				#display_price = vals['carrier_price']
-				#_logger.info(vals)
+				#display_price = vals['carrier_price']				
 				set_delivery_line(sorder, delivery_price, delivery_message )
 
 			saleorderline_item_fields = {
 				'company_id': company.id,
 				'order_id': sorder.id,
 				'meli_order_item_id': 'ENVIO',
-				'price_unit': shipment.shipping_cost,
+				'price_unit': delivery_price,
 				'product_id': product_shipping_id.id,
 				'product_uom_qty': 1.0,
 				#'tax_id': None,

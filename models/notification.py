@@ -58,12 +58,12 @@ class MercadolibreNotification(models.Model):
 
     notification_id = fields.Char(string='Notification Id',required=True,index=True)
     application_id = fields.Char(string='Application Id', index=True)
-    user_id = fields.Char('User Id')
-    topic = fields.Char('Topic', index=True)
-    sent = fields.Datetime('Sent')
-    received = fields.Datetime('Received', index=True)
-    resource = fields.Char("Resource", index=True)
-    attempts = fields.Integer('Attempts')
+    user_id = fields.Char(string='User Id')
+    topic = fields.Char(string='Topic', index=True)
+    sent = fields.Datetime(string='Sent')
+    received = fields.Datetime(string='Received', index=True)
+    resource = fields.Char(string="Resource", index=True)
+    attempts = fields.Integer(string='Attempts')
 
     state = fields.Selection([
 		("RECEIVED","Notification received."),
@@ -234,8 +234,6 @@ class MercadolibreNotification(models.Model):
             finally:
                 noti.processing_ended = ml_datetime(str(datetime.now()))
 
-
-
     def _process_notification_order(self):
         #_logger.info("_process_notification_order")
 
@@ -302,7 +300,6 @@ class MercadolibreNotification(models.Model):
 
                 if (noti.topic in ["order","created_orders","orders_v2"]):
                     noti._process_notification_order()
-
 
     def process_notifications(self, limit=None):
         #process all

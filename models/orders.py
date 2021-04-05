@@ -93,7 +93,7 @@ class sale_order(models.Model):
     meli_shipment_logistic_type = fields.Char(string="Logistic Type",index=True)
 
     def action_confirm(self):
-        _logger.info("meli order action_confirm")
+        _logger.info("meli order action_confirm: " + str(self.mapped("name")) )
         res = super(sale_order,self).action_confirm()
         try:
             for order in self:
@@ -110,6 +110,8 @@ class sale_order(models.Model):
 
         try:
             company = self.env.user.company_id
+            _logger.info("Company: "+str(company))
+            _logger.info("Order done: company.mercadolibre_cron_post_update_stock: "+str(company.mercadolibre_cron_post_update_stock))
             for order in self:
                 for line in order.order_line:
                     if (company.mercadolibre_cron_post_update_stock):
@@ -121,7 +123,7 @@ class sale_order(models.Model):
         return res
 
     def action_done(self):
-        _logger.info("meli order action done")
+        _logger.info("meli order action done: " + str(self.mapped("name")) )
         res = super(sale_order,self).action_done()
         try:
             for order in self:
@@ -138,6 +140,8 @@ class sale_order(models.Model):
 
         try:
             company = self.env.user.company_id
+            _logger.info("Company: "+str(company))
+            _logger.info("Order done: company.mercadolibre_cron_post_update_stock: "+str(company.mercadolibre_cron_post_update_stock))
             for order in self:
                 for line in order.order_line:
                     if (company.mercadolibre_cron_post_update_stock):
@@ -157,21 +161,24 @@ class sale_order(models.Model):
             return invoices[0]
         return None
 
-    def confirm_ml(self):
+    def confirm_ml( self, meli=None, config=None ):
         try:
-            company = self.env.user.company_id
+            _logger.info("meli_oerp confirm_ml")
+            company = (config and 'company_id' in config._fields and config.company_id) or self.env.user.company_id
+            config = config or company
+
             stock_picking = self.env["stock.picking"]
 
             if (self.meli_status=="cancelled"):
                 self.action_cancel()
 
-            if (company.mercadolibre_order_confirmation=="paid_confirm"):
+            if (config.mercadolibre_order_confirmation=="paid_confirm"):
 
                 if ( (self.state=="draft" or self.state=="sent") and self.meli_status=="paid"):
                     _logger.info("paid_confirm ok! confirming sale")
                     self.action_confirm()
 
-            if (company.mercadolibre_order_confirmation=="paid_delivered"):
+            if (config.mercadolibre_order_confirmation=="paid_delivered"):
 
                 if ( (self.state=="draft" or self.state=="sent") and self.meli_status=="paid"):
                     _logger.info("paid_delivered ok! confirming sale")
@@ -193,7 +200,7 @@ class sale_order(models.Model):
                                 spick.action_done()
 
 
-            if (company.mercadolibre_order_confirmation=="paid_confirm_with_invoice"):
+            if (config.mercadolibre_order_confirmation=="paid_confirm_with_invoice"):
                 if ( (self.state=="draft" or self.state=="sent") and self.meli_status=="paid"):
                     _logger.info("paid_confirm with invoice ok! confirming sale and create invoice")
                     self.action_confirm()
@@ -316,33 +323,10 @@ class mercadolibre_orders(models.Model):
 
         return full_phone
 
-    def _set_product_unit_price( self, product_related_obj, Item ):
-        product_template = product_related_obj.product_tmpl_id
-        ml_price_converted = float(Item['unit_price'])
-        #11.0
-        #tax_excluded = self.env.user.has_group('sale.group_show_price_subtotal')
-        #12.0 and 13.0
-        tax_excluded = ml_tax_excluded(self)
-        if ( tax_excluded and product_template.taxes_id ):
-            txfixed = 0
-            txpercent = 0
-            #_logger.info("Adjust taxes")
-            for txid in product_template.taxes_id:
-                if (txid.type_tax_use=="sale" and not txid.price_include):
-                    if (txid.amount_type=="percent"):
-                        txpercent = txpercent + txid.amount
-                    if (txid.amount_type=="fixed"):
-                        txfixed = txfixed + txid.amount
-                    #_logger.info(txid.amount)
-            if (txfixed>0 or txpercent>0):
-                #_logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_converted))
-                ml_price_converted = txfixed + ml_price_converted / (1.0 + txpercent*0.01)
-                _logger.info("Price adjusted with taxes:"+str(ml_price_converted))
-
-        ml_price_converted = round(ml_price_converted,2)
+    def _set_product_unit_price( self, product_related_obj, Item, config=None ):
 
         upd_line = {
-            "price_unit": ml_price_converted,
+            "price_unit": ml_product_price_conversion( self, product_related_obj=product_related_obj, price=Item['unit_price'], config=config )
         }
         #else:
         #    if ( float(Item['unit_price']) == product_template.lst_price and not self.env.user.has_group('sale.group_show_price_subtotal')):
@@ -405,7 +389,7 @@ class mercadolibre_orders(models.Model):
 
         return mlorder
 
-    def search_meli_product( self, meli_item=None, config=None ):
+    def search_meli_product( self, meli=None, meli_item=None, config=None ):
         product_obj = self.env['product.product']
         if not meli_item:
             return None
@@ -519,7 +503,12 @@ class mercadolibre_orders(models.Model):
                                 'id': Shipment.receiver_city_code
                             }
                         }
-
+                    else:
+                        shipres = meli.get("/shipments/"+ str(order_json['shipping']['id']),  {'access_token':meli.access_token })
+                        if shipres:
+                            shpjson = shipres.json()
+                            if "receiver_address" in shpjson:
+                                Receiver = shpjson["receiver_address"]
 
             meli_buyer_fields = {
                 'name': Buyer['first_name']+' '+Buyer['last_name'],
@@ -696,11 +685,27 @@ class mercadolibre_orders(models.Model):
                 #_logger.info( "creating partner:" + str(meli_buyer_fields) )
                 partner_id = respartner_obj.create(( meli_buyer_fields ))
             else:
-                partner_id = partner_ids
+                partner_id = partner_ids[0]
                 _logger.info("Updating partner (do not update principal, always create new one)")
                 _logger.info(meli_buyer_fields)
+                #complete country at most:
+                partner_update = {}
 
-                if (partner_id.email==buyer_fields["email"]):
+                if not partner_id.country_id:
+                    partner_update.update({'country_id': self.country(Receiver)})
+                if not partner_id.state_id:
+                    partner_update.update({ 'state_id': self.state(self.country(Receiver), Receiver)})
+                if not partner_id.street or partner_id.street=="no street":
+                    partner_update.update({ 'street': self.street(Receiver)})
+                if not partner_id.city or partner_id.city=="":
+                    partner_update.update({ 'city': self.city(Receiver) })
+
+                if partner_update:
+                    _logger.info("Updating:"+str(partner_update))
+                    partner_id.write(partner_update)
+
+
+                if (partner_id.email and (partner_id.email==buyer_fields["email"] or "mercadolibre.com" in partner_id.email)):
                     #eliminar email de ML que no es valido
                     meli_buyer_fields["email"] = ''
                 #crear nueva direccion de entrega
@@ -872,8 +877,8 @@ class mercadolibre_orders(models.Model):
                     _logger.info( "No post related, exiting" )
                     return { 'error': 'No post related, exiting'}
 
-                product_related = self.search_meli_product(meli_item=Item['item'],config=config)
-                if ( ('seller_custom_field' in Item['item'] or 'seller_sku' in Item['item'])  and len(product_related)==0):
+                product_related = self.search_meli_product( meli=meli, meli_item=Item['item'], config=config )
+                if ( len(product_related)==0 and ('seller_custom_field' in Item['item'] or 'seller_sku' in Item['item'])):
 
                     #1ST attempt "seller_sku" or "seller_custom_field"
                     seller_sku = ('seller_sku' in Item['item'] and Item['item']['seller_sku']) or ('seller_custom_field' in Item['item'] and Item['item']['seller_custom_field'])
@@ -1016,7 +1021,7 @@ class mercadolibre_orders(models.Model):
                         'product_uom': product_related_obj.uom_id.id,
                         'name': product_related_obj.display_name or Item['item']['title'],
                     }
-                    saleorderline_item_fields.update( self._set_product_unit_price( product_related_obj, Item ) )
+                    saleorderline_item_fields.update( self._set_product_unit_price( product_related_obj=product_related_obj, Item=Item, config=config ) )
 
                     saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),
                                                                         ('meli_order_item_variation_id','=',saleorderline_item_fields['meli_order_item_variation_id']),
@@ -1105,7 +1110,7 @@ class mercadolibre_orders(models.Model):
                     line.write({ "qty_to_invoice": 0.0 })
                     #_logger.info(line.qty_to_invoice)
             if (config.mercadolibre_order_confirmation!="manual"):
-                sorder.confirm_ml()
+                sorder.confirm_ml(meli=meli,config=config)
             if (sorder.meli_status=="cancelled"):
                 sorder.action_cancel()
 
