@@ -161,7 +161,7 @@ class product_template(models.Model):
                     if (var):
                         if (variations==False):
                             variations = []
-                        var_attributes = variant._update_sku_attribute( attributes=("attributes" and var["attributes"]), set_sku=config.mercadolibre_post_default_code )
+                        var_attributes = variant._update_sku_attribute( attributes=("attributes" in var and var["attributes"]), set_sku=config.mercadolibre_post_default_code )
                         var_attributes and var.update({"attributes": var_attributes })
                         variations.append(var)
 
