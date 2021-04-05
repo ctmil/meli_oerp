@@ -63,11 +63,11 @@ class sale_order(models.Model):
             morder = order.meli_orders and order.meli_orders[0]
             if morder:
                 morder.update_order_status()
-                order.meli_status = morder.meli_status
-                order.meli_status_detail = morder.meli_status_detail
-                order.meli_status_brief = str(morder.meli_status)+" "+str(morder.shipment_status)+" "+str(morder.shipment_substatus)
+                order.meli_status = morder.status
+                order.meli_status_detail = morder.status_detail
+                order.meli_status_brief = str(morder.status)+" "+str(morder.shipment_status)+" "+str(morder.shipment_substatus)
             else:
-                order.meli_status_brief = order.meli_status_brief
+                order.meli_status_brief = "-"
                 order.meli_status =  order.meli_status
                 order.meli_status_detail = order.meli_status_detail
 
