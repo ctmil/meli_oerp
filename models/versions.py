@@ -116,7 +116,7 @@ def ml_product_price_conversion( self, product_related_obj, price, config=None):
             _logger.info("Price adjusted with taxes:"+str(ml_price_converted))
 
     ml_price_converted = round(ml_price_converted,2)
-    return ml_price_converted
+    return ml_price_converted[0]
 
 
 def get_inventory_fields( product, warehouse ):
