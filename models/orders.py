@@ -1021,7 +1021,7 @@ class mercadolibre_orders(models.Model):
                         'product_uom': product_related_obj.uom_id.id,
                         'name': product_related_obj.display_name or Item['item']['title'],
                     }
-                    saleorderline_item_fields.update( self._set_product_unit_price( product_related_obj, Item ) )
+                    saleorderline_item_fields.update( self._set_product_unit_price( product_related_obj=product_related_obj, Item=Item, config=config ) )
 
                     saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),
                                                                         ('meli_order_item_variation_id','=',saleorderline_item_fields['meli_order_item_variation_id']),
