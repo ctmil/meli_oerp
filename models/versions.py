@@ -85,15 +85,41 @@ def ml_datetime(datestr):
         _logger.error(datestr)
         return None
 
-def ml_tax_excluded(self):
+def ml_tax_excluded(self, config=None ):
     #11.0
     #tax_excluded = self.env.user.has_group('sale.group_show_price_subtotal')
     #12.0 and 13.0
     tax_excluded = self.env.user.has_group('account.group_show_line_subtotals_tax_excluded')
-    company = self.env.user.company_id
-    if (company and company.mercadolibre_tax_included not in ['auto']):
-        tax_excluded = (company.mercadolibre_tax_included in ['tax_excluded'])
+        
+    company = (config and "company_id" in config._fields and config.company_id) or self.env.user.company_id
+    config = config or company
+    if (config and config.mercadolibre_tax_included not in ['auto']):
+        tax_excluded = (config.mercadolibre_tax_included in ['tax_excluded'])
     return tax_excluded
+
+def ml_product_price_conversion( self, product_related_obj, price, config=None):
+    product_template = product_related_obj.product_tmpl_id
+    ml_price_converted = float(price)
+    tax_excluded = ml_tax_excluded( self, config=config )
+    if ( tax_excluded and product_template.taxes_id ):
+        txfixed = 0
+        txpercent = 0
+        #_logger.info("Adjust taxes")
+        for txid in product_template.taxes_id:
+            if (txid.type_tax_use=="sale" and not txid.price_include):
+                if (txid.amount_type=="percent"):
+                    txpercent = txpercent + txid.amount
+                if (txid.amount_type=="fixed"):
+                    txfixed = txfixed + txid.amount
+                #_logger.info(txid.amount)
+        if (txfixed>0 or txpercent>0):
+            #_logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_converted))
+            ml_price_converted = txfixed + ml_price_converted / (1.0 + txpercent*0.01)
+            _logger.info("Price adjusted with taxes:"+str(ml_price_converted))
+
+    ml_price_converted = round(ml_price_converted,2)
+    return ml_price_converted
+
 
 def get_inventory_fields( product, warehouse ):
     return {
