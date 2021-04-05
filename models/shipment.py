@@ -421,7 +421,7 @@ class mercadolibre_shipment(models.Model):
 				#delivery_price = vals['price']
 				delivery_price = ml_product_price_conversion( self, product_related_obj=product_shipping_id, price=shipment.shipping_cost, config=config ),
 				#display_price = vals['carrier_price']
-				#_logger.info(vals)
+				_logger.info(delivery_price)
 				set_delivery_line(sorder, delivery_price, delivery_message )
 
 			saleorderline_item_fields = {
