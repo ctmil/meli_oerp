@@ -58,6 +58,7 @@ class sale_order(models.Model):
 
     meli_order_id =  fields.Char(string='Meli Order Id',index=True)
     meli_orders = fields.Many2many('mercadolibre.orders',string="ML Orders")
+
     def _meli_status_brief(self):
         for order in self:
             morder = order.meli_orders and order.meli_orders[0]
