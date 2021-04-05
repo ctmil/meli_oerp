@@ -713,10 +713,16 @@ class mercadolibre_orders(models.Model):
                 _logger.info(meli_buyer_fields)
                 #complete country at most:
                 partner_update = {}
+                
                 if not partner_id.country_id:
                     partner_update.update({'country_id': self.country(Receiver)})
                 if not partner_id.state_id:
                     partner_update.update({ 'state_id': self.state(self.country(Receiver), Receiver)})
+                if not partner_id.street or partner_id.street=="no street":
+                    partner_update.update({ 'street': self.street(Receiver)})
+                if not partner_id.city or partner_id.city=="":
+                    partner_update.update({ 'city': self.city(Receiver) })
+
                 if partner_update:
                     _logger.info("Updating:"+str(partner_update))
                     partner_id.write(partner_update)
