@@ -64,10 +64,12 @@ class sale_order(models.Model):
             if morder:
                 morder.update_order_status()
                 order.meli_status = morder.meli_status
+                order.meli_status_detail = morder.meli_status_detail
                 order.meli_status_brief = str(morder.meli_status)+" "+str(morder.shipment_status)+" "+str(morder.shipment_substatus)
             else:
-                order.meli_status_brief = ""
-                order.meli_status =  ""
+                order.meli_status_brief = order.meli_status_brief
+                order.meli_status =  order.meli_status
+                order.meli_status_detail = order.meli_status_detail
 
     meli_status = fields.Selection( [
         #Initial state of an order, and it has no payment yet.
