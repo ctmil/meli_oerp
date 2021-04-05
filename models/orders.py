@@ -89,7 +89,7 @@ class sale_order(models.Model):
                                     ("invalid","Invalido: malicious")
                                     ], string='Order Status')
 
-    meli_status_brief = fields.Char(string="Meli Status Brief", compute="_meli_status_brief", store=True, index=True)
+    meli_status_brief = fields.Char(string="Meli Status Brief", compute="_meli_status_brief", store=False, index=True)
 
     meli_status_detail = fields.Text(string='Status detail, in case the order was cancelled.')
     meli_date_created = fields.Datetime('Creation date')
