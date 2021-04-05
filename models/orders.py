@@ -703,11 +703,20 @@ class mercadolibre_orders(models.Model):
                 #_logger.info( "creating partner:" + str(meli_buyer_fields) )
                 partner_id = respartner_obj.create(( meli_buyer_fields ))
             else:
-                partner_id = partner_ids
+                partner_id = partner_ids[0]
                 _logger.info("Updating partner (do not update principal, always create new one)")
                 _logger.info(meli_buyer_fields)
+                #complete country at most:
+                partner_update = {}
+                if not partner_id.country_id:
+                    partner_update.update({'country_id': self.country(Receiver)})
+                if not partner_id.state_id:
+                    partner_update.update({ 'state_id': self.state(self.country(Receiver), Receiver)})
+                if partner_update:
+                    partner_id.write(partner_update)
 
-                if (partner_id.email==buyer_fields["email"]):
+
+                if (partner_id.email and (partner_id.email==buyer_fields["email"] or "mercadolibre.com" in partner_id.email)):
                     #eliminar email de ML que no es valido
                     meli_buyer_fields["email"] = ''
                 #crear nueva direccion de entrega

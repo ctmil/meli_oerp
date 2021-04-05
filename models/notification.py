@@ -65,8 +65,6 @@ class MercadolibreNotification(models.Model):
     resource = fields.Char(string="Resource", index=True)
     attempts = fields.Integer(string='Attempts')
 
-    #model_ids = fields.Text(string="Models")
-
     state = fields.Selection([
 		("RECEIVED","Notification received."),
 		("PROCESSING","Processing notification."),
