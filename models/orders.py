@@ -1253,6 +1253,8 @@ class mercadolibre_orders(models.Model):
             if "id" in order_json:
                 order.status = order_json["status"] or ''
                 order.status_detail = order_json["status_detail"] or ''
+                if order.sale_order:
+                    order.sale_order.confirm_ml(meli=meli,config=config)
 
 
     name = fields.Char(string='Order Name',index=True)
