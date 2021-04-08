@@ -151,7 +151,7 @@ class product_template(models.Model):
 
         return ret
 
-    def _variations(self):
+    def _variations(self, config=None):
         variations = False
         for product_tmpl in self:
             for variant in product_tmpl.product_variant_ids:
@@ -161,7 +161,7 @@ class product_template(models.Model):
                     if (var):
                         if (variations==False):
                             variations = []
-                        var_attributes = variant._update_sku_attribute( attributes=("attributes" and var["attributes"]), set_sku=config.mercadolibre_post_default_code )
+                        var_attributes = variant._update_sku_attribute( attributes=("attributes" in var and var["attributes"]), set_sku=config.mercadolibre_post_default_code )
                         var_attributes and var.update({"attributes": var_attributes })
                         variations.append(var)
 
@@ -1994,6 +1994,7 @@ class product_product(models.Model):
         updated_attributes = []
         sku_updated = False
         barcode_updated = False
+        attributes = attributes or []
 
         for att in attributes:
 
@@ -2412,7 +2413,7 @@ class product_product(models.Model):
                                     var_product.meli_available_quantity = var_product._meli_available_quantity(meli=meli,config=config)
                                     vars_updated+=var_product
                             #TODO: add SKU
-                            var_attributes = var_product._update_sku_attribute( attributes=("attributes" and var_info["attributes"]), set_sku=config.mercadolibre_post_default_code)
+                            var_attributes = var_product._update_sku_attribute( attributes=("attributes" in var_info and var_info["attributes"]) or [], set_sku=config.mercadolibre_post_default_code)
                             var = {
                                 "id": str(var_info["id"]),
                                 "price": str(product_tmpl.meli_price),
@@ -2423,7 +2424,7 @@ class product_product(models.Model):
                             varias["variations"].append(var)
                         #variations = product_tmpl._variations()
                         #varias["variations"] = variations
-                        _all_variations = product_tmpl._variations()
+                        _all_variations = product_tmpl._variations(config=config)
                         _updated_ids = vars_updated.mapped('id')
                         _logger.info(_updated_ids)
                         _new_candidates = product_tmpl.product_variant_ids.filtered(lambda pv: pv.id not in _updated_ids)
@@ -2473,7 +2474,7 @@ class product_product(models.Model):
                          #_logger.debug(responsevar.json())
                         return {}
                     else:
-                        variations = product_tmpl._variations()
+                        variations = product_tmpl._variations(config=config)
                         _logger.info("Variations:")
                         _logger.info(variations)
                         if (variations):

@@ -268,15 +268,15 @@ class mercadolibre_shipment(models.Model):
 	shipping_list_cost = fields.Float(string='Shipping List Cost')
 
 	#state = fields.Selection(string="State",)
-	status = fields.Char(string="Status")
-	substatus = fields.Char(string="Sub Status")
-	status_history = fields.Text(string="status_history")
-	tracking_number = fields.Char(string="Tracking number")
-	tracking_method = fields.Char(string="Tracking method")
+	status = fields.Char(string="Status",index=True)
+	substatus = fields.Char(string="Sub Status",index=True)
+	status_history = fields.Text(string="status_history",index=True)
+	tracking_number = fields.Char(string="Tracking number",index=True)
+	tracking_method = fields.Char(string="Tracking method",index=True)
 	comments = fields.Char(string="Tracking Custom Comments")
 
 
-	date_first_printed = fields.Datetime(string='First Printed date')
+	date_first_printed = fields.Datetime(string='First Printed date',index=True)
 
 	receiver_id = fields.Char('Receiver Id')
 	receiver_address_id = fields.Char('Receiver address id')
@@ -312,7 +312,7 @@ class mercadolibre_shipment(models.Model):
 	sender_latitude = fields.Char('Sender Address Latitude')
 	sender_longitude = fields.Char('Sender Address Longitude')
 
-	logistic_type = fields.Char('Logistic type')
+	logistic_type = fields.Char('Logistic type',index=True)
 
 	pdf_link = fields.Char('Pdf link')
 	pdf_file = fields.Binary(string='Pdf File',attachment=True)
@@ -415,7 +415,7 @@ class mercadolibre_shipment(models.Model):
 			delivery_price = ml_product_price_conversion( self, product_related_obj=product_shipping_id, price=shipment.shipping_cost, config=config ),
 			if type(delivery_price)==tuple and len(delivery_price):
 				delivery_price = delivery_price[0]
-                
+
 			_logger.info("delivery_price:"+str(delivery_price))
 			if (ship_carrier_id and not sorder.carrier_id):
 				sorder.carrier_id = ship_carrier_id
@@ -424,7 +424,7 @@ class mercadolibre_shipment(models.Model):
 				#delivery_message = vals.get('warning_message', False)
 				delivery_message = "Defined by MELI"
 				#delivery_price = vals['price']
-				#display_price = vals['carrier_price']				
+				#display_price = vals['carrier_price']
 				set_delivery_line(sorder, delivery_price, delivery_message )
 
 			saleorderline_item_fields = {
