@@ -1356,7 +1356,11 @@ class product_product(models.Model):
                 seller_sku = rjson["seller_custom_field"]
 
             if barcode and not product.barcode:
-                product.barcode = barcode
+                try:
+                    product.barcode = barcode
+                except:
+                    _logger.error("Error updating barcode")
+                    pass;
 
             if seller_sku and not product.default_code:
                 product.default_code = seller_sku
