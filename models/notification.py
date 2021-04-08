@@ -253,10 +253,10 @@ class MercadolibreNotification(models.Model):
                 res = meli.get(""+str(noti.resource), {'access_token':meli.access_token} )
                 ojson =  res.json()
                 _logger.info(ojson)
-                if ('error' in ojson):
+                if (ojson and 'error' in ojson):
                     noti.state = 'FAILED'
                     noti.processing_errors = str(ojson['error'])
-                if ("id" in ojson):
+                if (ojson and "id" in ojson):
 
                     morder = self.env["mercadolibre.orders"].search( [('order_id','=',ojson["id"])], limit=1 )
 
@@ -267,9 +267,9 @@ class MercadolibreNotification(models.Model):
                         pdata["id"] =  morder.id
 
                     rsjson = morder.orders_update_order_json( pdata )
-                    _logger.info(str(rsjson))
+                    _logger.info("rsjson:"+str(rsjson))
 
-                    if ('error' in rsjson):
+                    if (rsjson and 'error' in rsjson):
                         noti.state = 'FAILED'
                         noti.processing_errors = str(rsjson['error'])
                     else:
@@ -279,6 +279,7 @@ class MercadolibreNotification(models.Model):
             except Exception as E:
                 noti.state = 'FAILED'
                 noti.processing_errors = str(E)
+                _logger.error("_process_notification_order:"+str(E))
             finally:
                 noti.processing_ended = ml_datetime(str(datetime.now()))
 

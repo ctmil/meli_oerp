@@ -58,6 +58,20 @@ class sale_order(models.Model):
 
     meli_order_id =  fields.Char(string='Meli Order Id',index=True)
     meli_orders = fields.Many2many('mercadolibre.orders',string="ML Orders")
+
+    def _meli_status_brief(self):
+        for order in self:
+            morder = order.meli_orders and order.meli_orders[0]
+            if morder:
+                morder.update_order_status()
+                order.meli_status = morder.status
+                order.meli_status_detail = morder.status_detail
+                order.meli_status_brief = str(morder.status)+" ship-"+( (morder.shipment_status and str(morder.shipment_status)) or "" ) + ( (morder.shipment_substatus and str(morder.shipment_substatus)) or "")
+            else:
+                order.meli_status_brief = "-"
+                order.meli_status =  order.meli_status
+                order.meli_status_detail = order.meli_status_detail
+
     meli_status = fields.Selection( [
         #Initial state of an order, and it has no payment yet.
                                         ("confirmed","Confirmado"),
@@ -70,7 +84,12 @@ class sale_order(models.Model):
         #The order has a related partial payment and it has been accredited.
                                     ("partially_paid","Parcialmente Pagado"),
         #The order has not completed by some reason.
-                                    ("cancelled","Cancelado")], string='Order Status');
+                                    ("cancelled","Cancelado"),
+        #The order has been invalidated as it came from a malicious buyer.
+                                    ("invalid","Invalido: malicious")
+                                    ], string='Order Status')
+
+    meli_status_brief = fields.Char(string="Meli Status Brief", compute="_meli_status_brief", store=False, index=True)
 
     meli_status_detail = fields.Text(string='Status detail, in case the order was cancelled.')
     meli_date_created = fields.Datetime('Creation date')
@@ -187,17 +206,18 @@ class sale_order(models.Model):
                 if (self.state=="sale" or self.state=="done"):
                     #spick = stock_picking.search([('order_id','=',self.id)])
                     _logger.info("paid_delivered ok! delivering")
-                    for spick in self.picking_ids:
-                        _logger.info(spick)
-                        if (spick.move_line_ids):
-                            _logger.info(spick.move_line_ids)
-                            if (len(spick.move_line_ids)>=1):
-                                for pop in spick.move_line_ids:
-                                    _logger.info(pop)
-                                    if (pop.qty_done==0.0 and pop.product_qty>=0.0):
-                                        pop.qty_done = pop.product_qty
-                                _logger.info("do_new_transfer")
-                                spick.action_done()
+                    if self.picking_ids:
+                        for spick in self.picking_ids:
+                            _logger.info(spick)
+                            if (spick.move_line_ids):
+                                _logger.info(spick.move_line_ids)
+                                if (len(spick.move_line_ids)>=1):
+                                    for pop in spick.move_line_ids:
+                                        _logger.info(pop)
+                                        if (pop.qty_done==0.0 and pop.product_qty>=0.0):
+                                            pop.qty_done = pop.product_qty
+                                    _logger.info("do_new_transfer")
+                                    spick.action_done()
 
 
             if (config.mercadolibre_order_confirmation=="paid_confirm_with_invoice"):
@@ -209,6 +229,7 @@ class sale_order(models.Model):
             _logger.info("Confirm Order Exception")
             _logger.error(e, exc_info=True)
             pass
+        _logger.info("meli_oerp confirm_ml ended.")
 
     _sql_constraints = [
         ('unique_meli_order_id', 'unique(meli_order_id)', 'Mei Order id already exists!')
@@ -1221,6 +1242,27 @@ class mercadolibre_orders(models.Model):
 
         return {}
 
+    def update_order_status( self, meli=None, config=None):
+        for order in self:
+            company = (config and "company_id" in config._fields and config.company_id) or self.env.user.company_id
+            if not config:
+                config = company
+            if not meli:
+                meli = self.env['meli.util'].get_new_instance(company)
+            if not meli:
+                return {}
+            response = meli.get("/orders/"+str(order.order_id), {'access_token':meli.access_token})
+            order_json = response.json()
+            if "id" in order_json:
+                if (str(order.status)!=str(order_json["status"])):
+                    #full update if status changed!
+                    order.orders_update_order(meli=meli,config=config)
+                order.status = order_json["status"] or ''
+                order.status_detail = order_json["status_detail"] or ''
+                if order.sale_order:
+                    order.sale_order.confirm_ml(meli=meli,config=config)
+
+
     name = fields.Char(string='Order Name',index=True)
     order_id = fields.Char(string='Order Id',index=True)
     pack_id = fields.Char(string='Pack Id',index=True)
@@ -1238,7 +1280,9 @@ class mercadolibre_orders(models.Model):
         #The order has a related partial payment and it has been accredited.
                                     ("partially_paid","Parcialmente Pagado"),
         #The order has not completed by some reason.
-                                    ("cancelled","Cancelado")], string='Order Status')
+                                    ("cancelled","Cancelado"),
+        #The order has been invalidated as it came from a malicious buyer.
+                                    ("invalid","Invalido: malicious")], string='Order Status')
 
     status_detail = fields.Text(string='Status detail, in case the order was cancelled.')
     date_created = fields.Datetime('Creation date')
@@ -1264,6 +1308,9 @@ class mercadolibre_orders(models.Model):
     catalog_order = fields.Boolean(string="Order From Catalog")
     company_id = fields.Many2one("res.company",string="Company")
     seller_id = fields.Many2one("res.users",string="Seller")
+
+    shipment_status = fields.Char(string="Shipment Status",related="shipment.status",index=True)
+    shipment_substatus = fields.Char(string="Shipment SubStatus",related="shipment.substatus",index=True)
 
     _sql_constraints = [
         ('unique_order_id', 'unique(order_id)', 'Meli Order id already exists!')
