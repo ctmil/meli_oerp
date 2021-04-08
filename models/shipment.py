@@ -706,7 +706,7 @@ class mercadolibre_shipment(models.Model):
 							#'email':contactfields['billingInfo_email'],
 							#'producteca_bindings': [(6, 0, [client.id])]
 						}
-                        pdelivery_fields.update(orders_obj.fix_locals(Receiver))
+						pdelivery_fields.update(orders_obj.fix_locals(Receiver))
 						#TODO: agregar un campo para diferencia cada delivery res partner al shipment y orden asociado, crear un binding usando values diferentes... y listo
 						deliv_id = self.env["res.partner"].search([("parent_id","=",pdelivery_fields['parent_id']),
 																	("type","=","delivery"),
