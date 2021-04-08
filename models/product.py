@@ -996,6 +996,23 @@ class product_product(models.Model):
             response = meli.get("/items/"+str(meli_id), { 'access_token': meli.access_token, 'include_attributes': 'all' } )
             #_logger.info(response)
             rjson = response.json()
+            if rjson and 'variations' in rjson:
+                vindex = -1
+                for var in rjson['variations']:
+                    vindex = vindex+1
+                    vjson = rjson['variations'][vindex]
+                    meli_id_variation = ("id" in var and var["id"])
+                    #_logger.info(meli_id_variation)
+                    if meli_id_variation:
+                        if "attributes" in vjson:
+                            for att in vjson["attributes"]:
+                                if ("id" in att and att["id"] == "SELLER_SKU"):
+                                    rjson['variations'][vindex]["seller_sku"] = att["value_name"]
+                                    if (len(rjson["variations"])==1):
+                                        rjson['seller_sku'] = att["value_name"]
+
+                                if ("id" in att and att["id"] == "GTIN"):
+                                    rjson['variations'][vindex]["barcode"] = att["value_name"]
             #_logger.info(rjson)
         except IOError as e:
             _logger.info( "I/O error({0}): {1}".format(e.errno, e.strerror) )
@@ -1300,6 +1317,15 @@ class product_product(models.Model):
                             has_sku = True
                         else:
                             variant.default_code = variant.meli_id+'-'+_v_default_code
+
+                        if ("barcode" in variation):
+                            try:
+                                variant.barcode = variation["barcode"]
+                            except:
+                                pass;
+
+                            variant.meli_id_variation = variation["id"]
+                            has_sku = True
                         variant.meli_available_quantity = variation["available_quantity"]
 
                 if (has_sku):
@@ -1317,17 +1343,22 @@ class product_product(models.Model):
         else:
             #NO TIENE variantes pero tiene SKU
             seller_sku = None
+            barcode = None
 
             if not seller_sku and "attributes" in rjson:
                 for att in rjson['attributes']:
                     if att["id"] == "SELLER_SKU":
                         seller_sku = att["values"][0]["name"]
-                        break;
+                    if att["id"] == "GTIN":
+                        barcode = att["values"][0]["name"]
 
             if (not seller_sku and "seller_custom_field" in rjson):
                 seller_sku = rjson["seller_custom_field"]
 
-            if seller_sku:
+            if barcode and not product.barcode:
+                product.barcode = barcode
+
+            if seller_sku and not product.default_code:
                 product.default_code = seller_sku
                 product.set_bom()
 
