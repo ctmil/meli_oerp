@@ -391,6 +391,10 @@ class mercadolibre_shipment(models.Model):
 				_logger.info('Failed to create shipping product service')
 				continue
 
+            #CO
+			if "enable_charges" in product_shipping_id._fields:
+				product_shipping_id.enable_charges = True
+
 			ship_carrier = {
 				"name": ship_name,
 			}
