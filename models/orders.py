@@ -1400,7 +1400,7 @@ class mercadolibre_orders_update(models.TransientModel):
 
     def order_update(self, context=None):
         context = context or self.env.context
-        orders_ids = context['active_ids']
+        orders_ids = ('active_ids' in context and context['active_ids']) or []
         orders_obj = self.env['mercadolibre.orders']
 
         self._cr.autocommit(False)
@@ -1428,7 +1428,7 @@ class sale_order_cancel(models.TransientModel):
 
     def cancel_order(self, context=None):
         context = context or self.env.context
-        orders_ids = context['active_ids']
+        orders_ids = ('active_ids' in context and context['active_ids']) or []
         orders_obj = self.env['sale.order']
 
         self._cr.autocommit(False)
