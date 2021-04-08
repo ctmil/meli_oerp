@@ -2413,7 +2413,7 @@ class product_product(models.Model):
                                     var_product.meli_available_quantity = var_product._meli_available_quantity(meli=meli,config=config)
                                     vars_updated+=var_product
                             #TODO: add SKU
-                            var_attributes = var_product._update_sku_attribute( attributes=("attributes" and var_info["attributes"]) or [], set_sku=config.mercadolibre_post_default_code)
+                            var_attributes = var_product._update_sku_attribute( attributes=("attributes" in var_info and var_info["attributes"]) or [], set_sku=config.mercadolibre_post_default_code)
                             var = {
                                 "id": str(var_info["id"]),
                                 "price": str(product_tmpl.meli_price),
