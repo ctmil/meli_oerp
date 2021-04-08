@@ -131,7 +131,7 @@ class mercadolibre_shipment_print(models.TransientModel):
 		company = self.env.user.company_id
 		if not config:
 			config = company
-		picking_ids = context['active_ids']
+		picking_ids = 'active_ids' in context and context['active_ids']
 		#product_obj = self.env['product.template']
 		picking_obj = self.env['stock.picking']
 		shipment_obj = self.env['mercadolibre.shipment']
