@@ -92,8 +92,8 @@ class sale_order(models.Model):
     meli_status_brief = fields.Char(string="Meli Status Brief", compute="_meli_status_brief", store=False, index=True)
 
     meli_status_detail = fields.Text(string='Status detail, in case the order was cancelled.')
-    meli_date_created = fields.Datetime('Creation date')
-    meli_date_closed = fields.Datetime('Closing date')
+    meli_date_created = fields.Datetime('Meli Creation date')
+    meli_date_closed = fields.Datetime('Meli Closing date')
 
 #        'meli_order_items': fields.one2many('mercadolibre.order_items','order_id','Order Items' ),
 #        'meli_payments': fields.one2many('mercadolibre.payments','order_id','Payments' ),
@@ -531,6 +531,12 @@ class mercadolibre_orders(models.Model):
 
         order_fields = self.prepare_ml_order_vals( order_json=order_json, meli=meli, config=config )
 
+        if (    "mercadolibre_filter_order_datetime" in config._fields
+                and "date_closed" in order_fields
+                and config.mercadolibre_filter_order_datetime
+                and config.mercadolibre_filter_order_datetime>order_fields["date_closed"]):
+            return {}
+
         partner_id = False
         partner_shipping_id = False
 
@@ -737,10 +743,13 @@ class mercadolibre_orders(models.Model):
 
                 if not partner_id.country_id:
                     partner_update.update({'country_id': self.country(Receiver)})
+
                 if not partner_id.state_id:
                     partner_update.update({ 'state_id': self.state(self.country(Receiver), Receiver)})
+
                 if not partner_id.street or partner_id.street=="no street":
                     partner_update.update({ 'street': self.street(Receiver)})
+
                 if not partner_id.city or partner_id.city=="":
                     partner_update.update({ 'city': self.city(Receiver) })
 
