@@ -460,7 +460,60 @@ class mercadolibre_shipment(models.Model):
                     except:
                         _logger.info("Could not unlink.")
 
+    def partner_delivery_id( self, partner_id=None, Receiver=None ):
+        
+        orders_obj = self.env['mercadolibre.orders']
+        
+        partner_shipping_id = None
+        
+        deliv_id = self.env["res.partner"].search([("parent_id","=",partner_id.id),
+                                                ("type","=","delivery"),
+                                                #('street','=',partner_id.street)
+                                                ],
+                                            limit=1)
 
+        pdelivery_fields = {
+            "type": "delivery",
+            "parent_id": partner_id.id,
+            'name': Receiver["receiver_name"],
+            'street': Receiver['address_line'],
+            #'street2': meli_buyer_fields['name'],
+            'city': orders_obj.city(Receiver),
+            'country_id': orders_obj.country(Receiver),
+            'state_id': orders_obj.state(orders_obj.country(Receiver),Receiver),
+            #'zip': meli_buyer_fields['name'],
+            #"comment": ("location_addressNotes" in contactfields and contactfields["location_addressNotes"]) or ""
+            #'producteca_bindings': [(6, 0, [client.id])]
+            #'phone': self.full_phone( contactfields,billing=True ),
+            #'email':contactfields['billingInfo_email'],
+            #'producteca_bindings': [(6, 0, [client.id])]
+        }
+        pdelivery_fields.update(orders_obj.fix_locals(Receiver))
+        #TODO: agregar un campo para diferencia cada delivery res partner al shipment y orden asociado, crear un binding usando values diferentes... y listo
+        deliv_id = self.env["res.partner"].search([("parent_id","=",pdelivery_fields['parent_id']),
+                                                    ("type","=","delivery"),
+                                                    ('street','=',pdelivery_fields['street'])],
+                                                    limit=1)
+        if not deliv_id or len(deliv_id)==0:
+            _logger.info("Create partner delivery")
+            respartner_obj = self.env['res.partner']
+            try:
+                deliv_id = respartner_obj.create(pdelivery_fields)
+                if deliv_id:
+                    _logger.info("Created Res Partner Delivery "+str(deliv_id))
+                    partner_shipping_id = deliv_id
+            except Exception as e:
+                _logger.error("Created res.partner delivery issue.")
+                _logger.info(e, exc_info=True)
+                pass;
+        else:
+            try:
+                deliv_id.write(pdelivery_fields)
+                partner_shipping_id = deliv_id
+            except:
+                _logger.error("Updating res.partner delivery issue.")
+                pass;
+        return partner_shipping_id
 
     #Return shipment object based on mercadolibre.orders "order"
     def fetch( self, order, meli=None, config=None ):
@@ -685,54 +738,7 @@ class mercadolibre_shipment(models.Model):
                             'meli_date_closed': ml_datetime(all_orders[0]["date_closed"]) or all_orders[0]["date_created"],
                         }
                         #TODO: agregar un campo para diferencia cada delivery res partner al shipment y orden asociado, crear un binding usando values diferentes... y listo
-                        partner_shipping_id = None
-                        deliv_id = self.env["res.partner"].search([("parent_id","=",partner_id.id),
-                                                                ("type","=","delivery"),
-                                                                #('street','=',partner_id.street)
-                                                                ],
-                                                            limit=1)
-                        Receiver = ship_json["receiver_address"]
-                        pdelivery_fields = {
-                            "type": "delivery",
-                            "parent_id": partner_id.id,
-                            'name': ship_fields['receiver_address_name'],
-                            'street': ship_fields['receiver_address_line'],
-                            #'street2': meli_buyer_fields['name'],
-                            'city': orders_obj.city(Receiver),
-                            'country_id': orders_obj.country(Receiver),
-                            'state_id': orders_obj.state(orders_obj.country(Receiver),Receiver),
-                            #'zip': meli_buyer_fields['name'],
-                            #"comment": ("location_addressNotes" in contactfields and contactfields["location_addressNotes"]) or ""
-                            #'producteca_bindings': [(6, 0, [client.id])]
-                            #'phone': self.full_phone( contactfields,billing=True ),
-                            #'email':contactfields['billingInfo_email'],
-                            #'producteca_bindings': [(6, 0, [client.id])]
-                        }
-                        pdelivery_fields.update(orders_obj.fix_locals(Receiver))
-                        #TODO: agregar un campo para diferencia cada delivery res partner al shipment y orden asociado, crear un binding usando values diferentes... y listo
-                        deliv_id = self.env["res.partner"].search([("parent_id","=",pdelivery_fields['parent_id']),
-                                                                    ("type","=","delivery"),
-                                                                    ('street','=',pdelivery_fields['street'])],
-                                                                    limit=1)
-                        if not deliv_id or len(deliv_id)==0:
-                            _logger.info("Create partner delivery")
-                            respartner_obj = self.env['res.partner']
-                            try:
-                                deliv_id = respartner_obj.create(pdelivery_fields)
-                                if deliv_id:
-                                    _logger.info("Created Res Partner Delivery "+str(deliv_id))
-                                    partner_shipping_id = deliv_id
-                            except Exception as e:
-                                _logger.error("Created res.partner delivery issue.")
-                                _logger.info(e, exc_info=True)
-                                pass;
-                        else:
-                            try:
-                                deliv_id.write(pdelivery_fields)
-                                partner_shipping_id = deliv_id
-                            except:
-                                _logger.error("Updating res.partner delivery issue.")
-                                pass;
+                        partner_shipping_id = self.partner_delivery_id( partner_id=partner_id, Receiver=ship_json["receiver_address"])                        
 
                         if partner_shipping_id:
                             meli_order_fields['partner_shipping_id'] = partner_shipping_id.id

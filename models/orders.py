@@ -731,9 +731,10 @@ class mercadolibre_orders(models.Model):
 
                 if "cities" in meli_buyer_fields and partner_id.cities and partner_id.cities.state_id!=partner_id.state_id:
                     partner_update.update({ 'cities': meli_buyer_fields["cities"] })
+                    partner_update.update({ 'postal_id': meli_buyer_fields["postal_id"] })
 
                 if partner_update:
-                    _logger.info("Updating: "+str(partner_update))
+                    _logger.info("Updating partner: "+str(partner_update))
                     partner_id.write(partner_update)
 
                 if (partner_id.email and (partner_id.email==buyer_fields["email"] or "mercadolibre.com" in partner_id.email)):
@@ -742,46 +743,8 @@ class mercadolibre_orders(models.Model):
                 #crear nueva direccion de entrega
                 #partner_id.write( meli_buyer_fields )
 
-            if (partner_id and 1==2):
-                pdelivery_fields = {
-                    "type": "delivery",
-                    "parent_id": partner_id.id,
-                    'name': meli_buyer_fields['name'],
-                    'street': meli_buyer_fields['street'],
-                    #'street2': meli_buyer_fields['name'],
-                    'city': meli_buyer_fields['city'],
-                    'country_id': meli_buyer_fields['country_id'],
-                    'state_id': meli_buyer_fields['state_id'],
-                    #'zip': meli_buyer_fields['name'],
-                    #"comment": ("location_addressNotes" in contactfields and contactfields["location_addressNotes"]) or ""
-                    #'producteca_bindings': [(6, 0, [client.id])]
-                    #'phone': self.full_phone( contactfields,billing=True ),
-                    #'email':contactfields['billingInfo_email'],
-                    #'producteca_bindings': [(6, 0, [client.id])]
-                }
-                #TODO: agregar un campo para diferencia cada delivery res partner al shipment y orden asociado, crear un binding usando values diferentes... y listo
-                deliv_id = self.env["res.partner"].search([("parent_id","=",pdelivery_fields['parent_id']),
-                                                            ("type","=","delivery"),
-                                                            ('street','=',pdelivery_fields['street'])],
-                                                            limit=1)
-                if not deliv_id or len(deliv_id)==0:
-                    _logger.info("Create partner delivery")
-                    respartner_obj = self.env['res.partner']
-                    try:
-                        deliv_id = respartner_obj.create(pdelivery_fields)
-                        if deliv_id:
-                            _logger.info("Created Res Partner Delivery "+str(deliv_id))
-                            partner_shipping_id = deliv_id
-                    except:
-                        _logger.error("Created res.partner delivery issue.")
-                        pass;
-                else:
-                    try:
-                        deliv_id.write(pdelivery_fields)
-                        partner_shipping_id = deliv_id
-                    except:
-                        _logger.error("Updating res.partner delivery issue.")
-                        pass;
+            if (partner_id):
+                partner_shipping_id = self.env["mercadolibre.shipment"].partner_delivery_id( partner_id=partner_id, Receiver=ship_json["receiver_address"])                        
 
             if (partner_id):
                 if ("fe_habilitada" in self.env['res.partner']._fields):
