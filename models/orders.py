@@ -92,8 +92,8 @@ class sale_order(models.Model):
     meli_status_brief = fields.Char(string="Meli Status Brief", compute="_meli_status_brief", store=False, index=True)
 
     meli_status_detail = fields.Text(string='Status detail, in case the order was cancelled.')
-    meli_date_created = fields.Datetime('Creation date')
-    meli_date_closed = fields.Datetime('Closing date')
+    meli_date_created = fields.Datetime('Meli Creation date')
+    meli_date_closed = fields.Datetime('Meli Closing date')
 
 #        'meli_order_items': fields.one2many('mercadolibre.order_items','order_id','Order Items' ),
 #        'meli_payments': fields.one2many('mercadolibre.payments','order_id','Payments' ),
@@ -531,6 +531,12 @@ class mercadolibre_orders(models.Model):
 
         order_fields = self.prepare_ml_order_vals( order_json=order_json, meli=meli, config=config )
 
+        if (    "mercadolibre_filter_order_datetime" in config._fields
+                and "date_closed" in order_fields
+                and config.mercadolibre_filter_order_datetime
+                and config.mercadolibre_filter_order_datetime>parse(order_fields["date_closed"]) ):
+            return { "error": "orden filtrada por fecha > " + str(order_fields["date_closed"]) + " inferior a "+str(ml_datetime(config.mercadolibre_filter_order_datetime)) }
+
         partner_id = False
         partner_shipping_id = False
 
@@ -703,6 +709,17 @@ class mercadolibre_orders(models.Model):
                         else:
                             meli_buyer_fields['fe_primer_apellido'] = Buyer['last_name']
 
+                if ( ('doc_type' in Buyer['billing_info']) and ('l10n_latam_identification_type_id' in self.env['res.partner']._fields) ):
+                    if (Buyer['billing_info']['doc_type']=="CC" or Buyer['billing_info']['doc_type']=="C.C."):
+                        #national_citizen_id
+                        meli_buyer_fields['l10n_latam_identification_type_id'] = 5
+                    if (Buyer['billing_info']['doc_type']=="CE" or Buyer['billing_info']['doc_type']=="C.E."):
+                        #foreign_id_card
+                        meli_buyer_fields['l10n_latam_identification_type_id'] = 4
+                    if (Buyer['billing_info']['doc_type']=="NIT" or Buyer['billing_info']['doc_type']=="N.I.T." or Buyer['billing_info']['doc_type']=="RUT"):
+                        #rut
+                        meli_buyer_fields['l10n_latam_identification_type_id'] = 1
+
 
             partner_ids = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ] )
             if (len(partner_ids)>0):
@@ -722,12 +739,19 @@ class mercadolibre_orders(models.Model):
                 #complete country at most:
                 partner_update = {}
 
+                if ('l10n_latam_identification_type_id' in self.env['res.partner']._fields
+                    and ( not partner_id.l10n_latam_identification_type_id or partner_id.l10n_latam_identification_type_id!=meli_buyer_fields['l10n_latam_identification_type_id']) ):
+                    partner_update.update({ 'l10n_latam_identification_type_id': meli_buyer_fields['l10n_latam_identification_type_id'] })
+
                 if not partner_id.country_id:
                     partner_update.update({'country_id': self.country(Receiver)})
+
                 if not partner_id.state_id:
                     partner_update.update({ 'state_id': self.state(self.country(Receiver), Receiver)})
+
                 if not partner_id.street or partner_id.street=="no street":
                     partner_update.update({ 'street': self.street(Receiver)})
+
                 if not partner_id.city or partner_id.city=="":
                     partner_update.update({ 'city': self.city(Receiver) })
 

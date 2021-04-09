@@ -1320,7 +1320,11 @@ class product_product(models.Model):
 
                         if ("barcode" in variation):
                             try:
-                                variant.barcode = variation["barcode"]
+                                bcodes = self.env["product.product"].search([('barcode','=',variation["barcode"])])
+                                if bcodes and len(bcodes):
+                                    _logger.error("Error barcode already defined! "+str(variation["barcode"]))
+                                else:
+                                    variant.barcode = barcode
                             except:
                                 pass;
 
@@ -1357,7 +1361,11 @@ class product_product(models.Model):
 
             if barcode and not product.barcode:
                 try:
-                    product.barcode = barcode
+                    bcodes = self.env["product.product"].search([('barcode','=',barcode)])
+                    if bcodes and len(bcodes):
+                        _logger.error("Error barcode already defined! "+str(barcode))
+                    else:
+                        product.barcode = barcode
                 except:
                     _logger.error("Error updating barcode")
                     pass;
