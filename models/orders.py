@@ -731,7 +731,8 @@ class mercadolibre_orders(models.Model):
                 #complete country at most:
                 partner_update = {}
 
-                if ('l10n_latam_identification_type_id' in self.env['res.partner']._fields and not partner_id.l10n_latam_identification_type_id):
+                if ('l10n_latam_identification_type_id' in self.env['res.partner']._fields
+                    and ( not partner_id.l10n_latam_identification_type_id or partner_id.l10n_latam_identification_type_id!=meli_buyer_fields['l10n_latam_identification_type_id']) ):
                     partner_update.update({ 'l10n_latam_identification_type_id': meli_buyer_fields['l10n_latam_identification_type_id'] })
 
                 if not partner_id.country_id:
