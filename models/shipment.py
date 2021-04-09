@@ -472,6 +472,8 @@ class mercadolibre_shipment(models.Model):
                                                 ],
                                             limit=1)
 
+        _logger.info("partner_delivery_id > Receiver: "+str(Receiver) )
+        
         pdelivery_fields = {
             "type": "delivery",
             "parent_id": partner_id.id,
