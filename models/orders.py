@@ -535,7 +535,7 @@ class mercadolibre_orders(models.Model):
                 and "date_closed" in order_fields
                 and config.mercadolibre_filter_order_datetime
                 and config.mercadolibre_filter_order_datetime>parse(order_fields["date_closed"]) ):
-            return {}
+            return { "error": "orden filtrada por fecha > " + str(order_fields["date_closed"]) + " inferior a "+str(ml_datetime(config.mercadolibre_filter_order_datetime)) }
 
         partner_id = False
         partner_shipping_id = False
