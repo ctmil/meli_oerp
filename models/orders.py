@@ -729,10 +729,12 @@ class mercadolibre_orders(models.Model):
                 if not partner_id.city or partner_id.city=="":
                     partner_update.update({ 'city': self.city(Receiver) })
 
-                if partner_update:
-                    _logger.info("Updating:"+str(partner_update))
-                    partner_id.write(partner_update)
+                if "cities" in meli_buyer_fields and partner_id.cities and partner_id.cities.state_id!=partner_id.state_id:
+                    partner_update.update({ 'cities': meli_buyer_fields["cities"] })
 
+                if partner_update:
+                    _logger.info("Updating: "+str(partner_update))
+                    partner_id.write(partner_update)
 
                 if (partner_id.email and (partner_id.email==buyer_fields["email"] or "mercadolibre.com" in partner_id.email)):
                     #eliminar email de ML que no es valido
