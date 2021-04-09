@@ -253,8 +253,8 @@ class mercadolibre_orders(models.Model):
             city = self.env["l10n_co_cities.city"].search([('city_name','like',city_name)])
 
             if not city and state_id:
-                _logger.warning("City not found: " + str(state_id))
-                _logger.info("Search first city for state: " + str(state_id))
+                _logger.warning("City not found for: "+str(city_name) + " state_id: "+str(state_id))
+                _logger.info("Search FIRST city for state: " + str(state_id))
                 city = self.env["l10n_co_cities.city"].search([('state_id','=',state_id)])
 
             if city:
