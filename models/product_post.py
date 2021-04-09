@@ -55,9 +55,7 @@ class product_template_post(models.TransientModel):
 
         context = context or self.env.context
         company = self.env.user.company_id
-        product_ids = []
-        if ('active_ids' in context):
-            product_ids = context['active_ids']
+        product_ids = ('active_ids' in context and context['active_ids']) or []
         product_obj = self.env['product.template']
 
         warningobj = self.env['warning']
@@ -110,9 +108,7 @@ class product_template_update(models.TransientModel):
     def product_template_update(self, context=None):
         context = context or self.env.context
         company = self.env.user.company_id
-        product_ids = []
-        if ('active_ids' in context):
-            product_ids = context['active_ids']
+        product_ids = ('active_ids' in context and context['active_ids']) or []
         product_obj = self.env['product.template']
 
         warningobj = self.env['warning']
@@ -158,7 +154,7 @@ class product_post(models.TransientModel):
     def product_post(self, context=None):
         context = context or self.env.context
         company = self.env.user.company_id
-        product_ids = context['active_ids']
+        product_ids = ('active_ids' in context and context['active_ids']) or []
         product_obj = self.env['product.product']
 
         warningobj = self.env['warning']
@@ -203,9 +199,7 @@ class product_product_update(models.TransientModel):
     def product_product_update(self, context=None):
         context = context or self.env.context
         company = self.env.user.company_id
-        product_ids = []
-        if ('active_ids' in context):
-            product_ids = context['active_ids']
+        product_ids = ('active_ids' in context and context['active_ids']) or []
         product_obj = self.env['product.product']
 
         warningobj = self.env['warning']

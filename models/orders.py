@@ -92,8 +92,8 @@ class sale_order(models.Model):
     meli_status_brief = fields.Char(string="Meli Status Brief", compute="_meli_status_brief", store=False, index=True)
 
     meli_status_detail = fields.Text(string='Status detail, in case the order was cancelled.')
-    meli_date_created = fields.Datetime('Creation date')
-    meli_date_closed = fields.Datetime('Closing date')
+    meli_date_created = fields.Datetime('Meli Creation date')
+    meli_date_closed = fields.Datetime('Meli Closing date')
 
 #        'meli_order_items': fields.one2many('mercadolibre.order_items','order_id','Order Items' ),
 #        'meli_payments': fields.one2many('mercadolibre.payments','order_id','Payments' ),
@@ -241,6 +241,40 @@ class mercadolibre_orders(models.Model):
     _description = "Pedidos en MercadoLibre"
 
     _inherit = ['portal.mixin', 'mail.thread', 'mail.activity.mixin']
+
+    def fix_locals(self, Receiver ):
+        updated = {}
+
+        country_id = self.country(Receiver)
+        state_id = self.state(country_id,Receiver)
+        city_name = self.city(Receiver)
+
+        if "l10n_co_cities.city" in self.env:
+            city = self.env["l10n_co_cities.city"].search([('city_name','ilike',city_name)])
+
+            if not city and state_id:
+                _logger.warning("City not found for: "+str(city_name) + " state_id: "+str(state_id))
+                _logger.info("Search FIRST city for state: " + str(state_id))
+                city = self.env["l10n_co_cities.city"].search([('state_id','=',state_id)])
+
+            if city:
+                _logger.info(city)
+                city = city[0]
+
+                _logger.info("Founded cities for state: " + str(state_id)+ " city_name: "+str(city.city_name))
+
+                updated["cities"] = city.id
+
+                postal = self.env["l10n_co_postal.postal_code"].search([('city_id','=',city.id)])
+                if postal:
+                    postal = postal[0]
+                    updated["postal_id"] = postal.id
+                else:
+                    _logger.error("Postal code not found for: " + str(city.city_name)+ "["+str(city.id)+"]")
+            else:
+                _logger.error("City not found for: " + str(updated["city"]))
+
+        return updated
 
     def street(self, Receiver ):
         full_street = 'no street'
@@ -497,6 +531,12 @@ class mercadolibre_orders(models.Model):
 
         order_fields = self.prepare_ml_order_vals( order_json=order_json, meli=meli, config=config )
 
+        if (    "mercadolibre_filter_order_datetime" in config._fields
+                and "date_closed" in order_fields
+                and config.mercadolibre_filter_order_datetime
+                and config.mercadolibre_filter_order_datetime>parse(order_fields["date_closed"]) ):
+            return { "error": "orden filtrada por fecha > " + str(order_fields["date_closed"]) + " inferior a "+str(ml_datetime(config.mercadolibre_filter_order_datetime)) }
+
         partner_id = False
         partner_shipping_id = False
 
@@ -511,6 +551,8 @@ class mercadolibre_orders(models.Model):
                     if (len(Shipment)==1):
                         Receiver = {
                             'receiver_address': Shipment.receiver_address_line,
+                            'address_line': Shipment.receiver_address_line,
+                            'receiver_name': Shipment.receiver_address_name,
                             'country': {
                                 'id': Shipment.receiver_country_code,
                                 'name': Shipment.receiver_country
@@ -541,33 +583,7 @@ class mercadolibre_orders(models.Model):
                 #'email': Buyer['email'],
                 'meli_buyer_id': Buyer['id']
             }
-
-            if "l10n_co_cities.city" in self.env:
-                state_id = meli_buyer_fields["state_id"]
-                city = self.env["l10n_co_cities.city"].search([('city_name','like',meli_buyer_fields["city"])])
-
-                if not city and state_id:
-                    _logger.warning("City not found: " + str(state_id))
-                    _logger.info("Search first city for state: " + str(state_id))
-                    city = self.env["l10n_co_cities.city"].search([('state_id','=',state_id)])
-
-                if city:
-                    _logger.info(city)
-                    city = city[0]
-
-                    _logger.info("Founded cities for state: " + str(state_id)+ " city_name: "+str(city.city_name))
-
-                    meli_buyer_fields["cities"] = city.id
-
-                    postal = self.env["l10n_co_postal.postal_code"].search([('city_id','=',city.id)])
-                    if postal:
-                        postal = postal[0]
-                        meli_buyer_fields["postal_id"] = postal.id
-                    else:
-                        _logger.error("Postal code not found for: " + str(city.city_name)+ "["+str(city.id)+"]")
-                else:
-                    _logger.error("City not found for: " + str(meli_buyer_fields["city"]))
-
+            meli_buyer_fields.update(self.fix_locals(Receiver))
 
             buyer_fields = {
                 'name': Buyer['first_name']+' '+Buyer['last_name'],
@@ -693,6 +709,17 @@ class mercadolibre_orders(models.Model):
                         else:
                             meli_buyer_fields['fe_primer_apellido'] = Buyer['last_name']
 
+                if ( ('doc_type' in Buyer['billing_info']) and ('l10n_latam_identification_type_id' in self.env['res.partner']._fields) ):
+                    if (Buyer['billing_info']['doc_type']=="CC" or Buyer['billing_info']['doc_type']=="C.C."):
+                        #national_citizen_id
+                        meli_buyer_fields['l10n_latam_identification_type_id'] = 5
+                    if (Buyer['billing_info']['doc_type']=="CE" or Buyer['billing_info']['doc_type']=="C.E."):
+                        #foreign_id_card
+                        meli_buyer_fields['l10n_latam_identification_type_id'] = 4
+                    if (Buyer['billing_info']['doc_type']=="NIT" or Buyer['billing_info']['doc_type']=="N.I.T." or Buyer['billing_info']['doc_type']=="RUT"):
+                        #rut
+                        meli_buyer_fields['l10n_latam_identification_type_id'] = 1
+
 
             partner_ids = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ] )
             if (len(partner_ids)>0):
@@ -712,19 +739,29 @@ class mercadolibre_orders(models.Model):
                 #complete country at most:
                 partner_update = {}
 
+                if ('l10n_latam_identification_type_id' in self.env['res.partner']._fields
+                    and ( not partner_id.l10n_latam_identification_type_id or partner_id.l10n_latam_identification_type_id!=meli_buyer_fields['l10n_latam_identification_type_id']) ):
+                    partner_update.update({ 'l10n_latam_identification_type_id': meli_buyer_fields['l10n_latam_identification_type_id'] })
+
                 if not partner_id.country_id:
                     partner_update.update({'country_id': self.country(Receiver)})
+
                 if not partner_id.state_id:
                     partner_update.update({ 'state_id': self.state(self.country(Receiver), Receiver)})
+
                 if not partner_id.street or partner_id.street=="no street":
                     partner_update.update({ 'street': self.street(Receiver)})
+
                 if not partner_id.city or partner_id.city=="":
                     partner_update.update({ 'city': self.city(Receiver) })
 
-                if partner_update:
-                    _logger.info("Updating:"+str(partner_update))
-                    partner_id.write(partner_update)
+                if "cities" in meli_buyer_fields and partner_id.cities and partner_id.cities.state_id!=partner_id.state_id:
+                    partner_update.update({ 'cities': meli_buyer_fields["cities"] })
+                    partner_update.update({ 'postal_id': meli_buyer_fields["postal_id"] })
 
+                if partner_update:
+                    _logger.info("Updating partner: "+str(partner_update))
+                    partner_id.write(partner_update)
 
                 if (partner_id.email and (partner_id.email==buyer_fields["email"] or "mercadolibre.com" in partner_id.email)):
                     #eliminar email de ML que no es valido
@@ -732,46 +769,8 @@ class mercadolibre_orders(models.Model):
                 #crear nueva direccion de entrega
                 #partner_id.write( meli_buyer_fields )
 
-            if (partner_id and 1==2):
-                pdelivery_fields = {
-                    "type": "delivery",
-                    "parent_id": partner_id.id,
-                    'name': meli_buyer_fields['name'],
-                    'street': meli_buyer_fields['street'],
-                    #'street2': meli_buyer_fields['name'],
-                    'city': meli_buyer_fields['city'],
-                    'country_id': meli_buyer_fields['country_id'],
-                    'state_id': meli_buyer_fields['state_id'],
-                    #'zip': meli_buyer_fields['name'],
-                    #"comment": ("location_addressNotes" in contactfields and contactfields["location_addressNotes"]) or ""
-                    #'producteca_bindings': [(6, 0, [client.id])]
-                    #'phone': self.full_phone( contactfields,billing=True ),
-                    #'email':contactfields['billingInfo_email'],
-                    #'producteca_bindings': [(6, 0, [client.id])]
-                }
-                #TODO: agregar un campo para diferencia cada delivery res partner al shipment y orden asociado, crear un binding usando values diferentes... y listo
-                deliv_id = self.env["res.partner"].search([("parent_id","=",pdelivery_fields['parent_id']),
-                                                            ("type","=","delivery"),
-                                                            ('street','=',pdelivery_fields['street'])],
-                                                            limit=1)
-                if not deliv_id or len(deliv_id)==0:
-                    _logger.info("Create partner delivery")
-                    respartner_obj = self.env['res.partner']
-                    try:
-                        deliv_id = respartner_obj.create(pdelivery_fields)
-                        if deliv_id:
-                            _logger.info("Created Res Partner Delivery "+str(deliv_id))
-                            partner_shipping_id = deliv_id
-                    except:
-                        _logger.error("Created res.partner delivery issue.")
-                        pass;
-                else:
-                    try:
-                        deliv_id.write(pdelivery_fields)
-                        partner_shipping_id = deliv_id
-                    except:
-                        _logger.error("Updating res.partner delivery issue.")
-                        pass;
+            if (partner_id):
+                partner_shipping_id = self.env["mercadolibre.shipment"].partner_delivery_id( partner_id=partner_id, Receiver=Receiver)                        
 
             if (partner_id):
                 if ("fe_habilitada" in self.env['res.partner']._fields):
@@ -1400,7 +1399,7 @@ class mercadolibre_orders_update(models.TransientModel):
 
     def order_update(self, context=None):
         context = context or self.env.context
-        orders_ids = context['active_ids']
+        orders_ids = ('active_ids' in context and context['active_ids']) or []
         orders_obj = self.env['mercadolibre.orders']
 
         self._cr.autocommit(False)
@@ -1428,7 +1427,7 @@ class sale_order_cancel(models.TransientModel):
 
     def cancel_order(self, context=None):
         context = context or self.env.context
-        orders_ids = context['active_ids']
+        orders_ids = ('active_ids' in context and context['active_ids']) or []
         orders_obj = self.env['sale.order']
 
         self._cr.autocommit(False)
