@@ -534,7 +534,7 @@ class mercadolibre_orders(models.Model):
         if (    "mercadolibre_filter_order_datetime" in config._fields
                 and "date_closed" in order_fields
                 and config.mercadolibre_filter_order_datetime
-                and config.mercadolibre_filter_order_datetime>order_fields["date_closed"]):
+                and config.mercadolibre_filter_order_datetime>parse(order_fields["date_closed"]) ):
             return {}
 
         partner_id = False
