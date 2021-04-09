@@ -232,7 +232,7 @@ class mercadolibre_shipment_update(models.TransientModel):
 
         _logger.info("shipment_update")
         _logger.info(shipment_ids)
-        _logger.info( "shipment_update: context: "+str(context)+" meli: "+str(meli)+ " config: " +str(config) )
+        #_logger.info( "shipment_update: context: "+str(context)+" meli: "+str(meli)+ " config: " +str(config) )
 
 
         for shipid in shipment_ids:
@@ -803,9 +803,9 @@ class mercadolibre_shipment(models.Model):
 
         return shipment
 
-    def update( self, meli=None, config=None ):
+    def update( self, context=None, meli=None, config=None ):
 
-        _logger.info( "update: meli: "+str(meli)+ " config: " +str(config) )
+        _logger.info( "update: context: "+str(context)+ " meli: "+str(meli)+ " config: " +str(config) )
 
         self.fetch( self.order, meli=meli, config=config )
 
