@@ -744,7 +744,7 @@ class mercadolibre_orders(models.Model):
                 #partner_id.write( meli_buyer_fields )
 
             if (partner_id):
-                partner_shipping_id = self.env["mercadolibre.shipment"].partner_delivery_id( partner_id=partner_id, Receiver=ship_json["receiver_address"])                        
+                partner_shipping_id = self.env["mercadolibre.shipment"].partner_delivery_id( partner_id=partner_id, Receiver=Receiver)                        
 
             if (partner_id):
                 if ("fe_habilitada" in self.env['res.partner']._fields):
