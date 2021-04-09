@@ -63,7 +63,7 @@ class mercadolibre_shipment_print(models.TransientModel):
 		company = self.env.user.company_id
 		if not config:
 			config = company
-		shipment_ids = context['active_ids']
+		shipment_ids = ('active_ids' in context and context['active_ids']) or []
 		shipment_obj = self.env['mercadolibre.shipment']
 		warningobj = self.env['warning']
 
@@ -131,7 +131,7 @@ class mercadolibre_shipment_print(models.TransientModel):
 		company = self.env.user.company_id
 		if not config:
 			config = company
-		picking_ids = 'active_ids' in context and context['active_ids']
+		picking_ids = ('active_ids' in context and context['active_ids']) or []
 		#product_obj = self.env['product.template']
 		picking_obj = self.env['stock.picking']
 		shipment_obj = self.env['mercadolibre.shipment']
@@ -225,7 +225,7 @@ class mercadolibre_shipment_update(models.TransientModel):
 		company = self.env.user.company_id
 		if not config:
 			config = company
-		shipment_ids = context['active_ids']
+		shipment_ids = ('active_ids' in context and context['active_ids']) or []
 		#product_obj = self.env['product.template']
 		shipment_obj = self.env['mercadolibre.shipment']
 		warningobj = self.env['warning']
@@ -390,6 +390,10 @@ class mercadolibre_shipment(models.Model):
 			if (not product_shipping_id):
 				_logger.info('Failed to create shipping product service')
 				continue
+
+            #CO
+			if "enable_charges" in product_shipping_id._fields:
+				product_shipping_id.enable_charges = True
 
 			ship_carrier = {
 				"name": ship_name,
@@ -702,6 +706,7 @@ class mercadolibre_shipment(models.Model):
 							#'email':contactfields['billingInfo_email'],
 							#'producteca_bindings': [(6, 0, [client.id])]
 						}
+						pdelivery_fields.update(orders_obj.fix_locals(Receiver))
 						#TODO: agregar un campo para diferencia cada delivery res partner al shipment y orden asociado, crear un binding usando values diferentes... y listo
 						deliv_id = self.env["res.partner"].search([("parent_id","=",pdelivery_fields['parent_id']),
 																	("type","=","delivery"),

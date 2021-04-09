@@ -89,6 +89,7 @@ def ml_tax_excluded(self, config=None ):
     #tax_excluded = self.env.user.has_group('sale.group_show_price_subtotal')
     #12.0 and 13.0
     tax_excluded = self.env.user.has_group('account.group_show_line_subtotals_tax_excluded')
+        
     company = (config and "company_id" in config._fields and config.company_id) or self.env.user.company_id
     config = config or company
     if (config and config.mercadolibre_tax_included not in ['auto']):

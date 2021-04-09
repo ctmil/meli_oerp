@@ -242,6 +242,40 @@ class mercadolibre_orders(models.Model):
 
     _inherit = ['portal.mixin', 'mail.thread', 'mail.activity.mixin']
 
+    def fix_locals(self, Receiver ):
+        updated = {}
+
+        country_id = self.country(Receiver)
+        state_id = self.state(country_id,Receiver)
+        city_name = self.city(Receiver)
+
+        if "l10n_co_cities.city" in self.env:
+            city = self.env["l10n_co_cities.city"].search([('city_name','like',city_name)])
+
+            if not city and state_id:
+                _logger.warning("City not found: " + str(state_id))
+                _logger.info("Search first city for state: " + str(state_id))
+                city = self.env["l10n_co_cities.city"].search([('state_id','=',state_id)])
+
+            if city:
+                _logger.info(city)
+                city = city[0]
+
+                _logger.info("Founded cities for state: " + str(state_id)+ " city_name: "+str(city.city_name))
+
+                updated["cities"] = city.id
+
+                postal = self.env["l10n_co_postal.postal_code"].search([('city_id','=',city.id)])
+                if postal:
+                    postal = postal[0]
+                    updated["postal_id"] = postal.id
+                else:
+                    _logger.error("Postal code not found for: " + str(city.city_name)+ "["+str(city.id)+"]")
+            else:
+                _logger.error("City not found for: " + str(updated["city"]))
+
+        return updated
+
     def street(self, Receiver ):
         full_street = 'no street'
         if (Receiver and 'address_line' in Receiver):
@@ -541,33 +575,7 @@ class mercadolibre_orders(models.Model):
                 #'email': Buyer['email'],
                 'meli_buyer_id': Buyer['id']
             }
-
-            if "l10n_co_cities.city" in self.env:
-                state_id = meli_buyer_fields["state_id"]
-                city = self.env["l10n_co_cities.city"].search([('city_name','like',meli_buyer_fields["city"])])
-
-                if not city and state_id:
-                    _logger.warning("City not found: " + str(state_id))
-                    _logger.info("Search first city for state: " + str(state_id))
-                    city = self.env["l10n_co_cities.city"].search([('state_id','=',state_id)])
-
-                if city:
-                    _logger.info(city)
-                    city = city[0]
-
-                    _logger.info("Founded cities for state: " + str(state_id)+ " city_name: "+str(city.city_name))
-
-                    meli_buyer_fields["cities"] = city.id
-
-                    postal = self.env["l10n_co_postal.postal_code"].search([('city_id','=',city.id)])
-                    if postal:
-                        postal = postal[0]
-                        meli_buyer_fields["postal_id"] = postal.id
-                    else:
-                        _logger.error("Postal code not found for: " + str(city.city_name)+ "["+str(city.id)+"]")
-                else:
-                    _logger.error("City not found for: " + str(meli_buyer_fields["city"]))
-
+            meli_buyer_fields.update(self.fix_locals(Receiver))
 
             buyer_fields = {
                 'name': Buyer['first_name']+' '+Buyer['last_name'],
@@ -1400,7 +1408,7 @@ class mercadolibre_orders_update(models.TransientModel):
 
     def order_update(self, context=None):
         context = context or self.env.context
-        orders_ids = context['active_ids']
+        orders_ids = ('active_ids' in context and context['active_ids']) or []
         orders_obj = self.env['mercadolibre.orders']
 
         self._cr.autocommit(False)
@@ -1428,7 +1436,7 @@ class sale_order_cancel(models.TransientModel):
 
     def cancel_order(self, context=None):
         context = context or self.env.context
-        orders_ids = context['active_ids']
+        orders_ids = ('active_ids' in context and context['active_ids']) or []
         orders_obj = self.env['sale.order']
 
         self._cr.autocommit(False)
