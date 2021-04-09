@@ -545,6 +545,7 @@ class mercadolibre_orders(models.Model):
                     if (len(Shipment)==1):
                         Receiver = {
                             'receiver_address': Shipment.receiver_address_line,
+                            'address_line': Shipment.receiver_address_line,
                             'receiver_name': Shipment.receiver_address_name,
                             'country': {
                                 'id': Shipment.receiver_country_code,
