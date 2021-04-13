@@ -461,7 +461,8 @@ class mercadolibre_shipment(models.Model):
                         _logger.info("Could not unlink.")
 
     def partner_delivery_id( self, partner_id=None, Receiver=None ):
-        
+        if not Receiver:
+            return None
         orders_obj = self.env['mercadolibre.orders']
         
         partner_shipping_id = None
