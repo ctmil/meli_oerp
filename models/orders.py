@@ -739,8 +739,7 @@ class mercadolibre_orders(models.Model):
                 #complete country at most:
                 partner_update = {}
 
-                if ('l10n_latam_identification_type_id' in self.env['res.partner']._fields
-                    and ( not partner_id.l10n_latam_identification_type_id or partner_id.l10n_latam_identification_type_id!=meli_buyer_fields['l10n_latam_identification_type_id']) ):
+                if ('l10n_latam_identification_type_id' in partner_id._fields and 'l10n_latam_identification_type_id' in meli_buyer_fields and  ( not partner_id.l10n_latam_identification_type_id or partner_id.l10n_latam_identification_type_id!=meli_buyer_fields['l10n_latam_identification_type_id']) ):
                     partner_update.update({ 'l10n_latam_identification_type_id': meli_buyer_fields['l10n_latam_identification_type_id'] })
 
                 if not partner_id.country_id:
@@ -770,7 +769,7 @@ class mercadolibre_orders(models.Model):
                 #partner_id.write( meli_buyer_fields )
 
             if (partner_id):
-                partner_shipping_id = self.env["mercadolibre.shipment"].partner_delivery_id( partner_id=partner_id, Receiver=Receiver)                        
+                partner_shipping_id = self.env["mercadolibre.shipment"].partner_delivery_id( partner_id=partner_id, Receiver=Receiver)
 
             if (partner_id):
                 if ("fe_habilitada" in self.env['res.partner']._fields):
