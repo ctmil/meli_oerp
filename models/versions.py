@@ -125,7 +125,7 @@ def get_inventory_fields( product, warehouse ):
             "product_ids": [(4,product.id)],
             #"product_id": product.id,
             #"filter": "product",
-            "location_id": warehouse,
+            #"location_id": warehouse,
             "name": "INV: "+ product.name
             }
 
