@@ -297,7 +297,7 @@ class mercadolibre_orders(models.Model):
                 if (len(state)):
                     state_id = state[0].id
                     return state_id
-            id_ml = 'id' in Receiver['state'] and Receiver['state']['id'].split("-")
+            id_ml = 'id' in Receiver['state'] and str(Receiver['state']['id']).split("-")
             #_logger.info(Receiver)
             #_logger.info(id_ml)
             if (id_ml and len(id_ml)==2):
