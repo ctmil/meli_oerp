@@ -297,7 +297,7 @@ class mercadolibre_orders(models.Model):
                 if (len(state)):
                     state_id = state[0].id
                     return state_id
-            id_ml = 'id' in Receiver['state'] and Receiver['state']['id'].split("-")
+            id_ml = 'id' in Receiver['state'] and str(Receiver['state']['id']).split("-")
             #_logger.info(Receiver)
             #_logger.info(id_ml)
             if (id_ml and len(id_ml)==2):
@@ -739,8 +739,7 @@ class mercadolibre_orders(models.Model):
                 #complete country at most:
                 partner_update = {}
 
-                if ('l10n_latam_identification_type_id' in self.env['res.partner']._fields
-                    and ( not partner_id.l10n_latam_identification_type_id or partner_id.l10n_latam_identification_type_id!=meli_buyer_fields['l10n_latam_identification_type_id']) ):
+                if ('l10n_latam_identification_type_id' in partner_id._fields and 'l10n_latam_identification_type_id' in meli_buyer_fields and  ( not partner_id.l10n_latam_identification_type_id or partner_id.l10n_latam_identification_type_id!=meli_buyer_fields['l10n_latam_identification_type_id']) ):
                     partner_update.update({ 'l10n_latam_identification_type_id': meli_buyer_fields['l10n_latam_identification_type_id'] })
 
                 if not partner_id.country_id:
