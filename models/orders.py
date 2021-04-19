@@ -358,6 +358,9 @@ class mercadolibre_orders(models.Model):
                 if phone_json['extension']:
                     full_phone+= phone_json['extension']
 
+        if "receiver_phone" in buyer_json:
+            full_phone+= buyer_json["receiver_phone"]
+
         return full_phone
 
     def full_alt_phone( self, buyer_json, context=None ):
@@ -553,6 +556,7 @@ class mercadolibre_orders(models.Model):
                             'receiver_address': Shipment.receiver_address_line,
                             'address_line': Shipment.receiver_address_line,
                             'receiver_name': Shipment.receiver_address_name,
+                            'receiver_phone': Shipment.receiver_address_phone,
                             'country': {
                                 'id': Shipment.receiver_country_code,
                                 'name': Shipment.receiver_country
