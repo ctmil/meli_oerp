@@ -1385,9 +1385,9 @@ class product_product(models.Model):
                     _product_meli_id = variant.meli_id
 
                     if (variant.meli_available_quantity != variant.virtual_available):
-                        variant.product_update_stock(variant.meli_available_quantity)
+                        variant.product_update_stock(stock=variant.meli_available_quantity, meli=meli, config=company)
             else:
-                product.product_update_stock(product.meli_available_quantity)
+                product.product_update_stock(stock=product.meli_available_quantity, meli=meli, config=company)
 
         #assign envio/sin envio
         #si es (Con envio: Sí): asigna el meli_default_stock_product al producto sin envio (Con evio: No)
