@@ -487,7 +487,7 @@ class mercadolibre_shipment(models.Model):
             #'zip': meli_buyer_fields['name'],
             #"comment": ("location_addressNotes" in contactfields and contactfields["location_addressNotes"]) or ""
             #'producteca_bindings': [(6, 0, [client.id])]
-            #'phone': self.full_phone( contactfields,billing=True ),
+            'phone': orders_obj.full_phone( Receiver ),
             #'email':contactfields['billingInfo_email'],
             #'producteca_bindings': [(6, 0, [client.id])]
         }
