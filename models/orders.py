@@ -756,6 +756,7 @@ class mercadolibre_orders(models.Model):
                 #complete country at most:
                 partner_update = {}
 
+                #TODO: re DO with, self.update_billing_data( partner_id, meli_buyer_fields )
                 if ('l10n_latam_identification_type_id' in partner_id._fields and 'l10n_latam_identification_type_id' in meli_buyer_fields and  ( not partner_id.l10n_latam_identification_type_id or partner_id.l10n_latam_identification_type_id!=meli_buyer_fields['l10n_latam_identification_type_id']) ):
                     partner_update.update({ 'l10n_latam_identification_type_id': meli_buyer_fields['l10n_latam_identification_type_id'] })
 
@@ -768,9 +769,17 @@ class mercadolibre_orders(models.Model):
                 if "fe_tipo_documento" in meli_buyer_fields and str(meli_buyer_fields['fe_tipo_documento'])!=str(partner_id.fe_tipo_documento):
                     partner_update.update(meli_buyer_fields)
 
-                if "fe_nit" in meli_buyer_fields and str(meli_buyer_fields['fe_nit'])!=str(partner_id.fe_nit and partner_id.fe_nit.id):
+                if "fe_nit" in meli_buyer_fields and str(meli_buyer_fields['fe_nit'])!=str(partner_id.fe_nit):
                     partner_update.update(meli_buyer_fields)
 
+                if "main_id_number" in meli_buyer_fields and str(meli_buyer_fields['main_id_number'])!=str(partner_id.main_id_number):
+                    partner_update.update(meli_buyer_fields)
+
+                if "afip_responsability_type_id" in meli_buyer_fields and str(meli_buyer_fields['afip_responsability_type_id'])!=str(partner_id.afip_responsability_type_id and partner_id.afip_responsability_type_id.id):
+                    partner_update.update(meli_buyer_fields)
+
+                if "main_id_category_id" in meli_buyer_fields and str(meli_buyer_fields['main_id_category_id'])!=str(partner_id.main_id_category_id and partner_id.main_id_category_id.id):
+                    partner_update.update(meli_buyer_fields)
 
                 if not partner_id.country_id:
                     partner_update.update({'country_id': self.country(Receiver)})
