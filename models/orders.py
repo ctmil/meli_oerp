@@ -332,11 +332,11 @@ class mercadolibre_orders(models.Model):
     def billing_info( self, billing_json, context=None ):
         billinginfo = ''
 
-        if 'doc_type' in billing_json:
+        if billing_json and 'doc_type' in billing_json:
             if billing_json['doc_type']:
                 billinginfo+= billing_json['doc_type']
 
-        if 'doc_number' in billing_json:
+        if billing_json and 'doc_number' in billing_json:
             if billing_json['doc_number']:
                 billinginfo+= billing_json['doc_number']
 
@@ -358,7 +358,7 @@ class mercadolibre_orders(models.Model):
                 if phone_json['extension']:
                     full_phone+= phone_json['extension']
 
-        if "receiver_phone" in buyer_json:
+        if "receiver_phone" in buyer_json and buyer_json["receiver_phone"]:
             full_phone+= buyer_json["receiver_phone"]
 
         return full_phone
@@ -545,6 +545,7 @@ class mercadolibre_orders(models.Model):
 
         if 'buyer' in order_json:
             Buyer = order_json['buyer']
+            Buyer['billing_info'] = ('billing_info' in Buyer and Buyer['billing_info']) or {}
             Receiver = False
             if ('shipping' in order_json):
                 if ('receiver_address' in order_json['shipping']):
