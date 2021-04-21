@@ -329,6 +329,17 @@ class mercadolibre_orders(models.Model):
                     country_id = country.id
         return country_id
 
+    def get_billing_info( self, order_id=None, meli=None, data=None ):
+        order_id = order_id or (data and 'id' in data and data['id']) or (self and self.order_id)
+        Buyer = (data and 'buyer' in data and data['buyer']) or {}
+        _billing_info = ('billing_info' in Buyer and Buyer['billing_info']) or {}
+        if meli and order_id:
+            response = meli.get("/orders/"+str(order_id)+"/billing_info", {'access_token':meli.access_token})
+            if response:
+                order_json = response.json()
+                _billing_info = (order_json and 'billing_info' in order_json and order_json['billing_info']) or {}
+        return _billing_info
+
     def billing_info( self, billing_json, context=None ):
         billinginfo = ''
 
@@ -545,7 +556,7 @@ class mercadolibre_orders(models.Model):
 
         if 'buyer' in order_json:
             Buyer = order_json['buyer']
-            Buyer['billing_info'] = ('billing_info' in Buyer and Buyer['billing_info']) or {}
+            Buyer['billing_info'] = self.get_billing_info(order_id=order_json['id'],meli=meli,data=order_json)
             Receiver = False
             if ('shipping' in order_json):
                 if ('receiver_address' in order_json['shipping']):
