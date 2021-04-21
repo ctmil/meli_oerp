@@ -329,6 +329,18 @@ class mercadolibre_orders(models.Model):
                     country_id = country.id
         return country_id
 
+    def get_billing_info( self, order_id=None, meli=None, data=None ):
+        order_id = order_id or (data and 'id' in data and data['id']) or (self and self.order_id)
+        Buyer = (data and 'buyer' in data and data['buyer']) or {}
+        _billing_info = ('billing_info' in Buyer and Buyer['billing_info']) or {}
+        if meli and order_id:
+            response = meli.get("/orders/"+str(order_id)+"/billing_info", {'access_token':meli.access_token})
+            if response:
+                biljson = response.json()
+                _logger.info("get_billing_info: "+str(biljson))
+                _billing_info = (biljson and 'billing_info' in biljson and biljson['billing_info']) or {}
+        return _billing_info
+
     def billing_info( self, billing_json, context=None ):
         billinginfo = ''
 
@@ -545,7 +557,7 @@ class mercadolibre_orders(models.Model):
 
         if 'buyer' in order_json:
             Buyer = order_json['buyer']
-            Buyer['billing_info'] = ('billing_info' in Buyer and Buyer['billing_info']) or {}
+            Buyer['billing_info'] = self.get_billing_info(order_id=order_json['id'],meli=meli,data=order_json)
             Receiver = False
             if ('shipping' in order_json):
                 if ('receiver_address' in order_json['shipping']):
@@ -744,8 +756,30 @@ class mercadolibre_orders(models.Model):
                 #complete country at most:
                 partner_update = {}
 
+                #TODO: re DO with, self.update_billing_data( partner_id, meli_buyer_fields )
                 if ('l10n_latam_identification_type_id' in partner_id._fields and 'l10n_latam_identification_type_id' in meli_buyer_fields and  ( not partner_id.l10n_latam_identification_type_id or partner_id.l10n_latam_identification_type_id!=meli_buyer_fields['l10n_latam_identification_type_id']) ):
                     partner_update.update({ 'l10n_latam_identification_type_id': meli_buyer_fields['l10n_latam_identification_type_id'] })
+
+                if "l10n_co_document_type" in meli_buyer_fields and str(meli_buyer_fields['l10n_co_document_type'])!=str(partner_id.l10n_co_document_type):
+                    partner_update.update(meli_buyer_fields)
+
+                if "l10n_latam_identification_type_id" in meli_buyer_fields and str(meli_buyer_fields['l10n_latam_identification_type_id'])!=str(partner_id.l10n_latam_identification_type_id and partner_id.l10n_latam_identification_type_id.id):
+                    partner_update.update(meli_buyer_fields)
+
+                if "fe_tipo_documento" in meli_buyer_fields and str(meli_buyer_fields['fe_tipo_documento'])!=str(partner_id.fe_tipo_documento):
+                    partner_update.update(meli_buyer_fields)
+
+                if "fe_nit" in meli_buyer_fields and str(meli_buyer_fields['fe_nit'])!=str(partner_id.fe_nit):
+                    partner_update.update(meli_buyer_fields)
+
+                if "main_id_number" in meli_buyer_fields and str(meli_buyer_fields['main_id_number'])!=str(partner_id.main_id_number):
+                    partner_update.update(meli_buyer_fields)
+
+                if "afip_responsability_type_id" in meli_buyer_fields and str(meli_buyer_fields['afip_responsability_type_id'])!=str(partner_id.afip_responsability_type_id and partner_id.afip_responsability_type_id.id):
+                    partner_update.update(meli_buyer_fields)
+
+                if "main_id_category_id" in meli_buyer_fields and str(meli_buyer_fields['main_id_category_id'])!=str(partner_id.main_id_category_id and partner_id.main_id_category_id.id):
+                    partner_update.update(meli_buyer_fields)
 
                 if not partner_id.country_id:
                     partner_update.update({'country_id': self.country(Receiver)})
