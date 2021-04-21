@@ -759,6 +759,19 @@ class mercadolibre_orders(models.Model):
                 if ('l10n_latam_identification_type_id' in partner_id._fields and 'l10n_latam_identification_type_id' in meli_buyer_fields and  ( not partner_id.l10n_latam_identification_type_id or partner_id.l10n_latam_identification_type_id!=meli_buyer_fields['l10n_latam_identification_type_id']) ):
                     partner_update.update({ 'l10n_latam_identification_type_id': meli_buyer_fields['l10n_latam_identification_type_id'] })
 
+                if "l10n_co_document_type" in meli_buyer_fields and str(meli_buyer_fields['l10n_co_document_type'])!=str(partner_id.l10n_co_document_type and partner_id.l10n_co_document_type.id):
+                    partner_update.update(meli_buyer_fields)
+
+                if "l10n_latam_identification_type_id" in meli_buyer_fields and str(meli_buyer_fields['l10n_latam_identification_type_id'])!=str(partner_id.l10n_latam_identification_type_id and partner_id.l10n_latam_identification_type_id.id):
+                    partner_update.update(meli_buyer_fields)
+
+                if "fe_tipo_documento" in meli_buyer_fields and str(meli_buyer_fields['fe_tipo_documento'])!=str(partner_id.fe_tipo_documento and partner_id.fe_tipo_documento.id):
+                    partner_update.update(meli_buyer_fields)
+
+                if "fe_nit" in meli_buyer_fields and str(meli_buyer_fields['fe_nit'])!=str(partner_id.fe_nit and partner_id.fe_nit.id):
+                    partner_update.update(meli_buyer_fields)
+
+
                 if not partner_id.country_id:
                     partner_update.update({'country_id': self.country(Receiver)})
 
