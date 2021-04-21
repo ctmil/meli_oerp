@@ -336,8 +336,9 @@ class mercadolibre_orders(models.Model):
         if meli and order_id:
             response = meli.get("/orders/"+str(order_id)+"/billing_info", {'access_token':meli.access_token})
             if response:
-                order_json = response.json()
-                _billing_info = (order_json and 'billing_info' in order_json and order_json['billing_info']) or {}
+                biljson = response.json()
+                _logger.info("get_billing_info: "+str(biljson))
+                _billing_info = (biljson and 'billing_info' in biljson and biljson['billing_info']) or {}
         return _billing_info
 
     def billing_info( self, billing_json, context=None ):
