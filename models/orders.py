@@ -1246,13 +1246,19 @@ class mercadolibre_orders(models.Model):
                 _logger.error( orders_json["message"] )
             return {}
 
+        order_date_filter = ("mercadolibre_filter_order_datetime" in config._fields and config.mercadolibre_filter_order_datetime)
+
         if "paging" in orders_json:
             if "total" in orders_json["paging"]:
                 if (orders_json["paging"]["total"]==0):
                     return {}
                 else:
-                    if (orders_json["paging"]["total"]==orders_json["paging"]["limit"]):
-                        offset_next = offset + orders_json["paging"]["limit"]
+                    if (orders_json["paging"]["total"]>=(offset+orders_json["paging"]["limit"])):
+                        if not order_date_filter:
+                            offset_next = 0
+                        else:
+                            offset_next = offset + orders_json["paging"]["limit"]
+                        _logger.info("offset_next:"+str(offset_next))
 
         if "results" in orders_json:
             for order_json in orders_json["results"]:
