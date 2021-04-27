@@ -1244,8 +1244,12 @@ class mercadolibre_orders(models.Model):
                 if (orders_json["paging"]["total"]==0):
                     return {}
                 else:
-                    if (orders_json["paging"]["total"]==orders_json["paging"]["limit"]):
-                        offset_next = offset + orders_json["paging"]["limit"]
+                    if (orders_json["paging"]["total"]>(offset+orders_json["paging"]["limit"])):
+                        if ((offset+orders_json["paging"]["limit"])>=351):
+                            offset_next = 0
+                        else:
+                            offset_next = offset + orders_json["paging"]["limit"]
+                        _logger.info("offset_next:"+str(offset_next))
 
         if "results" in orders_json:
             for order_json in orders_json["results"]:
