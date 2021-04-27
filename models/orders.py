@@ -217,7 +217,11 @@ class sale_order(models.Model):
                                         if (pop.qty_done==0.0 and pop.product_qty>=0.0):
                                             pop.qty_done = pop.product_qty
                                     _logger.info("do_new_transfer")
-                                    spick.action_done()
+                                    try:
+                                        spick.button_validate()
+                                    except Exception as e:
+                                        _logger.error("stock pick button_validate error"+str(e))
+                                        pass;
 
 
             if (config.mercadolibre_order_confirmation=="paid_confirm_with_invoice"):
@@ -848,6 +852,9 @@ class mercadolibre_orders(models.Model):
         if ('account.payment.term' in self.env):
             inmediate = self.env['account.payment.term'].search([])
             meli_order_fields["payment_term_id"] = inmediate and inmediate[0].id
+
+        if ('sale.order.type' in self.env):
+            meli_order_fields["type_id"] = 7
 
         if (order_json["shipping"]):
             order_fields['shipping'] = self.pretty_json( id, order_json["shipping"] )

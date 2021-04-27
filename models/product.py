@@ -863,7 +863,7 @@ class product_product(models.Model):
                             ml_attribute = self.env['mercadolibre.category.attribute'].search([('att_id','=',att['att_id'])])
                             attribute = []
                             if (len(ml_attribute)>1):
-                                ml_attribute = self.env['mercadolibre.category.attribute'].search([('att_id','=',att['att_id']),('cat_id','=',product.meli_cat_id)])
+                                ml_attribute = self.env['mercadolibre.category.attribute'].search([('att_id','=',att['att_id']),('cat_id','=',product.meli_category_id.id)])
                                 if not ml_attribute:
                                     ml_attribute = self.env['mercadolibre.category.attribute'].search([('att_id','=',att['att_id'])])[0]
                                 if (len(ml_attribute)==1):
