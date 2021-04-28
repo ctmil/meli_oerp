@@ -449,7 +449,7 @@ class mercadolibre_orders(models.Model):
                 #debemos buscar el codigo relacionado pero al producto real del catalogo: que se encuentra.
         return order_fields
 
-    def prepare_sale_order_vals( self, meli=None, order_json=None, config=None, sale_order=None ):
+    def prepare_sale_order_vals( self, meli=None, order_json=None, config=None, sale_order=None, shipment=None ):
         if not order_json:
             return {}
         meli_order_fields = {
