@@ -449,9 +449,24 @@ class mercadolibre_orders(models.Model):
                 #debemos buscar el codigo relacionado pero al producto real del catalogo: que se encuentra.
         return order_fields
 
-    def prepare_sale_order_vals( self, meli=None, rjson=None ):
-        vals = {}
-        return vals
+    def prepare_sale_order_vals( self, meli=None, order_json=None, config=None, sale_order=None ):
+        if not order_json:
+            return {}
+        meli_order_fields = {
+            #TODO: "add parameter for":
+            'name': "ML %s" % ( str(order_json["id"]) ),
+            #'partner_id': partner_id.id,
+            #'pricelist_id': plistid.id,
+            'meli_order_id': '%s' % (str(order_json["id"])),
+            'meli_status': ("status" in order_json and order_json["status"]) or '',
+            'meli_status_detail': ("status_detail" in order_json and order_json["status_detail"]) or '' ,
+            'meli_total_amount': ("total_amount" in order_json and order_json["total_amount"]),
+            'meli_paid_amount': ("paid_amount" in order_json and order_json["paid_amount"]),
+            'meli_currency_id': ("currency_id" in order_json and order_json["currency_id"]),
+            'meli_date_created': ml_datetime(order_json["date_created"]),
+            'meli_date_closed': ml_datetime(order_json["date_closed"]),
+        }
+        return meli_order_fields
 
     def search_sale_order( self, order_id, meli=None, rjson=None ):
         sorder = None
@@ -567,7 +582,7 @@ class mercadolibre_orders(models.Model):
                 if ('receiver_address' in order_json['shipping']):
                     Receiver = order_json['shipping']['receiver_address']
                 elif ('id' in order_json['shipping']):
-                    Shipment = self.env["mercadolibre.shipment"].search([('shipping_id','=',order_json['shipping']["id"])])
+                    Shipment = self.env["mercadolibre.shipment"].search([('shipping_id','=',order_json['shipping']["id"])],limit=1)
                     if (len(Shipment)==1):
                         Receiver = {
                             'receiver_address': Shipment.receiver_address_line,
@@ -828,20 +843,11 @@ class mercadolibre_orders(models.Model):
             _logger.error("No partner founded or created for ML Order" )
             return {'error': 'No partner founded or created for ML Order' }
         #process base order fields
-        meli_order_fields = {
-            #TODO: "add parameter for":
-            'name': "ML %s" % ( str(order_json["id"]) ),
+        meli_order_fields = self.prepare_sale_order_vals( order_json=order_json, meli=meli, config=config, sale_order=sorder )
+        meli_order_fields.update({
             'partner_id': partner_id.id,
             'pricelist_id': plistid.id,
-            'meli_order_id': '%s' % (str(order_json["id"])),
-            'meli_status': order_json["status"],
-            'meli_status_detail': order_json["status_detail"] or '' ,
-            'meli_total_amount': order_json["total_amount"],
-            'meli_paid_amount': order_json["paid_amount"],
-            'meli_currency_id': order_json["currency_id"],
-            'meli_date_created': ml_datetime(order_json["date_created"]),
-            'meli_date_closed': ml_datetime(order_json["date_closed"]),
-        }
+        })
         if partner_shipping_id:
             meli_order_fields['partner_shipping_id'] = partner_shipping_id.id
 
@@ -852,9 +858,6 @@ class mercadolibre_orders(models.Model):
         if ('account.payment.term' in self.env):
             inmediate = self.env['account.payment.term'].search([])
             meli_order_fields["payment_term_id"] = inmediate and inmediate[0].id
-
-        if ('sale.order.type' in self.env):
-            meli_order_fields["type_id"] = 7
 
         if (order_json["shipping"]):
             order_fields['shipping'] = self.pretty_json( id, order_json["shipping"] )
