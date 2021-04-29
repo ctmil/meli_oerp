@@ -217,7 +217,11 @@ class sale_order(models.Model):
                                         if (pop.qty_done==0.0 and pop.product_qty>=0.0):
                                             pop.qty_done = pop.product_qty
                                     _logger.info("do_new_transfer")
-                                    spick.action_done()
+                                    try:
+                                        spick.button_validate()
+                                    except Exception as e:
+                                        _logger.error("stock pick button_validate error"+str(e))
+                                        pass;
 
 
             if (config.mercadolibre_order_confirmation=="paid_confirm_with_invoice"):
@@ -849,6 +853,9 @@ class mercadolibre_orders(models.Model):
             inmediate = self.env['account.payment.term'].search([])
             meli_order_fields["payment_term_id"] = inmediate and inmediate[0].id
 
+        if ('sale.order.type' in self.env):
+            meli_order_fields["type_id"] = 7
+
         if (order_json["shipping"]):
             order_fields['shipping'] = self.pretty_json( id, order_json["shipping"] )
             meli_order_fields['meli_shipping'] = self.pretty_json( id, order_json["shipping"] )
@@ -1239,13 +1246,19 @@ class mercadolibre_orders(models.Model):
                 _logger.error( orders_json["message"] )
             return {}
 
+        order_date_filter = ("mercadolibre_filter_order_datetime" in config._fields and config.mercadolibre_filter_order_datetime)
+
         if "paging" in orders_json:
             if "total" in orders_json["paging"]:
                 if (orders_json["paging"]["total"]==0):
                     return {}
                 else:
-                    if (orders_json["paging"]["total"]==orders_json["paging"]["limit"]):
-                        offset_next = offset + orders_json["paging"]["limit"]
+                    if (orders_json["paging"]["total"]>=(offset+orders_json["paging"]["limit"])):
+                        if not order_date_filter:
+                            offset_next = 0
+                        else:
+                            offset_next = offset + orders_json["paging"]["limit"]
+                        _logger.info("offset_next:"+str(offset_next))
 
         if "results" in orders_json:
             for order_json in orders_json["results"]:

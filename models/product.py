@@ -735,9 +735,10 @@ class product_product(models.Model):
 
                     #_logger.info(str(pimage==False))
                     if (not pimage or (pimage and len(pimage)==0)):
-                        _logger.info("Creating new image")
+                        _logger.info("Creating new image: "+str(pimg_fields)+" product:"+str(product))
                         bin_updating = True
-                        pimg_fields["name"] = product.meli_title or product.name;
+                        pimg_fields["name"] = product.meli_title or product.name
+                        _logger.info("check name: "+str(pimg_fields))
                         pimage = self.env["product.image"].create(pimg_fields)
 
                     if (pimage):
@@ -863,7 +864,7 @@ class product_product(models.Model):
                             ml_attribute = self.env['mercadolibre.category.attribute'].search([('att_id','=',att['att_id'])])
                             attribute = []
                             if (len(ml_attribute)>1):
-                                ml_attribute = self.env['mercadolibre.category.attribute'].search([('att_id','=',att['att_id']),('cat_id','=',product.meli_cat_id)])
+                                ml_attribute = self.env['mercadolibre.category.attribute'].search([('att_id','=',att['att_id']),('cat_id','=',(product.meli_category and product.meli_category.id))])
                                 if not ml_attribute:
                                     ml_attribute = self.env['mercadolibre.category.attribute'].search([('att_id','=',att['att_id'])])[0]
                                 if (len(ml_attribute)==1):
