@@ -853,9 +853,6 @@ class mercadolibre_orders(models.Model):
             inmediate = self.env['account.payment.term'].search([])
             meli_order_fields["payment_term_id"] = inmediate and inmediate[0].id
 
-        if ('sale.order.type' in self.env):
-            meli_order_fields["type_id"] = 7
-
         if (order_json["shipping"]):
             order_fields['shipping'] = self.pretty_json( id, order_json["shipping"] )
             meli_order_fields['meli_shipping'] = self.pretty_json( id, order_json["shipping"] )
