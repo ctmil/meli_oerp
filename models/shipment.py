@@ -717,10 +717,29 @@ class mercadolibre_shipment(models.Model):
                     #buyer_ids = buyers_obj.search([  ('buyer_id','=',buyer_fields['buyer_id'] ) ] )
                     partner_id = respartner_obj.search([  ('meli_buyer_id','=',ship_fields['receiver_id'] ) ] )
                     if (partner_id.id):
-                        meli_order_fields = {
+                        
+                        sorder_pack = self.env["sale.order"].search( [ ('meli_order_id','=',packed_order_ids) ] )
+                        
+                        order_json = {
+                            "id": all_orders[0]["order_id"],
+                            'status': all_orders[0]["status"],
+                            'status_detail': all_orders[0]["status_detail"] or '' ,
+                            'total_amount': shipment.order_cost,
+                            'paid_amount': shipment.order_cost,
+                            'currency_id': all_orders[0]["currency_id"], 
+                            "date_created": all_orders[0]["date_created"],
+                            "date_closed": all_orders[0]["date_closed"],                            
+                        }
+                        
+                        meli_order_fields = self.env['mercadolibre.orders'].prepare_sale_order_vals( order_json=order_json, meli=meli, config=config, sale_order=sorder_pack, shipment=shipment )
+                        #meli_order_fields.update({
+                        #    'partner_id': partner_id.id,
+                        #    'pricelist_id': plistid.id,
+                        #})
+                        meli_order_fields.update({
                             #TODO: "add parameter for pack_id":
                             #'name': "ML %i" % ( all_orders[0]["pack_id"] ),
-                            'name': "ML %s" % ( str(all_orders[0]["order_id"]) ),
+                            #'name': "ML %s" % ( str(all_orders[0]["order_id"]) ),
                             'partner_id': partner_id.id,
                             'pricelist_id': plistid.id,
                             #'meli_order_id': '%i' % (order_json["id"]),
@@ -729,17 +748,17 @@ class mercadolibre_shipment(models.Model):
                             'meli_shipping_id': shipment.shipping_id,
                             'meli_shipping': shipment,
                             'meli_shipment': shipment.id,
-                            'meli_status': all_orders[0]["status"],
-                            'meli_status_detail': all_orders[0]["status_detail"] or '' ,
-                            'meli_total_amount': shipment.order_cost,
+                            #'meli_status': all_orders[0]["status"],
+                            #'meli_status_detail': all_orders[0]["status_detail"] or '' ,
+                            #'meli_total_amount': shipment.order_cost,
                             'meli_shipping_cost': shipment.shipping_cost,
                             'meli_shipping_list_cost': shipment.shipping_list_cost,
-                            'meli_paid_amount': shipment.order_cost,
+                            #'meli_paid_amount': shipment.order_cost,
                             'meli_fee_amount': 0.0,
-                            'meli_currency_id': all_orders[0]["currency_id"],
+                            #'meli_currency_id': all_orders[0]["currency_id"],
                             'meli_date_created': ml_datetime(all_orders[0]["date_created"]) or all_orders[0]["date_created"],
                             'meli_date_closed': ml_datetime(all_orders[0]["date_closed"]) or all_orders[0]["date_created"],
-                        }
+                        })
                         #TODO: agregar un campo para diferencia cada delivery res partner al shipment y orden asociado, crear un binding usando values diferentes... y listo
                         _logger.info("ship_json[receiver_address]:"+str(ship_json["receiver_address"]) )
                         partner_shipping_id = self.partner_delivery_id( partner_id=partner_id, Receiver=ship_json["receiver_address"])                        
@@ -750,7 +769,6 @@ class mercadolibre_shipment(models.Model):
                         if ("pack_id" in all_orders[0] and all_orders[0]["pack_id"]):
                             meli_order_fields['name'] = "ML %s" % ( str(all_orders[0]["pack_id"]) )
                             #meli_order_fields['pack_id'] = all_orders[0]["pack_id"]
-                        sorder_pack = self.env["sale.order"].search( [ ('meli_order_id','=',meli_order_fields["meli_order_id"]) ] )
 
                         if (config.mercadolibre_seller_user):
                             meli_order_fields["user_id"] = config.mercadolibre_seller_user.id

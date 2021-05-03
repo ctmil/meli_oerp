@@ -388,6 +388,10 @@ class product_template(models.Model):
     meli_catalog_item_relations = fields.Char(string='Catalog Item Relations', size=256)
     meli_catalog_automatic_relist = fields.Boolean(string='Catalog Auto Relist', size=256)
 
+    meli_shipping_mode = fields.Char(string="Shipping Mode",help="Shipping modes (por usuario): custom, not_specified, me2. https://api.mercadolibre.com/users/USERID/shipping_preferences",index=True)
+    meli_shipping_method = fields.Char(string="Shipping Method",help="Shipping methods: https://api.mercadolibre.com/sites/SITEID/shipping_methods",index=True)
+
+
 product_template()
 
 class product_product(models.Model):
@@ -735,10 +739,9 @@ class product_product(models.Model):
 
                     #_logger.info(str(pimage==False))
                     if (not pimage or (pimage and len(pimage)==0)):
-                        _logger.info("Creating new image: "+str(pimg_fields)+" product:"+str(product))
+                        _logger.info("Creating new image")
                         bin_updating = True
-                        pimg_fields["name"] = product.meli_title or product.name
-                        _logger.info("check name: "+str(pimg_fields))
+                        pimg_fields["name"] = product.meli_title or product.name;
                         pimage = self.env["product.image"].create(pimg_fields)
 
                     if (pimage):
@@ -3033,6 +3036,9 @@ class product_product(models.Model):
     meli_shipping_logistic_type = fields.Char(string="Logistic Type",index=True)
 
     meli_inventory_id = fields.Char(string="Inventory Id",index=True)
+
+    meli_shipping_mode = fields.Char(string="Shipping Mode",help="Shipping modes (por usuario): custom, not_specified, me2. https://api.mercadolibre.com/users/USERID/shipping_preferences",index=True)
+    meli_shipping_method = fields.Char(string="Shipping Method",help="Shipping methods: https://api.mercadolibre.com/sites/SITEID/shipping_methods",index=True)
 
     _defaults = {
         'meli_imagen_logo': 'None',
