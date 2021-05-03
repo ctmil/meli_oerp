@@ -298,7 +298,7 @@ class res_company(models.Model):
 
     mercadolibre_official_store_id = fields.Char(string="Official Store Id")
 
-    #mercadolibre_filter_order_datetime = fields.Datetime("Order Closed Date")
+    mercadolibre_filter_order_datetime = fields.Datetime("Order Closed Date")
 
     def	meli_logout(self):
         _logger.info('company.meli_logout() ')
