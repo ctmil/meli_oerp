@@ -1060,6 +1060,10 @@ class mercadolibre_orders(models.Model):
                 }
 
                 if (product_related):
+                    if (len(product_related)>1):
+                        error = { 'error': "Error products duplicated for item:"+str(Item and 'item' in Item and Item['item']) }
+                        _logger.error(error)
+                        return error
                     order_item_fields['product_id'] = product_related.id
 
                 order_item_ids = order_items_obj.search( [('order_item_id','=',order_item_fields['order_item_id']),
