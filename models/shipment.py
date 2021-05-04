@@ -102,7 +102,6 @@ class mercadolibre_shipment_print(models.TransientModel):
             sep = "<br>"+"\n"
 
         full_links = ''
-        full_ids = ''
         for atoken in full_url_link_pdf:
             _logger.info('atoken:'+str(atoken))
             full_ids+= full_url_link_pdf[atoken]['full_ids']
@@ -137,6 +136,8 @@ class mercadolibre_shipment_print(models.TransientModel):
         comma = ""
         reporte = ""
         sep = ""
+        shipment_ids= []
+        
         for pick_id in picking_ids:
             #sacar la orden relacionada
             #de la orden sacar el shipping id
@@ -154,27 +155,44 @@ class mercadolibre_shipment_print(models.TransientModel):
                 continue;
 
             if (shipid):
-                shipment = shipment_obj.browse(shipid)
-                shipment.update()
+                #shipment = shipment_obj.browse(shipid)
+                #shipment.update()
+                shipment_ids.append(shipid)
             
+        full_url_link_pdf = {}
+                
+        for shipid in shipment_ids:
+            shipment = shipment_obj.browse(shipid)
+            ship_report = shipment.shipment_print( meli=meli, config=config, include_ready_to_print=self.include_ready_to_print )
+            reporte = reporte + sep + str( ship_report['message'] )
+        
             if (shipment and shipment.status=="ready_to_ship"):
-                reporte = reporte + sep + str(shipment.shipment_print( meli=meli, config=config,include_ready_to_print=self.include_ready_to_print))
-                full_ids = full_ids + comma + shipment.shipping_id
-                comma = ","            
-            else:
-                reporte = reporte + sep + str(pick.name) + " has no ML shipment."
+                atoken = ship_report['access_token']
+                if atoken and not (atoken in full_url_link_pdf):
+                    full_url_link_pdf[atoken] = { 'full_ids': '', 'comma': '', 'full_link': '' }
+                
+                if atoken and atoken in full_url_link_pdf:
+                    full_url_link_pdf[atoken]['full_ids'] += comma + shipment.shipping_id
+                    full_url_link_pdf[atoken]['comma']  = ","                    
+                
+                    full_url_link_pdf[atoken]['full_link'] = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_url_link_pdf[atoken]['full_ids']+"&response_type=pdf&access_token="+atoken
             
             sep = "<br>"+"\n"
-
-        _logger.info(full_ids)
-        full_url_link_pdf = ""
-        if meli.access_token:
-            full_url_link_pdf = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_ids+"&response_type=pdf&access_token="+meli.access_token
-        _logger.info(full_url_link_pdf)
-        if (full_ids):
-            return warningobj.info( title='Impresión de etiquetas', message="Abrir este link para descargar el PDF", message_html=""+full_ids+'<br><br><a href="'+full_url_link_pdf+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'+"<br><br>Reporte de no impresas:<br>"+reporte )
+        
+        full_links = ''
+        for atoken in full_url_link_pdf:
+            _logger.info('atoken:'+str(atoken))
+            full_ids+= full_url_link_pdf[atoken]['full_ids']
+            full_link = full_url_link_pdf[atoken]['full_link']
+            _logger.info()    
+            if full_link:
+                full_links+= '<a href="'+full_link+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'
+        
+        if (full_links):
+            return warningobj.info( title='Impresión de etiquetas', message="Abrir links para descargar PDF", message_html=""+full_ids+'<br><br>'+full_links+"<br><br>Reporte de no impresas:<br>"+reporte )
         else:
-            return warningobj.info( title='Impresión de etiquetas: Estas etiquetas ya fueron todas impresas.', message="O no tienen shipments asociados.", message_html=reporte )
+            return warningobj.info( title='Impresión de etiquetas: Estas etiquetas ya fueron todas impresas.', message=reporte )
+
 
 
     include_ready_to_print = fields.Boolean(string="Include Ready To Print",default=False)
