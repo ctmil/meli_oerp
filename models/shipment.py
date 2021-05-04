@@ -83,7 +83,8 @@ class mercadolibre_shipment_print(models.TransientModel):
         sep = ""
         for shipid in shipment_ids:
             shipment = shipment_obj.browse(shipid)
-            reporte = reporte + sep + str(shipment.shipment_print( meli=meli, config=config,include_ready_to_print=self.include_ready_to_print))
+            ship_report = shipment.shipment_print( meli=meli, config=config,include_ready_to_print=self.include_ready_to_print)
+            reporte = reporte + sep + str(ship_report)
 
             if (shipment and shipment.status=="ready_to_ship"):
                 full_ids = full_ids + comma + shipment.shipping_id
@@ -91,7 +92,9 @@ class mercadolibre_shipment_print(models.TransientModel):
             sep = "<br>"+"\n"
 
         _logger.info(full_ids)
-        full_url_link_pdf = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_ids+"&response_type=pdf&access_token="+meli.access_token
+        full_url_link_pdf = ""
+        if meli.access_token:
+            full_url_link_pdf = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_ids+"&response_type=pdf&access_token="+meli.access_token
         _logger.info(full_url_link_pdf)
         if (full_ids):
             return warningobj.info( title='Impresión de etiquetas', message="Abrir este link para descargar el PDF", message_html=""+full_ids+'<br><br><a href="'+full_url_link_pdf+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'+"<br><br>Reporte de no impresas:<br>"+reporte )
@@ -149,7 +152,9 @@ class mercadolibre_shipment_print(models.TransientModel):
             sep = "<br>"+"\n"
 
         _logger.info(full_ids)
-        full_url_link_pdf = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_ids+"&response_type=pdf&access_token="+meli.access_token
+        full_url_link_pdf = ""
+        if meli.access_token:
+            full_url_link_pdf = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_ids+"&response_type=pdf&access_token="+meli.access_token
         _logger.info(full_url_link_pdf)
         if (full_ids):
             return warningobj.info( title='Impresión de etiquetas', message="Abrir este link para descargar el PDF", message_html=""+full_ids+'<br><br><a href="'+full_url_link_pdf+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'+"<br><br>Reporte de no impresas:<br>"+reporte )
