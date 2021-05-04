@@ -83,39 +83,12 @@ class mercadolibre_shipment_print(models.TransientModel):
         sep = ""
         for shipid in shipment_ids:
             shipment = shipment_obj.browse(shipid)
-            shipment.update()
+            reporte = reporte + sep + str(shipment.shipment_print(context=context, meli=meli, config=config,include_ready_to_print=self.include_ready_to_print))
+
             if (shipment and shipment.status=="ready_to_ship"):
                 full_ids = full_ids + comma + shipment.shipping_id
-                #full_str_ids = full_str_ids + comma + shipment
                 comma = ","
-                download_url = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+shipment.shipping_id+"&response_type=pdf&access_token="+meli.access_token
-                shipment.pdf_link = download_url
-
-                if (shipment.substatus=="printed" or self.include_ready_to_print):
-                    try:
-                        data = urlopen(shipment.pdf_link).read()
-                        _logger.info(data)
-                        shipment.pdf_filename = "Shipment_"+shipment.shipping_id+".pdf"
-                        shipment.pdf_file = base64.encodestring(data)
-                        images = convert_from_bytes(data, dpi=300,fmt='jpg')
-                        if (1==1 and len(images)>1):
-                            for image in images:
-                                image_filename = "/tmp/%s-page%d.jpg" % ("Shipment_"+shipment.shipping_id, images.index(image))
-                                image.save(image_filename, "JPEG")
-                                if (images.index(image)==0):
-                                    imgdata = urlopen("file://"+image_filename).read()
-                                    shipment.pdfimage_file = base64.encodestring(imgdata)
-                                    shipment.pdfimage_filename = "Shipment_"+shipment.shipping_id+".jpg"
-                    except Exception as e:
-                        _logger.info("Exception!")
-                        _logger.info(e, exc_info=True)
-                        #return warningobj.info( title='Impresión de etiquetas: Error descargando guias', message=download_url )
-                        reporte = reporte + sep + "Error descargando pdf:" + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)+'<a href="'+download_url+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'
-                        sep = "<br>"+"\n"
-
-            else:
-                reporte = reporte + sep + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)
-                sep = "<br>"+"\n"
+            sep = "<br>"+"\n"
 
         _logger.info(full_ids)
         full_url_link_pdf = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_ids+"&response_type=pdf&access_token="+meli.access_token
@@ -158,49 +131,22 @@ class mercadolibre_shipment_print(models.TransientModel):
                 if ( (not shipid) and len(pick.sale_id.meli_orders) ):
                     shipment = shipment_obj.search([('shipping_id','=',pick.sale_id.meli_orders[0].shipping_id)])
                     if (shipment):
-                        shipid = shipment.id
+                        shipid = shipment.id                        
             else:
                 continue;
 
             if (shipid):
                 shipment = shipment_obj.browse(shipid)
                 shipment.update()
-
+            
             if (shipment and shipment.status=="ready_to_ship"):
+                reporte = reporte + sep + str(shipment.shipment_print(context=context, meli=meli, config=config,include_ready_to_print=self.include_ready_to_print))
                 full_ids = full_ids + comma + shipment.shipping_id
-                #full_str_ids = full_str_ids + comma + shipment
-                comma = ","
-                download_url = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+shipment.shipping_id+"&response_type=pdf&access_token="+meli.access_token
-                shipment.pdf_link = download_url
-
-                if (shipment.substatus=="printed" or self.include_ready_to_print):
-                    try:
-                        data = urlopen(shipment.pdf_link).read()
-                        _logger.info(data)
-                        shipment.pdf_filename = "Shipment_"+shipment.shipping_id+".pdf"
-                        shipment.pdf_file = base64.encodestring(data)
-                        images = convert_from_bytes(data, dpi=300,fmt='jpg')
-                        if (1==1 and len(images)>1):
-                            for image in images:
-                                image_filename = "/tmp/%s-page%d.jpg" % ("Shipment_"+shipment.shipping_id, images.index(image))
-                                image.save(image_filename, "JPEG")
-                                if (images.index(image)==0):
-                                    imgdata = urlopen("file://"+image_filename).read()
-                                    shipment.pdfimage_file = base64.encodestring(imgdata)
-                                    shipment.pdfimage_filename = "Shipment_"+shipment.shipping_id+".jpg"
-                    except Exception as e:
-                        _logger.info("Exception!")
-                        _logger.info(e, exc_info=True)
-                        #return warningobj.info( title='Impresión de etiquetas: Error descargando guias', message=download_url )
-                        reporte = reporte + sep + "Error descargando pdf:" + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)+'<a href="'+download_url+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'
-                        sep = "<br>"+"\n"
-
+                comma = ","            
             else:
-                if (shipment):
-                    reporte = reporte + sep + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)
-                else:
-                    reporte = reporte + sep + str(pick.name) + " has no ML shipment."
-                sep = "<br>"+"\n"
+                reporte = reporte + sep + str(pick.name) + " has no ML shipment."
+            
+            sep = "<br>"+"\n"
 
         _logger.info(full_ids)
         full_url_link_pdf = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_ids+"&response_type=pdf&access_token="+meli.access_token
@@ -861,6 +807,43 @@ class mercadolibre_shipment(models.Model):
 
         return {}
 
+    def shipment_print( self, meli=None, config=None, include_ready_to_print=None ):
+        shipment= self
+        shipment.update()
+        reporte = ""
+        if (shipment and shipment.status=="ready_to_ship"):
+            #full_str_ids = full_str_ids + comma + shipment
+            download_url = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+shipment.shipping_id+"&response_type=pdf&access_token="+meli.access_token
+            shipment.pdf_link = download_url
+
+            if (shipment.substatus=="printed" or include_ready_to_print):
+                try:
+                    data = urlopen(shipment.pdf_link).read()
+                    _logger.info(data)
+                    shipment.pdf_filename = "Shipment_"+shipment.shipping_id+".pdf"
+                    shipment.pdf_file = base64.encodestring(data)
+                    images = convert_from_bytes(data, dpi=300,fmt='jpg')
+                    if (1==1 and len(images)>1):
+                        for image in images:
+                            image_filename = "/tmp/%s-page%d.jpg" % ("Shipment_"+shipment.shipping_id, images.index(image))
+                            image.save(image_filename, "JPEG")
+                            if (images.index(image)==0):
+                                imgdata = urlopen("file://"+image_filename).read()
+                                shipment.pdfimage_file = base64.encodestring(imgdata)
+                                shipment.pdfimage_filename = "Shipment_"+shipment.shipping_id+".jpg"
+                except Exception as e:
+                    _logger.info("Exception!")
+                    _logger.info(e, exc_info=True)
+                    #return warningobj.info( title='Impresión de etiquetas: Error descargando guias', message=download_url )
+                    reporte = "Error descargando pdf:" + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)+'<a href="'+download_url+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'
+                    #sep = "<br>"+"\n"
+
+        else:
+            reporte = str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)
+            #sep = "<br>"+"\n"
+        
+        return reporte
+    
 mercadolibre_shipment()
 
 
