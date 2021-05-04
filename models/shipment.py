@@ -83,7 +83,7 @@ class mercadolibre_shipment_print(models.TransientModel):
         sep = ""
         for shipid in shipment_ids:
             shipment = shipment_obj.browse(shipid)
-            reporte = reporte + sep + str(shipment.shipment_print(context=context, meli=meli, config=config,include_ready_to_print=self.include_ready_to_print))
+            reporte = reporte + sep + str(shipment.shipment_print( meli=meli, config=config,include_ready_to_print=self.include_ready_to_print))
 
             if (shipment and shipment.status=="ready_to_ship"):
                 full_ids = full_ids + comma + shipment.shipping_id
@@ -140,7 +140,7 @@ class mercadolibre_shipment_print(models.TransientModel):
                 shipment.update()
             
             if (shipment and shipment.status=="ready_to_ship"):
-                reporte = reporte + sep + str(shipment.shipment_print(context=context, meli=meli, config=config,include_ready_to_print=self.include_ready_to_print))
+                reporte = reporte + sep + str(shipment.shipment_print( meli=meli, config=config,include_ready_to_print=self.include_ready_to_print))
                 full_ids = full_ids + comma + shipment.shipping_id
                 comma = ","            
             else:
