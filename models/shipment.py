@@ -81,23 +81,38 @@ class mercadolibre_shipment_print(models.TransientModel):
         comma = ""
         reporte = ""
         sep = ""
+        full_url_link_pdf = {}
+
         for shipid in shipment_ids:
             shipment = shipment_obj.browse(shipid)
-            ship_report = shipment.shipment_print( meli=meli, config=config,include_ready_to_print=self.include_ready_to_print)
-            reporte = reporte + sep + str(ship_report)
+            ship_report = shipment.shipment_print( meli=meli, config=config, include_ready_to_print=self.include_ready_to_print )
+            reporte = reporte + sep + str( ship_report['message'] )
 
             if (shipment and shipment.status=="ready_to_ship"):
-                full_ids = full_ids + comma + shipment.shipping_id
-                comma = ","
+                atoken = ship_report['access_token']
+                if atoken and not (atoken in full_url_link_pdf):
+                    full_url_link_pdf[atoken] = { 'full_ids': '', 'comma': '', 'full_link': '' }
+                
+                if atoken and atoken in full_url_link_pdf:
+                    full_url_link_pdf[atoken]['full_ids'] += comma + shipment.shipping_id
+                    full_url_link_pdf[atoken]['comma']  = ","                    
+                
+                    full_url_link_pdf[atoken]['full_link'] = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_url_link_pdf[atoken]['full_ids']+"&response_type=pdf&access_token="+atoken
+            
             sep = "<br>"+"\n"
 
-        _logger.info(full_ids)
-        full_url_link_pdf = ""
-        if meli.access_token:
-            full_url_link_pdf = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_ids+"&response_type=pdf&access_token="+meli.access_token
-        _logger.info(full_url_link_pdf)
-        if (full_ids):
-            return warningobj.info( title='Impresión de etiquetas', message="Abrir este link para descargar el PDF", message_html=""+full_ids+'<br><br><a href="'+full_url_link_pdf+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'+"<br><br>Reporte de no impresas:<br>"+reporte )
+        full_links = ''
+        full_ids = ''
+        for atoken in full_url_link_pdf:
+            _logger.info('atoken:'+str(atoken))
+            full_ids+= full_url_link_pdf[atoken]['full_ids']
+            full_link = full_url_link_pdf[atoken]['full_link']
+            _logger.info()    
+            if full_link:
+                full_links+= '<a href="'+full_link+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'
+
+        if (full_links):
+            return warningobj.info( title='Impresión de etiquetas', message="Abrir links para descargar PDF", message_html=""+full_ids+'<br><br>'+full_links+"<br><br>Reporte de no impresas:<br>"+reporte )
         else:
             return warningobj.info( title='Impresión de etiquetas: Estas etiquetas ya fueron todas impresas.', message=reporte )
 
@@ -815,8 +830,11 @@ class mercadolibre_shipment(models.Model):
     def shipment_print( self, meli=None, config=None, include_ready_to_print=None ):
         shipment= self
         shipment.update()
-        reporte = ""
+
+        ship_report = { 'message': '', 'access_token': meli.access_token }
+
         if (shipment and shipment.status=="ready_to_ship"):
+            
             #full_str_ids = full_str_ids + comma + shipment
             download_url = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+shipment.shipping_id+"&response_type=pdf&access_token="+meli.access_token
             shipment.pdf_link = download_url
@@ -836,18 +854,19 @@ class mercadolibre_shipment(models.Model):
                                 imgdata = urlopen("file://"+image_filename).read()
                                 shipment.pdfimage_file = base64.encodestring(imgdata)
                                 shipment.pdfimage_filename = "Shipment_"+shipment.shipping_id+".jpg"
+                                
                 except Exception as e:
                     _logger.info("Exception!")
                     _logger.info(e, exc_info=True)
                     #return warningobj.info( title='Impresión de etiquetas: Error descargando guias', message=download_url )
-                    reporte = "Error descargando pdf:" + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)+'<a href="'+download_url+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'
+                    ship_report['message'] = "Error descargando pdf:" + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)+'<a href="'+download_url+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'
                     #sep = "<br>"+"\n"
 
         else:
-            reporte = str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)
+            ship_report['message'] = str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)
             #sep = "<br>"+"\n"
         
-        return reporte
+        return ship_report
     
 mercadolibre_shipment()
 
