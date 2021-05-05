@@ -74,46 +74,8 @@ class mercadolibre_shipment_print(models.TransientModel):
 
         _logger.info("shipment_print")
         _logger.info(shipment_ids)
-
-
-        #https://api.mercadolibre.com/shipment_labels?shipment_ids=20178600648,20182100995&response_type=pdf&
-        full_ids = ""
-        comma = ""
-        reporte = ""
-        sep = ""
-        full_url_link_pdf = {}
-
-        for shipid in shipment_ids:
-            shipment = shipment_obj.browse(shipid)
-            ship_report = shipment.shipment_print( meli=meli, config=config, include_ready_to_print=self.include_ready_to_print )
-            reporte = reporte + sep + str( ship_report['message'] )
-
-            if (shipment and shipment.status=="ready_to_ship"):
-                atoken = ship_report['access_token']
-                if atoken and not (atoken in full_url_link_pdf):
-                    full_url_link_pdf[atoken] = { 'full_ids': '', 'comma': '', 'full_link': '' }
-                
-                if atoken and atoken in full_url_link_pdf:
-                    full_url_link_pdf[atoken]['full_ids'] += comma + shipment.shipping_id
-                    full_url_link_pdf[atoken]['comma']  = ","                    
-                
-                    full_url_link_pdf[atoken]['full_link'] = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_url_link_pdf[atoken]['full_ids']+"&response_type=pdf&access_token="+atoken
-            
-            sep = "<br>"+"\n"
-
-        full_links = ''
-        for atoken in full_url_link_pdf:
-            _logger.info('atoken:'+str(atoken))
-            full_ids+= full_url_link_pdf[atoken]['full_ids']
-            full_link = full_url_link_pdf[atoken]['full_link']
-            _logger.info(full_link)    
-            if full_link:
-                full_links+= '<a href="'+full_link+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'
-
-        if (full_links):
-            return warningobj.info( title='Impresión de etiquetas', message="Abrir links para descargar PDF", message_html=""+full_ids+'<br><br>'+full_links+"<br><br>Reporte de no impresas:<br>"+reporte )
-        else:
-            return warningobj.info( title='Impresión de etiquetas: Estas etiquetas ya fueron todas impresas.', message=reporte )
+        
+        return self.shipment_print_report(shipment_ids=shipment_ids,meli=meli,config=config,include_ready_to_print=None)
 
     def shipment_stock_picking_print(self, context=None, meli=None, config=None):
         _logger.info("shipment_stock_picking_print")
@@ -132,9 +94,6 @@ class mercadolibre_shipment_print(models.TransientModel):
             if meli.need_login():
                 return meli.redirect_login()
 
-        full_ids = ""
-        comma = ""
-        reporte = ""
         sep = ""
         shipment_ids= []
         
@@ -158,12 +117,17 @@ class mercadolibre_shipment_print(models.TransientModel):
                 #shipment = shipment_obj.browse(shipid)
                 #shipment.update()
                 shipment_ids.append(shipid)
-            
+        
+        return self.shipment_print_report(shipment_ids=shipment_ids,meli=meli,config=config,include_ready_to_print=None)
+        
+    def shipment_print_report(self, shipment_ids=[], meli=None, config=None):
+        full_ids = ""
+        reporte = ""
         full_url_link_pdf = {}
                 
         for shipid in shipment_ids:
             shipment = shipment_obj.browse(shipid)
-            ship_report = shipment.shipment_print( meli=meli, config=config, include_ready_to_print=self.include_ready_to_print )
+            ship_report = shipment.shipment_print( meli=meli, config=config, include_ready_to_print=include_ready_to_print )
             reporte = reporte + sep + str( ship_report['message'] )
         
             if (shipment and shipment.status=="ready_to_ship"):
@@ -172,7 +136,7 @@ class mercadolibre_shipment_print(models.TransientModel):
                     full_url_link_pdf[atoken] = { 'full_ids': '', 'comma': '', 'full_link': '' }
                 
                 if atoken and atoken in full_url_link_pdf:
-                    full_url_link_pdf[atoken]['full_ids'] += comma + shipment.shipping_id
+                    full_url_link_pdf[atoken]['full_ids'] += full_url_link_pdf[atoken]['comma'] + shipment.shipping_id
                     full_url_link_pdf[atoken]['comma']  = ","                    
                 
                     full_url_link_pdf[atoken]['full_link'] = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_url_link_pdf[atoken]['full_ids']+"&response_type=pdf&access_token="+atoken
@@ -192,7 +156,6 @@ class mercadolibre_shipment_print(models.TransientModel):
             return warningobj.info( title='Impresión de etiquetas', message="Abrir links para descargar PDF", message_html=""+full_ids+'<br><br>'+full_links+"<br><br>Reporte de no impresas:<br>"+reporte )
         else:
             return warningobj.info( title='Impresión de etiquetas: Estas etiquetas ya fueron todas impresas.', message=reporte )
-
 
 
     include_ready_to_print = fields.Boolean(string="Include Ready To Print",default=False)
