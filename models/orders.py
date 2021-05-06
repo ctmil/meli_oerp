@@ -856,8 +856,8 @@ class mercadolibre_orders(models.Model):
             #meli_order_fields['pack_id'] = order_json["pack_id"]
 
         if ('account.payment.term' in self.env):
-            inmediate = self.env['account.payment.term'].search([])
-            meli_order_fields["payment_term_id"] = inmediate and inmediate[0].id
+            inmediate_or_not = ('mercadolibre_payment_term' in config._fields and config.mercadolibre_payment_term) or None
+            meli_order_fields["payment_term_id"] = (inmediate_or_not and inmediate_or_not.id)
 
         if (order_json["shipping"]):
             order_fields['shipping'] = self.pretty_json( id, order_json["shipping"] )
@@ -1060,6 +1060,10 @@ class mercadolibre_orders(models.Model):
                 }
 
                 if (product_related):
+                    if (len(product_related)>1):
+                        error = { 'error': "Error products duplicated for item:"+str(Item and 'item' in Item and Item['item']) }
+                        _logger.error(error)
+                        return error
                     order_item_fields['product_id'] = product_related.id
 
                 order_item_ids = order_items_obj.search( [('order_item_id','=',order_item_fields['order_item_id']),
