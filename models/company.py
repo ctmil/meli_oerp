@@ -300,6 +300,9 @@ class res_company(models.Model):
 
     mercadolibre_filter_order_datetime = fields.Datetime("Order Closed Date")
 
+    mercadolibre_payment_term = fields.Many2one("account.payment.term",string="Payment Term")
+
+
     def	meli_logout(self):
         _logger.info('company.meli_logout() ')
         self.ensure_one()
