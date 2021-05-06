@@ -315,7 +315,9 @@ class mercadolibre_shipment(models.Model):
             if not ship_name or len(ship_name)==0:
                 continue;
 
-            product_shipping_id = product_obj.search(['|','|',('default_code','=','ENVIO'),
+            product_shipping_id = product_obj.search([('default_code','=','ENVIO')])
+            if (len(product_shipping_id)==0):
+                product_shipping_id = product_obj.search(['|','|',('default_code','=','ENVIO'),
                         ('default_code','=',ship_name),
                         ('name','=',ship_name)] )
 
