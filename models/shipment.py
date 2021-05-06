@@ -368,8 +368,9 @@ class mercadolibre_shipment(models.Model):
             if (shipment.tracking_method == "MEL Distribution"):
                 _logger.info('MEL Distribution, not adding to order')
                 #continue
-
-            delivery_price = ml_product_price_conversion( self, product_related_obj=product_shipping_id, price=shipment.shipping_cost, config=config ),
+                
+            del_price = shipment.shipping_cost or (shipment.shipping_cost==0.0 and shipment.shipping_list_cost==0.0 and shipment.base_cost)
+            delivery_price = ml_product_price_conversion( self, product_related_obj=product_shipping_id, price=del_price, config=config ),
             if type(delivery_price)==tuple and len(delivery_price):
                 delivery_price = delivery_price[0]
 
@@ -398,11 +399,11 @@ class mercadolibre_shipment(models.Model):
             saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),
                                                                 ('order_id','=',sorder.id)] )
 
-            if not saleorderline_item_ids and (shipment.shipping_cost>0):
+            if not saleorderline_item_ids and (del_price>0):
                 #saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
                 pass;
             else:
-                if (1==2 and shipment.shipping_cost>0):
+                if (1==2 and del_price>0):
                     saleorderline_item_ids.write( ( saleorderline_item_fields ) )
                     #saleorderline_item_ids.tax_id = None
                 else:
@@ -441,7 +442,7 @@ class mercadolibre_shipment(models.Model):
         }
         full_phone = orders_obj.full_phone( Receiver )
         if full_phone and not ("XXXX" in full_phone):
-            sorder.partner_id.phone = full_phone
+            pdelivery_fields['phone'] = full_phone
             
         pdelivery_fields.update(orders_obj.fix_locals(Receiver))
         #TODO: agregar un campo para diferencia cada delivery res partner al shipment y orden asociado, crear un binding usando values diferentes... y listo
