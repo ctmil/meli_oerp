@@ -125,7 +125,8 @@ class mercadolibre_shipment_print(models.TransientModel):
         reporte = ""
         full_url_link_pdf = {}
         shipment_obj = self.env['mercadolibre.shipment']
-        
+        warningobj = self.env['warning']
+
         for shipid in shipment_ids:
             shipment = shipment_obj.browse(shipid)
             ship_report = shipment.shipment_print( meli=meli, config=config, include_ready_to_print=include_ready_to_print )
