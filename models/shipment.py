@@ -75,7 +75,7 @@ class mercadolibre_shipment_print(models.TransientModel):
         _logger.info("shipment_print")
         _logger.info(shipment_ids)
         
-        return self.shipment_print_report(shipment_ids=shipment_ids,meli=meli,config=config,include_ready_to_print=None)
+        return self.shipment_print_report(shipment_ids=shipment_ids,meli=meli,config=config,include_ready_to_print=self.include_ready_to_print)
 
     def shipment_stock_picking_print(self, context=None, meli=None, config=None):
         _logger.info("shipment_stock_picking_print")
@@ -120,7 +120,7 @@ class mercadolibre_shipment_print(models.TransientModel):
         
         return self.shipment_print_report(shipment_ids=shipment_ids,meli=meli,config=config,include_ready_to_print=None)
         
-    def shipment_print_report(self, shipment_ids=[], meli=None, config=None, include_ready_to_print=None):
+    def shipment_print_report(self, shipment_ids=[], meli=None, config=None, include_ready_to_print=self.include_ready_to_print):
         full_ids = ""
         reporte = ""
         full_url_link_pdf = {}
