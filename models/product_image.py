@@ -59,4 +59,3 @@ class ProductImage(models.Model):
             hexhash = hash.hexdigest()
             pimage.meli_imagen_hash = hexhash
         return hexhash
-
