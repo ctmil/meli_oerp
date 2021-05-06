@@ -630,8 +630,8 @@ class mercadolibre_orders(models.Model):
         if 'buyer' in order_json:
             Buyer = order_json['buyer']
             Buyer['billing_info'] = self.get_billing_info(order_id=order_json['id'],meli=meli,data=order_json)
-            Buyer['first_name'] = Buyer['first_name'] or ('FIRST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['FIRST_NAME']) or ''
-            Buyer['last_name'] = Buyer['last_name'] or ('LAST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['LAST_NAME']) or ''
+            Buyer['first_name'] = ('first_name' in Buyer and Buyer['first_name']) or ('FIRST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['FIRST_NAME']) or ''
+            Buyer['last_name'] = ('last_name' in Buyer and Buyer['last_name']) or ('LAST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['LAST_NAME']) or ''
             Receiver = False
             if ('shipping' in order_json):
                 if ('receiver_address' in order_json['shipping']):
