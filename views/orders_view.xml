@@ -40,8 +40,9 @@
                     <field name="order_id"/>
                     <field name="shipping_id" invisible="0"/>
                     <field name="status"/>
-                    <field name="shipment_status" invisible="0" optional="show"/>
-                    <field name="shipment_substatus" invisible="0" optional="hide"/>
+                    <field name="shipment_status" invisible="0"/>
+                    <field name="shipment_substatus" invisible="0"/>
+                    <field name="shipment_logistic_type" invisible="0"/>
                     <field name="buyer"/>
                     <field name="total_amount"/>
                     <field name="paid_amount"/>
@@ -154,6 +155,7 @@
                         <field name="total_amount" widget="monetary"/>
                         <field name="shipping_cost"  widget="monetary"/>
                         <field name="shipping_list_cost"  widget="monetary"/>
+                        <field name="shipment_logistic_type" />
                         <field name="fee_amount"  widget="monetary"/>
                         <field name="paid_amount"  widget="monetary"/>
                         <field name="currency_id"/>
