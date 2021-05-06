@@ -118,9 +118,9 @@ class mercadolibre_shipment_print(models.TransientModel):
                 #shipment.update()
                 shipment_ids.append(shipid)
         
-        return self.shipment_print_report(shipment_ids=shipment_ids,meli=meli,config=config,include_ready_to_print=None)
+        return self.shipment_print_report(shipment_ids=shipment_ids,meli=meli,config=config,include_ready_to_print=self.include_ready_to_print)
         
-    def shipment_print_report(self, shipment_ids=[], meli=None, config=None, include_ready_to_print=self.include_ready_to_print):
+    def shipment_print_report(self, shipment_ids=[], meli=None, config=None, include_ready_to_print=None):
         full_ids = ""
         reporte = ""
         full_url_link_pdf = {}
