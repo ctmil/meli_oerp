@@ -356,6 +356,7 @@ class mercadolibre_shipment(models.Model):
                 ship_carrier_id = self.env["delivery.carrier"].create(ship_carrier)
             if (len(ship_carrier_id)>1):
                 ship_carrier_id = ship_carrier_id[0]
+                ship_carrier_id.write(ship_carrier)
 
             stock_pickings = self.env["stock.picking"].search([('sale_id','=',sorder.id),('name','like','OUT')])
             #carrier_id = self.env["delivery.carrier"].search([('name','=',)])
