@@ -120,7 +120,7 @@ class mercadolibre_shipment_print(models.TransientModel):
         
         return self.shipment_print_report(shipment_ids=shipment_ids,meli=meli,config=config,include_ready_to_print=None)
         
-    def shipment_print_report(self, shipment_ids=[], meli=None, config=None):
+    def shipment_print_report(self, shipment_ids=[], meli=None, config=None, include_ready_to_print=None):
         full_ids = ""
         reporte = ""
         full_url_link_pdf = {}
