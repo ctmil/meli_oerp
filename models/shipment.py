@@ -151,7 +151,7 @@ class mercadolibre_shipment_print(models.TransientModel):
             _logger.info('atoken:'+str(atoken))
             full_ids+= full_url_link_pdf[atoken]['full_ids']
             full_link = full_url_link_pdf[atoken]['full_link']
-            _logger.info()    
+            _logger.info(full_link)    
             if full_link:
                 full_links+= '<a href="'+full_link+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'
         
