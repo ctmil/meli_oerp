@@ -3045,4 +3045,8 @@ class product_product(models.Model):
         'meli_video': ''
     }
 
+    _sql_constraints = [
+        ('unique_variant_meli_id_variation', 'unique(meli_id,meli_id_variation)', 'Meli Order id already exists!')
+    ]
+
 product_product()
