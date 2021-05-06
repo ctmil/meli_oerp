@@ -246,12 +246,12 @@ class mercadolibre_orders(models.Model):
 
     _inherit = ['portal.mixin', 'mail.thread', 'mail.activity.mixin']
 
-    def fix_locals(self, Receiver ):
+    def fix_locals(self,  Receiver={}, Buyer={} ):
         updated = {}
 
-        country_id = self.country(Receiver)
-        state_id = self.state(country_id,Receiver)
-        city_name = self.city(Receiver)
+        country_id = self.country( Receiver=Receiver, Buyer=Buyer )
+        state_id = self.state( country_id, Receiver=Receiver, Buyer=Buyer )
+        city_name = self.city( Receiver=Receiver, Buyer=Buyer )
 
         if "l10n_co_cities.city" in self.env:
             city = self.env["l10n_co_cities.city"].search([('city_name','ilike',city_name)])
@@ -280,19 +280,26 @@ class mercadolibre_orders(models.Model):
 
         return updated
 
-    def street(self, Receiver ):
+    def street(self, Receiver={}, Buyer={} ):
         full_street = 'no street'
         if (Receiver and 'address_line' in Receiver):
             full_street = Receiver['address_line']
+        if ( Buyer and 'billing_info' in Buyer and 'STREET_NAME' in Buyer['billing_info'] ):
+            binfo = Buyer['billing_info']
+            full_street = (('STREET_NAME' in binfo and binfo['STREET_NAME']) or '')
+            full_street+= (('STREET_NUMBER' in binfo and binfo['STREET_NUMBER']) or '')
         return full_street
 
-    def city(self, Receiver ):
+    def city(self,  Receiver={}, Buyer={} ):
         full_city = ''
         if (Receiver and 'city' in Receiver):
             full_city = Receiver['city']['name']
+        if ( Buyer and 'billing_info' in Buyer and 'CITY_NAME' in Buyer['billing_info'] ):
+            binfo = Buyer['billing_info']
+            full_city = (('CITY_NAME' in binfo and binfo['CITY_NAME']) or '')
         return full_city
 
-    def state(self, country_id, Receiver ):
+    def state(self, country_id,  Receiver={}, Buyer={} ):
         full_state = ''
         state_id = False
         if (Receiver and 'state' in Receiver):
@@ -315,9 +322,17 @@ class mercadolibre_orders(models.Model):
                 state = self.env['res.country.state'].search(['&',('name','like',full_state),('country_id','=',country_id)])
                 if (len(state)):
                     state_id = state[0].id
+
+        if ( Buyer and 'billing_info' in Buyer and 'STATE_NAME' in Buyer['billing_info'] ):
+            binfo = Buyer['billing_info']
+            full_state = (('CITY_NAME' in binfo and binfo['CITY_NAME']) or '')
+            state = self.env['res.country.state'].search(['&',('name','like',full_state),('country_id','=',country_id)])
+            if (len(state)):
+                state_id = state[0].id
+
         return state_id
 
-    def country(self, Receiver ):
+    def country(self,  Receiver={}, Buyer={} ):
         full_country = ''
         country_id = False
         if (Receiver and 'country' in Receiver):
@@ -331,7 +346,41 @@ class mercadolibre_orders(models.Model):
                 country = self.env['res.country'].search([('name','like',full_country)])
                 if (len(country)):
                     country_id = country.id
+
         return country_id
+
+    def buyer_additional_info(self, billing_info={} ):
+        ret = {}
+
+        ret['billing_info_doc_type'] = ('DOC_TYPE' in billing_info and billing_info['DOC_TYPE']) or ''
+        ret['billing_info_doc_number'] = ('DOC_NUMBER' in billing_info and billing_info['DOC_NUMBER']) or ''
+
+        ret["first_name"] = ("FIRST_NAME" in billing_info and billing_info["FIRST_NAME"]) or ""
+        ret["last_name"] = ("LAST_NAME" in billing_info and billing_info["LAST_NAME"]) or ""
+        ret["billing_info_street_name"] = ("STREET_NAME" in billing_info and billing_info["STREET_NAME"]) or ""
+        ret["billing_info_street_number"] = ("STREET_NUMBER" in billing_info and billing_info["STREET_NUMBER"]) or ""
+        ret["billing_info_city_name"] = ("CITY_NAME" in billing_info and billing_info["CITY_NAME"]) or ""
+        ret["billing_info_state_name"] = ("STATE_NAME" in billing_info and billing_info["STATE_NAME"]) or ""
+        ret["billing_info_zip_code"] = ("ZIP_CODE" in billing_info and billing_info["ZIP_CODE"]) or ""
+
+        ret['billing_info_doc_type'] = ret['billing_info_doc_type'] or ('doc_type' in billing_info and billing_info['doc_type']) or ''
+        ret['billing_info_doc_number'] = ret['billing_info_doc_number'] or ('doc_number' in billing_info and billing_info['doc_number']) or ''
+
+        return ret
+
+    def buyer_full_name( self, Buyer={}):
+
+        full_name = ""
+
+        first_name = str( ('first_name' in Buyer and Buyer['first_name'] ) or '' )
+        last_name = str( ('last_name' in Buyer and Buyer['last_name']) or '' )
+
+        if first_name and last_name:
+            last_name = ' '+last_name
+
+        full_name = first_name + last_name
+
+        return full_name
 
     def get_billing_info( self, order_id=None, meli=None, data=None ):
         order_id = order_id or (data and 'id' in data and data['id']) or (self and self.order_id)
@@ -343,6 +392,10 @@ class mercadolibre_orders(models.Model):
                 biljson = response.json()
                 _logger.info("get_billing_info: "+str(biljson))
                 _billing_info = (biljson and 'billing_info' in biljson and biljson['billing_info']) or {}
+                if "additional_info" in _billing_info:
+                    adds = _billing_info["additional_info"]
+                    for add in adds:
+                        _billing_info[add["type"]] = add["value"]
         return _billing_info
 
     def billing_info( self, billing_json, context=None ):
@@ -577,6 +630,8 @@ class mercadolibre_orders(models.Model):
         if 'buyer' in order_json:
             Buyer = order_json['buyer']
             Buyer['billing_info'] = self.get_billing_info(order_id=order_json['id'],meli=meli,data=order_json)
+            Buyer['first_name'] = Buyer['first_name'] or ('FIRST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['FIRST_NAME']) or ''
+            Buyer['last_name'] = Buyer['last_name'] or ('LAST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['LAST_NAME']) or ''
             Receiver = False
             if ('shipping' in order_json):
                 if ('receiver_address' in order_json['shipping']):
@@ -610,36 +665,29 @@ class mercadolibre_orders(models.Model):
                                 Receiver = shpjson["receiver_address"]
 
             meli_buyer_fields = {
-                'name': Buyer['first_name']+' '+Buyer['last_name'],
-                'street': self.street(Receiver),
-                'city': self.city(Receiver),
-                'country_id': self.country(Receiver),
-                'state_id': self.state(self.country(Receiver),Receiver),
+                'name': self.buyer_full_name(Buyer),
+                'street': self.street(Receiver,Buyer),
+                'city': self.city(Receiver,Buyer),
+                'country_id': self.country(Receiver,Buyer),
+                'state_id': self.state(self.country(Receiver,Buyer),Receiver,Buyer),
                 'phone': self.full_phone( Buyer ),
                 #'email': Buyer['email'],
                 'meli_buyer_id': Buyer['id']
             }
-            meli_buyer_fields.update(self.fix_locals(Receiver))
+            meli_buyer_fields.update(self.fix_locals(Receiver=Receiver,Buyer=Buyer))
 
             buyer_fields = {
-                'name': Buyer['first_name']+' '+Buyer['last_name'],
                 'buyer_id': Buyer['id'],
                 'nickname': Buyer['nickname'],
-                'email': Buyer['email'],
+                'email': ('email' in Buyer and Buyer['email']) or "",
                 'phone': self.full_phone( Buyer ),
                 'alternative_phone': self.full_alt_phone( Buyer ),
-                'first_name': Buyer['first_name'],
-                'last_name': Buyer['last_name'],
+                'first_name': ('first_name' in Buyer and Buyer['first_name']) or "",
+                'last_name': ('last_name' in Buyer and Buyer['last_name']) or "",
                 'billing_info': self.billing_info(Buyer['billing_info']),
             }
-            if ('doc_type' in Buyer['billing_info']):
-                buyer_fields['billing_info_doc_type'] = Buyer['billing_info']['doc_type']
-                if ('doc_number' in Buyer['billing_info']):
-                    buyer_fields['billing_info_doc_number'] = Buyer['billing_info']['doc_number']
-            else:
-                buyer_fields['billing_info_doc_type'] = ''
-                buyer_fields['billing_info_doc_number'] = ''
-
+            buyer_fields.update(self.buyer_additional_info(Buyer['billing_info']))
+            buyer_fields.update({'name': self.buyer_full_name(Buyer) })
 
             buyer_ids = buyers_obj.search([  ('buyer_id','=',buyer_fields['buyer_id'] ) ] )
             buyer_id = 0
@@ -1359,6 +1407,7 @@ class mercadolibre_orders(models.Model):
     paid_amount = fields.Float(string='Paid amount',help='Includes shipping cost')
     currency_id = fields.Char(string='Currency')
     buyer =  fields.Many2one( "mercadolibre.buyers","Buyer")
+    buyer_billing_info = fields.Text(string="Billing Info")
     seller = fields.Text( string='Seller' )
     tags = fields.Text(string="Tags")
     pack_order = fields.Boolean(string="Order Pack (Carrito)")
@@ -1420,17 +1469,24 @@ class mercadolibre_buyers(models.Model):
     _name = "mercadolibre.buyers"
     _description = "Compradores en MercadoLibre"
 
-    name = fields.Char(string='Name')
-    buyer_id = fields.Char(string='Buyer ID')
-    nickname = fields.Char(string='Nickname')
-    email = fields.Char(string='Email')
+    name = fields.Char(string='Name',index=True)
+    buyer_id = fields.Char(string='Buyer ID',index=True)
+    nickname = fields.Char(string='Nickname',index=True)
+    email = fields.Char(string='Email',index=True)
     phone = fields.Char( string='Phone')
     alternative_phone = fields.Char( string='Alternative Phone')
-    first_name = fields.Char( string='First Name')
-    last_name = fields.Char( string='Last Name')
+    first_name = fields.Char( string='First Name',index=True)
+    last_name = fields.Char( string='Last Name',index=True)
     billing_info = fields.Char( string='Billing Info')
+
     billing_info_doc_type = fields.Char( string='Billing Info Doc Type')
     billing_info_doc_number = fields.Char( string='Billing Info Doc Number')
+
+    billing_info_street_name = fields.Char( string='Billing Info Street Name')
+    billing_info_street_number = fields.Char( string='Billing Info Street Number')
+    billing_info_city_name = fields.Char( string='Billing Info City Name')
+    billing_info_state_name = fields.Char( string='Billing Info State Name')
+    billing_info_zip_code = fields.Char( string='Billing Info Zip Code')
 
     _sql_constraints = [
         ('unique_buyer_id', 'unique(buyer_id)', 'Mei Buyer id already exists!')

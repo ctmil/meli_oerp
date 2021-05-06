@@ -306,7 +306,8 @@ class mercadolibre_shipment(models.Model):
                 sorder.partner_id.street = shipment.receiver_address_line
                 sorder.partner_id.street2 = shipment.receiver_address_comment
                 sorder.partner_id.city = shipment.receiver_city
-                sorder.partner_id.phone = shipment.receiver_address_phone
+                if shipment.receiver_address_phone and not ("XXXX" in shipment.receiver_address_phone):
+                    sorder.partner_id.phone = shipment.receiver_address_phone
                 #sorder.partner_id.state = ships.receiver_state
 
             ship_name = shipment.tracking_method or (shipment.mode=="custom" and "Personalizado")
@@ -432,12 +433,13 @@ class mercadolibre_shipment(models.Model):
             'country_id': orders_obj.country(Receiver),
             'state_id': orders_obj.state(orders_obj.country(Receiver),Receiver),
             #'zip': meli_buyer_fields['name'],
-            #"comment": ("location_addressNotes" in contactfields and contactfields["location_addressNotes"]) or ""
-            #'producteca_bindings': [(6, 0, [client.id])]
-            'phone': orders_obj.full_phone( Receiver ),
+            #'phone': orders_obj.full_phone( Receiver ),
             #'email':contactfields['billingInfo_email'],
-            #'producteca_bindings': [(6, 0, [client.id])]
         }
+        full_phone = orders_obj.full_phone( Receiver )
+        if full_phone and not ("XXXX" in full_phone):
+            sorder.partner_id.phone = full_phone
+            
         pdelivery_fields.update(orders_obj.fix_locals(Receiver))
         #TODO: agregar un campo para diferencia cada delivery res partner al shipment y orden asociado, crear un binding usando values diferentes... y listo
         deliv_id = self.env["res.partner"].search([("parent_id","=",pdelivery_fields['parent_id']),
@@ -536,7 +538,6 @@ class mercadolibre_shipment(models.Model):
                 if "receiver_address" in ship_json and ship_json["receiver_address"]:
                     ship_fields.update({
                         "receiver_address_id": ship_json["receiver_address"]["id"],
-                        "receiver_address_phone": ship_json["receiver_address"]["receiver_phone"],
                         "receiver_address_name": ship_json["receiver_address"]["receiver_name"],
                         "receiver_address_line": ship_json["receiver_address"]["address_line"],
                         "receiver_address_comment": ship_json["receiver_address"]["comment"],
@@ -551,6 +552,9 @@ class mercadolibre_shipment(models.Model):
                         "receiver_latitude": ship_json["receiver_address"]["latitude"],
                         "receiver_longitude": ship_json["receiver_address"]["longitude"]
                     })
+                    receiver_phone = ("receiver_phone" in ship_json["receiver_address"] and ship_json["receiver_address"]["receiver_phone"] and not "XXXX" in ship_json["receiver_address"]["receiver_phone"] and ship_json["receiver_address"]["receiver_phone"])
+                    if receiver_phone:
+                        ship_fields.update({"receiver_address_phone": receiver_phone })
 
                 if "sender_address" in ship_json and ship_json["sender_address"]:
                     ship_fields.update({
@@ -879,7 +883,7 @@ class AccountInvoice(models.Model):
                     ret["pdfimage_file"] = shipment.pdfimage_file
                     ret["receiver_address_name"] = shipment.receiver_address_name
                     ret["receiver_address_line"] = shipment.receiver_address_line
-                    ret["receiver_address_phone"] = shipment.receiver_address_phone
+                    ret["receiver_address_phone"] = (shipment.receiver_address_phone and not "XXXX" in shipment.receiver_address_phone and shipment.receiver_address_phone)
                     ret["receiver_city"] = shipment.receiver_city
                     ret["receiver_state"] = shipment.receiver_state
                     ret["tracking_method"] = shipment.tracking_method
