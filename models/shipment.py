@@ -75,7 +75,7 @@ class mercadolibre_shipment_print(models.TransientModel):
         _logger.info("shipment_print")
         _logger.info(shipment_ids)
         
-        return self.shipment_print_report(shipment_ids=shipment_ids,meli=meli,config=config,include_ready_to_print=None)
+        return self.shipment_print_report(shipment_ids=shipment_ids,meli=meli,config=config,include_ready_to_print=self.include_ready_to_print)
 
     def shipment_stock_picking_print(self, context=None, meli=None, config=None):
         _logger.info("shipment_stock_picking_print")
@@ -118,13 +118,16 @@ class mercadolibre_shipment_print(models.TransientModel):
                 #shipment.update()
                 shipment_ids.append(shipid)
         
-        return self.shipment_print_report(shipment_ids=shipment_ids,meli=meli,config=config,include_ready_to_print=None)
+        return self.shipment_print_report(shipment_ids=shipment_ids,meli=meli,config=config,include_ready_to_print=self.include_ready_to_print)
         
-    def shipment_print_report(self, shipment_ids=[], meli=None, config=None):
+    def shipment_print_report(self, shipment_ids=[], meli=None, config=None, include_ready_to_print=None):
         full_ids = ""
         reporte = ""
+        sep = ""
         full_url_link_pdf = {}
-                
+        shipment_obj = self.env['mercadolibre.shipment']
+        warningobj = self.env['warning']
+        
         for shipid in shipment_ids:
             shipment = shipment_obj.browse(shipid)
             ship_report = shipment.shipment_print( meli=meli, config=config, include_ready_to_print=include_ready_to_print )
@@ -148,7 +151,7 @@ class mercadolibre_shipment_print(models.TransientModel):
             _logger.info('atoken:'+str(atoken))
             full_ids+= full_url_link_pdf[atoken]['full_ids']
             full_link = full_url_link_pdf[atoken]['full_link']
-            _logger.info()    
+            _logger.info(full_link)    
             if full_link:
                 full_links+= '<a href="'+full_link+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'
         
