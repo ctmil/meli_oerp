@@ -735,7 +735,7 @@ class mercadolibre_orders(models.Model):
                     if ("fe_es_compania" in self.env['res.partner']._fields ):
                         meli_buyer_fields['fe_es_compania'] = '2'
                     if ("fe_correo_electronico" in self.env['res.partner']._fields ):
-                        meli_buyer_fields['fe_correo_electronico'] = Buyer['email']
+                        meli_buyer_fields['fe_correo_electronico'] = ('email' in Buyer and Buyer['email']) or ""
 
                     if (Buyer['billing_info']['doc_type']=="CC" or Buyer['billing_info']['doc_type']=="C.C."):
                         meli_buyer_fields['l10n_co_document_type'] = 'national_citizen_id'
@@ -931,7 +931,6 @@ class mercadolibre_orders(models.Model):
             #_logger.info(meli_order_fields)
             sorder.write( meli_order_fields )
         else:
-            _logger.info("Adding new sale.order: " )
             #_logger.info(meli_order_fields)
             #user
             if (config.mercadolibre_seller_user):
@@ -941,7 +940,10 @@ class mercadolibre_orders(models.Model):
 
             if 'pack_order' in order_json["tags"]:
                 _logger.info("Pack Order, dont create sale.order, leave it to mercadolibre.shipment")
+                if order and not order.sale_order:
+                    order.message_post(body=str("Pack Order, dont create sale.order, leave it to mercadolibre.shipment"))
             else:
+                _logger.info("Adding new sale.order: " )
                 sorder = saleorder_obj.create((meli_order_fields))
 
         #check error
@@ -993,7 +995,7 @@ class mercadolibre_orders(models.Model):
                     _logger.info( "No post related, exiting" )
                     return { 'error': 'No post related, exiting'}
 
-                product_related = self.search_meli_product( meli=meli, meli_item=Item['item'], config=config )
+                product_related = order.search_meli_product( meli=meli, meli_item=Item['item'], config=config )
                 if ( len(product_related)==0 and ('seller_custom_field' in Item['item'] or 'seller_sku' in Item['item'])):
 
                     #1ST attempt "seller_sku" or "seller_custom_field"
@@ -1111,6 +1113,7 @@ class mercadolibre_orders(models.Model):
                     if (len(product_related)>1):
                         error = { 'error': "Error products duplicated for item:"+str(Item and 'item' in Item and Item['item']) }
                         _logger.error(error)
+                        order and order.message_post(body=str(error["error"]))
                         return error
                     order_item_fields['product_id'] = product_related.id
 
@@ -1124,8 +1127,10 @@ class mercadolibre_orders(models.Model):
                     order_item_ids.write( ( order_item_fields ) )
 
                 if (product_related_obj == False or len(product_related_obj)==0):
-                    _logger.error("No product related to meli_id:"+str(Item['item']['id']))
-                    return { 'error': 'No product related to meli_id' }
+                    error = { 'error': 'No product related to meli_id '+str(Item['item']['id']), 'item': str(Item['item']) }
+                    _logger.error(error)
+                    order and order.message_post(body=str(error["error"])+"\n"+str(error["item"]))
+                    return error
 
                 order.name = "MO [%s] %s" % ( str(order.order_id), product_related_obj.display_name )
 
