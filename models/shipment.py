@@ -218,6 +218,7 @@ class mercadolibre_shipment(models.Model):
     base_cost = fields.Float(string='Base Cost')
     shipping_cost = fields.Float(string='Shipping Cost')
     shipping_list_cost = fields.Float(string='Shipping List Cost')
+    promoted_amount = fields.Float(string='Promoted amount')
 
     #state = fields.Selection(string="State",)
     status = fields.Char(string="Status",index=True)
@@ -372,7 +373,7 @@ class mercadolibre_shipment(models.Model):
                 _logger.info('MEL Distribution, not adding to order')
                 #continue
                 
-            del_price = (shipment.logistic_type=="self_service" and shipment.base_cost ) or shipment.shipping_cost or (shipment.shipping_cost==0.0 and shipment.shipping_list_cost==0.0 and shipment.base_cost)
+            del_price = shipment.shipping_cost
             delivery_price = ml_product_price_conversion( self, product_related_obj=product_shipping_id, price=del_price, config=config ),
             if type(delivery_price)==tuple and len(delivery_price):
                 delivery_price = delivery_price[0]
@@ -512,6 +513,14 @@ class mercadolibre_shipment(models.Model):
                 _logger.error( ship_json["message"] )
             else:
                 _logger.info("Saving shipment fields")
+                rescosts = meli.get("/shipments/"+ str(ship_id)+str('/costs'),  {'access_token':meli.access_token})
+                if rescosts:
+                    rcosts = rescosts.json()
+                    ship_json['costs'] = rcosts
+                    recdiscounts = 'receiver' in rcosts and 'discounts' in rcosts['receiver'] and rcosts['receiver']['discounts']
+                    for discount in recdiscounts:
+                        if 'promoted_amount' in discount:
+                            ship_json['promoted_amount'] =  discount['promoted_amount'] or 0.0 
                 seller_id = None
                 if config.mercadolibre_seller_user:
                     seller_id = config.mercadolibre_seller_user.id
@@ -531,6 +540,7 @@ class mercadolibre_shipment(models.Model):
                     "shipping_cost": ("cost" in ship_json["shipping_option"] and ship_json["shipping_option"]["cost"]) or 0.0,
                     "shipping_list_cost": ("list_cost" in ship_json["shipping_option"] and ship_json["shipping_option"]["list_cost"]) or 0.0,
                     "base_cost": ship_json["base_cost"],
+                    'promoted_amount': ('promoted_amount' in ship_json and ship_json['promoted_amount']) or 0.0,
                     "status": ship_json["status"],
                     "substatus": ship_json["substatus"],
                     #"status_history": ship_json["status_history"],
