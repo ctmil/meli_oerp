@@ -630,6 +630,12 @@ class mercadolibre_orders(models.Model):
                 and config.mercadolibre_filter_order_datetime>parse(order_fields["date_closed"]) ):
             return { "error": "orden filtrada por fecha > " + str(order_fields["date_closed"]) + " inferior a "+str(ml_datetime(config.mercadolibre_filter_order_datetime)) }
 
+        if (    "mercadolibre_filter_order_datetime_to" in config._fields
+                and "date_closed" in order_fields
+                and config.mercadolibre_filter_order_datetime_to
+                and config.mercadolibre_filter_order_datetime_to<parse(order_fields["date_closed"]) ):
+            return { "error": "orden filtrada por fecha TO > " + str(order_fields["date_closed"]) + " superior a "+str(ml_datetime(config.mercadolibre_filter_order_datetime_to)) }
+
         partner_id = False
         partner_shipping_id = False
 
