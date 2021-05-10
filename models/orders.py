@@ -357,11 +357,14 @@ class mercadolibre_orders(models.Model):
 
         ret["first_name"] = ("FIRST_NAME" in billing_info and billing_info["FIRST_NAME"]) or ""
         ret["last_name"] = ("LAST_NAME" in billing_info and billing_info["LAST_NAME"]) or ""
+        ret["billing_info_business_name"] = ("BUSINESS_NAME" in billing_info and billing_info["BUSINESS_NAME"]) or ""
         ret["billing_info_street_name"] = ("STREET_NAME" in billing_info and billing_info["STREET_NAME"]) or ""
         ret["billing_info_street_number"] = ("STREET_NUMBER" in billing_info and billing_info["STREET_NUMBER"]) or ""
         ret["billing_info_city_name"] = ("CITY_NAME" in billing_info and billing_info["CITY_NAME"]) or ""
         ret["billing_info_state_name"] = ("STATE_NAME" in billing_info and billing_info["STATE_NAME"]) or ""
         ret["billing_info_zip_code"] = ("ZIP_CODE" in billing_info and billing_info["ZIP_CODE"]) or ""
+
+        ret["billing_info_tax_type"] = ("TAXPAYER_TYPE_ID" in billing_info and billing_info["TAXPAYER_TYPE_ID"]) or ""
 
         ret['billing_info_doc_type'] = ret['billing_info_doc_type'] or ('doc_type' in billing_info and billing_info['doc_type']) or ''
         ret['billing_info_doc_number'] = ret['billing_info_doc_number'] or ('doc_number' in billing_info and billing_info['doc_number']) or ''
@@ -379,6 +382,9 @@ class mercadolibre_orders(models.Model):
             last_name = ' '+last_name
 
         full_name = first_name + last_name
+
+        business_name = ('business_name' in Buyer and Buyer['business_name'])
+        full_name = business_name or full_name or ''
 
         return full_name
 
@@ -632,6 +638,7 @@ class mercadolibre_orders(models.Model):
             Buyer['billing_info'] = self.get_billing_info(order_id=order_json['id'],meli=meli,data=order_json)
             Buyer['first_name'] = ('first_name' in Buyer and Buyer['first_name']) or ('FIRST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['FIRST_NAME']) or ''
             Buyer['last_name'] = ('last_name' in Buyer and Buyer['last_name']) or ('LAST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['LAST_NAME']) or ''
+            Buyer['business_name'] = ('business_name' in Buyer and Buyer['business_name']) or ('BUSINESS_NAME' in Buyer['billing_info'] and Buyer['billing_info']['BUSINESS_NAME']) or ''
             Receiver = False
             if ('shipping' in order_json):
                 if ('receiver_address' in order_json['shipping']):
@@ -709,8 +716,12 @@ class mercadolibre_orders(models.Model):
                         meli_buyer_fields['main_id_number'] = Buyer['billing_info']['doc_number']
                         if (Buyer['billing_info']['doc_type']=="CUIT"):
                             #IVA Responsable Inscripto
-                            afipid = self.env['afip.responsability.type'].search([('code','=',1)]).id
-                            meli_buyer_fields["afip_responsability_type_id"] = afipid
+                            if ('business_name' in Buyer and Buyer['business_name']):
+                                meli_buyer_fields['company_type'] = 'company'
+                                #TODO: add company contact
+                            if ('TAXPAYER_TYPE_ID' in Buyer['billing_info'] and Buyer['billing_info']['TAXPAYER_TYPE_ID'] and Buyer['billing_info']['TAXPAYER_TYPE_ID']=="IVA Responsable Inscripto"):
+                                afipid = self.env['afip.responsability.type'].search([('code','=',1)]).id
+                                meli_buyer_fields["afip_responsability_type_id"] = afipid
                         else:
                             #if (Buyer['billing_info']['doc_type']=="DNI"):
                             #Consumidor Final
@@ -846,6 +857,9 @@ class mercadolibre_orders(models.Model):
                     partner_update.update(meli_buyer_fields)
 
                 if "main_id_category_id" in meli_buyer_fields and str(meli_buyer_fields['main_id_category_id'])!=str(partner_id.main_id_category_id and partner_id.main_id_category_id.id):
+                    partner_update.update(meli_buyer_fields)
+
+                if ("name" in meli_buyer_fields and meli_buyer_fields["name"]!=str(partner_id.name) ):
                     partner_update.update(meli_buyer_fields)
 
                 if not partner_id.country_id:
@@ -1486,7 +1500,9 @@ class mercadolibre_buyers(models.Model):
 
     billing_info_doc_type = fields.Char( string='Billing Info Doc Type')
     billing_info_doc_number = fields.Char( string='Billing Info Doc Number')
+    billing_info_tax_type = fields.Char( string='Billing Info Tax Type')
 
+    billing_info_business_name = fields.Char( string='Billing Info Business Name')
     billing_info_street_name = fields.Char( string='Billing Info Street Name')
     billing_info_street_number = fields.Char( string='Billing Info Street Number')
     billing_info_city_name = fields.Char( string='Billing Info City Name')
