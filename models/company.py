@@ -299,6 +299,7 @@ class res_company(models.Model):
     mercadolibre_official_store_id = fields.Char(string="Official Store Id")
 
     mercadolibre_filter_order_datetime = fields.Datetime("Order Closed Date")
+    mercadolibre_filter_order_datetime_to = fields.Datetime("Order Closed Date To")
 
     mercadolibre_payment_term = fields.Many2one("account.payment.term",string="Payment Term")
 
