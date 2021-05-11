@@ -552,8 +552,6 @@ class mercadolibre_orders(models.Model):
 
     def orders_update_order_json( self, data, context=None, config=None, meli=None ):
 
-        _logger.info("orders_update_order_json > data "+str(data['id']) + " json:" + str(data['order_json']['id']) )
-
         oid = data["id"]
         order_json = data["order_json"]
         #_logger.info( "data:" + str(data) )
@@ -587,6 +585,22 @@ class mercadolibre_orders(models.Model):
 
         order = None
         sorder = None
+
+        order_fields = self.prepare_ml_order_vals( order_json=order_json, meli=meli, config=config )
+
+        if (    "mercadolibre_filter_order_datetime" in config._fields
+                and "date_closed" in order_fields
+                and config.mercadolibre_filter_order_datetime
+                and config.mercadolibre_filter_order_datetime>parse(order_fields["date_closed"]) ):
+            return { "error": "orden filtrada por fecha > " + str(order_fields["date_closed"]) + " inferior a "+str(ml_datetime(config.mercadolibre_filter_order_datetime)) }
+
+        if (    "mercadolibre_filter_order_datetime_to" in config._fields
+                and "date_closed" in order_fields
+                and config.mercadolibre_filter_order_datetime_to
+                and config.mercadolibre_filter_order_datetime_to<parse(order_fields["date_closed"]) ):
+            return { "error": "orden filtrada por fecha TO > " + str(order_fields["date_closed"]) + " superior a "+str(ml_datetime(config.mercadolibre_filter_order_datetime_to)) }
+
+        _logger.info("orders_update_order_json > data "+str(data['id']) + " json:" + str(data['order_json']['id']) )
 
         # if id is defined, we are updating existing one
         if (oid):
@@ -622,19 +636,6 @@ class mercadolibre_orders(models.Model):
         if config.mercadolibre_seller_user:
             seller_id = config.mercadolibre_seller_user.id
 
-        order_fields = self.prepare_ml_order_vals( order_json=order_json, meli=meli, config=config )
-
-        if (    "mercadolibre_filter_order_datetime" in config._fields
-                and "date_closed" in order_fields
-                and config.mercadolibre_filter_order_datetime
-                and config.mercadolibre_filter_order_datetime>parse(order_fields["date_closed"]) ):
-            return { "error": "orden filtrada por fecha > " + str(order_fields["date_closed"]) + " inferior a "+str(ml_datetime(config.mercadolibre_filter_order_datetime)) }
-
-        if (    "mercadolibre_filter_order_datetime_to" in config._fields
-                and "date_closed" in order_fields
-                and config.mercadolibre_filter_order_datetime_to
-                and config.mercadolibre_filter_order_datetime_to<parse(order_fields["date_closed"]) ):
-            return { "error": "orden filtrada por fecha TO > " + str(order_fields["date_closed"]) + " superior a "+str(ml_datetime(config.mercadolibre_filter_order_datetime_to)) }
 
         partner_id = False
         partner_shipping_id = False
@@ -1254,8 +1255,10 @@ class mercadolibre_orders(models.Model):
                     #_logger.info(line)
                     line.write({ "qty_to_invoice": 0.0 })
                     #_logger.info(line.qty_to_invoice)
+
             if (config.mercadolibre_order_confirmation!="manual"):
-                sorder.confirm_ml(meli=meli,config=config)
+                sorder.confirm_ml( meli=meli, config=config )
+
             if (sorder.meli_status=="cancelled"):
                 sorder.action_cancel()
 
