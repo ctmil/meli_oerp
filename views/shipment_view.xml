@@ -66,6 +66,7 @@
                         <field name="last_updated"/>
                         <field name="order_cost"/>
                         <field name="base_cost"/>
+                        <field name="promoted_amount"/>
                         <field name="shipping_cost"/>
                         <field name="shipping_list_cost"/>
                       </group>

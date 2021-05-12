@@ -398,11 +398,14 @@ class product_product(models.Model):
 
     _inherit = "product.product"
 
-    def _meli_set_product_price( self, product_template, meli_price, force_variant=False ):
-        company = self.env.user.company_id
-        product = self
+    def _meli_set_product_price( self, product_template, meli_price, force_variant=False, config=None ):
+
+        company = (config and config.company_id) or self.env.user.company_id
+        config = config or company
+        _logger.info("_meli_set_product_price: config: "+str(config and config.name))
         ml_price_converted = meli_price
-        tax_excluded = ml_tax_excluded(self)
+        product = self
+        tax_excluded = ml_tax_excluded(self, config=config)
 
         if ( tax_excluded and product_template.taxes_id ):
             _logger.info("Adjust taxes")
@@ -421,8 +424,8 @@ class product_product(models.Model):
                 _logger.info("Price adjusted with taxes:"+str(ml_price_converted))
 
         pl = False
-        if company.mercadolibre_pricelist:
-            pl = company.mercadolibre_pricelist
+        if config.mercadolibre_pricelist:
+            pl = config.mercadolibre_pricelist
 
         if (pl):
             #pass
@@ -463,6 +466,7 @@ class product_product(models.Model):
 
         else:
             if (product_template.lst_price<=1.0):
+                _logger.info("_meli_set_product_price lst_price<1.0: "+str(ml_price_converted))
                 product_template.write({'lst_price': ml_price_converted})
 
     def set_meli_price( self, meli=None, config=None, plist=None ):
@@ -1068,7 +1072,7 @@ class product_product(models.Model):
 
         try:
             if (float(rjson['price'])>=0.0):
-                product._meli_set_product_price( product_template, rjson['price'], force_variant=force_price_for_variant )
+                product._meli_set_product_price( product_template, rjson['price'], force_variant=force_price_for_variant, config=config )
         except Exception as e:
             _logger.info(e, exc_info=True)
             rjson['price'] = 0.0

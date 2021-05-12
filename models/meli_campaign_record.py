@@ -10,16 +10,16 @@ class MeliCampaignRecord(models.Model):
 
     _name = 'meli.campaign.record'
     _description = u'Registros de Campañas MELI'
-    
-    campaign_id = fields.Many2one('meli.campaign', u'Campaña', 
+
+    campaign_id = fields.Many2one('meli.campaign', u'Campaña',
         required=True, readonly=True, states={'draft':[('readonly',False)]}, ondelete="restrict")
     pricelist_id = fields.Many2one('product.pricelist', u'Tarifa de Venta',
         required=True, ondelete="restrict")
-    name = fields.Char(u'Nombre', 
+    name = fields.Char(u'Nombre',
         required=True, readonly=True, states={'draft':[('readonly',False)]})
     description = fields.Text(string=u'Descripcion',
         readonly=True, states={'draft':[('readonly',False)]})
-    line_ids = fields.One2many('meli.campaign.record.line', 
+    line_ids = fields.One2many('meli.campaign.record.line',
         'meli_campaign_id', u'Productos en Oferta', copy=False, auto_join=True)
     state = fields.Selection([
         ('draft','Borrador'),
@@ -76,6 +76,7 @@ class MeliCampaignRecord(models.Model):
     def action_recompute_prices(self):
         self.ensure_one()
         #pasar la lista de precios y actualizar los precios
+        _logger.info("action_recompute_prices")
         for line in self.with_context(pricelist=self.pricelist_id.id).line_ids:
             line.write({
                 'price_unit': line.product_template_id.list_price,
@@ -225,4 +226,3 @@ class MeliCampaignRecordRevisionReason(models.Model):
     reason_type = fields.Char(u'Tipo de Razon')
     reason_requisite = fields.Char(u'Requisito')
     message_key = fields.Char(u'Mensaje')
-    
