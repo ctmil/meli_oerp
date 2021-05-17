@@ -132,7 +132,7 @@ class res_company(models.Model):
         #_logger.info('company get_meli_state() ')
         for company in self:
             #company = self or self.env.user.company_id
-            _logger.info('company get_meli_state() '+company.name)
+            _logger.info('company get_meli_state() '+str(company and company.name))
             #warningobj = self.pool.get('warning')
             meli = self.env['meli.util'].get_new_instance(company)
             if meli:
@@ -303,6 +303,7 @@ class res_company(models.Model):
 
     mercadolibre_payment_term = fields.Many2one("account.payment.term",string="Payment Term")
 
+    #mercadolibre_use_buyer_name = fields.Boolean(string="Use buyer name",default=True)
 
     def	meli_logout(self):
         _logger.info('company.meli_logout() ')
