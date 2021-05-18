@@ -718,7 +718,7 @@ class res_company(models.Model):
                             else:
                                 obj.stock_error = str({})
 
-                            if ( (icommit==40 or (icount==maxcommits) or (icount==topcommits) ):
+                            if ( icommit==40 or icount==maxcommits or icount==topcommits ):
                                 noti.processing_errors = errors
                                 noti.processing_logs = logs
                                 noti.resource = "meli_update_remote_stock #"+str(icount) +'/'+str(maxcommits)
