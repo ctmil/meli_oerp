@@ -674,9 +674,11 @@ class res_company(models.Model):
             product_ids = self.env['product.product'].search([
                 ('meli_pub','=',True),
                 ('meli_id','!=',False),
-                '|',('company_id','=',False),('company_id','=',company.id)])
+                '|',('company_id','=',False),('company_id','=',company.id)
+                ], order='stock_update asc')
+            topcommits = 120
             _logger.info("product_ids stock to update:" + str(product_ids))
-            _logger.info("updating stock #" + str(len(product_ids)) + " on " + str(company.name))
+            _logger.info("updating stock #" + str(len(product_ids)) + " on " + str(company.name)+ " cron top:"+str(topcommits))
             icommit = 0
             icount = 0
             maxcommits = len(product_ids)
@@ -696,17 +698,27 @@ class res_company(models.Model):
                     self.env.cr.commit()
                 for obj in product_ids:
                     #_logger.info( "Product check if active: " + str(obj.id)+ ' meli_id:'+str(obj.meli_id)  )
-                    if (obj.meli_id):
+                    if (obj.meli_id and icount<=topcommits):
                         icommit+= 1
                         icount+= 1
                         try:
                             _logger.info( "Update Stock: #" + str(icount) +'/'+str(maxcommits)+ ' meli_id:'+str(obj.meli_id)  )
                             resjson = obj.product_post_stock(meli=meli)
                             logs+= str(obj.default_code)+" "+str(obj.meli_id)+": "+str(obj.meli_available_quantity)+"\n"
+
                             if "error" in resjson:
+
+                                obj.stock_error = str(resjson)
                                 errors+= str(obj.default_code)+" "+str(obj.meli_id)+" >> "+str(resjson)+"\n"
 
-                            if ((icommit==40 or (icount==maxcommits)) and 1==1):
+                                is_fulfillment = obj.meli_shipping_logistic_type and "fulfillment" in obj.meli_shipping_logistic_type
+                                if is_fulfillment:
+                                    obj.stock_error = "fulfillment"
+
+                            else:
+                                obj.stock_error = str({})
+
+                            if ( icommit==40 or icount==maxcommits or icount==topcommits ):
                                 noti.processing_errors = errors
                                 noti.processing_logs = logs
                                 noti.resource = "meli_update_remote_stock #"+str(icount) +'/'+str(maxcommits)
