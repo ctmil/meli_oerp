@@ -2559,15 +2559,15 @@ class product_product(models.Model):
                 for ix in range(len(productjson["variations"]) ):
                     _logger.info("Variation to update!!")
                     _logger.info(productjson["variations"][ix])
-                    var = {
+                    var_info = {
                         "id": str(productjson["variations"][ix]["id"]),
                         "price": str(product_tmpl.meli_price),
                         "available_quantity": product.meli_available_quantity,
                         "picture_ids": var_pics
                     }
-                    var_attributes = product._update_sku_attribute( attributes=("attributes" and var_info["attributes"]), set_sku=config.mercadolibre_post_default_code )
+                    var_attributes = product._update_sku_attribute( attributes=("attributes" in var_info and var_info["attributes"]), set_sku=config.mercadolibre_post_default_code )
                     var_attributes and var.update({"attributes": var_attributes })
-                    varias["variations"].append(var)
+                    varias["variations"].append(var_info)
 
                     #WARNING: only for single variation
                     product.meli_id_variation = productjson["variations"][ix]["id"]
