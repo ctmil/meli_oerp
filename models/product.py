@@ -2493,7 +2493,7 @@ class product_product(models.Model):
                                 var_info = _all_variations[aix]
                                 for pvar in _new_candidates:
                                     if (pvar._is_product_combination(var_info)):
-                                        var_attributes = pvar._update_sku_attribute( attributes=("attributes" and var_info["attributes"]), set_sku=config.mercadolibre_post_default_code )
+                                        var_attributes = pvar._update_sku_attribute( attributes=("attributes" in var_info and var_info["attributes"]), set_sku=config.mercadolibre_post_default_code )
                                         var_attributes and var_info.update({"attributes": var_attributes })
                                         varias["variations"].append(var_info)
                                         _logger.info("news:")
@@ -2559,15 +2559,15 @@ class product_product(models.Model):
                 for ix in range(len(productjson["variations"]) ):
                     _logger.info("Variation to update!!")
                     _logger.info(productjson["variations"][ix])
-                    var = {
+                    var_info = {
                         "id": str(productjson["variations"][ix]["id"]),
                         "price": str(product_tmpl.meli_price),
                         "available_quantity": product.meli_available_quantity,
                         "picture_ids": var_pics
                     }
-                    var_attributes = product._update_sku_attribute( attributes=("attributes" and var_info["attributes"]), set_sku=config.mercadolibre_post_default_code )
+                    var_attributes = product._update_sku_attribute( attributes=("attributes" in var_info and var_info["attributes"]), set_sku=config.mercadolibre_post_default_code )
                     var_attributes and var.update({"attributes": var_attributes })
-                    varias["variations"].append(var)
+                    varias["variations"].append(var_info)
 
                     #WARNING: only for single variation
                     product.meli_id_variation = productjson["variations"][ix]["id"]
@@ -3067,7 +3067,7 @@ class product_product(models.Model):
     }
 
     _sql_constraints = [
-        ('unique_variant_meli_id_variation', 'unique(meli_id,meli_id_variation)', 'Meli Id, Meli Id Variation must be unique!'),
+    #    ('unique_variant_meli_id_variation', 'unique(meli_id,meli_id_variation)', 'Meli Id, Meli Id Variation must be unique!'),
     ]
 
 product_product()
