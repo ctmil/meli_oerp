@@ -3067,7 +3067,7 @@ class product_product(models.Model):
     }
 
     _sql_constraints = [
-        ('unique_variant_meli_id_variation', 'unique(meli_id,meli_id_variation)', 'Meli Id, Meli Id Variation must be unique!'),
+    #    ('unique_variant_meli_id_variation', 'unique(meli_id,meli_id_variation)', 'Meli Id, Meli Id Variation must be unique!'),
     ]
 
 product_product()
