@@ -1074,6 +1074,7 @@ class mercadolibre_orders(models.Model):
                                             productcreated = product_related
 
                                     if len(rjson3['variations'])>1:
+                                        #check missings
                                         product_related = product_obj.search([('meli_id','=', meli_id)], order='id asc')
                                         if product_related and len(product_related)>=1:
                                             return {'error': 'variations id missing for :'+str(meli_id)}
@@ -1098,7 +1099,7 @@ class mercadolibre_orders(models.Model):
                                     _logger.info(productcreated)
                                     productcreated.product_meli_get_product()
                                 else:
-                                    _logger.info( "product couldnt be created")
+                                    _logger.info( "product couldnt be created or updated")
                                 product_related = productcreated
                             except Exception as e:
                                 _logger.info("Error creando producto.")
