@@ -1069,15 +1069,16 @@ class mercadolibre_orders(models.Model):
 
                                 if rjson3 and 'variations' in rjson3['variations'] and len(rjson3['variations'])>0:
                                     if len(rjson3['variations'])==1:
-                                        product_related = product_obj.search([('meli_id','=', meli_id)], order='id asc',limit=1)
+                                        #only 1, usually added variation by ML
+                                        product_related = product_obj.search([('meli_id','=', Item['item']['id'])], order='id asc',limit=1)
                                         if (product_related):
                                             productcreated = product_related
 
                                     if len(rjson3['variations'])>1:
                                         #check missings
-                                        product_related = product_obj.search([('meli_id','=', meli_id)], order='id asc')
+                                        product_related = product_obj.search([('meli_id','=', Item['item']['id'])], order='id asc')
                                         if product_related and len(product_related)>=1:
-                                            return {'error': 'variations id missing for :'+str(meli_id)}
+                                            return {'error': 'variations id missing for :'+str(Item['item']['id'])}
 
                                 prod_fields = {
                                     'name': rjson3['title'].encode("utf-8"),
