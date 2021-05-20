@@ -1064,8 +1064,20 @@ class mercadolibre_orders(models.Model):
                             product_related = None
 
                             try:
-                                response3 = meli.get("/items/"+str(Item['item']['id']), {'access_token':meli.access_token})
+                                response3 = meli.get("/items/"+str(Item['item']['id']), {'access_token':meli.access_token, 'include_attributes': 'all'})
                                 rjson3 = response3.json()
+
+                                if rjson3 and 'variations' in rjson3['variations'] and len(rjson3['variations'])>0:
+                                    if len(rjson3['variations'])==1:
+                                        product_related = product_obj.search([('meli_id','=', meli_id)], order='id asc',limit=1)
+                                        if (product_related):
+                                            productcreated = product_related
+
+                                    if len(rjson3['variations'])>1:
+                                        product_related = product_obj.search([('meli_id','=', meli_id)], order='id asc')
+                                        if product_related and len(product_related)>=1:
+                                            return {'error': 'variations id missing for :'+str(meli_id)}
+
                                 prod_fields = {
                                     'name': rjson3['title'].encode("utf-8"),
                                     'description': rjson3['title'].encode("utf-8"),
@@ -1076,7 +1088,7 @@ class mercadolibre_orders(models.Model):
                                     prod_fields['default_code'] = seller_sku
                                 #prod_fields['default_code'] = rjson3['id']
                                 #productcreated = False
-                                if config.mercadolibre_create_product_from_order:
+                                if config.mercadolibre_create_product_from_order and not productcreated:
                                     productcreated = self.env['product.product'].create((prod_fields))
                                 if (productcreated):
                                     if (productcreated.product_tmpl_id):
