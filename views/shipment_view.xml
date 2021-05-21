@@ -81,6 +81,9 @@
                     </group>
                     <group string="Orders">
                       <group>
+                        <!--field name="shipment_items"/-->
+                      </group>
+                      <group>
                         <field name="posting_id" invisible="1"/>
                         <field name="sale_order" />
                         <field name="order_id" />
@@ -208,7 +211,7 @@
             binding_views="list,form"
             view_mode="form"
             target="new"/>
-	
+
 	<record id="view_mercadolibre_stock_picking_print" model="ir.ui.view">
               <field name="name">Imprimir Guias de MercadoLibre (Inv.)</field>
               <field name="model">mercadolibre.shipment.print</field>
@@ -269,7 +272,7 @@
                 binding_model="mercadolibre.shipment"
                 res_model="mercadolibre.shipment.update"
                 binding_views="list,form"
-                view_mode="form"                
+                view_mode="form"
                 target="new"/>
 
             <report
