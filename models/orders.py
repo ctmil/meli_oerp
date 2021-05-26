@@ -373,7 +373,7 @@ class mercadolibre_orders(models.Model):
 
     def buyer_full_name( self, Buyer={}):
 
-        full_name = ""
+        full_name = ("name" in Buyer and Buyer['name']) or ""
 
         first_name = str( ('first_name' in Buyer and Buyer['first_name'] ) or '' )
         last_name = str( ('last_name' in Buyer and Buyer['last_name']) or '' )
@@ -555,6 +555,8 @@ class mercadolibre_orders(models.Model):
         oid = data["id"]
         order_json = data["order_json"]
         #_logger.info( "data:" + str(data) )
+        context = context or self.env.context
+        #_logger.info( "context:" + str(context) )
         company = self.env.user.company_id
         if not config:
             config = company
@@ -640,6 +642,12 @@ class mercadolibre_orders(models.Model):
         partner_id = False
         partner_shipping_id = False
 
+        if not 'buyer' in order_json or not 'name' in order_json['buyer'] or not 'first_name' in order_json['buyer']:
+            _logger.info("Buyer not present, fetch order")
+            response = meli.get("/orders/"+str(order_json['id']), {'access_token':meli.access_token})
+            order_json = response.json()
+            #_logger.info(order_json)
+
         if 'buyer' in order_json:
             Buyer = order_json['buyer']
             Buyer['billing_info'] = self.get_billing_info(order_id=order_json['id'],meli=meli,data=order_json)
@@ -677,7 +685,8 @@ class mercadolibre_orders(models.Model):
                             shpjson = shipres.json()
                             if "receiver_address" in shpjson:
                                 Receiver = shpjson["receiver_address"]
-
+            _logger.info("Buyer:"+str(Buyer) )
+            #_logger.info(order_json)
             meli_buyer_fields = {
                 'name': self.buyer_full_name(Buyer),
                 'street': self.street(Receiver,Buyer),
@@ -907,6 +916,8 @@ class mercadolibre_orders(models.Model):
 
             if order and buyer_id:
                 return_id = order.write({'buyer':buyer_id.id})
+        else:
+            _logger.error("Buyer not fetched!")
 
         if (not partner_id):
             _logger.error("No partner founded or created for ML Order" )
@@ -1064,8 +1075,22 @@ class mercadolibre_orders(models.Model):
                             product_related = None
 
                             try:
-                                response3 = meli.get("/items/"+str(Item['item']['id']), {'access_token':meli.access_token})
+                                response3 = meli.get("/items/"+str(Item['item']['id']), {'access_token':meli.access_token, 'include_attributes': 'all'})
                                 rjson3 = response3.json()
+
+                                if rjson3 and 'variations' in rjson3['variations'] and len(rjson3['variations'])>0:
+                                    if len(rjson3['variations'])==1:
+                                        #only 1, usually added variation by ML
+                                        product_related = product_obj.search([('meli_id','=', Item['item']['id'])], order='id asc',limit=1)
+                                        if (product_related):
+                                            productcreated = product_related
+
+                                    if len(rjson3['variations'])>1:
+                                        #check missings
+                                        product_related = product_obj.search([('meli_id','=', Item['item']['id'])], order='id asc')
+                                        if product_related and len(product_related)>=1:
+                                            return {'error': 'variations id missing for :'+str(Item['item']['id'])}
+
                                 prod_fields = {
                                     'name': rjson3['title'].encode("utf-8"),
                                     'description': rjson3['title'].encode("utf-8"),
@@ -1076,7 +1101,7 @@ class mercadolibre_orders(models.Model):
                                     prod_fields['default_code'] = seller_sku
                                 #prod_fields['default_code'] = rjson3['id']
                                 #productcreated = False
-                                if config.mercadolibre_create_product_from_order:
+                                if config.mercadolibre_create_product_from_order and not productcreated:
                                     productcreated = self.env['product.product'].create((prod_fields))
                                 if (productcreated):
                                     if (productcreated.product_tmpl_id):
@@ -1086,7 +1111,7 @@ class mercadolibre_orders(models.Model):
                                     _logger.info(productcreated)
                                     productcreated.product_meli_get_product()
                                 else:
-                                    _logger.info( "product couldnt be created")
+                                    _logger.info( "product couldnt be created or updated")
                                 product_related = productcreated
                             except Exception as e:
                                 _logger.info("Error creando producto.")
@@ -1267,6 +1292,8 @@ class mercadolibre_orders(models.Model):
     def orders_update_order( self, context=None, meli=None, config=None ):
 
         #get with an item id
+        context = context or self.env.context
+        #_logger.info( "context:" + str(context) )
         company = self.env.user.company_id
 
         order_obj = self.env['mercadolibre.orders']
