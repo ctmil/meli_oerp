@@ -322,11 +322,13 @@ class mercadolibre_shipment(models.Model):
             order.shipment_logistic_type = shipment.logistic_type
 
             if (sorder.partner_id):
-                sorder.partner_id.street = shipment.receiver_address_line
-                sorder.partner_id.street2 = shipment.receiver_address_comment
-                sorder.partner_id.city = shipment.receiver_city
-                if shipment.receiver_address_phone and not ("XXXX" in shipment.receiver_address_phone):
-                    sorder.partner_id.phone = shipment.receiver_address_phone
+                partner_id = sorder.partner_id
+                if (partner_id and "meli_update_forbidden" in partner_id._fields and not partner_id.meli_update_forbidden):
+                    partner_id.street = shipment.receiver_address_line
+                    partner_id.street2 = shipment.receiver_address_comment
+                    partner_id.city = shipment.receiver_city
+                    if shipment.receiver_address_phone and not ("XXXX" in shipment.receiver_address_phone):
+                        partner_id.phone = shipment.receiver_address_phone
                 #sorder.partner_id.state = ships.receiver_state
 
             ship_name = shipment.tracking_method or (shipment.mode=="custom" and "Personalizado")
