@@ -151,7 +151,7 @@ class mercadolibre_shipment_print(models.TransientModel):
             _logger.info('atoken:'+str(atoken))
             full_ids+= full_url_link_pdf[atoken]['full_ids']
             full_link = full_url_link_pdf[atoken]['full_link']
-            _logger.info(full_link)
+            #_logger.info(full_link)
             if full_link:
                 full_links+= '<a href="'+full_link+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'
 
@@ -204,6 +204,8 @@ class mercadolibre_shipment_item(models.Model):
     variation_id = fields.Char(string="Variation Id", index=True)
     order_id = fields.Char(string="Order Id", index=True)
     data = fields.Text(string="Full Item Data")
+
+mercadolibre_shipment_item()
 
 class mercadolibre_shipment(models.Model):
     _name = "mercadolibre.shipment"
@@ -839,7 +841,7 @@ class mercadolibre_shipment(models.Model):
         if sitem:
             sitem.write(ifields)
         else:
-            sitem = self.create(ifields)
+            sitem = self.env["mercadolibre.shipment.item"].create(ifields)
         return sitem
 
     def update( self, context=None, meli=None, config=None ):
