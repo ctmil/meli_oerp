@@ -97,6 +97,7 @@
                           <group>
                             <field name="meli_buyer_id" invisible="0"/>
                             <field name="meli_buyer" invisible="0"/>
+                            <field name="meli_update_forbidden" invisible="0"/>
                           </group>
                         </page>
                     </notebook>
