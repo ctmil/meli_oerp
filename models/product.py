@@ -400,6 +400,8 @@ class product_template(models.Model):
     meli_price_error = fields.Char(string="Price Error",index=True)
     meli_update_error = fields.Char(string="Update Error",index=True)
 
+    meli_update_stock_blocked = fields.Boolean(string="Block Update stock",default=False)
+
 product_template()
 
 class product_product(models.Model):
@@ -2708,6 +2710,12 @@ class product_product(models.Model):
             if meli.need_login():
                 return meli.redirect_login()
 
+        if "meli_update_stock_blocked" in product_tmpl._fields and product_tmpl.meli_update_stock_blocked:
+            return { "error": "Blocked by product template configuration." }
+
+        if "meli_update_stock_blocked" in product._fields and product.meli_update_stock_blocked:
+            return { "error": "Blocked by product configuration." }
+
         try:
             #self.product_update_stock()
             product_fab = False
@@ -3062,6 +3070,8 @@ class product_product(models.Model):
     meli_stock_error = fields.Char(string="Stock Error",index=True)
     meli_price_error = fields.Char(string="Price Error",index=True)
     meli_update_error = fields.Char(string="Update Error",index=True)
+
+    meli_update_stock_blocked = fields.Boolean(string="Block Update stock",default=False)
 
     _defaults = {
         'meli_imagen_logo': 'None',
