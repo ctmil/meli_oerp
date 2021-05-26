@@ -81,6 +81,9 @@
                     </group>
                     <group string="Orders">
                       <group>
+                        <!--field name="shipment_items"/-->
+                      </group>
+                      <group>
                         <field name="posting_id" invisible="1"/>
                         <field name="sale_order" />
                         <field name="order_id" />
