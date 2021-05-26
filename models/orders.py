@@ -843,9 +843,9 @@ class mercadolibre_orders(models.Model):
             if not partner_id:
                 #_logger.info( "creating partner:" + str(meli_buyer_fields) )
                 partner_id = respartner_obj.create(( meli_buyer_fields ))
-            else:
-                partner_id = partner_ids[0]
-                _logger.info("Updating partner (do not update principal, always create new one)")
+            elif (partner_id and "meli_update_forbidden" in partner_id._fields and not partner_id.meli_update_forbidden):
+                _logger.info("Updating partner")
+                #TODO: _logger.info("Updating partner (do not update principal, always create new one)")
                 _logger.info(meli_buyer_fields)
                 #complete country at most:
                 partner_update = {}
@@ -1556,6 +1556,7 @@ class res_partner(models.Model):
 
     meli_buyer_id = fields.Char('Meli Buyer Id')
     meli_buyer = fields.Many2one('mercadolibre.buyers',string='Buyer')
+    meli_update_forbidden = fields.Boolean(string='Meli Update Forbiden')
 
     _sql_constraints = [
         ('unique_partner_meli_buyer_id', 'unique(meli_buyer_id)', 'Mei Partner Buyer id already exists!')
