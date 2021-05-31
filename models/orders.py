@@ -557,7 +557,7 @@ class mercadolibre_orders(models.Model):
         #_logger.info( "data:" + str(data) )
         context = context or self.env.context
         #_logger.info( "context:" + str(context) )
-        company = self.env.user.company_id
+        company = (config and "company_id" in config._fields and config.company_id) or self.env.user.company_id
         if not config:
             config = company
         if not meli:
@@ -826,7 +826,7 @@ class mercadolibre_orders(models.Model):
                         meli_buyer_fields['l10n_latam_identification_type_id'] = 5
                     if (Buyer['billing_info']['doc_type']=="CE" or Buyer['billing_info']['doc_type']=="C.E."):
                         #foreign_id_card
-                        meli_buyer_fields['l10n_latam_identification_type_id'] = 4
+                        meli_buyer_fields['l10n_latam_identification_type_id'] = self.env['l10n_latam.identification_type'].search([('l10n_co_document_code','=','foreign_id_card'),('country_id','=',company.country_id)],limit=1).id
                     if (Buyer['billing_info']['doc_type']=="NIT" or Buyer['billing_info']['doc_type']=="N.I.T." or Buyer['billing_info']['doc_type']=="RUT"):
                         #rut
                         meli_buyer_fields['l10n_latam_identification_type_id'] = 1
