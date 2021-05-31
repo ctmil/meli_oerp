@@ -823,13 +823,13 @@ class mercadolibre_orders(models.Model):
                 if ( ('doc_type' in Buyer['billing_info']) and ('l10n_latam_identification_type_id' in self.env['res.partner']._fields) ):
                     if (Buyer['billing_info']['doc_type']=="CC" or Buyer['billing_info']['doc_type']=="C.C."):
                         #national_citizen_id
-                        meli_buyer_fields['l10n_latam_identification_type_id'] = self.env['l10n_latam.identification.type'].search([('l10n_co_document_code','=','national_citizen_id'),('country_id','=',company.country_id)],limit=1).id
+                        meli_buyer_fields['l10n_latam_identification_type_id'] = self.env['l10n_latam.identification.type'].search([('l10n_co_document_code','=','national_citizen_id'),('country_id','=',company.country_id.id)],limit=1).id
                     if (Buyer['billing_info']['doc_type']=="CE" or Buyer['billing_info']['doc_type']=="C.E."):
                         #foreign_id_card
-                        meli_buyer_fields['l10n_latam_identification_type_id'] = self.env['l10n_latam.identification.type'].search([('l10n_co_document_code','=','foreign_id_card'),('country_id','=',company.country_id)],limit=1).id
+                        meli_buyer_fields['l10n_latam_identification_type_id'] = self.env['l10n_latam.identification.type'].search([('l10n_co_document_code','=','foreign_id_card'),('country_id','=',company.country_id.id)],limit=1).id
                     if (Buyer['billing_info']['doc_type']=="NIT" or Buyer['billing_info']['doc_type']=="N.I.T." or Buyer['billing_info']['doc_type']=="RUT"):
                         #rut
-                        meli_buyer_fields['l10n_latam_identification_type_id'] = self.env['l10n_latam.identification.type'].search([('l10n_co_document_code','=','rut'),('country_id','=',company.country_id)],limit=1).id
+                        meli_buyer_fields['l10n_latam_identification_type_id'] = self.env['l10n_latam.identification.type'].search([('l10n_co_document_code','=','rut'),('country_id','=',company.country_id.id)],limit=1).id
 
 
             partner_ids = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ] )
