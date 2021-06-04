@@ -188,6 +188,10 @@ class sale_order(models.Model):
 
             stock_picking = self.env["stock.picking"]
 
+            confirm_cond = abs(self.meli_paid_amount - self.amount_total)<0.1
+            if not confirm_cond:
+                return {'error': "Condition not met: meli_paid_amount and amount_total doesn't match"}
+
             if (self.meli_status=="cancelled"):
                 self.action_cancel()
 
