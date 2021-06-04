@@ -760,6 +760,19 @@ class mercadolibre_orders(models.Model):
 
                     meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
 
+                if ( ('doc_type' in Buyer['billing_info']) and ('document_type_id' in self.env['res.partner']._fields) and ('document_number' in self.env['res.partner']._fields) ):
+
+                    if (Buyer['billing_info']['doc_type']=="RUT"):
+                        meli_buyer_fields['document_type_id'] = self.env['sii.document_type'].search([('code','=','RUT')],limit=1).id
+                    elif (Buyer['billing_info']['doc_type']):
+                        meli_buyer_fields['document_type_id'] = self.env['sii.document_type'].search([('code','=',Buyer['billing_info']['doc_type'])],limit=1).id
+
+                    meli_buyer_fields['document_number'] = Buyer['billing_info']['doc_number']
+
+                    meli_buyer_fields['vat'] = 'CL'+str(Buyer['billing_info']['doc_number'])
+                    #meli_buyer_fields['email'] = str(Buyer['email'])
+
+                    ('activity_description' in self.env['res.partner']._fields) and meli_buyer_fields.update({"activity_description": self.env["sii.activity.description"].search([('name','=','NCP')],limit=1).id })
 
                 #Colombia
                 if ( ('doc_type' in Buyer['billing_info']) and ('l10n_co_document_type' in self.env['res.partner']._fields) ):
