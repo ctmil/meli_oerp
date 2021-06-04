@@ -396,6 +396,12 @@ class mercadolibre_shipment(models.Model):
                 delivery_price = delivery_price[0]
 
             _logger.info("delivery_price:"+str(delivery_price))
+
+            shipment_amount_cond = abs(sorder.meli_paid_amount - sorder.amount_total)>1.0 and (delivery_price>0.0)
+            if not (shipment_amount_cond);
+                _logger.info("shipment_cond:"+str(shipment_amount_cond)+" paid: "+str(sorder.meli_paid_amount)+" vs total: "str(sorder.amount_total))
+                delivery_price = 0.0
+
             if (ship_carrier_id and not sorder.carrier_id):
                 sorder.carrier_id = ship_carrier_id
                 #vals = sorder.carrier_id.rate_shipment(sorder)
@@ -406,6 +412,7 @@ class mercadolibre_shipment(models.Model):
                 #display_price = vals['carrier_price']
                 set_delivery_line(sorder, delivery_price, delivery_message )
 
+            #REMOVE OLD SALE ORDER ITEM SHIPPING ITEM
             saleorderline_item_fields = {
                 'company_id': company.id,
                 'order_id': sorder.id,
