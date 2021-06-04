@@ -995,6 +995,7 @@ class product_product(models.Model):
 
     def product_meli_get_product( self, meli_id=None ):
         company = self.env.user.company_id
+        config = company
         product_obj = self.env['product.product']
         uomobj = self.env[uom_model]
         #pdb.set_trace()
@@ -1101,6 +1102,7 @@ class product_product(models.Model):
             if (float(rjson['price'])>=0.0):
                 product._meli_set_product_price( product_template, rjson['price'] )
         except:
+            _logger.info(e, exc_info=True)
             rjson['price'] = 0.0
 
         try:
