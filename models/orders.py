@@ -868,8 +868,14 @@ class mercadolibre_orders(models.Model):
                 partner_update = {}
 
                 #TODO: re DO with, self.update_billing_data( partner_id, meli_buyer_fields )
-                if ('l10n_latam_identification_type_id' in partner_id._fields and 'l10n_latam_identification_type_id' in meli_buyer_fields and  ( not partner_id.l10n_latam_identification_type_id or partner_id.l10n_latam_identification_type_id!=meli_buyer_fields['l10n_latam_identification_type_id']) ):
-                    partner_update.update({ 'l10n_latam_identification_type_id': meli_buyer_fields['l10n_latam_identification_type_id'] })
+                if "document_type_id" in meli_buyer_fields and str(meli_buyer_fields['document_type_id'])!=str(partner_id.document_type_id and partner_id.document_type_id.id):
+                    partner_update.update(meli_buyer_fields)
+
+                if "document_number" in meli_buyer_fields and str(meli_buyer_fields['document_number'])!=str(partner_id.document_number):
+                    partner_update.update(meli_buyer_fields)
+
+                if ("vat" in meli_buyer_fields and meli_buyer_fields["vat"]!=str(partner_id.vat) ):
+                    partner_update.update(meli_buyer_fields)
 
                 if "l10n_co_document_type" in meli_buyer_fields and str(meli_buyer_fields['l10n_co_document_type'])!=str(partner_id.l10n_co_document_type):
                     partner_update.update(meli_buyer_fields)
