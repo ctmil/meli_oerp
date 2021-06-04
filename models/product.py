@@ -2712,11 +2712,20 @@ class product_product(models.Model):
             if meli.need_login():
                 return meli.redirect_login()
 
+        product.meli_stock_update = ml_datetime(datetime.now())
+        product_tmpl.meli_stock_update = product.meli_stock_update
+
         if "meli_update_stock_blocked" in product_tmpl._fields and product_tmpl.meli_update_stock_blocked:
-            return { "error": "Blocked by product template configuration." }
+            error = { "error": "Blocked by product template configuration." }
+            product.meli_stock_error = str(error)
+            product_tmpl.meli_stock_error = product.meli_stock_error
+            return error
 
         if "meli_update_stock_blocked" in product._fields and product.meli_update_stock_blocked:
-            return { "error": "Blocked by product configuration." }
+            error = { "error": "Blocked by product configuration." }
+            product.meli_stock_error = str(error)
+            product_tmpl.meli_stock_error = product.meli_stock_error
+            return error
 
         try:
             #self.product_update_stock()
@@ -2789,7 +2798,10 @@ class product_product(models.Model):
                                 if rjson:
                                     if "error" in rjson:
                                         _logger.error(rjson)
-                                        return rjson
+                                        error = rjson
+                                        product.meli_stock_error = str(error)
+                                        product_tmpl.meli_stock_error = product.meli_stock_error
+                                        return error
 
                     if found_comb==False:
                         #add combination!!
@@ -2810,8 +2822,10 @@ class product_product(models.Model):
                                 rjson = responsevar.json()
                                 if rjson:
                                     if "error" in rjson:
-                                        _logger.error(rjson)
-                                        return rjson
+                                        error = rjson
+                                        product.meli_stock_error = str(error)
+                                        product_tmpl.meli_stock_error = product.meli_stock_error
+                                        return error
                             #_logger.info(responsevar.json())
                 #_logger.info("Available:"+str(product_tmpl.virtual_available))
                 best_available = 0
@@ -2851,7 +2865,10 @@ class product_product(models.Model):
                             if ('available_quantity' in rjson):
                                 _logger.info( "Posted ok:" + str(rjson['available_quantity']) )
                             if "error" in rjson:
-                                return rjson
+                                error = rjson
+                                product.meli_stock_error = str(error)
+                                product_tmpl.meli_stock_error = product.meli_stock_error
+                                return error
                 else:
                     response = meli.put("/items/"+product.meli_id, fields, {'access_token':meli.access_token})
                     if (response):
@@ -2859,7 +2876,10 @@ class product_product(models.Model):
                         if ('available_quantity' in rjson):
                             _logger.info( "Posted ok:" + str(rjson['available_quantity']) )
                         if "error" in rjson:
-                            return rjson
+                            error = rjson
+                            product.meli_stock_error = str(error)
+                            product_tmpl.meli_stock_error = product.meli_stock_error
+                            return error
 
                 if (product.meli_available_quantity<=0 and product.meli_status=="active"):
                     product.product_meli_status_pause(meli=meli)
@@ -2869,6 +2889,9 @@ class product_product(models.Model):
         except Exception as e:
             _logger.info("product_post_stock > exception error")
             _logger.info(e, exc_info=True)
+            error = { 'error': str(e) }
+            product.meli_stock_error = str(error)
+            product_tmpl.meli_stock_error = product.meli_stock_error
             pass;
 
         return {}

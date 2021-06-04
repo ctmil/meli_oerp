@@ -671,11 +671,19 @@ class res_company(models.Model):
         company = self.env.user.company_id
         if (company.mercadolibre_cron_post_update_stock):
             auto_commit = not getattr(threading.currentThread(), 'testing', False)
-            product_ids = self.env['product.product'].search([
+            product_ids_null = self.env['product.product'].search([
                 ('meli_pub','=',True),
                 ('meli_id','!=',False),
+                ('meli_stock_update','=',False),
                 '|',('company_id','=',False),('company_id','=',company.id)
-                ], order='stock_update asc')
+                ], order='id asc')
+            product_ids_not_null = self.env['product.product'].search([
+                ('meli_pub','=',True),
+                ('meli_id','!=',False),
+                ('meli_stock_update','!=',False),
+                '|',('company_id','=',False),('company_id','=',company.id)
+                ], order='meli_stock_update asc')
+            product_ids = product_ids_null + product_ids_not_null
             topcommits = 120
             _logger.info("product_ids stock to update:" + str(product_ids))
             _logger.info("updating stock #" + str(len(product_ids)) + " on " + str(company.name)+ " cron top:"+str(topcommits))
