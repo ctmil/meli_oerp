@@ -398,7 +398,7 @@ class mercadolibre_shipment(models.Model):
             _logger.info("delivery_price:"+str(delivery_price))
 
             shipment_amount_cond = abs(sorder.meli_paid_amount - sorder.amount_total)>1.0 and (delivery_price>0.0)
-            if not (shipment_amount_cond);
+            if not (shipment_amount_cond):
                 _logger.info("shipment_cond:"+str(shipment_amount_cond)+" paid: "+str(sorder.meli_paid_amount)+" vs total: "str(sorder.amount_total))
                 delivery_price = 0.0
 
