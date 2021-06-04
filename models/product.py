@@ -410,7 +410,7 @@ class product_product(models.Model):
 
     def _meli_set_product_price( self, product_template, meli_price, force_variant=False, config=None ):
 
-        company = (config and config.company_id) or self.env.user.company_id
+        company = (config and 'company_id' in config._fields and config.company_id) or self.env.user.company_id
         config = config or company
         _logger.info("_meli_set_product_price: config: "+str(config and config.name))
         ml_price_converted = meli_price
