@@ -185,6 +185,7 @@ class sale_order(models.Model):
             _logger.info("meli_oerp confirm_ml")
             company = (config and 'company_id' in config._fields and config.company_id) or self.env.user.company_id
             config = config or company
+            res = {}
 
             stock_picking = self.env["stock.picking"]
 
@@ -225,6 +226,7 @@ class sale_order(models.Model):
                                         spick.action_done()
                                     except Exception as e:
                                         _logger.error("stock pick button_validate error"+str(e))
+                                        res = { 'error': str(e) }
                                         pass;
 
 
@@ -236,8 +238,10 @@ class sale_order(models.Model):
         except Exception as e:
             _logger.info("Confirm Order Exception")
             _logger.error(e, exc_info=True)
+            return { 'error': str(e) }
             pass
         _logger.info("meli_oerp confirm_ml ended.")
+        return res
 
     _sql_constraints = [
         ('unique_meli_order_id', 'unique(meli_order_id)', 'Mei Order id already exists!')
@@ -1341,11 +1345,13 @@ class mercadolibre_orders(models.Model):
         else:
             try:
                 self.orders_update_order_json( {"id": order.id, "order_json": order_json }, meli=meli, config=config )
-                #self._cr.commit()
+                self._cr.commit()
             except Exception as e:
                 _logger.info("orders_update_order > Error actualizando ORDEN")
                 _logger.error(e, exc_info=True)
-                pass
+                self._cr.rollback()
+                pass;
+                #raise e
 
         return {}
 
@@ -1404,7 +1410,8 @@ class mercadolibre_orders(models.Model):
                     except Exception as e:
                         _logger.info("orders_query_iterate > Error actualizando ORDEN")
                         _logger.error(e, exc_info=True)
-                        pass
+                        self._cr.rollback()
+                        pass;
 
         if (offset_next>0):
             self.orders_query_iterate( offset=offset_next, meli=meli, config=config )
