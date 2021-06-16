@@ -50,5 +50,4 @@
     'installable': True,
     'application': True,
     'license': 'GPL-3'
-
 }
