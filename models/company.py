@@ -684,7 +684,7 @@ class res_company(models.Model):
                 '|',('company_id','=',False),('company_id','=',company.id)
                 ], order='meli_stock_update asc')
             product_ids = product_ids_null + product_ids_not_null
-            topcommits = 120
+            topcommits = 80
             _logger.info("product_ids stock to update:" + str(product_ids))
             _logger.info("updating stock #" + str(len(product_ids)) + " on " + str(company.name)+ " cron top:"+str(topcommits))
             icommit = 0

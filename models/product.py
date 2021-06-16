@@ -451,7 +451,12 @@ class product_product(models.Model):
                 return_val = pl.price_get( self.id, 1.0 )
                 if (pl.id in return_val):
                     old_price = return_val[pl.id]
+                    if pli_tpl:
+                        pli_tpl.write({'fixed_price': float(ml_price_converted)})
+                    if pli_var:
+                        pli_var.write({'fixed_price': float(ml_price_converted)})
             else:
+                _logger.info("Creating price")
                 if force_variant and not pli_var:
                     pli_var = pli.create({
                             'product_id': product.id,
