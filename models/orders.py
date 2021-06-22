@@ -223,9 +223,9 @@ class sale_order(models.Model):
                                             pop.qty_done = pop.product_qty
                                     _logger.info("do_new_transfer")
                                     try:
-                                        if ('confirmed' in spick.state):
+                                        if (spick.state in ['confirmed']):
                                             spick.action_assign()
-                                        if ('assigned' in spick.state):
+                                        if (spick.state in ['assigned']):
                                             spick.button_validate()
                                     except Exception as e:
                                         _logger.error("stock pick button_validate error"+str(e))
