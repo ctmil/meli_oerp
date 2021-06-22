@@ -219,7 +219,7 @@ class sale_order(models.Model):
                                 if (spick.state in ['confirmed','waiting','draft']):
                                     _logger.info("action_assign")
                                     res = spick.action_assign()
-                                    _logger.info("action_assign res:"+str(res))
+                                    _logger.info("action_assign res:"+str(res)+" state:"+str(spick.state))
 
                                 if (spick.move_line_ids):
                                     _logger.info(spick.move_line_ids)
