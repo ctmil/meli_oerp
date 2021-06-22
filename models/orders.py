@@ -213,7 +213,7 @@ class sale_order(models.Model):
                     _logger.info("paid_delivered ok! delivering")
                     if self.picking_ids:
                         for spick in self.picking_ids:
-                            _logger.info(spick)
+                            _logger.info(str(spick)+":"+str(spick.state))
 
                             try:
                                 if (spick.state in ['confirmed']):
@@ -227,7 +227,7 @@ class sale_order(models.Model):
                                             if (pop.qty_done==0.0 and pop.product_qty>=0.0):
                                                 pop.qty_done = pop.product_qty
                                         _logger.info("do_new_transfer")
-                                        
+
                                         if (spick.state in ['assigned']):
                                             spick.button_validate()
                             except Exception as e:
