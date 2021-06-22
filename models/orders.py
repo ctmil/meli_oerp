@@ -216,8 +216,10 @@ class sale_order(models.Model):
                             _logger.info(str(spick)+":"+str(spick.state))
 
                             try:
-                                if (spick.state in ['confirmed','waiting']):
-                                    spick.action_assign()
+                                if (spick.state in ['confirmed','waiting','draft']):
+                                    _logger.info("action_assign")
+                                    res = spick.action_assign()
+                                    _logger.info("action_assign res:"+str(res))
 
                                 if (spick.move_line_ids):
                                     _logger.info(spick.move_line_ids)
