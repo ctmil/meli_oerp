@@ -398,7 +398,12 @@ class mercadolibre_shipment(models.Model):
             _logger.info("delivery_price:"+str(delivery_price)+" meli_paid_amount: "+str(sorder.meli_paid_amount) +" amount_total:"+str(sorder.amount_total) )
 
             shipment_amount_cond = abs(sorder.meli_paid_amount - sorder.amount_total)>1.0 and (delivery_price>0.0)
+            _logger.info("shipment_amount_cond:"+str(shipment_amount_cond))
             shipment_amount_cond_fix = (sorder.amount_total-sorder.meli_paid_amount)>1.0 and (delivery_price>0.0)
+            _logger.info("shipment_amount_cond_fix:"+str(shipment_amount_cond_fix))
+
+            shipment_amount_cond_fix2 = (sorder.amount_total-sorder.meli_paid_amount)<-1.0 and (delivery_price>0.0)
+
             if (not shipment_amount_cond) or shipment_amount_cond_fix:
                 _logger.info("shipment_cond: "+str(shipment_amount_cond)+" paid: "+str(sorder.meli_paid_amount)+" vs total: "+str(sorder.amount_total))
                 if ( ship_carrier_id and sorder.carrier_id):
@@ -406,6 +411,9 @@ class mercadolibre_shipment(models.Model):
                     delivery_price = 0.0
                     set_delivery_line( sorder, delivery_price, "Defined by MELI" )
                 delivery_price = 0.0
+            if shipment_amount_cond_fix2 and ship_carrier_id and sorder.carrier_id:
+                set_delivery_line( sorder, delivery_price, "Defined by MELI" )
+
 
             if (ship_carrier_id and not sorder.carrier_id):
                 sorder.carrier_id = ship_carrier_id
