@@ -213,21 +213,29 @@ class sale_order(models.Model):
                     _logger.info("paid_delivered ok! delivering")
                     if self.picking_ids:
                         for spick in self.picking_ids:
-                            _logger.info(spick)
-                            if (spick.move_line_ids):
-                                _logger.info(spick.move_line_ids)
-                                if (len(spick.move_line_ids)>=1):
-                                    for pop in spick.move_line_ids:
-                                        _logger.info(pop)
-                                        if (pop.qty_done==0.0 and pop.product_qty>=0.0):
-                                            pop.qty_done = pop.product_qty
-                                    _logger.info("do_new_transfer")
-                                    try:
-                                        spick.action_done()
-                                    except Exception as e:
-                                        _logger.error("stock pick button_validate error"+str(e))
-                                        res = { 'error': str(e) }
-                                        pass;
+                            _logger.info(str(spick)+":"+str(spick.state))
+
+                            try:
+                                if (spick.state in ['confirmed','waiting','draft']):
+                                    _logger.info("action_assign")
+                                    res = spick.action_assign()
+                                    _logger.info("action_assign res:"+str(res)+" state:"+str(spick.state))
+
+                                if (spick.move_line_ids):
+                                    _logger.info(spick.move_line_ids)
+                                    if (len(spick.move_line_ids)>=1):
+                                        for pop in spick.move_line_ids:
+                                            _logger.info(pop)
+                                            if (pop.qty_done==0.0 and pop.product_qty>=0.0):
+                                                pop.qty_done = pop.product_qty
+                                        _logger.info("do_new_transfer")
+
+                                        if (spick.state in ['assigned']):
+                                            spick.button_validate()
+                            except Exception as e:
+                                _logger.error("stock pick button_validate error"+str(e))
+                                res = { 'error': str(e) }
+                                pass;
 
 
             if (config.mercadolibre_order_confirmation=="paid_confirm_with_invoice"):
