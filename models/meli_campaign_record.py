@@ -76,7 +76,7 @@ class MeliCampaignRecord(models.Model):
     def action_recompute_prices(self):
         self.ensure_one()
         #pasar la lista de precios y actualizar los precios
-        _logger.info("action_recompute_prices")
+        #_logger.info("action_recompute_prices")
         for line in self.with_context(pricelist=self.pricelist_id.id).line_ids:
             line.write({
                 'price_unit': line.product_template_id.list_price,
