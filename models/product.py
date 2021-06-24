@@ -436,7 +436,7 @@ class product_product(models.Model):
         pl = False
         if config.mercadolibre_pricelist:
             pl = config.mercadolibre_pricelist
-
+        #_logger.info("pl:"+str(pl)+" name:"+str(pl and pl.name))
         if (pl):
             #pass
             pli = self.env['product.pricelist.item']
@@ -448,6 +448,7 @@ class product_product(models.Model):
             pli_var = pli.search([('pricelist_id','in',[pl.id]),('product_id','=',self.id)])
 
             if (pli_tpl or pli_var):
+                #_logger.info("Updating price")
                 return_val = pl.price_get( self.id, 1.0 )
                 if (pl.id in return_val):
                     old_price = return_val[pl.id]
