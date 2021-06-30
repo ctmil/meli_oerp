@@ -28,5 +28,5 @@ access_sale_mercadolibre_product_template_update,mercadolibre.product.template.u
 access_sale_mercadolibre_product_post,mercadolibre.product.post manager,model_mercadolibre_product_post,sales_team.group_sale_manager,1,1,1,1
 access_sale_mercadolibre_product_product_update,mercadolibre.product.product.update manager,model_mercadolibre_product_product_update,sales_team.group_sale_manager,1,1,1,1
 access_sale_mercadolibre_warning,warning manager,model_warning,sales_team.group_sale_manager,1,1,1,1
-access_sale_order_cancel,sale.order.cancel manager,model_sale_order_cancel,sales_team.group_sale_manager,1,1,1,1
+access_sale_order_cancel_wiz_meli,sale.order.cancel.wiz.meli manager,model_sale_order_cancel_wiz_meli,sales_team.group_sale_manager,1,1,1,1
 access_sale_mercadolibre_shipment_print,shipment print  manager,model_mercadolibre_shipment_print,sales_team.group_sale_manager,1,1,1,1
