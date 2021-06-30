@@ -274,9 +274,9 @@
               </field>
         </record>
 
-        <record id="view_orders_cancel" model="ir.ui.view">
-              <field name="name">Cancelar Orden</field>
-              <field name="model">sale.order.cancel</field>
+        <record id="view_orders_cancel_meli" model="ir.ui.view">
+              <field name="name">Cancelar Orden Wizard Meli</field>
+              <field name="model">sale.order.cancel.wiz.meli</field>
               <field name="type">form</field>
               <field name="arch" type="xml">
                 <form string="Cancel Order" version="7.0">
