@@ -189,7 +189,8 @@ class sale_order(models.Model):
 
             stock_picking = self.env["stock.picking"]
 
-            confirm_cond = abs(self.meli_paid_amount - self.amount_total)<0.1
+            #confirm_cond = abs(self.meli_total_amount - self.amount_total) < 1.0
+            confirm_cond = abs(self.meli_paid_amount - self.amount_total) < 1.0
             if not confirm_cond:
                 return {'error': "Condition not met: meli_paid_amount and amount_total doesn't match"}
 
@@ -1631,8 +1632,8 @@ class mercadolibre_orders_update(models.TransientModel):
 
 mercadolibre_orders_update()
 
-class sale_order_cancel(models.TransientModel):
-    _name = "sale.order.cancel"
+class sale_order_cancel_wiz_meli(models.TransientModel):
+    _name = "sale.order.cancel.wiz.meli"
     _description = "Cancel Order"
 
     def cancel_order(self, context=None):
@@ -1658,4 +1659,4 @@ class sale_order_cancel(models.TransientModel):
 
         return {}
 
-sale_order_cancel()
+sale_order_cancel_wiz_meli()
