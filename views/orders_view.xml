@@ -274,9 +274,9 @@
               </field>
         </record>
 
-        <record id="view_orders_cancel" model="ir.ui.view">
-              <field name="name">Cancelar Orden</field>
-              <field name="model">sale.order.cancel</field>
+        <record id="view_orders_cancel_meli" model="ir.ui.view">
+              <field name="name">Cancelar Orden Wizard Meli</field>
+              <field name="model">sale.order.cancel.wiz.meli</field>
               <field name="type">form</field>
               <field name="arch" type="xml">
                 <form string="Cancel Order" version="7.0">
@@ -320,7 +320,7 @@
             <field name="name">Cancelar Ordenes</field>
             <field name="type">ir.actions.act_window</field>
             <field name="src_model">sale.order</field>
-            <field name="res_model">sale.order.cancel</field>
+            <field name="res_model">sale.order.cancel.wiz.meli</field>
             <field name="view_type">form</field>
             <field name="view_mode">form</field>
             <field name="target">new</field>
@@ -361,7 +361,7 @@
             <act_window id="action_cancel_orders"
                 name="Cancel Orders"
                 src_model="sale.order"
-                res_model="sale.order.cancel"
+                res_model="sale.order.cancel.wiz.meli"
                 view_type="form"
                 view_mode="form"
                 key2="client_action_multi"
