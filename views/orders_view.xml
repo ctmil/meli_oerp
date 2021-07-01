@@ -315,7 +315,7 @@
         <record id="action_cancel_orders" model="ir.actions.act_window">
             <field name="name">Cancelar Ordenes</field>
             <field name="type">ir.actions.act_window</field>
-            <field name="res_model">sale.order.cancel</field>
+            <field name="res_model">sale.order.cancel.wiz.meli</field>
             <field name="view_mode">form</field>
             <field name="target">new</field>
         </record>
@@ -355,7 +355,7 @@
             <act_window id="action_cancel_orders"
                 name="Cancel Orders"
                 binding_model="sale.order"
-                res_model="sale.order.cancel"
+                res_model="sale.order.cancel.wiz.meli"
                 binding_type="action"
                 binding_views="list,form"
                 view_mode="form"
