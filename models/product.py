@@ -56,7 +56,7 @@ class MyHTMLParser(HTMLParser):
 
     def handle_endtag(self, tag):
         #print("Encountered an end tag :", tag)
-        self.full_text+= ""
+        self.full_text+= " "
 
     def handle_data(self, data):
         #print("Encountered some data  :", data)
