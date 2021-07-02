@@ -52,15 +52,15 @@ class MyHTMLParser(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         #print("Encountered a start tag:", tag)
-        full_text+= "\n"
+        self.full_text+= "\n"
 
     def handle_endtag(self, tag):
         #print("Encountered an end tag :", tag)
-        full_text+= ""
+        self.full_text+= ""
 
     def handle_data(self, data):
         #print("Encountered some data  :", data)
-        full_text+= str(data)
+        self.full_text+= str(data)
 
 class product_template(models.Model):
     _inherit = "product.template"
