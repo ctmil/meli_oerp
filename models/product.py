@@ -2173,8 +2173,9 @@ class product_product(models.Model):
                                         and config.mercadolibre_product_template_override_method
                                         and config.mercadolibre_product_template_override_method in ['default','description','title_and_description']
                                         )
-        if force_template_description or product_tmpl.meli_description==False or ( product_tmpl.meli_description and len(product_tmpl.meli_description)==0):
+        if 1==1 or force_template_description or product_tmpl.meli_description==False or ( product_tmpl.meli_description and len(product_tmpl.meli_description)==0):
             parser = MyHTMLParser()
+            _logger.info("parsing website_description:"+str(parser))
             html_des = ("website_description" in product_tmpl._fields and product_tmpl.website_description)
             if html_des:
                 _logger.info("parsing website_description:"+str(html_des))
