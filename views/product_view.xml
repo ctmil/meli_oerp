@@ -227,11 +227,11 @@
             <field name="inherit_id" ref="product.product_product_tree_view"/>
             <field name="arch" type="xml">
                 <field name="default_code" position="before">
-                    <field name="meli_pub"/>
-                    <field name="meli_id" invisible="0"/>
-                    <field name="meli_id_variation" invisible="0"/>
-                    <field name="meli_status" invisible="1"/>
-                    <field name="meli_sub_status" invisible="1"/>
+                    <field name="meli_pub" optional="show"/>
+                    <field name="meli_id" invisible="0"  optional="show"/>
+                    <field name="meli_id_variation" invisible="0"  optional="show"/>
+                    <field name="meli_status" invisible="1"  optional="show"/>
+                    <field name="meli_sub_status" invisible="1"  optional="show"/>
                 </field>
             </field>
         </record>
