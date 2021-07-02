@@ -47,6 +47,21 @@ from .versions import *
 
 from html.parser import HTMLParser
 
+class MyHTMLParser(HTMLParser):
+    full_text = ""
+
+    def handle_starttag(self, tag, attrs):
+        #print("Encountered a start tag:", tag)
+        full_text+= "\n"
+
+    def handle_endtag(self, tag):
+        #print("Encountered an end tag :", tag)
+        full_text+= ""
+
+    def handle_data(self, data):
+        #print("Encountered some data  :", data)
+        full_text+= str(data)
+
 class product_template(models.Model):
     _inherit = "product.template"
 
@@ -2162,7 +2177,10 @@ class product_product(models.Model):
             parser = MyHTMLParser()
             html_des = ("website_description" in product_tmpl._fields and product_tmpl.website_description)
             if html_des:
-                html_des = parser.feed(html_des)
+                _logger.info("parsing website_description:"+str(html_des))
+                parser.feed(html_des)
+                html_des = parser.full_text
+                _logger.info("parsing website_description html:"+str(html_des))
             product_tmpl.meli_description = html_des or product_tmpl.description_sale
 
         #_product_post_set_title
