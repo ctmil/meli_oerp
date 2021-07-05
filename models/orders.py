@@ -180,6 +180,33 @@ class sale_order(models.Model):
             return invoices[0]
         return None
 
+    def meli_amount_to_invoice( self, meli=None, config=None ):
+
+        total_config = ("mercadolibre_order_total_config" in config._fields) and config.mercadolibre_order_total_config
+
+        if not config or not total_config:
+            return self.meli_total_amount;
+
+        if total_config in ['manual']:
+            #resolve always as conflict
+            return 0
+
+        if total_config in ['manual_conflict']:
+            if abs(self.meli_total_amount - self.meli_paid_amount)<1.0:
+                return self.meli_paid_amount
+            else:
+                #conflict if do not match
+                return 0
+
+        if total_config in ['paid_amount']:
+            return self.meli_paid_amount
+
+        if total_config in ['total_amount']:
+            return self.meli_total_amount
+
+        return 0
+
+
     def confirm_ml( self, meli=None, config=None ):
         try:
             _logger.info("meli_oerp confirm_ml")
@@ -189,8 +216,8 @@ class sale_order(models.Model):
 
             stock_picking = self.env["stock.picking"]
 
-            #confirm_cond = abs(self.meli_total_amount - self.amount_total) < 1.0
-            confirm_cond = abs(self.meli_paid_amount - self.amount_total) < 1.0
+            amount_to_invoice = self.meli_amount_to_invoice( meli=meli, config=config )
+            confirm_cond = (amount_to_invoice > 0)
             if not confirm_cond:
                 return {'error': "Condition not met: meli_paid_amount and amount_total doesn't match"}
 
