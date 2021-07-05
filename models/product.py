@@ -45,6 +45,23 @@ if (not ('replace' in string.__dict__)):
 from . import versions
 from .versions import *
 
+from html.parser import HTMLParser
+
+class MyHTMLParser(HTMLParser):
+    full_text = ""
+
+    def handle_starttag(self, tag, attrs):
+        #print("Encountered a start tag:", tag)
+        self.full_text+= ""
+
+    def handle_endtag(self, tag):
+        #print("Encountered an end tag :", tag)
+        self.full_text+= " "
+
+    def handle_data(self, data):
+        #print("Encountered some data  :", data)
+        self.full_text+= str(data)
+
 class product_template(models.Model):
     _inherit = "product.template"
 
@@ -2157,7 +2174,15 @@ class product_product(models.Model):
                                         and config.mercadolibre_product_template_override_method in ['default','description','title_and_description']
                                         )
         if force_template_description or product_tmpl.meli_description==False or ( product_tmpl.meli_description and len(product_tmpl.meli_description)==0):
-            product_tmpl.meli_description = product_tmpl.description_sale
+            parser = MyHTMLParser()
+            _logger.info("parsing website_description:"+str(parser))
+            html_des = ("website_description" in product_tmpl._fields and product_tmpl.website_description)
+            if html_des:
+                _logger.info("parsing website_description:"+str(html_des))
+                parser.feed(html_des)
+                html_des = parser.full_text
+                _logger.info("parsing website_description html:"+str(html_des))
+            product_tmpl.meli_description = html_des or product_tmpl.description_sale
 
         #_product_post_set_title
         if (
@@ -2230,6 +2255,8 @@ class product_product(models.Model):
         if product_tmpl.meli_warranty:
             product.meli_warranty=product_tmpl.meli_warranty
 
+        if (product_tmpl.meli_brand==False or len(product_tmpl.meli_brand)==0):
+            product_tmpl.meli_brand = ("product_brand_id" in product_tmpl._fields and product_tmpl.product_brand_id and product_tmpl.product_brand_id.name )
         if product.meli_brand==False or len(product.meli_brand)==0:
             product.meli_brand = product_tmpl.meli_brand
         if product.meli_model==False or len(product.meli_model)==0:
