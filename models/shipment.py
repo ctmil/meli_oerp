@@ -394,26 +394,28 @@ class mercadolibre_shipment(models.Model):
             delivery_price = ml_product_price_conversion( self, product_related_obj=product_shipping_id, price=del_price, config=config ),
             if type(delivery_price)==tuple and len(delivery_price):
                 delivery_price = delivery_price[0]
-            
-            conflict = abs( sorder.meli_paid_amount - sorder.meli_total_amount ) > 1.0
 
-            received_amount = sorder.meli_paid_amount            
-            if (1==2):
-                received_amount = sorder.meli_total_amount
-            
+            received_amount = sorder.meli_amount_to_invoice( meli=meli, config=config )
+            conflict = ( received_amount == 0.0 )
+
+            if conflict:
+                _logger.info("Order totals conflict, manual check needed.")
+                continue;
+            #if (1==2):
+            #    received_amount = sorder.meli_total_amount
+
             _logger.info("delivery_price:"+str(delivery_price)+" received_amount: "+str(received_amount) +" amount_total:"+str(sorder.amount_total) )
             shipment_amount_cond = abs(received_amount - sorder.amount_total)>1.0 and (delivery_price>0.0)
-            
+
             _logger.info("shipment_amount_cond:"+str(shipment_amount_cond))
             shipment_amount_cond_fix = (sorder.amount_total - received_amount)>1.0 and (delivery_price>0.0)
-            
+
             _logger.info("shipment_amount_cond_fix:"+str(shipment_amount_cond_fix))
             shipment_amount_cond_fix2 = (sorder.amount_total - received_amount)<-1.0 and (delivery_price>0.0)
 
             if (not shipment_amount_cond) or shipment_amount_cond_fix:
                 _logger.info("shipment_cond: "+str(shipment_amount_cond)+" paid: "+str(received_amount)+" vs total: "+str(sorder.amount_total))
                 if ( ship_carrier_id and sorder.carrier_id):
-                #if ( ship_carrier_id and sorder.carrier_id and abs( sorder.amount_total - sorder.meli_paid_amount - delivery_price ) < 1.0 ):
                     delivery_price = 0.0
                     set_delivery_line( sorder, delivery_price, "Defined by MELI" )
                 delivery_price = 0.0
