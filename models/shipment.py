@@ -741,13 +741,20 @@ class mercadolibre_shipment(models.Model):
                     if (partner_id.id):
 
                         sorder_pack = self.env["sale.order"].search( [ ('meli_order_id','=',packed_order_ids) ] )
-
+                        totales = {}
+                        totales['total_amount'] = 0
+                        totales['paid_amount'] = 0
+                        for oi in all_orders:
+                            ord = oi
+                            totales['total_amount']+= ord["total_amount"]
+                            totales['paid_amount']+= ord["paid_amount"]
+                            
                         order_json = {
                             "id": all_orders[0]["order_id"],
                             'status': all_orders[0]["status"],
                             'status_detail': all_orders[0]["status_detail"] or '' ,
-                            'total_amount': shipment.order_cost,
-                            'paid_amount': shipment.order_cost,
+                            'total_amount': totales["total_amount"], #shipment.order_cost,
+                            'paid_amount': totales["paid_amount"], #shipment.order_cost,
                             'currency_id': all_orders[0]["currency_id"],
                             "date_created": all_orders[0]["date_created"],
                             "date_closed": all_orders[0]["date_closed"],
