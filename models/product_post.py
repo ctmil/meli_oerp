@@ -152,6 +152,8 @@ class product_post(models.TransientModel):
     _name = "mercadolibre.product.post"
     _description = "Wizard de Product Posting en MercadoLibre"
 
+    force_meli_pub = fields.Boolean(string="Forzar publicación",help="Forzar publicación de todos los seleccionados",default=False)
+    force_meli_active = fields.Boolean(string="Forzar activación",help="Forzar activaciónde todos los seleccionados",default=False)
     type = fields.Selection([('post','Alta'),('put','Editado'),('delete','Borrado')], string='Tipo de operación' )
     posting_date = fields.Date('Fecha del posting')
 	    #'company_id': fields.many2one('res.company',string='Company'),
@@ -179,6 +181,9 @@ class product_post(models.TransientModel):
         for product_id in product_ids:
             product = product_obj.browse(product_id)
             #import pdb;pdb.set_trace();
+            if (self.force_meli_pub and not product.meli_pub):
+                product.meli_pub = True
+                
             if (product.meli_pub):
 
                 if self.post_stock:
@@ -240,7 +245,7 @@ class product_product_update(models.TransientModel):
                 if (product.meli_pub):
                     res = product.product_meli_get_product()
 
-            if 'name' in res:
+            if res and 'name' in res:
                 return res
 
         return res
