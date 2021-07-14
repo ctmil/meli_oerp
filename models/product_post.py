@@ -47,7 +47,7 @@ class product_template_post(models.TransientModel):
     #'company_id': fields.many2one('res.company',string='Company'),
     #'mercadolibre_state': fields.related( 'res.company', 'mercadolibre_state', string="State" )
     post_stock = fields.Boolean(string="Actualizar Stock",help="No actualiza el producto, solo el stock",default=False)
-    post_price = fields.Boolean(string="Acutalizar Precio",,help="No actualiza el producto, solo el precio",default=False)
+    post_price = fields.Boolean(string="Acutalizar Precio",help="No actualiza el producto, solo el precio",default=False)
 
 
     def pretty_json( self, data ):
@@ -157,7 +157,7 @@ class product_post(models.TransientModel):
 	    #'company_id': fields.many2one('res.company',string='Company'),
 	    #'mercadolibre_state': fields.related( 'res.company', 'mercadolibre_state', string="State" )
     post_stock = fields.Boolean(string="Actualizar Stock",help="No actualiza el producto, solo el stock",default=False)
-    post_price = fields.Boolean(string="Acutalizar Precio",,help="No actualiza el producto, solo el precio",default=False)
+    post_price = fields.Boolean(string="Acutalizar Precio",help="No actualiza el producto, solo el precio",default=False)
 
 
     def pretty_json( self, data ):
