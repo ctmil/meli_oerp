@@ -2868,10 +2868,11 @@ class product_product(models.Model):
                             if (config.mercadolibre_post_default_code): #TODO: fixing SKU must be specific parameter
                                 addvar["seller_custom_field"] = product.default_code
                             addvar["price"] = same_price
-                            #_logger.info("Add variation!")
-                            #_logger.info(addvar)
+                            _logger.info("Add variation!")
+                            _logger.info(addvar)
                             responsevar = meli.post("/items/"+product.meli_id+"/variations", addvar, {'access_token':meli.access_token})
                             if responsevar:
+                                _logger.info(responsevar.json())
                                 rjson = responsevar.json()
                                 if rjson:
                                     if "error" in rjson:
