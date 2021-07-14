@@ -2831,7 +2831,7 @@ class product_product(models.Model):
                         same_price = productjson["variations"][ix]["price"]
                         #_logger.info(productjson["variations"][ix])
                         if (self._is_product_combination(productjson["variations"][ix])):
-                            #_logger.info("_is_product_combination! Post stock to variation")
+                            _logger.info("_is_product_combination! Post stock to variation")
                             #_logger.info(productjson["variations"][ix])
                             found_comb = True
                             #reset meli_id_variation (TODO: resetting must be done outside)
@@ -2843,10 +2843,10 @@ class product_product(models.Model):
                             }
                             varias["variations"].append(var)
                             #_logger.info(varias)
-                            #_logger.info(var)
+                            _logger.info(var)
                             responsevar = meli.put("/items/"+product.meli_id+'/variations/'+str( product.meli_id_variation ), var, {'access_token':meli.access_token})
-                            #_logger.info(responsevar.json())
                             if responsevar:
+                                _logger.info(responsevar.json())
                                 rjson = responsevar.json()
                                 if rjson:
                                     if "error" in rjson:
@@ -2858,7 +2858,7 @@ class product_product(models.Model):
 
                     if found_comb==False:
                         #add combination!!
-                        #_logger.info("add combination")
+                        _logger.info("Combination not founded: add combination")
                         addvar = self._combination()
                         #_logger.info(addvar)
                         if addvar:
