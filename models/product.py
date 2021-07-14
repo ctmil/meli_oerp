@@ -2829,8 +2829,8 @@ class product_product(models.Model):
                             if (len(productjson["variations"][ix]["picture_ids"])>len(pictures_v)):
                                 pictures_v = productjson["variations"][ix]["picture_ids"]
                         same_price = productjson["variations"][ix]["price"]
-                        #_logger.info(productjson["variations"][ix])
-                        if (self._is_product_combination(productjson["variations"][ix]) or productjson["variations"][ix]["id"]==product.meli_id_variation):
+                        _logger.info(productjson["variations"][ix])
+                        if (self._is_product_combination(productjson["variations"][ix]) or str(productjson["variations"][ix]["id"])==str(product.meli_id_variation)):
                             _logger.info("_is_product_combination! Post stock to variation")
                             #_logger.info(productjson["variations"][ix])
                             found_comb = True
