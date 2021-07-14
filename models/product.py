@@ -352,6 +352,26 @@ class product_template(models.Model):
                     coma = ","
             tpl.meli_ids = ml_ids
 
+    def product_template_post_stock( self, context=None, meli=None ):
+        _logger.info("base product.template: product_template_post_stock")
+        custom_context = {}
+        context = context or self.env.context
+        force_meli_pub = False
+        force_meli_active = False
+        if ("force_meli_pub" in context):
+            force_meli_pub = context.get("force_meli_pub")
+            custom_context = { "force_meli_pub": force_meli_pub, "force_meli_active": force_meli_active }
+        if ("force_meli_active" in context):
+            force_meli_active = context.get("force_meli_active")
+            custom_context = { "force_meli_pub": force_meli_pub, "force_meli_active": force_meli_active }
+        _logger.info(custom_context)
+        res = []
+        for productT in self:
+            for variant in productT.product_variant_ids:
+                r = variant.with_context(custom_context).product_post_stock(meli=meli)
+                res.append(r)
+        return res
+
     name = fields.Char('Name', size=128, required=True, translate=False, index=True)
     meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
     meli_description = fields.Text(string='Descripción')
