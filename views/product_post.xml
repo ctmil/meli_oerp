@@ -8,6 +8,14 @@
               <field name="type">form</field>
               <field name="arch" type="xml">
                 <form string="Publicar/Actualizar en Mercado Libre">
+                    <group string="Opciones de publicación" col="2">
+                      <group>
+                        <field name="force_meli_pub"/>
+                        <field name="force_meli_active"/>
+                        <field name="post_stock"/>
+                        <field name="post_price"/>
+                      </group>
+                    </group>
                     <footer>
                         <button name="product_post" string="Publicar" title="Publicar/Actualizar en Mercado Libre"  type="object" class="oe_highlight"  />
                         <button string="Cancel" class="oe_link" special="cancel" />
@@ -26,6 +34,8 @@
                       <group>
                         <field name="force_meli_pub"/>
                         <field name="force_meli_active"/>
+                        <field name="post_stock"/>
+                        <field name="post_price"/>
                       </group>
                     </group>
                     <footer>

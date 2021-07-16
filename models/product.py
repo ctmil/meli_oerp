@@ -352,6 +352,26 @@ class product_template(models.Model):
                     coma = ","
             tpl.meli_ids = ml_ids
 
+    def product_template_post_stock( self, context=None, meli=None ):
+        _logger.info("base product.template: product_template_post_stock")
+        custom_context = {}
+        context = context or self.env.context
+        force_meli_pub = False
+        force_meli_active = False
+        if ("force_meli_pub" in context):
+            force_meli_pub = context.get("force_meli_pub")
+            custom_context = { "force_meli_pub": force_meli_pub, "force_meli_active": force_meli_active }
+        if ("force_meli_active" in context):
+            force_meli_active = context.get("force_meli_active")
+            custom_context = { "force_meli_pub": force_meli_pub, "force_meli_active": force_meli_active }
+        _logger.info(custom_context)
+        res = []
+        for productT in self:
+            for variant in productT.product_variant_ids:
+                r = variant.with_context(custom_context).product_post_stock(meli=meli)
+                res.append(r)
+        return res
+
     name = fields.Char('Name', size=128, required=True, translate=False, index=True)
     meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
     meli_description = fields.Text(string='Descripción')
@@ -2809,9 +2829,9 @@ class product_product(models.Model):
                             if (len(productjson["variations"][ix]["picture_ids"])>len(pictures_v)):
                                 pictures_v = productjson["variations"][ix]["picture_ids"]
                         same_price = productjson["variations"][ix]["price"]
-                        #_logger.info(productjson["variations"][ix])
-                        if (self._is_product_combination(productjson["variations"][ix])):
-                            #_logger.info("_is_product_combination! Post stock to variation")
+                        _logger.info(productjson["variations"][ix])
+                        if (self._is_product_combination(productjson["variations"][ix]) or str(productjson["variations"][ix]["id"])==str(product.meli_id_variation)):
+                            _logger.info("_is_product_combination! Post stock to variation")
                             #_logger.info(productjson["variations"][ix])
                             found_comb = True
                             #reset meli_id_variation (TODO: resetting must be done outside)
@@ -2823,10 +2843,11 @@ class product_product(models.Model):
                             }
                             varias["variations"].append(var)
                             #_logger.info(varias)
-                            #_logger.info(var)
+                            _logger.info(var)
                             responsevar = meli.put("/items/"+product.meli_id+'/variations/'+str( product.meli_id_variation ), var, {'access_token':meli.access_token})
                             #_logger.info(responsevar.json())
                             if responsevar:
+                                _logger.info(responsevar.json())
                                 rjson = responsevar.json()
                                 if rjson:
                                     if "error" in rjson:
@@ -2838,7 +2859,7 @@ class product_product(models.Model):
 
                     if found_comb==False:
                         #add combination!!
-                        #_logger.info("add combination")
+                        _logger.info("Combination not founded: add combination")
                         addvar = self._combination()
                         #_logger.info(addvar)
                         if addvar:
@@ -2848,10 +2869,11 @@ class product_product(models.Model):
                             if (config.mercadolibre_post_default_code): #TODO: fixing SKU must be specific parameter
                                 addvar["seller_custom_field"] = product.default_code
                             addvar["price"] = same_price
-                            #_logger.info("Add variation!")
-                            #_logger.info(addvar)
+                            _logger.info("Add variation!")
+                            _logger.info(addvar)
                             responsevar = meli.post("/items/"+product.meli_id+"/variations", addvar, {'access_token':meli.access_token})
                             if responsevar:
+                                _logger.info(responsevar.json())
                                 rjson = responsevar.json()
                                 if rjson:
                                     if "error" in rjson:
@@ -3138,6 +3160,7 @@ class product_product(models.Model):
 
     _sql_constraints = [
     #    ('unique_variant_meli_id_variation', 'unique(meli_id,meli_id_variation)', 'Meli Id, Meli Id Variation must be unique!'),
+        ('unique_variant_meli_id_variation','check(1=1)','Meli Id, Meli Id Variation duplication possible!')
     ]
 
 product_product()
