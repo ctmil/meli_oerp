@@ -76,7 +76,6 @@
                     <group string="Opciones de importación" col="2">
                       <group>
                         <field name="force_meli_pub"/>
-
                       </group>
                     </group>
                     <footer>

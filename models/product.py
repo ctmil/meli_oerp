@@ -2845,6 +2845,7 @@ class product_product(models.Model):
                             #_logger.info(varias)
                             _logger.info(var)
                             responsevar = meli.put("/items/"+product.meli_id+'/variations/'+str( product.meli_id_variation ), var, {'access_token':meli.access_token})
+                            #_logger.info(responsevar.json())
                             if responsevar:
                                 _logger.info(responsevar.json())
                                 rjson = responsevar.json()
