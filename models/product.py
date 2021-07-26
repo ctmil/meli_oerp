@@ -1411,6 +1411,7 @@ class product_product(models.Model):
                     product = variant
         else:
             #NO TIENE variantes pero tiene SKU
+            _logger.error("NO TIENE variantes pero tiene SKU "+str(rjson))
             seller_sku = None
             barcode = None
 
@@ -1427,10 +1428,12 @@ class product_product(models.Model):
             if barcode and not product.barcode:
                 try:
                     bcodes = self.env["product.product"].search([('barcode','=',barcode)])
+                    _logger.info("bcodes "+str(bcodes)+" for barcode:"+str(barcode))
                     if bcodes and len(bcodes):
                         _logger.error("Error barcode already defined! "+str(barcode))
                     else:
                         product.barcode = barcode
+                        _logger.info("product.barcode:"+str(product.barcode))
                 except:
                     _logger.error("Error updating barcode")
                     pass;
