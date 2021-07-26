@@ -1340,10 +1340,10 @@ class product_product(models.Model):
         _product_meli_id = product.meli_id
 
         #this write pull the trigger for create_variant_ids()...
-        #_logger.info("rewrite to create variants")
+        _logger.info("rewrite to create variants")
         if (company.mercadolibre_update_existings_variants):
             product_template.write({ 'attribute_line_ids': product_template.attribute_line_ids  })
-        #_logger.info("published_att_variants:"+str(published_att_variants))
+        _logger.info("published_att_variants:"+str(published_att_variants))
         if (published_att_variants):
             product_template.meli_pub_as_variant = True
 
@@ -1375,7 +1375,7 @@ class product_product(models.Model):
                             #_logger.info("has_sku")
                             #_logger.info(variation["seller_custom_field"])
                             try:
-                                variant.default_code = variation["seller_custom_field"] or variation["seller_sku"]
+                                variant.default_code = ("seller_ku" in variation and variation["seller_sku"]) or ("seller_custom_field" in variation and variation["seller_custom_field"])
                             except:
                                 pass;
                             variant.meli_id_variation = variation["id"]
