@@ -1024,6 +1024,8 @@ class product_product(models.Model):
                                         #_logger.info("Adding value id")
                                         attribute_line.value_ids = [(4,attribute_value_id)]
 
+        _logger.info("_get_variations:"+str(variations))
+
         return published_att_variants
 
     def is_variant_in_combination( self, ml_var_comb_default_code, var_default_code ):

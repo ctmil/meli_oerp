@@ -529,7 +529,7 @@ class res_company(models.Model):
                             if (productcreated):
                                 if (productcreated.product_tmpl_id):
                                     productcreated.product_tmpl_id.meli_pub = True
-                                _logger.info( "product created: " + str(productcreated) + " >> meli_id:" + str(rjson3['id']) + "-" + str( rjson3['title'].encode("utf-8")) )
+                                _logger.info( "product created: " + str(productcreated) + " >> meli_id:" + str(rjson3['id']) + " >> " + str( rjson3['title'].encode("utf-8")) )
                                 #pdb.set_trace()
                                 _logger.info(productcreated)
                                 productcreated.product_meli_get_product()
