@@ -1428,12 +1428,12 @@ class product_product(models.Model):
             if barcode and not product.barcode:
                 try:
                     bcodes = self.env["product.product"].search([('barcode','=',barcode)])
-                    _logger.info("bcodes "+str(bcodes)+" for barcode:"+str(barcode))
+                    _logger.info("bcodes "+str(bcodes)+" for barcode: "+str(barcode))
                     if bcodes and len(bcodes):
                         _logger.error("Error barcode already defined! "+str(barcode))
                     else:
                         product.barcode = barcode
-                        _logger.info("product.barcode:"+str(product.barcode))
+                        _logger.info("product.barcode: "+str(product.barcode))
                 except:
                     _logger.error("Error updating barcode")
                     pass;
@@ -1500,8 +1500,9 @@ class product_product(models.Model):
                     variant.meli_default_stock_product = ptemp_nfree
 
         if (company.mercadolibre_update_existings_variants and 'attributes' in rjson):
+            _logger.info("Update attributes: "+str(rjson['attributes']))
             self._get_non_variant_attributes(rjson['attributes'])
-
+        _logger.info("End product_meli_get_product")
         return {}
 
     def set_bom(self, has_sku=True):

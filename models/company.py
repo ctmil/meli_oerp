@@ -523,6 +523,7 @@ class res_company(models.Model):
                                 'description': rjson3['title'].encode("utf-8"),
                                 'meli_id': rjson3['id'],
                                 'meli_pub': True,
+                                'type': 'product'
                             }
                             #prod_fields['default_code'] = rjson3['id']
                             productcreated = self.env['product.product'].create((prod_fields))
