@@ -69,7 +69,12 @@ class product_template_post(models.TransientModel):
         res = {}
         _logger.info("context in product_template_post:")
         _logger.info(self.env.context)
-        custom_context = {'force_meli_pub': self.force_meli_pub, 'force_meli_active': self.force_meli_active }
+        custom_context = {
+            'force_meli_pub': self.force_meli_pub,
+            'force_meli_active': self.force_meli_active,
+            'post_stock': self.post_stock,
+            'post_price': self.post_price
+        }
         posted_products = 0
         for product_id in product_ids:
             product = product_obj.browse(product_id)
@@ -183,7 +188,7 @@ class product_post(models.TransientModel):
             #import pdb;pdb.set_trace();
             if (self.force_meli_pub and not product.meli_pub):
                 product.meli_pub = True
-                
+
             if (product.meli_pub):
 
                 if self.post_stock:

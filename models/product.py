@@ -1387,7 +1387,7 @@ class product_product(models.Model):
                                 if bcodes and len(bcodes):
                                     _logger.error("Error barcode already defined! "+str(variation["barcode"]))
                                 else:
-                                    variant.barcode = barcode
+                                    variant.barcode = variation["barcode"]
                             except:
                                 pass;
 
