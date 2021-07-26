@@ -1003,7 +1003,7 @@ class product_product(models.Model):
                                     pass
                                 else:
                                     #_logger.info("Creating att line id:")
-                                    att_vals = prepare_attribute( product_template.id, attribute_id, attribute_value_id )
+                                    att_vals = prepare_attribute( product_template_id=product_template.id, attribute_id=attribute_id, attribute_value_id=attribute_value_id )
                                     attribute_line =  self.env[prod_att_line].create(att_vals)
 
                                 if (attribute_line):
