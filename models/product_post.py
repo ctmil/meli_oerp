@@ -42,10 +42,12 @@ class product_template_post(models.TransientModel):
 
     force_meli_pub = fields.Boolean(string="Forzar publicación",help="Forzar publicación de todos los seleccionados",default=False)
     force_meli_active = fields.Boolean(string="Forzar activación",help="Forzar activaciónde todos los seleccionados",default=False)
-    type = fields.Selection([('post','Alta'),('put','Editado'),('delete','Borrado')], string='Tipo de operación' );
-    posting_date = fields.Date('Fecha del posting');
-	    #'company_id': fields.many2one('res.company',string='Company'),
-	    #'mercadolibre_state': fields.related( 'res.company', 'mercadolibre_state', string="State" )
+    type = fields.Selection([('post','Alta'),('put','Editado'),('delete','Borrado')], string='Tipo de operación' )
+    posting_date = fields.Date('Fecha del posting')
+    #'company_id': fields.many2one('res.company',string='Company'),
+    #'mercadolibre_state': fields.related( 'res.company', 'mercadolibre_state', string="State" )
+    post_stock = fields.Boolean(string="Actualizar Stock",help="No actualiza el producto, solo el stock",default=False)
+    post_price = fields.Boolean(string="Acutalizar Precio",help="No actualiza el producto, solo el precio",default=False)
 
 
     def pretty_json( self, data ):
@@ -67,7 +69,12 @@ class product_template_post(models.TransientModel):
         res = {}
         _logger.info("context in product_template_post:")
         _logger.info(self.env.context)
-
+        custom_context = {
+            'force_meli_pub': self.force_meli_pub,
+            'force_meli_active': self.force_meli_active,
+            'post_stock': self.post_stock,
+            'post_price': self.post_price
+        }
         posted_products = 0
         for product_id in product_ids:
             product = product_obj.browse(product_id)
@@ -75,9 +82,17 @@ class product_template_post(models.TransientModel):
                 if (self.force_meli_pub and not product.meli_pub):
                     product.meli_pub = True
                 if (product.meli_pub):
-                    res = product.with_context({'force_meli_pub': self.force_meli_pub, 'force_meli_active': self.force_meli_active }).product_template_post()
+
+                    if self.post_stock:
+                        res = product.with_context(custom_context).product_template_post_stock(meli=meli)
+                    if self.post_price:
+                        res = product.with_context(custom_context).product_template_post_price(meli=meli)
+                    if not self.post_stock and not self.post_price:
+                        res = product.with_context(custom_context).product_template_post()
+
                     if (res and 'name' in res):
                         return res
+
                     posted_products+=1
 
         if (posted_products==0 and not 'name' in res):
@@ -129,9 +144,9 @@ class product_template_update(models.TransientModel):
                     for variant in product.product_variant_ids:
                         variant.meli_pub = True
                 if (product.meli_pub):
-                    res = product.product_template_update(meli_id=meli_id)
+                        res = product.product_template_update(meli_id=meli_id)
 
-            if 'name' in res:
+            if res and 'name' in res:
                 return res
 
         return res
@@ -142,10 +157,14 @@ class product_post(models.TransientModel):
     _name = "mercadolibre.product.post"
     _description = "Wizard de Product Posting en MercadoLibre"
 
-    type = fields.Selection([('post','Alta'),('put','Editado'),('delete','Borrado')], string='Tipo de operación' );
-    posting_date = fields.Date('Fecha del posting');
+    force_meli_pub = fields.Boolean(string="Forzar publicación",help="Forzar publicación de todos los seleccionados",default=False)
+    force_meli_active = fields.Boolean(string="Forzar activación",help="Forzar activaciónde todos los seleccionados",default=False)
+    type = fields.Selection([('post','Alta'),('put','Editado'),('delete','Borrado')], string='Tipo de operación' )
+    posting_date = fields.Date('Fecha del posting')
 	    #'company_id': fields.many2one('res.company',string='Company'),
 	    #'mercadolibre_state': fields.related( 'res.company', 'mercadolibre_state', string="State" )
+    post_stock = fields.Boolean(string="Actualizar Stock",help="No actualiza el producto, solo el stock",default=False)
+    post_price = fields.Boolean(string="Acutalizar Precio",help="No actualiza el producto, solo el precio",default=False)
 
 
     def pretty_json( self, data ):
@@ -167,14 +186,23 @@ class product_post(models.TransientModel):
         for product_id in product_ids:
             product = product_obj.browse(product_id)
             #import pdb;pdb.set_trace();
+            if (self.force_meli_pub and not product.meli_pub):
+                product.meli_pub = True
+
             if (product.meli_pub):
-                res = product.product_post()
+
+                if self.post_stock:
+                    res = product.product_post_stock(meli=meli)
+                if self.post_price:
+                    res = product.product_post_price(meli=meli)
+                if not self.post_stock and not self.post_price:
+                    res = product.product_post()
 
             #Pausa
-            if (product.meli_pub==False and product.meli_id):
-                res = product.product_meli_status_pause()
+            #if (product.meli_pub==False and product.meli_id):
+            #    res = product.product_meli_status_pause()
 
-            if 'name' in res:
+            if res and 'name' in res:
                 return res
 
         return res
@@ -222,7 +250,7 @@ class product_product_update(models.TransientModel):
                 if (product.meli_pub):
                     res = product.product_meli_get_product()
 
-            if 'name' in res:
+            if res and 'name' in res:
                 return res
 
         return res
