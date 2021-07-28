@@ -1003,7 +1003,7 @@ class product_product(models.Model):
                                     pass
                                 else:
                                     #_logger.info("Creating att line id:")
-                                    att_vals = prepare_attribute( product_template.id, attribute_id, attribute_value_id )
+                                    att_vals = prepare_attribute( product_template_id=product_template.id, attribute_id=attribute_id, attribute_value_id=attribute_value_id )
                                     attribute_line =  self.env[prod_att_line].create(att_vals)
 
                                 if (attribute_line):
@@ -1023,6 +1023,8 @@ class product_product(models.Model):
                                     else:
                                         #_logger.info("Adding value id")
                                         attribute_line.value_ids = [(4,attribute_value_id)]
+
+        _logger.info("_get_variations:"+str(variations))
 
         return published_att_variants
 
@@ -1373,7 +1375,7 @@ class product_product(models.Model):
                             #_logger.info("has_sku")
                             #_logger.info(variation["seller_custom_field"])
                             try:
-                                variant.default_code = variation["seller_custom_field"] or variation["seller_sku"]
+                                variant.default_code = ("seller_ku" in variation and variation["seller_sku"]) or ("seller_custom_field" in variation and variation["seller_custom_field"])
                             except:
                                 pass;
                             variant.meli_id_variation = variation["id"]
@@ -1383,11 +1385,17 @@ class product_product(models.Model):
 
                         if ("barcode" in variation):
                             try:
-                                bcodes = self.env["product.product"].search([('barcode','=',variation["barcode"])])
+                                bcodes = self.env["product.product"].search([('barcode','=',variation["barcode"]),('active','=',True)])
+                                bcodes_archived = self.env["product.product"].search([('barcode','=',variation["barcode"]),('active','=',False)])
+
+                                if not bcodes and bcodes_archived:
+                                    _logger.error("Error barcode already defined! In archived product variant!!"+str(variation["barcode"]))
+                                    bcodes = bcodes_archived
+
                                 if bcodes and len(bcodes):
                                     _logger.error("Error barcode already defined! "+str(variation["barcode"]))
                                 else:
-                                    variant.barcode = barcode
+                                    variant.barcode = variation["barcode"]
                             except:
                                 pass;
 
@@ -1409,6 +1417,7 @@ class product_product(models.Model):
                     product = variant
         else:
             #NO TIENE variantes pero tiene SKU
+            _logger.error("NO TIENE variantes pero tiene SKU "+str(rjson))
             seller_sku = None
             barcode = None
 
@@ -1425,10 +1434,17 @@ class product_product(models.Model):
             if barcode and not product.barcode:
                 try:
                     bcodes = self.env["product.product"].search([('barcode','=',barcode)])
+                    bcodes_archived = self.env["product.product"].search([('barcode','=',barcode),('active','=',False)])
+
+                    if not bcodes and bcodes_archived:
+                        _logger.error("Error barcode already defined! In archived product variant!! "+str(barcode))
+                        bcodes = bcodes_archived
+
                     if bcodes and len(bcodes):
                         _logger.error("Error barcode already defined! "+str(barcode))
                     else:
                         product.barcode = barcode
+                        _logger.info("product.barcode: "+str(product.barcode))
                 except:
                     _logger.error("Error updating barcode")
                     pass;
@@ -1495,8 +1511,9 @@ class product_product(models.Model):
                     variant.meli_default_stock_product = ptemp_nfree
 
         if (company.mercadolibre_update_existings_variants and 'attributes' in rjson):
+            _logger.info("Update attributes: "+str(rjson['attributes']))
             self._get_non_variant_attributes(rjson['attributes'])
-
+        _logger.info("End product_meli_get_product")
         return {}
 
     def set_bom(self, has_sku=True):
@@ -2869,8 +2886,8 @@ class product_product(models.Model):
                             if (config.mercadolibre_post_default_code): #TODO: fixing SKU must be specific parameter
                                 addvar["seller_custom_field"] = product.default_code
                             addvar["price"] = same_price
-                            _logger.info("Add variation!")
-                            _logger.info(addvar)
+                            #_logger.info("Add variation!")
+                            #_logger.info(addvar)
                             responsevar = meli.post("/items/"+product.meli_id+"/variations", addvar, {'access_token':meli.access_token})
                             if responsevar:
                                 _logger.info(responsevar.json())
