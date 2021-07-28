@@ -152,6 +152,68 @@ class res_company(models.Model):
 
         _logger.info(str(company.name))
 
+        self.cron_meli_process_get_products( meli=apistate )
+
+        self.cron_meli_process_post_products( meli=apistate )
+
+        self.cron_meli_process_post_stock( meli=apistate )
+
+        self.cron_meli_process_post_price( meli=apistate )
+
+
+
+    def cron_meli_process_post_stock( self, meli=None ):
+
+        company = self.env.user.company_id
+        warningobj = self.pool.get('warning')
+
+        if not meli:
+            meli = self.env['meli.util'].get_new_instance(company)
+            if meli.needlogin_state:
+                return True
+
+        if (company.mercadolibre_cron_post_update_stock):
+            _logger.info("company.mercadolibre_cron_post_update_stock")
+            self.meli_update_remote_stock(meli=meli)
+
+    def cron_meli_process_post_price( self, meli=None ):
+
+        company = self.env.user.company_id
+        warningobj = self.pool.get('warning')
+
+        if not meli:
+            meli = self.env['meli.util'].get_new_instance(company)
+            if meli.needlogin_state:
+                return True
+
+        if (company.mercadolibre_cron_post_update_price):
+            _logger.info("company.mercadolibre_cron_post_update_price")
+            self.meli_update_remote_price(meli=apistate)
+
+    def cron_meli_process_post_products( self, meli=None ):
+
+        company = self.env.user.company_id
+        warningobj = self.pool.get('warning')
+
+        if not meli:
+            meli = self.env['meli.util'].get_new_instance(company)
+            if meli.needlogin_state:
+                return True
+
+        if (company.mercadolibre_cron_post_update_products or company.mercadolibre_cron_post_new_products):
+            _logger.info("company.mercadolibre_cron_post_update_products")
+            self.meli_update_remote_products(post_new=company.mercadolibre_cron_post_new_products)
+
+    def cron_meli_process_get_products( self, meli=None ):
+
+        company = self.env.user.company_id
+        warningobj = self.pool.get('warning')
+
+        if not meli:
+            meli = self.env['meli.util'].get_new_instance(company)
+            if meli.needlogin_state:
+                return True
+
         if (company.mercadolibre_cron_get_update_products):
             _logger.info("company.mercadolibre_cron_get_update_products")
             self.meli_update_local_products()
@@ -159,18 +221,6 @@ class res_company(models.Model):
         if (company.mercadolibre_cron_get_new_products):
             _logger.info("company.mercadolibre_cron_get_new_products")
             self.product_meli_get_products()
-
-        if (company.mercadolibre_cron_post_update_products or company.mercadolibre_cron_post_new_products):
-            _logger.info("company.mercadolibre_cron_post_update_products")
-            self.meli_update_remote_products(post_new=company.mercadolibre_cron_post_new_products)
-
-        if (company.mercadolibre_cron_post_update_stock):
-            _logger.info("company.mercadolibre_cron_post_update_stock")
-            self.meli_update_remote_stock(meli=apistate)
-
-        if (company.mercadolibre_cron_post_update_price):
-            _logger.info("company.mercadolibre_cron_post_update_price")
-            self.meli_update_remote_price(meli=apistate)
 
     def cron_meli_orders(self):
         _logger.info('company cron_meli_orders() ')
@@ -185,6 +235,16 @@ class res_company(models.Model):
         if (company.mercadolibre_cron_get_orders):
             _logger.info("company.mercadolibre_cron_get_orders")
             self.meli_query_orders()
+
+    def cron_meli_questions(self):
+        _logger.info('company cron_meli_questions() ')
+
+        company = self.env.user.company_id
+        warningobj = self.pool.get('warning')
+
+        apistate = self.env['meli.util'].get_new_instance(company)
+        if apistate.needlogin_state:
+            return True
 
         if (company.mercadolibre_cron_get_questions):
             _logger.info("company.mercadolibre_cron_get_questions")

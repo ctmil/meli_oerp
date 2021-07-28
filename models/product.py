@@ -1340,10 +1340,10 @@ class product_product(models.Model):
         _product_meli_id = product.meli_id
 
         #this write pull the trigger for create_variant_ids()...
-        _logger.info("rewrite to create variants")
+        #_logger.info("rewrite to create variants")
         if (company.mercadolibre_update_existings_variants):
             product_template.write({ 'attribute_line_ids': product_template.attribute_line_ids  })
-        _logger.info("published_att_variants:"+str(published_att_variants))
+        #_logger.info("published_att_variants:"+str(published_att_variants))
         if (published_att_variants):
             product_template.meli_pub_as_variant = True
 
@@ -2886,8 +2886,8 @@ class product_product(models.Model):
                             if (config.mercadolibre_post_default_code): #TODO: fixing SKU must be specific parameter
                                 addvar["seller_custom_field"] = product.default_code
                             addvar["price"] = same_price
-                            _logger.info("Add variation!")
-                            _logger.info(addvar)
+                            #_logger.info("Add variation!")
+                            #_logger.info(addvar)
                             responsevar = meli.post("/items/"+product.meli_id+"/variations", addvar, {'access_token':meli.access_token})
                             if responsevar:
                                 _logger.info(responsevar.json())
