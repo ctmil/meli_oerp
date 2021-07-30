@@ -372,7 +372,7 @@ class product_template(models.Model):
                 res.append(r)
         return res
 
-    name = fields.Char('Name', size=128, required=True, translate=False, index=True)
+    #name = fields.Char('Name', size=128, required=True, translate=False, index=True)
     meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
     meli_description = fields.Text(string='Descripción')
     meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre")

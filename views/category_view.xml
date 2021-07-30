@@ -133,7 +133,16 @@
                     </group>
                 </group>
                 <field name="meli_category_attributes" widget="url"/>
-                <field name="meli_category_attribute_ids"/>
+                <field name="meli_category_attribute_ids">
+                  <tree delete="0">
+                    <field name="name"/>
+                    <field name="att_id"/>
+                    <field name="required"/>
+                    <field name="value_type" optional="hide"/>
+                    <field name="hidden" optional="hide"/>
+                    <field name="variation_attribute"/>
+                  </tree>
+                </field>
               </form>
             </field>
         </record>

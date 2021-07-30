@@ -127,29 +127,7 @@ class mercadolibre_posting(models.Model):
                 for Question in questions:
                     cn = cn + 1
 
-                    question_answer = Question['answer']
-
-                    question_fields = {
-                        'posting_id': posting.id,
-                        'question_id': Question['id'],
-                        'date_created': ml_datetime(Question['date_created']),
-                        'item_id': Question['item_id'],
-                        'seller_id': Question['seller_id'],
-                        'text': Question['text'].encode("utf-8"),
-                        'status': Question['status'],
-                    }
-
-                    if (question_answer):
-                        question_fields['answer_text'] = question_answer['text'].encode("utf-8")
-                        question_fields['answer_status'] = question_answer['status']
-                        question_fields['answer_date_created'] = ml_datetime(question_answer['date_created'])
-
-                    question = questions_obj.search( [('question_id','=',question_fields['question_id'])])
-                    if not question:
-    	                question = questions_obj.create( ( question_fields ))
-                    else:
-                        if question:
-                            question.write( (question_fields) )
+                    self.env['mercadolibre.questions'].process_question(Question=Question,meli=meli,config=company)
 
 
         return {}
