@@ -809,9 +809,12 @@ class mercadolibre_shipment(models.Model):
                             _logger.info("Update sale.order pack")
                             #_logger.info(all_orders[0])
                             #_logger.info(meli_order_fields)
+                            sorder_pack.meli_fix_team( meli=meli, config=config )
                             sorder_pack.write(meli_order_fields)
+                            sorder_pack.meli_fix_team( meli=meli, config=config )
                         else:
                             sorder_pack = self.env["sale.order"].create(meli_order_fields)
+                            sorder_pack.meli_fix_team( meli=meli, config=config )
 
                         if (sorder_pack.id):
                             shipment.sale_order = sorder_pack
