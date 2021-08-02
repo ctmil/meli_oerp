@@ -21,9 +21,8 @@
 
 from odoo import fields, osv, models
 import logging
-from .meli_oerp_config import *
-
-from ..melisdk.meli import Meli
+from . import versions
+from .versions import *
 #https://api.mercadolibre.com/questions/search?item_id=MLA508223205
 
 class mercadolibre_questions(models.Model):
@@ -79,7 +78,7 @@ class mercadolibre_questions(models.Model):
     
     def process_question( self, question_id=None, Question=None, meli=None, config=None ):
         questions_obj = self
-        
+        question = None
         if question_id and not Question:
             Question = questions_obj.fetch( question_id=question_id, meli=meli, config=config )
         
@@ -100,5 +99,7 @@ class mercadolibre_questions(models.Model):
             else:
                 if question:
                     question.write( (question_fields) )
+        
+        return question
 
 mercadolibre_questions()
