@@ -280,6 +280,7 @@ class sale_order(models.Model):
         return res
 
     def meli_fix_team( self, meli=None, config=None ):
+        company = (config and "company_id" in config._fields and config.company_id) or self.env.user.company_id 
         seller_team = (config and config.mercadolibre_seller_team) or None
         so = self
         if so and so.team_id and so.team_id.company_id.id != company.id:
