@@ -279,6 +279,22 @@ class sale_order(models.Model):
         _logger.info("meli_oerp confirm_ml ended.")
         return res
 
+    def meli_fix_team( self, meli=None, config=None ):        
+        company = (config and "company_id" in config._fields and config.company_id) or self.env.user.company_id 
+        seller_team = (config and config.mercadolibre_seller_team) or None
+        _logger.info("meli_fix_team: company: "+str(company.name)+" seller_team:"+str(seller_team and seller_team.name))
+        so = self
+        if not so:
+            return None
+        team_id = so.sudo().team_id
+        _logger.info("meli_fix_team: so.team_id: "+str(team_id and team_id.name)) 
+        if team_id and team_id.company_id.id != company.id:
+            if (seller_team and seller_team.company_id.id == company.id):
+                so.sudo().write( { 'team_id': seller_team.id } )
+            else:
+                #unassigned bad team
+                so.sudo().write( { 'team_id': None } )
+    
     _sql_constraints = [
         ('unique_meli_order_id', 'unique(meli_order_id)', 'Mei Order id already exists!')
     ]
@@ -1024,7 +1040,9 @@ class mercadolibre_orders(models.Model):
         if (sorder and sorder.id):
             _logger.info("Updating sale.order: %s" % (sorder.id))
             #_logger.info(meli_order_fields)
+            sorder.meli_fix_team( meli=meli, config=config )
             sorder.write( meli_order_fields )
+            sorder.meli_fix_team( meli=meli, config=config )           
         else:
             #_logger.info(meli_order_fields)
             #user
@@ -1040,6 +1058,7 @@ class mercadolibre_orders(models.Model):
             else:
                 _logger.info("Adding new sale.order: " )
                 sorder = saleorder_obj.create((meli_order_fields))
+                sorder.meli_fix_team( meli=meli, config=config )
 
         #check error
         if not order:
