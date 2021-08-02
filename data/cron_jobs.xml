@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-	<data noupdate="1">
+	<data noupdate="0">
 
 				<record id="ir_cron_module_get_meli_state" model="ir.cron">
 										<field name="name">Get Meli State</field>
