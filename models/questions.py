@@ -50,7 +50,6 @@ class mercadolibre_questions(models.Model):
         question_fields = {
             'name': ''+str(Question['item_id']),
             'posting_id': "posting_id" in Question and Question["posting_id"],
-            'product_template_binding': "product_template_binding" in Question and Question["product_template_binding"],
             'question_id': Question['id'],
             'date_created': ml_datetime(Question['date_created']),
             'item_id': Question['item_id'],
@@ -59,7 +58,7 @@ class mercadolibre_questions(models.Model):
             'status': Question['status'],
         }
         return question_fields
-    
+
     def fetch( self, question_id=None, meli=None, config=None ):
         Question = None
         if not meli:
@@ -75,14 +74,14 @@ class mercadolibre_questions(models.Model):
                 Question = questions_json
                 
         return Question
-    
+
     def process_question( self, question_id=None, Question=None, meli=None, config=None ):
         questions_obj = self
         question = None
         if question_id and not Question:
             Question = questions_obj.fetch( question_id=question_id, meli=meli, config=config )
-        
-        
+
+
         if (Question and 'id' in Question):
             question_answer = 'answer' in Question and Question['answer']
 
@@ -99,7 +98,7 @@ class mercadolibre_questions(models.Model):
             else:
                 if question:
                     question.write( (question_fields) )
-        
+
         return question
 
 mercadolibre_questions()
