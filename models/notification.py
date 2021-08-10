@@ -215,14 +215,14 @@ class MercadolibreNotification(models.Model):
                 qjson =  questions.json()
                 if ('error' in qjson):
                     noti.state = 'FAILED'
-                    noti.processing_errors = str(qjson['error'])
+                    noti.processing_errors = str( ('message' in qjson and qjson['message']) or qjson['error'])
                 if ("item_id" in qjson):
                     posting = self.env["mercadolibre.posting"].search([('meli_id','=',qjson["item_id"])])
                     if (posting and len(posting)):
                         rsjson = posting.posting_query_questions()
                         if ('error' in rsjson):
                             noti.state = 'FAILED'
-                            noti.processing_errors = str( rsjson['error'] )
+                            noti.processing_errors = str( ('message' in rsjson and rsjson['message']) or rsjson['error'] )
                         else:
                             noti.state = 'SUCCESS'
                             noti.processing_errors = str(rsjson)
