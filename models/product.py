@@ -2640,7 +2640,7 @@ class product_product(models.Model):
                         "picture_ids": var_pics
                     }
                     var_attributes = product._update_sku_attribute( attributes=("attributes" in var_info and var_info["attributes"]), set_sku=config.mercadolibre_post_default_code )
-                    var_attributes and var.update({"attributes": var_attributes })
+                    var_attributes and var_info.update({"attributes": var_attributes })
                     varias["variations"].append(var_info)
 
                     #WARNING: only for single variation
