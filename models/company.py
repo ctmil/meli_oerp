@@ -189,7 +189,7 @@ class res_company(models.Model):
 
         if (company.mercadolibre_cron_post_update_price):
             _logger.info("company.mercadolibre_cron_post_update_price")
-            self.meli_update_remote_price(meli=apistate)
+            self.meli_update_remote_price(meli=meli)
 
     def cron_meli_process_post_products( self, meli=None ):
 
