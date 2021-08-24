@@ -51,12 +51,13 @@ class res_company(models.Model):
             "MBO": { "name": "Bolivia", "AUTH_URL": "https://auth.mercadolibre.com.bo" },
             "MLB": { "name": "Brasil", "AUTH_URL": "https://auth.mercadolibre.com.br" },
             "MLC": { "name": "Chile", "AUTH_URL": "https://auth.mercadolibre.cl" },
-            "MCR": {"name": "Costa Rica", "AUTH_URL": "https://auth.mercadolibre.com.cr" },
+            "MCR": { "name": "Costa Rica", "AUTH_URL": "https://auth.mercadolibre.com.cr" },
             "MLV": { "name": "Venezuela", "AUTH_URL": "https://auth.mercadolibre.com.ve" },
             "MRD": { "name": "Dominicana", "AUTH_URL": "https://auth.mercadolibre.com.do" },
             "MPA": { "name": "Panamá", "AUTH_URL": "https://auth.mercadolibre.com.pa" },
             "MPY": { "name": "Paraguay", "AUTH_URL": "https://auth.mercadolibre.com.py" },
             "MEC": { "name": "Ecuador", "AUTH_URL": "https://auth.mercadolibre.com.ec" },
+            "MLU": { "name": "Uruguay", "AUTH_URL": "https://auth.mercadolibre.com.uy" },
         }
         MLsite = self._get_ML_sites(meli=meli)
         if MLsite in ML_AUTH_URL:
