@@ -654,7 +654,9 @@ class mercadolibre_shipment(models.Model):
                         all_orders_ids = []
                         coma = ""
                         packed_order_ids =""
-                        for item in items_json:
+                        items_json_sorted = sorted(items_json, key=lambda x: x["order_id"], reverse=False)
+                        _logger.info("items_json_sorted:"+str(items_json_sorted))
+                        for item in items_json_sorted:
                             #check mercadolibre_orders for full pack
                             if "order_id" in item:
                                 #search order, if not present search orders...
@@ -739,8 +741,9 @@ class mercadolibre_shipment(models.Model):
                     #buyer_ids = buyers_obj.search([  ('buyer_id','=',buyer_fields['buyer_id'] ) ] )
                     partner_id = respartner_obj.search([  ('meli_buyer_id','=',ship_fields['receiver_id'] ) ] )
                     if (partner_id.id):
-
-                        sorder_pack = self.env["sale.order"].search( [ ('meli_order_id','=',packed_order_ids) ] )
+                        oname = "pack_id" in all_orders[0] and all_orders[0]["pack_id"] and str(  "ML %s" % ( str(all_orders[0]["pack_id"]) ) )
+                        oname = oname or str("ML %s" % ( str(all_orders[0]["order_id"]) ) )
+                        sorder_pack = self.env["sale.order"].search( [ '|',('meli_order_id','=',packed_order_ids), ('name','like', str(oname)) ], limit=1 )
                         totales = {}
                         totales['total_amount'] = 0
                         totales['paid_amount'] = 0
