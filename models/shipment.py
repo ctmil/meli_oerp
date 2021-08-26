@@ -743,7 +743,7 @@ class mercadolibre_shipment(models.Model):
                     if (partner_id.id):
                         oname = "pack_id" in all_orders[0] and all_orders[0]["pack_id"] and str(  "ML %s" % ( str(all_orders[0]["pack_id"]) ) )
                         oname = oname or str("ML %s" % ( str(all_orders[0]["order_id"]) ) )
-                        sorder_pack = self.env["sale.order"].search( [ '|',('meli_order_id','=',packed_order_ids), ('name','like', str(oname)) ], limit=1 )
+                        sorder_pack = self.env["sale.order"].search( [ '|',('meli_order_id','=',packed_order_ids), ('name','like', str(oname)) ], order="id asc", limit=1 )
                         totales = {}
                         totales['total_amount'] = 0
                         totales['paid_amount'] = 0
