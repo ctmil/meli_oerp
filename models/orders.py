@@ -182,7 +182,7 @@ class sale_order(models.Model):
 
     def meli_amount_to_invoice( self, meli=None, config=None ):
 
-        total_config = ("mercadolibre_order_total_config" in config._fields) and config.mercadolibre_order_total_config
+        total_config = (config and "mercadolibre_order_total_config" in config._fields) and config.mercadolibre_order_total_config
 
         if not config or not total_config:
             return self.meli_total_amount;
