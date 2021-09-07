@@ -1038,9 +1038,11 @@ class product_product(models.Model):
                 break;
         return is_in
 
-    def product_meli_get_product( self, meli_id=None ):
+    def product_meli_get_product( self, context=None, meli_id=None ):
         company = self.env.user.company_id
+
         config = company
+        context = context or self.env.context
         product_obj = self.env['product.product']
         uomobj = self.env[uom_model]
         #pdb.set_trace()
