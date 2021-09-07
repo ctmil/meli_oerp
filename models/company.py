@@ -65,6 +65,32 @@ class res_company(models.Model):
 
         return AUTH_URL+"/authorization"
 
+    def get_ML_LINK_URL(self,meli=False):
+
+        LINK_URL = "https://www.mercadolibre.com.ar"
+
+        ML_URL = {
+            "MLA": { "name": "Argentina", "LINK_URL": "https://www.mercadolibre.com.ar" },
+            "MLM": { "name": "México", "LINK_URL": "https://www.mercadolibre.com.mx" },
+            "MCO": { "name": "Colombia", "LINK_URL": "https://www.mercadolibre.com.co" },
+            "MPE": { "name": "Perú", "LINK_URL": "https://www.mercadolibre.com.pe" },
+            "MBO": { "name": "Bolivia", "LINK_URL": "https://www.mercadolibre.com.bo" },
+            "MLB": { "name": "Brasil", "LINK_URL": "https://www.mercadolibre.com.br" },
+            "MLC": { "name": "Chile", "LINK_URL": "https://www.mercadolibre.cl" },
+            "MCR": { "name": "Costa Rica", "LINK_URL": "https://www.mercadolibre.com.cr" },
+            "MLV": { "name": "Venezuela", "LINK_URL": "https://www.mercadolibre.com.ve" },
+            "MRD": { "name": "Dominicana", "LINK_URL": "https://www.mercadolibre.com.do" },
+            "MPA": { "name": "Panamá", "LINK_URL": "https://www.mercadolibre.com.pa" },
+            "MPY": { "name": "Paraguay", "LINK_URL": "https://www.mercadolibre.com.py" },
+            "MEC": { "name": "Ecuador", "LINK_URL": "https://www.mercadolibre.com.ec" },
+            "MLU": { "name": "Uruguay", "LINK_URL": "https://www.mercadolibre.com.uy" },
+        }
+        MLsite = self._get_ML_sites(meli=meli)
+        if MLsite in ML_URL:
+            LINK_URL =  ML_URL[MLsite]["LINK_URL"] or LINK_URL
+
+        return LINK_URL+"/"
+
     def _get_ML_currencies(self):
         #https://api.mercadolibre.com/currencies
         company = self.env.user.company_id

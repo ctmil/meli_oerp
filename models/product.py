@@ -1038,9 +1038,11 @@ class product_product(models.Model):
                 break;
         return is_in
 
-    def product_meli_get_product( self, meli_id=None ):
+    def product_meli_get_product( self, context=None, meli_id=None ):
         company = self.env.user.company_id
+
         config = company
+        context = context or self.env.context
         product_obj = self.env['product.product']
         uomobj = self.env[uom_model]
         #pdb.set_trace()
@@ -1886,6 +1888,7 @@ class product_product(models.Model):
         ML_status = "unknown"
         ML_sub_status = ""
         ML_permalink = ""
+        ML_permalink_edit = ""
         ML_state = False
         #meli = None
         #self.meli_status = ML_status
@@ -1901,6 +1904,7 @@ class product_product(models.Model):
         if meli and meli.need_login():
             ML_status = "unknown"
             ML_permalink = ""
+            ML_permalink_edit = ""
             ML_state = True
 
         for product in self:
@@ -1911,6 +1915,7 @@ class product_product(models.Model):
                     ML_status = rjson["status"]
                 if "permalink" in rjson:
                     ML_permalink = rjson["permalink"]
+                    ML_permalink_edit = company.get_ML_LINK_URL(meli=meli)+str("publicaciones/")+str(product.meli_id)+str("/modificar")
                 if "error" in rjson:
                     ML_status = rjson["error"]
                     ML_permalink = ""
@@ -1923,6 +1928,7 @@ class product_product(models.Model):
             product.meli_status = ML_status
             product.meli_sub_status = ML_sub_status
             product.meli_permalink = ML_permalink
+            product.meli_permalink_edit = ML_permalink_edit
             product.meli_state = ML_state
 
     def _is_value_excluded(self, att_value ):
@@ -3136,6 +3142,7 @@ class product_product(models.Model):
     meli_video = fields.Char( string='Video (id de youtube)', size=256)
 
     meli_permalink = fields.Char( compute=product_get_meli_update, size=256, string='Link',help='PermaLink in MercadoLibre' )
+    meli_permalink_edit = fields.Char( compute=product_get_meli_update, size=256, string='Link Edit',help='PermaLink Edit in MercadoLibre' )
     meli_state = fields.Boolean( compute=product_get_meli_update, string='Login',help="Inicio de sesión requerida" )
     meli_status = fields.Char( compute=product_get_meli_update, size=128, string='Status', help="Estado del producto en ML" )
     meli_sub_status = fields.Char( compute=product_get_meli_update, size=128, string='Sub status',help="Sub Estado del producto en ML" )
