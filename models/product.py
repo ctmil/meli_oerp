@@ -2536,7 +2536,7 @@ class product_product(models.Model):
                         }
 
                         #TODO: add pictures from real variant images
-                        var_pics = []
+                        var_pics_full = []
                         #if (len(body["pictures"])):
                         #    for pic in body["pictures"]:
                         #        var_pics.append(pic['id'])
@@ -2563,7 +2563,7 @@ class product_product(models.Model):
                                     if (var_multi_images_ids):
                                         for pic in var_multi_images_ids:
                                             var_pics.append(pic['id'])
-
+                                    var_pics_full+= var_pics
                                     vars_updated+= var_product
 
                             #TODO: add SKU
@@ -2577,6 +2577,7 @@ class product_product(models.Model):
                             }
                             var_attributes and var.update({"attributes": var_attributes })
                             varias["variations"].append(var)
+                            varias["pictures"] = var_pics_full
                         #variations = product_tmpl._variations()
                         #varias["variations"] = variations
                         _all_variations = product_tmpl._variations(config=config)
