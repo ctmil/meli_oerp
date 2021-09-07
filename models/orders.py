@@ -116,14 +116,16 @@ class sale_order(models.Model):
         res = super(sale_order,self).action_confirm()
         try:
             for order in self:
-                for line in order.order_line:
-                    #_logger.info(line)
-                    #_logger.info(line.is_delivery)
-                    #_logger.info(line.price_unit)
-                    if line.is_delivery and line.price_unit<=0.0:
+                if(order.meli_order_id):
+                    for line in order.order_line:
                         #_logger.info(line)
-                        line.write({ "qty_to_invoice": 0.0 })
-                        #_logger.info(line.qty_to_invoice)
+                        #_logger.info(line.is_delivery)
+                        #_logger.info(line.price_unit)
+                        if line.is_delivery and line.price_unit<=0.0:
+                            #_logger.info(line)
+                            line.write({ "qty_to_invoice": 0.0 })
+                            #_logger.info(line.qty_to_invoice)
+                            pass;
         except:
             pass;
 
@@ -146,14 +148,16 @@ class sale_order(models.Model):
         res = super(sale_order,self).action_done()
         try:
             for order in self:
-                for line in order.order_line:
-                    #_logger.info(line)
-                    #_logger.info(line.is_delivery)
-                    #_logger.info(line.price_unit)
-                    if line.is_delivery and line.price_unit<=0.0:
+                if(order.meli_order_id):
+                    for line in order.order_line:
                         #_logger.info(line)
-                        line.write({ "qty_to_invoice": 0.0 })
-                        #_logger.info(line.qty_to_invoice)
+                        #_logger.info(line.is_delivery)
+                        #_logger.info(line.price_unit)
+                        if line.is_delivery and line.price_unit<=0.0:
+                            #_logger.info(line)
+                            line.write({ "qty_to_invoice": 0.0 })
+                            #_logger.info(line.qty_to_invoice)
+                            pass;
         except:
             pass;
 
@@ -1358,10 +1362,11 @@ class mercadolibre_orders(models.Model):
                 #_logger.info(line)
                 #_logger.info(line.is_delivery)
                 #_logger.info(line.price_unit)
-                if line.is_delivery and line.price_unit<=0.0:
+                if sorder.meli_order_id and line.is_delivery and line.price_unit<=0.0:
                     #_logger.info(line)
                     line.write({ "qty_to_invoice": 0.0 })
                     #_logger.info(line.qty_to_invoice)
+                    pass;
 
             if (config.mercadolibre_order_confirmation!="manual"):
                 sorder.confirm_ml( meli=meli, config=config )
