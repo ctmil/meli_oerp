@@ -2561,7 +2561,8 @@ class product_product(models.Model):
 
                                     var_pics.append(var_product.meli_imagen_id)
                                     if (var_multi_images_ids):
-                                        var_pics+= var_multi_images_ids
+                                        for pic in var_multi_images_ids:
+                                            var_pics.append(pic['id'])
 
                                     vars_updated+= var_product
 
