@@ -2548,6 +2548,7 @@ class product_product(models.Model):
                             #_logger.info("Variation to update!!")
                             #_logger.info(var_info)
                             var_product = product
+                            var_pics = []
                             for pvar in product_tmpl.product_variant_ids:
                                 if (pvar._is_product_combination(var_info)):
                                     var_product = pvar
