@@ -1813,13 +1813,16 @@ class product_product(models.Model):
             return meli.redirect_login()
 
         image_ids = []
-        if (get_image_full(product_image)):
-            imagebin = base64.b64decode( get_image_full(product_image) )
+        field_image = get_image_full(product_image)
+        if (field_image):
+            imagebin = base64.b64decode( field_image )
             #files = { 'file': ('image.png', imagebin, "image/png"), }
             files = { 'file': ('image.jpg', imagebin, "image/jpeg"), }
             response = meli.upload("/pictures", files, { 'access_token': meli.access_token } )
-            rjson = response.json()
-            if ("error" in rjson):
+            rjson = response and response.json()
+            if ((rjson and "error" in rjson) or not rjson):
+                if not rjson:
+                    rjson = { "error": "Error subiendo imagen" }
                 #raise osv.except_osv( _('MELI WARNING'), _('No se pudo cargar la imagen en MELI! Error: %s , Mensaje: %s, Status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
                 return rjson
             else:
@@ -2533,10 +2536,10 @@ class product_product(models.Model):
                         }
 
                         #TODO: add pictures from real variant images
-                        var_pics = []
-                        if (len(body["pictures"])):
-                            for pic in body["pictures"]:
-                                var_pics.append(pic['id'])
+                        var_pics_full = []
+                        #if (len(body["pictures"])):
+                        #    for pic in body["pictures"]:
+                        #        var_pics.append(pic['id'])
 
                         _logger.info("Variations already posted, must update them only")
                         vars_updated = self.env["product.product"]
@@ -2545,14 +2548,29 @@ class product_product(models.Model):
                             #_logger.info("Variation to update!!")
                             #_logger.info(var_info)
                             var_product = product
+                            var_pics = []
                             for pvar in product_tmpl.product_variant_ids:
                                 if (pvar._is_product_combination(var_info)):
                                     var_product = pvar
                                     #upgrade variant stock
                                     var_product.meli_available_quantity = var_product._meli_available_quantity(meli=meli,config=config)
-                                    vars_updated+=var_product
+
+                                    #adding variant images
+                                    var_product.product_meli_upload_image(meli=meli,config=config)
+                                    var_multi_images_ids = var_product.product_meli_upload_multi_images(meli=meli,config=config)
+
+                                    var_pics.append(var_product.meli_imagen_id)
+                                    var_pics_full.append({ 'id': var_product.meli_imagen_id })
+                                    if (var_multi_images_ids):
+                                        for pic in var_multi_images_ids:
+                                            var_pics.append(pic['id'])
+                                            var_pics_full.append({ 'id': pic['id']})
+
+                                    vars_updated+= var_product
+
                             #TODO: add SKU
                             var_attributes = var_product._update_sku_attribute( attributes=("attributes" in var_info and var_info["attributes"]) or [], set_sku=config.mercadolibre_post_default_code)
+
                             var = {
                                 "id": str(var_info["id"]),
                                 "price": str(product_tmpl.meli_price),
@@ -2561,6 +2579,7 @@ class product_product(models.Model):
                             }
                             var_attributes and var.update({"attributes": var_attributes })
                             varias["variations"].append(var)
+                            varias["pictures"] = var_pics_full
                         #variations = product_tmpl._variations()
                         #varias["variations"] = variations
                         _all_variations = product_tmpl._variations(config=config)
