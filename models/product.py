@@ -2560,11 +2560,11 @@ class product_product(models.Model):
                                     var_multi_images_ids = var_product.product_meli_upload_multi_images(meli=meli,config=config)
 
                                     var_pics.append(var_product.meli_imagen_id)
-                                    var_pics_full.append(var_product.meli_imagen_id)
+                                    var_pics_full.append({ 'id': var_product.meli_imagen_id })
                                     if (var_multi_images_ids):
                                         for pic in var_multi_images_ids:
                                             var_pics.append(pic['id'])
-                                            var_pics_full.append(pic['id'])
+                                            var_pics_full.append({ 'id': pic['id']})
 
                                     vars_updated+= var_product
 
