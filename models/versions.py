@@ -138,10 +138,28 @@ def get_inventory_fields( product, warehouse ):
             "name": "INV: "+ product.name
             }
 
+def get_delivery_line(sorder):
+    delivery_line = None
+    try:
+        carrier_product_id = sorder.carrier_id.product_id.id 
+        for line in sorder.order_line:
+            if(line.product_id.id == carrier_product_id):
+                delivery_line = line
+                break
+        return delivery_line
+    except:
+        _logger.info("Error get delivery line failed")
+        return delivery_line
+
+
+
 def set_delivery_line( sorder, delivery_price, delivery_message ):
-    oline = sorder.set_delivery_line(sorder.carrier_id, delivery_price)
+    #check version
+    delivery_line = get_delivery_line(sorder)
+    if not delivery_line:
+        delivery_line = sorder.set_delivery_line(sorder.carrier_id, delivery_price)
     sorder.write({
     	'recompute_delivery_price': False,
     	'delivery_message': delivery_message,
     })
-    return oline
+    return delivery_line
