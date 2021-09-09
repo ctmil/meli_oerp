@@ -125,7 +125,8 @@
                           <field string="ML Price" name="meli_price"/>
                           <field string="ML Qty" name="meli_available_quantity"/>
                           <field string="Link" name="meli_permalink" widget="url"/>
-			  <!--field string="Link Edit" name="meli_permalink_edit" widget="url"/-->
+                          <!--field string="Link Edit" name="meli_permalink_edit" widget="url"/-->
+                          <!--field string="Link Api" name="meli_permalink_api" widget="url"/-->
                         </tree>
                       </field>
                       <separator string="Descripcion del producto en ML" colspan="1"/>
@@ -381,6 +382,7 @@
                             <group>
                               <field name="meli_permalink" widget="url" />
                               <!--field string="Link Edit" name="meli_permalink_edit" widget="url"/-->
+                              <!--field string="Link Api" name="meli_permalink_api" widget="url"/-->
                               <field name="meli_id" />
                               <field name="meli_id_variation"/>
                             </group>

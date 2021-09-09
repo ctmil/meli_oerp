@@ -698,7 +698,7 @@ class product_product(models.Model):
         except:
             pass;
 
-    def _meli_set_images( self, product_template, pictures, meli=None, config=None ):
+    def _meli_set_images( self, product_template, pictures, meli=None, config=None, rjson=None ):
         company = self.env.user.company_id
         config = config or company
 
@@ -707,6 +707,8 @@ class product_product(models.Model):
 
         if not ("product.image" in self.env):
             return {}
+
+        has_variations = rjson and "variations" in rjson and len(rjson["variations"])>1
 
         try:
             product = self
@@ -755,6 +757,10 @@ class product_product(models.Model):
                         'meli_pub': True
                     }
                     #_logger.info(pimg_fields)
+
+                    #for variant images:
+
+
                     if (variant_image_ids(product)):
                         #_logger.info("has variant image ids")
                         #_logger.info(variant_image_ids(product))
@@ -1116,7 +1122,7 @@ class product_product(models.Model):
         if pictures and len(pictures):
             #remove all meli images not in pictures:
             product._meli_remove_images_unsync( product_template, pictures )
-            product._meli_set_images(product_template, pictures)
+            product._meli_set_images(product_template=product_template, pictures=pictures, rjson=rjson)
 
         #categories
         product._meli_set_category( product_template, rjson['category_id'] )
@@ -1892,6 +1898,7 @@ class product_product(models.Model):
         ML_sub_status = ""
         ML_permalink = ""
         ML_permalink_edit = ""
+        ML_permalink_api = ""
         ML_state = False
         #meli = None
         #self.meli_status = ML_status
@@ -1908,6 +1915,7 @@ class product_product(models.Model):
             ML_status = "unknown"
             ML_permalink = ""
             ML_permalink_edit = ""
+            ML_permalink_api = ""
             ML_state = True
 
         for product in self:
@@ -1919,6 +1927,7 @@ class product_product(models.Model):
                 if "permalink" in rjson:
                     ML_permalink = rjson["permalink"]
                     ML_permalink_edit = company.get_ML_LINK_URL(meli=meli)+str("publicaciones/")+str(product.meli_id)+str("/modificar")
+                    ML_permalink_api = str("https://api.mercadolibre.com/items/")+str(product.meli_id)+str("?include_attributes=all")
                 if "error" in rjson:
                     ML_status = rjson["error"]
                     ML_permalink = ""
@@ -1932,6 +1941,7 @@ class product_product(models.Model):
             product.meli_sub_status = ML_sub_status
             product.meli_permalink = ML_permalink
             product.meli_permalink_edit = ML_permalink_edit
+            product.meli_permalink_api = ML_permalink_api
             product.meli_state = ML_state
 
     def _is_value_excluded(self, att_value ):
@@ -3162,6 +3172,7 @@ class product_product(models.Model):
 
     meli_permalink = fields.Char( compute=product_get_meli_update, size=256, string='Link',help='PermaLink in MercadoLibre' )
     meli_permalink_edit = fields.Char( compute=product_get_meli_update, size=256, string='Link Edit',help='PermaLink Edit in MercadoLibre' )
+    meli_permalink_api = fields.Char( compute=product_get_meli_update, size=256, string='Link Api',help='PermaLink Api in MercadoLibre' )
     meli_state = fields.Boolean( compute=product_get_meli_update, string='Login',help="Inicio de sesión requerida" )
     meli_status = fields.Char( compute=product_get_meli_update, size=128, string='Status', help="Estado del producto en ML" )
     meli_sub_status = fields.Char( compute=product_get_meli_update, size=128, string='Sub status',help="Sub Estado del producto en ML" )
