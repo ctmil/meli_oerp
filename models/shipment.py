@@ -603,6 +603,7 @@ class mercadolibre_shipment(models.Model):
                 if "receiver_address" in ship_json and ship_json["receiver_address"]:
                     ship_fields.update({
                         "receiver_address_id": ship_json["receiver_address"]["id"],
+                        "receiver_address_phone": ship_json["receiver_address"]["receiver_phone"],
                         "receiver_address_name": ship_json["receiver_address"]["receiver_name"],
                         "receiver_address_line": ship_json["receiver_address"]["address_line"],
                         "receiver_address_comment": ship_json["receiver_address"]["comment"],
