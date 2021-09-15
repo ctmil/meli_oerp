@@ -64,9 +64,19 @@ class mercadolibre_category_import(models.TransientModel):
         if meli.need_login():
             return meli.redirect_login()
 
+        _logger.info("Meli Category Import Wizard")
         _logger.info(context)
-        if ( self.meli_category_id ):
+        if ( self.meli_category_id):
+            _logger.info("Import single category: "+str(self.meli_category_id))
             catid = self.env["mercadolibre.category"].import_all_categories( self.meli_category_id, self.meli_recursive_import )
+        else:
+            _logger.info("Importing active categories: "+str(mlcat_ids))
+            for ml_cat_id in mlcat_ids:
+                _logger.info("Importing single: "+str(ml_cat_id))
+                ml_cat = mlcat_obj.browse([ml_cat_id])
+                if ml_cat:
+                    meli_category_id = ml_cat.meli_category_id
+                    catid = self.env["mercadolibre.category"].import_all_categories( meli_category_id, self.meli_recursive_import )
 
 
 mercadolibre_category_import()
@@ -114,6 +124,50 @@ class mercadolibre_category(models.Model):
     _name = "mercadolibre.category"
     _description = "Categories of MercadoLibre"
 
+    def create_ecommerce_category(self, category_id, meli=None, create_missing_website=True ):
+
+        _logger.info("Creating Ecommerce Category "+str(category_id))
+
+        www_cats = self.env['product.public.category']
+
+        if not meli or not www_cats or not category_id:
+            return False
+
+        response_cat = meli.get("/categories/"+str(category_id), {'access_token':meli.access_token})
+        rjson_cat = response_cat and response_cat.json()
+
+        #_logger.info( "category:" + str(rjson_cat) )
+        fullname = ""
+
+        if (rjson_cat and "path_from_root" in rjson_cat):
+
+            path_from_root = rjson_cat["path_from_root"]
+            p_id = False
+
+            #pdb.set_trace()
+            for path in path_from_root:
+
+                fullname = fullname + "/" + path["name"]
+
+                if (create_missing_website and www_cats ):
+                    if www_cats!=False:
+                        www_cat_id = www_cats.search([('name','=',path["name"])]).id
+                        if www_cat_id==False:
+                            www_cat_fields = {
+                              'name': path["name"],
+                              #'parent_id': p_id,
+                              #'sequence': 1
+                            }
+                            if p_id:
+                                www_cat_fields['parent_id'] = p_id
+                            www_cat_id = www_cats.create((www_cat_fields)).id
+                            if www_cat_id:
+                                _logger.info("Website Category created:"+fullname)
+
+                        p_id = www_cat_id
+            return p_id
+        return False
+
     def meli_get_category( self, category_id, meli=None, create_missing_website=True ):
 
         company = self.env.user.company_id
@@ -135,36 +189,11 @@ class mercadolibre_category(models.Model):
             mlcatid = ml_cat_id
             if www_cats:
                 www_cat_id = ml_cat.public_category_id
-        else:
+
+        if not www_cat_id:
             #_logger.info( "Creating category: " + str(category_id) )
             #https://api.mercadolibre.com/categories/MLA1743
-            response_cat = meli.get("/categories/"+str(category_id), {'access_token':meli.access_token})
-            rjson_cat = response_cat.json()
-            #_logger.info( "category:" + str(rjson_cat) )
-            fullname = ""
-            if ("path_from_root" in rjson_cat):
-                path_from_root = rjson_cat["path_from_root"]
-                p_id = False
-                #pdb.set_trace()
-                for path in path_from_root:
-                    fullname = fullname + "/" + path["name"]
-
-                    if (create_missing_website and ('product.public.category' in self.env) ):
-                        if www_cats!=False:
-                            www_cat_id = www_cats.search([('name','=',path["name"])]).id
-                            if www_cat_id==False:
-                                www_cat_fields = {
-                                  'name': path["name"],
-                                  #'parent_id': p_id,
-                                  #'sequence': 1
-                                }
-                                if p_id:
-                                    www_cat_fields['parent_id'] = p_id
-                                www_cat_id = www_cats.create((www_cat_fields)).id
-                                if www_cat_id:
-                                    _logger.info("Website Category created:"+fullname)
-
-                            p_id = www_cat_id
+            www_cat_id = self.create_ecommerce_category( category_id=category_id, meli=meli, create_missing_website=create_missing_website )
 
             #fullname = fullname + "/" + rjson_cat['name']
             #_logger.info( "category fullname:" + fullname )
@@ -172,12 +201,14 @@ class mercadolibre_category(models.Model):
                 'name': fullname,
                 'meli_category_id': ''+str(category_id),
                 'public_category_id': 0,
+                'public_category': False
             }
 
             if www_cat_id:
                 p_cat_id = www_cats.search([('id','=',www_cat_id)])
                 if (len(p_cat_id)):
                     cat_fields['public_category_id'] = www_cat_id
+                    cat_fields['public_category'] = p_cat_id.id
                 #cat_fields['public_category'] = p_cat_id
 
             ml_cat_id = self.env['mercadolibre.category'].create((cat_fields)).id
@@ -334,14 +365,21 @@ class mercadolibre_category(models.Model):
                 except:
                     _logger.error("No se pudo importar: "+ str(obj.meli_father_category_id))
 
-    def import_category(self, category_id ):
+    def import_category(self, category_id, meli=None, create_missing_website=False ):
+
+        _logger.info("Import Category "+str(category_id))
         company = self.env.user.company_id
 
         warningobj = self.env['warning']
         category_obj = self.env['mercadolibre.category']
+        www_cats = self.env['product.public.category']
 
-        meli = self.env['meli.util'].get_new_instance(company)
+        meli = meli or self.env['meli.util'].get_new_instance(company)
+
+        config = company
+        create_missing_website = create_missing_website or config.mercadolibre_create_website_categories
         ml_cat_id = None
+        www_cat_id = None
         if (category_id):
             is_branch = False
             father = None
@@ -349,11 +387,12 @@ class mercadolibre_category(models.Model):
             rjson_cat = response_cat.json()
             is_branch = ("children_categories" in rjson_cat and len(rjson_cat["children_categories"])>0)
 
-            ml_cat_id = category_obj.search([('meli_category_id','=',category_id)])
+            ml_cat_id = category_obj.search([('meli_category_id','=',category_id)],limit=1)
             if (len(ml_cat_id) and ml_cat_id[0].id and is_branch==False):
                 #_logger.info("category exists!" + str(ml_cat_id))
                 ml_cat_id._get_attributes()
-            else:
+
+            if not ml_cat_id:
                 _logger.info("Creating category: " + str(category_id))
                 #https://api.mercadolibre.com/categories/MLA1743
                 #_logger.info("category:" + str(rjson_cat))
@@ -367,7 +406,6 @@ class mercadolibre_category(models.Model):
                       father_id = category_obj.search([('meli_category_id','=',father_ml_id)])
                       if (father_id and len(father_id)):
                           father = father_id[0]
-
 
                 #fullname = fullname + "/" + rjson_cat['name']
                 #_logger.info( "category fullname:" + str(fullname) )
@@ -385,25 +423,51 @@ class mercadolibre_category(models.Model):
                 if (ml_cat_id.id and is_branch==False):
                   ml_cat_id._get_attributes()
 
+            if (ml_cat_id):
+                _logger.info("MercadoLibre Category Ok: "+str(ml_cat_id)+" www_cats:"+str(www_cats))
+                if 'product.public.category' in self.env:
+                    www_cat_id = ml_cat_id.public_category_id
+
+            if not www_cat_id and create_missing_website:
+                _logger.info("Ecommerce category missing")
+                #_logger.info( "Creating category: " + str(category_id) )
+                #https://api.mercadolibre.com/categories/MLA1743
+                www_cat_id = self.create_ecommerce_category( category_id=category_id, meli=meli, create_missing_website=create_missing_website )
+
+            if www_cat_id:
+                wcat = www_cats.browse([www_cat_id])
+                _logger.info("Ecommerce category found: "+str(www_cat_id)+" "+str(wcat))
+                if wcat and not wcat.mercadolibre_category:
+                    _logger.info("Assigning mercadolibre_category "+str(wcat)+" to "+str(ml_cat_id))
+                    wcat.mercadolibre_category = ml_cat_id
+                if wcat and not ml_cat_id.public_category:
+                    ml_cat_id.public_category = wcat
+
         return ml_cat_id
 
 
-    def import_all_categories(self, category_root, recursive_import=False ):
+    def import_all_categories(self, category_root, recursive_import=False, meli=None ):
+
+        _logger.info("Importing all categories from root: "+str(category_root))
+
         company = self.env.user.company_id
 
         warningobj = self.env['warning']
         category_obj = self.env['mercadolibre.category']
 
-        meli = self.env['meli.util'].get_new_instance(company)
+        meli = meli or self.env['meli.util'].get_new_instance(company)
 
         RECURSIVE_IMPORT = recursive_import or company.mercadolibre_recursive_import
 
         if (category_root):
             response = meli.get("/categories/"+str(category_root), {'access_token':meli.access_token} )
 
-            rjson = response.json()
-            _logger.info( "response:", rjson )
-            if ("name" in rjson):
+            rjson = response and response.json()
+            _logger.info( "response:" + str(rjson) )
+            if (rjson and "name" in rjson):
+
+                category_obj.import_category(category_id=category_root,meli=meli)
+
                 # en el html deberia ir el link  para chequear on line esa categoría corresponde a sus productos.
                 warningobj.info( title='MELI WARNING', message="Preparando importación de todas las categorías en "+str(category_root), message_html=response )
                 if ("children_categories" in rjson):
@@ -411,7 +475,7 @@ class mercadolibre_category(models.Model):
                     for child in rjson["children_categories"]:
                         ml_cat_id = child["id"]
                         if (ml_cat_id):
-                            category_obj.import_category(category_id=ml_cat_id)
+                            category_obj.import_category(category_id=ml_cat_id,meli=meli)
                             if (RECURSIVE_IMPORT):
                                 category_obj.import_all_categories(category_root=ml_cat_id)
 
@@ -422,6 +486,9 @@ class mercadolibre_category(models.Model):
     meli_father_category = fields.Many2one('mercadolibre.category',string="Padre",index=True)
     meli_father_category_id = fields.Char(string='Father ML Id',compute=_get_category_url,index=True)
     public_category_id = fields.Integer(string='Public Category Id',index=True)
+    public_category = fields.Many2one('product.public.category',string='Public Category')
+    public_categories = fields.One2many('product.public.category','mercadolibre_category',string='Public Categories')
+
 
     #public_category = fields.Many2one( "product.category.public", string="Product Website category default", help="Select Public Website category for this ML category ")
     meli_category_attributes = fields.Char(compute=_get_attributes,  string="Mercado Libre Category Attributes")

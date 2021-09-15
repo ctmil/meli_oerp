@@ -9,6 +9,7 @@
                <search string="Search MercadoLibre Categories Information">
                  <field name="name" string="Name"/>
                  <field name="meli_category_id" string="Mercadolibre ID"/>
+                 <field name="public_category" string="Ecommerce Category"/>
                  <field name="meli_father_category_id" string="Mercadolibre Father ID"/>
                </search>
             </field>
@@ -88,6 +89,7 @@
                     <field name="meli_category_id"/>
                     <!--field name="meli_category_attributes" widget="url"/-->
                     <field name="public_category_id"/>
+                    <field name="public_category" string="Ecommerce Category"/>
                     <field name="is_branch"/>
                 </tree>
             </field>
@@ -124,6 +126,8 @@
                       <field name="meli_category_id"/>
                       <field name="meli_category_url" widget="url"/>
                       <field name="public_category_id"/>
+                      <field name="public_category" string="Ecommerce Category"/>
+                      <field name="public_categories" string="Ecommerce Categories"/>
                       <separator name="Settings" />
                       <field name="meli_category_settings"/>
                       <field name="meli_setting_minimum_price"/>
@@ -140,8 +144,8 @@
                     <field name="name"/>
                     <field name="att_id"/>
                     <field name="required"/>
-                    <field name="value_type"/>
-                    <field name="hidden"/>
+                    <field name="value_type" optional="hide"/>
+                    <field name="hidden" optional="hide"/>
                     <field name="variation_attribute"/>
                   </tree>
                 </field>
