@@ -114,6 +114,48 @@ class mercadolibre_category(models.Model):
     _name = "mercadolibre.category"
     _description = "Categories of MercadoLibre"
 
+    def create_ecommerce_category(self, category_id, meli=None, create_missing_website=True ):
+
+        www_cats = self.env['product.public.category']
+
+        if not meli or not www_cats or not category_id:
+            return False
+
+        response_cat = meli.get("/categories/"+str(category_id), {'access_token':meli.access_token})
+        rjson_cat = response_cat and response_cat.json()
+
+        #_logger.info( "category:" + str(rjson_cat) )
+        fullname = ""
+
+        if (rjson_cat and "path_from_root" in rjson_cat):
+
+            path_from_root = rjson_cat["path_from_root"]
+            p_id = False
+
+            #pdb.set_trace()
+            for path in path_from_root:
+
+                fullname = fullname + "/" + path["name"]
+
+                if (create_missing_website and www_cats ):
+                    if www_cats!=False:
+                        www_cat_id = www_cats.search([('name','=',path["name"])]).id
+                        if www_cat_id==False:
+                            www_cat_fields = {
+                              'name': path["name"],
+                              #'parent_id': p_id,
+                              #'sequence': 1
+                            }
+                            if p_id:
+                                www_cat_fields['parent_id'] = p_id
+                            www_cat_id = www_cats.create((www_cat_fields)).id
+                            if www_cat_id:
+                                _logger.info("Website Category created:"+fullname)
+
+                        p_id = www_cat_id
+            return p_id
+        return False
+
     def meli_get_category( self, category_id, meli=None, create_missing_website=True ):
 
         company = self.env.user.company_id
@@ -135,36 +177,11 @@ class mercadolibre_category(models.Model):
             mlcatid = ml_cat_id
             if www_cats:
                 www_cat_id = ml_cat.public_category_id
-        else:
+
+        if not www_cat_id:
             #_logger.info( "Creating category: " + str(category_id) )
             #https://api.mercadolibre.com/categories/MLA1743
-            response_cat = meli.get("/categories/"+str(category_id), {'access_token':meli.access_token})
-            rjson_cat = response_cat.json()
-            #_logger.info( "category:" + str(rjson_cat) )
-            fullname = ""
-            if ("path_from_root" in rjson_cat):
-                path_from_root = rjson_cat["path_from_root"]
-                p_id = False
-                #pdb.set_trace()
-                for path in path_from_root:
-                    fullname = fullname + "/" + path["name"]
-
-                    if (create_missing_website and ('product.public.category' in self.env) ):
-                        if www_cats!=False:
-                            www_cat_id = www_cats.search([('name','=',path["name"])]).id
-                            if www_cat_id==False:
-                                www_cat_fields = {
-                                  'name': path["name"],
-                                  #'parent_id': p_id,
-                                  #'sequence': 1
-                                }
-                                if p_id:
-                                    www_cat_fields['parent_id'] = p_id
-                                www_cat_id = www_cats.create((www_cat_fields)).id
-                                if www_cat_id:
-                                    _logger.info("Website Category created:"+fullname)
-
-                            p_id = www_cat_id
+            www_cat_id = self.create_ecommerce_category( category_id=category_id, meli=meli, create_missing_website=create_missing_website )
 
             #fullname = fullname + "/" + rjson_cat['name']
             #_logger.info( "category fullname:" + fullname )
@@ -422,6 +439,7 @@ class mercadolibre_category(models.Model):
     meli_father_category = fields.Many2one('mercadolibre.category',string="Padre",index=True)
     meli_father_category_id = fields.Char(string='Father ML Id',compute=_get_category_url,index=True)
     public_category_id = fields.Integer(string='Public Category Id',index=True)
+    public_categories = fields.One2many('product.public.category','mercadolibre_category',string='Public Categories')
 
     #public_category = fields.Many2one( "product.category.public", string="Product Website category default", help="Select Public Website category for this ML category ")
     meli_category_attributes = fields.Char(compute=_get_attributes,  string="Mercado Libre Category Attributes")
