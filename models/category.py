@@ -351,14 +351,19 @@ class mercadolibre_category(models.Model):
                 except:
                     _logger.error("No se pudo importar: "+ str(obj.meli_father_category_id))
 
-    def import_category(self, category_id ):
+    def import_category(self, category_id, meli=None, create_missing_website=False ):
         company = self.env.user.company_id
 
         warningobj = self.env['warning']
         category_obj = self.env['mercadolibre.category']
+        www_cats = self.env['product.public.category']
 
-        meli = self.env['meli.util'].get_new_instance(company)
+        meli = meli or self.env['meli.util'].get_new_instance(company)
+
+        config = company
+        create_missing_website = create_missing_website or config.mercadolibre_create_website_categories
         ml_cat_id = None
+        www_cat_id = None
         if (category_id):
             is_branch = False
             father = None
@@ -366,7 +371,7 @@ class mercadolibre_category(models.Model):
             rjson_cat = response_cat.json()
             is_branch = ("children_categories" in rjson_cat and len(rjson_cat["children_categories"])>0)
 
-            ml_cat_id = category_obj.search([('meli_category_id','=',category_id)])
+            ml_cat_id = category_obj.search([('meli_category_id','=',category_id)],limit=1)
             if (len(ml_cat_id) and ml_cat_id[0].id and is_branch==False):
                 #_logger.info("category exists!" + str(ml_cat_id))
                 ml_cat_id._get_attributes()
@@ -401,6 +406,16 @@ class mercadolibre_category(models.Model):
                 ml_cat_id = category_obj.create((cat_fields))
                 if (ml_cat_id.id and is_branch==False):
                   ml_cat_id._get_attributes()
+
+
+            if (ml_cat_id):
+                if www_cats:
+                    www_cat_id = ml_cat_id.public_category_id
+
+            if not www_cat_id:
+                #_logger.info( "Creating category: " + str(category_id) )
+                #https://api.mercadolibre.com/categories/MLA1743
+                www_cat_id = self.create_ecommerce_category( category_id=category_id, meli=meli, create_missing_website=create_missing_website )
 
         return ml_cat_id
 
