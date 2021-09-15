@@ -115,6 +115,8 @@ class mercadolibre_category(models.Model):
     _description = "Categories of MercadoLibre"
 
     def create_ecommerce_category(self, category_id, meli=None, create_missing_website=True ):
+        
+        _logger.info("Creating Ecommerce Category "+str(category_id))
 
         www_cats = self.env['product.public.category']
 
@@ -417,6 +419,12 @@ class mercadolibre_category(models.Model):
                 #https://api.mercadolibre.com/categories/MLA1743
                 www_cat_id = self.create_ecommerce_category( category_id=category_id, meli=meli, create_missing_website=create_missing_website )
 
+            if www_cat_id:
+                wcat = www_cats.browse([www_cat_id])
+                if wcat and not wcat.mercadolibre_category:
+                    _logger.info("Assigning mercadolibre_category "+str(wcat)+" to "+str(ml_cat_id))
+                    wcat.mercadolibre_category = ml_cat_id
+
         return ml_cat_id
 
 
@@ -455,7 +463,7 @@ class mercadolibre_category(models.Model):
     meli_father_category_id = fields.Char(string='Father ML Id',compute=_get_category_url,index=True)
     public_category_id = fields.Integer(string='Public Category Id',index=True)
     public_categories = fields.One2many('product.public.category','mercadolibre_category',string='Public Categories')
-    
+
 
     #public_category = fields.Many2one( "product.category.public", string="Product Website category default", help="Select Public Website category for this ML category ")
     meli_category_attributes = fields.Char(compute=_get_attributes,  string="Mercado Libre Category Attributes")
