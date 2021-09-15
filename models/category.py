@@ -438,7 +438,7 @@ class mercadolibre_category(models.Model):
         return ml_cat_id
 
 
-    def import_all_categories(self, category_root, recursive_import=False ):
+    def import_all_categories(self, category_root, recursive_import=False, meli=None ):
 
         _logger.info("Importing all categories from root: "+str(category_root))
 
@@ -447,7 +447,7 @@ class mercadolibre_category(models.Model):
         warningobj = self.env['warning']
         category_obj = self.env['mercadolibre.category']
 
-        meli = self.env['meli.util'].get_new_instance(company)
+        meli = meli or self.env['meli.util'].get_new_instance(company)
 
         RECURSIVE_IMPORT = recursive_import or company.mercadolibre_recursive_import
 
@@ -457,6 +457,9 @@ class mercadolibre_category(models.Model):
             rjson = response and response.json()
             _logger.info( "response:" + str(rjson) )
             if (rjson and "name" in rjson):
+
+                category_obj.import_category(category_id=category_root,meli=meli)
+
                 # en el html deberia ir el link  para chequear on line esa categoría corresponde a sus productos.
                 warningobj.info( title='MELI WARNING', message="Preparando importación de todas las categorías en "+str(category_root), message_html=response )
                 if ("children_categories" in rjson):
@@ -464,7 +467,7 @@ class mercadolibre_category(models.Model):
                     for child in rjson["children_categories"]:
                         ml_cat_id = child["id"]
                         if (ml_cat_id):
-                            category_obj.import_category(category_id=ml_cat_id)
+                            category_obj.import_category(category_id=ml_cat_id,meli=meli)
                             if (RECURSIVE_IMPORT):
                                 category_obj.import_all_categories(category_root=ml_cat_id)
 
