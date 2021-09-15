@@ -201,12 +201,14 @@ class mercadolibre_category(models.Model):
                 'name': fullname,
                 'meli_category_id': ''+str(category_id),
                 'public_category_id': 0,
+                'public_category': False
             }
 
             if www_cat_id:
                 p_cat_id = www_cats.search([('id','=',www_cat_id)])
                 if (len(p_cat_id)):
                     cat_fields['public_category_id'] = www_cat_id
+                    cat_fields['public_category'] = p_cat_id.id
                 #cat_fields['public_category'] = p_cat_id
 
             ml_cat_id = self.env['mercadolibre.category'].create((cat_fields)).id
@@ -485,6 +487,7 @@ class mercadolibre_category(models.Model):
     meli_father_category = fields.Many2one('mercadolibre.category',string="Padre",index=True)
     meli_father_category_id = fields.Char(string='Father ML Id',compute=_get_category_url,index=True)
     public_category_id = fields.Integer(string='Public Category Id',index=True)
+    public_category = fields.Many2one('product.public.category',string='Public Category')
     public_categories = fields.One2many('product.public.category','mercadolibre_category',string='Public Categories')
 
 
