@@ -412,7 +412,7 @@ class mercadolibre_category(models.Model):
                 if www_cats:
                     www_cat_id = ml_cat_id.public_category_id
 
-            if not www_cat_id:
+            if not www_cat_id and create_missing_website:
                 #_logger.info( "Creating category: " + str(category_id) )
                 #https://api.mercadolibre.com/categories/MLA1743
                 www_cat_id = self.create_ecommerce_category( category_id=category_id, meli=meli, create_missing_website=create_missing_website )
