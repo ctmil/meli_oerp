@@ -423,7 +423,8 @@ class mercadolibre_category(models.Model):
 
 
             if (ml_cat_id):
-                if www_cats:
+                _logger.info("MercadoLibre Category Ok: "+str(ml_cat_id)+" www_cats:"+str(www_cats))
+                if 'product.public.category' in self.env:
                     www_cat_id = ml_cat_id.public_category_id
 
             if not www_cat_id and create_missing_website:
