@@ -440,6 +440,8 @@ class mercadolibre_category(models.Model):
                 if wcat and not wcat.mercadolibre_category:
                     _logger.info("Assigning mercadolibre_category "+str(wcat)+" to "+str(ml_cat_id))
                     wcat.mercadolibre_category = ml_cat_id
+                if wcat and not ml_cat_id.public_category:
+                    ml_cat_id.public_category = wcat
 
         return ml_cat_id
 
