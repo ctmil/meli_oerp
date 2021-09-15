@@ -455,6 +455,7 @@ class mercadolibre_category(models.Model):
     meli_father_category_id = fields.Char(string='Father ML Id',compute=_get_category_url,index=True)
     public_category_id = fields.Integer(string='Public Category Id',index=True)
     public_categories = fields.One2many('product.public.category','mercadolibre_category',string='Public Categories')
+    
 
     #public_category = fields.Many2one( "product.category.public", string="Product Website category default", help="Select Public Website category for this ML category ")
     meli_category_attributes = fields.Char(compute=_get_attributes,  string="Mercado Libre Category Attributes")
