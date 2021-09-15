@@ -65,8 +65,14 @@ class mercadolibre_category_import(models.TransientModel):
             return meli.redirect_login()
 
         _logger.info(context)
-        if ( self.meli_category_id ):
+        if ( self.meli_category_id):
             catid = self.env["mercadolibre.category"].import_all_categories( self.meli_category_id, self.meli_recursive_import )
+        else:
+            for ml_cat_id in mlcat_ids:
+                ml_cat = mlcat_obj.browse([ml_cat_id])
+                if ml_cat:
+                    meli_category_id = ml_cat.meli_category_id
+                    catid = self.env["mercadolibre.category"].import_all_categories( meli_category_id, self.meli_recursive_import )
 
 
 mercadolibre_category_import()
@@ -115,7 +121,7 @@ class mercadolibre_category(models.Model):
     _description = "Categories of MercadoLibre"
 
     def create_ecommerce_category(self, category_id, meli=None, create_missing_website=True ):
-        
+
         _logger.info("Creating Ecommerce Category "+str(category_id))
 
         www_cats = self.env['product.public.category']
