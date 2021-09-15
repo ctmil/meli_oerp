@@ -391,7 +391,8 @@ class mercadolibre_category(models.Model):
             if (len(ml_cat_id) and ml_cat_id[0].id and is_branch==False):
                 #_logger.info("category exists!" + str(ml_cat_id))
                 ml_cat_id._get_attributes()
-            else:
+
+            if not ml_cat_id:
                 _logger.info("Creating category: " + str(category_id))
                 #https://api.mercadolibre.com/categories/MLA1743
                 #_logger.info("category:" + str(rjson_cat))
@@ -405,7 +406,6 @@ class mercadolibre_category(models.Model):
                       father_id = category_obj.search([('meli_category_id','=',father_ml_id)])
                       if (father_id and len(father_id)):
                           father = father_id[0]
-
 
                 #fullname = fullname + "/" + rjson_cat['name']
                 #_logger.info( "category fullname:" + str(fullname) )
@@ -423,7 +423,6 @@ class mercadolibre_category(models.Model):
                 if (ml_cat_id.id and is_branch==False):
                   ml_cat_id._get_attributes()
 
-
             if (ml_cat_id):
                 _logger.info("MercadoLibre Category Ok: "+str(ml_cat_id)+" www_cats:"+str(www_cats))
                 if 'product.public.category' in self.env:
@@ -434,8 +433,6 @@ class mercadolibre_category(models.Model):
                 #_logger.info( "Creating category: " + str(category_id) )
                 #https://api.mercadolibre.com/categories/MLA1743
                 www_cat_id = self.create_ecommerce_category( category_id=category_id, meli=meli, create_missing_website=create_missing_website )
-
-
 
             if www_cat_id:
                 wcat = www_cats.browse([www_cat_id])
