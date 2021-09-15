@@ -364,6 +364,8 @@ class mercadolibre_category(models.Model):
                     _logger.error("No se pudo importar: "+ str(obj.meli_father_category_id))
 
     def import_category(self, category_id, meli=None, create_missing_website=False ):
+
+        _logger.info("Import Category "+str(category_id))
         company = self.env.user.company_id
 
         warningobj = self.env['warning']
@@ -425,12 +427,16 @@ class mercadolibre_category(models.Model):
                     www_cat_id = ml_cat_id.public_category_id
 
             if not www_cat_id and create_missing_website:
+                _logger.info("Ecommerce category missing")
                 #_logger.info( "Creating category: " + str(category_id) )
                 #https://api.mercadolibre.com/categories/MLA1743
                 www_cat_id = self.create_ecommerce_category( category_id=category_id, meli=meli, create_missing_website=create_missing_website )
 
+
+
             if www_cat_id:
                 wcat = www_cats.browse([www_cat_id])
+                _logger.info("Ecommerce category found: "+str(www_cat_id)+" "+str(wcat))
                 if wcat and not wcat.mercadolibre_category:
                     _logger.info("Assigning mercadolibre_category "+str(wcat)+" to "+str(ml_cat_id))
                     wcat.mercadolibre_category = ml_cat_id
