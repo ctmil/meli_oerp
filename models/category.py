@@ -64,11 +64,15 @@ class mercadolibre_category_import(models.TransientModel):
         if meli.need_login():
             return meli.redirect_login()
 
+        _logger.info("Meli Category Import Wizard")
         _logger.info(context)
         if ( self.meli_category_id):
+            _logger.info("Import single category: "+str(self.meli_category_id))
             catid = self.env["mercadolibre.category"].import_all_categories( self.meli_category_id, self.meli_recursive_import )
         else:
+            _logger.info("Importing active categories: "+str(mlcat_ids))
             for ml_cat_id in mlcat_ids:
+                _logger.info("Importing single: "+str(ml_cat_id))
                 ml_cat = mlcat_obj.browse([ml_cat_id])
                 if ml_cat:
                     meli_category_id = ml_cat.meli_category_id
@@ -435,6 +439,9 @@ class mercadolibre_category(models.Model):
 
 
     def import_all_categories(self, category_root, recursive_import=False ):
+
+        _logger.info("Importing all categories from root: "+str(category_root))
+
         company = self.env.user.company_id
 
         warningobj = self.env['warning']
