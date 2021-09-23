@@ -1553,7 +1553,7 @@ class mercadolibre_orders(models.Model):
     currency_id = fields.Char(string='Currency')
     buyer =  fields.Many2one( "mercadolibre.buyers","Buyer")
     buyer_billing_info = fields.Text(string="Billing Info")
-    seller = fields.Text( string='Seller' )
+    seller = fields.Text( string='Seller Name' )
     tags = fields.Text(string="Tags")
     pack_order = fields.Boolean(string="Order Pack (Carrito)")
     catalog_order = fields.Boolean(string="Order From Catalog")
