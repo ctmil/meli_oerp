@@ -168,7 +168,7 @@ class mercadolibre_category(models.Model):
             return p_id
         return False
 
-    def meli_get_category( self, category_id, meli=None, create_missing_website=True ):
+    def meli_get_category( self, category_id, meli=None, create_missing_website=False ):
 
         company = self.env.user.company_id
         www_cats = False
@@ -183,37 +183,27 @@ class mercadolibre_category(models.Model):
         www_cat_id = False
 
         ml_cat = self.env['mercadolibre.category'].search([('meli_category_id','=',category_id)],limit=1)
-        ml_cat_id = ml_cat.id
+        if not ml_cat:
+            ml_cat = self.import_category(category_id=category_id, meli=meli, create_missing_website=create_missing_website)
+
+        ml_cat_id = ml_cat and ml_cat.id
         if (ml_cat_id):
             #_logger.info( "category exists!" + str(ml_cat_id) )
             mlcatid = ml_cat_id
             if www_cats:
                 www_cat_id = ml_cat.public_category_id
 
-        if not www_cat_id:
+        if not www_cat_id and ml_cat_id:
             #_logger.info( "Creating category: " + str(category_id) )
             #https://api.mercadolibre.com/categories/MLA1743
             www_cat_id = self.create_ecommerce_category( category_id=category_id, meli=meli, create_missing_website=create_missing_website )
 
-            #fullname = fullname + "/" + rjson_cat['name']
-            #_logger.info( "category fullname:" + fullname )
-            cat_fields = {
-                'name': fullname,
-                'meli_category_id': ''+str(category_id),
-                'public_category_id': 0,
-                'public_category': False
-            }
-
             if www_cat_id:
-                p_cat_id = www_cats.search([('id','=',www_cat_id)])
+                p_cat_id = www_cats.search([('id','=',www_cat_id)],limit=1)
                 if (len(p_cat_id)):
                     cat_fields['public_category_id'] = www_cat_id
                     cat_fields['public_category'] = p_cat_id.id
                 #cat_fields['public_category'] = p_cat_id
-
-            ml_cat_id = self.env['mercadolibre.category'].create((cat_fields)).id
-            if (ml_cat_id):
-                mlcatid = ml_cat_id
 
         return mlcatid, www_cat_id
 
