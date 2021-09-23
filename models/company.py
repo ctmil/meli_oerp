@@ -131,6 +131,7 @@ class res_company(models.Model):
             "CLP": { "name": "Chile", "id": "MLC", "default_currency_id": "CLP" },
             "CRC": {"name": "Costa Rica", "id": "MCR", "default_currency_id": "CRC"},
             "UYU": { "name": "Uruguay", "id": "MLU", "default_currency_id": "UYU" },
+            "VES":  { "name": "Venezuela", "id": "MLV", "default_currency_id": "VES" },
             "USD": { "name": "Uruguay", "id": "MLU", "default_currency_id": "UYU" },
         }
         response = meli.get("/sites")
@@ -319,6 +320,7 @@ class res_company(models.Model):
                                                 ("BRL","Real (BRL)"),
                                                 ("CLP","Peso Chileno (CLP)"),
                                                 ("CRC","Colon Costarricense (CRC)"),
+                                                ("VES","Bolivar Soberano (VES)"),
                                                 ("UYU","Peso Uruguayo (UYU)"),
                                                 ("USD","Dolar Estadounidense (USD)")],
                                                 string='Moneda predeterminada')
