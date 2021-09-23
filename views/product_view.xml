@@ -84,6 +84,8 @@
             <label for="sale_ok" position="after">
                   <field name="meli_pub" />
                   <label for="meli_pub" />
+                  <field name="meli_update_stock_blocked"/>
+                  <label for="meli_update_stock_blocked" />
                   <field name="meli_publications" readonly="1" invisible="1"></field>
                   <field name="meli_variants_status" readonly="1" invisible="1"></field>
               </label>
@@ -288,8 +290,10 @@
               <label for="sale_ok" position="after">
                     <field name="meli_pub" />
                     <label for="meli_pub" />
-                    <field name="meli_master" />
-                    <label for="meli_master" />
+                    <field name="meli_update_stock_blocked"/>
+                    <label for="meli_update_stock_blocked" />
+                    <!--field name="meli_master" />
+                    <label for="meli_master" /-->
 
                 </label>
 
