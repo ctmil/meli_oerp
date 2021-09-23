@@ -387,6 +387,7 @@ class product_template(models.Model):
                                     ("CLP","Peso Chileno (CLP)"),
                                     ("CRC","Colon Costarricense (CRC)"),
                                     ("UYU","Peso Uruguayo (UYU)"),
+                                    ("VES","Bolivar Soberano (VES)"),
                                     ("USD","Dolar Estadounidense (USD)")],
                                     string='Moneda')
     meli_condition = fields.Selection([ ("new", "Nuevo"),
@@ -420,10 +421,10 @@ class product_template(models.Model):
 
     meli_ids = fields.Char(size=2048,string="MercadoLibre Ids.",help="ML Ids de variantes separados por coma.",index=True)
 
-    meli_catalog_listing = fields.Boolean(string='Catalog Listing', size=256)
+    meli_catalog_listing = fields.Boolean(string='Catalog Listing')
     meli_catalog_product_id = fields.Char(string='Catalog Product Id', size=256)
     meli_catalog_item_relations = fields.Char(string='Catalog Item Relations', size=256)
-    meli_catalog_automatic_relist = fields.Boolean(string='Catalog Auto Relist', size=256)
+    meli_catalog_automatic_relist = fields.Boolean(string='Catalog Auto Relist')
 
     meli_shipping_mode = fields.Char(string="Shipping Mode",help="Shipping modes (por usuario): custom, not_specified, me2. https://api.mercadolibre.com/users/USERID/shipping_preferences",index=True)
     meli_shipping_method = fields.Char(string="Shipping Method",help="Shipping methods: https://api.mercadolibre.com/sites/SITEID/shipping_methods",index=True)
@@ -3150,6 +3151,7 @@ class product_product(models.Model):
                                         ("CLP","Peso Chileno (CLP)"),
                                         ("CRC","Colon Costarricense (CRC)"),
                                         ("UYU","Peso Uruguayo (UYU)"),
+                                        ("VES","Bolivar Soberano (VES)"),
                                         ("USD","Dolar Estadounidense (USD)")],
                                         string='Moneda')
     meli_condition = fields.Selection([ ("new", "Nuevo"), ("used", "Usado"), ("not_specified","No especificado")],'Condición del producto')
@@ -3184,10 +3186,10 @@ class product_product(models.Model):
     meli_default_stock_product = fields.Many2one("product.product","Producto de referencia para stock")
     meli_id_variation = fields.Char( string='Variation Id',help='Id de Variante de Meli', size=256)
 
-    meli_catalog_listing = fields.Boolean(string='Catalog Listing', size=256)
+    meli_catalog_listing = fields.Boolean(string='Catalog Listing')
     meli_catalog_product_id = fields.Char(string='Catalog Product Id', size=256)
     meli_catalog_item_relations = fields.Char(string='Catalog Item Relations', size=256)
-    meli_catalog_automatic_relist = fields.Boolean(string='Catalog Auto Relist', size=256)
+    meli_catalog_automatic_relist = fields.Boolean(string='Catalog Auto Relist')
 
     meli_shipping_logistic_type = fields.Char(string="Logistic Type",index=True)
 
