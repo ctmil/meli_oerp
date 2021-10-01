@@ -366,6 +366,7 @@ class mercadolibre_orders(models.Model):
     def state(self, country_id,  Receiver={}, Buyer={} ):
         full_state = ''
         state_id = False
+        _logger.info("Receiver:"+str(Receiver)+" country_id:"+str(country_id))
         if (Receiver and 'state' in Receiver):
             if ('id' in Receiver['state']):
                 state = self.env['res.country.state'].search([('code','like',Receiver['state']['id']),('country_id','=',country_id)])

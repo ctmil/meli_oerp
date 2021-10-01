@@ -394,7 +394,7 @@ class mercadolibre_shipment(models.Model):
             delivery_price = ml_product_price_conversion( self, product_related_obj=product_shipping_id, price=del_price, config=config ),
             if type(delivery_price)==tuple and len(delivery_price):
                 delivery_price = delivery_price[0]
-            
+
             conflict = abs( sorder.meli_paid_amount - sorder.meli_total_amount ) > 1.0
 
             received_amount = sorder.meli_amount_to_invoice( meli=meli, config=config )
@@ -752,7 +752,7 @@ class mercadolibre_shipment(models.Model):
                             ord = oi
                             totales['total_amount']+= ord["total_amount"]
                             totales['paid_amount']+= ord["paid_amount"]
-                            
+
                         order_json = {
                             "id": all_orders[0]["order_id"],
                             'status': all_orders[0]["status"],

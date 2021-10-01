@@ -1104,7 +1104,7 @@ class product_product(models.Model):
         #TODO: traer la descripcion: con
         #https://api.mercadolibre.com/items/{ITEM_ID}/description?access_token=$ACCESS_TOKEN
         if rjson and 'descriptions' in rjson and rjson['descriptions']:
-            response2 = meli.get("/items/"+product.meli_id+"/description", {'access_token':meli.access_token})
+            response2 = meli.get("/items/"+str(meli_id)+"/description", {'access_token':meli.access_token})
             rjson2 = response2.json()
             if 'text' in rjson2:
                des = rjson2['text']
