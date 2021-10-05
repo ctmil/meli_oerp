@@ -920,7 +920,7 @@ class product_product(models.Model):
         if (len(pic_ids)):
             #from ix_start to finish
             for ix in range(ix_start,len(pic_ids)):
-                pic_id = pic_ids[ix]
+                vpic_id = pic_ids[ix]
                 pic = picture_hash[ vpic_id ]
 
                 #MORE MEDIAS
