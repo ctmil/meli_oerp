@@ -996,7 +996,8 @@ class product_product(models.Model):
         if "variations" in rjson:
             for ix in range(len(rjson["variations"]) ):
                 _var = rjson["variations"][ix]
-                variations_hash[ _var["id"] ] = _var
+                if "id" in _var:
+                    variations_hash[ _var["id"] ] = _var
 
         #single variant is default behaviour
         variants = product
