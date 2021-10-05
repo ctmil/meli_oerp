@@ -882,7 +882,7 @@ class product_product(models.Model):
         pic = pic_id and picture_hash and pic_id in picture_hash and picture_hash[pic_id]
         var = variations_hash and product.meli_id_variation and product.meli_id_variation in variations_hash and variations_hash[ product.meli_id_variation ]
 
-        _logger.info("_meli_set_image_xy: pic:"+str(pic)+" var:"+str(var))
+        _logger.info("_meli_set_image_xy: pic:"+str(pic)+" var:"+str(var)+ " product.meli_id_variation:"+str(product.meli_id_variation))
         #if not pic_id and var:
         #    pic_ids = var and "picture_ids" in var and var["picture_ids"]
         #    pic_id = pic_ids and len(pic_ids) and pic_ids[0]
@@ -1013,7 +1013,7 @@ class product_product(models.Model):
             for ix in range(len(rjson["variations"]) ):
                 _var = rjson["variations"][ix]
                 if "id" in _var:
-                    variations_hash[ _var["id"] ] = _var
+                    variations_hash[ str(_var["id"]) ] = _var
         _logger.info("variations_hash: "+str(variations_hash))
 
         #single variant is default behaviour
@@ -1021,8 +1021,8 @@ class product_product(models.Model):
 
         #has variations and import as variants? use product_template.product_variant_ids
         if product_template.meli_pub_as_variant and "variations" in rjson and len(rjson["variations"]):
-            _logger.info("meli_pub_as_variant set variants: "+str(variants))
             variants = product_template.product_variant_ids
+            _logger.info("meli_pub_as_variant set variants: "+str(variants))
 
         #finally import for each product the picture from ML
         for variant in variants:
