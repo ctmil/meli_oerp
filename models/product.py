@@ -870,7 +870,7 @@ class product_product(models.Model):
 
         return pimage, bin_updating
 
-    # set images in variant from meli json
+    # set images in a variant from meli json
     # odoo product must already being synchronized: product.meli_id and product.meli_id_variation set if variations are present
     def _meli_set_image_xy( self, pic_id=None, picture_hash=None, variations_hash=None, config=None, meli=None, rjson=None ):
 
@@ -897,7 +897,8 @@ class product_product(models.Model):
 
         if product.meli_id_variation and var and product.meli_pub_principal_variant and product.meli_pub_principal_variant.id==product.id:
             #TODO: special case> principal variant, publish here pictures not in each...
-            #how to optimize repeated pictures!!!!! IMPORTANT
+            #how to optimize repeated pictures!!!!! IMPORTANT > if a picture is repeated in each variant, use a single one in the template images to store it (or not)
+            _logger.info( "Processing principal variant: " + str(product) )
 
 
         #PRINCIPAL
@@ -943,10 +944,14 @@ class product_product(models.Model):
 
 
                 #TODO: check here if image already exists
-                pimage, bin_updating = product._meli_set_image_validation(pic=pic)
+                pimage, bin_updating = product._meli_set_image_validation(pic=pic,meli_imagen_bytes=meli_imagen_bytes)
 
-                pimg_fields['product_tmpl_id'] = product_template.id
-                pimg_fields['product_variant_id'] = product.id
+                if product.meli_id_variation:
+                    pimg_fields['product_variant_id'] = product.id
+                    pimg_fields['product_tmpl_id'] = None
+                else:
+                    pimg_fields['product_variant_id'] = None
+                    pimg_fields['product_tmpl_id'] = product_template.id
 
                 if (not pimage or (pimage and len(pimage)==0)):
                     _logger.info("Creating new image")
