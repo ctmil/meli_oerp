@@ -922,7 +922,7 @@ class product_product(models.Model):
                 set_image_full(product, image_base64)
 
         #ADDITIONAL MEDIAS
-        if (len(pic_ids) and 1==2):
+        if (len(pic_ids) and 1==1):
             #from ix_start to finish
             for ix in range(ix_start,len(pic_ids)):
                 vpic_id = pic_ids[ix]
