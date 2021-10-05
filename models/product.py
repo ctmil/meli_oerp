@@ -894,6 +894,10 @@ class product_product(models.Model):
             for ix in range(len(pic_ids)):
                 vpic_id = pic_ids[ix]
                 picture_ids[ vpic_id ] = picture_hash[ vpic_id ]
+        else:
+            for pid in picture_hash:
+                pic_ids.append(pid)
+
 
         if product.meli_id_variation and var and product.meli_pub_principal_variant and product.meli_pub_principal_variant.id==product.id:
             #TODO: special case> principal variant, publish here pictures not in each...
@@ -905,7 +909,8 @@ class product_product(models.Model):
         ix_start = 0
         if (not config.mercadolibre_do_not_use_first_image):
             ix_start = 1
-            thumbnail_url = picture_hash[pic_ids[0]]['url']
+            first_pic_id = pic_ids and pic_ids[0]
+            thumbnail_url = first_pic_id and first_pic_id in picture_hash and picture_hash[first_pic_id]['url']
             image = urlopen(thumbnail_url).read()
             image_base64 = base64.encodestring(image)
             set_image_full(product, image_base64)
