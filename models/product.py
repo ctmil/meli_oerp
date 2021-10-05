@@ -874,12 +874,15 @@ class product_product(models.Model):
     # odoo product must already being synchronized: product.meli_id and product.meli_id_variation set if variations are present
     def _meli_set_image_xy( self, pic_id=None, picture_hash=None, variations_hash=None, config=None, meli=None, rjson=None ):
 
+        _logger.info("_meli_set_image_xy")
         bin_updating = False
         product = self
         product_template = product.product_tmpl_id
 
         pic = pic_id and picture_hash and pic_id in picture_hash and picture_hash[pic_id]
         var = variations_hash and product.meli_id_variation and product.meli_id_variation in variations_hash and variations_hash[ product.meli_id_variation ]
+
+        _logger.info("_meli_set_image_xy: pic:"+str(pic)+" var:"+str(var))
         #if not pic_id and var:
         #    pic_ids = var and "picture_ids" in var and var["picture_ids"]
         #    pic_id = pic_ids and len(pic_ids) and pic_ids[0]
@@ -898,6 +901,7 @@ class product_product(models.Model):
             for pid in picture_hash:
                 pic_ids.append(pid)
 
+        _logger.info("_meli_set_image_xy: pic_ids:"+str(pic_ids))
 
         if product.meli_id_variation and var and product.meli_pub_principal_variant and product.meli_pub_principal_variant.id==product.id:
             #TODO: special case> principal variant, publish here pictures not in each...
@@ -980,6 +984,8 @@ class product_product(models.Model):
 
     def _meli_set_images_x( self, product_template, pictures, meli=None, config=None, rjson=None ):
 
+        _logger.info("_meli_set_images_x: "+str(product_template)+" pictures:"+str(pictures))
+
         company = self.env.user.company_id
         config = config or company
         product = self
@@ -999,6 +1005,7 @@ class product_product(models.Model):
         for ix in range(ix_start,len(pictures)):
             pic = pictures[ix]
             picture_hash[pic["id"]] = pic
+        _logger.info("picture_hash: "+str(picture_hash))
 
         #index variations by id
         variations_hash = {}
@@ -1007,16 +1014,19 @@ class product_product(models.Model):
                 _var = rjson["variations"][ix]
                 if "id" in _var:
                     variations_hash[ _var["id"] ] = _var
+        _logger.info("variations_hash: "+str(variations_hash))
 
         #single variant is default behaviour
         variants = product
 
         #has variations and import as variants? use product_template.product_variant_ids
         if product_template.meli_pub_as_variant and "variations" in rjson and len(rjson["variations"]):
+            _logger.info("meli_pub_as_variant set variants: "+str(variants))
             variants = product_template.product_variant_ids
 
         #finally import for each product the picture from ML
         for variant in variants:
+            _logger.info("_meli_set_image_xy: "+str(variant))
             variant._meli_set_image_xy( picture_hash=picture_hash, variations_hash=variations_hash, meli=meli, config=config )
 
         return {}
