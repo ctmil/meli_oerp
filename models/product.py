@@ -911,11 +911,14 @@ class product_product(models.Model):
             ix_start = 1
             first_pic_id = pic_ids and pic_ids[0]
             thumbnail_url = first_pic_id and first_pic_id in picture_hash and picture_hash[first_pic_id]['url']
-            image = urlopen(thumbnail_url).read()
-            image_base64 = base64.encodestring(image)
-            set_image_full(product, image_base64)
+            if thumbnail_url:
+                image = urlopen(thumbnail_url).read()
+                image_base64 = base64.encodestring(image)
+                set_image_full(product, image_base64)
 
+        #ADITIONAL MEDIAS
         if (len(pic_ids)):
+            #from ix_start to finish
             for ix in range(ix_start,len(pic_ids)):
                 pic_id = pic_ids[ix]
                 pic = picture_hash[ vpic_id ]
