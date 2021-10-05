@@ -3066,7 +3066,7 @@ class product_product(models.Model):
 
     def product_post_price(self, context=None, meli=None):
         context = context or self.env.context
-        #company = get_company_selected( self, context=context )
+        company = get_company_selected( self, context=context )
 
         warningobj = self.env['warning']
 
