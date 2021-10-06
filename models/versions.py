@@ -49,7 +49,7 @@ def att_line_ids(self):
     return self.attribute_line_ids
 
 def get_image_full(self):
-    return self.image_1920
+    return ("variant_image" in self._fields and self.variant_image) or self.image_1920
 
 def set_image_full(self, image):
     self.image_1920 = image
