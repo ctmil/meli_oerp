@@ -809,15 +809,15 @@ class res_company(models.Model):
 
                             if "error" in resjson:
 
-                                obj.stock_error = str(resjson)
+                                obj.meli_stock_error = str(resjson)
                                 errors+= str(obj.default_code)+" "+str(obj.meli_id)+" >> "+str(resjson)+"\n"
 
                                 is_fulfillment = obj.meli_shipping_logistic_type and "fulfillment" in obj.meli_shipping_logistic_type
                                 if is_fulfillment:
-                                    obj.stock_error = "fulfillment"
+                                    obj.meli_stock_error = "fulfillment"
 
                             else:
-                                obj.stock_error = str({})
+                                obj.meli_stock_error = str({})
 
                             if ( icommit==40 or icount==maxcommits or icount==topcommits ):
                                 noti.processing_errors = errors
