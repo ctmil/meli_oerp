@@ -2774,8 +2774,8 @@ class product_product(models.Model):
                         vars_updated = self.env["product.product"]
                         for ix in range(len(productjson["variations"]) ):
                             var_info = productjson["variations"][ix]
-                            #_logger.info("Variation to update!!")
-                            #_logger.info(var_info)
+                            _logger.info("Variation to update!!")
+                            _logger.info(var_info)
                             var_product = product
                             var_pics = []
                             for pvar in product_tmpl.product_variant_ids:
