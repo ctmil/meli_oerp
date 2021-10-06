@@ -369,7 +369,7 @@ class mercadolibre_orders(models.Model):
         _logger.info("Receiver:"+str(Receiver)+" country_id:"+str(country_id))
         if (Receiver and 'state' in Receiver):
             if ('id' in Receiver['state']):
-                state = self.env['res.country.state'].search([('code','like',Receiver['state']['id']),('country_id','=',country_id)])
+                state = self.env['res.country.state'].search([('code','ilike',Receiver['state']['id']),('country_id','=',country_id)])
                 if (len(state)):
                     state_id = state[0].id
                     return state_id
@@ -378,20 +378,20 @@ class mercadolibre_orders(models.Model):
             #_logger.info(id_ml)
             if (id_ml and len(id_ml)==2):
                 id = id_ml[1]
-                state = self.env['res.country.state'].search([('code','like',id),('country_id','=',country_id)])
+                state = self.env['res.country.state'].search([('code','ilike',id),('country_id','=',country_id)])
                 if (len(state)):
                     state_id = state[0].id
                     return state_id
             if ('name' in Receiver['state']):
                 full_state = Receiver['state']['name']
-                state = self.env['res.country.state'].search(['&',('name','like',full_state),('country_id','=',country_id)])
+                state = self.env['res.country.state'].search(['&',('name','ilike',full_state),('country_id','=',country_id)])
                 if (len(state)):
                     state_id = state[0].id
 
         if ( Buyer and 'billing_info' in Buyer and 'STATE_NAME' in Buyer['billing_info'] ):
             binfo = Buyer['billing_info']
             full_state = (('CITY_NAME' in binfo and binfo['CITY_NAME']) or '')
-            state = self.env['res.country.state'].search(['&',('name','like',full_state),('country_id','=',country_id)])
+            state = self.env['res.country.state'].search(['&',('name','ilike',full_state),('country_id','=',country_id)])
             if (len(state)):
                 state_id = state[0].id
 
