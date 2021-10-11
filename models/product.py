@@ -3244,39 +3244,21 @@ class product_product(models.Model):
 
             if (1==2 and _stock>=0 and product._meli_available_quantity(meli=meli,config=config)!=_stock):
                 _logger.info("Updating stock for variant." + str(_stock) )
-                wh = self.env['stock.location'].search([('usage','=','internal')]).id
+                whid = self.env['stock.location'].search([('usage','=','internal')]).id
                 product_uom_id = uomobj.search([('name','=','Unidad(es)')])
                 if (product_uom_id.id==False):
                     product_uom_id = 1
                 else:
                     product_uom_id = product_uom_id.id
 
-                stock_inventory_fields = get_inventory_fields(product, wh)
+                stock_inventory_fields = get_inventory_fields( product, whid, quantity=_stock )
 
-                #_logger.info("stock_inventory_fields:")
-                #_logger.info(stock_inventory_fields)
-                StockInventory = self.env['stock.inventory'].create(stock_inventory_fields)
-                #_logger.info("StockInventory:")
-                #_logger.info(StockInventory)
+                _logger.info("stock_inventory_fields:")
+                _logger.info(stock_inventory_fields)
+                StockInventory = self.env[stock_inv_model].create(stock_inventory_fields)
                 if (StockInventory):
-                    stock_inventory_field_line = {
-                        "product_qty": _stock,
-                        'theoretical_qty': 0,
-                        "product_id": product.id,
-                        "product_uom_id": product_uom_id,
-                        "location_id": wh,
-                        'inventory_location_id': wh,
-                        "inventory_id": StockInventory.id,
-                        #"name": "INV "+ nombre
-                        #"state": "confirm",
-                    }
-                    StockInventoryLine = self.env['stock.inventory.line'].create(stock_inventory_field_line)
-                    #print "StockInventoryLine:", StockInventoryLine, stock_inventory_field_line
-                    #_logger.info("StockInventoryLine:")
-                    #_logger.info(stock_inventory_field_line)
-                    if (StockInventoryLine):
-                        return_id = stock_inventory_action_done(StockInventory)
-                        #_logger.info("action_done:"+str(return_id))
+                    return_id = stock_inventory_action_done(StockInventory)
+
         except Exception as e:
             _logger.info("product_update_stock Exception")
             _logger.info(e, exc_info=True)

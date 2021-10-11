@@ -4,7 +4,7 @@ from datetime import *
 import logging
 _logger = logging.getLogger(__name__)
 
-# Odoo version 14.0
+# Odoo version 15.0
 
 # Odoo 12.0 -> Odoo 13.0
 uom_model = "uom.uom"
@@ -15,6 +15,9 @@ prod_att_line = "product.template.attribute.line"
 # account
 acc_inv_model  = "account.move"
 
+#stock inventory to quant: 14.0 -> 15.0
+stock_inv_model = "stock.quant"
+
 # default_create_variant
 default_no_create_variant = "no_variant"
 default_create_variant = "always"
@@ -23,12 +26,12 @@ default_create_variant = "always"
 unique_meli_imagen_id_fields = 'unique(product_tmpl_id,product_variant_id,meli_imagen_id)'
 
 #TODO: get_company_selected, user with allowed companies
-def get_company_selected( self, context=None, company=None, company_id=None, user=None, user_id=None):
+def get_company_selected( self, context=None, company=None, company_id=None, user=None, user_id=None ):
     context = context or self.env.context
     company = company or self.env.user.company_id
     #_logger.info("context:"+str(context)+" company:"+str(company))
     company_id = company_id or (context and 'allowed_company_ids' in context and context['allowed_company_ids'] and context['allowed_company_ids'][0]) or company.id
-    company = self.env['res.company'].browse(company_id) or company    
+    company = self.env['res.company'].browse(company_id) or company
     return company
 
 #variant mage ids
@@ -78,9 +81,11 @@ def prepare_attribute( product_template_id, attribute_id, attribute_value_id ):
     return att_vals
 
 def stock_inventory_action_done( self ):
-    return_id = self.post_inventory()
-    return_id = self.action_start()
-    return_id = self.action_validate()
+    #return_id = self.post_inventory()
+    #return_id = self.action_start()
+    #return_id = self.action_validate()
+    #return_id = self._action_done(cancel_backorder=cancel_backorder)
+    return_id = self.with_context(inventory_mode=True)._apply_inventory()
     return return_id
 
 def ml_datetime(datestr):
@@ -98,7 +103,7 @@ def ml_tax_excluded(self, config=None ):
     #tax_excluded = self.env.user.has_group('sale.group_show_price_subtotal')
     #12.0 and 13.0
     tax_excluded = self.env.user.has_group('account.group_show_line_subtotals_tax_excluded')
-        
+
     company = (config and "company_id" in config._fields and config.company_id) or self.env.user.company_id
     config = config or company
     if (config and config.mercadolibre_tax_included not in ['auto']):
@@ -129,19 +134,20 @@ def ml_product_price_conversion( self, product_related_obj, price, config=None):
     return ml_price_converted
 
 
-def get_inventory_fields( product, warehouse ):
+def get_inventory_fields( product, warehouse, quantity=0 ):
     return {
-            "product_ids": [(4,product.id)],
-            #"product_id": product.id,
+            #"product_ids": [(4,product.id)],
+            "product_id": product.id,
             #"filter": "product",
-            #"location_id": warehouse,
-            "name": "INV: "+ product.name
+            "location_id": warehouse,
+            "inventory_quantity": quantity
+            #"name": "INV: "+ product.name
             }
 
 def get_delivery_line(sorder):
     delivery_line = None
     try:
-        carrier_product_id = sorder.carrier_id.product_id.id 
+        carrier_product_id = sorder.carrier_id.product_id.id
         for line in sorder.order_line:
             if(line.product_id.id == carrier_product_id):
                 delivery_line = line

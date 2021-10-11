@@ -13,13 +13,13 @@ class StockMove(models.Model):
     _inherit = "stock.move"
 
 
-    def action_assign(self, no_prepare=False):
+    def _action_assign(self):
         company = self.env.user.company_id
         for mov in self:
             #_logger.info("StockMove action_assign")
             #_logger.info(self)
             #_logger.info("Before: virtual av:" + str(mov.product_id.virtual_available))
-            res = super(StockMove, mov).action_assign()
+            res = super(StockMove, mov)._action_assign(no_prepare=no_prepare)
             #_logger.info("After: virtual av:" + str(mov.product_id.virtual_available))
 
             if mov.product_id:
@@ -58,7 +58,7 @@ class StockMove(models.Model):
                             _logger.info(movfields)
                             sm = movs.create(movfields)
                             if (sm):
-                                sm.action_done()
+                                sm._action_done()
                 if (company.mercadolibre_cron_post_update_stock):
                     if (mov.product_id.meli_id and mov.product_id.meli_pub):
                         mov.product_id.product_post_stock()
@@ -66,14 +66,14 @@ class StockMove(models.Model):
         return True
 
 
-    def action_done(self):
+    def _action_done(self, cancel_backorder=False):
         #import pdb; pdb.set_trace()
         company = self.env.user.company_id
         for mov in self:
             #_logger.info("StockMove action_done")
             #_logger.info(self)
             #_logger.info("Before: virtual av:" + str(mov.product_id.virtual_available))
-            res = super(StockMove, mov).action_done()
+            res = super(StockMove, mov)._action_done(cancel_backorder=cancel_backorder)
             #_logger.info("After: virtual av:" + str(mov.product_id.virtual_available))
 
 
@@ -113,7 +113,7 @@ class StockMove(models.Model):
                             _logger.info(movfields)
                             sm = movs.create(movfields)
                             if (sm):
-                                sm.action_done()
+                                sm._action_done()
                 if (company.mercadolibre_cron_post_update_stock):
                     if (mov.product_id.meli_id and mov.product_id.meli_pub):
                         mov.product_id.product_post_stock()

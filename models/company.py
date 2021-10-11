@@ -287,7 +287,7 @@ class res_company(models.Model):
     mercadolibre_seller_id = fields.Char( string='Vendedor Id', size=256)
     mercadolibre_state = fields.Boolean( compute=get_meli_state, string='Desconectado', help="Se requiere Iniciar Sesión con MLA", store=False )
     mercadolibre_category_import = fields.Char( string='Category to import', help='Category Code to Import, check Recursive Import to import the full tree', size=256)
-    mercadolibre_recursive_import = fields.Boolean( string='Recursive import', help='Import all the category tree from Category Code', size=256)
+    mercadolibre_recursive_import = fields.Boolean( string='Recursive import', help='Import all the category tree from Category Code')
 
     mercadolibre_cron_refresh = fields.Boolean(string='Keep alive',help='Cron Automatic Token Refresh for keeping ML connection alive.')
     mercadolibre_cron_mail = fields.Many2one(
@@ -299,8 +299,8 @@ class res_company(models.Model):
     mercadolibre_cron_get_orders_shipment = fields.Boolean(string='Importar envíos',help='Cron Get Orders Shipment')
     mercadolibre_cron_get_orders_shipment_client = fields.Boolean(string='Importar clientes',help='Cron Get Orders Shipment Client')
     mercadolibre_cron_get_questions = fields.Boolean(string='Importar preguntas',help='Cron Get Questions')
-    mercadolibre_cron_get_update_products = fields.Boolean(string='Actualizar productos',help='Cron Update Products already imported')
-    mercadolibre_cron_post_update_products = fields.Boolean(string='Actualizar productos',help='Cron Update Posted Products, Product Templates or Variants with Meli Publication field checked')
+    mercadolibre_cron_get_update_products = fields.Boolean(string='Actualizar productos en Odoo',help='Cron Update Products already imported')
+    mercadolibre_cron_post_update_products = fields.Boolean(string='Actualizar productos en ML',help='Cron Update Posted Products, Product Templates or Variants with Meli Publication field checked')
     mercadolibre_cron_post_update_stock = fields.Boolean(string='Publicar Stock',help='Cron Post Updated Stock')
     mercadolibre_cron_post_update_price = fields.Boolean(string='Publicar Precio',help='Cron Post Updated Price')
     mercadolibre_create_website_categories = fields.Boolean(string='Crear categorías',help='Create Website eCommerce Categories from imported products ML categories')
