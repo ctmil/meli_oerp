@@ -196,21 +196,24 @@
               </field>
         </record>
 
-        <record id="action_mercadolibre_shipment_print" model="ir.actions.act_window">
+	<record id="action_mercadolibre_shipment_print" model="ir.actions.act_window">
             <field name="name">Imprimir Guias de MercadoLibre</field>
             <field name="type">ir.actions.act_window</field>
+            <field name="binding_model_id" ref="model_mercadolibre_shipment" />
             <field name="res_model">mercadolibre.shipment.print</field>
+            <field name="binding_type">action</field>
+            <field name="binding_view_types">list,form</field>
             <field name="view_mode">form</field>
             <field name="target">new</field>
         </record>
 
-	<act_window id="action_mercadolibre_shipment_print"
+	<!--act_window id="action_mercadolibre_shipment_print"
             name="Imprimir Guias de MercadoLibre"
             binding_model="mercadolibre.shipment"
             res_model="mercadolibre.shipment.print"
             binding_views="list,form"
             view_mode="form"
-            target="new"/>
+            target="new"/-->
 
 	<record id="view_mercadolibre_stock_picking_print" model="ir.ui.view">
               <field name="name">Imprimir Guias de MercadoLibre (Inv.)</field>
@@ -230,19 +233,22 @@
 	<record id="action_mercadolibre_stock_picking_print" model="ir.actions.act_window">
             <field name="name">Imprimir Guias de MercadoLibre (Inv.)</field>
             <field name="type">ir.actions.act_window</field>
+            <field name="binding_model_id" ref="stock.model_stock_picking" />
             <field name="res_model">mercadolibre.shipment.print</field>
+            <field name="binding_type">action</field>
+            <field name="binding_view_types">list,form</field>
             <field name="view_mode">form</field>
             <field name="target">new</field>
         </record>
 
-        <act_window id="action_mercadolibre_stock_picking_print"
+        <!--act_window id="action_mercadolibre_stock_picking_print"
                 name="Imprimir Guias de MercadoLibre (Inv.)"
                 binding_model="stock.picking"
                 res_model="mercadolibre.shipment.print"
                 view_id="view_mercadolibre_stock_picking_print"
                 binding_views="list,form"
                 view_mode="form"
-                target="new"/>
+                target="new"/-->
 
 
             <record id="view_mercadolibre_shipment_update" model="ir.ui.view">
@@ -262,20 +268,36 @@
             <record id="action_mercadolibre_shipment_update" model="ir.actions.act_window">
                 <field name="name">Update Shipment</field>
                 <field name="type">ir.actions.act_window</field>
+                <field name="binding_model_id" ref="model_mercadolibre_shipment"/>
                 <field name="res_model">mercadolibre.shipment.update</field>
+                <field name="binding_view_types">list,form</field>
                 <field name="view_mode">form</field>
                 <field name="target">new</field>
             </record>
 
-            <act_window id="action_mercadolibre_shipment_update"
+            <!--act_window id="action_mercadolibre_shipment_update"
                 name="Update"
                 binding_model="mercadolibre.shipment"
                 res_model="mercadolibre.shipment.update"
                 binding_views="list,form"
                 view_mode="form"
-                target="new"/>
+                target="new"/-->
 
-            <report
+                <record id="report_shipment_view" model="ir.actions.report">
+                    <field name="name">Shipment Report</field>
+                    <field name="model">mercadolibre.shipment</field>
+                    <field name="report_type">qweb-pdf</field>
+                    <field name="report_name">meli_oerp.report_shipment</field>
+                    <field name="report_file">meli_oerp.report_shipment</field>
+                    <field name="print_report_name">'Reporte de etiquetas'</field>
+                    <!--field name="attachment">(object.state == 'posted') and ((object.name or 'INV').replace('/','_')+'.pdf')</field-->
+                    <field name="binding_model_id" ref="model_mercadolibre_shipment"/>
+                    <field name="binding_type">report</field>
+                    <!--field name="groups_id" eval="[(4, ref('account.group_account_invoice')),
+         (4, ref('account.group_account_readonly'))]"/-->
+                </record>
+                
+                <!--report
                         id="report_shipment_view"
                         string="Shipment Report"
                         model="mercadolibre.shipment"
@@ -284,9 +306,23 @@
                         name="meli_oerp.report_shipment"
                         menu="True"
                         print_report_name="'Reporte de etiquetas'"
-                    />
+                    /-->
 
-            <report
+            <record id="report_order_shipment_view" model="ir.actions.report">
+                <field name="name">Order Shipment Report</field>
+                <field name="model">sale.order</field>
+                <field name="report_type">qweb-pdf</field>
+                <field name="report_name">meli_oerp.report_order_shipment</field>
+                <field name="report_file">meli_oerp.report_order_shipment</field>
+                <field name="print_report_name">'Reporte de etiquetas desde ordenes'</field>
+                <!--field name="attachment">(object.state == 'posted') and ((object.name or 'INV').replace('/','_')+'.pdf')</field-->
+                <field name="binding_model_id" ref="model_sale_order"/>
+                <field name="binding_type">report</field>
+                <!--field name="groups_id" eval="[(4, ref('account.group_account_invoice')),
+     (4, ref('account.group_account_readonly'))]"/-->
+            </record>
+            
+            <!--report
                         id="report_order_shipment_view"
                         string="Order Shipment Report"
                         model="sale.order"
@@ -295,10 +331,24 @@
                         name="meli_oerp.report_order_shipment"
                         menu="True"
                         print_report_name="'Reporte de etiquetas desde ordenes'"
-                    />
+                    /-->
 
-
-            <report
+            <record id="report_invoice_shipment_view" model="ir.actions.report">
+                <field name="name">Shipment Report</field>
+                <field name="model">account.move</field>
+                <field name="report_type">qweb-pdf</field>
+                <field name="report_name">meli_oerp.report_invoice_shipment</field>
+                <field name="report_file">meli_oerp.report_invoice_shipment</field>
+                <field name="print_report_name">'Reporte de facturas con etiquetas'</field>
+                <!--field name="attachment">(object.state == 'posted') and ((object.name or 'INV').replace('/','_')+'.pdf')</field-->
+                <field name="binding_model_id" ref="model_account_move"/>
+                <field name="binding_type">report</field>
+                <!--field name="groups_id" eval="[(4, ref('account.group_account_invoice')),
+     (4, ref('account.group_account_readonly'))]"/-->
+                <field name="paperformat_id" ref="meli_oerp.paperformat_invoice_shipment"/>
+            </record>
+            
+            <!--report
                         id="report_invoice_shipment_view"
                         string="Shipment Report"
                         model="account.move"
@@ -308,6 +358,6 @@
                         menu="True"
                         print_report_name="'Reporte de facturas con etiquetas'"
                         paperformat="meli_oerp.paperformat_invoice_shipment"
-                    />
+                    /-->
     </data>
 </odoo>

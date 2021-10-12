@@ -97,14 +97,25 @@
         parent="menu_meli"
         name="Ventas publicadas" />
 
-    <act_window id="action_update_meli_postings"
+	<record id="action_update_meli_postings" model="ir.actions.act_window">
+	    <field name="name">Actualizar publicaciones desde ML</field>
+	    <field name="type">ir.actions.act_window</field>
+	    <field name="binding_model_id" ref="model_mercadolibre_posting" />
+	    <field name="res_model">mercadolibre.posting.update</field>
+	    <field name="binding_type">action</field>
+	    <field name="binding_view_types">list,form</field>
+	    <field name="view_mode">form</field>
+	    <field name="target">new</field>
+	</record>
+
+    <!--act_window id="action_update_meli_postings"
         name="Update ML Post"
         binding_model="mercadolibre.posting"
         res_model="mercadolibre.posting.update"
         binding_type="action"
         binding_views="list,form"
         view_mode="form"
-        target="new"/>
+        target="new"/-->
 
   </data>
 </odoo>
