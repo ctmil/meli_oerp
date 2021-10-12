@@ -38,19 +38,22 @@
         <record id="action_mercadolibre_category_import" model="ir.actions.act_window">
             <field name="name">Importar categoria de ML</field>
             <field name="type">ir.actions.act_window</field>
+            <field name="binding_model_id" ref="model_mercadolibre_category_import" />
             <field name="res_model">mercadolibre.category.import</field>
+            <field name="binding_type">action</field>
+            <field name="binding_view_types">list,form</field>
             <field name="view_mode">form</field>
             <field name="target">new</field>
         </record>
 
-        <act_window id="action_mercadolibre_category_import"
+        <!--act_window id="action_mercadolibre_category_import"
             name="Importar categoria de ML"
             binding_model="mercadolibre.category"
             res_model="mercadolibre.category.import"
             binding_type="action"
             binding_views="list,form"
             view_mode="form"
-            target="new"/>
+            target="new"/-->
 
         <record model="ir.ui.view" id="view_meli_product_public_category_form_view">
           <field name="name">mercadolibre.website.category.form</field>

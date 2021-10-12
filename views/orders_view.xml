@@ -342,24 +342,45 @@
             parent="menu_meli"
             name="Compradores" />
 
-            <act_window id="action_update_meli_orders"
+	<record id="action_update_meli_orders" model="ir.actions.act_window">
+            <field name="name">Actualizar Pedidos ML</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="binding_model_id" ref="model_mercadolibre_orders" />
+            <field name="res_model">mercadolibre.orders.update</field>
+            <field name="binding_type">action</field>
+            <field name="binding_view_types">list,form</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+
+            <!--act_window id="action_update_meli_orders"
                 name="Update ML Orders"
                 binding_model="mercadolibre.orders"
                 res_model="mercadolibre.orders.update"
                 binding_type="action"
                 binding_views="list,form"
                 view_mode="form"
-                target="new"/>
+                target="new"/-->
 
+	<record id="action_cancel_orders" model="ir.actions.act_window">
+            <field name="name">Cancelar Pedidos</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="binding_model_id" ref="model_sale_order" />
+            <field name="res_model">sale.order.cancel.wiz.meli</field>
+            <field name="binding_type">action</field>
+            <field name="binding_view_types">list,form</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
 
-            <act_window id="action_cancel_orders"
+            <!--act_window id="action_cancel_orders"
                 name="Cancel Orders"
                 binding_model="sale.order"
                 res_model="sale.order.cancel.wiz.meli"
                 binding_type="action"
                 binding_views="list,form"
                 view_mode="form"
-                target="new"/>
+                target="new"/-->
 
 
     </data>

@@ -39,7 +39,7 @@
                 <field name="meli_force_pub" string="Product Image ML Force Publication"/>
                 <field name="meli_pub" string="Product Image ML Publication"/>
               </xpath>
-              <xpath expr="//div[contains(@class,'card-body')]//field[@name='name']" position="after">
+              <xpath expr="//div[hasclass('card-body')]//field[@name='name']" position="after">
                 <field name="meli_force_pub" string="ML Force Pub"/>
                 <field name="meli_imagen_id" string="ML id"/>
               </xpath>

@@ -3043,12 +3043,16 @@ class product_product(models.Model):
             error = { "error": "Blocked by product template configuration." }
             product.meli_stock_error = str(error)
             product_tmpl.meli_stock_error = product.meli_stock_error
+            product.message_post(body=str(error["error"]))
+            product_tmpl.message_post(body=str(error["error"]))
             return error
 
         if "meli_update_stock_blocked" in product._fields and product.meli_update_stock_blocked:
             error = { "error": "Blocked by product configuration." }
             product.meli_stock_error = str(error)
             product_tmpl.meli_stock_error = product.meli_stock_error
+            product.message_post(body=str(error["error"]))
+            product_tmpl.message_post(body=str(error["error"]))
             return error
 
         try:
@@ -3244,7 +3248,7 @@ class product_product(models.Model):
 
             if (1==2 and _stock>=0 and product._meli_available_quantity(meli=meli,config=config)!=_stock):
                 _logger.info("Updating stock for variant." + str(_stock) )
-                wh = self.env['stock.location'].search([('usage','=','internal')]).id
+w                wh = self.env['stock.location'].search([('usage','=','internal')]).id
                 product_uom_id = uomobj.search([('name','=','Unidad(es)')])
                 if (product_uom_id.id==False):
                     product_uom_id = 1

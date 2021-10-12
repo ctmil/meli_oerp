@@ -15,6 +15,9 @@ prod_att_line = "product.template.attribute.line"
 # account
 acc_inv_model  = "account.move"
 
+#stock inventory to quant: 14.0 -> 15.0
+stock_inv_model = "stock.inventory"
+
 # default_create_variant
 default_no_create_variant = "no_variant"
 default_create_variant = "always"
@@ -129,7 +132,7 @@ def ml_product_price_conversion( self, product_related_obj, price, config=None):
     return ml_price_converted
 
 
-def get_inventory_fields( product, warehouse ):
+def get_inventory_fields( product, warehouse, quantity=0 ):
     return {
             "product_ids": [(4,product.id)],
             #"product_id": product.id,
@@ -141,7 +144,7 @@ def get_inventory_fields( product, warehouse ):
 def get_delivery_line(sorder):
     delivery_line = None
     try:
-        carrier_product_id = sorder.carrier_id.product_id.id 
+        carrier_product_id = sorder.carrier_id.product_id.id
         for line in sorder.order_line:
             if(line.product_id.id == carrier_product_id):
                 delivery_line = line
