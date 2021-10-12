@@ -285,7 +285,10 @@ class sale_order(models.Model):
 
     def meli_fix_team( self, meli=None, config=None ):
         company = (config and "company_id" in config._fields and config.company_id) or self.env.user.company_id
+
         seller_team = (config and config.mercadolibre_seller_team) or None
+        seller_user = (config and config.mercadolibre_seller_user) or None
+
         _logger.info("meli_fix_team: company: "+str(company.name)+" seller_team:"+str(seller_team and seller_team.name))
 
         so = self
@@ -293,7 +296,10 @@ class sale_order(models.Model):
             return None
 
         team_id = so.sudo().team_id
+        user_id = so.sudo().user_id
+
         _logger.info("meli_fix_team: so.team_id: "+str(team_id and team_id.name))
+
         if team_id and team_id.company_id.id != company.id:
             if (seller_team and seller_team.company_id.id == company.id):
                 if team_id.id!=seller_team.id:
@@ -301,6 +307,9 @@ class sale_order(models.Model):
             else:
                 #unassign, wrong company team
                 so.sudo().write( { 'team_id': None } )
+
+        if user_id.id!=seller_user.id:
+            so.sudo().write( { 'user_id': seller_user.id } )
 
     _sql_constraints = [
         ('unique_meli_order_id', 'unique(meli_order_id)', 'Meli Order id already exists!')
@@ -1053,11 +1062,6 @@ class mercadolibre_orders(models.Model):
             sorder.meli_fix_team( meli=meli, config=config )
         else:
             #_logger.info(meli_order_fields)
-            #user
-            if (config.mercadolibre_seller_user):
-                meli_order_fields["user_id"] = config.mercadolibre_seller_user.id
-            if (config.mercadolibre_seller_team):
-                meli_order_fields["team_id"] = config.mercadolibre_seller_team.id
 
             if 'pack_order' in order_json["tags"]:
                 _logger.info("Pack Order, dont create sale.order, leave it to mercadolibre.shipment")
