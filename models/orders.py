@@ -836,6 +836,12 @@ class mercadolibre_orders(models.Model):
 
                     meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
 
+                if ( ('doc_type' in Buyer['billing_info']) and ('dte_email' in res.partner._fields)):
+
+                    meli_buyer_fields['dte_email'] = 'nomail@fake.com'
+                    meli_buyer_fields['giro'] = 'SIN GIRO'
+                    meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
+
                 if ( ('doc_type' in Buyer['billing_info']) and ('document_type_id' in self.env['res.partner']._fields) and ('document_number' in self.env['res.partner']._fields) ):
 
                     if (Buyer['billing_info']['doc_type']=="RUT"):
@@ -1065,6 +1071,11 @@ class mercadolibre_orders(models.Model):
             sorder.meli_fix_team( meli=meli, config=config )
         else:
             #_logger.info(meli_order_fields)
+            #user
+            if (config.mercadolibre_seller_user):
+                meli_order_fields["user_id"] = config.mercadolibre_seller_user.id
+            if (config.mercadolibre_seller_team):
+                meli_order_fields["team_id"] = config.mercadolibre_seller_team.id
 
             if 'pack_order' in order_json["tags"]:
                 _logger.info("Pack Order, dont create sale.order, leave it to mercadolibre.shipment")

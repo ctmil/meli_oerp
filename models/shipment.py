@@ -802,7 +802,12 @@ class mercadolibre_shipment(models.Model):
                         if ("pack_id" in all_orders[0] and all_orders[0]["pack_id"]):
                             meli_order_fields['name'] = "ML %s" % ( str(all_orders[0]["pack_id"]) )
                             #meli_order_fields['pack_id'] = all_orders[0]["pack_id"]
-                            
+
+                        if (not sorder_pack and config.mercadolibre_seller_user):
+                            meli_order_fields["user_id"] = config.mercadolibre_seller_user.id
+                        if (not sorder_pack and config.mercadolibre_seller_team):
+                            meli_order_fields["team_id"] = config.mercadolibre_seller_team.id
+
                         if (len(sorder_pack)):
                             sorder_pack = sorder_pack[0]
                             _logger.info("Update sale.order pack")
