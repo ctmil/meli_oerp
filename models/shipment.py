@@ -336,7 +336,7 @@ class mercadolibre_shipment(models.Model):
             if not ship_name or len(ship_name)==0:
                 continue;
 
-            product_shipping_id = product_obj.search([('default_code','=','ENVIO')])
+            product_shipping_id = product_obj.search([('default_code','ilike','ENVIO')])
             if (len(product_shipping_id)==0):
                 product_shipping_id = product_obj.search(['|','|',('default_code','=','ENVIO'),
                         ('default_code','=',ship_name),
@@ -394,7 +394,7 @@ class mercadolibre_shipment(models.Model):
             delivery_price = ml_product_price_conversion( self, product_related_obj=product_shipping_id, price=del_price, config=config ),
             if type(delivery_price)==tuple and len(delivery_price):
                 delivery_price = delivery_price[0]
-            
+
             conflict = abs( sorder.meli_paid_amount - sorder.meli_total_amount ) > 1.0
 
             received_amount = sorder.meli_amount_to_invoice( meli=meli, config=config )
@@ -752,7 +752,7 @@ class mercadolibre_shipment(models.Model):
                             ord = oi
                             totales['total_amount']+= ord["total_amount"]
                             totales['paid_amount']+= ord["paid_amount"]
-                            
+
                         order_json = {
                             "id": all_orders[0]["order_id"],
                             'status': all_orders[0]["status"],
@@ -803,9 +803,9 @@ class mercadolibre_shipment(models.Model):
                             meli_order_fields['name'] = "ML %s" % ( str(all_orders[0]["pack_id"]) )
                             #meli_order_fields['pack_id'] = all_orders[0]["pack_id"]
 
-                        if (config.mercadolibre_seller_user):
+                        if (not sorder_pack and config.mercadolibre_seller_user):
                             meli_order_fields["user_id"] = config.mercadolibre_seller_user.id
-                        if (config.mercadolibre_seller_team):
+                        if (not sorder_pack and config.mercadolibre_seller_team):
                             meli_order_fields["team_id"] = config.mercadolibre_seller_team.id
 
                         if (len(sorder_pack)):

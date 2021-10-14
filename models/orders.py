@@ -285,19 +285,34 @@ class sale_order(models.Model):
 
     def meli_fix_team( self, meli=None, config=None ):
         company = (config and "company_id" in config._fields and config.company_id) or self.env.user.company_id
+
         seller_team = (config and config.mercadolibre_seller_team) or None
+        seller_user = (config and config.mercadolibre_seller_user) or None
+
         _logger.info("meli_fix_team: company: "+str(company.name)+" seller_team:"+str(seller_team and seller_team.name))
+
         so = self
         if not so:
             return None
+
         team_id = so.sudo().team_id
+        user_id = so.sudo().user_id
+
         _logger.info("meli_fix_team: so.team_id: "+str(team_id and team_id.name))
-        if team_id and team_id.company_id.id != company.id:
+
+        if (team_id and team_id.company_id.id != company.id) or not team_id:
             if (seller_team and seller_team.company_id.id == company.id):
-                so.sudo().write( { 'team_id': seller_team.id } )
+                if team_id.id!=seller_team.id:
+                    so.sudo().write( { 'team_id': seller_team.id } )
             else:
-                #unassigned bad team
+                #unassign, wrong company team
                 so.sudo().write( { 'team_id': None } )
+
+        if (user_id and seller_user and user_id.id!=seller_user.id) or not user_id:
+            if seller_user:
+                so.sudo().write( { 'user_id': seller_user.id } )
+            else:
+                so.sudo().write( { 'user_id': None } )
 
     _sql_constraints = [
         ('unique_meli_order_id', 'unique(meli_order_id)', 'Meli Order id already exists!')
@@ -366,9 +381,10 @@ class mercadolibre_orders(models.Model):
     def state(self, country_id,  Receiver={}, Buyer={} ):
         full_state = ''
         state_id = False
+        _logger.info("Receiver:"+str(Receiver)+" country_id:"+str(country_id))
         if (Receiver and 'state' in Receiver):
             if ('id' in Receiver['state']):
-                state = self.env['res.country.state'].search([('code','like',Receiver['state']['id']),('country_id','=',country_id)])
+                state = self.env['res.country.state'].search([('code','ilike',Receiver['state']['id']),('country_id','=',country_id)])
                 if (len(state)):
                     state_id = state[0].id
                     return state_id
@@ -377,20 +393,20 @@ class mercadolibre_orders(models.Model):
             #_logger.info(id_ml)
             if (id_ml and len(id_ml)==2):
                 id = id_ml[1]
-                state = self.env['res.country.state'].search([('code','like',id),('country_id','=',country_id)])
+                state = self.env['res.country.state'].search([('code','ilike',id),('country_id','=',country_id)])
                 if (len(state)):
                     state_id = state[0].id
                     return state_id
             if ('name' in Receiver['state']):
                 full_state = Receiver['state']['name']
-                state = self.env['res.country.state'].search(['&',('name','like',full_state),('country_id','=',country_id)])
+                state = self.env['res.country.state'].search(['&',('name','ilike',full_state),('country_id','=',country_id)])
                 if (len(state)):
                     state_id = state[0].id
 
         if ( Buyer and 'billing_info' in Buyer and 'STATE_NAME' in Buyer['billing_info'] ):
             binfo = Buyer['billing_info']
             full_state = (('CITY_NAME' in binfo and binfo['CITY_NAME']) or '')
-            state = self.env['res.country.state'].search(['&',('name','like',full_state),('country_id','=',country_id)])
+            state = self.env['res.country.state'].search(['&',('name','ilike',full_state),('country_id','=',country_id)])
             if (len(state)):
                 state_id = state[0].id
 
