@@ -836,7 +836,7 @@ class mercadolibre_orders(models.Model):
 
                     meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
 
-                if ( ('doc_type' in Buyer['billing_info']) and ('dte_email' in res.partner._fields)):
+                if ( ('doc_type' in Buyer['billing_info']) and ('dte_email' in self.env['res.partner']._fields)):
 
                     meli_buyer_fields['dte_email'] = 'nomail@fake.com'
                     meli_buyer_fields['giro'] = 'SIN GIRO'
