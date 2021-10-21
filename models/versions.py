@@ -26,12 +26,12 @@ default_create_variant = "always"
 unique_meli_imagen_id_fields = 'unique(product_tmpl_id,product_variant_id,meli_imagen_id)'
 
 #TODO: get_company_selected, user with allowed companies
-def get_company_selected( self, context=None, company=None, company_id=None, user=None, user_id=None):
+def get_company_selected( self, context=None, company=None, company_id=None, user=None, user_id=None ):
     context = context or self.env.context
     company = company or self.env.user.company_id
     #_logger.info("context:"+str(context)+" company:"+str(company))
     company_id = company_id or (context and 'allowed_company_ids' in context and context['allowed_company_ids'] and context['allowed_company_ids'][0]) or company.id
-    company = self.env['res.company'].browse(company_id) or company    
+    company = self.env['res.company'].browse(company_id) or company
     return company
 
 #variant mage ids
@@ -101,7 +101,7 @@ def ml_tax_excluded(self, config=None ):
     #tax_excluded = self.env.user.has_group('sale.group_show_price_subtotal')
     #12.0 and 13.0
     tax_excluded = self.env.user.has_group('account.group_show_line_subtotals_tax_excluded')
-        
+
     company = (config and "company_id" in config._fields and config.company_id) or self.env.user.company_id
     config = config or company
     if (config and config.mercadolibre_tax_included not in ['auto']):
