@@ -3248,7 +3248,7 @@ class product_product(models.Model):
 
             if (1==2 and _stock>=0 and product._meli_available_quantity(meli=meli,config=config)!=_stock):
                 _logger.info("Updating stock for variant." + str(_stock) )
-w                wh = self.env['stock.location'].search([('usage','=','internal')]).id
+                wh = self.env['stock.location'].search([('usage','=','internal')]).id
                 product_uom_id = uomobj.search([('name','=','Unidad(es)')])
                 if (product_uom_id.id==False):
                     product_uom_id = 1
