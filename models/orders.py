@@ -897,6 +897,10 @@ class mercadolibre_orders(models.Model):
                             meli_buyer_fields['responsabilidad_fiscal_fe'] = [ ( 6, 0, [29] ) ]
 
                     meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
+
+                    if ("xidentification" in self.env['res.partner']._fields):
+                        meli_buyer_fields['xidentification'] = Buyer['billing_info']['doc_number']
+
                     if ("fe_nit" in self.env['res.partner']._fields):
                         meli_buyer_fields['fe_nit'] = Buyer['billing_info']['doc_number']
                         if (Buyer['billing_info']['doc_type']=="NIT"):
