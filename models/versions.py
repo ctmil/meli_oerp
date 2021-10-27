@@ -92,7 +92,7 @@ def ml_datetime(datestr):
     try:
         #return parse(datestr).isoformat().replace("T"," ")
         datestr = str(datestr)
-        return parse(datestr).strftime('%Y-%m-%d %H:%M:%S')
+        return parse(datestr).astimezone(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
     except:
         _logger.error(type(datestr))
         _logger.error(datestr)
