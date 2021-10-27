@@ -817,9 +817,219 @@ class product_product(models.Model):
                         else:
                             _logger.info("Already in Odoo")
                             _logger.info(pimage)
+
         except Exception as e:
             _logger.info("_meli_set_images Exception")
             _logger.info(e, exc_info=True)
+
+
+    def _meli_set_image_validation( self, pic, meli_imagen_bytes ):
+
+        pimage = None
+        bin_updating = True
+        product = self
+        product_template = product.product_tmpl_id
+
+        if (variant_image_ids(product)):
+            #_logger.info("has variant image ids")
+            #_logger.info(variant_image_ids(product))
+            pimage = self.env["product.image"].search([('meli_imagen_id','=',pic["id"]),('product_variant_id','=',product_template.id)])
+            #_logger.info(pimage)
+            if (pimage and len(pimage)>1):
+                #unlink all but first
+                _logger.info("Unlink all duplicates for "+str(pic["id"]))
+                for img in pimage:
+                    img.unlink()
+                pimage = False
+            if (pimage and get_image_full(pimage)):
+                imagebin = base64.b64decode( get_image_full(pimage) )
+                bin_diff = meli_imagen_bytes - len(imagebin)
+                _logger.info("Image:"+str(len(imagebin))+" vs URLImage:"+str(meli_imagen_bytes)+" diff:"+str(bin_diff) )
+                bin_updating = (abs(bin_diff)>0)
+        else:
+            _logger.info("no variant image ids, using template image ids")
+            if (template_image_ids(product)):
+                _logger.info(template_image_ids(product))
+                pimage = self.env["product.image"].search([('meli_imagen_id','=',pic["id"]),('product_tmpl_id','=',product_template.id)])
+
+                #remove duplicate images
+                _logger.info(pimage)
+                if (pimage and len(pimage)>1):
+                    #unlink all but first
+                    _logger.info("Unlink all duplicates for "+str(pic["id"]))
+                    pimage.unlink()
+                    for img in pimage:
+                        img.unlink()
+                    pimage = False
+
+                if (pimage and get_image_full(pimage)):
+                    imagebin = base64.b64decode( get_image_full(pimage) )
+                    bin_diff = meli_imagen_bytes - len(imagebin)
+                    _logger.info("Image:"+str(len(imagebin))+" vs URLImage:"+str(meli_imagen_bytes)+" diff:"+str(bin_diff) )
+                    bin_updating = (abs(bin_diff)>0)
+
+        return pimage, bin_updating
+
+    # set images in a variant from meli json
+    # odoo product must already being synchronized: product.meli_id and product.meli_id_variation set if variations are present
+    def _meli_set_image_xy( self, pic_id=None, picture_hash=None, variations_hash=None, config=None, meli=None, rjson=None ):
+
+        _logger.info("_meli_set_image_xy")
+        bin_updating = False
+        product = self
+        product_template = product.product_tmpl_id
+
+        pic = pic_id and picture_hash and pic_id in picture_hash and picture_hash[pic_id]
+        var = variations_hash and product.meli_id_variation and product.meli_id_variation in variations_hash and variations_hash[ product.meli_id_variation ]
+
+        _logger.info("_meli_set_image_xy: pic:"+str(pic)+" var:"+str(var)+ " product.meli_id_variation:"+str(product.meli_id_variation))
+        #if not pic_id and var:
+        #    pic_ids = var and "picture_ids" in var and var["picture_ids"]
+        #    pic_id = pic_ids and len(pic_ids) and pic_ids[0]
+        #    pic = pic_id and picture_hash and pic_id in picture_hash and picture_hash[pic_id]
+
+        #if not pic or not "id" in pic:
+        #    return {}
+        picture_ids = picture_hash
+        pic_ids = []
+        if product.meli_id_variation and var:
+            pic_ids = var["picture_ids"]
+            for ix in range(len(pic_ids)):
+                vpic_id = pic_ids[ix]
+                picture_ids[ vpic_id ] = picture_hash[ vpic_id ]
+        else:
+            for pid in picture_hash:
+                pic_ids.append(pid)
+
+        _logger.info("_meli_set_image_xy: pic_ids:"+str(pic_ids))
+
+        if product.meli_id_variation and var and product.meli_pub_principal_variant and product.meli_pub_principal_variant.id==product.id:
+            #TODO: special case> principal variant, publish here pictures not in each...
+            #how to optimize repeated pictures!!!!! IMPORTANT > if a picture is repeated in each variant, use a single one in the template images to store it (or not)
+            _logger.info( "Processing principal variant: " + str(product) )
+
+
+        #PRINCIPAL
+        ix_start = 0
+        if (not config.mercadolibre_do_not_use_first_image):
+            ix_start = 1
+            first_pic_id = pic_ids and pic_ids[0]
+            thumbnail_url = first_pic_id and first_pic_id in picture_hash and picture_hash[first_pic_id]['url']
+            if thumbnail_url:
+                _logger.info( "Setting principal IMAGE for product: " + str(product.display_name) + " thumbnail_url: " + str(thumbnail_url) )
+                image = urlopen(thumbnail_url).read()
+                image_base64 = base64.encodestring(image)
+                set_image_full(product, image_base64)
+
+        #ADDITIONAL MEDIAS
+        if (len(pic_ids) and 1==1):
+            #from ix_start to finish
+            for ix in range(ix_start,len(pic_ids)):
+                vpic_id = pic_ids[ix]
+                pic = picture_hash[ vpic_id ]
+
+                #MORE MEDIAS
+                resimage = meli.get("/pictures/"+str(pic['id']), {'access_token':meli.access_token})
+                imgjson = resimage.json()
+
+                thumbnail_url = pic['secure_url']
+                #_logger.info(imgjson)
+                if 'error' in imgjson:
+                    pass;
+                else:
+                    if (len(imgjson['variations'])>0):
+                        thumbnail_url = imgjson['variations'][0]['secure_url']
+
+                image = urlopen(thumbnail_url).read()
+                image_base64 = base64.encodestring(image)
+                meli_imagen_bytes = len(image)
+
+                #pimage = False
+                pimg_fields = {
+                    #'name': thumbnail_url+' - '+pic["size"]+' - '+pic["max_size"],
+                    'meli_imagen_id': pic["id"],
+                    'meli_imagen_link': thumbnail_url,
+                    'meli_imagen_size': pic["size"],
+                    'meli_imagen_max_size': pic["max_size"],
+                    'meli_imagen_bytes': meli_imagen_bytes,
+                    'meli_pub': True
+                }
+
+
+                #TODO: check here if image already exists
+                pimage, bin_updating = product._meli_set_image_validation(pic=pic,meli_imagen_bytes=meli_imagen_bytes)
+
+                if product.meli_id_variation:
+                    pimg_fields['product_variant_id'] = product.id
+                    pimg_fields['product_tmpl_id'] = None
+                else:
+                    pimg_fields['product_variant_id'] = None
+                    pimg_fields['product_tmpl_id'] = product_template.id
+
+                if (not pimage or (pimage and len(pimage)==0)):
+                    _logger.info("Creating new image")
+                    bin_updating = True
+                    pimg_fields["name"] = product.meli_title or product.name;
+                    pimage = self.env["product.image"].create(pimg_fields)
+
+                if (pimage):
+                    pimage.write(pimg_fields)
+                    if (bin_updating):
+                        _logger.info("Updating image data.")
+                        _logger.info("Image:"+str(meli_imagen_bytes) )
+                        set_image_full(pimage, image_base64)
+                    else:
+                        _logger.info("Already in Odoo")
+                        _logger.info(pimage)
+
+    def _meli_set_images_x( self, product_template, pictures, meli=None, config=None, rjson=None ):
+
+        _logger.info("_meli_set_images_x: "+str(product_template)+" pictures:"+str(pictures))
+
+        company = self.env.user.company_id
+        config = config or company
+        product = self
+
+        if not meli:
+            meli = self.env['meli.util'].get_new_instance(company)
+
+        if not ("product.image" in self.env):
+            return {}
+
+        if not pictures or not len(pictures):
+            return {}
+
+        #index pictures by id
+        picture_hash = {}
+        ix_start = 0
+        for ix in range(ix_start,len(pictures)):
+            pic = pictures[ix]
+            picture_hash[pic["id"]] = pic
+        _logger.info("picture_hash: "+str(picture_hash))
+
+        #index variations by id
+        variations_hash = {}
+        if "variations" in rjson:
+            for ix in range(len(rjson["variations"]) ):
+                _var = rjson["variations"][ix]
+                if "id" in _var:
+                    variations_hash[ str(_var["id"]) ] = _var
+        _logger.info("variations_hash: "+str(variations_hash))
+
+        #single variant is default behaviour
+        variants = product
+
+        #has variations and import as variants? use product_template.product_variant_ids
+        if product_template.meli_pub_as_variant and "variations" in rjson and len(rjson["variations"]):
+            variants = product_template.product_variant_ids
+            _logger.info("meli_pub_as_variant set variants: "+str(variants))
+
+        #finally import for each product the picture from ML
+        for variant in variants:
+            _logger.info("_meli_set_image_xy: "+str(variant))
+            variant._meli_set_image_xy( picture_hash=picture_hash, variations_hash=variations_hash, meli=meli, config=config )
+
+        return {}
 
     def _get_non_variant_attributes( self, attributes ):
 
@@ -1104,7 +1314,7 @@ class product_product(models.Model):
         #TODO: traer la descripcion: con
         #https://api.mercadolibre.com/items/{ITEM_ID}/description?access_token=$ACCESS_TOKEN
         if rjson and 'descriptions' in rjson and rjson['descriptions']:
-            response2 = meli.get("/items/"+product.meli_id+"/description", {'access_token':meli.access_token})
+            response2 = meli.get("/items/"+str(meli_id)+"/description", {'access_token':meli.access_token})
             rjson2 = response2.json()
             if 'text' in rjson2:
                des = rjson2['text']
@@ -1642,7 +1852,7 @@ class product_product(models.Model):
         if meli.need_login():
             return meli.redirect_login()
 
-        response = meli.put("/items/"+product.meli_id, { 'status': 'closed' }, {'access_token':meli.access_token})
+        response = product.meli_id and meli.put("/items/"+product.meli_id, { 'status': 'closed' }, {'access_token':meli.access_token})
 
         return {}
 
@@ -1655,7 +1865,7 @@ class product_product(models.Model):
             if meli.need_login():
                 return meli.redirect_login()
 
-        response = meli.put("/items/"+product.meli_id, { 'status': 'paused' }, {'access_token':meli.access_token})
+        response = product.meli_id and meli.put("/items/"+product.meli_id, { 'status': 'paused' }, {'access_token':meli.access_token})
 
         return {}
 
@@ -1675,7 +1885,7 @@ class product_product(models.Model):
 
         for product in self:
             _logger.info("activating "+str(product.meli_id))
-            response = meli.put("/items/"+product.meli_id, { 'status': 'active' }, {'access_token':meli.access_token})
+            response = product.meli_id and meli.put("/items/"+product.meli_id, { 'status': 'active' }, {'access_token':meli.access_token})
             if (response):
                 _logger.info(response.json())
             else:
@@ -1697,14 +1907,14 @@ class product_product(models.Model):
         if meli.need_login():
             return meli.redirect_login()
 
-        response = meli.put("/items/"+product.meli_id, { 'deleted': 'true' }, {'access_token':meli.access_token})
+        response = product.meli_id and meli.put("/items/"+product.meli_id, { 'deleted': 'true' }, {'access_token':meli.access_token})
 
-        rjson = response.json()
+        rjson = response and response.json()
         _logger.info( rjson )
         ML_status = rjson["status"]
-        if "error" in rjson:
+        if rjson and "error" in rjson:
             ML_status = rjson["error"]
-        if "sub_status" in rjson:
+        if rjson and "sub_status" in rjson:
             if len(rjson["sub_status"]) and rjson["sub_status"][0]=='deleted':
                 product.write({ 'meli_id': '','meli_id_variation': '' })
 
@@ -2610,10 +2820,10 @@ class product_product(models.Model):
                                         _logger.info(var_info)
 
                         _logger.info(varias)
-                        responsevar = meli.put("/items/"+product.meli_id, varias, {'access_token':meli.access_token})
-                        rjsonv = responsevar.json()
+                        responsevar = product.meli_id and meli.put("/items/"+product.meli_id, varias, {'access_token':meli.access_token})
+                        rjsonv = responsevar and responsevar.json()
                         _logger.info(rjsonv)
-                        if ("error" in rjsonv):
+                        if (rjsonv and "error" in rjsonv):
                             error_msg = 'MELI RESP.: <h6>Mensaje de error</h6><br/><h6>Mensaje</h6> %s<br/><h6>Status</h6> %s<br/><h6>Cause</h6> %s<br/><h7>Error completo:</h7><span>%s</span><br/>' % (rjsonv["message"], rjsonv["status"], rjsonv["cause"], rjsonv["error"])
                             _logger.error(error_msg)
                             if (rjsonv["error"]=="forbidden"):
@@ -2623,7 +2833,7 @@ class product_product(models.Model):
                                 return warningobj.info( title='MELI WARNING', message="Completar todos los campos y revise el mensaje siguiente.", message_html="<br><br>"+error_msg )
 
 
-                        if ("variations" in rjsonv):
+                        if (rjsonv and "variations" in rjsonv):
                             for ix in range(len(rjsonv["variations"]) ):
                                 _var = rjsonv["variations"][ix]
                                 for pvar in product_tmpl.product_variant_ids:
@@ -2632,11 +2842,11 @@ class product_product(models.Model):
                                         pvar.meli_price = str(_var["price"])
 
                         #_logger.debug(responsevar.json())
-                        resdes = meli.put("/items/"+product.meli_id+"/description", bodydescription, {'access_token':meli.access_token})
+                        resdes = product.meli_id and meli.put("/items/"+product.meli_id+"/description", bodydescription, {'access_token':meli.access_token})
                         #_logger.debug(resdes.json())
                         del body['price']
                         del body['available_quantity']
-                        resbody = meli.put("/items/"+product.meli_id, body, {'access_token':meli.access_token})
+                        resbody = product.meli_id and meli.put("/items/"+product.meli_id, body, {'access_token':meli.access_token})
                         #_logger.debug(resbody.json())
                          #responsevar = meli.put("/items/"+product.meli_id, {"initial_quantity": product.meli_available_quantity, "available_quantity": product.meli_available_quantity }, {'access_token':meli.access_token})
                          #_logger.debug(responsevar)
@@ -2685,14 +2895,14 @@ class product_product(models.Model):
                 #varias["variations"] = variations
 
                 _logger.info(varias)
-                responsevar = meli.put("/items/"+product.meli_id, varias, {'access_token':meli.access_token})
-                _logger.info(responsevar.json())
+                responsevar = product.meli_id and meli.put("/items/"+product.meli_id, varias, {'access_token':meli.access_token})
+                _logger.info(str(responsevar and responsevar.json()))
                 #_logger.debug(responsevar.json())
-                resdes = meli.put("/items/"+product.meli_id+"/description", bodydescription, {'access_token':meli.access_token})
+                resdes = product.meli_id and meli.put("/items/"+product.meli_id+"/description", bodydescription, {'access_token':meli.access_token})
                 #_logger.debug(resdes.json())
                 del body['price']
                 del body['available_quantity']
-                resbody = meli.put("/items/"+product.meli_id, body, {'access_token':meli.access_token})
+                resbody = product.meli_id and meli.put("/items/"+product.meli_id, body, {'access_token':meli.access_token})
                 return {}
 
         #check fields
@@ -2825,12 +3035,16 @@ class product_product(models.Model):
             error = { "error": "Blocked by product template configuration." }
             product.meli_stock_error = str(error)
             product_tmpl.meli_stock_error = product.meli_stock_error
+            product.message_post(body=str(error["error"]))
+            product_tmpl.message_post(body=str(error["error"]))
             return error
 
         if "meli_update_stock_blocked" in product._fields and product.meli_update_stock_blocked:
             error = { "error": "Blocked by product configuration." }
             product.meli_stock_error = str(error)
             product_tmpl.meli_stock_error = product.meli_stock_error
+            product.message_post(body=str(error["error"]))
+            product_tmpl.message_post(body=str(error["error"]))
             return error
 
         try:
@@ -3066,13 +3280,16 @@ class product_product(models.Model):
 
     def product_post_price(self, context=None, meli=None):
         context = context or self.env.context
-        #company = get_company_selected( self, context=context )
+        company = get_company_selected( self, context=context )
 
         warningobj = self.env['warning']
 
         product_obj = self.env['product.product']
         product = self
         product_tmpl = self.product_tmpl_id
+
+        if not product.meli_id:
+            return {}
 
         if not meli:
             meli = self.env['meli.util'].get_new_instance(company)
@@ -3106,11 +3323,11 @@ class product_product(models.Model):
                 rjson = responsevar.json()
                 if rjson:
                     #_logger.info(rjson)
-                    if (len(rjson) and rjson[0] and 'price' in rjson[0]):
-                        _logger.info( "Posted price ok " + str(product.meli_id) + ": " + str(rjson[0]['price']) )
                     if "error" in rjson:
                         _logger.error(rjson)
                         return rjson
+                    if (len(rjson) and rjson[0] and 'price' in rjson[0]):
+                        _logger.info( "Posted price ok " + str(product.meli_id) + ": " + str(rjson[0]['price']) )
         else:
             _logger.info("product_post_price:"+str(fields))
             response = meli.put("/items/"+product.meli_id, fields, {'access_token':meli.access_token})
