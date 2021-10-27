@@ -3331,11 +3331,11 @@ class product_product(models.Model):
                 rjson = responsevar.json()
                 if rjson:
                     #_logger.info(rjson)
-                    if (len(rjson) and rjson[0] and 'price' in rjson[0]):
-                        _logger.info( "Posted price ok " + str(product.meli_id) + ": " + str(rjson[0]['price']) )
                     if "error" in rjson:
                         _logger.error(rjson)
                         return rjson
+                    if (len(rjson) and rjson[0] and 'price' in rjson[0]):
+                        _logger.info( "Posted price ok " + str(product.meli_id) + ": " + str(rjson[0]['price']) )
         else:
             _logger.info("product_post_price:"+str(fields))
             response = meli.put("/items/"+product.meli_id, fields, {'access_token':meli.access_token})
