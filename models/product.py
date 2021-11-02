@@ -585,10 +585,11 @@ class product_product(models.Model):
         product_tmpl.meli_price = new_price
         product.meli_price = product_tmpl.meli_price
 
-        product_tmpl.meli_price = str(int(float(product_tmpl.meli_price)))
+        #con decimales / sin decimales
+        product_tmpl.meli_price = str((float(product_tmpl.meli_price)))
         #_logger.info("product_tmpl.meli_price updated: " + str(product_tmpl.meli_price))
 
-        product.meli_price = str(int(float(product.meli_price)))
+        product.meli_price = str((float(product.meli_price)))
         #_logger.info("product.meli_price updated: " + str(product.meli_price))
 
         return product.meli_price
@@ -3043,16 +3044,16 @@ class product_product(models.Model):
             error = { "error": "Blocked by product template configuration." }
             product.meli_stock_error = str(error)
             product_tmpl.meli_stock_error = product.meli_stock_error
-            product.message_post(body=str(error["error"]))
-            product_tmpl.message_post(body=str(error["error"]))
+            product.message_post(body=str(error["error"]),message_type=product_message_type)
+            product_tmpl.message_post(body=str(error["error"]),message_type=product_message_type)
             return error
 
         if "meli_update_stock_blocked" in product._fields and product.meli_update_stock_blocked:
             error = { "error": "Blocked by product configuration." }
             product.meli_stock_error = str(error)
             product_tmpl.meli_stock_error = product.meli_stock_error
-            product.message_post(body=str(error["error"]))
-            product_tmpl.message_post(body=str(error["error"]))
+            product.message_post(body=str(error["error"]),message_type=product_message_type)
+            product_tmpl.message_post(body=str(error["error"]),message_type=product_message_type)
             return error
 
         try:

@@ -10,6 +10,10 @@ _logger = logging.getLogger(__name__)
 # Odoo 12.0 -> Odoo 13.0
 uom_model = "uom.uom"
 
+#message types
+order_message_type = "notification"
+product_message_type = "notification"
+
 # Odoo 12.0 -> Odoo 13.0
 prod_att_line = "product.template.attribute.line"
 
