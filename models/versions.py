@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from dateutil.parser import *
 from datetime import *
+
 import logging
 _logger = logging.getLogger(__name__)
 
@@ -8,6 +9,10 @@ _logger = logging.getLogger(__name__)
 
 # Odoo 12.0 -> Odoo 13.0
 uom_model = "product.uom"
+
+#message types
+order_message_type = "notification"
+product_message_type = "notification"
 
 # Odoo 12.0 -> Odoo 13.0
 prod_att_line = "product.attribute.line"

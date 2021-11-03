@@ -1084,7 +1084,7 @@ class mercadolibre_orders(models.Model):
             if 'pack_order' in order_json["tags"]:
                 _logger.info("Pack Order, dont create sale.order, leave it to mercadolibre.shipment")
                 if order and not order.sale_order:
-                    order.message_post(body=str("Pack Order, dont create sale.order, leave it to mercadolibre.shipment"))
+                    order.message_post(body=str("Pack Order, dont create sale.order, leave it to mercadolibre.shipment"),message_type=order_message_type)
             else:
                 _logger.info("Adding new sale.order: " )
                 sorder = saleorder_obj.create((meli_order_fields))
@@ -1271,7 +1271,7 @@ class mercadolibre_orders(models.Model):
                     if (len(product_related)>1):
                         error = { 'error': "Error products duplicated for item:"+str(Item and 'item' in Item and Item['item']) }
                         _logger.error(error)
-                        order and order.message_post(body=str(error["error"]))
+                        order and order.message_post(body=str(error["error"]),message_type=order_message_type)
                         return error
                     order_item_fields['product_id'] = product_related.id
 
@@ -1287,7 +1287,7 @@ class mercadolibre_orders(models.Model):
                 if (product_related_obj == False or len(product_related_obj)==0):
                     error = { 'error': 'No product related to meli_id '+str(Item['item']['id']), 'item': str(Item['item']) }
                     _logger.error(error)
-                    order and order.message_post(body=str(error["error"])+"\n"+str(error["item"]))
+                    order and order.message_post(body=str(error["error"])+"\n"+str(error["item"]),message_type=order_message_type)
                     return error
 
                 order.name = "MO [%s] %s" % ( str(order.order_id), product_related_obj.display_name )
@@ -1538,6 +1538,9 @@ class mercadolibre_orders(models.Model):
                 if order.sale_order:
                     order.sale_order.confirm_ml(meli=meli,config=config)
 
+    def _get_config( self, config=None ):
+        config = config or (self and self.company_id)
+        return config
 
     name = fields.Char(string='Order Name',index=True)
     order_id = fields.Char(string='Order Id',index=True)
@@ -1633,6 +1636,9 @@ class mercadolibre_payments(models.Model):
     shipping_amount = fields.Float('Shipping Amount')
     taxes_amount = fields.Float('Taxes Amount')
 
+    def _get_config( self, config=None ):
+        config = config or (self and self.order_id and self.order_id._get_config(config=config))
+        return config
 
 mercadolibre_payments()
 

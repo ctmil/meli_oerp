@@ -9,8 +9,8 @@ import logging
 _logger = logging.getLogger(__name__)
 
 
-class Inventory(models.Model):
-    _inherit = "stock.inventory"
+#class Inventory(models.Model):
+#    _inherit = "stock.inventory"
 
     #
     #def action_done(self):
@@ -20,8 +20,8 @@ class Inventory(models.Model):
         #return True
 
 
-class InventoryLine(models.Model):
-    _inherit = "stock.inventory.line"
+#class InventoryLine(models.Model):
+#    _inherit = "stock.inventory.line"
 
     #
     #def action_done(self):
