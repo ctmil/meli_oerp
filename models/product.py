@@ -372,6 +372,26 @@ class product_template(models.Model):
                 res.append(r)
         return res
 
+    def product_template_post_price( self, context=None, meli=None ):
+        _logger.info("base product.template: product_template_post_price")
+        custom_context = {}
+        context = context or self.env.context
+        force_meli_pub = False
+        force_meli_active = False
+        if ("force_meli_pub" in context):
+            force_meli_pub = context.get("force_meli_pub")
+            custom_context = { "force_meli_pub": force_meli_pub, "force_meli_active": force_meli_active }
+        if ("force_meli_active" in context):
+            force_meli_active = context.get("force_meli_active")
+            custom_context = { "force_meli_pub": force_meli_pub, "force_meli_active": force_meli_active }
+        _logger.info(custom_context)
+        res = []
+        for productT in self:
+            for variant in productT.product_variant_ids:
+                r = variant.with_context(custom_context).product_post_price(meli=meli)
+                res.append(r)
+        return res
+
     #name = fields.Char('Name', size=128, required=True, translate=False, index=True)
     meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
     meli_description = fields.Text(string='Descripción')
@@ -585,10 +605,11 @@ class product_product(models.Model):
         product_tmpl.meli_price = new_price
         product.meli_price = product_tmpl.meli_price
 
-        product_tmpl.meli_price = str(int(float(product_tmpl.meli_price)))
+        #con decimales / sin decimales
+        product_tmpl.meli_price = str((float(product_tmpl.meli_price)))
         #_logger.info("product_tmpl.meli_price updated: " + str(product_tmpl.meli_price))
 
-        product.meli_price = str(int(float(product.meli_price)))
+        product.meli_price = str((float(product.meli_price)))
         #_logger.info("product.meli_price updated: " + str(product.meli_price))
 
         return product.meli_price
@@ -3035,16 +3056,16 @@ class product_product(models.Model):
             error = { "error": "Blocked by product template configuration." }
             product.meli_stock_error = str(error)
             product_tmpl.meli_stock_error = product.meli_stock_error
-            product.message_post(body=str(error["error"]))
-            product_tmpl.message_post(body=str(error["error"]))
+            product.message_post(body=str(error["error"]),message_type=product_message_type)
+            product_tmpl.message_post(body=str(error["error"]),message_type=product_message_type)
             return error
 
         if "meli_update_stock_blocked" in product._fields and product.meli_update_stock_blocked:
             error = { "error": "Blocked by product configuration." }
             product.meli_stock_error = str(error)
             product_tmpl.meli_stock_error = product.meli_stock_error
-            product.message_post(body=str(error["error"]))
-            product_tmpl.message_post(body=str(error["error"]))
+            product.message_post(body=str(error["error"]),message_type=product_message_type)
+            product_tmpl.message_post(body=str(error["error"]),message_type=product_message_type)
             return error
 
         try:
