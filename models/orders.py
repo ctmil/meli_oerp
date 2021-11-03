@@ -1538,6 +1538,9 @@ class mercadolibre_orders(models.Model):
                 if order.sale_order:
                     order.sale_order.confirm_ml(meli=meli,config=config)
 
+    def _get_config( self, config=None ):
+        config = config or (self and self.company_id)
+        return config
 
     name = fields.Char(string='Order Name',index=True)
     order_id = fields.Char(string='Order Id',index=True)
@@ -1633,6 +1636,9 @@ class mercadolibre_payments(models.Model):
     shipping_amount = fields.Float('Shipping Amount')
     taxes_amount = fields.Float('Taxes Amount')
 
+    def _get_config( self, config=None ):
+        config = config or (self and self.order_id and self.order_id._get_config(config=config))
+        return config
 
 mercadolibre_payments()
 
