@@ -19,7 +19,7 @@ class StockMove(models.Model):
             #_logger.info("StockMove action_assign")
             #_logger.info(self)
             #_logger.info("Before: virtual av:" + str(mov.product_id.virtual_available))
-            res = super(StockMove, mov)._action_assign(no_prepare=no_prepare)
+            res = super(StockMove, mov).action_assign()
             #_logger.info("After: virtual av:" + str(mov.product_id.virtual_available))
 
             if mov.product_id:
