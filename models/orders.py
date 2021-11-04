@@ -961,7 +961,12 @@ class mercadolibre_orders(models.Model):
                     meli_buyer_fields['fe_regimen_fiscal'] = '49';
             if not partner_id:
                 #_logger.info( "creating partner:" + str(meli_buyer_fields) )
-                partner_id = respartner_obj.create(( meli_buyer_fields ))
+                try:
+                    partner_id = respartner_obj.create(( meli_buyer_fields ))
+                except Exception as e:
+                    _logger.info("orders_update_order > Error creando Partner:"+str(e))
+                    _logger.error(e, exc_info=True)
+                    pass;
             elif (partner_id and "meli_update_forbidden" in partner_id._fields and not partner_id.meli_update_forbidden):
                 _logger.info("Updating partner")
                 #TODO: _logger.info("Updating partner (do not update principal, always create new one)")
@@ -1021,7 +1026,13 @@ class mercadolibre_orders(models.Model):
 
                 if partner_update:
                     _logger.info("Updating partner: "+str(partner_update))
-                    partner_id.write(partner_update)
+                    try:
+                        partner_id.write(partner_update)
+                    except Exception as e:
+                        _logger.info("orders_update_order > Error actualizando Partner:"+str(e))
+                        _logger.error(e, exc_info=True)
+                        pass;
+
 
                 if (partner_id.email and (partner_id.email==buyer_fields["email"] or "mercadolibre.com" in partner_id.email)):
                     #eliminar email de ML que no es valido
