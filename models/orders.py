@@ -827,12 +827,28 @@ class mercadolibre_orders(models.Model):
                         _logger.error("res.partner.id_category:" + str(Buyer['billing_info']['doc_type']))
 
 
-                #Chile
+                #Chile/Arg/Latam
                 if ( ('doc_type' in Buyer['billing_info']) and ('l10n_latam_identification_type_id' in self.env['res.partner']._fields) ):
+                    doc_type_id = self.env["l10n_latam.identification.type"].search([('country_id','=',company.country_id.id),('name','ilike',Buyer['billing_info']['doc_type'])],limit=1)
                     if (Buyer['billing_info']['doc_type']=="RUT"):
-                        meli_buyer_fields['l10n_latam_identification_type_id'] = 4
+                        meli_buyer_fields['l10n_latam_identification_type_id'] = (doc_type_id and doc_type_id.id) or 4
                     if (Buyer['billing_info']['doc_type']=="RUN"):
-                        meli_buyer_fields['l10n_latam_identification_type_id'] = 5
+                        meli_buyer_fields['l10n_latam_identification_type_id'] = (doc_type_id and doc_type_id.id) or 5
+                    if (doc_type_id):
+                        meli_buyer_fields['l10n_latam_identification_type_id'] = (doc_type_id and doc_type_id.id)
+
+                    if (company.country_id.code == "AR" and 'l10n_ar.afip.responsibility.type' in self.env):
+                        afipid = self.env['l10n_ar.afip.responsibility.type'].search([('code','=',5)]).id
+                        meli_buyer_fields["l10n_ar_afip_responsibility_type_id"] = afipid
+                        if ('TAXPAYER_TYPE_ID' in Buyer['billing_info'] and Buyer['billing_info']['TAXPAYER_TYPE_ID'] and Buyer['billing_info']['TAXPAYER_TYPE_ID']=="IVA Responsable Inscripto"):
+                            afipid = self.env['l10n_ar.afip.responsibility.type'].search([('code','=',1)]).id
+                            meli_buyer_fields["l10n_ar_afip_responsibility_type_id"] = afipid
+                        if ('TAXPAYER_TYPE_ID' in Buyer['billing_info'] and Buyer['billing_info']['TAXPAYER_TYPE_ID'] and Buyer['billing_info']['TAXPAYER_TYPE_ID']=="IVA Sujeto Exento"):
+                            afipid = self.env['l10n_ar.afip.responsibility.type'].search([('code','=',4)]).id
+                            meli_buyer_fields["l10n_ar_afip_responsibility_type_id"] = afipid
+                        if ('TAXPAYER_TYPE_ID' in Buyer['billing_info'] and Buyer['billing_info']['TAXPAYER_TYPE_ID'] and Buyer['billing_info']['TAXPAYER_TYPE_ID']=="Responsable Monotributo"):
+                            afipid = self.env['l10n_ar.afip.responsibility.type'].search([('code','=',6)]).id
+                            meli_buyer_fields["l10n_ar_afip_responsibility_type_id"] = afipid
 
                     meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
 
