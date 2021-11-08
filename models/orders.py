@@ -852,11 +852,17 @@ class mercadolibre_orders(models.Model):
 
                     meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
 
+                #Chile YNext
                 if ( ('doc_type' in Buyer['billing_info']) and ('dte_email' in self.env['res.partner']._fields)):
 
                     meli_buyer_fields['dte_email'] = 'nomail@fake.com'
                     meli_buyer_fields['giro'] = 'SIN GIRO'
-                    meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
+                    vatn = Buyer['billing_info']['doc_number']
+                    if (len(vatn)==10):
+                        vatn = vatn[:2]+"."+vatn[2:5]+"."+vatn[5:8]+"-"+vatn[8:9]
+                    if (len(vatn)==9):
+                        vatn = vatn[:1]+"."+vatn[1:4]+"."+vatn[4:7]+"-"+vatn[7:8]
+                    meli_buyer_fields['vat'] = vatn
 
                 if ( ('doc_type' in Buyer['billing_info']) and ('document_type_id' in self.env['res.partner']._fields) and ('document_number' in self.env['res.partner']._fields) ):
 
