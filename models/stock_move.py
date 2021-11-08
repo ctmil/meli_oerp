@@ -15,11 +15,13 @@ class StockMove(models.Model):
 
     def action_assign(self, no_prepare=False):
         company = self.env.user.company_id
+        
+        res = super(StockMove, self).action_assign()
+        
         for mov in self:
             #_logger.info("StockMove action_assign")
             #_logger.info(self)
             #_logger.info("Before: virtual av:" + str(mov.product_id.virtual_available))
-            res = super(StockMove, mov).action_assign()
             #_logger.info("After: virtual av:" + str(mov.product_id.virtual_available))
 
             if mov.product_id:
@@ -69,11 +71,12 @@ class StockMove(models.Model):
     def action_done(self):
         #import pdb; pdb.set_trace()
         company = self.env.user.company_id
+        res = super(StockMove, self).action_done()
+        
         for mov in self:
             #_logger.info("StockMove action_done")
             #_logger.info(self)
             #_logger.info("Before: virtual av:" + str(mov.product_id.virtual_available))
-            res = super(StockMove, mov).action_done()
             #_logger.info("After: virtual av:" + str(mov.product_id.virtual_available))
 
 
