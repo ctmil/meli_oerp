@@ -599,18 +599,14 @@ class product_product(models.Model):
 
         new_price = round(new_price,2)
 
-        if (product_tmpl.meli_currency and product_tmpl.meli_currency == 'COP'):
+        if (product_tmpl.meli_currency and product_tmpl.meli_currency == 'MXN'):
+            new_price = str((float(product_tmpl.meli_price)))
+        else:
             new_price = math.ceil(new_price)
+            new_price = str(int(float(product_tmpl.meli_price)))
 
         product_tmpl.meli_price = new_price
         product.meli_price = product_tmpl.meli_price
-
-        #con decimales / sin decimales
-        product_tmpl.meli_price = str((float(product_tmpl.meli_price)))
-        #_logger.info("product_tmpl.meli_price updated: " + str(product_tmpl.meli_price))
-
-        product.meli_price = str((float(product.meli_price)))
-        #_logger.info("product.meli_price updated: " + str(product.meli_price))
 
         return product.meli_price
 
