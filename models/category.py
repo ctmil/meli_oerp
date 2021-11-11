@@ -491,6 +491,13 @@ class mercadolibre_category(models.Model):
     meli_setting_minimum_qty = fields.Float(string="Minimum qty")
     meli_setting_maximum_qty = fields.Float(string="Maximum qty")
 
+    #TODO: fee for each listing type
+    # https://api.mercadolibre.com/sites/MLM/listing_prices?price=1#options
+    #
+    # check: https://www.mercadolibre.com.mx/ayuda/Costos-de-vender-un-producto_870
+    #ver tambien: https://www.mercadolibre.com.mx/ayuda/Tarifas-y-facturacion_1044
+    # https://api.mercadolibre.com/sites/MLM/listing_types#json
+
     _sql_constraints = [
     	('unique_meli_category_id','unique(meli_category_id)','Meli Category id already exists!'),
     ]
