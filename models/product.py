@@ -466,6 +466,33 @@ class product_product(models.Model):
 
     _inherit = "product.product"
 
+    def _meli_price_converted( self, meli_price=None, config=None ):
+        company = (config and 'company_id' in config._fields and config.company_id) or self.env.user.company_id
+        config = config or company
+        _logger.info("_meli_set_product_price: config: "+str(config and config.name))
+        ml_price_converted = meli_price
+        product = self
+        product_template = self.product_tmpl_id
+        tax_excluded = ml_tax_excluded(self, config=config)
+
+        if ( tax_excluded and product_template.taxes_id ):
+            _logger.info("Adjust taxes")
+            txfixed = 0
+            txpercent = 0
+            #_logger.info("Adjust taxes")
+            for txid in product_template.taxes_id:
+                if (txid.type_tax_use=="sale" and not txid.price_include):
+                    if (txid.amount_type=="percent"):
+                        txpercent = txpercent + txid.amount
+                    if (txid.amount_type=="fixed"):
+                        txfixed = txfixed + txid.amount
+            if (txfixed>0 or txpercent>0):
+                #_logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_converted))
+                ml_price_converted = txfixed + ml_price_converted / (1.0 + txpercent*0.01)
+                _logger.info("Price adjusted with taxes:"+str(ml_price_converted))
+
+        return ml_price_converted
+
     def _meli_set_product_price( self, product_template, meli_price, force_variant=False, config=None ):
 
         company = (config and 'company_id' in config._fields and config.company_id) or self.env.user.company_id
@@ -600,10 +627,10 @@ class product_product(models.Model):
         new_price = round(new_price,2)
 
         if (product_tmpl.meli_currency and product_tmpl.meli_currency == 'MXN'):
-            new_price = str((float(product_tmpl.meli_price)))
+            new_price = str((float(new_price)))
         else:
             new_price = math.ceil(new_price)
-            new_price = str(int(float(product_tmpl.meli_price)))
+            new_price = str(int(float(new_price)))
 
         product_tmpl.meli_price = new_price
         product.meli_price = product_tmpl.meli_price

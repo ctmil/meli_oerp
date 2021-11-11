@@ -858,9 +858,9 @@ class mercadolibre_orders(models.Model):
                     meli_buyer_fields['dte_email'] = 'nomail@fake.com'
                     meli_buyer_fields['giro'] = 'SIN GIRO'
                     vatn = Buyer['billing_info']['doc_number']
-                    if (len(vatn)==10):
-                        vatn = vatn[:2]+"."+vatn[2:5]+"."+vatn[5:8]+"-"+vatn[8:9]
                     if (len(vatn)==9):
+                        vatn = vatn[:2]+"."+vatn[2:5]+"."+vatn[5:8]+"-"+vatn[8:9]
+                    if (len(vatn)==8):
                         vatn = vatn[:1]+"."+vatn[1:4]+"."+vatn[4:7]+"-"+vatn[7:8]
                     meli_buyer_fields['vat'] = vatn
 
