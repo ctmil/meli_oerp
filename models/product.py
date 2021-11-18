@@ -2519,8 +2519,15 @@ class product_product(models.Model):
                     for value in att_value_ids(product):
                         if (value.attribute_id.id==line.attribute_id.id):
                             values+= " "+value.name
-                if (not product_tmpl.meli_pub_as_variant):
-                    product.meli_title = string.replace(product.meli_title,product.name,product.name+" "+values)
+                            if (not product_tmpl.meli_pub_as_variant):
+                                product.meli_title = string.replace( product.meli_title, "%"+value.attribute_id.name , value.name )
+                if ((not product_tmpl.meli_pub_as_variant) and values):
+                    try:
+                        ii = str.index( product.meli_title, "%ALL")
+                        product.meli_title = string.replace( product.meli_title, "%ALL" , values )
+                    except Exception as E:
+                        product.meli_title = string.replace(product.meli_title,product.name,product.name+" "+values)
+                        pass;
 
         force_template_title = ( config.mercadolibre_product_template_override_variant
                                  and config.mercadolibre_product_template_override_method
