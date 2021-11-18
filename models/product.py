@@ -1952,6 +1952,8 @@ class product_product(models.Model):
         product_obj = self.env['product.product']
         product = self
 
+        _logger.info("product_meli_delete "+str(product and product.name))
+
         if product.meli_status!='closed':
             self.product_meli_status_close()
 
