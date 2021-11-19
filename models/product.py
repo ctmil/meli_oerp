@@ -1952,6 +1952,8 @@ class product_product(models.Model):
         product_obj = self.env['product.product']
         product = self
 
+        _logger.info("product_meli_delete "+str(product and product.name))
+
         if product.meli_status!='closed':
             self.product_meli_status_close()
 
@@ -1967,7 +1969,7 @@ class product_product(models.Model):
         if rjson and "error" in rjson:
             ML_status = rjson["error"]
         if rjson and "sub_status" in rjson:
-            if len(rjson["sub_status"]) and rjson["sub_status"][0]=='deleted':
+            if len(rjson["sub_status"]) and ( rjson["sub_status"][0]=='deleted' or ( len(rjson["sub_status"])==2 and rjson["sub_status"][1]=='deleted') ):
                 product.write({ 'meli_id': '','meli_id_variation': '' })
 
         return {}
