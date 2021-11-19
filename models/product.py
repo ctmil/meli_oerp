@@ -1952,6 +1952,8 @@ class product_product(models.Model):
         product_obj = self.env['product.product']
         product = self
 
+        _logger.info("product_meli_delete "+str(product and product.name))
+
         if product.meli_status!='closed':
             self.product_meli_status_close()
 
@@ -1967,7 +1969,7 @@ class product_product(models.Model):
         if rjson and "error" in rjson:
             ML_status = rjson["error"]
         if rjson and "sub_status" in rjson:
-            if len(rjson["sub_status"]) and rjson["sub_status"][0]=='deleted':
+            if len(rjson["sub_status"]) and ( rjson["sub_status"][0]=='deleted' or ( len(rjson["sub_status"])==2 and rjson["sub_status"][1]=='deleted') ):
                 product.write({ 'meli_id': '','meli_id_variation': '' })
 
         return {}
@@ -2519,8 +2521,15 @@ class product_product(models.Model):
                     for value in att_value_ids(product):
                         if (value.attribute_id.id==line.attribute_id.id):
                             values+= " "+value.name
-                if (not product_tmpl.meli_pub_as_variant):
-                    product.meli_title = string.replace(product.meli_title,product.name,product.name+" "+values)
+                            if (not product_tmpl.meli_pub_as_variant):
+                                product.meli_title = string.replace( product.meli_title, "%"+value.attribute_id.name , value.name )
+                if ((not product_tmpl.meli_pub_as_variant) and values):
+                    try:
+                        ii = str.index( product.meli_title, "%ALL")
+                        product.meli_title = string.replace( product.meli_title, "%ALL" , values )
+                    except Exception as E:
+                        product.meli_title = string.replace(product.meli_title,product.name,product.name+" "+values)
+                        pass;
 
         force_template_title = ( config.mercadolibre_product_template_override_variant
                                  and config.mercadolibre_product_template_override_method
