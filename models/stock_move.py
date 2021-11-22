@@ -77,6 +77,7 @@ class StockMove(models.Model):
             #_logger.info("StockMove action_done")
             #_logger.info(self)
             #_logger.info("Before: virtual av:" + str(mov.product_id.virtual_available))
+            
             #_logger.info("After: virtual av:" + str(mov.product_id.virtual_available))
 
 
