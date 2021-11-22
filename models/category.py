@@ -491,6 +491,8 @@ class mercadolibre_category(models.Model):
     meli_setting_minimum_qty = fields.Float(string="Minimum qty")
     meli_setting_maximum_qty = fields.Float(string="Maximum qty")
 
+    #description_template = fields.Many2one( string="Plantilla para descripcion del producto", "")
+
     #TODO: fee for each listing type
     # https://api.mercadolibre.com/sites/MLM/listing_prices?price=1#options
     #

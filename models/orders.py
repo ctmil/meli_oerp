@@ -228,13 +228,13 @@ class sale_order(models.Model):
             if (self.meli_status=="cancelled"):
                 self.action_cancel()
 
-            if (config.mercadolibre_order_confirmation=="paid_confirm"):
+            if (config.mercadolibre_order_confirmation and "paid_confirm" in config.mercadolibre_order_confirmation):
 
                 if ( (self.state=="draft" or self.state=="sent") and self.meli_status=="paid"):
                     _logger.info("paid_confirm ok! confirming sale")
                     self.action_confirm()
 
-            if (config.mercadolibre_order_confirmation=="paid_delivered"):
+            if (config.mercadolibre_order_confirmation and "paid_delivered" in config.mercadolibre_order_confirmation):
 
                 if ( (self.state=="draft" or self.state=="sent") and self.meli_status=="paid"):
                     _logger.info("paid_delivered ok! confirming sale")
@@ -270,7 +270,7 @@ class sale_order(models.Model):
                                 pass;
 
 
-            if (config.mercadolibre_order_confirmation=="paid_confirm_with_invoice"):
+            if (config.mercadolibre_order_confirmation=="paid_confirm_with_invoice" or config.mercadolibre_order_confirmation=="paid_delivered_with_invoice"):
                 if ( (self.state=="draft" or self.state=="sent") and self.meli_status=="paid"):
                     _logger.info("paid_confirm with invoice ok! confirming sale and create invoice")
                     self.action_confirm()
