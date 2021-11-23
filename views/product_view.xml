@@ -57,6 +57,10 @@
                   <filter string="MercadoLibre, A publicar" name="meli_pub_active" domain="[('meli_pub','=',True)]"/>
                   <filter string="MercadoLibre, Publicados" name="meli_id_active" domain="[('meli_publications','ilike','M')]"/>
                   <filter string="MercadoLibre, Activos" name="meli_status_active" domain="[('meli_publications','ilike','active')]"/>
+                  <filter string='MercadoLibre Stock Error' domain="[]"
+                        context="{'group_by' : 'meli_stock_error'}" name="meli_stock_error_filter"/>
+                  <filter string='MercadoLibre Status' domain="[]"
+                        context="{'group_by' : 'meli_status'}" name="meli_status_filter"/>
                 </xpath>
             </field>
         </record>
@@ -237,6 +241,7 @@
                     <field name="meli_status" invisible="0"/>
                     <field name="meli_sub_status" invisible="0"/>
                     <field name="meli_stock_error" invisible="0"/>
+                    <field name="meli_permalink_edit" invisible="0"/>
                 </field>
             </field>
         </record>
@@ -386,8 +391,8 @@
                             </group>
                             <group>
                               <field name="meli_permalink" widget="url" />
-                              <!--field string="Link Edit" name="meli_permalink_edit" widget="url"/-->
-                              <!--field string="Link Api" name="meli_permalink_api" widget="url"/-->
+                              <field string="Link Edit" name="meli_permalink_edit" widget="url"/>
+                              <field string="Link Api" name="meli_permalink_api" widget="url"/>
                               <field name="meli_id" />
                               <field name="meli_id_variation"/>
                             </group>
