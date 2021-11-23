@@ -465,12 +465,13 @@ class product_template(models.Model):
         meli = self.env['meli.util'].get_new_instance(company)
 
         if meli and meli.need_login():
-            tpl.meli_permalink_edit = ""
+            for tpl in self:
+                tpl.meli_permalink_edit = ""
         else:
             for tpl in self:
                 meli_id = tpl.product_variant_ids[0].meli_id
                 tpl.meli_permalink_edit = company.get_ML_LINK_URL(meli=meli)+str("publicaciones/")+str(meli_id)+str("/modificar")
-        tpl.meli_permalink_edit = ""
+        
 
                 
     #meli_permalink = fields.Char( compute=product_template_permalink, size=256, string='Link',help='PermaLink in MercadoLibre', store=True )
