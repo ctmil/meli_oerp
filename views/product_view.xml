@@ -228,7 +228,7 @@
             </field>
         </record>
 
-        <record model="ir.ui.view" id="view_meli_variants_tree">
+        <record model="ir.ui.view" id="view_meli_product_template_tree">
             <field name="name">product.template.tree</field>
             <field name="model">product.template</field>
             <field name="type">tree</field>
