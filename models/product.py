@@ -469,8 +469,11 @@ class product_template(models.Model):
                 tpl.meli_permalink_edit = ""
         else:
             for tpl in self:
-                meli_id = tpl.product_variant_ids[0].meli_id
-                tpl.meli_permalink_edit = company.get_ML_LINK_URL(meli=meli)+str("publicaciones/")+str(meli_id)+str("/modificar")
+                meli_id = tpl.product_variant_ids and tpl.product_variant_ids[0].meli_id
+                if meli_id:
+                    tpl.meli_permalink_edit = company.get_ML_LINK_URL(meli=meli)+str("publicaciones/")+str(meli_id)+str("/modificar")
+                else:
+                    tpl.meli_permalink_edit = ""
         
 
                 
