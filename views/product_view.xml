@@ -229,6 +229,19 @@
         </record>
 
         <record model="ir.ui.view" id="view_meli_variants_tree">
+            <field name="name">product.template.tree</field>
+            <field name="model">product.template</field>
+            <field name="type">tree</field>
+            <field name="inherit_id" ref="product.product_template_tree_view"/>
+            <field name="arch" type="xml">
+                <field name="virtual_available" position="after">
+                    <field name="meli_stock_error" invisible="0"/>
+                    <field name="meli_permalink_edit" invisible="0"/>
+                </field>
+            </field>
+        </record>
+
+        <record model="ir.ui.view" id="view_meli_variants_tree">
             <field name="name">product.product.tree</field>
             <field name="model">product.product</field>
             <field name="type">tree</field>
