@@ -59,8 +59,8 @@
                   <filter string="MercadoLibre, Activos" name="meli_status_active" domain="[('meli_publications','ilike','active')]"/>
                   <filter string='MercadoLibre Stock Error' domain="[]"
                         context="{'group_by' : 'meli_stock_error'}" name="meli_stock_error_filter"/>
-                  <filter string='MercadoLibre Status' domain="[]"
-                        context="{'group_by' : 'meli_status'}" name="meli_status_filter"/>
+                  <!--filter string='MercadoLibre Status' domain="[]"
+                        context="{'group_by' : 'meli_status'}" name="meli_status_filter"/-->
                 </xpath>
             </field>
         </record>
