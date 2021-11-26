@@ -459,7 +459,7 @@ class product_template(models.Model):
     meli_update_error = fields.Char(string="Update Error",index=True)
 
     meli_update_stock_blocked = fields.Boolean(string="Block Update stock",default=False)
-    
+
     def product_template_permalink(self):
         company = self.env.user.company_id
         meli = self.env['meli.util'].get_new_instance(company)
@@ -474,13 +474,13 @@ class product_template(models.Model):
                     tpl.meli_permalink_edit = company.get_ML_LINK_URL(meli=meli)+str("publicaciones/")+str(meli_id)+str("/modificar")
                 else:
                     tpl.meli_permalink_edit = ""
-        
 
-                
+
+
     #meli_permalink = fields.Char( compute=product_template_permalink, size=256, string='Link',help='PermaLink in MercadoLibre', store=True )
     meli_permalink_edit = fields.Char( compute=product_template_permalink, size=256, string='Link Edit',help='PermaLink Edit in MercadoLibre', store=True )
 
-    
+
 
 product_template()
 
@@ -3105,6 +3105,7 @@ class product_product(models.Model):
         product = self
         product_tmpl = self.product_tmpl_id
         config = config or company
+        error = {}
 
         if not meli or not hasattr(meli, 'client_id'):
             meli = self.env['meli.util'].get_new_instance(company)
@@ -3299,6 +3300,8 @@ class product_product(models.Model):
             product_tmpl.meli_stock_error = product.meli_stock_error
             pass;
 
+        product.meli_stock_error = str(error)
+        product_tmpl.meli_stock_error = product.meli_stock_error
         return {}
 
     #update internal product stock based on meli_default_stock_product
