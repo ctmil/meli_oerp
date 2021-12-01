@@ -803,6 +803,8 @@ class mercadolibre_orders(models.Model):
                 'meli_buyer_id': Buyer['id']
             }
             meli_buyer_fields.update(self.fix_locals(Receiver=Receiver,Buyer=Buyer))
+            if company:
+                meli_buyer_fields["lang"] =  company.partner_id.lang
 
             buyer_fields = {
                 'buyer_id': Buyer['id'],
