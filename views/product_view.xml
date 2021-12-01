@@ -128,8 +128,8 @@
                           <field string="ML Price" name="meli_price"/>
                           <field string="ML Qty" name="meli_available_quantity"/>
                           <field string="Link" name="meli_permalink" widget="url"/>
-                          <!--field string="Link Edit" name="meli_permalink_edit" widget="url"/-->
-                          <!--field string="Link Api" name="meli_permalink_api" widget="url"/-->
+                          <field string="Link Edit" name="meli_permalink_edit" widget="url"/>
+                          <field string="Link Api" name="meli_permalink_api" widget="url"/>
                         </tree>
                       </field>
                       <separator string="Descripcion del producto en ML" colspan="1"/>
@@ -225,6 +225,19 @@
             </field>
         </record>
 
+        <record model="ir.ui.view" id="view_meli_product_template_tree">
+            <field name="name">meli.product.template.tree</field>
+            <field name="model">product.template</field>
+            <field name="type">tree</field>
+            <field name="inherit_id" ref="product.product_template_tree_view"/>
+            <field name="arch" type="xml">
+                <field name="virtual_available" position="after">
+                    <field name="meli_stock_error" invisible="0" />
+                    <field name="meli_permalink_edit" invisible="0" widget="url"/>
+                </field>
+            </field>
+        </record>
+
         <record model="ir.ui.view" id="view_meli_variants_tree">
             <field name="name">product.product.tree</field>
             <field name="model">product.product</field>
@@ -235,8 +248,10 @@
                     <field name="meli_pub"/>
                     <field name="meli_id" invisible="0"/>
                     <field name="meli_id_variation" invisible="0"/>
-                    <field name="meli_status" invisible="1"/>
-                    <field name="meli_sub_status" invisible="1"/>
+                    <field name="meli_status" invisible="0"/>
+                    <field name="meli_sub_status" invisible="0"/>
+                    <field name="meli_stock_error" invisible="0"/>
+                    <field name="meli_permalink_edit" invisible="0"/>
                 </field>
             </field>
         </record>
@@ -386,8 +401,8 @@
                             </group>
                             <group>
                               <field name="meli_permalink" widget="url" />
-                              <!--field string="Link Edit" name="meli_permalink_edit" widget="url"/-->
-                              <!--field string="Link Api" name="meli_permalink_api" widget="url"/-->
+                              <field string="Link Edit" name="meli_permalink_edit" widget="url"/>
+                              <field string="Link Api" name="meli_permalink_api" widget="url"/>
                               <field name="meli_id" />
                               <field name="meli_id_variation"/>
                             </group>
