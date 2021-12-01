@@ -397,6 +397,7 @@ class mercadolibre_category(models.Model):
                       if (father_id and len(father_id)):
                           father = father_id[0]
 
+
                 #fullname = fullname + "/" + rjson_cat['name']
                 #_logger.info( "category fullname:" + str(fullname) )
                 _logger.info(fullname)

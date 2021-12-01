@@ -22,8 +22,16 @@
             <field name="arch" type="xml">
                 <xpath expr="//filter[@name='my_quotation']" position="after">
                   <field name="meli_order_id" string="MercadoLibre Order Id"/>
+                  <field name="meli_status_brief" string="MercadoLibre Status Brief"/>
+                  <field name="meli_status" string="MercadoLibre Status"/>
                   <separator/>
-                  <filter string="MercadoLibre Quotations" name="sale_orders_ml" domain="[('meli_order_id','!=',False)]" />
+                  <filter string="MercadoLibre Quotations" name="sale_orders_ml" domain="[('meli_order_id','!=',False)]" />                  
+                  <filter string='MercadoLibre Status' domain="[]"
+        								context="{'group_by' : 'meli_status'}" name="meli_status_filter"/>
+                  <filter string='MercadoLibre Status Brief' domain="[]"
+        								context="{'group_by' : 'meli_status_brief'}" name="meli_status_brief_filter"/>
+                  <filter string='MercadoLibre Logistic Type' domain="[]"
+                        context="{'group_by' : 'meli_shipment_logistic_type'}" name="meli_shipment_logistic_type_filter"/>
                 </xpath>
             </field>
         </record>
