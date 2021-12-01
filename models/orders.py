@@ -72,6 +72,31 @@ class sale_order(models.Model):
                 order.meli_status =  order.meli_status
                 order.meli_status_detail = order.meli_status_detail
 
+    def search_meli_status_brief(self, operator, value):
+        _logger.info("search_meli_status_brief")
+        _logger.info(operator)
+        _logger.info(value)
+        if operator == 'ilike':
+            #name = self.env.context.get('name', False)
+            #if name is not False:
+            id_list = []
+            _logger.info(self.env.context)
+            #name = self.env.context.get('name', False)
+            sale_orders = self.env['sale.order'].search([], limit=10000,order='id desc')
+            if (value):
+                for so in sale_orders:
+                    if (value in so.meli_status_brief):
+                        id_list.append(so.id)
+
+            return [('id', 'in', id_list)]
+        else:
+            _logger.error(
+                'The field name is not searchable'
+                ' with the operator: {}',format(operator)
+            )
+
+
+
     meli_status = fields.Selection( [
         #Initial state of an order, and it has no payment yet.
                                         ("confirmed","Confirmado"),
@@ -89,7 +114,7 @@ class sale_order(models.Model):
                                     ("invalid","Invalido: malicious")
                                     ], string='Order Status')
 
-    meli_status_brief = fields.Char(string="Meli Status Brief", compute="_meli_status_brief", store=False, index=True)
+    meli_status_brief = fields.Char(string="Meli Status Brief", compute="_meli_status_brief", search=search_meli_status_brief, store=False, index=True)
 
     meli_status_detail = fields.Text(string='Status detail, in case the order was cancelled.')
     meli_date_created = fields.Datetime('Meli Creation date')
@@ -778,6 +803,8 @@ class mercadolibre_orders(models.Model):
                 'meli_buyer_id': Buyer['id']
             }
             meli_buyer_fields.update(self.fix_locals(Receiver=Receiver,Buyer=Buyer))
+            if company:
+                meli_buyer_fields["lang"] =  company.partner_id.lang
 
             buyer_fields = {
                 'buyer_id': Buyer['id'],
@@ -945,6 +972,125 @@ class mercadolibre_orders(models.Model):
                         else:
                             meli_buyer_fields['fe_primer_apellido'] = Buyer['last_name']
 
+                #Colombia2
+                if ( ('doc_type' in Buyer['billing_info']) and ('l10n_co_document_typee' in self.env['res.partner']._fields) ):
+
+                    if ("fe_es_compania" in self.env['res.partner']._fields ):
+                        meli_buyer_fields['fe_es_compania'] = '2'
+
+                    if ("fe_correo_electronico" in self.env['res.partner']._fields ):
+                        meli_buyer_fields['fe_correo_electronico'] = ('email' in Buyer and Buyer['email']) or ""
+
+                    meli_buyer_fields['email'] = ('email' in Buyer and Buyer['email']) or ""
+
+                    if ("tribute_id" in self.env['res.partner']._fields ):
+                        tributeIVA01 = self.env['dian.tributes'].search([("code","like","01")],limit=1)
+                        if tributeIVA01:
+                            meli_buyer_fields['tribute_id'] = tributeIVA01.id
+                            _logger.info("tribute_id: tributeIVA01:"+str(tributeIVA01 and tributeIVA01.name))
+
+                    fisc_noresp = False
+                    fisc_simple = False
+                    if ("fiscal_responsability_ids" in self.env['res.partner']._fields ):
+                        fisc_noresp = self.env['dian.fiscal.responsability'].search([("name","like","No responsable")],limit=1)
+                        fisc_simple = self.env['dian.fiscal.responsability'].search([("name","like","Simple")],limit=1)
+                        _logger.info("fiscal_responsability_ids: fisc_noresp:"+str(fisc_noresp and fisc_noresp.name)+" fisc_simple:"+str(fisc_simple and fisc_simple.name))
+
+
+
+                    if (Buyer['billing_info']['doc_type']=="CC" or Buyer['billing_info']['doc_type']=="C.C."):
+                        meli_buyer_fields['l10n_co_document_typee'] = 'national_citizen_id'
+                        meli_buyer_fields['x_pn_retri'] = '23'
+
+                        if ("fe_tipo_documento" in self.env['res.partner']._fields):
+                            meli_buyer_fields['fe_tipo_documento'] = '13'
+                        if ("fe_tipo_regimen" in self.env['res.partner']._fields ):
+                            meli_buyer_fields['fe_tipo_regimen'] = '00'
+                        if ("fe_regimen_fiscal" in self.env['res.partner']._fields ):
+                            meli_buyer_fields['fe_regimen_fiscal'] = '49'
+                        if ("responsabilidad_fiscal_fe" in self.env['res.partner']._fields ):
+                            meli_buyer_fields['responsabilidad_fiscal_fe'] = [ ( 6, 0, [29] ) ]
+
+                        if fisc_noresp:
+                            meli_buyer_fields['fiscal_responsability_ids'] = [ ( 6, 0, [fisc_noresp.id] ) ]
+
+                    if (Buyer['billing_info']['doc_type']=="NIT"):
+                        meli_buyer_fields['l10n_co_document_typee'] = 'rut'
+                        meli_buyer_fields['x_pn_retri'] = '6'
+
+                        if ("fe_tipo_documento" in self.env['res.partner']._fields):
+                            meli_buyer_fields['fe_tipo_documento'] = '31'
+                        if ("fe_es_compania" in self.env['res.partner']._fields ):
+                            meli_buyer_fields['fe_es_compania'] = '1'
+                        #if ("fe_tipo_regimen" in self.env['res.partner']._fields ):
+                        #    meli_buyer_fields['fe_tipo_regimen'] = '04'
+                        #if ("fe_regimen_fiscal" in self.env['res.partner']._fields ):
+                        #    meli_buyer_fields['fe_regimen_fiscal'] = '48'
+
+                        if fisc_simple:
+                            meli_buyer_fields['fiscal_responsability_ids'] = [ ( 6, 0, [fisc_simple.id] ) ]
+
+                    if (Buyer['billing_info']['doc_type']=="CE"):
+                        meli_buyer_fields['l10n_co_document_typee'] = 'foreign_id_card'
+
+                        if ("fe_tipo_documento" in self.env['res.partner']._fields):
+                            meli_buyer_fields['fe_tipo_documento'] = '22'
+                        if ("fe_tipo_regimen" in self.env['res.partner']._fields ):
+                            meli_buyer_fields['fe_tipo_regimen'] = '00'
+                        if ("fe_regimen_fiscal" in self.env['res.partner']._fields ):
+                            meli_buyer_fields['fe_regimen_fiscal'] = '49'
+                        if ("responsabilidad_fiscal_fe" in self.env['res.partner']._fields ):
+                            meli_buyer_fields['responsabilidad_fiscal_fe'] = [ ( 6, 0, [29] ) ]
+
+                        if fisc_noresp:
+                            meli_buyer_fields['fiscal_responsability_ids'] = [ ( 6, 0, [fisc_noresp.id] ) ]
+
+                    meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
+
+                    if ("xidentification" in self.env['res.partner']._fields):
+                        meli_buyer_fields['xidentification'] = Buyer['billing_info']['doc_number']
+
+                    if ("fe_nit" in self.env['res.partner']._fields):
+                        meli_buyer_fields['fe_nit'] = Buyer['billing_info']['doc_number']
+                        if (Buyer['billing_info']['doc_type']=="NIT"):
+                            meli_buyer_fields['fe_nit'] = Buyer['billing_info']['doc_number'][0:10]
+                            if ("fe_digito_verificacion" in self.env['res.partner']._fields):
+                                meli_buyer_fields['fe_digito_verificacion'] = Buyer['billing_info']['doc_number'][-1]
+
+                    if ("x_name1" in self.env['res.partner']._fields) and Buyer['first_name']:
+                        nn = Buyer['first_name'].split(" ")
+                        if (len(nn)>1):
+                            meli_buyer_fields['x_name1'] = nn[0]
+                            meli_buyer_fields['x_name2'] = nn[1]
+                        else:
+                            meli_buyer_fields['x_name1'] = Buyer['first_name']
+
+
+                    if ("x_lastname1" in self.env['res.partner']._fields) and Buyer['last_name']:
+                        nn = Buyer['last_name'].split(" ")
+                        if (len(nn)>1):
+                            meli_buyer_fields['x_lastname1'] = nn[0]
+                            meli_buyer_fields['x_lastname2'] = nn[1]
+                        else:
+                            meli_buyer_fields['x_lastname1'] = Buyer['last_name']
+
+                    if not Buyer['first_name'] and ("x_name1" in self.env['res.partner']._fields):
+                        nn = Buyer['name'].split(" ")
+                        if (len(nn)==2):
+                            meli_buyer_fields['x_name1'] = nn[0]
+                            meli_buyer_fields['x_lastname1'] = nn[1]
+
+                        if (len(nn)==3):
+                            meli_buyer_fields['x_name1'] = nn[0]
+                            meli_buyer_fields['x_name2'] = nn[1]
+                            meli_buyer_fields['x_lastname1'] = nn[2]
+
+                        if (len(nn)==4):
+                            meli_buyer_fields['x_name1'] = nn[0]
+                            meli_buyer_fields['x_name2'] = nn[1]
+                            meli_buyer_fields['x_lastname1'] = nn[2]
+                            meli_buyer_fields['x_lastname2'] = nn[3]
+
                 if ( ('doc_type' in Buyer['billing_info']) and ('l10n_latam_identification_type_id' in self.env['res.partner']._fields ) and ('l10n_co_document_code' in self.env['l10n_latam.identification.type']._fields) ):
                     if (Buyer['billing_info']['doc_type']=="CC" or Buyer['billing_info']['doc_type']=="C.C."):
                         #national_citizen_id
@@ -1012,6 +1158,15 @@ class mercadolibre_orders(models.Model):
                     partner_update.update(meli_buyer_fields)
 
                 if ("name" in meli_buyer_fields and meli_buyer_fields["name"]!=str(partner_id.name) ):
+                    partner_update.update(meli_buyer_fields)
+
+                if ("x_name1" in meli_buyer_fields and meli_buyer_fields["x_name1"]!=str(partner_id.x_name1) ):
+                    partner_update.update(meli_buyer_fields)
+
+                if "fiscal_responsibility_ids" in meli_buyer_fields:
+                    partner_update.update(meli_buyer_fields)
+
+                if "tribute_id" in meli_buyer_fields:
                     partner_update.update(meli_buyer_fields)
 
                 if not partner_id.country_id:

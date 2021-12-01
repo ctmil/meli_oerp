@@ -494,6 +494,8 @@ class mercadolibre_shipment(models.Model):
         full_phone = orders_obj.full_phone( Receiver )
         if full_phone and not ("XXXX" in full_phone):
             pdelivery_fields['phone'] = full_phone
+        if partner_id and partner_id.lang:
+            pdelivery_fields["lang"] =  partner_id.lang
 
         pdelivery_fields.update(orders_obj.fix_locals(Receiver))
         #TODO: agregar un campo para diferencia cada delivery res partner al shipment y orden asociado, crear un binding usando values diferentes... y listo
