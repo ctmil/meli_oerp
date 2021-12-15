@@ -127,6 +127,8 @@ class mercadolibre_posting(models.Model):
                 for Question in questions:
                     cn = cn + 1
 
+                    Question["posting_id"] = posting.id
+
                     self.env['mercadolibre.questions'].process_question(Question=Question,meli=meli,config=company)
 
 
