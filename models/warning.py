@@ -5,6 +5,7 @@ import pdb
 WARNING_MODULE = 'meli_oerp'
 WARNING_TYPES = [('warning','Warning'),('info','Information'),('error','Error')]
 
+
 class warning(models.TransientModel):
     _name = 'warning'
     _description = 'warning'
@@ -14,6 +15,11 @@ class warning(models.TransientModel):
     message_html = fields.Html(string="Message HTML", readonly=True);
 
     _req_name = 'title'
+
+    def _format_meli_error( self, title, message, message_html='', context=None ):
+        context = context or self.env.context
+        #process error messages:
+        return title, message, message_html
 
     def _get_view_id(self ):
         """Get the view id
