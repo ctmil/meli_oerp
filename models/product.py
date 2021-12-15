@@ -1120,7 +1120,10 @@ class product_product(models.Model):
                     if (len(attribute) and attribute.id):
                         attribute_id = attribute.id
                         attribute_value_id = self.env['product.attribute.value'].search([('attribute_id','=',attribute_id), ('name','=',att['value_name'])]).id
-                        #_logger.info(_logger.info(attribute_id))
+                        #_logger.info("attribute_id:"+str(attribute))
+                        #_logger.info("attribute_value_id:"+str(attribute_value_id))
+                        #attribute_value_id2 = self.env['product.attribute.value'].sudo().search([('attribute_id','=',attribute_id), ('name','=',att['value_name'])]).id
+                        #_logger.info("attribute_value_id2:"+str(attribute_value_id2))
                         if attribute_value_id:
                             #_logger.info(attribute_value_id)
                             pass
@@ -1603,7 +1606,10 @@ class product_product(models.Model):
                         if not product_template.meli_pub_principal_variant:
                             product_template.meli_pub_principal_variant = variant
                         for variation in rjson['variations']:
-                            if "seller_sku" in variation and variant.default_code == variation["seller_sku"]:
+                            has_ml_sku = "seller_sku" in variation and variation["seller_sku"]
+                            import_var_id = has_ml_sku and variant.default_code == variation["seller_sku"]
+                            #import_var_id = not has_ml_sku
+                            if import_var_id:
                                 variant.meli_id_variation = variation["id"]
                                 variant.meli_pub = True
                                 variant.meli_id = product.meli_id
@@ -1655,7 +1661,9 @@ class product_product(models.Model):
                 for variation in rjson['variations']:
                     #_logger.info(variation)
                     #_logger.info("variation[default_code]: " + variation["default_code"])
-                    if (len(variation["default_code"]) and variant.is_variant_in_combination( variation["default_code"], _v_default_code )):
+                    is_v_comb = variant.is_variant_in_combination( variation["default_code"], _v_default_code )
+                    #_logger.info("variation[default_code]: " + variation["default_code"]+" is_v_comb:"+str(is_v_comb))
+                    if ( len(variation["default_code"]) and is_v_comb):
                         if ("seller_custom_field" in variation or "seller_sku" in variation):
                             #_logger.info("has_sku")
                             #_logger.info(variation["seller_custom_field"])
@@ -1665,8 +1673,8 @@ class product_product(models.Model):
                                 pass;
                             variant.meli_id_variation = variation["id"]
                             has_sku = True
-                        else:
-                            variant.default_code = variant.meli_id+'-'+_v_default_code
+                        #else:
+                        #    variant.default_code = variant.meli_id+'-'+_v_default_code
 
                         if ("barcode" in variation):
                             try:
@@ -1687,6 +1695,10 @@ class product_product(models.Model):
                             variant.meli_id_variation = variation["id"]
                             has_sku = True
                         variant.meli_available_quantity = variation["available_quantity"]
+                    elif (is_v_comb and "id" in variation):
+                        variant.meli_id_variation = variation["id"]
+                        variant.meli_available_quantity = variation["available_quantity"]
+                        #TODO post message to force user to set default_code and meli sku
 
                 if (has_sku):
                     variant.set_bom()
