@@ -1801,6 +1801,8 @@ class mercadolibre_order_items(models.Model):
     unit_price = fields.Char(string='Unit price')
     quantity = fields.Integer(string='Quantity')
     currency_id = fields.Char(string='Currency')
+    seller_sku = fields.Char(string='SKU')
+    seller_custom_field = fields.Char(string='seller_custom_field')
 
 mercadolibre_order_items()
 

@@ -5,6 +5,7 @@ import pdb
 WARNING_MODULE = 'meli_oerp'
 WARNING_TYPES = [('warning','Warning'),('info','Information'),('error','Error')]
 
+
 class warning(models.TransientModel):
     _name = 'warning'
     _description = 'warning'
@@ -14,6 +15,11 @@ class warning(models.TransientModel):
     message_html = fields.Html(string="Message HTML", readonly=True);
 
     _req_name = 'title'
+
+    def _format_meli_error( self, title, message, message_html='', context=None ):
+        context = context or self.env.context
+        #process error messages:
+        return title, message, message_html
 
     def _get_view_id(self ):
         """Get the view id
@@ -41,17 +47,23 @@ class warning(models.TransientModel):
         }
         return res
 
-    def warning(self, title, message, message_html=''):
+    def warning(self, title, message, message_html='', context=None):
+        context = context or self.env.context
+        title, message, message_html = self._format_meli_error(title=title,message=message,message_html=message_html,context=context)
         id = self.create( {'title': title, 'message': message, 'message_html': message_html, 'type': 'warning'}).id
         res = self._message( id )
         return res
 
-    def info(self, title, message, message_html=''):
+    def info(self, title, message, message_html='', context=None):
+        context = context or self.env.context
+        title, message, message_html = self._format_meli_error(title=title,message=message,message_html=message_html,context=context)
         id = self.create( {'title': title, 'message': message, 'message_html': message_html, 'type': 'info'}).id
         res = self._message( id )
         return res
 
     def error(self, title, message, message_html='', context=None):
+        context = context or self.env.context
+        title, message, message_html = self._format_meli_error(title=title,message=message,message_html=message_html, context=context)
         id = self.create( {'title': title, 'message': message, 'message_html': message_html, 'type': 'error'}).id
         res = self._message( id)
         return res
