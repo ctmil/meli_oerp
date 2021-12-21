@@ -3257,7 +3257,7 @@ class product_product(models.Model):
                     product.product_meli_status_active()
                 elif (best_available<=0 and product.meli_status=="active"):
                     _logger.info("Pause!")
-                    product.product_meli_status_pause()
+                    #product.product_meli_status_pause()
             else:
                 if (product.meli_id and not product.meli_id_variation):
                     #_logger.info("meli:"+str(meli))
@@ -3300,7 +3300,8 @@ class product_product(models.Model):
                             return error
 
                 if (product.meli_available_quantity<=0 and product.meli_status=="active"):
-                    product.product_meli_status_pause(meli=meli)
+                    #product.product_meli_status_pause(meli=meli)
+                    _logger.info("pause")
                 elif (product.meli_available_quantity>0 and product.meli_status=="paused"):
                     product.product_meli_status_active(meli=meli)
 
