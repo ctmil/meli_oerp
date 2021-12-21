@@ -2661,7 +2661,7 @@ class product_product(models.Model):
                         attributes_ids[attribute["id"]] = attribute["value_name"]
                         attributes.append(attribute)
 
-                    if (at_line_id.attribute_id.meli_default_id_attribute.id and at_line_id.attribute_id.meli_default_id_attribute.variation_attribute==True and and at_line_id.attribute_id.meli_default_id_attribute.hidden==False):
+                    if (at_line_id.attribute_id.meli_default_id_attribute.id and at_line_id.attribute_id.meli_default_id_attribute.variation_attribute==True and at_line_id.attribute_id.meli_default_id_attribute.hidden==False):
                         variations_candidates = True
 
                 elif (len(at_line_id.value_ids)>1):
