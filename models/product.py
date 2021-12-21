@@ -3022,6 +3022,7 @@ class product_product(models.Model):
                 #_logger.debug(resdes.json())
                 del body['price']
                 del body['available_quantity']
+                del body["pictures"]                
                 _logger.info("update post:"+str(body))
                 resbody = product.meli_id and meli.put("/items/"+product.meli_id, body, {'access_token':meli.access_token})
                 _logger.info(str(resbody and resbody.json()))
