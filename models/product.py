@@ -2619,7 +2619,7 @@ class product_product(models.Model):
             product.meli_warranty=product_tmpl.meli_warranty
 
         if (product_tmpl.meli_brand==False or len(product_tmpl.meli_brand)==0):
-            product_tmpl.meli_brand = ("product_brand_id" in product_tmpl._fields and product_tmpl.product_brand_id and product_tmpl.product_brand_id.name )
+            product_tmpl.meli_brand = ("product_brand_id" in product_tmpl._fields and product_tmpl.product_brand_id.name )
         if product.meli_brand==False or len(product.meli_brand)==0:
             product.meli_brand = product_tmpl.meli_brand
         if product.meli_model==False or len(product.meli_model)==0:
@@ -2966,6 +2966,7 @@ class product_product(models.Model):
                         #_logger.debug(resdes.json())
                         del body['price']
                         del body['available_quantity']
+                        del body["pictures"]
                         del body["pictures"]
                         _logger.info("update post 1:"+str(body))
                         resbody = product.meli_id and meli.put("/items/"+product.meli_id, body, {'access_token':meli.access_token})
