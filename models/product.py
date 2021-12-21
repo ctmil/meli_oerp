@@ -2716,13 +2716,13 @@ class product_product(models.Model):
             "video_id": product.meli_video  or '',
         }
 
-        if product.meli_max_purchase_quantity!=False:
+        if product.meli_max_purchase_quantity:
             body["sale_terms"].append({
                 "id": "PURCHASE_MAX_QUANTITY",
                 "value_name": str(product.meli_max_purchase_quantity)
             })
 
-        if product.meli_manufacturing_time!=False:
+        if product.meli_manufacturing_time:
             body["sale_terms"].append({
                 "id": "MANUFACTURING_TIME",
                 "value_name": str(product.meli_manufacturing_time)
@@ -2781,14 +2781,14 @@ class product_product(models.Model):
                 "pictures": [],
                 "video_id": product.meli_video or '',
             }
-            
-            if product.meli_max_purchase_quantity!=False:
+
+            if product.meli_max_purchase_quantity:
                 body["sale_terms"].append({
                     "id": "PURCHASE_MAX_QUANTITY",
                     "value_name": str(product.meli_max_purchase_quantity)
                 })
 
-            if product.meli_manufacturing_time!=False:
+            if product.meli_manufacturing_time:
                 body["sale_terms"].append({
                     "id": "MANUFACTURING_TIME",
                     "value_name": str(product.meli_manufacturing_time)
