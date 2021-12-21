@@ -2716,6 +2716,17 @@ class product_product(models.Model):
             "video_id": product.meli_video  or '',
         }
 
+        if product.meli_max_purchase_quantity!=False:
+            body["sale_terms"].append({
+                "id": "PURCHASE_MAX_QUANTITY",
+                "value_name": str(product.meli_max_purchase_quantity)
+            })
+
+        if product.meli_manufacturing_time!=False:
+            body["sale_terms"].append({
+                "id": "MANUFACTURING_TIME",
+                "value_name": str(product.meli_manufacturing_time)
+            })
         body = product._validate_category_settings( body )
 
         bodydescription = {
@@ -2770,6 +2781,19 @@ class product_product(models.Model):
                 "pictures": [],
                 "video_id": product.meli_video or '',
             }
+            
+            if product.meli_max_purchase_quantity!=False:
+                body["sale_terms"].append({
+                    "id": "PURCHASE_MAX_QUANTITY",
+                    "value_name": str(product.meli_max_purchase_quantity)
+                })
+
+            if product.meli_manufacturing_time!=False:
+                body["sale_terms"].append({
+                    "id": "MANUFACTURING_TIME",
+                    "value_name": str(product.meli_manufacturing_time)
+                })
+
             if (productjson):
                 if ("attributes" in productjson):
                     if (len(attributes)):
@@ -3257,7 +3281,7 @@ class product_product(models.Model):
                     product.product_meli_status_active()
                 elif (best_available<=0 and product.meli_status=="active"):
                     _logger.info("Pause!")
-                    product.product_meli_status_pause()
+                    #product.product_meli_status_pause()
             else:
                 if (product.meli_id and not product.meli_id_variation):
                     #_logger.info("meli:"+str(meli))
@@ -3300,7 +3324,8 @@ class product_product(models.Model):
                             return error
 
                 if (product.meli_available_quantity<=0 and product.meli_status=="active"):
-                    product.product_meli_status_pause(meli=meli)
+                    #product.product_meli_status_pause(meli=meli)
+                    _logger.info("pause")
                 elif (product.meli_available_quantity>0 and product.meli_status=="paused"):
                     product.product_meli_status_active(meli=meli)
 
@@ -3478,6 +3503,9 @@ class product_product(models.Model):
     meli_buying_mode = fields.Selection(string='Método',help='Método de compra',selection=[("buy_it_now","Compre ahora"),("classified","Clasificado")])
     meli_price_fixed = fields.Boolean(string='Price is fixed')
     meli_available_quantity = fields.Integer(string='Cantidades', help='Cantidad disponible a publicar en ML')
+    meli_max_purchase_quantity = fields.Integer(string='Max Compra', help='Cantidad maxima por compra en ML')
+    meli_manufacturing_time = fields.Char(string='Manufacturing time', help='Tiempo de fabricacion (30 días)')
+
     meli_imagen_logo = fields.Char(string='Imagen Logo', size=256)
     meli_imagen_id = fields.Char(string='Imagen Id', size=256)
     meli_imagen_link = fields.Char(string='Imagen Link', size=256)

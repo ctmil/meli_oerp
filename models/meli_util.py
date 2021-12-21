@@ -361,7 +361,7 @@ class MeliUtil(models.AbstractModel):
 
         try:
             if api_rest_client.needlogin_state:
-                _logger.error("Need login for "+str(company.name))
+                _logger.warning("Need login for "+str(company.name))
 
                 if (company.mercadolibre_cron_refresh and company.mercadolibre_cron_mail):
                     company.write({'mercadolibre_access_token': '', 'mercadolibre_refresh_token': '', 'mercadolibre_code': '', 'mercadolibre_cron_refresh': False } )
