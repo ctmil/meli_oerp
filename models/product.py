@@ -2622,7 +2622,7 @@ class product_product(models.Model):
         #    product_tmpl.meli_brand = ("product_brand_id" in product_tmpl._fields and product_tmpl.product_brand_id and product_tmpl.product_brand_id.id and product_tmpl.product_brand_id.display_name )
         if product_tmpl.meli_brand == "wk.product.brand()" or product.meli_brand == "wk.product.brand()":
             product_tmpl.meli_brand = ""
-            product.meli_brand = ""    
+            product.meli_brand = ""
         if product.meli_brand==False or len(product.meli_brand)==0:
             product.meli_brand = product_tmpl.meli_brand
         if product.meli_model==False or len(product.meli_model)==0:
@@ -2634,6 +2634,7 @@ class product_product(models.Model):
 
         #_product_post_set_attributes
         attributes = []
+        attributes_ids = {}
         variations_candidates = False
         if product_tmpl.attribute_line_ids:
             _logger.info(product_tmpl.attribute_line_ids)
@@ -2645,16 +2646,19 @@ class product_product(models.Model):
                     _logger.info(atname+":"+atval)
                     if (atname=="MARCA" or atname=="BRAND"):
                         attribute = { "id": "BRAND", "value_name": atval }
+                        attributes_ids[attribute["id"]] = attribute["value_name"]
                         attributes.append(attribute)
                     if (atname=="MODELO" or atname=="MODEL"):
                         attribute = { "id": "MODEL", "value_name": atval }
+                        attributes_ids[attribute["id"]] = attribute["value_name"]
                         attributes.append(attribute)
 
-                    if (at_line_id.attribute_id.meli_default_id_attribute.id):
+                    if (at_line_id.attribute_id.meli_default_id_attribute.id and at_line_id.attribute_id.meli_default_id_attribute.variation_attribute==False):
                         attribute = {
                             "id": at_line_id.attribute_id.meli_default_id_attribute.att_id,
                             "value_name": atval
                         }
+                        attributes_ids[attribute["id"]] = attribute["value_name"]
                         attributes.append(attribute)
                 elif (len(at_line_id.value_ids)>1):
                     variations_candidates = True
@@ -2667,13 +2671,13 @@ class product_product(models.Model):
         if product.meli_model==False or len(product.meli_model)==0:
             product.meli_model = product_tmpl.meli_model
 
-        if product.meli_brand and len(product.meli_brand) > 0:
+        if product.meli_brand and len(product.meli_brand) > 0 and not "BRAND" in attributes_ids:
             attribute = { "id": "BRAND", "value_name": product.meli_brand }
             attributes.append(attribute)
             _logger.info(attributes)
             product.meli_attributes = str(attributes)
 
-        if product.meli_model and len(product.meli_model) > 0:
+        if product.meli_model and len(product.meli_model) > 0 and not "MODEL" in attributes_ids:
             attribute = { "id": "MODEL", "value_name": product.meli_model }
             attributes.append(attribute)
             _logger.info(attributes)
