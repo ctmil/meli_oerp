@@ -518,6 +518,10 @@ class mercadolibre_shipment(models.Model):
         else:
             try:
                 hchanges = False
+                del pdelivery_fields["parent_id"]
+                del pdelivery_fields["country_id"]
+                del pdelivery_fields["state_id"]
+                del pdelivery_fields["type"]
                 for f in pdelivery_fields:
                     if f in deliv_id._fields:
                         if pdelivery_fields[f] != deliv_id[f]:
