@@ -1440,6 +1440,7 @@ class product_product(models.Model):
 
         try:
             rjson['warranty'] = rjson['warranty'].replace('Garantía del vendedor: ','')
+            rjson['warranty'] = rjson['warranty'].replace('Garantía de fábrica: ','')
         except:
             pass;
 
