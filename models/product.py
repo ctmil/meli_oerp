@@ -2965,6 +2965,7 @@ class product_product(models.Model):
                         #_logger.debug(resdes.json())
                         del body['price']
                         del body['available_quantity']
+                        _logger.info("update post:"+str(body))
                         resbody = product.meli_id and meli.put("/items/"+product.meli_id, body, {'access_token':meli.access_token})
                         #_logger.debug(resbody.json())
                          #responsevar = meli.put("/items/"+product.meli_id, {"initial_quantity": product.meli_available_quantity, "available_quantity": product.meli_available_quantity }, {'access_token':meli.access_token})
@@ -3021,6 +3022,7 @@ class product_product(models.Model):
                 #_logger.debug(resdes.json())
                 del body['price']
                 del body['available_quantity']
+                _logger.info("update post:"+str(body))
                 resbody = product.meli_id and meli.put("/items/"+product.meli_id, body, {'access_token':meli.access_token})
                 return {}
 
