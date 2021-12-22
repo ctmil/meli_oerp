@@ -279,7 +279,7 @@ class MeliUtil(models.AbstractModel):
 
                 if status==500 and cause=="Internal Server Error":
                     _logger.warning(rjson)
-                   return api_rest_client
+                    return api_rest_client
 
                 #_logger.info(rjson)
                 if "error" in rjson:
