@@ -1544,8 +1544,8 @@ class mercadolibre_orders(models.Model):
                     payment_fields["total_paid_amount"] = payment_fields["full_payment"]["transaction_details"]["total_paid_amount"]
                     if ("fee_details" in payment_fields["full_payment"] and len(payment_fields["full_payment"]["fee_details"])>0):
                         fee_details = payment_fields["full_payment"]["fee_details"]
-                        for index in fee_details:
-                            fee_detail = fee_details[index]
+                        for fee_detail in fee_details:
+                            #fee_detail = fee_details[index]
                             if fee_detail and "amount" in fee_detail:
                                 fee_type = fee_detail["type"]
                                 fee_payer = fee_detail["fee_payer"]
