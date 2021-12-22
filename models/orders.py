@@ -921,7 +921,9 @@ class mercadolibre_orders(models.Model):
                         if ("fe_regimen_fiscal" in self.env['res.partner']._fields ):
                             meli_buyer_fields['fe_regimen_fiscal'] = '49'
                         if ("responsabilidad_fiscal_fe" in self.env['res.partner']._fields ):
-                            meli_buyer_fields['responsabilidad_fiscal_fe'] = [ ( 6, 0, [29] ) ]
+                            R_99_PN_noaplica = self.env["l10n_co_cei_settings.responsabilidad_fiscal"].search([('codigo_fe_dian','=','R-99-PN')],limit=1)
+                            if R_99_PN_noaplica:
+                                meli_buyer_fields['responsabilidad_fiscal_fe'] = [ ( 6, 0, [R_99_PN_noaplica.id] ) ]
 
                     if (Buyer['billing_info']['doc_type']=="NIT"):
                         meli_buyer_fields['l10n_co_document_type'] = 'rut'
@@ -943,7 +945,9 @@ class mercadolibre_orders(models.Model):
                         if ("fe_regimen_fiscal" in self.env['res.partner']._fields ):
                             meli_buyer_fields['fe_regimen_fiscal'] = '49'
                         if ("responsabilidad_fiscal_fe" in self.env['res.partner']._fields ):
-                            meli_buyer_fields['responsabilidad_fiscal_fe'] = [ ( 6, 0, [29] ) ]
+                            R_99_PN_noaplica = self.env["l10n_co_cei_settings.responsabilidad_fiscal"].search([('codigo_fe_dian','=','R-99-PN')],limit=1)
+                            if R_99_PN_noaplica:
+                                meli_buyer_fields['responsabilidad_fiscal_fe'] = [ ( 6, 0, [R_99_PN_noaplica.id] ) ]
 
                     meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
 
@@ -1009,7 +1013,9 @@ class mercadolibre_orders(models.Model):
                         if ("fe_regimen_fiscal" in self.env['res.partner']._fields ):
                             meli_buyer_fields['fe_regimen_fiscal'] = '49'
                         if ("responsabilidad_fiscal_fe" in self.env['res.partner']._fields ):
-                            meli_buyer_fields['responsabilidad_fiscal_fe'] = [ ( 6, 0, [29] ) ]
+                            R_99_PN_noaplica = self.env["l10n_co_cei_settings.responsabilidad_fiscal"].search([('codigo_fe_dian','=','R-99-PN')],limit=1)
+                            if R_99_PN_noaplica:
+                                meli_buyer_fields['responsabilidad_fiscal_fe'] = [ ( 6, 0, [R_99_PN_noaplica.id] ) ]
 
                         if fisc_noresp:
                             meli_buyer_fields['fiscal_responsability_ids'] = [ ( 6, 0, [fisc_noresp.id] ) ]
@@ -1040,7 +1046,9 @@ class mercadolibre_orders(models.Model):
                         if ("fe_regimen_fiscal" in self.env['res.partner']._fields ):
                             meli_buyer_fields['fe_regimen_fiscal'] = '49'
                         if ("responsabilidad_fiscal_fe" in self.env['res.partner']._fields ):
-                            meli_buyer_fields['responsabilidad_fiscal_fe'] = [ ( 6, 0, [29] ) ]
+                            R_99_PN_noaplica = self.env["l10n_co_cei_settings.responsabilidad_fiscal"].search([('codigo_fe_dian','=','R-99-PN')],limit=1)
+                            if R_99_PN_noaplica:
+                                meli_buyer_fields['responsabilidad_fiscal_fe'] = [ ( 6, 0, [R_99_PN_noaplica.id] ) ]
 
                         if fisc_noresp:
                             meli_buyer_fields['fiscal_responsability_ids'] = [ ( 6, 0, [fisc_noresp.id] ) ]
