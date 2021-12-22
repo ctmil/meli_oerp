@@ -273,6 +273,14 @@ class MeliUtil(models.AbstractModel):
 
                 #_logger.info("get_new_instance connection response:"+str(response))
                 rjson = response.json()
+
+                status = "status" in rjson and rjson["status"]
+                cause = "cause" in rjson and rjson["cause"]
+
+                if status==500 and cause=="Internal Server Error":
+                    _logger.warning(rjson)
+                   return api_rest_client
+
                 #_logger.info(rjson)
                 if "error" in rjson:
 

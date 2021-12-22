@@ -1440,6 +1440,7 @@ class product_product(models.Model):
 
         try:
             rjson['warranty'] = rjson['warranty'].replace('Garantía del vendedor: ','')
+            rjson['warranty'] = rjson['warranty'].replace('Garantía de fábrica: ','')
         except:
             pass;
 
@@ -2630,6 +2631,7 @@ class product_product(models.Model):
 
         #_product_post_set_attributes
         attributes = []
+        attributes_ids = {}
         variations_candidates = False
         if product_tmpl.attribute_line_ids:
             _logger.info(product_tmpl.attribute_line_ids)
@@ -2641,17 +2643,24 @@ class product_product(models.Model):
                     _logger.info(atname+":"+atval)
                     if (atname=="MARCA" or atname=="BRAND"):
                         attribute = { "id": "BRAND", "value_name": atval }
+                        attributes_ids[attribute["id"]] = attribute["value_name"]
                         attributes.append(attribute)
                     if (atname=="MODELO" or atname=="MODEL"):
                         attribute = { "id": "MODEL", "value_name": atval }
+                        attributes_ids[attribute["id"]] = attribute["value_name"]
                         attributes.append(attribute)
 
-                    if (at_line_id.attribute_id.meli_default_id_attribute.id):
+                    if (at_line_id.attribute_id.meli_default_id_attribute.id and at_line_id.attribute_id.meli_default_id_attribute.variation_attribute==False):
                         attribute = {
                             "id": at_line_id.attribute_id.meli_default_id_attribute.att_id,
                             "value_name": atval
                         }
+                        attributes_ids[attribute["id"]] = attribute["value_name"]
                         attributes.append(attribute)
+
+                    if (at_line_id.attribute_id.meli_default_id_attribute.id and at_line_id.attribute_id.meli_default_id_attribute.variation_attribute==True and at_line_id.attribute_id.meli_default_id_attribute.hidden==False):
+                        variations_candidates = True
+
                 elif (len(at_line_id.value_ids)>1):
                     variations_candidates = True
 
@@ -2663,13 +2672,13 @@ class product_product(models.Model):
         if product.meli_model==False or len(product.meli_model)==0:
             product.meli_model = product_tmpl.meli_model
 
-        if product.meli_brand and len(product.meli_brand) > 0:
+        if product.meli_brand and len(product.meli_brand) > 0 and not "BRAND" in attributes_ids:
             attribute = { "id": "BRAND", "value_name": product.meli_brand }
             attributes.append(attribute)
             _logger.info(attributes)
             product.meli_attributes = str(attributes)
 
-        if product.meli_model and len(product.meli_model) > 0:
+        if product.meli_model and len(product.meli_model) > 0 and not "MODEL" in attributes_ids:
             attribute = { "id": "MODEL", "value_name": product.meli_model }
             attributes.append(attribute)
             _logger.info(attributes)
@@ -2716,6 +2725,17 @@ class product_product(models.Model):
             "video_id": product.meli_video  or '',
         }
 
+        if product.meli_max_purchase_quantity:
+            body["sale_terms"].append({
+                "id": "PURCHASE_MAX_QUANTITY",
+                "value_name": str(product.meli_max_purchase_quantity)
+            })
+
+        if product.meli_manufacturing_time:
+            body["sale_terms"].append({
+                "id": "MANUFACTURING_TIME",
+                "value_name": str(product.meli_manufacturing_time)
+            })
         body = product._validate_category_settings( body )
 
         bodydescription = {
@@ -2770,6 +2790,19 @@ class product_product(models.Model):
                 "pictures": [],
                 "video_id": product.meli_video or '',
             }
+            
+            if product.meli_max_purchase_quantity!=False:
+                body["sale_terms"].append({
+                    "id": "PURCHASE_MAX_QUANTITY",
+                    "value_name": str(product.meli_max_purchase_quantity)
+                })
+
+            if product.meli_manufacturing_time!=False:
+                body["sale_terms"].append({
+                    "id": "MANUFACTURING_TIME",
+                    "value_name": str(product.meli_manufacturing_time)
+                })
+
             if (productjson):
                 if ("attributes" in productjson):
                     if (len(attributes)):
@@ -3479,6 +3512,9 @@ class product_product(models.Model):
     meli_buying_mode = fields.Selection(string='Método',help='Método de compra',selection=[("buy_it_now","Compre ahora"),("classified","Clasificado")])
     meli_price_fixed = fields.Boolean(string='Price is fixed')
     meli_available_quantity = fields.Integer(string='Cantidades', help='Cantidad disponible a publicar en ML')
+    meli_max_purchase_quantity = fields.Integer(string='Max Compra', help='Cantidad maxima por compra en ML')
+    meli_manufacturing_time = fields.Char(string='Manufacturing time', help='Tiempo de fabricacion (30 días)')
+
     meli_imagen_logo = fields.Char(string='Imagen Logo', size=256)
     meli_imagen_id = fields.Char(string='Imagen Id', size=256)
     meli_imagen_link = fields.Char(string='Imagen Link', size=256)
