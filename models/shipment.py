@@ -517,7 +517,17 @@ class mercadolibre_shipment(models.Model):
                 pass;
         else:
             try:
-                deliv_id.write(pdelivery_fields)
+                hchanges = False
+                del pdelivery_fields["parent_id"]
+                del pdelivery_fields["country_id"]
+                del pdelivery_fields["state_id"]
+                del pdelivery_fields["type"]
+                for f in pdelivery_fields:
+                    if f in deliv_id._fields:
+                        if pdelivery_fields[f] != deliv_id[f]:
+                            hchanges = True
+                if hchanges:
+                    deliv_id.write(pdelivery_fields)
                 partner_shipping_id = deliv_id
             except:
                 _logger.error("Updating res.partner delivery issue.")
