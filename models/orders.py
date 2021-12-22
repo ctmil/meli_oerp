@@ -921,7 +921,9 @@ class mercadolibre_orders(models.Model):
                         if ("fe_regimen_fiscal" in self.env['res.partner']._fields ):
                             meli_buyer_fields['fe_regimen_fiscal'] = '49'
                         if ("responsabilidad_fiscal_fe" in self.env['res.partner']._fields ):
-                            meli_buyer_fields['responsabilidad_fiscal_fe'] = [ ( 6, 0, [29] ) ]
+                            R_99_PN_noaplica = self.env["l10n_co_cei_settings.responsabilidad_fiscal"].search([('codigo_fe_dian','=','R-99-PN')],limit=1)
+                            if R_99_PN_noaplica:
+                                meli_buyer_fields['responsabilidad_fiscal_fe'] = [ ( 6, 0, [R_99_PN_noaplica.id] ) ]
 
                     if (Buyer['billing_info']['doc_type']=="NIT"):
                         meli_buyer_fields['l10n_co_document_type'] = 'rut'
@@ -943,7 +945,9 @@ class mercadolibre_orders(models.Model):
                         if ("fe_regimen_fiscal" in self.env['res.partner']._fields ):
                             meli_buyer_fields['fe_regimen_fiscal'] = '49'
                         if ("responsabilidad_fiscal_fe" in self.env['res.partner']._fields ):
-                            meli_buyer_fields['responsabilidad_fiscal_fe'] = [ ( 6, 0, [29] ) ]
+                            R_99_PN_noaplica = self.env["l10n_co_cei_settings.responsabilidad_fiscal"].search([('codigo_fe_dian','=','R-99-PN')],limit=1)
+                            if R_99_PN_noaplica:
+                                meli_buyer_fields['responsabilidad_fiscal_fe'] = [ ( 6, 0, [R_99_PN_noaplica.id] ) ]
 
                     meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
 
@@ -1009,7 +1013,9 @@ class mercadolibre_orders(models.Model):
                         if ("fe_regimen_fiscal" in self.env['res.partner']._fields ):
                             meli_buyer_fields['fe_regimen_fiscal'] = '49'
                         if ("responsabilidad_fiscal_fe" in self.env['res.partner']._fields ):
-                            meli_buyer_fields['responsabilidad_fiscal_fe'] = [ ( 6, 0, [29] ) ]
+                            R_99_PN_noaplica = self.env["l10n_co_cei_settings.responsabilidad_fiscal"].search([('codigo_fe_dian','=','R-99-PN')],limit=1)
+                            if R_99_PN_noaplica:
+                                meli_buyer_fields['responsabilidad_fiscal_fe'] = [ ( 6, 0, [R_99_PN_noaplica.id] ) ]
 
                         if fisc_noresp:
                             meli_buyer_fields['fiscal_responsability_ids'] = [ ( 6, 0, [fisc_noresp.id] ) ]
@@ -1040,7 +1046,9 @@ class mercadolibre_orders(models.Model):
                         if ("fe_regimen_fiscal" in self.env['res.partner']._fields ):
                             meli_buyer_fields['fe_regimen_fiscal'] = '49'
                         if ("responsabilidad_fiscal_fe" in self.env['res.partner']._fields ):
-                            meli_buyer_fields['responsabilidad_fiscal_fe'] = [ ( 6, 0, [29] ) ]
+                            R_99_PN_noaplica = self.env["l10n_co_cei_settings.responsabilidad_fiscal"].search([('codigo_fe_dian','=','R-99-PN')],limit=1)
+                            if R_99_PN_noaplica:
+                                meli_buyer_fields['responsabilidad_fiscal_fe'] = [ ( 6, 0, [R_99_PN_noaplica.id] ) ]
 
                         if fisc_noresp:
                             meli_buyer_fields['fiscal_responsability_ids'] = [ ( 6, 0, [fisc_noresp.id] ) ]
@@ -1535,7 +1543,14 @@ class mercadolibre_orders(models.Model):
                     payment_fields["shipping_amount"] = payment_fields["full_payment"]["shipping_amount"]
                     payment_fields["total_paid_amount"] = payment_fields["full_payment"]["transaction_details"]["total_paid_amount"]
                     if ("fee_details" in payment_fields["full_payment"] and len(payment_fields["full_payment"]["fee_details"])>0):
-                        payment_fields["fee_amount"] = payment_fields["full_payment"]["fee_details"][0]["amount"]
+                        fee_details = payment_fields["full_payment"]["fee_details"]
+                        for index in fee_details:
+                            fee_detail = fee_details[index]
+                            if fee_detail and "amount" in fee_detail:
+                                fee_type = fee_detail["type"]
+                                fee_payer = fee_detail["fee_payer"]
+                                if (fee_payer and fee_payer == "collector"):
+                                    payment_fields["fee_amount"] = fee_detail["amount"]
                         if (order):
                             order.fee_amount = payment_fields["fee_amount"]
                             if (sorder):
@@ -1801,6 +1816,8 @@ class mercadolibre_order_items(models.Model):
     unit_price = fields.Char(string='Unit price')
     quantity = fields.Integer(string='Quantity')
     currency_id = fields.Char(string='Currency')
+    seller_sku = fields.Char(string='SKU')
+    seller_custom_field = fields.Char(string='seller_custom_field')
 
 mercadolibre_order_items()
 

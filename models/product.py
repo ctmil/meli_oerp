@@ -1437,6 +1437,7 @@ class product_product(models.Model):
 
         try:
             rjson['warranty'] = rjson['warranty'].replace('Garantía del vendedor: ','')
+            rjson['warranty'] = rjson['warranty'].replace('Garantía de fábrica: ','')
         except:
             pass;
 
@@ -1603,7 +1604,10 @@ class product_product(models.Model):
                         if not product_template.meli_pub_principal_variant:
                             product_template.meli_pub_principal_variant = variant
                         for variation in rjson['variations']:
-                            if "seller_sku" in variation and variant.default_code == variation["seller_sku"]:
+                            has_ml_sku = "seller_sku" in variation and variation["seller_sku"]
+                            import_var_id = has_ml_sku and variant.default_code == variation["seller_sku"]
+                            #import_var_id = not has_ml_sku
+                            if import_var_id:
                                 variant.meli_id_variation = variation["id"]
                                 variant.meli_pub = True
                                 variant.meli_id = product.meli_id
@@ -1655,7 +1659,9 @@ class product_product(models.Model):
                 for variation in rjson['variations']:
                     #_logger.info(variation)
                     #_logger.info("variation[default_code]: " + variation["default_code"])
-                    if (len(variation["default_code"]) and variant.is_variant_in_combination( variation["default_code"], _v_default_code )):
+                    is_v_comb = variant.is_variant_in_combination( variation["default_code"], _v_default_code )
+                    #_logger.info("variation[default_code]: " + variation["default_code"]+" is_v_comb:"+str(is_v_comb))
+                    if ( len(variation["default_code"]) and is_v_comb):
                         if ("seller_custom_field" in variation or "seller_sku" in variation):
                             #_logger.info("has_sku")
                             #_logger.info(variation["seller_custom_field"])
@@ -1665,8 +1671,8 @@ class product_product(models.Model):
                                 pass;
                             variant.meli_id_variation = variation["id"]
                             has_sku = True
-                        else:
-                            variant.default_code = variant.meli_id+'-'+_v_default_code
+                        #else:
+                        #    variant.default_code = variant.meli_id+'-'+_v_default_code
 
                         if ("barcode" in variation):
                             try:
@@ -1687,6 +1693,10 @@ class product_product(models.Model):
                             variant.meli_id_variation = variation["id"]
                             has_sku = True
                         variant.meli_available_quantity = variation["available_quantity"]
+                    elif (is_v_comb and "id" in variation):
+                        variant.meli_id_variation = variation["id"]
+                        variant.meli_available_quantity = variation["available_quantity"]
+                        #TODO post message to force user to set default_code and meli sku
 
                 if (has_sku):
                     variant.set_bom()
@@ -3237,7 +3247,7 @@ class product_product(models.Model):
                     product.product_meli_status_active()
                 elif (best_available<=0 and product.meli_status=="active"):
                     _logger.info("Pause!")
-                    product.product_meli_status_pause()
+                    #product.product_meli_status_pause()
             else:
                 if (product.meli_id and not product.meli_id_variation):
                     #_logger.info("meli:"+str(meli))
@@ -3280,7 +3290,8 @@ class product_product(models.Model):
                             return error
 
                 if (product.meli_available_quantity<=0 and product.meli_status=="active"):
-                    product.product_meli_status_pause(meli=meli)
+                    #product.product_meli_status_pause(meli=meli)
+                    _logger.info("pause")
                 elif (product.meli_available_quantity>0 and product.meli_status=="paused"):
                     product.product_meli_status_active(meli=meli)
 
@@ -3460,6 +3471,9 @@ class product_product(models.Model):
     meli_buying_mode = fields.Selection(string='Método',help='Método de compra',selection=[("buy_it_now","Compre ahora"),("classified","Clasificado")])
     meli_price_fixed = fields.Boolean(string='Price is fixed')
     meli_available_quantity = fields.Integer(string='Cantidades', help='Cantidad disponible a publicar en ML')
+    meli_max_purchase_quantity = fields.Integer(string='Max Compra', help='Cantidad maxima por compra en ML')
+    meli_manufacturing_time = fields.Char(string='Manufacturing time', help='Tiempo de fabricacion (30 días)')
+
     meli_imagen_logo = fields.Char(string='Imagen Logo', size=256)
     meli_imagen_id = fields.Char(string='Imagen Id', size=256)
     meli_imagen_link = fields.Char(string='Imagen Link', size=256)
