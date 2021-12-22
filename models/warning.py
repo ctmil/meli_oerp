@@ -47,17 +47,23 @@ class warning(models.TransientModel):
         }
         return res
 
-    def warning(self, title, message, message_html=''):
+    def warning(self, title, message, message_html='', context=None):
+        context = context or self.env.context
+        title, message, message_html = self._format_meli_error(title=title,message=message,message_html=message_html,context=context)
         id = self.create( {'title': title, 'message': message, 'message_html': message_html, 'type': 'warning'}).id
         res = self._message( id )
         return res
 
-    def info(self, title, message, message_html=''):
+    def info(self, title, message, message_html='', context=None):
+        context = context or self.env.context
+        title, message, message_html = self._format_meli_error(title=title,message=message,message_html=message_html,context=context)
         id = self.create( {'title': title, 'message': message, 'message_html': message_html, 'type': 'info'}).id
         res = self._message( id )
         return res
 
     def error(self, title, message, message_html='', context=None):
+        context = context or self.env.context
+        title, message, message_html = self._format_meli_error(title=title,message=message,message_html=message_html, context=context)
         id = self.create( {'title': title, 'message': message, 'message_html': message_html, 'type': 'error'}).id
         res = self._message( id)
         return res
