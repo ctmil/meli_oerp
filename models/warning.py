@@ -17,10 +17,11 @@ meli_errors = {
 class warning(models.TransientModel):
     _name = 'meli.warning'
     _description = 'warning'
-    type = fields.Selection(WARNING_TYPES, string='Type', readonly=True);
-    title = fields.Char(string="Title", size=100, readonly=True);
-    message = fields.Text(string="Message", readonly=True);
-    message_html = fields.Html(string="Message HTML", readonly=True);
+    type = fields.Selection(WARNING_TYPES, string='Type', readonly=True)
+    title = fields.Char(string="Title", size=100, readonly=True)
+    message = fields.Text(string="Message", readonly=True)
+    message_html = fields.Html(string="Message HTML", readonly=True)
+    copy_error = fields.Text(string="Copy Error", readonly=True)
 
     _req_name = 'title'
 
@@ -75,7 +76,8 @@ class warning(models.TransientModel):
                         ecause = rmessage[rmess]
                         #message_html+= "<br/>Causa: "+str(ecause)
                         
-                message_html+= '<br/><button click="alert(%s)"><i class="fa fa-copy"></i>Copy Error</button>' % (str(rjson))
+                #message_html+= '<br/><button click="alert(%s)"><i class="fa fa-copy"></i>Copy Error</button>'
+                self.copy_error = str(rjson)
                     
         
         return title, message, message_html
