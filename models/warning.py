@@ -9,6 +9,11 @@ WARNING_TYPES = [('warning','Warning'),('info','Information'),('error','Error')]
 import logging
 _logger = logging.getLogger(__name__)
 
+meli_errors = {
+    "item.category_id.invalid": "Categoría de MercadoLibre inválida, seleccione una categoría en la plantilla de MercadoLibre",
+    #"item.category_id.invalid": "Categoría de MercadoLibre inválida, seleccione una categoría en la plantilla de MercadoLibre",
+}
+
 class warning(models.TransientModel):
     _name = 'meli.warning'
     _description = 'warning'
@@ -55,13 +60,14 @@ class warning(models.TransientModel):
                 for rmess in rmessage:
                     _logger.info("rmess:"+str(rmess))
                     if rmess == "error":
-                        message_html = rmessage[rmess]
+                        ecode = rmessage[rmess]
+                        message_html = (ecode in meli_errors and meli_errors[ecode]) or ecode
+                    if rmess == "message":
+                        message = rmessage[rmess]
+                        message_html+= "<br/>"+str(rmessage[rmess])
                     if rmess == "status":
                         message_html+= "<br/>"+str(rmessage[rmess])
                     if rmess == "cause":
-                        message_html+= "<br/>"+str(rmessage[rmess])
-                    if rmess == "message":
-                        message = rmessage[rmess]
                         message_html+= "<br/>"+str(rmessage[rmess])
                     
         
