@@ -3043,7 +3043,7 @@ class product_product(models.Model):
 
         #check fields
         if (product.meli_description==False or ( product.meli_description and len(product.meli_description)==0) ):
-            return warningobj.info(title='MELI WARNING', message="Debe completar el campo description en la plantilla de MercadoLibre o del producto (Descripción de Ventas)", message_html="<h3>Descripción faltante</h3>", context= { rjson: rjson })
+            return warningobj.info(title='MELI WARNING', message="Debe completar el campo description en la plantilla de MercadoLibre o del producto (Descripción de Ventas)", message_html="<h3>Descripción faltante</h3>")
 
         #free shipping
         # https://api.mercadolibre.com/users/{user_id}/shipping_modes?category_id={category_id}&item_price=550
