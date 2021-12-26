@@ -70,10 +70,12 @@ class warning(models.TransientModel):
                         #message_html+= "<br/>"+str(rmessage[rmess])
                     if rmess == "status":
                         estatus = rmessage[rmess]
-                        message_html+= "<br/>Estado: "+str(estatus)
+                        #message_html+= "<br/>Estado: "+str(estatus)
                     if rmess == "cause":
                         ecause = rmessage[rmess]
-                        message_html+= "<br/>Causa: "+str(ecause)
+                        #message_html+= "<br/>Causa: "+str(ecause)
+                        
+                message_html+= "<br/><textarea>%s</textarea>" % (str(rjson))
                     
         
         return title, message, message_html
