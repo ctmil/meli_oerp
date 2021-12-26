@@ -1,6 +1,8 @@
 from odoo import fields, osv, models
 from odoo.tools.translate import _
 import pdb
+import json
+
 #CHANGE WARNING_MODULE with your module name
 WARNING_MODULE = 'meli_oerp'
 WARNING_TYPES = [('warning','Warning'),('info','Information'),('error','Error')]
@@ -38,7 +40,7 @@ class warning(models.TransientModel):
             
             status = "status" in rjson and rjson["status"]
             cause = "cause" in rjson and rjson["cause"]
-            message = "message" in rjson and rjson["message"]
+            message = "message" in rjson and rjson["message"] and json.loads(rjson["message"])
             error = "error" in rjson and rjson["error"]
             
             if status in ["error"]:
