@@ -64,11 +64,13 @@ class warning(models.TransientModel):
                         message_html = (ecode in meli_errors and meli_errors[ecode]) or ecode
                     if rmess == "message":
                         message = rmessage[rmess]
-                        message_html+= "<br/>"+str(rmessage[rmess])
+                        #message_html+= "<br/>"+str(rmessage[rmess])
                     if rmess == "status":
-                        message_html+= "<br/>"+str(rmessage[rmess])
+                        estatus = rmessage[rmess]
+                        message_html+= "<br/>Estado: "+str(estatus)
                     if rmess == "cause":
-                        message_html+= "<br/>"+str(rmessage[rmess])
+                        ecause = rmessage[rmess]
+                        message_html+= "<br/>Causa: "+str(ecause)
                     
         
         return title, message, message_html
