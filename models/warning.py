@@ -21,7 +21,7 @@ class warning(models.TransientModel):
     title = fields.Char(string="Title", size=100, readonly=True)
     message = fields.Text(string="Message", readonly=True)
     message_html = fields.Html(string="Message HTML", readonly=True)
-    copy_error = fields.Text(string="Copy Error", readonly=True)
+    copy_error = fields.Text(string="Copy Error")
 
     _req_name = 'title'
 
