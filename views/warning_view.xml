@@ -12,7 +12,7 @@
                     <field name="copy_error"  nolabel="1" invisible="1"/>                    
                     <footer>
                         <button string="OK" class="oe_highlight" special="cancel" />
-                        <button string="Copy" class="oe_highlight" name="copy" type="object"></button>
+                        <!--button string="Copy" class="oe_highlight" name="copy" type="object"></button-->
                     </footer>
                 </form>
             </field>

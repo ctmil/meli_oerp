@@ -65,7 +65,8 @@ class warning(models.TransientModel):
                     _logger.info("rmess:"+str(rmess))
                     if rmess == "error":
                         ecode = rmessage[rmess]
-                        message_html = '<div role="alert" class="alert alert-'+alertstatus+'" title="Meli Message"><i class="fa fa-warning" role="img" aria-label="Meli Message"/> %s </div>' % ((ecode in meli_errors and meli_errors[ecode]) or ecode)
+                        ecodemess = (ecode in meli_errors and meli_errors[ecode]) or ecode
+                        message_html = '<div role="alert" class="alert alert-'+alertstatus+'" title="Meli Message"><i class="fa fa-warning" role="img" aria-label="Meli Message"/> %s </div>' % (ecodemess)
                     if rmess == "message":
                         message = rmessage[rmess]
                         #message_html+= "<br/>"+str(rmessage[rmess])
@@ -74,6 +75,15 @@ class warning(models.TransientModel):
                         #message_html+= "<br/>Estado: "+str(estatus)
                     if rmess == "cause":
                         ecause = rmessage[rmess]
+                        if len(ecause):
+                            for eca in ecause:
+                                ecatype = eca["type"]                                
+                                ecacode = eca|"code"]
+                                ecamess = eca["message"]
+                                ecacodemess = (ecacode in meli_errors and meli_errors[ecacode]) or ecamess
+                                message_html+= '<div role="alert" class="alert alert-'+ecatype+'" title="Meli Message"><i class="fa fa-warning" role="img" aria-label="Meli Message"/> %s </div>' % (ecacodemess)
+
+                                
                         #message_html+= "<br/>Causa: "+str(ecause)
                         
                 #message_html+= '<br/><button click="alert(%s)"><i class="fa fa-copy"></i>Copy Error</button>'
