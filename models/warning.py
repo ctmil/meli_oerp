@@ -72,7 +72,7 @@ class warning(models.TransientModel):
             'view_type': 'form',
             'view_mode': 'form',
             'view_id': self._get_view_id(),
-            'res_model': 'warning',
+            'res_model': 'meli.warning',
             'domain': [],
             #'context': context,
             'type': 'ir.actions.act_window',
