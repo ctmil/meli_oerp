@@ -68,7 +68,7 @@ class product_template(models.Model):
     def product_template_post(self):
         product_obj = self.env['product.template']
         company = self.env.user.company_id
-        warningobj = self.env['warning']
+        warningobj = self.env['meli.warning']
 
         meli = self.env['meli.util'].get_new_instance(company)
         if meli.need_login():
@@ -144,7 +144,7 @@ class product_template(models.Model):
     def product_template_update(self, meli_id=None):
         product_obj = self.env['product.template']
         company = self.env.user.company_id
-        warningobj = self.env['warning']
+        warningobj = self.env['meli.warning']
         ret = {}
 
         meli = self.env['meli.util'].get_new_instance(company)
@@ -291,7 +291,7 @@ class product_template(models.Model):
 
     def action_category_predictor(self):
         self.ensure_one()
-        warning_model = self.env['warning']
+        warning_model = self.env['meli.warning']
 
         meli_categ, rjson = self._get_meli_category_from_predictor()
         if meli_categ:
@@ -2189,7 +2189,7 @@ class product_product(models.Model):
     def product_get_meli_update( self ):
         #_logger.info("product_get_meli_update: " + str(self) )
         company = self.env.user.company_id
-        warningobj = self.env['warning']
+        warningobj = self.env['meli.warning']
         product_obj = self.env['product.product']
 
 
@@ -2482,7 +2482,7 @@ class product_product(models.Model):
         company = self.env.user.company_id
         if not config:
             config = company
-        warningobj = self.env['warning']
+        warningobj = self.env['meli.warning']
 
         if not meli:
             meli = self.env['meli.util'].get_new_instance(company)
@@ -3152,7 +3152,7 @@ class product_product(models.Model):
         context = context or self.env.context
         _logger.info("meli_oerp product_post_stock context: " + str(context))
         company = self.env.user.company_id
-        warningobj = self.env['warning']
+        warningobj = self.env['meli.warning']
 
         product_obj = self.env['product.product']
         product = self
@@ -3420,7 +3420,7 @@ class product_product(models.Model):
         context = context or self.env.context
         company = get_company_selected( self, context=context )
 
-        warningobj = self.env['warning']
+        warningobj = self.env['meli.warning']
 
         product_obj = self.env['product.product']
         product = self

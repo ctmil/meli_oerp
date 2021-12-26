@@ -60,7 +60,7 @@ class product_template_post(models.TransientModel):
         product_ids = ('active_ids' in context and context['active_ids']) or []
         product_obj = self.env['product.template']
 
-        warningobj = self.env['warning']
+        warningobj = self.env['meli.warning']
 
         meli = self.env['meli.util'].get_new_instance(company)
         if meli.need_login():
@@ -126,7 +126,7 @@ class product_template_update(models.TransientModel):
         product_ids = ('active_ids' in context and context['active_ids']) or []
         product_obj = self.env['product.template']
 
-        warningobj = self.env['warning']
+        warningobj = self.env['meli.warning']
 
         meli = self.env['meli.util'].get_new_instance(company)
         if meli.need_login():
@@ -176,7 +176,7 @@ class product_post(models.TransientModel):
         product_ids = ('active_ids' in context and context['active_ids']) or []
         product_obj = self.env['product.product']
 
-        warningobj = self.env['warning']
+        warningobj = self.env['meli.warning']
 
         meli = self.env['meli.util'].get_new_instance(company)
         if meli.need_login():
@@ -230,7 +230,7 @@ class product_product_update(models.TransientModel):
         product_ids = ('active_ids' in context and context['active_ids']) or []
         product_obj = self.env['product.product']
 
-        warningobj = self.env['warning']
+        warningobj = self.env['meli.warning']
 
         meli = self.env['meli.util'].get_new_instance(company)
         if meli.need_login():

@@ -7,7 +7,7 @@ WARNING_TYPES = [('warning','Warning'),('info','Information'),('error','Error')]
 
 
 class warning(models.TransientModel):
-    _name = 'warning'
+    _name = 'meli.warning'
     _description = 'warning'
     type = fields.Selection(WARNING_TYPES, string='Type', readonly=True);
     title = fields.Char(string="Title", size=100, readonly=True);
