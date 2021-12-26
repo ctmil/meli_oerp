@@ -3,7 +3,7 @@
    <data>
         <record id="warning_form" model="ir.ui.view">
             <field name="name">warning.form</field>
-            <field name="model">warning</field>
+            <field name="model">meli.warning</field>
             <field eval="20" name="priority"/>
             <field name="arch" type="xml">
                 <form string="Warning" version="7.0">
@@ -18,7 +18,7 @@
 
         <record model="ir.actions.act_window" id="action_warning">
             <field name="name">Warning</field>
-            <field name="res_model">warning</field>
+            <field name="res_model">meli.warning</field>
             <field name="view_mode">form</field>
             <field name="view_id" ref="warning_form" />
             <field name="target">new</field>
