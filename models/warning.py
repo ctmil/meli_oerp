@@ -116,7 +116,10 @@ class warning(models.TransientModel):
         return res
         
     def copy(self):
+        self.ensure_one()
         _logger.info("copy_error:"+str(self.copy_error))    
+        return {'type': 'ir.actions.act_window_close'}
+    
     
     def warning(self, title, message, message_html='', context=None):
         context = context or self.env.context
