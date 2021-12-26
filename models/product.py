@@ -2766,7 +2766,7 @@ class product_product(models.Model):
                     error_msg = 'MELI: mensaje de error:   ', resim
                     _logger.error(error_msg)
                     if (resim["status"]=="error"):
-                        return warningobj.info( title='MELI WARNING', message="Problemas cargando la imagen principal.", message_html=error_msg )
+                        return warningobj.info( title='MELI WARNING', message="Problemas cargando la imagen principal.", message_html=error_msg, context= { rjson: resim } )
                 else:
                     assign_img = True and product.meli_imagen_id
 
@@ -2839,7 +2839,7 @@ class product_product(models.Model):
             if 'status' in multi_images_ids:
                 _logger.error(multi_images_ids)
                 #return warningobj.info( title='MELI WARNING', message="Error publicando imagenes", message_html="Error: "+str(("error" in multi_images_ids and multi_images_ids["error"]) or "")+" Status:"+str(("status" in multi_images_ids and multi_images_ids["status"]) or "") )
-                return warningobj.info( title='MELI WARNING', message="Error publicando imagenes", message_html="Error: "+str(multi_images_ids))
+                return warningobj.info( title='MELI WARNING', message="Error publicando imagenes", message_html="Error: "+str(multi_images_ids), context= { rjson: multi_images_ids })
 
         #_product_post_set_body
         if product.meli_imagen_id:
@@ -2959,9 +2959,9 @@ class product_product(models.Model):
                             _logger.error(error_msg)
                             if (rjsonv["error"]=="forbidden"):
                                 url_login_meli = meli.auth_url()
-                                return warningobj.info( title='MELI WARNING', message="Debe iniciar sesión en MELI con el usuario correcto.", message_html="<br><br>"+error_msg)
+                                return warningobj.info( title='MELI WARNING', message="Debe iniciar sesión en MELI con el usuario correcto.", message_html="<br><br>"+error_msg, context={ rjson: rjsonv })
                             else:
-                                return warningobj.info( title='MELI WARNING', message="Completar todos los campos y revise el mensaje siguiente.", message_html="<br><br>"+error_msg )
+                                return warningobj.info( title='MELI WARNING', message="Completar todos los campos y revise el mensaje siguiente.", message_html="<br><br>"+error_msg, context={ rjson: rjsonv } )
 
 
                         if (rjsonv and "variations" in rjsonv):
@@ -3043,7 +3043,7 @@ class product_product(models.Model):
 
         #check fields
         if (product.meli_description==False or ( product.meli_description and len(product.meli_description)==0) ):
-            return warningobj.info(title='MELI WARNING', message="Debe completar el campo description en la plantilla de MercadoLibre o del producto (Descripción de Ventas)", message_html="<h3>Descripción faltante</h3>")
+            return warningobj.info(title='MELI WARNING', message="Debe completar el campo description en la plantilla de MercadoLibre o del producto (Descripción de Ventas)", message_html="<h3>Descripción faltante</h3>", context= { rjson: rjson })
 
         #free shipping
         # https://api.mercadolibre.com/users/{user_id}/shipping_modes?category_id={category_id}&item_price=550
@@ -3073,10 +3073,10 @@ class product_product(models.Model):
             #expired token
             if "message" in rjson and (rjson["error"]=="forbidden" or rjson["message"]=='invalid_token' or rjson["message"]=="expired_token"):
                 url_login_meli = meli.auth_url()
-                return warningobj.info( title='MELI WARNING', message="Debe iniciar sesión en MELI:  "+str(rjson["message"]), message_html="<br><br>"+error_msg)
+                return warningobj.info( title='MELI WARNING', message="Debe iniciar sesión en MELI:  "+str(rjson["message"]), message_html="<br><br>"+error_msg, context= { rjson: rjson })
             else:
                  #Any other errors
-                return warningobj.info( title='MELI WARNING', message="Recuerde completar todos los campos y revise el mensaje siguiente.", message_html="<br><br>"+error_msg )
+                return warningobj.info( title='MELI WARNING', message="Recuerde completar todos los campos y revise el mensaje siguiente.", message_html="<br><br>"+error_msg, context= { rjson: rjson } )
 
         #last modifications if response is OK
         if "id" in rjson:

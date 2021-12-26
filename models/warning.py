@@ -18,7 +18,40 @@ class warning(models.TransientModel):
 
     def _format_meli_error( self, title, message, message_html='', context=None ):
         context = context or self.env.context
+        
         #process error messages:
+        
+        #0 longitud del titulo
+        #1 Debe cargar una imagen de base en el producto, si chequeo el 'Dont use first image' debe al menos poner una imagen adicional en el producto.
+        #2 Problemas cargando la imagen principal
+        #3 Error publicando imagenes
+        #4 Debe iniciar sesión en MELI con el usuario correcto
+        #5 Completar todos los campos y revise el mensaje siguiente. ("<br><br>"+error_msg)
+        #6 Debe completar el campo description en la plantilla de MercadoLibre o del producto (Descripción de Ventas)
+        #7 Debe iniciar sesión en MELI
+        #8 Recuerde completar todos los campos y revise el mensaje siguiente
+        
+        rjson = context and "rjson" in context and context["rjson"]
+        if rjson:
+            _logger.info("_format_meli_error rjson:"+str(rjson))
+            
+            status = "status" in rjson and rjson["status"]
+            cause = "cause" in rjson and rjson["cause"]
+            message = "message" in rjson and rjson["message"]
+            error = "error" in rjson and rjson["error"]
+            
+            if status in ["error"]:
+                title = "ERROR MELI: " + title
+            
+            if status in ["warning"]:
+                title = "WARNING MELI: " + title
+                
+            if message:
+                _logger.info("_format_meli_error message:"+str(message))
+                _logger.info(message)
+                for mess in message:
+                    _logger.info("mess:"+str(mess))
+        
         return title, message, message_html
 
     def _get_view_id(self ):
