@@ -75,7 +75,7 @@ class warning(models.TransientModel):
                         ecause = rmessage[rmess]
                         #message_html+= "<br/>Causa: "+str(ecause)
                         
-                message_html+= "<br/><textarea>%s</textarea>" % (str(rjson))
+                message_html+= '<br/><button click="alert(%s)"><i class="fa fa-copy"></i>Copy Error</button>' % (str(rjson))
                     
         
         return title, message, message_html
