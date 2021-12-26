@@ -77,7 +77,7 @@ class warning(models.TransientModel):
                         #message_html+= "<br/>Causa: "+str(ecause)
                         
                 #message_html+= '<br/><button click="alert(%s)"><i class="fa fa-copy"></i>Copy Error</button>'
-                self.copy_error = str(rjson)
+            
                     
         
         return title, message, message_html
@@ -89,9 +89,16 @@ class warning(models.TransientModel):
         res = self.env['ir.model.data'].get_object_reference( WARNING_MODULE, 'warning_form')
         return res and res[1] or False
 
-    def _message(self, id):
+    def _message(self, id, context=None):
         #pdb.set_trace()
-        message = self.browse( id)
+        context = context or self.env.context
+
+        message = self.browse( id)        
+
+        rjson = context and "rjson" in context and context["rjson"]
+        if rjson:
+            message.copy_error = str(rjson)
+
         message_type = [t[1]for t in WARNING_TYPES if message.type == t[0]][0]
         #_logger.info( '%s: %s' % (_(message_type), _(message.title)) )
         res = {
@@ -112,21 +119,21 @@ class warning(models.TransientModel):
         context = context or self.env.context
         title, message, message_html = self._format_meli_error(title=title,message=message,message_html=message_html,context=context)
         id = self.create( {'title': title, 'message': message, 'message_html': message_html, 'type': 'warning'}).id
-        res = self._message( id )
+        res = self._message( id, context=context )
         return res
 
     def info(self, title, message, message_html='', context=None):
         context = context or self.env.context
         title, message, message_html = self._format_meli_error(title=title,message=message,message_html=message_html,context=context)
         id = self.create( {'title': title, 'message': message, 'message_html': message_html, 'type': 'info'}).id
-        res = self._message( id )
+        res = self._message( id,  context=context )
         return res
 
     def error(self, title, message, message_html='', context=None):
         context = context or self.env.context
         title, message, message_html = self._format_meli_error(title=title,message=message,message_html=message_html, context=context)
         id = self.create( {'title': title, 'message': message, 'message_html': message_html, 'type': 'error'}).id
-        res = self._message( id)
+        res = self._message( id,  context=context )
         return res
 
 warning()
