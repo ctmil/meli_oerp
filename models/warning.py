@@ -47,12 +47,15 @@ class warning(models.TransientModel):
             rcause = "cause" in rjson and rjson["cause"]
             rmessage = "message" in rjson and rjson["message"] and json.loads(rjson["message"])
             rerror = "error" in rjson and rjson["error"]
+            alertstatus = 'warning'
             
             if rstatus in ["error"]:
                 title = "ERROR MELI: " + title
+                alertstatus = 'error'
             
             if rstatus in ["warning"]:
                 title = "WARNING MELI: " + title
+                alertstatus = 'warning'
                 
             if rmessage:
                 _logger.info("_format_meli_error message:"+str(rmessage))
@@ -61,7 +64,7 @@ class warning(models.TransientModel):
                     _logger.info("rmess:"+str(rmess))
                     if rmess == "error":
                         ecode = rmessage[rmess]
-                        message_html = '<div role="alert" class="alert alert-warning" title="Meli Message"><i class="fa fa-comments" role="img" aria-label="Meli Message"/>%s</div>' % ((ecode in meli_errors and meli_errors[ecode]) or ecode)
+                        message_html = '<div role="alert" class="alert alert-'+alertstatus+'" title="Meli Message"><i class="fa fa-warning" role="img" aria-label="Meli Message"/> %s </div>' % ((ecode in meli_errors and meli_errors[ecode]) or ecode)
                     if rmess == "message":
                         message = rmessage[rmess]
                         #message_html+= "<br/>"+str(rmessage[rmess])
