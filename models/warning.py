@@ -4,7 +4,8 @@ import pdb
 #CHANGE WARNING_MODULE with your module name
 WARNING_MODULE = 'meli_oerp'
 WARNING_TYPES = [('warning','Warning'),('info','Information'),('error','Error')]
-
+import logging
+_logger = logging.getLogger(__name__)
 
 class warning(models.TransientModel):
     _name = 'meli.warning'
