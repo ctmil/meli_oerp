@@ -114,7 +114,10 @@ class warning(models.TransientModel):
             'res_id': message.id
         }
         return res
-
+        
+    def copy(self):
+        _logger.info("copy_error:"+str(self.copy_error))    
+    
     def warning(self, title, message, message_html='', context=None):
         context = context or self.env.context
         title, message, message_html = self._format_meli_error(title=title,message=message,message_html=message_html,context=context)
