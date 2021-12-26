@@ -38,22 +38,32 @@ class warning(models.TransientModel):
         if rjson:
             _logger.info("_format_meli_error rjson:"+str(rjson))
             
-            status = "status" in rjson and rjson["status"]
-            cause = "cause" in rjson and rjson["cause"]
-            message = "message" in rjson and rjson["message"] and json.loads(rjson["message"])
-            error = "error" in rjson and rjson["error"]
+            rstatus = "status" in rjson and rjson["status"]
+            rcause = "cause" in rjson and rjson["cause"]
+            rmessage = "message" in rjson and rjson["message"] and json.loads(rjson["message"])
+            rerror = "error" in rjson and rjson["error"]
             
-            if status in ["error"]:
+            if rstatus in ["error"]:
                 title = "ERROR MELI: " + title
             
-            if status in ["warning"]:
+            if rstatus in ["warning"]:
                 title = "WARNING MELI: " + title
                 
-            if message:
-                _logger.info("_format_meli_error message:"+str(message))
-                _logger.info(message)
-                for mess in message:
-                    _logger.info("mess:"+str(mess))
+            if rmessage:
+                _logger.info("_format_meli_error message:"+str(rmessage))
+                _logger.info(rmessage)
+                for rmess in rmessage:
+                    _logger.info("rmess:"+str(rmess))
+                    if rmess == "error":
+                        message_html = rmessage[rmess]
+                    if rmess == "status":
+                        message_html+= "<br/>"+str(rmessage[rmess])
+                    if rmess == "cause":
+                        message_html+= "<br/>"+str(rmessage[rmess])
+                    if rmess == "message":
+                        message = rmessage[rmess]
+                        message_html+= "<br/>"+str(rmessage[rmess])
+                    
         
         return title, message, message_html
 
