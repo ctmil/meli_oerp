@@ -61,7 +61,7 @@ class warning(models.TransientModel):
                     _logger.info("rmess:"+str(rmess))
                     if rmess == "error":
                         ecode = rmessage[rmess]
-                        message_html = '<span role="alert" class="mr4" title="Meli Message"><i class="fa fa-comments" role="img" aria-label="Meli Message"/>%s</span>' % ((ecode in meli_errors and meli_errors[ecode]) or ecode)
+                        message_html = '<div role="alert" class="alert alert-warning" title="Meli Message"><i class="fa fa-comments" role="img" aria-label="Meli Message"/>%s</div>' % ((ecode in meli_errors and meli_errors[ecode]) or ecode)
                     if rmess == "message":
                         message = rmessage[rmess]
                         #message_html+= "<br/>"+str(rmessage[rmess])
