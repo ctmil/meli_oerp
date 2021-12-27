@@ -62,11 +62,15 @@ class warning(models.TransientModel):
             
             if rstatus in ["error"]:
                 title = "ERROR MELI: " + title
-                alertstatus = 'error'
+                alertstatus = 'error'                
             
             if rstatus in ["warning"]:
                 title = "WARNING MELI: " + title
                 alertstatus = 'warning'
+                
+            alertstatus = (alertstatus in ["error"] and "danger" ) or alertstatus
+            alertstatusico = (rstatus in ["error"] and "times-circle" ) or rstatus
+
                 
             if rmessage and type(rmessage)==dict:
                 _logger.info("_format_meli_error message:"+str(rmessage))
@@ -76,7 +80,8 @@ class warning(models.TransientModel):
                     if rmess == "error":
                         ecode = rmessage[rmess]
                         ecodemess = (ecode in meli_errors and meli_errors[ecode]) or ecode
-                        message_html = '<div role="alert" class="alert alert-'+alertstatus+'" title="Meli Message"><i class="fa fa-warning" role="img" aria-label="Meli Message"/> %s </div>' % (ecodemess)
+                        ecatypeicon = (ecatype in ["error"] and "times-circle" ) or ecatype
+                        message_html = '<div role="alert" class="alert alert-'+alertstatus+'" title="Meli Message"><i class="fa fa-'+alertstatusico+" role="img" aria-label="Meli Message"/> %s </div>' % (ecodemess)
                     if rmess == "message":
                         message = rmessage[rmess]
                         #message_html+= "<br/>"+str(rmessage[rmess])
@@ -99,6 +104,7 @@ class warning(models.TransientModel):
             elif type(rmessage)==str:
                 ecode = rmessage
                 ecodemess = (ecode in meli_errors and meli_errors[ecode]) or ecode
+
                 message_html = '<div role="alert" class="alert alert-'+alertstatus+'" title="Meli Message"><i class="fa fa-warning" role="img" aria-label="Meli Message"/> %s </div>' % (ecodemess)
                 
                 
