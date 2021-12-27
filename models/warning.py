@@ -12,6 +12,8 @@ _logger = logging.getLogger(__name__)
 meli_errors = {
     "item.category_id.invalid": "Categoría de MercadoLibre inválida, seleccione una categoría en la plantilla de MercadoLibre",
     #"item.category_id.invalid": "Categoría de MercadoLibre inválida, seleccione una categoría en la plantilla de MercadoLibre",
+    "item.attributes.missing_required": "Un atributo faltante es requerido.",
+    "item.price.invalid": "El precio no es válido, requiere un mínimo.",
 }
 
 class warning(models.TransientModel):
@@ -81,7 +83,9 @@ class warning(models.TransientModel):
                                 ecacode = eca["code"]
                                 ecamess = eca["message"]
                                 ecaalertstatus = (ecatype in ["error"] and "danger" ) or ecatype
-                                ecacodemess = (ecacode in meli_errors and meli_errors[ecacode]) or ecamess
+                                ecacodemess = (ecacode in meli_errors and meli_errors[ecacode]) or ecacode
+                                ecacodemess = "<strong>"+ecacodemess+"</strong><br/>"
+                                ecacodemess+= ecamess
                                 message_html+= '<div role="alert" class="alert alert-'+ecaalertstatus+'" title="Meli Message, Code: '+ecacode+'"><i class="fa fa-'+ecatype+'" role="img" aria-label="Meli Message"/> %s </div>' % (ecacodemess)
 
                                 
