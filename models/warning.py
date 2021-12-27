@@ -96,7 +96,12 @@ class warning(models.TransientModel):
                                 ecacodemess = "<strong>"+ecacodemess+"</strong><br/>"
                                 ecacodemess+= ecamess
                                 message_html+= '<div role="alert" class="alert alert-'+ecaalertstatus+'" title="Meli Message, Code: '+ecacode+'"><i class="fa fa-'+ecatypeicon+'" role="img" aria-label="Meli Message"/> %s </div>' % (ecacodemess)
-
+            elif type(rmessage)==str:
+                ecode = rmessage
+                ecodemess = (ecode in meli_errors and meli_errors[ecode]) or ecode
+                message_html = '<div role="alert" class="alert alert-'+alertstatus+'" title="Meli Message"><i class="fa fa-warning" role="img" aria-label="Meli Message"/> %s </div>' % (ecodemess)
+                
+                
                                 
                         #message_html+= "<br/>Causa: "+str(ecause)
                         
