@@ -51,7 +51,12 @@ class warning(models.TransientModel):
             
             rstatus = "status" in rjson and rjson["status"]
             rcause = "cause" in rjson and rjson["cause"]
-            rmessage = "message" in rjson and rjson["message"] and json.loads(rjson["message"])
+            rmessage = "message" in rjson and rjson["message"]
+            try:
+                rmessage = rmessage and json.loads(rmessage)
+            except:
+                pass;
+                
             rerror = "error" in rjson and rjson["error"]
             alertstatus = 'warning'
             
@@ -63,7 +68,7 @@ class warning(models.TransientModel):
                 title = "WARNING MELI: " + title
                 alertstatus = 'warning'
                 
-            if rmessage:
+            if rmessage and type(rmessage)==dict:
                 _logger.info("_format_meli_error message:"+str(rmessage))
                 _logger.info(rmessage)
                 for rmess in rmessage:
