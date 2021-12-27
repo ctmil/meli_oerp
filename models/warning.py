@@ -10,6 +10,7 @@ import logging
 _logger = logging.getLogger(__name__)
 
 meli_errors = {
+    "validation_error": "Hemos encontrado errores de validación",
     "item.category_id.invalid": "Categoría de MercadoLibre inválida, seleccione una categoría en la plantilla de MercadoLibre",
     #"item.category_id.invalid": "Categoría de MercadoLibre inválida, seleccione una categoría en la plantilla de MercadoLibre",
     "item.attributes.missing_required": "Un atributo faltante es requerido.",
