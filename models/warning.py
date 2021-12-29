@@ -18,7 +18,8 @@ meli_errors = {
     "item.description.ignored": "La descripción fue ignorada",
     "shipping.free_shipping.cost_exceeded": "El costo del envío supera al precio de venta.",
     "no image to upload": "Falta cargar una imagen en el producto",
-    "item.image.required": "Imagen requerida para publicar el producto"
+    "item.image.required": "Imagen requerida para publicar el producto",
+    "body.invalid_field_types": "Tipo de valor de propiedad de campo inválido (revisar términos de venta, garantia, etc...)"
 }
 
 class warning(models.TransientModel):
@@ -82,7 +83,6 @@ class warning(models.TransientModel):
                     if rmess == "error":
                         ecode = rmessage[rmess]
                         ecodemess = (ecode in meli_errors and meli_errors[ecode]) or ecode
-                        ecatypeicon = (ecatype in ["error"] and "times-circle" ) or ecatype
                         message_html = '<div role="alert" class="alert alert-'+alertstatus+'" title="Meli Message"><i class="fa fa-'+alertstatusico+'" role="img" aria-label="Meli Message"/> %s </div>' % (ecodemess)
                     if rmess == "message":
                         message = rmessage[rmess]
