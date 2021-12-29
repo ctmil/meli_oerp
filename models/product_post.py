@@ -40,14 +40,14 @@ class product_template_post(models.TransientModel):
     _name = "mercadolibre.product.template.post"
     _description = "Wizard de Product Template Posting en MercadoLibre"
 
-    force_meli_pub = fields.Boolean(string="Forzar publicación",help="Forzar publicación de todos los seleccionados",default=False)
-    force_meli_active = fields.Boolean(string="Forzar activación",help="Forzar activaciónde todos los seleccionados",default=False)
+    force_meli_pub = fields.Boolean(string="Marcar para publicar",help="Marcar producto y sus variantes para publicación en ML, y de todos los seleccionados",default=False)
+    force_meli_active = fields.Boolean(string="Activación",help="Activa en ML las publicaciones de todos los productos seleccionados",default=False)
     type = fields.Selection([('post','Alta'),('put','Editado'),('delete','Borrado')], string='Tipo de operación' )
     posting_date = fields.Date('Fecha del posting')
     #'company_id': fields.many2one('res.company',string='Company'),
     #'mercadolibre_state': fields.related( 'res.company', 'mercadolibre_state', string="State" )
-    post_stock = fields.Boolean(string="Actualizar Stock",help="No actualiza el producto, solo el stock",default=False)
-    post_price = fields.Boolean(string="Acutalizar Precio",help="No actualiza el producto, solo el precio",default=False)
+    post_stock = fields.Boolean(string="Actualizar Stock",help="No actualiza el producto completo, solo el stock",default=False)
+    post_price = fields.Boolean(string="Acutalizar Precio",help="No actualiza el producto completo, solo el precio",default=False)
 
 
     def pretty_json( self, data ):
@@ -79,14 +79,18 @@ class product_template_post(models.TransientModel):
         for product_id in product_ids:
             product = product_obj.browse(product_id)
             if (product):
+
                 if (self.force_meli_pub and not product.meli_pub):
                     product.meli_pub = True
+
                 if (product.meli_pub):
 
                     if self.post_stock:
                         res = product.with_context(custom_context).product_template_post_stock(meli=meli)
+
                     if self.post_price:
                         res = product.with_context(custom_context).product_template_post_price(meli=meli)
+
                     if not self.post_stock and not self.post_price:
                         res = product.with_context(custom_context).product_template_post()
 
