@@ -718,7 +718,7 @@ class res_company(models.Model):
 
                         #we have a message
                         if 'res_id' in res:
-                            warning = self.env["warning"].browse(res["res_id"])
+                            warning = self.env["meli.warning"].browse(res["res_id"])
                             if (warning):
                                 ret_messages.append( { 'obj': obj, 'message': str(warning.message)  } )
 

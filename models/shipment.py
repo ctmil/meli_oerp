@@ -65,7 +65,7 @@ class mercadolibre_shipment_print(models.TransientModel):
             config = company
         shipment_ids = ('active_ids' in context and context['active_ids']) or []
         shipment_obj = self.env['mercadolibre.shipment']
-        warningobj = self.env['warning']
+        warningobj = self.env['meli.warning']
 
         if not meli:
             meli = self.env['meli.util'].get_new_instance(company)
@@ -87,7 +87,7 @@ class mercadolibre_shipment_print(models.TransientModel):
         #product_obj = self.env['product.template']
         picking_obj = self.env['stock.picking']
         shipment_obj = self.env['mercadolibre.shipment']
-        warningobj = self.env['warning']
+        warningobj = self.env['meli.warning']
 
         if not meli:
             meli = self.env['meli.util'].get_new_instance(company)
@@ -126,7 +126,7 @@ class mercadolibre_shipment_print(models.TransientModel):
         sep = ""
         full_url_link_pdf = {}
         shipment_obj = self.env['mercadolibre.shipment']
-        warningobj = self.env['warning']
+        warningobj = self.env['meli.warning']
 
         for shipid in shipment_ids:
             shipment = shipment_obj.browse(shipid)
@@ -178,7 +178,7 @@ class mercadolibre_shipment_update(models.TransientModel):
         shipment_ids = ('active_ids' in context and context['active_ids']) or []
         #product_obj = self.env['product.template']
         shipment_obj = self.env['mercadolibre.shipment']
-        warningobj = self.env['warning']
+        warningobj = self.env['meli.warning']
 
         _logger.info("shipment_update")
         _logger.info(shipment_ids)

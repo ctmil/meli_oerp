@@ -68,7 +68,7 @@ class product_template(models.Model):
     def product_template_post(self):
         product_obj = self.env['product.template']
         company = self.env.user.company_id
-        warningobj = self.env['warning']
+        warningobj = self.env['meli.warning']
 
         meli = self.env['meli.util'].get_new_instance(company)
         if meli.need_login():
@@ -144,7 +144,7 @@ class product_template(models.Model):
     def product_template_update(self, meli_id=None):
         product_obj = self.env['product.template']
         company = self.env.user.company_id
-        warningobj = self.env['warning']
+        warningobj = self.env['meli.warning']
         ret = {}
 
         meli = self.env['meli.util'].get_new_instance(company)
@@ -291,7 +291,7 @@ class product_template(models.Model):
 
     def action_category_predictor(self):
         self.ensure_one()
-        warning_model = self.env['warning']
+        warning_model = self.env['meli.warning']
 
         meli_categ, rjson = self._get_meli_category_from_predictor()
         if meli_categ:
@@ -2189,7 +2189,7 @@ class product_product(models.Model):
     def product_get_meli_update( self ):
         #_logger.info("product_get_meli_update: " + str(self) )
         company = self.env.user.company_id
-        warningobj = self.env['warning']
+        warningobj = self.env['meli.warning']
         product_obj = self.env['product.product']
 
 
@@ -2482,7 +2482,7 @@ class product_product(models.Model):
         company = self.env.user.company_id
         if not config:
             config = company
-        warningobj = self.env['warning']
+        warningobj = self.env['meli.warning']
 
         if not meli:
             meli = self.env['meli.util'].get_new_instance(company)
@@ -2619,7 +2619,10 @@ class product_product(models.Model):
             product.meli_warranty=product_tmpl.meli_warranty
 
         if (product_tmpl.meli_brand==False or len(product_tmpl.meli_brand)==0):
-            product_tmpl.meli_brand = ("product_brand_id" in product_tmpl._fields and product_tmpl.product_brand_id and product_tmpl.product_brand_id.name )
+            product_tmpl.meli_brand = ("product_brand_id" in product_tmpl._fields and product_tmpl.product_brand_id and product_tmpl.product_brand_id.id and product_tmpl.product_brand_id.name )
+        if product_tmpl.meli_brand == "wk.product.brand()" or product.meli_brand == "wk.product.brand()":
+            product_tmpl.meli_brand = ""
+            product.meli_brand = ""
         if product.meli_brand==False or len(product.meli_brand)==0:
             product.meli_brand = product_tmpl.meli_brand
         if product.meli_model==False or len(product.meli_model)==0:
@@ -2763,7 +2766,7 @@ class product_product(models.Model):
                     error_msg = 'MELI: mensaje de error:   ', resim
                     _logger.error(error_msg)
                     if (resim["status"]=="error"):
-                        return warningobj.info( title='MELI WARNING', message="Problemas cargando la imagen principal.", message_html=error_msg )
+                        return warningobj.info( title='MELI WARNING', message="Problemas cargando la imagen principal.", message_html=error_msg, context= { "rjson": resim } )
                 else:
                     assign_img = True and product.meli_imagen_id
 
@@ -2790,14 +2793,14 @@ class product_product(models.Model):
                 "pictures": [],
                 "video_id": product.meli_video or '',
             }
-            
-            if product.meli_max_purchase_quantity!=False:
+
+            if product.meli_max_purchase_quantity:
                 body["sale_terms"].append({
                     "id": "PURCHASE_MAX_QUANTITY",
                     "value_name": str(product.meli_max_purchase_quantity)
                 })
 
-            if product.meli_manufacturing_time!=False:
+            if product.meli_manufacturing_time:
                 body["sale_terms"].append({
                     "id": "MANUFACTURING_TIME",
                     "value_name": str(product.meli_manufacturing_time)
@@ -2836,7 +2839,7 @@ class product_product(models.Model):
             if 'status' in multi_images_ids:
                 _logger.error(multi_images_ids)
                 #return warningobj.info( title='MELI WARNING', message="Error publicando imagenes", message_html="Error: "+str(("error" in multi_images_ids and multi_images_ids["error"]) or "")+" Status:"+str(("status" in multi_images_ids and multi_images_ids["status"]) or "") )
-                return warningobj.info( title='MELI WARNING', message="Error publicando imagenes", message_html="Error: "+str(multi_images_ids))
+                return warningobj.info( title='MELI WARNING', message="Error publicando imagenes", message_html="Error: "+str(multi_images_ids), context= { "rjson": multi_images_ids })
 
         #_product_post_set_body
         if product.meli_imagen_id:
@@ -2956,9 +2959,9 @@ class product_product(models.Model):
                             _logger.error(error_msg)
                             if (rjsonv["error"]=="forbidden"):
                                 url_login_meli = meli.auth_url()
-                                return warningobj.info( title='MELI WARNING', message="Debe iniciar sesión en MELI con el usuario correcto.", message_html="<br><br>"+error_msg)
+                                return warningobj.info( title='MELI WARNING', message="Debe iniciar sesión en MELI con el usuario correcto.", message_html="<br><br>"+error_msg, context={ "rjson": rjsonv })
                             else:
-                                return warningobj.info( title='MELI WARNING', message="Completar todos los campos y revise el mensaje siguiente.", message_html="<br><br>"+error_msg )
+                                return warningobj.info( title='MELI WARNING', message="Completar todos los campos y revise el mensaje siguiente.", message_html="<br><br>"+error_msg, context={ "rjson": rjsonv } )
 
 
                         if (rjsonv and "variations" in rjsonv):
@@ -2974,8 +2977,10 @@ class product_product(models.Model):
                         #_logger.debug(resdes.json())
                         del body['price']
                         del body['available_quantity']
+                        del body["pictures"]
+                        _logger.info("update post 1:"+str(body))
                         resbody = product.meli_id and meli.put("/items/"+product.meli_id, body, {'access_token':meli.access_token})
-                        #_logger.debug(resbody.json())
+                        _logger.info(str(resbody and resbody.json()))
                          #responsevar = meli.put("/items/"+product.meli_id, {"initial_quantity": product.meli_available_quantity, "available_quantity": product.meli_available_quantity }, {'access_token':meli.access_token})
                          #_logger.debug(responsevar)
                          #_logger.debug(responsevar.json())
@@ -3030,7 +3035,10 @@ class product_product(models.Model):
                 #_logger.debug(resdes.json())
                 del body['price']
                 del body['available_quantity']
+                del body["pictures"]
+                _logger.info("update post 2:"+str(body))
                 resbody = product.meli_id and meli.put("/items/"+product.meli_id, body, {'access_token':meli.access_token})
+                _logger.info(str(resbody and resbody.json()))
                 return {}
 
         #check fields
@@ -3065,10 +3073,10 @@ class product_product(models.Model):
             #expired token
             if "message" in rjson and (rjson["error"]=="forbidden" or rjson["message"]=='invalid_token' or rjson["message"]=="expired_token"):
                 url_login_meli = meli.auth_url()
-                return warningobj.info( title='MELI WARNING', message="Debe iniciar sesión en MELI:  "+str(rjson["message"]), message_html="<br><br>"+error_msg)
+                return warningobj.info( title='MELI WARNING', message="Debe iniciar sesión en MELI:  "+str(rjson["message"]), message_html="<br><br>"+error_msg, context= { "rjson": rjson })
             else:
                  #Any other errors
-                return warningobj.info( title='MELI WARNING', message="Recuerde completar todos los campos y revise el mensaje siguiente.", message_html="<br><br>"+error_msg )
+                return warningobj.info( title='MELI WARNING', message="Recuerde completar todos los campos y revise el mensaje siguiente.", message_html="<br><br>"+error_msg, context= { "rjson": rjson } )
 
         #last modifications if response is OK
         if "id" in rjson:
@@ -3144,7 +3152,7 @@ class product_product(models.Model):
         context = context or self.env.context
         _logger.info("meli_oerp product_post_stock context: " + str(context))
         company = self.env.user.company_id
-        warningobj = self.env['warning']
+        warningobj = self.env['meli.warning']
 
         product_obj = self.env['product.product']
         product = self
@@ -3396,7 +3404,7 @@ class product_product(models.Model):
         context = context or self.env.context
         company = get_company_selected( self, context=context )
 
-        warningobj = self.env['warning']
+        warningobj = self.env['meli.warning']
 
         product_obj = self.env['product.product']
         product = self
