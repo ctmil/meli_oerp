@@ -40,14 +40,14 @@ class product_template_post(models.TransientModel):
     _name = "mercadolibre.product.template.post"
     _description = "Wizard de Product Template Posting en MercadoLibre"
 
-    force_meli_pub = fields.Boolean(string="Forzar publicación",help="Forzar publicación de todos los seleccionados",default=False)
-    force_meli_active = fields.Boolean(string="Forzar activación",help="Forzar activaciónde todos los seleccionados",default=False)
+    force_meli_pub = fields.Boolean(string="Marcar para publicar",help="Marcar producto y sus variantes para publicación en ML, y de todos los seleccionados",default=False)
+    force_meli_active = fields.Boolean(string="Activación",help="Activa en ML las publicaciones de todos los productos seleccionados",default=False)
     type = fields.Selection([('post','Alta'),('put','Editado'),('delete','Borrado')], string='Tipo de operación' )
     posting_date = fields.Date('Fecha del posting')
     #'company_id': fields.many2one('res.company',string='Company'),
     #'mercadolibre_state': fields.related( 'res.company', 'mercadolibre_state', string="State" )
-    post_stock = fields.Boolean(string="Actualizar Stock",help="No actualiza el producto, solo el stock",default=False)
-    post_price = fields.Boolean(string="Acutalizar Precio",help="No actualiza el producto, solo el precio",default=False)
+    post_stock = fields.Boolean(string="Actualizar Stock",help="No actualiza el producto completo, solo el stock",default=False)
+    post_price = fields.Boolean(string="Acutalizar Precio",help="No actualiza el producto completo, solo el precio",default=False)
 
 
     def pretty_json( self, data ):

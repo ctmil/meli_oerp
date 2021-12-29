@@ -17,7 +17,9 @@ meli_errors = {
     "item.price.invalid": "El precio no es válido, requiere un mínimo.",
     "item.description.ignored": "La descripción fue ignorada",
     "shipping.free_shipping.cost_exceeded": "El costo del envío supera al precio de venta.",
-    "no image to upload": "Falta cargar una imagen en el producto"
+    "no image to upload": "Falta cargar una imagen en el producto",
+    "item.image.required": "Imagen requerida para publicar el producto",
+    "body.invalid_field_types": "Tipo de valor de propiedad de campo inválido (revisar términos de venta, garantia, etc...)"
 }
 
 class warning(models.TransientModel):
@@ -69,8 +71,8 @@ class warning(models.TransientModel):
                 title = "WARNING MELI: " + title
                 alertstatus = 'warning'
                 
-            alertstatus = (alertstatus in ["error"] and "danger" ) or alertstatus
-            alertstatusico = (rstatus in ["error"] and "times-circle" ) or rstatus
+            alertstatus = (alertstatus in ["error"] and "danger" ) or  ( str(alertstatus) in ["400"] and "danger" ) or alertstatus
+            alertstatusico = (rstatus in ["error"] and "times-circle" ) or ( str(rstatus) in ["400"] and "times-circle" ) or rstatus
 
                 
             if rmessage and type(rmessage)==dict:
@@ -81,8 +83,7 @@ class warning(models.TransientModel):
                     if rmess == "error":
                         ecode = rmessage[rmess]
                         ecodemess = (ecode in meli_errors and meli_errors[ecode]) or ecode
-                        ecatypeicon = (ecatype in ["error"] and "times-circle" ) or ecatype
-                        message_html = '<div role="alert" class="alert alert-'+alertstatus+'" title="Meli Message"><i class="fa fa-'+alertstatusico+'" role="img" aria-label="Meli Message"/> %s </div>' % (ecodemess)
+                        message_html = '<div role="alert" class="alert alert-'+str(alertstatus)+'" title="Meli Message"><i class="fa fa-'+str(alertstatusico)+'" role="img" aria-label="Meli Message"/> %s </div>' % (ecodemess)
                     if rmess == "message":
                         message = rmessage[rmess]
                         #message_html+= "<br/>"+str(rmessage[rmess])
@@ -106,7 +107,7 @@ class warning(models.TransientModel):
                 ecode = rmessage
                 ecodemess = (ecode in meli_errors and meli_errors[ecode]) or ecode
 
-                message_html = '<div role="alert" class="alert alert-'+alertstatus+'" title="Meli Message"><i class="fa fa-warning" role="img" aria-label="Meli Message"/> %s </div>' % (ecodemess)
+                message_html = '<div role="alert" class="alert alert-'+str(alertstatus)+'" title="Meli Message"><i class="fa fa-warning" role="img" aria-label="Meli Message"/> %s </div>' % (ecodemess)
                 
                 
                                 
