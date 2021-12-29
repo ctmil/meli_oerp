@@ -44,7 +44,7 @@ class MeliCampaignRecord(models.Model):
 
     def action_publish_to_meli(self):
         self.ensure_one()
-        warning_model = self.env['warning']
+        warning_model = self.env['meli.warning']
         messages = self.line_ids.filtered(lambda x: x.state == 'draft').action_publish_to_meli()
         state = 'published'
         #si algun producto se quedo esperando aprobacion,
@@ -65,7 +65,7 @@ class MeliCampaignRecord(models.Model):
 
     def action_cancel_publish(self):
         self.ensure_one()
-        warning_model = self.env['warning']
+        warning_model = self.env['meli.warning']
         messages = self.line_ids.filtered(lambda x: x.state != 'rejected').action_unpublish_to_meli()
         if messages:
             return warning_model.info(title='Cancelar Oferta', message=u"\n".join(messages))
@@ -87,7 +87,7 @@ class MeliCampaignRecord(models.Model):
 
 
     def action_update_prices_to_meli(self):
-        warning_model = self.env['warning']
+        warning_model = self.env['meli.warning']
         #los nuevos productos publicarlos
         messages = self.mapped('line_ids').filtered(lambda x: x.state == 'draft').action_publish_to_meli()
         #actualizar todas las lineas que esten activas
