@@ -2017,7 +2017,7 @@ class product_product(models.Model):
         first_image_to_publish = get_first_image_to_publish( product )
 
         if first_image_to_publish==None or first_image_to_publish==False:
-            return { 'status': 'error', 'message': 'no image to upload' }
+            return { 'error': 'item.image.required', 'status': 'error', 'message': 'no image to upload' }
         _logger.info("product_meli_upload_image: ")
         imagebin = base64.b64decode(first_image_to_publish)
         imageb64 = first_image_to_publish
