@@ -58,7 +58,7 @@ class mercadolibre_category_import(models.TransientModel):
         mlcat_ids = ('active_ids' in context and context['active_ids']) or []
         mlcat_obj = self.env['mercadolibre.category']
 
-        warningobj = self.env['warning']
+        warningobj = self.env['meli.warning']
 
         meli = self.env['meli.util'].get_new_instance(company)
         if meli.need_login():
@@ -210,7 +210,7 @@ class mercadolibre_category(models.Model):
     def _get_category_url( self ):
         company = self.env.user.company_id
 
-        warningobj = self.env['warning']
+        warningobj = self.env['meli.warning']
         category_obj = self.env['mercadolibre.category']
         att_obj = self.env['mercadolibre.category.attribute']
         prod_att_obj = self.env['product.attribute']
@@ -241,7 +241,7 @@ class mercadolibre_category(models.Model):
 
         company = self.env.user.company_id
 
-        warningobj = self.env['warning']
+        warningobj = self.env['meli.warning']
         category_obj = self.env['mercadolibre.category']
         att_obj = self.env['mercadolibre.category.attribute']
         prod_att_obj = self.env['product.attribute']
@@ -360,7 +360,7 @@ class mercadolibre_category(models.Model):
         _logger.info("Import Category "+str(category_id))
         company = self.env.user.company_id
 
-        warningobj = self.env['warning']
+        warningobj = self.env['meli.warning']
         category_obj = self.env['mercadolibre.category']
         www_cats = self.env['product.public.category']
 
@@ -443,7 +443,7 @@ class mercadolibre_category(models.Model):
 
         company = self.env.user.company_id
 
-        warningobj = self.env['warning']
+        warningobj = self.env['meli.warning']
         category_obj = self.env['mercadolibre.category']
 
         meli = meli or self.env['meli.util'].get_new_instance(company)
