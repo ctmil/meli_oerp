@@ -17,6 +17,7 @@ meli_errors = {
     "item.price.invalid": "El precio no es válido, requiere un mínimo.",
     "item.description.ignored": "La descripción fue ignorada",
     "shipping.free_shipping.cost_exceeded": "El costo del envío supera al precio de venta.",
+    "no image to upload": "Falta cargar una imagen en el producto"
 }
 
 class warning(models.TransientModel):
