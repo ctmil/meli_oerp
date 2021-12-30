@@ -1439,8 +1439,7 @@ class product_product(models.Model):
             rjson['price'] = 0.0
 
         try:
-            rjson['warranty'] = rjson['warranty'].replace('Garantía del vendedor: ','')
-            rjson['warranty'] = rjson['warranty'].replace('Garantía de fábrica: ','')
+            rjson['warranty'] = rjson['warranty']
         except:
             pass;
 
@@ -2457,6 +2456,36 @@ class product_product(models.Model):
             updated_attributes.append( { "id": "GTIN", "value_name": variant.barcode } )
 
         return updated_attributes
+
+    def _update_sale_terms( self, meli, productjson=None ):
+        #check and fix warranty:
+        # default is Garantia del Vendedor
+        # but can recognized Garantía de fǽbrica: or Sin garantía
+        product = self
+        sale_terms = []
+
+        #WARRANTY
+        #st_warranty_type = meli.get_sale_terms( sale_term_id="WARRANTY_TYPE")
+        #st_warranty_time = meli.get_sale_terms( sale_term_id="WARRANTY_TIME")
+
+        if product.meli_warranty:
+
+            is_fabrica = "Garantía de fábrica" in product.meli_warranty
+            is_vendedor = "Garantía de vendedor" in product.meli_warranty
+            is_sin_garantia = "Sin garantía" in product.meli_warranty
+
+            if is_vendedor:
+               sale_terms.append({ "id": "WARRANTY_TYPE", "value_name": "Garantía de vendedor" })
+               sale_terms.append({ "id": "WARRANTY_TIME", "value_name": product.meli_warranty.replace("Garantía de vendedor: ", "" ) })
+
+            if is_fabrica:
+               sale_terms.append({ "id": "WARRANTY_TYPE", "value_name": "Garantía de fábrica" })
+               sale_terms.append({ "id": "WARRANTY_TIME", "value_name": product.meli_warranty.replace("Garantía de fábrica: ", "" ) })
+
+            if is_sin_garantia:
+               sale_terms.append({ "id": "WARRANTY_TYPE", "value_name": "Sin garantía" })
+
+        return sale_terms
 
     def product_post(self):
         res = []
