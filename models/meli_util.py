@@ -234,6 +234,42 @@ class MeliApi( meli.RestClientApi ):
                 self.refresh_token = ''
         return response_info
 
+
+    def get_sale_terms( self, category_id=None, sale_term_id=None, productjson=None ):
+        #https://api.mercadolibre.com/categories/MLA1642/sale_terms#options
+        meli_api = self
+
+        sale_terms_by_id = {}
+
+        if meli_api and category_id:
+
+            url = "/categories/"+str(category_id)+"/sale_terms"
+            res = meli_api.get(url)
+
+            if res and res.rjson:
+
+                for rj in res.rjson:
+                    stid = "id" in rj and rj["id"]
+                    if stid:
+                        sale_terms_by_id[ stid ] = rj
+
+        if sale_term_id:
+
+            #return sale term from product json
+            if productjson and "sale_terms" in productjson:
+                for st in productjson["sale_terms"]:
+                    if "id" in st and st["id"]==sale_term_id:
+                        return st
+                return False
+
+            #return from category
+            if sale_terms_by_id and sale_term_id in sale_terms_by_id:
+
+                return sale_terms_by_id[ sale_terms_by_id ]
+
+        return sale_terms_by_id
+
+
 class MeliUtil(models.AbstractModel):
 
     _name = 'meli.util'
@@ -427,3 +463,33 @@ class MeliUtil(models.AbstractModel):
             date_convert = from_zone.localize(date_convert)
         date_convert = date_convert.astimezone(to_zone)
         return date_convert
+
+
+
+
+"""    {
+"id": "WARRANTY_TYPE",
+"name": "Tipo de garantía",
+"tags": {
+},
+"hierarchy": "SALE_TERMS",
+"relevance": 2,
+"value_type": "list",
+"values": [
+{
+"id": "2230280",
+"name": "Garantía del vendedor"
+},
+{
+"id": "2230279",
+"name": "Garantía de fábrica"
+},
+{
+"id": "6150835",
+"name": "Sin garantía"
+}
+],
+"attribute_group_id": "OTHERS",
+"attribute_group_name": "Otros"
+}
+"""
