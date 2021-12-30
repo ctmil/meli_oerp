@@ -79,18 +79,14 @@ class product_template_post(models.TransientModel):
         for product_id in product_ids:
             product = product_obj.browse(product_id)
             if (product):
-
                 if (self.force_meli_pub and not product.meli_pub):
                     product.meli_pub = True
-
                 if (product.meli_pub):
 
                     if self.post_stock:
                         res = product.with_context(custom_context).product_template_post_stock(meli=meli)
-
                     if self.post_price:
                         res = product.with_context(custom_context).product_template_post_price(meli=meli)
-
                     if not self.post_stock and not self.post_price:
                         res = product.with_context(custom_context).product_template_post()
 
