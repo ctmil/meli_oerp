@@ -308,7 +308,7 @@ class mercadolibre_shipment(models.Model):
         saleorderline_obj = self.env['sale.order.line']
 
         for shipment in self:
-            _logger.info("_update_sale_order_shipping_info")
+            #_logger.info("_update_sale_order_shipping_info")
             sorder = shipment.sale_order
             if (not sorder or not order):
                 continue;
@@ -476,7 +476,7 @@ class mercadolibre_shipment(models.Model):
                                                 ],
                                             limit=1)
 
-        _logger.info("partner_delivery_id > Receiver: "+str(Receiver) )
+        #_logger.info("partner_delivery_id > Receiver: "+str(Receiver) )
 
         pdelivery_fields = {
             "type": "delivery",
@@ -571,7 +571,7 @@ class mercadolibre_shipment(models.Model):
                 _logger.error( ship_json["error"] )
                 _logger.error( ship_json["message"] )
             else:
-                _logger.info("Saving shipment fields")
+                #_logger.info("Saving shipment fields")
                 rescosts = meli.get("/shipments/"+ str(ship_id)+str('/costs'),  {'access_token':meli.access_token})
                 if rescosts:
                     rcosts = rescosts.json()
@@ -668,7 +668,7 @@ class mercadolibre_shipment(models.Model):
                         coma = ""
                         packed_order_ids =""
                         items_json_sorted = sorted(items_json, key=lambda x: x["order_id"], reverse=False)
-                        _logger.info("items_json_sorted:"+str(items_json_sorted))
+                        #_logger.info("items_json_sorted:"+str(items_json_sorted))
                         for item in items_json_sorted:
                             #check mercadolibre_orders for full pack
                             if "order_id" in item:
@@ -691,13 +691,13 @@ class mercadolibre_shipment(models.Model):
                 shipment = shipment_obj.search([('shipping_id','=', ship_id)])
                 #_logger.info(ships)
                 if (len(shipment)==0):
-                    _logger.info("Importing shipment: " + str(ship_id))
+                    #_logger.info("Importing shipment: " + str(ship_id))
                     #_logger.info(str(ship_fields))
                     shipment = shipment_obj.create((ship_fields))
                     if (shipment):
                         _logger.info("Created shipment ok!")
                 else:
-                    _logger.info("Updating shipment: " + str(ship_id))
+                    #_logger.info("Updating shipment: " + str(ship_id))
                     shipment.write((ship_fields))
 
                 if shipment and items_json:
@@ -706,12 +706,12 @@ class mercadolibre_shipment(models.Model):
                         shipment.update_item(item)
 
                 try:
-                    _logger.info("ships.pdf_filename:")
-                    _logger.info(shipment.pdf_filename)
+                    #_logger.info("ships.pdf_filename:")
+                    #_logger.info(shipment.pdf_filename)
                     if (1==1 and shipment.pdf_filename):
-                        _logger.info("We have a pdf file")
+                        #_logger.info("We have a pdf file")
                         if (shipment.pdfimage_filename==False):
-                            _logger.info("Try create a pdf image file")
+                            #_logger.info("Try create a pdf image file")
                             data = base64.b64decode( shipment.pdf_file )
                             images = convert_from_bytes(data, dpi=300,fmt='jpg')
                             for image in images:
@@ -805,7 +805,7 @@ class mercadolibre_shipment(models.Model):
                             'meli_date_closed': ml_datetime(all_orders[0]["date_closed"]) or all_orders[0]["date_created"],
                         })
                         #TODO: agregar un campo para diferencia cada delivery res partner al shipment y orden asociado, crear un binding usando values diferentes... y listo
-                        _logger.info("ship_json[receiver_address]:"+str(ship_json["receiver_address"]) )
+                        #_logger.info("ship_json[receiver_address]:"+str(ship_json["receiver_address"]) )
                         partner_shipping_id = self.partner_delivery_id( partner_id=partner_id, Receiver=ship_json["receiver_address"])
 
                         if partner_shipping_id:
@@ -822,7 +822,7 @@ class mercadolibre_shipment(models.Model):
 
                         if (len(sorder_pack)):
                             sorder_pack = sorder_pack[0]
-                            _logger.info("Update sale.order pack")
+                            #_logger.info("Update sale.order pack")
                             #_logger.info(all_orders[0])
                             #_logger.info(meli_order_fields)
                             sorder_pack.meli_fix_team( meli=meli, config=config )

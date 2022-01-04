@@ -137,7 +137,7 @@ class sale_order(models.Model):
     meli_shipment_logistic_type = fields.Char(string="Logistic Type",index=True)
 
     def action_confirm(self):
-        _logger.info("meli order action_confirm: " + str(self.mapped("name")) )
+        #_logger.info("meli order action_confirm: " + str(self.mapped("name")) )
         res = super(sale_order,self).action_confirm()
         try:
             for order in self:
@@ -238,7 +238,7 @@ class sale_order(models.Model):
 
     def confirm_ml( self, meli=None, config=None ):
         try:
-            _logger.info("meli_oerp confirm_ml")
+            #_logger.info("meli_oerp confirm_ml")
             company = (config and 'company_id' in config._fields and config.company_id) or self.env.user.company_id
             config = config or company
             res = {}
@@ -270,13 +270,13 @@ class sale_order(models.Model):
                     _logger.info("paid_delivered ok! delivering")
                     if self.picking_ids:
                         for spick in self.picking_ids:
-                            _logger.info(str(spick)+":"+str(spick.state))
+                            #_logger.info(str(spick)+":"+str(spick.state))
 
                             try:
                                 if (spick.state in ['confirmed','waiting','draft']):
-                                    _logger.info("action_assign")
+                                    #_logger.info("action_assign")
                                     res = spick.action_assign()
-                                    _logger.info("action_assign res:"+str(res)+" state:"+str(spick.state))
+                                    #_logger.info("action_assign res:"+str(res)+" state:"+str(spick.state))
 
                                 if (spick.move_line_ids):
                                     _logger.info(spick.move_line_ids)
@@ -285,7 +285,7 @@ class sale_order(models.Model):
                                             _logger.info(pop)
                                             if (pop.qty_done==0.0 and pop.product_qty>=0.0):
                                                 pop.qty_done = pop.product_qty
-                                        _logger.info("do_new_transfer")
+                                        #_logger.info("do_new_transfer")
 
                                         if (spick.state in ['assigned']):
                                             spick.button_validate()
@@ -305,7 +305,7 @@ class sale_order(models.Model):
             _logger.error(e, exc_info=True)
             return { 'error': str(e) }
             pass
-        _logger.info("meli_oerp confirm_ml ended.")
+        #_logger.info("meli_oerp confirm_ml ended.")
         return res
 
     def meli_fix_team( self, meli=None, config=None ):
@@ -314,7 +314,7 @@ class sale_order(models.Model):
         seller_team = (config and config.mercadolibre_seller_team) or None
         seller_user = (config and config.mercadolibre_seller_user) or None
 
-        _logger.info("meli_fix_team: company: "+str(company.name)+" seller_team:"+str(seller_team and seller_team.name))
+        #_logger.info("meli_fix_team: company: "+str(company.name)+" seller_team:"+str(seller_team and seller_team.name))
 
         so = self
         if not so:
@@ -323,7 +323,7 @@ class sale_order(models.Model):
         team_id = so.sudo().team_id
         user_id = so.sudo().user_id
 
-        _logger.info("meli_fix_team: so.team_id: "+str(team_id and team_id.name))
+        #_logger.info("meli_fix_team: so.team_id: "+str(team_id and team_id.name))
 
         if (team_id and team_id.company_id.id != company.id) or not team_id:
             if (seller_team and seller_team.company_id.id == company.id):
@@ -406,7 +406,7 @@ class mercadolibre_orders(models.Model):
     def state(self, country_id,  Receiver={}, Buyer={} ):
         full_state = ''
         state_id = False
-        _logger.info("Receiver:"+str(Receiver)+" country_id:"+str(country_id))
+        #_logger.info("Receiver:"+str(Receiver)+" country_id:"+str(country_id))
         if (Receiver and 'state' in Receiver):
             if ('id' in Receiver['state']):
                 state = self.env['res.country.state'].search([('code','ilike',Receiver['state']['id']),('country_id','=',country_id)])
@@ -501,7 +501,7 @@ class mercadolibre_orders(models.Model):
             response = meli.get("/orders/"+str(order_id)+"/billing_info", {'access_token':meli.access_token})
             if response:
                 biljson = response.json()
-                _logger.info("get_billing_info: "+str(biljson))
+                #_logger.info("get_billing_info: "+str(biljson))
                 _billing_info = (biljson and 'billing_info' in biljson and biljson['billing_info']) or {}
                 if "additional_info" in _billing_info:
                     adds = _billing_info["additional_info"]
@@ -713,10 +713,10 @@ class mercadolibre_orders(models.Model):
         if (oid):
             order = order_obj.browse(oid )
             if (order):
-                _logger.info(order)
+                #_logger.info(order)
                 sorder_s = saleorder_obj.search([ ('meli_order_id','=',order.order_id) ] )
                 if (sorder_s):
-                    _logger.info(sorder_s)
+                    #_logger.info(sorder_s)
                     if (len(sorder_s)>1):
                         sorder = sorder_s[0]
                     else:
@@ -748,7 +748,7 @@ class mercadolibre_orders(models.Model):
         partner_shipping_id = False
 
         if not 'buyer' in order_json or not 'name' in order_json['buyer'] or not 'first_name' in order_json['buyer']:
-            _logger.info("Buyer not present, fetch order")
+            #_logger.info("Buyer not present, fetch order")
             response = meli.get("/orders/"+str(order_json['id']), {'access_token':meli.access_token})
             order_json = response.json()
             #_logger.info(order_json)
@@ -790,7 +790,7 @@ class mercadolibre_orders(models.Model):
                             shpjson = shipres.json()
                             if "receiver_address" in shpjson:
                                 Receiver = shpjson["receiver_address"]
-            _logger.info("Buyer:"+str(Buyer) )
+            #_logger.info("Buyer:"+str(Buyer) )
             #_logger.info(order_json)
             meli_buyer_fields = {
                 'name': self.buyer_full_name(Buyer),
@@ -1128,9 +1128,9 @@ class mercadolibre_orders(models.Model):
                     _logger.error(e, exc_info=True)
                     pass;
             elif (partner_id and "meli_update_forbidden" in partner_id._fields and not partner_id.meli_update_forbidden):
-                _logger.info("Updating partner")
+                #_logger.info("Updating partner")
                 #TODO: _logger.info("Updating partner (do not update principal, always create new one)")
-                _logger.info(meli_buyer_fields)
+                #_logger.info(meli_buyer_fields)
                 #complete country at most:
                 partner_update = {}
 
@@ -1256,7 +1256,7 @@ class mercadolibre_orders(models.Model):
 
         #create or update order
         if (order and order.id):
-            _logger.info("Updating order: %s" % (order.id))
+            #_logger.info("Updating order: %s" % (order.id))
             order.write( order_fields )
         else:
             _logger.info("Adding new order: " )
@@ -1264,7 +1264,7 @@ class mercadolibre_orders(models.Model):
             order = order_obj.create( (order_fields))
 
         if (sorder and sorder.id):
-            _logger.info("Updating sale.order: %s" % (sorder.id))
+            #_logger.info("Updating sale.order: %s" % (sorder.id))
             #_logger.info(meli_order_fields)
             sorder.meli_fix_team( meli=meli, config=config )
             sorder.write( meli_order_fields )
@@ -1278,11 +1278,11 @@ class mercadolibre_orders(models.Model):
                 meli_order_fields["team_id"] = config.mercadolibre_seller_team.id
 
             if 'pack_order' in order_json["tags"]:
-                _logger.info("Pack Order, dont create sale.order, leave it to mercadolibre.shipment")
+                #_logger.info("Pack Order, dont create sale.order, leave it to mercadolibre.shipment")
                 if order and not order.sale_order:
                     order.message_post(body=str("Pack Order, dont create sale.order, leave it to mercadolibre.shipment"),message_type=order_message_type)
             else:
-                _logger.info("Adding new sale.order: " )
+                #_logger.info("Adding new sale.order: " )
                 sorder = saleorder_obj.create((meli_order_fields))
                 sorder.meli_fix_team( meli=meli, config=config )
 
@@ -1569,7 +1569,7 @@ class mercadolibre_orders(models.Model):
         #    return_id = self.env['mercadolibre.orders'].update
 
         if config.mercadolibre_cron_get_orders_shipment:
-            _logger.info("Updating order: Shipment")
+            #_logger.info("Updating order: Shipment")
             if (order and order.shipping_id):
                 shipment = shipment_obj.fetch( order, meli=meli, config=config )
                 if (shipment):
@@ -1581,7 +1581,7 @@ class mercadolibre_orders(models.Model):
                     else:
                         sorder = shipment.sale_order
                         if sorder:
-                            _logger.info("fixing meli_date_created")
+                            #_logger.info("fixing meli_date_created")
                             sorder.meli_date_created = order.date_created
                             sorder.meli_date_closed = order.date_closed
 
