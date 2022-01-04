@@ -2735,16 +2735,7 @@ class product_product(models.Model):
             "condition": product.meli_condition  or '',
             "available_quantity": product.meli_available_quantity  or '0',
             #"warranty": product.meli_warranty or '',
-            "sale_terms":[
-                 {
-                    "id":"WARRANTY_TYPE",
-                    "value_name":"Garantía del vendedor"
-                 },
-                 {
-                    "id":"WARRANTY_TIME",
-                    "value_name": product.meli_warranty
-                 }
-              ],
+            "sale_terms": product._update_sale_terms( meli=meli, productjson=productjson ),
             #"pictures": [ { 'source': product.meli_imagen_logo} ] ,
             "video_id": product.meli_video  or '',
         }
@@ -2800,16 +2791,7 @@ class product_product(models.Model):
                 #"condition": product.meli_condition or '',
                 "available_quantity": product.meli_available_quantity or '0',
                 #"warranty": product.meli_warranty or '',
-                "sale_terms":[
-                     {
-                        "id":"WARRANTY_TYPE",
-                        "value_name":"Garantía del vendedor"
-                     },
-                     {
-                        "id":"WARRANTY_TIME",
-                        "value_name": product.meli_warranty
-                     }
-                  ],
+                "sale_terms": product._update_sale_terms( meli=meli, productjson=productjson ),
 
                 "pictures": [],
                 "video_id": product.meli_video or '',
