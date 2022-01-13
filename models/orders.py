@@ -235,6 +235,51 @@ class sale_order(models.Model):
 
         return 0
 
+    def meli_confirm_order( self, meli=None, config=None ):
+        res = {}
+        if ( (self.state=="draft" or self.state=="sent") and self.meli_status=="paid"):
+            _logger.info("paid_confirm ok! confirming sale")
+            self.action_confirm()
+        return res
+
+    def meli_create_invoice( self, meli=None, config=None):
+        res = {}
+        if so.state in ['sale','done']:
+            _logger.info("paid_confirm with invoice ok! create invoice")
+            self.action_invoice_create()
+        return res
+
+    def meli_deliver( self, meli=None, config=None ):
+        res = {}
+        if (self.state=="sale" or self.state=="done"):
+            #spick = stock_picking.search([('order_id','=',self.id)])
+            _logger.info("paid_delivered ok! delivering")
+            if self.picking_ids:
+                for spick in self.picking_ids:
+                    #_logger.info(str(spick)+":"+str(spick.state))
+
+                    try:
+                        if (spick.state in ['confirmed','waiting','draft']):
+                            #_logger.info("action_assign")
+                            res = spick.action_assign()
+                            #_logger.info("action_assign res:"+str(res)+" state:"+str(spick.state))
+
+                        if (spick.move_line_ids):
+                            _logger.info(spick.move_line_ids)
+                            if (len(spick.move_line_ids)>=1):
+                                for pop in spick.move_line_ids:
+                                    _logger.info(pop)
+                                    if (pop.qty_done==0.0 and pop.product_qty>=0.0):
+                                        pop.qty_done = pop.product_qty
+                                #_logger.info("do_new_transfer")
+
+                                if (spick.state in ['assigned']):
+                                    spick.button_validate()
+                    except Exception as e:
+                        _logger.error("stock pick button_validate error"+str(e))
+                        res = { 'error': str(e) }
+                        pass;
+        return res
 
     def confirm_ml( self, meli=None, config=None ):
         try:
@@ -255,51 +300,17 @@ class sale_order(models.Model):
 
             if (config.mercadolibre_order_confirmation and "paid_confirm" in config.mercadolibre_order_confirmation):
 
-                if ( (self.state=="draft" or self.state=="sent") and self.meli_status=="paid"):
-                    _logger.info("paid_confirm ok! confirming sale")
-                    self.action_confirm()
+                self.meli_confirm_order( meli=meli, config=config )
 
             if (config.mercadolibre_order_confirmation and "paid_delivered" in config.mercadolibre_order_confirmation):
 
-                if ( (self.state=="draft" or self.state=="sent") and self.meli_status=="paid"):
-                    _logger.info("paid_delivered ok! confirming sale")
-                    self.action_confirm()
+                self.meli_confirm_order( meli=meli, config=config )
 
-                if (self.state=="sale" or self.state=="done"):
-                    #spick = stock_picking.search([('order_id','=',self.id)])
-                    _logger.info("paid_delivered ok! delivering")
-                    if self.picking_ids:
-                        for spick in self.picking_ids:
-                            #_logger.info(str(spick)+":"+str(spick.state))
-
-                            try:
-                                if (spick.state in ['confirmed','waiting','draft']):
-                                    #_logger.info("action_assign")
-                                    res = spick.action_assign()
-                                    #_logger.info("action_assign res:"+str(res)+" state:"+str(spick.state))
-
-                                if (spick.move_line_ids):
-                                    _logger.info(spick.move_line_ids)
-                                    if (len(spick.move_line_ids)>=1):
-                                        for pop in spick.move_line_ids:
-                                            _logger.info(pop)
-                                            if (pop.qty_done==0.0 and pop.product_qty>=0.0):
-                                                pop.qty_done = pop.product_qty
-                                        #_logger.info("do_new_transfer")
-
-                                        if (spick.state in ['assigned']):
-                                            spick.button_validate()
-                            except Exception as e:
-                                _logger.error("stock pick button_validate error"+str(e))
-                                res = { 'error': str(e) }
-                                pass;
+                res = self.meli_deliver( meli=meli, config=config )
 
 
             if (config.mercadolibre_order_confirmation=="paid_confirm_with_invoice" or config.mercadolibre_order_confirmation=="paid_delivered_with_invoice"):
-                if ( (self.state=="draft" or self.state=="sent") and self.meli_status=="paid"):
-                    _logger.info("paid_confirm with invoice ok! confirming sale and create invoice")
-                    self.action_confirm()
-                    self.action_invoice_create()
+                self.meli_create_invoice( meli=meli, config=config )
         except Exception as e:
             _logger.info("Confirm Order Exception")
             _logger.error(e, exc_info=True)
