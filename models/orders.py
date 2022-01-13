@@ -249,7 +249,7 @@ class sale_order(models.Model):
             self.action_invoice_create()
         return res
 
-    def meli_deliver( self, meli=None, config=None ):
+    def meli_deliver( self, meli=None, config=None, data=None ):
         res = {}
         if (self.state=="sale" or self.state=="done"):
             #spick = stock_picking.search([('order_id','=',self.id)])

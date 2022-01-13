@@ -172,7 +172,7 @@ class res_company(models.Model):
         _logger.info('company cron_meli_process() '+str(self))
 
         company = self.env.user.company_id
-        warningobj = self.pool.get('warning')
+        warningobj = self.pool.get('meli.warning')
 
         apistate = self.env['meli.util'].get_new_instance(company)
         if apistate.needlogin_state:
