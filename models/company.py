@@ -584,9 +584,9 @@ class res_company(models.Model):
                                     seller_sku = att["values"][0]["name"]
                                     break;
                         if (seller_sku):
-                            posting_id = self.env['product.product'].search([('default_code','=',seller_sku)])
+                            posting_id = self.env['product.product'].search([('default_code','=ilike',seller_sku)])
                             if (not posting_id or len(posting_id)==0):
-                                posting_id = self.env['product.template'].search([('default_code','=',seller_sku)])
+                                posting_id = self.env['product.template'].search([('default_code','=ilike',seller_sku)])
                                 if posting_id:
                                     _logger.info("Founded template with default code, dont know how to handle it. seller_sku: "+str(seller_sku)+" template: "+str(posting_id))
                             else:

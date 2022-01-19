@@ -1352,13 +1352,13 @@ class mercadolibre_orders(models.Model):
                     #1ST attempt "seller_sku" or "seller_custom_field"
                     seller_sku = ('seller_sku' in Item['item'] and Item['item']['seller_sku']) or ('seller_custom_field' in Item['item'] and Item['item']['seller_custom_field'])
                     if (seller_sku):
-                        product_related = product_obj.search([('default_code','=',seller_sku)])
+                        product_related = product_obj.search([('default_code','=ilike',seller_sku)])
 
                     #2ND attempt only old "seller_custom_field"
                     if (not product_related and 'seller_custom_field' in Item['item']):
                         seller_sku = ('seller_custom_field' in Item['item'] and Item['item']['seller_custom_field'])
                     if (seller_sku):
-                        product_related = product_obj.search([('default_code','=',seller_sku)])
+                        product_related = product_obj.search([('default_code','=ilike',seller_sku)])
 
                     #TODO: 3RD attempt using barcode
                     #if (not product_related):
