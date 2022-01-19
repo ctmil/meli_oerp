@@ -161,7 +161,6 @@ class res_company(models.Model):
         for company in self:
             #company = self or self.env.user.company_id
             _logger.info('company get_meli_state() '+str(company and company.name))
-            #warningobj = self.pool.get('warning')
             meli = self.env['meli.util'].get_new_instance(company)
             if meli:
                 company.mercadolibre_state = meli.needlogin_state
@@ -172,7 +171,7 @@ class res_company(models.Model):
         _logger.info('company cron_meli_process() '+str(self))
 
         company = self.env.user.company_id
-        warningobj = self.pool.get('warning')
+        warningobj = self.pool.get('meli.warning')
 
         apistate = self.env['meli.util'].get_new_instance(company)
         if apistate.needlogin_state:
@@ -193,7 +192,7 @@ class res_company(models.Model):
     def cron_meli_process_post_stock( self, meli=None ):
 
         company = self.env.user.company_id
-        warningobj = self.pool.get('warning')
+        warningobj = self.pool.get('meli.warning')
 
         if not meli:
             meli = self.env['meli.util'].get_new_instance(company)
@@ -207,7 +206,7 @@ class res_company(models.Model):
     def cron_meli_process_post_price( self, meli=None ):
 
         company = self.env.user.company_id
-        warningobj = self.pool.get('warning')
+        warningobj = self.pool.get('meli.warning')
 
         if not meli:
             meli = self.env['meli.util'].get_new_instance(company)
@@ -221,7 +220,7 @@ class res_company(models.Model):
     def cron_meli_process_post_products( self, meli=None ):
 
         company = self.env.user.company_id
-        warningobj = self.pool.get('warning')
+        warningobj = self.pool.get('meli.warning')
 
         if not meli:
             meli = self.env['meli.util'].get_new_instance(company)
@@ -235,7 +234,7 @@ class res_company(models.Model):
     def cron_meli_process_get_products( self, meli=None ):
 
         company = self.env.user.company_id
-        warningobj = self.pool.get('warning')
+        warningobj = self.pool.get('meli.warning')
 
         if not meli:
             meli = self.env['meli.util'].get_new_instance(company)
@@ -254,7 +253,7 @@ class res_company(models.Model):
         _logger.info('company cron_meli_orders() ')
 
         company = self.env.user.company_id
-        warningobj = self.pool.get('warning')
+        warningobj = self.pool.get('meli.warning')
 
         apistate = self.env['meli.util'].get_new_instance(company)
         if apistate.needlogin_state:
@@ -268,7 +267,7 @@ class res_company(models.Model):
         _logger.info('company cron_meli_questions() ')
 
         company = self.env.user.company_id
-        warningobj = self.pool.get('warning')
+        warningobj = self.pool.get('meli.warning')
 
         apistate = self.env['meli.util'].get_new_instance(company)
         if apistate.needlogin_state:
