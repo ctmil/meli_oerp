@@ -22,10 +22,19 @@ meli_errors = {
     "body.invalid_field_types": "Tipo de valor de propiedad de campo inválido (revisar términos de venta, garantia, etc...)"
 }
 
+class warning1(models.TransientModel):
+    _name = 'warning'
+    _description = 'warning'
+    type = fields.Selection(WARNING_TYPES, string='Type', readonly=True)
+    title = fields.Char(string="Title", size=100, readonly=True)
+    message = fields.Text(string="Message", readonly=True)
+    message_html = fields.Html(string="Message HTML", readonly=True)
+warning1()
+
 class warning(models.TransientModel):
     _name = 'meli.warning'
     _description = 'warning'
-    type = fields.Selection(WARNING_TYPES, string='Type', ondelete={'info': 'set default'}, readonly=True)
+    type = fields.Selection(WARNING_TYPES, string='Type', readonly=True)
     title = fields.Char(string="Title", size=100, readonly=True)
     message = fields.Text(string="Message", readonly=True)
     message_html = fields.Html(string="Message HTML", readonly=True)
