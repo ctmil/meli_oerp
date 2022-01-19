@@ -843,11 +843,11 @@ class mercadolibre_shipment(models.Model):
                             sorder_pack.meli_fee_amount = 0.0
                             for mOrder in all_orders:
                                 #Each Order one product with one price and one quantity
-                                product_related_obj = mOrder.order_items[0].product_id or mOrder.order_items[0].posting_id.product_id
+                                product_related_obj = mOrder.order_items and (mOrder.order_items[0].product_id or mOrder.order_items[0].posting_id.product_id)
                                 if not (product_related_obj):
-                                    _logger.error("Error adding order line: product not found in database: " + str(mOrder.order_items[0]["order_item_title"]) )
+                                    _logger.error("Error adding order line: product not found in database: " + str(mOrder.order_items and mOrder.order_items[0]["order_item_title"]) )
                                     continue;
-                                unit_price = mOrder.order_items[0]["unit_price"]
+                                unit_price = mOrder.order_items and mOrder.order_items[0]["unit_price"]
                                 saleorderline_item_fields = {
                                     'company_id': company.id,
                                     'order_id': shipment.sale_order.id,
