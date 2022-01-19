@@ -25,7 +25,7 @@
                   <field name="meli_status_brief" string="MercadoLibre Status Brief"/>
                   <field name="meli_status" string="MercadoLibre Status"/>
                   <separator/>
-                  <filter string="MercadoLibre Quotations" name="sale_orders_ml" domain="[('meli_order_id','!=',False)]" />                  
+                  <filter string="MercadoLibre Quotations" name="sale_orders_ml" domain="[('meli_order_id','!=',False)]" />
                   <filter string='MercadoLibre Status' domain="[]"
         								context="{'group_by' : 'meli_status'}" name="meli_status_filter"/>
                   <filter string='MercadoLibre Status Brief' domain="[]"
@@ -46,6 +46,7 @@
                     <field name="seller_id"/>
                     <field name="name"/>
                     <field name="order_id"/>
+                    <field name="pack_id"/>
                     <field name="shipping_id" invisible="0"/>
                     <field name="status"/>
                     <field name="shipment_status" invisible="0"/>
@@ -243,6 +244,7 @@
             <field name="arch" type="xml">
     	         <search string="Search MercadoLibre Orders Information">
                  <field name="order_id" string="Order ID"/>
+                 <field name="pack_id" string="Pack ID"/>
                  <field name="status" string="Status"/>
                  <field name="buyer" string="Comprador"/>
                  <field name="company_id" string="Compania"/>
