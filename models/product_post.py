@@ -256,3 +256,66 @@ class product_product_update(models.TransientModel):
         return res
 
 product_product_update()
+
+
+
+class product_template_import(models.TransientModel):
+    
+    _name = "mercadolibre.product.template.import"
+    _description = "Wizard de Product Template Import en MercadoLibre"
+
+    post_state = fields.Selection([('all','Todos'),('active','Activos'),('paused','Pausados'),('closed','Cerrados')], default='all', string='Filtrar publicaciones por estado',help='Estado de productos a importar (todos, activos o pausados)' )
+    meli_id = fields.Char(string="MercadoLibre Id's (MLMXXXXXXX, MLMYYYYYYY, MLM.... ) a importar.")
+    force_create_variants = fields.Boolean( default=True, string="Forzar creacion/cambios de variantes", help="Forzar creacion de variantes (Modifica el producto de Odoo / Rompe Stock)", default=False )
+    force_dont_create = fields.Boolean( default=False, string="Solo asociar por SKU, no crear productos" )
+
+    def pretty_json( self, data ):
+        return json.dumps( data, sort_keys=False, indent=4 )
+
+    def product_template_import(self, context=None):
+
+        context = context or self.env.context
+        company = self.env.user.company_id
+        #product_ids = ('active_ids' in context and context['active_ids']) or []
+        #product_obj = self.env['product.template']
+        
+        _logger.info("product_template_import context:"+str(context))
+        
+        warningobj = self.env['meli.warning']
+
+        meli = self.env['meli.util'].get_new_instance(company)
+        if meli.need_login():
+            return meli.redirect_login()
+            
+        custom_context = {
+            "post_state": self.post_state,
+            "meli_id": self.meli_id,
+            "force_create_variants": self.force_create_variants,
+            "force_dont_create": self.force_dont_create,    
+        }
+        
+        _logger.info("product_template_import custom_context:"+str(custom_context))
+        
+        meli_id = False
+        if self.meli_id:
+            meli_id = self.meli_id
+        
+        res = {}
+        
+        res = company.product_meli_get_products(context=custom_context)
+        #for product_id in product_ids:
+        #    product = product_obj.browse(product_id)
+        #    if (product):
+        #        if self.force_meli_pub and not product.meli_pub:
+        #            product.meli_pub = True
+        #            for variant in product.product_variant_ids:
+        #                variant.meli_pub = True
+        #        if (product.meli_pub):
+        #                res = product.product_template_update(meli_id=meli_id)
+
+        #    if res and 'name' in res:
+        #        return res
+
+        return res
+
+product_template_import()

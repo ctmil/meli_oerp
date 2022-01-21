@@ -85,6 +85,28 @@
                 </form>
               </field>
         </record>
+        
+        <record id="view_product_template_import" model="ir.ui.view">
+              <field name="name">Import (massive) from Mercado Libre</field>
+              <field name="model">mercadolibre.product.template.import</field>
+              <field name="type">form</field>
+              <field name="arch" type="xml">
+                <form string="Import from MercadoLibre">
+                    <group string="Opciones de importación" col="2">
+                      <group>
+                        <field name="post_state"/>
+                        <field name="meli_id"/>
+                        <field name="force_create_variants"/>
+                        <field name="force_dont_create"/>
+                      </group>
+                    </group>
+                    <footer>
+                        <button name="product_template_import" string="Import from MELI"  type="object" class="oe_highlight"  />
+                        <button string="Cancel" class="oe_link" special="cancel" />
+                    </footer>
+                </form>
+              </field>
+        </record>
 
         <record id="action_product_template_post" model="ir.actions.act_window">
             <field name="name">MELI Post</field>
@@ -134,6 +156,25 @@
         name="Publicar/Actualizar en ML"
         src_model="product.product"
         res_model="mercadolibre.product.post"
+        view_type="form" view_mode="form"
+        key2="client_action_multi" target="new"/>
+        
+        
+        
+    <record id="action_product_template_import" model="ir.actions.act_window">
+        <field name="name">MELI Import</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="src_model">res.company</field>
+        <field name="res_model">mercadolibre.product.template.import</field>
+        <field name="view_type">form</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <act_window id="action_product_template_import"
+        name="Importar masivamente desde ML"
+        src_model="res.company"
+        res_model="mercadolibre.product.template.import"
         view_type="form" view_mode="form"
         key2="client_action_multi" target="new"/>
 <!--
