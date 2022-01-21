@@ -470,11 +470,11 @@ class res_company(models.Model):
         post_state_filter = {}
         if post_state:
             if post_state=='active':
-                post_state_filter = { 'status', 'active' }
+                post_state_filter = { 'status': 'active' }
             if post_state=='paused':
-                post_state_filter = { 'status', 'paused' }
+                post_state_filter = { 'status': 'paused' }
             if post_state=='closed':
-                post_state_filter = { 'status', 'closed' }
+                post_state_filter = { 'status': 'closed' }
         if meli_id:
             post_state_filter.update( { 'meli_id': meli_id } )
 
