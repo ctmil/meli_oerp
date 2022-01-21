@@ -579,6 +579,7 @@ class res_company(models.Model):
         iitem = 0
         icommit = 0
         micom = 5
+        duplicates = []
         if (results):
             self._cr.autocommit(False)
             try:
@@ -652,6 +653,7 @@ class res_company(models.Model):
                                 #posting_id.product_tmpl_id.meli_pub = True
                                 _logger.info( "Item already in database: " + str(posting_id[0]) )
                             else:
+                                duplicates.append(str(posting_id.mapped('name'))+str(posting_id.mapped('default_code')))
                                 _logger.error( "Item already in database but duplicated: " + str(posting_id.mapped('name')) + " skus:" + str(posting_id.mapped('default_code')) )
                         else:
                             _logger.info( "Item not in database, no sync founded for meli_id: "+str(item_id) + " seller_sku: " +str(seller_sku) )
@@ -681,9 +683,13 @@ class res_company(models.Model):
                                 _logger.info( "product couldnt be created")
                         else:
                             _logger.info( "product error: " + str(rjson3) )
+
+                _logger.info("Duplicates"+str(duplicates))
+
             except Exception as e:
                 _logger.info("product_meli_get_products Exception!")
                 _logger.info(e, exc_info=True)
+                _logger.info("Duplicates"+str(duplicates))
                 self._cr.rollback()
         return {}
 
