@@ -609,22 +609,28 @@ class res_company(models.Model):
                             if (not posting_id or len(posting_id)==0):
                                 posting_id = self.env['product.template'].search([('default_code','=ilike',seller_sku)])
                                 if posting_id:
-                                    _logger.info("Founded template with default code, dont know how to handle it. seller_sku: "+str(seller_sku)+" template: "+str(posting_id))
+                                    if (len(posting_id)==1):
+                                        _logger.info("Founded template with default code, dont know how to handle it. seller_sku: "+str(seller_sku)+" template: "+str(posting_id.mapped('name')))
+                                    if (len(posting_id)>1):
+                                        _logger.error("Founded templates more than 2 default code: seller_sku: "+str(seller_sku)+" template: "+str(posting_id.mapped('name')))
                             else:
-                                posting_id.meli_id = item_id
+                                if (len(posting_id)==1):
+                                    posting_id.meli_id = item_id
+                                if (len(posting_id)>1):
+                                    _logger.error("Founded templates more than 2 default code: seller_sku: "+str(seller_sku)+" template: "+str(posting_id.mapped('name')))
 
                         #Set or and search  using variation id
                         if ('variations' in rjson3):
                             for var in rjson3['variations']:
                                 if ('seller_custom_field' in var and var['seller_custom_field'] and len(var['seller_custom_field'])):
                                     posting_id = self.env['product.product'].search([('default_code','=',var['seller_custom_field'])])
-                                    if (posting_id):
+                                    if (posting_id and len(posting_id)==1):
                                         posting_id.meli_id = item_id
                                         if (len(posting_id.product_tmpl_id.product_variant_ids)>1):
                                             posting_id.meli_id_variation = var['id']
                                 if (not posting_id  and 'seller_sku' in var and var['seller_sku'] and len(var['seller_sku'])):
                                     posting_id = self.env['product.product'].search([('default_code','=',var['seller_sku'])])
-                                    if (posting_id):
+                                    if (posting_id and len(posting_id)==1):
                                         posting_id.meli_id = item_id
                                         if (len(posting_id.product_tmpl_id.product_variant_ids)>1):
                                             posting_id.meli_id_variation = var['id']
@@ -634,16 +640,22 @@ class res_company(models.Model):
                                             seller_sku = att["values"][0]["name"]
                                             break;
                                     posting_id = seller_sku and self.env['product.product'].search([('default_code','=',seller_sku) ])
-                                    if (posting_id and seller_sku):
+                                    if (posting_id and seller_sku and len(posting_id)==1):
                                         posting_id.meli_id = item_id
                                         if (len(posting_id.product_tmpl_id.product_variant_ids)>1):
                                             posting_id.meli_id_variation = var['id']
 
                     if (posting_id or force_dont_create):
                         if posting_id:
-                            _logger.info( "Item already in database: " + str(posting_id[0]) )
+                            if (len(posting_id)==1):
+                                #posting_id.meli_pub = True
+                                #posting_id.product_tmpl_id.meli_pub = True
+                                _logger.info( "Item already in database: " + str(posting_id[0]) )
+                            else:
+                                _logger.error( "Item already in database but duplicated: " + str(posting_id.mapped('name')) + " skus:" + str(posting_id.mapped('default_code')) )
                         else:
                             _logger.info( "Item not in database, no sync founded for meli_id: "+str(item_id) + " seller_sku: " +str(seller_sku) )
+                        self._cr.commit()
                     #elif (not company.mercadolibre_import_search_sku):
                     else:
                         #idcreated = self.pool.get('product.product').create(cr,uid,{ 'name': rjson3['title'], 'meli_id': rjson3['id'] })
@@ -664,6 +676,7 @@ class res_company(models.Model):
                                 #pdb.set_trace()
                                 _logger.info(productcreated)
                                 productcreated.product_meli_get_product()
+                                self._cr.commit()
                             else:
                                 _logger.info( "product couldnt be created")
                         else:
