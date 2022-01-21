@@ -580,6 +580,7 @@ class res_company(models.Model):
         icommit = 0
         micom = 5
         duplicates = []
+        missing = []
         if (results):
             self._cr.autocommit(False)
             try:
@@ -656,6 +657,7 @@ class res_company(models.Model):
                                 duplicates.append(str(posting_id.mapped('name'))+str(posting_id.mapped('default_code')))
                                 _logger.error( "Item already in database but duplicated: " + str(posting_id.mapped('name')) + " skus:" + str(posting_id.mapped('default_code')) )
                         else:
+                            missing.append("meli_id: "+str(item_id) + " seller_sku: " +str(seller_sku))
                             _logger.info( "Item not in database, no sync founded for meli_id: "+str(item_id) + " seller_sku: " +str(seller_sku) )
                         self._cr.commit()
                     #elif (not company.mercadolibre_import_search_sku):
@@ -684,12 +686,14 @@ class res_company(models.Model):
                         else:
                             _logger.info( "product error: " + str(rjson3) )
 
-                _logger.info("Duplicates"+str(duplicates))
+                _logger.info("Duplicates: "+str(duplicates))
+                _logger.info("Missing: "+str(missing))
 
             except Exception as e:
                 _logger.info("product_meli_get_products Exception!")
                 _logger.info(e, exc_info=True)
-                _logger.info("Duplicates"+str(duplicates))
+                _logger.info("Duplicates: "+str(duplicates))
+                _logger.info("Missing: "+str(missing))
                 self._cr.rollback()
         return {}
 
