@@ -450,17 +450,35 @@ class res_company(models.Model):
         self.product_meli_get_products()
         return {}
 
-    def product_meli_get_products( self ):
-        _logger.info('company.product_meli_get_products() ')
+    def product_meli_get_products( self, context=None ):
+        context = context or self.env.context
+        _logger.info('company.product_meli_get_products() context: '+str(context))
         company = self.env.user.company_id
         product_obj = self.pool.get('product.product')
+
+        post_state = context and context.get("post_state")
+        meli_id = context and context.get("meli_id")
+        force_create_variants = context and context.get("force_create_variants")
+        force_dont_create = context and context.get("force_dont_create")
 
         meli = self.env['meli.util'].get_new_instance(company)
         if meli.need_login():
             return meli.redirect_login()
 
         results = []
-        response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token,'offset': 0 })
+
+        post_state_filter = {}
+        if post_state:
+            if post_state=='active':
+                post_state_filter = { 'status': 'active' }
+            if post_state=='paused':
+                post_state_filter = { 'status': 'paused' }
+            if post_state=='closed':
+                post_state_filter = { 'status': 'closed' }
+        if meli_id:
+            post_state_filter.update( { 'meli_id': meli_id } )
+
+        response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token,'offset': 0, **post_state_filter } )
         rjson = response.json()
         _logger.info( rjson )
 
@@ -485,7 +503,8 @@ class res_company(models.Model):
             response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search",
                                 {'access_token':meli.access_token,
                                 'search_type': 'scan',
-                                'limit': '100' })
+                                'limit': '100',
+                                **post_state_filter })
             rjson = response.json()
             _logger.info( rjson )
 
@@ -505,7 +524,8 @@ class res_company(models.Model):
                     'access_token':meli.access_token,
                     'search_type': 'scan',
                     'scroll_id': scroll_id,
-                    'limit': '100'
+                    'limit': '100',
+                    **post_state_filter
                     })
                 rjson2 = response.json()
                 if 'error' in rjson2:
@@ -559,6 +579,8 @@ class res_company(models.Model):
         iitem = 0
         icommit = 0
         micom = 5
+        duplicates = []
+        missing = []
         if (results):
             self._cr.autocommit(False)
             try:
@@ -574,6 +596,7 @@ class res_company(models.Model):
 
                     response = meli.get("/items/"+item_id, {'access_token':meli.access_token})
                     rjson3 = response.json()
+                    seller_sku = None
                     if ( ( not posting_id or len(posting_id)==0 ) and company.mercadolibre_import_search_sku ):
                         seller_sku = None
                         if ('seller_custom_field' in rjson3 and rjson3['seller_custom_field'] and len(rjson3['seller_custom_field'])):
@@ -588,20 +611,55 @@ class res_company(models.Model):
                             if (not posting_id or len(posting_id)==0):
                                 posting_id = self.env['product.template'].search([('default_code','=ilike',seller_sku)])
                                 if posting_id:
-                                    _logger.info("Founded template with default code, dont know how to handle it. seller_sku: "+str(seller_sku)+" template: "+str(posting_id))
+                                    if (len(posting_id)==1):
+                                        _logger.info("Founded template with default code, dont know how to handle it. seller_sku: "+str(seller_sku)+" template: "+str(posting_id.mapped('name')))
+                                    if (len(posting_id)>1):
+                                        _logger.error("Founded templates more than 2 default code: seller_sku: "+str(seller_sku)+" template: "+str(posting_id.mapped('name')))
                             else:
-                                posting_id.meli_id = item_id
+                                if (len(posting_id)==1):
+                                    posting_id.meli_id = item_id
+                                if (len(posting_id)>1):
+                                    _logger.error("Founded templates more than 2 default code: seller_sku: "+str(seller_sku)+" template: "+str(posting_id.mapped('name')))
+
+                        #Set or and search  using variation id
                         if ('variations' in rjson3):
                             for var in rjson3['variations']:
                                 if ('seller_custom_field' in var and var['seller_custom_field'] and len(var['seller_custom_field'])):
                                     posting_id = self.env['product.product'].search([('default_code','=',var['seller_custom_field'])])
-                                    if (posting_id):
+                                    if (posting_id and len(posting_id)==1):
+                                        posting_id.meli_id = item_id
+                                        if (len(posting_id.product_tmpl_id.product_variant_ids)>1):
+                                            posting_id.meli_id_variation = var['id']
+                                if (not posting_id  and 'seller_sku' in var and var['seller_sku'] and len(var['seller_sku'])):
+                                    posting_id = self.env['product.product'].search([('default_code','=',var['seller_sku'])])
+                                    if (posting_id and len(posting_id)==1):
+                                        posting_id.meli_id = item_id
+                                        if (len(posting_id.product_tmpl_id.product_variant_ids)>1):
+                                            posting_id.meli_id_variation = var['id']
+                                if not posting_id  and not seller_sku and "attributes" in var:
+                                    for att in var['attributes']:
+                                        if att["id"] == "SELLER_SKU":
+                                            seller_sku = att["values"][0]["name"]
+                                            break;
+                                    posting_id = seller_sku and self.env['product.product'].search([('default_code','=',seller_sku) ])
+                                    if (posting_id and seller_sku and len(posting_id)==1):
                                         posting_id.meli_id = item_id
                                         if (len(posting_id.product_tmpl_id.product_variant_ids)>1):
                                             posting_id.meli_id_variation = var['id']
 
-                    if (posting_id):
-                        _logger.info( "Item already in database: " + str(posting_id[0]) )
+                    if (posting_id or force_dont_create):
+                        if posting_id:
+                            if (len(posting_id)==1):
+                                #posting_id.meli_pub = True
+                                #posting_id.product_tmpl_id.meli_pub = True
+                                _logger.info( "Item already in database: " + str(posting_id[0]) )
+                            else:
+                                duplicates.append(str(posting_id.mapped('name'))+str(posting_id.mapped('default_code')))
+                                _logger.error( "Item already in database but duplicated: " + str(posting_id.mapped('name')) + " skus:" + str(posting_id.mapped('default_code')) )
+                        else:
+                            missing.append("meli_id: "+str(item_id) + " seller_sku: " +str(seller_sku))
+                            _logger.info( "Item not in database, no sync founded for meli_id: "+str(item_id) + " seller_sku: " +str(seller_sku) )
+                        self._cr.commit()
                     #elif (not company.mercadolibre_import_search_sku):
                     else:
                         #idcreated = self.pool.get('product.product').create(cr,uid,{ 'name': rjson3['title'], 'meli_id': rjson3['id'] })
@@ -622,13 +680,20 @@ class res_company(models.Model):
                                 #pdb.set_trace()
                                 _logger.info(productcreated)
                                 productcreated.product_meli_get_product()
+                                self._cr.commit()
                             else:
                                 _logger.info( "product couldnt be created")
                         else:
                             _logger.info( "product error: " + str(rjson3) )
+
+                _logger.info("Duplicates: "+str(duplicates))
+                _logger.info("Missing: "+str(missing))
+
             except Exception as e:
                 _logger.info("product_meli_get_products Exception!")
                 _logger.info(e, exc_info=True)
+                _logger.info("Duplicates: "+str(duplicates))
+                _logger.info("Missing: "+str(missing))
                 self._cr.rollback()
         return {}
 

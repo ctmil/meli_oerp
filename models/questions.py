@@ -31,6 +31,7 @@ class mercadolibre_questions(models.Model):
 
     name = fields.Char(string="Name")
     posting_id = fields.Many2one("mercadolibre.posting","Posting")
+    #product_id = fields.Many2one("product.product","Product")
     question_id = fields.Char('Question Id')
     date_created = fields.Date('Creation date')
     item_id = fields.Char(string="Item ID",size=255)
@@ -45,6 +46,15 @@ class mercadolibre_questions(models.Model):
     answer_date_created = fields.Date('Answer creation date')
     answer_status = fields.Selection( [("ACTIVE","Active"),("DISABLED","Disabled"),("BANNED","Banned")], string='Answer Status')
     answer_text = fields.Text("Answer Text")
+
+
+    def compute_answer_link( self ):
+        company = self.env.user.company_id
+        for q in self:
+            if q.item_id and q.question_id:       
+                q.answer_link = company.get_ML_LINK_URL()+"preguntas/vendedor/articulo/"+str(q.item_id)+"?question_id="+str(q.question_id)
+
+    answer_link = fields.Char(string="Answer Link",compute=compute_answer_link)
 
     def prepare_question_fields( self, Question, meli=None, config=None ):
         question_fields = {
