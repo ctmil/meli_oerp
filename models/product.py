@@ -480,8 +480,6 @@ class product_template(models.Model):
     #meli_permalink = fields.Char( compute=product_template_permalink, size=256, string='Link',help='PermaLink in MercadoLibre', store=True )
     meli_permalink_edit = fields.Char( compute=product_template_permalink, size=256, string='Link Edit',help='PermaLink Edit in MercadoLibre', store=True )
 
-
-
 product_template()
 
 class product_product(models.Model):
@@ -1345,6 +1343,7 @@ class product_product(models.Model):
         #def _compute_combination_indices( self ):
         #    for product in self:
         #        product.combination_indices = product.product_template_attribute_value_ids._ids2str()
+        return
 
 
     def product_meli_get_product( self, context=None, meli_id=None ):
