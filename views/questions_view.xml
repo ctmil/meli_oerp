@@ -18,6 +18,7 @@
                     <field name="answer_date_created"/>
                     <field name="answer_status"/>
                     <field name="answer_text"/>
+                    <!--field name="answer_link" widget="url"/-->
                 </tree>
             </field>
         </record>
