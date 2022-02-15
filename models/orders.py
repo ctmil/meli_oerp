@@ -1128,9 +1128,17 @@ class mercadolibre_orders(models.Model):
                         sibra_ci = self.env['sibra_addon_fe.tipodocumento'].search([('codigo','=',1)],limit=1)
                         if sibra_ci:
                             meli_buyer_fields['tipodocumento_ids'] = sibra_ci.id
+                    if (Buyer['billing_info']['doc_type']=="RUT"):
+                        sibra_ci = self.env['sibra_addon_fe.tipodocumento'].search([('codigo','=',2)],limit=1)
+                        if sibra_ci:
+                            meli_buyer_fields['tipodocumento_ids'] = sibra_ci.id
 
                     if ("documento" in self.env['res.partner']._fields and Buyer['billing_info']['doc_number']):
                         meli_buyer_fields['documento'] = Buyer['billing_info']['doc_number']
+
+                    if ("property_payment_term_id" in self.env['res.partner']._fields):
+                        meli_buyer_fields['property_payment_term_id'] = config.mercadolibre_payment_term and config.mercadolibre_payment_term.id
+
 
             partner_ids = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ] )
             if (len(partner_ids)>0):
