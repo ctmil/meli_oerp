@@ -1124,12 +1124,23 @@ class mercadolibre_orders(models.Model):
 
                 #Uruguay 13.0
                 if ("tipodocumento_ids" in self.env['res.partner']._fields):
+
+                    #OTROS
+                    sibra_ci = self.env['sibra_addon_fe.tipodocumento'].search([('codigo','=',4)],limit=1)
+
                     if (Buyer['billing_info']['doc_type']=="CI"):
-                        sibra_ci = self.env['sibra_addon_fe.tipodocumento'].search([('codigo','=',1)],limit=1)
+
+                        sibra_ci = self.env['sibra_addon_fe.tipodocumento'].search([('codigo','=',3)],limit=1)
                         if sibra_ci:
                             meli_buyer_fields['tipodocumento_ids'] = sibra_ci.id
-                    if (Buyer['billing_info']['doc_type']=="RUT"):
+
+                    elif (Buyer['billing_info']['doc_type']=="RUT"):
+
                         sibra_ci = self.env['sibra_addon_fe.tipodocumento'].search([('codigo','=',2)],limit=1)
+                        if sibra_ci:
+                            meli_buyer_fields['tipodocumento_ids'] = sibra_ci.id
+
+                    else:
                         if sibra_ci:
                             meli_buyer_fields['tipodocumento_ids'] = sibra_ci.id
 
