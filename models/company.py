@@ -675,14 +675,17 @@ class res_company(models.Model):
                                 'name': rjson3['title'].encode("utf-8"),
                                 'description': rjson3['title'].encode("utf-8"),
                                 'meli_id': rjson3['id'],
-                                'meli_pub': True,
+                                'meli_pub': False,
                                 'type': 'product'
                             }
                             #prod_fields['default_code'] = rjson3['id']
                             productcreated = self.env['product.product'].create((prod_fields))
                             if (productcreated):
-                                if (productcreated.product_tmpl_id):
-                                    productcreated.product_tmpl_id.meli_pub = True
+                                if force_meli_pub:
+                                    _logger.info( "Item meli_pub set" )
+                                    productcreated.meli_pub = True
+                                    if (productcreated.product_tmpl_id):
+                                        productcreated.product_tmpl_id.meli_pub = True
                                 _logger.info( "product created: " + str(productcreated) + " >> meli_id:" + str(rjson3['id']) + " >> " + str( rjson3['title'].encode("utf-8")) )
                                 #pdb.set_trace()
                                 _logger.info(productcreated)

@@ -1543,7 +1543,7 @@ class product_product(models.Model):
                     _logger.error(e, exc_info=True)
                     pass;
             #TODO: agregar parametro para esto: ml_auto_website_published_if_available  default true
-            if (1==1 and rjson['available_quantity']>0):
+            if (1==2 and rjson['available_quantity']>0):
                 product_template.website_published = True
 
         #TODO: agregar parametro para esto: ml_auto_website_unpublished_if_not_available default false
