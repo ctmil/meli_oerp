@@ -455,11 +455,13 @@ class res_company(models.Model):
         _logger.info('company.product_meli_get_products() context: '+str(context))
         company = self.env.user.company_id
         product_obj = self.pool.get('product.product')
+        warningobj = self.pool.get('meli.warning')
 
         post_state = context and context.get("post_state")
         meli_id = context and context.get("meli_id")
         force_create_variants = context and context.get("force_create_variants")
         force_dont_create = context and context.get("force_dont_create")
+        force_meli_pub =  context and context.get("force_meli_pub")
 
         meli = self.env['meli.util'].get_new_instance(company)
         if meli.need_login():
@@ -581,6 +583,8 @@ class res_company(models.Model):
         micom = 5
         duplicates = []
         missing = []
+        synced = []
+        res = {}
         if (results):
             self._cr.autocommit(False)
             try:
@@ -650,9 +654,12 @@ class res_company(models.Model):
                     if (posting_id or force_dont_create):
                         if posting_id:
                             if (len(posting_id)==1):
-                                #posting_id.meli_pub = True
-                                #posting_id.product_tmpl_id.meli_pub = True
                                 _logger.info( "Item already in database: " + str(posting_id[0]) )
+                                if force_meli_pub:
+                                    _logger.info( "Item meli_pub set" )
+                                    posting_id.meli_pub = True
+                                    posting_id.product_tmpl_id.meli_pub = True
+                                synced.append( str(posting_id.mapped('name'))+str(posting_id.mapped('default_code')) )
                             else:
                                 duplicates.append(str(posting_id.mapped('name'))+str(posting_id.mapped('default_code')))
                                 _logger.error( "Item already in database but duplicated: " + str(posting_id.mapped('name')) + " skus:" + str(posting_id.mapped('default_code')) )
@@ -686,16 +693,40 @@ class res_company(models.Model):
                         else:
                             _logger.info( "product error: " + str(rjson3) )
 
+                _logger.info("Synced: "+str(synced))
                 _logger.info("Duplicates: "+str(duplicates))
                 _logger.info("Missing: "+str(missing))
 
             except Exception as e:
                 _logger.info("product_meli_get_products Exception!")
                 _logger.info(e, exc_info=True)
+                _logger.info("Synced: "+str(synced))
                 _logger.info("Duplicates: "+str(duplicates))
                 _logger.info("Missing: "+str(missing))
                 self._cr.rollback()
-        return {}
+
+            html_report = "<h2>Reporte Importación</h2>"
+
+            html_report+= "<h4>Syncronizados</h4>"
+            for pub in synced:
+                #
+                html_report+= "<br/>"+pub
+
+            html_report+= "<h4>Duplicados</h4>"
+            for pub in duplicates:
+                #
+                html_report+= "<br/>"+pub
+
+            html_report+= "<h4>Faltantes</h4>"
+            for pub in missing:
+                #
+                html_report+= "<br/>"+pub
+
+            res = warningobj.info( title='MELI INFO IMPORT',
+                                          message="Reporte de Importación",
+                                          message_html=""+html_report )
+
+        return res
 
 
     def meli_update_local_products(self):

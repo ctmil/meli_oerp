@@ -85,7 +85,7 @@
                 </form>
               </field>
         </record>
-        
+
         <record id="view_product_template_import" model="ir.ui.view">
               <field name="name">Import (massive) from Mercado Libre</field>
               <field name="model">mercadolibre.product.template.import</field>
@@ -96,6 +96,7 @@
                       <group>
                         <field name="post_state"/>
                         <field name="meli_id"/>
+                        <field name="force_meli_pub"/>
                         <field name="force_create_variants"/>
                         <field name="force_dont_create"/>
                       </group>
@@ -109,7 +110,7 @@
         </record>
 
         <record id="action_product_template_post" model="ir.actions.act_window">
-            <field name="name">MELI Post</field>
+            <field name="name">Publicar/Actualizar en ML</field>
             <field name="type">ir.actions.act_window</field>
             <field name="src_model">product.template</field>
             <field name="res_model">mercadolibre.product.template.post</field>
@@ -143,7 +144,7 @@
                 key2="client_action_multi" target="new"/>
 
     <record id="action_product_post" model="ir.actions.act_window">
-        <field name="name">MELI Post</field>
+        <field name="name">Publicar/Actualizar en ML</field>
         <field name="type">ir.actions.act_window</field>
         <field name="src_model">product.product</field>
         <field name="res_model">mercadolibre.product.post</field>
@@ -158,9 +159,9 @@
         res_model="mercadolibre.product.post"
         view_type="form" view_mode="form"
         key2="client_action_multi" target="new"/>
-        
-        
-        
+
+
+
     <record id="action_product_template_import" model="ir.actions.act_window">
         <field name="name">MELI Import</field>
         <field name="type">ir.actions.act_window</field>
@@ -177,23 +178,6 @@
         res_model="mercadolibre.product.template.import"
         view_type="form" view_mode="form"
         key2="client_action_multi" target="new"/>
-<!--
-    <record model="ir.values" id="action_product_template_post_values">
-        <field name="name">MELI Post</field>
-        <field name="key2">client_action_multi</field>
-        <field name="value" eval="'ir.actions.act_window,' +str(ref('action_product_template_post'))" />
-        <field name="key">action</field>
-        <field name="model">product.template</field>
-    </record>
--->
-<!--
-    <record model="ir.values" id="action_product_post_values">
-        <field name="name">MELI Post</field>
-        <field name="key2">client_action_multi</field>
-        <field name="value" eval="'ir.actions.act_window,' +str(ref('action_product_post'))" />
-        <field name="key">action</field>
-        <field name="model">product.product</field>
-    </record>
--->
+
 </data>
 </odoo>
