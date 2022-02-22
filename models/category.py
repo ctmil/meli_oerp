@@ -251,7 +251,7 @@ class mercadolibre_category(models.Model):
         for category in self:
             if (category.meli_category_id
                 and category.is_branch==False
-                and ( category.meli_category_attribute_ids==None or len(category.meli_category_attribute_ids)==0 )):
+                and ( 1==1 or category.meli_category_attribute_ids==None or len(category.meli_category_attribute_ids)==0 )):
                 _logger.info("_get_attributes:"+str(category.meli_category_id))
                 category.meli_category_attributes = "https://api.mercadolibre.com/categories/"+str(category.meli_category_id)+"/attributes"
                 resp = meli.get("/categories/"+str(category.meli_category_id)+"/attributes", {'access_token':meli.access_token})
