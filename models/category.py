@@ -262,7 +262,7 @@ class mercadolibre_category(models.Model):
                         _logger.info("att:")
                         _logger.info(att)
                         _logger.info(att['id'])
-                        attrs = att_obj.search( [ ('att_id','=',str(att['id'])),('name','=',str(att['name'])) ] )
+                        attrs = att_obj.search( [ ('att_id','=',str(att['id'])),('name','=ilike',str(att['name'])) ] )
                         #attrs = att_obj.search( [ ('cat_id','=',False),('att_id','=',str(att['id'])),('name','=',str(att['name'])) ] )
                         attrs_field = {
                             'name': att['name'],
@@ -297,7 +297,7 @@ class mercadolibre_category(models.Model):
                         if (attrs.id):
                             if (company.mercadolibre_product_attribute_creation!='manual'):
                                 #primero que coincida todo
-                                prod_attrs = prod_att_obj.search( [ ('name','=',att['name']),
+                                prod_attrs = prod_att_obj.search( [ ('name','=ilike',att['name']),
                                                                     ('meli_default_id_attribute','=',attrs[0].id) ] )
                                 if (len(prod_attrs)==0):
                                     #que solo coincida el id
@@ -305,7 +305,7 @@ class mercadolibre_category(models.Model):
 
                                 if (len(prod_attrs)==0):
                                     #que coincida el nombre al menos
-                                    prod_att_obj.search( [ ('name','=',att['name']) ] )
+                                    prod_attrs = prod_att_obj.search( [ ('name','=ilike',att['name']) ] )
 
                                 #if (len(prod_attrs)==0):
                                     #que coincida el meli_id!!
@@ -322,7 +322,7 @@ class mercadolibre_category(models.Model):
                                     _logger.error("Atención multiples atributos asignados!")
                                     #prod_attrs = prod_attrs[0]
                                     for prod_attr in prod_attrs:
-                                        prod_att['create_variant'] = prod_attr.create_variant
+                                        #prod_attr['create_variant'] = prod_att.create_variant
                                         prod_attr.write(prod_att)
                                     #if (len(prod_attrs)==1):
                                     #    if (prod_attrs.id):
@@ -485,6 +485,7 @@ class mercadolibre_category(models.Model):
     meli_category_attributes = fields.Char(compute=_get_attributes,  string="Mercado Libre Category Attributes")
     meli_category_url = fields.Char(compute=_get_category_url, string="Mercado Libre Category Url")
     meli_category_attribute_ids = fields.Many2many("mercadolibre.category.attribute",string="Attributes")
+
 
     meli_category_settings = fields.Char(string="Settings")
     meli_setting_minimum_price = fields.Float(string="Minimum price")

@@ -38,12 +38,17 @@
                                 attrs="{'invisible':[('mercadolibre_state','=',True)]}"
                                 class="oe_stat_button"/>
 
-            								<button name='meli_query_products' type="object"
-                                string="Importar productos"
+            								<!--button name='meli_query_products' type="object"
+                                string="Importar todos los productos"
                                 title="Iniciar importación de todos los productos desde ML a Odoo"
                                 attrs="{'invisible':[('mercadolibre_state','=',True)]}"
                                 icon="fa-cloud-download"
-                                class="oe_stat_button"/>
+                                class="oe_stat_button"/-->
+                                <button type="action" name="%(action_product_template_import)d"
+                                  string="Importar Masivamente"
+                                  title="Importar Masivamente"
+                                  class="oe_stat_button"
+                                  icon="fa-cloud-download"></button>
 
                             <button name='meli_update_local_products' type="object"
                                 string="Actualizar productos"

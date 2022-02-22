@@ -160,7 +160,7 @@
                       <group name="variantes">
                         <field name="meli_pub_as_variant" />
                         <field name="meli_pub_variant_attributes"  widget="many2many_checkboxes"  options="{'no_create': True}" domain="[('product_tmpl_id','=',id)]"/>
-                        <field name="meli_pub_principal_variant" invisible="0"/>
+                        <field name="meli_pub_principal_variant" invisible="0"  domain="[('product_tmpl_id','=',id)]"/>
                       </group>
                       <separator string="Catalogo" colspan="1"/>
                       <group name="catalogo">
