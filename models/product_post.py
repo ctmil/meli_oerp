@@ -268,6 +268,7 @@ class product_template_import(models.TransientModel):
     meli_id = fields.Char(string="MercadoLibre Id's (MLMXXXXXXX, MLMYYYYYYY, MLM.... ) a importar.")
     force_create_variants = fields.Boolean( string="Forzar creacion/cambios de variantes", help="Forzar creacion de variantes (Modifica el producto de Odoo / Rompe Stock)", default=False )
     force_dont_create = fields.Boolean( string="Solo asociar por SKU, no crear productos", default=False )
+    force_meli_pub = fields.Boolean(string="Force Meli Pub", default=True)
 
     def pretty_json( self, data ):
         return json.dumps( data, sort_keys=False, indent=4 )
@@ -290,8 +291,9 @@ class product_template_import(models.TransientModel):
         custom_context = {
             "post_state": self.post_state,
             "meli_id": self.meli_id,
+            "force_meli_pub": self.force_meli_pub,
             "force_create_variants": self.force_create_variants,
-            "force_dont_create": self.force_dont_create,    
+            "force_dont_create": self.force_dont_create,
         }
         
         _logger.info("product_template_import custom_context:"+str(custom_context))

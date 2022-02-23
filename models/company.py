@@ -460,6 +460,7 @@ class res_company(models.Model):
         meli_id = context and context.get("meli_id")
         force_create_variants = context and context.get("force_create_variants")
         force_dont_create = context and context.get("force_dont_create")
+        force_meli_pub =  context and context.get("force_meli_pub")
 
         meli = self.env['meli.util'].get_new_instance(company)
         if meli.need_login():
@@ -478,7 +479,9 @@ class res_company(models.Model):
         if meli_id:
             post_state_filter.update( { 'meli_id': meli_id } )
 
-        response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token,'offset': 0, **post_state_filter } )
+        response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token,
+                                                                                        'offset': 0,
+                                                                                        **post_state_filter } )
         rjson = response.json()
         _logger.info( rjson )
 
@@ -650,9 +653,11 @@ class res_company(models.Model):
                     if (posting_id or force_dont_create):
                         if posting_id:
                             if (len(posting_id)==1):
-                                #posting_id.meli_pub = True
-                                #posting_id.product_tmpl_id.meli_pub = True
                                 _logger.info( "Item already in database: " + str(posting_id[0]) )
+                                if force_meli_pub:
+                                    _logger.info( "Item meli_pub set" )
+                                    posting_id.meli_pub = True
+                                    posting_id.product_tmpl_id.meli_pub = True
                             else:
                                 duplicates.append(str(posting_id.mapped('name'))+str(posting_id.mapped('default_code')))
                                 _logger.error( "Item already in database but duplicated: " + str(posting_id.mapped('name')) + " skus:" + str(posting_id.mapped('default_code')) )
