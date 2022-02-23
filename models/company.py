@@ -480,7 +480,9 @@ class res_company(models.Model):
         if meli_id:
             post_state_filter.update( { 'meli_id': meli_id } )
 
-        response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token,'offset': 0, **post_state_filter } )
+        response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token,
+                                                                                        'offset': 0,
+                                                                                        **post_state_filter } )
         rjson = response.json()
         _logger.info( rjson )
 
