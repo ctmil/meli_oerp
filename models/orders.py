@@ -1122,6 +1122,35 @@ class mercadolibre_orders(models.Model):
                         meli_buyer_fields['l10n_latam_identification_type_id'] = self.env['l10n_latam.identification.type'].search([('l10n_co_document_code','=','rut'),('country_id','=',company.country_id.id)],limit=1).id
 
 
+                #Uruguay 13.0
+                if ("tipodocumento_ids" in self.env['res.partner']._fields):
+
+                    #OTROS
+                    sibra_ci = self.env['sibra_addon_fe.tipodocumento'].search([('codigo','=',4)],limit=1)
+
+                    if (Buyer['billing_info']['doc_type']=="CI"):
+
+                        sibra_ci = self.env['sibra_addon_fe.tipodocumento'].search([('codigo','=',3)],limit=1)
+                        if sibra_ci:
+                            meli_buyer_fields['tipodocumento_ids'] = sibra_ci.id
+
+                    elif (Buyer['billing_info']['doc_type']=="RUT"):
+
+                        sibra_ci = self.env['sibra_addon_fe.tipodocumento'].search([('codigo','=',2)],limit=1)
+                        if sibra_ci:
+                            meli_buyer_fields['tipodocumento_ids'] = sibra_ci.id
+
+                    else:
+                        if sibra_ci:
+                            meli_buyer_fields['tipodocumento_ids'] = sibra_ci.id
+
+                    if ("documento" in self.env['res.partner']._fields and Buyer['billing_info']['doc_number']):
+                        meli_buyer_fields['documento'] = Buyer['billing_info']['doc_number']
+
+                    if ("property_payment_term_id" in self.env['res.partner']._fields):
+                        meli_buyer_fields['property_payment_term_id'] = config.mercadolibre_payment_term and config.mercadolibre_payment_term.id
+
+
             partner_ids = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ] )
             if (len(partner_ids)>0):
                 partner_id = partner_ids[0]
@@ -1144,6 +1173,9 @@ class mercadolibre_orders(models.Model):
                 #_logger.info(meli_buyer_fields)
                 #complete country at most:
                 partner_update = {}
+
+                if "documento" in meli_buyer_fields:
+                    partner_update.update(meli_buyer_fields)
 
                 #TODO: re DO with, self.update_billing_data( partner_id, meli_buyer_fields )
                 if "document_type_id" in meli_buyer_fields and str(meli_buyer_fields['document_type_id'])!=str(partner_id.document_type_id and partner_id.document_type_id.id):
