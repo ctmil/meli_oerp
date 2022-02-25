@@ -706,11 +706,18 @@ class mercadolibre_orders(models.Model):
 
         order_fields = self.prepare_ml_order_vals( order_json=order_json, meli=meli, config=config )
 
+        if (    "mercadolibre_filter_order_datetime_start" in config._fields
+                and "date_closed" in order_fields
+                and config.mercadolibre_filter_order_datetime_start
+                and config.mercadolibre_filter_order_datetime_start>parse(order_fields["date_closed"]) ):
+            return { "error": "orden filtrada por fecha START > " + str(order_fields["date_closed"]) + " inferior a "+str(ml_datetime(config.mercadolibre_filter_order_datetime_start)) }
+
+
         if (    "mercadolibre_filter_order_datetime" in config._fields
                 and "date_closed" in order_fields
                 and config.mercadolibre_filter_order_datetime
                 and config.mercadolibre_filter_order_datetime>parse(order_fields["date_closed"]) ):
-            return { "error": "orden filtrada por fecha > " + str(order_fields["date_closed"]) + " inferior a "+str(ml_datetime(config.mercadolibre_filter_order_datetime)) }
+            return { "error": "orden filtrada por FROM > " + str(order_fields["date_closed"]) + " inferior a "+str(ml_datetime(config.mercadolibre_filter_order_datetime)) }
 
         if (    "mercadolibre_filter_order_datetime_to" in config._fields
                 and "date_closed" in order_fields

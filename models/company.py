@@ -388,8 +388,10 @@ class res_company(models.Model):
 
     mercadolibre_official_store_id = fields.Char(string="Official Store Id")
 
-    mercadolibre_filter_order_datetime = fields.Datetime("Order Closed Date")
-    mercadolibre_filter_order_datetime_to = fields.Datetime("Order Closed Date To")
+    mercadolibre_filter_order_datetime_start = fields.Datetime("Start Order Closed Date",help="Fecha a partir de la cual no se bloquean las entradas de pedidos desde ML")
+    #mercadolibre_filter_order_cron_max = fields.Integer(string="Cantidad de ordenes maximas a chequear por iteracion de cron")
+    mercadolibre_filter_order_datetime = fields.Datetime("Order Closed Date From",help="Fecha inicial para la importacion de pedidos (vacio: ultimas 50)")
+    mercadolibre_filter_order_datetime_to = fields.Datetime("Order Closed Date To",help="Fecha final para la importacion de pedidos (vacio: el dia de hoy)")
 
     mercadolibre_payment_term = fields.Many2one("account.payment.term",string="Payment Term")
 
