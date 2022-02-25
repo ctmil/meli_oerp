@@ -127,7 +127,7 @@
             key2="client_action_multi" target="new"/>
 
             <record id="action_product_template_update" model="ir.actions.act_window">
-                <field name="name">MELI Update</field>
+                <field name="name">Importar desde ML</field>
                 <field name="type">ir.actions.act_window</field>
                 <field name="src_model">product.template</field>
                 <field name="res_model">mercadolibre.product.template.update</field>
@@ -163,7 +163,7 @@
 
 
     <record id="action_product_template_import" model="ir.actions.act_window">
-        <field name="name">MELI Import</field>
+        <field name="name">Importar Masivamente ML</field>
         <field name="type">ir.actions.act_window</field>
         <field name="src_model">res.company</field>
         <field name="res_model">mercadolibre.product.template.import</field>
