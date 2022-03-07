@@ -22,6 +22,19 @@ meli_errors = {
     "body.invalid_field_types": "Tipo de valor de propiedad de campo inválido (revisar términos de venta, garantia, etc...)"
 }
 
+"""
+2022-03-07 16:29:59,755 522486 INFO ml_testing odoo.addons.meli_oerp_multiple.models.product: resim: {'status': 'warning', 'message': 'uploaded but not assigned'} 
+2022-03-07 16:29:59,755 522486 ERROR ml_testing odoo.addons.meli_oerp_multiple.models.product: ('MELI: mensaje de error:   ', {'status': 'warning', 'message': 'uploaded but not assigned'}) 
+2022-03-07 16:29:59,762 522486 INFO ml_testing odoo.addons.meli_oerp_multiple.models.product: shipping mode:{'mode': 'not_specified'} 
+2022-03-07 16:29:59,762 522486 INFO ml_testing odoo.addons.meli_oerp_multiple.models.product: first post:{'title': 'Camara Logitech Brio Extendrix (no comprar)', 'category_id': 'MLM1667', 'listing_type_id': 'gold_special', 'buying_mode': 'buy_it_now', 'price': '1.0', 'currency_id': 'MXN', 'condition': 'new', 'available_quantity': '0', 'sale_terms': [], 'video_id': '', 'shipping': {'mode': 'not_specified'}, 'description': {'plain_text': ''}, 'pictures': [{'id': '885446-MLM49293088907_032022'}]} meli: login_id: extendrixuno client_id: 2214044407599006 seller_id: 1082438962 access_token: APP_USR-2214044407599006-030711-0f250e549d945d0e608a3d2e4091eec6-1082438962 
+2022-03-07 16:29:59,994 522486 INFO ml_testing odoo.addons.meli_oerp_multiple.models.product: {'error': 'post error', 'status': 403, 'cause': 'Forbidden', 'message': '{"message":"seller.unable_to_list","error":"User is unable to list.","status":403,"cause":["phone_pending","address_empty_city","address_empty_state"]}'} 
+2022-03-07 16:29:59,994 522486 ERROR ml_testing odoo.addons.meli_oerp_multiple.models.product: <h6>Mensaje de error de MercadoLibre</h6><br/><h2>Mensaje: {"message":"seller.unable_to_list","error":"User is unable to list.","status":403,"cause":["phone_pending","address_empty_city","address_empty_state"]}</h2><br/><h6>Status</h6> 403<br/><h6>Cause</h6> Forbidden<br/><h6>Error completo:</h6><br/><span>post error</span><br/> 
+2022-03-07 16:29:59,995 522486 INFO ml_testing odoo.addons.meli_oerp.models.warning: _format_meli_error rjson:{'error': 'post error', 'status': 403, 'cause': 'Forbidden', 'message': '{"message":"seller.unable_to_list","error":"User is unable to list.","status":403,"cause":["phone_pending","address_empty_city","address_empty_state"]}'} 
+2022-03-07 16:29:59,996 522486 INFO ml_testing odoo.addons.meli_oerp.models.warning: _format_meli_error message:{'message': 'seller.unable_to_list', 'error': 'User is unable to list.', 'status': 403, 'cause': ['phone_pending', 'address_empty_city', 'address_empty_state']} 
+2022-03-07 16:29:59,996 522486 INFO ml_testing odoo.addons.meli_oerp.models.warning: {'message': 'seller.unable_to_list', 'error': 'User is unable to list.', 'status': 403, 'cause': ['phone_pending', 'address_empty_city', 'address_empty_state']} 
+
+"""
+
 class warning1(models.TransientModel):
     _name = 'warning'
     _description = 'warning'
@@ -72,7 +85,7 @@ class warning(models.TransientModel):
             rerror = "error" in rjson and rjson["error"]
             alertstatus = 'warning'
             
-            if rstatus in ["error"]:
+            if rstatus in ["error",403]:
                 title = "ERROR MELI: " + title
                 alertstatus = 'error'                
             
@@ -103,12 +116,20 @@ class warning(models.TransientModel):
                         ecause = rmessage[rmess]
                         if len(ecause):
                             for eca in ecause:
-                                ecatype = "type" in eca and eca["type"]                                
-                                ecacode = "code" in eca and eca["code"]
-                                ecamess = "message" in eca and eca["message"]
+                                if type(eca)==dict:
+                                    ecatype = "type" in eca and eca["type"]                                
+                                    ecacode = "code" in eca and eca["code"]
+                                    ecamess = "message" in eca and eca["message"]
+                                else:
+                                    ecatype = "error"
+                                    ecacode = "Forbidden"
+                                    ecamess = str(eca)
+
+                                ecacodemess = (ecacode in meli_errors and meli_errors[ecacode]) or ecacode
                                 ecaalertstatus = (ecatype in ["error"] and "danger" ) or ecatype
                                 ecatypeicon = (ecatype in ["error"] and "times-circle" ) or ecatype
-                                ecacodemess = (ecacode in meli_errors and meli_errors[ecacode]) or ecacode
+
+
                                 ecacodemess = "<strong>"+str(ecacodemess)+"</strong><br/>"
                                 ecacodemess+= str(ecamess)
                                 message_html+= '<div role="alert" class="alert alert-'+str(ecaalertstatus)+'" title="Meli Message, Code: '+str(ecacode)+'"><i class="fa fa-'+str(ecatypeicon)+'" role="img" aria-label="Meli Message"/> %s </div>' % (str(ecacodemess))
