@@ -290,13 +290,16 @@ class sale_order(models.Model):
 
             stock_picking = self.env["stock.picking"]
 
+            #cancelling with no conditions, here because paid_amount is 0, dont use confirm_cond
+            if (self.meli_status=="cancelled"):
+                self.action_cancel()
+                _logger.info("Confirm Order Cancelled")
+                return res
+
             amount_to_invoice = self.meli_amount_to_invoice( meli=meli, config=config )
             confirm_cond = (amount_to_invoice > 0)
             if not confirm_cond:
                 return {'error': "Condition not met: meli_paid_amount and amount_total doesn't match"}
-
-            if (self.meli_status=="cancelled"):
-                self.action_cancel()
 
             if (config.mercadolibre_order_confirmation and "paid_confirm" in config.mercadolibre_order_confirmation):
 

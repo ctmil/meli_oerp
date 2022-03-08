@@ -33,6 +33,9 @@ meli_errors = {
 2022-03-07 16:29:59,996 522486 INFO ml_testing odoo.addons.meli_oerp.models.warning: _format_meli_error message:{'message': 'seller.unable_to_list', 'error': 'User is unable to list.', 'status': 403, 'cause': ['phone_pending', 'address_empty_city', 'address_empty_state']} 
 2022-03-07 16:29:59,996 522486 INFO ml_testing odoo.addons.meli_oerp.models.warning: {'message': 'seller.unable_to_list', 'error': 'User is unable to list.', 'status': 403, 'cause': ['phone_pending', 'address_empty_city', 'address_empty_state']} 
 
+_format_meli_error rjson:{'error': 'post error', 'status': 403, 'cause': 'Forbidden', 'message': '{"message":"seller.unable_to_list","error":"User is unable to list.","status":403,"cause":["address_empty_city","address_empty_state"]}'} 
+
+
 """
 
 class warning1(models.TransientModel):
