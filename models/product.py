@@ -1543,7 +1543,7 @@ class product_product(models.Model):
                     _logger.error(e, exc_info=True)
                     pass;
             #TODO: agregar parametro para esto: ml_auto_website_published_if_available  default true
-            if (1==2 and rjson['available_quantity']>0):
+            if (1==1 and rjson['available_quantity']>0):
                 product_template.website_published = True
 
         #TODO: agregar parametro para esto: ml_auto_website_unpublished_if_not_available default false
@@ -1690,7 +1690,8 @@ class product_product(models.Model):
                             #_logger.info("has_sku")
                             #_logger.info(variation["seller_custom_field"])
                             try:
-                                variant.default_code = ("seller_ku" in variation and variation["seller_sku"]) or ("seller_custom_field" in variation and variation["seller_custom_field"])
+                                variant.default_code = ("seller_sku" in variation and variation["seller_sku"]) or ("seller_custom_field" in variation and variation["seller_custom_field"])
+                                _logger.info("Assigned:"+str(variant.default_code))
                             except:
                                 pass;
                             variant.meli_id_variation = variation["id"]
@@ -1721,6 +1722,16 @@ class product_product(models.Model):
                         variant.meli_id_variation = variation["id"]
                         variant.meli_available_quantity = variation["available_quantity"]
                         #TODO post message to force user to set default_code and meli sku
+                        if ("seller_custom_field" in variation or "seller_sku" in variation):
+                            _logger.info("has_sku (no default_code)")
+                            #_logger.info(variation["seller_custom_field"])
+                            try:
+                                #if not variant.default_code:
+                                variant.default_code = ("seller_sku" in variation and variation["seller_sku"]) or ("seller_custom_field" in variation and variation["seller_custom_field"])
+                                _logger.info("Assigned:"+str(variant.default_code))
+                            except:
+                                pass;
+                            has_sku = True
 
                 if (has_sku):
                     variant.set_bom()
