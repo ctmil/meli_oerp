@@ -1681,13 +1681,14 @@ class product_product(models.Model):
                     _v_default_code = _v_default_code + att.attribute_id.name+':'+att.name+';'
                 #_logger.info("_v_default_code: " + _v_default_code)
                 for variation in rjson['variations']:
-                    _logger.info(variation)
-                    _logger.info("variation[default_code]: " + variation["default_code"])
+                    #_logger.info(variation)
+                    #_logger.info("variation[default_code]: " + variation["default_code"])
                     is_v_comb = variant.is_variant_in_combination( variation["default_code"], _v_default_code )
-                    _logger.info("variation[default_code]: " + variation["default_code"]+" is_v_comb:"+str(is_v_comb))
+                    #_logger.info("variation[default_code]: " + variation["default_code"]+" is_v_comb:"+str(is_v_comb))
                     if ( len(variation["default_code"]) and is_v_comb):
                         if ("seller_custom_field" in variation or "seller_sku" in variation):
-                            _logger.info("has_sku")
+                            #_logger.info("has_sku")
+                            #_logger.info(variation["seller_custom_field"])
                             try:
                                 variant.default_code = ("seller_sku" in variation and variation["seller_sku"]) or ("seller_custom_field" in variation and variation["seller_custom_field"])
                                 _logger.info("Assigned:"+str(variant.default_code))
