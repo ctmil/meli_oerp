@@ -1681,16 +1681,16 @@ class product_product(models.Model):
                     _v_default_code = _v_default_code + att.attribute_id.name+':'+att.name+';'
                 #_logger.info("_v_default_code: " + _v_default_code)
                 for variation in rjson['variations']:
-                    #_logger.info(variation)
-                    #_logger.info("variation[default_code]: " + variation["default_code"])
+                    _logger.info(variation)
+                    _logger.info("variation[default_code]: " + variation["default_code"])
                     is_v_comb = variant.is_variant_in_combination( variation["default_code"], _v_default_code )
-                    #_logger.info("variation[default_code]: " + variation["default_code"]+" is_v_comb:"+str(is_v_comb))
+                    _logger.info("variation[default_code]: " + variation["default_code"]+" is_v_comb:"+str(is_v_comb))
                     if ( len(variation["default_code"]) and is_v_comb):
                         if ("seller_custom_field" in variation or "seller_sku" in variation):
-                            #_logger.info("has_sku")
-                            #_logger.info(variation["seller_custom_field"])
+                            _logger.info("has_sku")
                             try:
-                                variant.default_code = ("seller_ku" in variation and variation["seller_sku"]) or ("seller_custom_field" in variation and variation["seller_custom_field"])
+                                variant.default_code = ("seller_sku" in variation and variation["seller_sku"]) or ("seller_custom_field" in variation and variation["seller_custom_field"])
+                                _logger.info("Assigned:"+str(variant.default_code))
                             except:
                                 pass;
                             variant.meli_id_variation = variation["id"]
@@ -1721,6 +1721,16 @@ class product_product(models.Model):
                         variant.meli_id_variation = variation["id"]
                         variant.meli_available_quantity = variation["available_quantity"]
                         #TODO post message to force user to set default_code and meli sku
+                        if ("seller_custom_field" in variation or "seller_sku" in variation):
+                            _logger.info("has_sku (no default_code)")
+                            #_logger.info(variation["seller_custom_field"])
+                            try:
+                                #if not variant.default_code:
+                                variant.default_code = ("seller_sku" in variation and variation["seller_sku"]) or ("seller_custom_field" in variation and variation["seller_custom_field"])
+                                _logger.info("Assigned:"+str(variant.default_code))
+                            except:
+                                pass;
+                            has_sku = True
 
                 if (has_sku):
                     variant.set_bom()
