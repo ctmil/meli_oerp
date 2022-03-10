@@ -270,6 +270,10 @@ class product_template_import(models.TransientModel):
     force_dont_create = fields.Boolean( string="No crear productos (Encontrar por SKU)", default=True )
     force_meli_pub = fields.Boolean(string="Force Meli Pub", default=True)
 
+    force_meli_website_published = fields.Boolean(string="Force Website Published", default=False)
+    force_meli_website_category_create_and_assign = fields.Boolean(string="Force Website Categories", default=False)
+
+
     def pretty_json( self, data ):
         return json.dumps( data, sort_keys=False, indent=4 )
 
@@ -294,6 +298,8 @@ class product_template_import(models.TransientModel):
             "force_meli_pub": self.force_meli_pub,
             "force_create_variants": self.force_create_variants,
             "force_dont_create": self.force_dont_create,
+            "force_meli_website_published": self.force_meli_website_published,
+            "force_meli_website_category_create_and_assign": self.force_meli_website_category_create_and_assign
         }
 
         _logger.info("product_template_import custom_context:"+str(custom_context))

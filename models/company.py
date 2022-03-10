@@ -388,8 +388,10 @@ class res_company(models.Model):
 
     mercadolibre_official_store_id = fields.Char(string="Official Store Id")
 
-    mercadolibre_filter_order_datetime = fields.Datetime("Order Closed Date")
-    mercadolibre_filter_order_datetime_to = fields.Datetime("Order Closed Date To")
+    mercadolibre_filter_order_datetime_start = fields.Datetime("Start Order Closed Date",help="Fecha a partir de la cual no se bloquean las entradas de pedidos desde ML")
+    #mercadolibre_filter_order_cron_max = fields.Integer(string="Cantidad de ordenes maximas a chequear por iteracion de cron")
+    mercadolibre_filter_order_datetime = fields.Datetime("Order Closed Date From",help="Fecha inicial para la importacion de pedidos (vacio: ultimas 50)")
+    mercadolibre_filter_order_datetime_to = fields.Datetime("Order Closed Date To",help="Fecha final para la importacion de pedidos (vacio: el dia de hoy)")
 
     mercadolibre_payment_term = fields.Many2one("account.payment.term",string="Payment Term")
 
@@ -462,6 +464,8 @@ class res_company(models.Model):
         force_create_variants = context and context.get("force_create_variants")
         force_dont_create = context and context.get("force_dont_create")
         force_meli_pub =  context and context.get("force_meli_pub")
+        force_meli_website_published = context and context.get("force_meli_website_published")
+        force_meli_website_category_create_and_assign = context and context.get("force_meli_website_category_create_and_assign")
 
         meli = self.env['meli.util'].get_new_instance(company)
         if meli.need_login():
@@ -661,6 +665,10 @@ class res_company(models.Model):
                                     _logger.info( "Item meli_pub set" )
                                     posting_id.meli_pub = True
                                     posting_id.product_tmpl_id.meli_pub = True
+                                if force_meli_website_published:
+                                    posting_id.website_published = force_meli_website_published
+                                #if force_meli_website_category_create_and_assign:
+                                #    posting_id.website_published = force_meli_website_published
                                 synced.append( str(posting_id.mapped('name'))+str(posting_id.mapped('default_code')) )
                             else:
                                 duplicates.append(str(posting_id.mapped('name'))+str(posting_id.mapped('default_code')))
@@ -688,6 +696,8 @@ class res_company(models.Model):
                                     productcreated.meli_pub = True
                                     if (productcreated.product_tmpl_id):
                                         productcreated.product_tmpl_id.meli_pub = True
+                                if force_meli_website_published:
+                                    productcreated.website_published = force_meli_website_published
                                 _logger.info( "product created: " + str(productcreated) + " >> meli_id:" + str(rjson3['id']) + " >> " + str( rjson3['title'].encode("utf-8")) )
                                 #pdb.set_trace()
                                 _logger.info(productcreated)

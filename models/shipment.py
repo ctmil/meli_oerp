@@ -331,7 +331,7 @@ class mercadolibre_shipment(models.Model):
                         partner_id.phone = shipment.receiver_address_phone
                 #sorder.partner_id.state = ships.receiver_state
 
-            ship_name = shipment.tracking_method or (shipment.mode=="custom" and "Personalizado")
+            ship_name = shipment.tracking_method or (shipment.mode=="custom" and "Personalizado")  or (shipment.logistic_type=="self_service" and "Personalizado MFlex")
 
             if not ship_name or len(ship_name)==0:
                 continue;
