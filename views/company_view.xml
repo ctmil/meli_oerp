@@ -122,6 +122,7 @@
                               <group>
                                 <field name="mercadolibre_process_notifications" invisible="0"/>
                                 <field name="mercadolibre_cron_get_orders" invisible="0"/>
+                                <!--field name="mercadolibre_filter_order_datetime_start" invisible="0"/-->
                                 <field name="mercadolibre_filter_order_datetime" invisible="0"/>
                                 <field name="mercadolibre_filter_order_datetime_to" invisible="0"/>
                                 <field name="mercadolibre_cron_get_orders_shipment" invisible="0"/>
