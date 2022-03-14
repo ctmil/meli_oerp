@@ -323,7 +323,11 @@ class mercadolibre_category(models.Model):
                                     #prod_attrs = prod_attrs[0]
                                     for prod_attr in prod_attrs:
                                         #prod_attr['create_variant'] = prod_att.create_variant
-                                        prod_attr.write(prod_att)
+                                        try:
+                                            prod_attr.write(prod_att)
+                                        except Exception as E:
+                                            _logger.error("Error cambiando atributo: "+str(prod_attr))
+                                            _logger.info(E, exc_info=True)
                                     #if (len(prod_attrs)==1):
                                     #    if (prod_attrs.id):
                                     #        prod_att['create_variant'] = prod_attrs.create_variant
