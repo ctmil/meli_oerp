@@ -157,7 +157,7 @@
                       <group name="variantes">
                         <field name="meli_pub_as_variant" />
                         <field name="meli_pub_variant_attributes"  widget="many2many_checkboxes"  options="{'no_create': True}" domain="[('product_tmpl_id','=',id)]"/>
-                        <field name="meli_pub_principal_variant" invisible="0"/>
+                        <field name="meli_pub_principal_variant" invisible="0"  domain="[('product_tmpl_id','=',id)]"/>
                       </group>
                       <separator string="Catalogo" colspan="1"/>
                       <group name="catalogo">
@@ -417,7 +417,7 @@
                               <field name="meli_listing_type" />
                               <field name="meli_buying_mode" />
                               <field name="meli_price_fixed" />
-                              <field name="meli_price" />
+                              <field name="meli_price" attrs="{'readonly':[('meli_price_fixed', '=', False)]}"/>
                               <field name="meli_currency" />
                               <!--field name="meli_shipping_mode"/>
                               <field name="meli_shipping_method"/-->
@@ -467,6 +467,68 @@
             </field>
           </field>
         </record>
+
+
+        <record model="ir.ui.view" id="view_meli_oerp_product_pricelist_items_tree">
+            <field name="name">meli_oerp.product.pricelist.item.tree</field>
+            <field name="model">product.pricelist.item</field>
+            <field name="inherit_id" ref="product.product_pricelist_item_tree_view"/>
+            <field name="arch" type="xml">
+              <!--xpath expr="//field[@name='name']" position="before">
+                  <field name="pricelist_id"/>
+              </xpath-->
+              <xpath expr="//field[@name='name']" position="after">
+                  <field name="price"/>
+              </xpath>
+            </field>
+        </record>
+
+
+        <record id="meli_oerp_product_pricelist_items_search_view" model="ir.ui.view">
+        	<field name="name">Precios - Search</field>
+        	<field name="model">product.pricelist.item</field>
+        	<field name="arch" type="xml">
+        		<search  string="Search MercadoLibre PriceList Items">
+        			<field name="product_id"/>
+              <field name="pricelist_id"/>
+              <!--filter string="Producteca"
+    						domain="['|',('producteca_tmpl_bindings', '!=', False),('producteca_var_bindings', '!=', False)]"
+    						name="producteca_filter" /-->
+              <!--filter string="Compania TownConnection"
+    						domain="[('company_id','=',1)]"
+    						name="producteca_compania_town" /-->
+              <filter string="Agrupar por Lista"
+    						domain="[]"
+                context="{'group_by': 'pricelist_id'}"
+    						name="meli_oerp_agrupar_lista" />
+              <filter string="Agrupar por Cia"
+      						domain="[]"
+                  context="{'group_by': 'company_id'}"
+      						name="meli_oerp_agrupar_cia" />
+        		</search>
+        	</field>
+        </record>
+
+        <record model="ir.actions.act_window" id="action_meli_oerp_pricelist_items_tree">
+            <field name="name">Precios</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">product.pricelist.item</field>
+            <!--field name="view_type">form</field-->
+            <field name="view_mode">tree,form</field>
+            <field name="view_id" ref="view_meli_oerp_product_pricelist_items_tree"/>
+            <field name="search_view_id" ref="meli_oerp_product_pricelist_items_search_view" />
+            <!--field name="context">{"search_default_producteca_filter":1}</field-->
+            <!--field name="search_view_id" ref="producteca_sale_order_search_view" /-->
+        </record>
+
+        <menuitem id="menu_meli" name="MercadoLibre" parent="sale.sale_menu_root" sequence="9"/>
+
+
+        <menuitem id="menu_meli_oerp_pricelist_items"
+            action="action_meli_oerp_pricelist_items_tree"
+            parent="menu_meli"
+            name="Precios" sequence="9"/>
+
 
     </data>
 </odoo>

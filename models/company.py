@@ -171,7 +171,6 @@ class res_company(models.Model):
         _logger.info('company cron_meli_process() '+str(self))
 
         company = self.env.user.company_id
-        warningobj = self.pool.get('meli.warning')
 
         apistate = self.env['meli.util'].get_new_instance(company)
         if apistate.needlogin_state:
@@ -192,7 +191,6 @@ class res_company(models.Model):
     def cron_meli_process_post_stock( self, meli=None ):
 
         company = self.env.user.company_id
-        warningobj = self.pool.get('meli.warning')
 
         if not meli:
             meli = self.env['meli.util'].get_new_instance(company)
@@ -206,7 +204,6 @@ class res_company(models.Model):
     def cron_meli_process_post_price( self, meli=None ):
 
         company = self.env.user.company_id
-        warningobj = self.pool.get('meli.warning')
 
         if not meli:
             meli = self.env['meli.util'].get_new_instance(company)
@@ -220,7 +217,6 @@ class res_company(models.Model):
     def cron_meli_process_post_products( self, meli=None ):
 
         company = self.env.user.company_id
-        warningobj = self.pool.get('meli.warning')
 
         if not meli:
             meli = self.env['meli.util'].get_new_instance(company)
@@ -234,7 +230,6 @@ class res_company(models.Model):
     def cron_meli_process_get_products( self, meli=None ):
 
         company = self.env.user.company_id
-        warningobj = self.pool.get('meli.warning')
 
         if not meli:
             meli = self.env['meli.util'].get_new_instance(company)
@@ -253,7 +248,6 @@ class res_company(models.Model):
         _logger.info('company cron_meli_orders() ')
 
         company = self.env.user.company_id
-        warningobj = self.pool.get('meli.warning')
 
         apistate = self.env['meli.util'].get_new_instance(company)
         if apistate.needlogin_state:
@@ -267,7 +261,6 @@ class res_company(models.Model):
         _logger.info('company cron_meli_questions() ')
 
         company = self.env.user.company_id
-        warningobj = self.pool.get('meli.warning')
 
         apistate = self.env['meli.util'].get_new_instance(company)
         if apistate.needlogin_state:
@@ -330,11 +323,11 @@ class res_company(models.Model):
                                                 help='Condición del producto predeterminado')
     mercadolibre_warranty = fields.Char(string='Garantía', size=256, help='Garantía del producto predeterminado. Es obligatorio y debe ser un número seguido por una unidad temporal. Ej. 2 meses, 3 años.')
     mercadolibre_listing_type = fields.Selection([("free","Libre"),
-                                                ("bronze","Bronce"),
+                                                ("bronze","Bronce/Clásica-(UY)"),
                                                 ("silver","Plata"),
                                                 ("gold","Oro"),
-                                                ("gold_premium","Gold Premium"),
-                                                ("gold_special","Gold Special/Clásica"),
+                                                ("gold_premium","Gold Premium/Oro Premium"),
+                                                ("gold_special","Gold Special/Clásica/Premium-(UY)"),
                                                 ("gold_pro","Oro Pro")],
                                                 string='Tipo de lista',
                                                 help='Tipo de lista  predeterminada para todos los productos')
@@ -388,8 +381,10 @@ class res_company(models.Model):
 
     mercadolibre_official_store_id = fields.Char(string="Official Store Id")
 
-    mercadolibre_filter_order_datetime = fields.Datetime("Order Closed Date")
-    mercadolibre_filter_order_datetime_to = fields.Datetime("Order Closed Date To")
+    mercadolibre_filter_order_datetime_start = fields.Datetime("Start Order Closed Date",help="Fecha a partir de la cual no se bloquean las entradas de pedidos desde ML")
+    #mercadolibre_filter_order_cron_max = fields.Integer(string="Cantidad de ordenes maximas a chequear por iteracion de cron")
+    mercadolibre_filter_order_datetime = fields.Datetime("Order Closed Date From",help="Fecha inicial para la importacion de pedidos (vacio: ultimas 50)")
+    mercadolibre_filter_order_datetime_to = fields.Datetime("Order Closed Date To",help="Fecha final para la importacion de pedidos (vacio: el dia de hoy)")
 
     mercadolibre_payment_term = fields.Many2one("account.payment.term",string="Payment Term")
 
@@ -450,17 +445,41 @@ class res_company(models.Model):
         self.product_meli_get_products()
         return {}
 
-    def product_meli_get_products( self ):
-        _logger.info('company.product_meli_get_products() ')
+    def product_meli_get_products( self, context=None ):
+        context = context or self.env.context
+        _logger.info('company.product_meli_get_products() context: '+str(context))
         company = self.env.user.company_id
         product_obj = self.pool.get('product.product')
+        warningobj = self.env['meli.warning']
+
+        post_state = context and context.get("post_state")
+        meli_id = context and context.get("meli_id")
+        force_create_variants = context and context.get("force_create_variants")
+        force_dont_create = context and context.get("force_dont_create")
+        force_meli_pub =  context and context.get("force_meli_pub")
+        force_meli_website_published = context and context.get("force_meli_website_published")
+        force_meli_website_category_create_and_assign = context and context.get("force_meli_website_category_create_and_assign")
 
         meli = self.env['meli.util'].get_new_instance(company)
         if meli.need_login():
             return meli.redirect_login()
 
         results = []
-        response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token,'offset': 0 })
+
+        post_state_filter = {}
+        if post_state:
+            if post_state=='active':
+                post_state_filter = { 'status': 'active' }
+            if post_state=='paused':
+                post_state_filter = { 'status': 'paused' }
+            if post_state=='closed':
+                post_state_filter = { 'status': 'closed' }
+        if meli_id:
+            post_state_filter.update( { 'meli_id': meli_id } )
+
+        response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token,
+                                                                                        'offset': 0,
+                                                                                        **post_state_filter } )
         rjson = response.json()
         _logger.info( rjson )
 
@@ -485,7 +504,8 @@ class res_company(models.Model):
             response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search",
                                 {'access_token':meli.access_token,
                                 'search_type': 'scan',
-                                'limit': '100' })
+                                'limit': '100',
+                                **post_state_filter })
             rjson = response.json()
             _logger.info( rjson )
 
@@ -505,7 +525,8 @@ class res_company(models.Model):
                     'access_token':meli.access_token,
                     'search_type': 'scan',
                     'scroll_id': scroll_id,
-                    'limit': '100'
+                    'limit': '100',
+                    **post_state_filter
                     })
                 rjson2 = response.json()
                 if 'error' in rjson2:
@@ -559,6 +580,10 @@ class res_company(models.Model):
         iitem = 0
         icommit = 0
         micom = 5
+        duplicates = []
+        missing = []
+        synced = []
+        res = {}
         if (results):
             self._cr.autocommit(False)
             try:
@@ -574,6 +599,7 @@ class res_company(models.Model):
 
                     response = meli.get("/items/"+item_id, {'access_token':meli.access_token})
                     rjson3 = response.json()
+                    seller_sku = None
                     if ( ( not posting_id or len(posting_id)==0 ) and company.mercadolibre_import_search_sku ):
                         seller_sku = None
                         if ('seller_custom_field' in rjson3 and rjson3['seller_custom_field'] and len(rjson3['seller_custom_field'])):
@@ -588,20 +614,62 @@ class res_company(models.Model):
                             if (not posting_id or len(posting_id)==0):
                                 posting_id = self.env['product.template'].search([('default_code','=ilike',seller_sku)])
                                 if posting_id:
-                                    _logger.info("Founded template with default code, dont know how to handle it. seller_sku: "+str(seller_sku)+" template: "+str(posting_id))
+                                    if (len(posting_id)==1):
+                                        _logger.info("Founded template with default code, dont know how to handle it. seller_sku: "+str(seller_sku)+" template: "+str(posting_id.mapped('name')))
+                                    if (len(posting_id)>1):
+                                        _logger.error("Founded templates more than 2 default code: seller_sku: "+str(seller_sku)+" template: "+str(posting_id.mapped('name')))
                             else:
-                                posting_id.meli_id = item_id
+                                if (len(posting_id)==1):
+                                    posting_id.meli_id = item_id
+                                if (len(posting_id)>1):
+                                    _logger.error("Founded templates more than 2 default code: seller_sku: "+str(seller_sku)+" template: "+str(posting_id.mapped('name')))
+
+                        #Set or and search  using variation id
                         if ('variations' in rjson3):
                             for var in rjson3['variations']:
                                 if ('seller_custom_field' in var and var['seller_custom_field'] and len(var['seller_custom_field'])):
                                     posting_id = self.env['product.product'].search([('default_code','=',var['seller_custom_field'])])
-                                    if (posting_id):
+                                    if (posting_id and len(posting_id)==1):
+                                        posting_id.meli_id = item_id
+                                        if (len(posting_id.product_tmpl_id.product_variant_ids)>1):
+                                            posting_id.meli_id_variation = var['id']
+                                if (not posting_id  and 'seller_sku' in var and var['seller_sku'] and len(var['seller_sku'])):
+                                    posting_id = self.env['product.product'].search([('default_code','=',var['seller_sku'])])
+                                    if (posting_id and len(posting_id)==1):
+                                        posting_id.meli_id = item_id
+                                        if (len(posting_id.product_tmpl_id.product_variant_ids)>1):
+                                            posting_id.meli_id_variation = var['id']
+                                if not posting_id  and not seller_sku and "attributes" in var:
+                                    for att in var['attributes']:
+                                        if att["id"] == "SELLER_SKU":
+                                            seller_sku = att["values"][0]["name"]
+                                            break;
+                                    posting_id = seller_sku and self.env['product.product'].search([('default_code','=',seller_sku) ])
+                                    if (posting_id and seller_sku and len(posting_id)==1):
                                         posting_id.meli_id = item_id
                                         if (len(posting_id.product_tmpl_id.product_variant_ids)>1):
                                             posting_id.meli_id_variation = var['id']
 
-                    if (posting_id):
-                        _logger.info( "Item already in database: " + str(posting_id[0]) )
+                    if (posting_id or force_dont_create):
+                        if posting_id:
+                            if (len(posting_id)==1):
+                                _logger.info( "Item already in database: " + str(posting_id[0]) )
+                                if force_meli_pub:
+                                    _logger.info( "Item meli_pub set" )
+                                    posting_id.meli_pub = True
+                                    posting_id.product_tmpl_id.meli_pub = True
+                                if force_meli_website_published:
+                                    posting_id.website_published = force_meli_website_published
+                                #if force_meli_website_category_create_and_assign:
+                                #    posting_id.website_published = force_meli_website_published
+                                synced.append( str(posting_id.mapped('name'))+str(posting_id.mapped('default_code')) )
+                            else:
+                                duplicates.append(str(posting_id.mapped('name'))+str(posting_id.mapped('default_code')))
+                                _logger.error( "Item already in database but duplicated: " + str(posting_id.mapped('name')) + " skus:" + str(posting_id.mapped('default_code')) )
+                        else:
+                            missing.append("meli_id: "+str(item_id) + " seller_sku: " +str(seller_sku))
+                            _logger.info( "Item not in database, no sync founded for meli_id: "+str(item_id) + " seller_sku: " +str(seller_sku) )
+                        self._cr.commit()
                     #elif (not company.mercadolibre_import_search_sku):
                     else:
                         #idcreated = self.pool.get('product.product').create(cr,uid,{ 'name': rjson3['title'], 'meli_id': rjson3['id'] })
@@ -610,27 +678,63 @@ class res_company(models.Model):
                                 'name': rjson3['title'].encode("utf-8"),
                                 'description': rjson3['title'].encode("utf-8"),
                                 'meli_id': rjson3['id'],
-                                'meli_pub': True,
+                                'meli_pub': False,
                                 'type': 'product'
                             }
                             #prod_fields['default_code'] = rjson3['id']
                             productcreated = self.env['product.product'].create((prod_fields))
                             if (productcreated):
-                                if (productcreated.product_tmpl_id):
-                                    productcreated.product_tmpl_id.meli_pub = True
+                                if force_meli_pub:
+                                    _logger.info( "Item meli_pub set" )
+                                    productcreated.meli_pub = True
+                                    if (productcreated.product_tmpl_id):
+                                        productcreated.product_tmpl_id.meli_pub = True
+                                if force_meli_website_published:
+                                    productcreated.website_published = force_meli_website_published
                                 _logger.info( "product created: " + str(productcreated) + " >> meli_id:" + str(rjson3['id']) + " >> " + str( rjson3['title'].encode("utf-8")) )
                                 #pdb.set_trace()
                                 _logger.info(productcreated)
                                 productcreated.product_meli_get_product()
+                                self._cr.commit()
                             else:
                                 _logger.info( "product couldnt be created")
                         else:
                             _logger.info( "product error: " + str(rjson3) )
+
+                _logger.info("Synced: "+str(synced))
+                _logger.info("Duplicates: "+str(duplicates))
+                _logger.info("Missing: "+str(missing))
+
             except Exception as e:
                 _logger.info("product_meli_get_products Exception!")
                 _logger.info(e, exc_info=True)
+                _logger.info("Synced: "+str(synced))
+                _logger.info("Duplicates: "+str(duplicates))
+                _logger.info("Missing: "+str(missing))
                 self._cr.rollback()
-        return {}
+
+            html_report = "<h2>Reporte Importación</h2>"
+
+            html_report+= "<h4>Syncronizados</h4>"
+            for pub in synced:
+                #
+                html_report+= "<br/>"+pub
+
+            html_report+= "<h4>Duplicados</h4>"
+            for pub in duplicates:
+                #
+                html_report+= "<br/>"+pub
+
+            html_report+= "<h4>Faltantes</h4>"
+            for pub in missing:
+                #
+                html_report+= "<br/>"+pub
+
+            res = warningobj.info( title='MELI INFO IMPORT',
+                                          message="Reporte de Importación",
+                                          message_html=""+html_report )
+
+        return res
 
 
     def meli_update_local_products(self):

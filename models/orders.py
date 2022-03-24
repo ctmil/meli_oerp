@@ -290,13 +290,17 @@ class sale_order(models.Model):
 
             stock_picking = self.env["stock.picking"]
 
+            #cancelling with no conditions, here because paid_amount is 0, dont use confirm_cond
+            if (self.meli_status=="cancelled"):
+                if (self.state in ["draft","sale","sent"]):
+                    self.action_cancel()
+                    _logger.info("Confirm Order Cancelled")
+                return res
+
             amount_to_invoice = self.meli_amount_to_invoice( meli=meli, config=config )
-            confirm_cond = (amount_to_invoice > 0)
+            confirm_cond = (amount_to_invoice > 0) and abs( float(amount_to_invoice) - self.amount_total ) < 1.1
             if not confirm_cond:
                 return {'error': "Condition not met: meli_paid_amount and amount_total doesn't match"}
-
-            if (self.meli_status=="cancelled"):
-                self.action_cancel()
 
             if (config.mercadolibre_order_confirmation and "paid_confirm" in config.mercadolibre_order_confirmation):
 
@@ -706,11 +710,18 @@ class mercadolibre_orders(models.Model):
 
         order_fields = self.prepare_ml_order_vals( order_json=order_json, meli=meli, config=config )
 
+        if (    "mercadolibre_filter_order_datetime_start" in config._fields
+                and "date_closed" in order_fields
+                and config.mercadolibre_filter_order_datetime_start
+                and config.mercadolibre_filter_order_datetime_start>parse(order_fields["date_closed"]) ):
+            return { "error": "orden filtrada por fecha START > " + str(order_fields["date_closed"]) + " inferior a "+str(ml_datetime(config.mercadolibre_filter_order_datetime_start)) }
+
+
         if (    "mercadolibre_filter_order_datetime" in config._fields
                 and "date_closed" in order_fields
                 and config.mercadolibre_filter_order_datetime
                 and config.mercadolibre_filter_order_datetime>parse(order_fields["date_closed"]) ):
-            return { "error": "orden filtrada por fecha > " + str(order_fields["date_closed"]) + " inferior a "+str(ml_datetime(config.mercadolibre_filter_order_datetime)) }
+            return { "error": "orden filtrada por FROM > " + str(order_fields["date_closed"]) + " inferior a "+str(ml_datetime(config.mercadolibre_filter_order_datetime)) }
 
         if (    "mercadolibre_filter_order_datetime_to" in config._fields
                 and "date_closed" in order_fields
@@ -1122,6 +1133,35 @@ class mercadolibre_orders(models.Model):
                         meli_buyer_fields['l10n_latam_identification_type_id'] = self.env['l10n_latam.identification.type'].search([('l10n_co_document_code','=','rut'),('country_id','=',company.country_id.id)],limit=1).id
 
 
+                #Uruguay 13.0
+                if ("tipodocumento_ids" in self.env['res.partner']._fields):
+
+                    #OTROS
+                    sibra_ci = self.env['sibra_addon_fe.tipodocumento'].search([('codigo','=',4)],limit=1)
+
+                    if (Buyer['billing_info']['doc_type']=="CI"):
+
+                        sibra_ci = self.env['sibra_addon_fe.tipodocumento'].search([('codigo','=',3)],limit=1)
+                        if sibra_ci:
+                            meli_buyer_fields['tipodocumento_ids'] = sibra_ci.id
+
+                    elif (Buyer['billing_info']['doc_type']=="RUT"):
+
+                        sibra_ci = self.env['sibra_addon_fe.tipodocumento'].search([('codigo','=',2)],limit=1)
+                        if sibra_ci:
+                            meli_buyer_fields['tipodocumento_ids'] = sibra_ci.id
+
+                    else:
+                        if sibra_ci:
+                            meli_buyer_fields['tipodocumento_ids'] = sibra_ci.id
+
+                    if ("documento" in self.env['res.partner']._fields and Buyer['billing_info']['doc_number']):
+                        meli_buyer_fields['documento'] = Buyer['billing_info']['doc_number']
+
+                    if ("property_payment_term_id" in self.env['res.partner']._fields):
+                        meli_buyer_fields['property_payment_term_id'] = config.mercadolibre_payment_term and config.mercadolibre_payment_term.id
+
+
             partner_ids = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ] )
             if (len(partner_ids)>0):
                 partner_id = partner_ids[0]
@@ -1144,6 +1184,9 @@ class mercadolibre_orders(models.Model):
                 #_logger.info(meli_buyer_fields)
                 #complete country at most:
                 partner_update = {}
+
+                if "documento" in meli_buyer_fields:
+                    partner_update.update(meli_buyer_fields)
 
                 #TODO: re DO with, self.update_billing_data( partner_id, meli_buyer_fields )
                 if "document_type_id" in meli_buyer_fields and str(meli_buyer_fields['document_type_id'])!=str(partner_id.document_type_id and partner_id.document_type_id.id):
@@ -1347,7 +1390,7 @@ class mercadolibre_orders(models.Model):
                     return { 'error': 'No post related, exiting'}
 
                 product_related = order.search_meli_product( meli=meli, meli_item=Item['item'], config=config )
-                if ( len(product_related)==0 and ('seller_custom_field' in Item['item'] or 'seller_sku' in Item['item'])):
+                if ( product_related and len(product_related)==0 and ('seller_custom_field' in Item['item'] or 'seller_sku' in Item['item'])):
 
                     #1ST attempt "seller_sku" or "seller_custom_field"
                     seller_sku = ('seller_sku' in Item['item'] and Item['item']['seller_sku']) or ('seller_custom_field' in Item['item'] and Item['item']['seller_custom_field'])
@@ -1611,7 +1654,7 @@ class mercadolibre_orders(models.Model):
             if (config.mercadolibre_order_confirmation!="manual"):
                 sorder.confirm_ml( meli=meli, config=config )
 
-            if (sorder.meli_status=="cancelled"):
+            if (sorder.meli_status=="cancelled" and sorder.state in ["draft","sale","sent"]):
                 sorder.action_cancel()
 
         return {}
@@ -1948,7 +1991,7 @@ class sale_order_cancel_wiz_meli(models.TransientModel):
                 _logger.info("cancel_order: %s " % (order_id) )
 
                 order = orders_obj.browse(order_id)
-                if order:
+                if (order and order.state in ["draft","sale","sent"]):
                     order.action_cancel()
 
         except Exception as e:

@@ -480,8 +480,6 @@ class product_template(models.Model):
     #meli_permalink = fields.Char( compute=product_template_permalink, size=256, string='Link',help='PermaLink in MercadoLibre', store=True )
     meli_permalink_edit = fields.Char( compute=product_template_permalink, size=256, string='Link Edit',help='PermaLink Edit in MercadoLibre', store=True )
 
-
-
 product_template()
 
 class product_product(models.Model):
@@ -1324,6 +1322,30 @@ class product_product(models.Model):
                 break;
         return is_in
 
+    def product_fix_variant( self ):
+        # ptmpl: attribute_lines = self.valid_product_template_attribute_line_ids.filtered(lambda ptal: ptal not in necessary_attribute_lines)
+        # este da nulo: variant = self._get_variant_for_combination(combination)
+        # combination product.template.attribute.value(2805, 2806, 2809, 2807, 2808, 2810)
+        # filtered_combination = combination._without_no_variant_attributes()
+        #filtered_combination: 0.product.template.attribute.value(2806, 2809, 2807, 2808)
+        # el combination_indices son los variant.product_template_attribute_value_ids en formato array de IDS
+
+        #product_template
+        #def _get_variant_for_combination(self, combination):
+        #    self.ensure_one()
+        #    filtered_combination = combination._without_no_variant_attributes()
+        #    return self.env['product.product'].browse(self._get_variant_id_for_combination(filtered_combination))
+
+        #(2, ID) remove and delete
+        # (3, ID) cut the link to the linked record with id = ID (delete the relationship between the two objects but does not delete the target object itself)
+
+        #@api.depends('product_template_attribute_value_ids')
+        #def _compute_combination_indices( self ):
+        #    for product in self:
+        #        product.combination_indices = product.product_template_attribute_value_ids._ids2str()
+        return
+
+
     def product_meli_get_product( self, context=None, meli_id=None ):
         company = self.env.user.company_id
 
@@ -1382,7 +1404,7 @@ class product_product(models.Model):
 
         #TODO: traer la descripcion: con
         #https://api.mercadolibre.com/items/{ITEM_ID}/description?access_token=$ACCESS_TOKEN
-        if rjson and 'descriptions' in rjson and rjson['descriptions']:
+        if rjson and 'descriptions' in rjson:
             response2 = meli.get("/items/"+str(meli_id)+"/description", {'access_token':meli.access_token})
             rjson2 = response2.json()
             if 'text' in rjson2:
@@ -1668,7 +1690,8 @@ class product_product(models.Model):
                             #_logger.info("has_sku")
                             #_logger.info(variation["seller_custom_field"])
                             try:
-                                variant.default_code = ("seller_ku" in variation and variation["seller_sku"]) or ("seller_custom_field" in variation and variation["seller_custom_field"])
+                                variant.default_code = ("seller_sku" in variation and variation["seller_sku"]) or ("seller_custom_field" in variation and variation["seller_custom_field"])
+                                _logger.info("Assigned:"+str(variant.default_code))
                             except:
                                 pass;
                             variant.meli_id_variation = variation["id"]
@@ -1699,6 +1722,16 @@ class product_product(models.Model):
                         variant.meli_id_variation = variation["id"]
                         variant.meli_available_quantity = variation["available_quantity"]
                         #TODO post message to force user to set default_code and meli sku
+                        if ("seller_custom_field" in variation or "seller_sku" in variation):
+                            _logger.info("has_sku (no default_code)")
+                            #_logger.info(variation["seller_custom_field"])
+                            try:
+                                #if not variant.default_code:
+                                variant.default_code = ("seller_sku" in variation and variation["seller_sku"]) or ("seller_custom_field" in variation and variation["seller_custom_field"])
+                                _logger.info("Assigned:"+str(variant.default_code))
+                            except:
+                                pass;
+                            has_sku = True
 
                 if (has_sku):
                     variant.set_bom()

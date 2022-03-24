@@ -22,6 +22,9 @@ meli_errors = {
     "body.invalid_field_types": "Tipo de valor de propiedad de campo inválido (revisar términos de venta, garantia, etc...)"
 }
 
+
+
+
 class warning1(models.TransientModel):
     _name = 'warning'
     _description = 'warning'
@@ -72,7 +75,7 @@ class warning(models.TransientModel):
             rerror = "error" in rjson and rjson["error"]
             alertstatus = 'warning'
             
-            if rstatus in ["error"]:
+            if rstatus in ["error",403]:
                 title = "ERROR MELI: " + title
                 alertstatus = 'error'                
             
@@ -92,7 +95,7 @@ class warning(models.TransientModel):
                     if rmess == "error":
                         ecode = rmessage[rmess]
                         ecodemess = (ecode in meli_errors and meli_errors[ecode]) or ecode
-                        message_html = '<div role="alert" class="alert alert-'+str(alertstatus)+'" title="Meli Message"><i class="fa fa-'+str(alertstatusico)+'" role="img" aria-label="Meli Message"/> %s </div>' % (ecodemess)
+                        message_html = '<div role="alert" class="alert alert-'+str(alertstatus)+'" title="Meli Message"><i class="fa fa-'+str(alertstatusico)+'" role="img" aria-label="Meli Message"/> %s </div>' % (str(ecodemess))
                     if rmess == "message":
                         message = rmessage[rmess]
                         #message_html+= "<br/>"+str(rmessage[rmess])
@@ -103,15 +106,23 @@ class warning(models.TransientModel):
                         ecause = rmessage[rmess]
                         if len(ecause):
                             for eca in ecause:
-                                ecatype = eca["type"]                                
-                                ecacode = eca["code"]
-                                ecamess = eca["message"]
+                                if type(eca)==dict:
+                                    ecatype = "type" in eca and eca["type"]                                
+                                    ecacode = "code" in eca and eca["code"]
+                                    ecamess = "message" in eca and eca["message"]
+                                else:
+                                    ecatype = "error"
+                                    ecacode = "Forbidden"
+                                    ecamess = str(eca)
+
+                                ecacodemess = (ecacode in meli_errors and meli_errors[ecacode]) or ecacode
                                 ecaalertstatus = (ecatype in ["error"] and "danger" ) or ecatype
                                 ecatypeicon = (ecatype in ["error"] and "times-circle" ) or ecatype
-                                ecacodemess = (ecacode in meli_errors and meli_errors[ecacode]) or ecacode
-                                ecacodemess = "<strong>"+ecacodemess+"</strong><br/>"
-                                ecacodemess+= ecamess
-                                message_html+= '<div role="alert" class="alert alert-'+ecaalertstatus+'" title="Meli Message, Code: '+ecacode+'"><i class="fa fa-'+ecatypeicon+'" role="img" aria-label="Meli Message"/> %s </div>' % (ecacodemess)
+
+
+                                ecacodemess = "<strong>"+str(ecacodemess)+"</strong><br/>"
+                                ecacodemess+= str(ecamess)
+                                message_html+= '<div role="alert" class="alert alert-'+str(ecaalertstatus)+'" title="Meli Message, Code: '+str(ecacode)+'"><i class="fa fa-'+str(ecatypeicon)+'" role="img" aria-label="Meli Message"/> %s </div>' % (str(ecacodemess))
             elif type(rmessage)==str:
                 ecode = rmessage
                 ecodemess = (ecode in meli_errors and meli_errors[ecode]) or ecode
