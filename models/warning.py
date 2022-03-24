@@ -22,6 +22,9 @@ meli_errors = {
     "body.invalid_field_types": "Tipo de valor de propiedad de campo inválido (revisar términos de venta, garantia, etc...)"
 }
 
+
+
+
 class warning1(models.TransientModel):
     _name = 'warning'
     _description = 'warning'
