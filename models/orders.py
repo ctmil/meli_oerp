@@ -292,12 +292,13 @@ class sale_order(models.Model):
 
             #cancelling with no conditions, here because paid_amount is 0, dont use confirm_cond
             if (self.meli_status=="cancelled"):
-                self.action_cancel()
-                _logger.info("Confirm Order Cancelled")
+                if (self.state in ["draft","sale","sent"]):
+                    self.action_cancel()
+                    _logger.info("Confirm Order Cancelled")
                 return res
 
             amount_to_invoice = self.meli_amount_to_invoice( meli=meli, config=config )
-            confirm_cond = (amount_to_invoice > 0)
+            confirm_cond = (amount_to_invoice > 0) and abs( float(amount_to_invoice) - self.amount_total ) < 1.1
             if not confirm_cond:
                 return {'error': "Condition not met: meli_paid_amount and amount_total doesn't match"}
 
@@ -1653,7 +1654,7 @@ class mercadolibre_orders(models.Model):
             if (config.mercadolibre_order_confirmation!="manual"):
                 sorder.confirm_ml( meli=meli, config=config )
 
-            if (sorder.meli_status=="cancelled"):
+            if (sorder.meli_status=="cancelled" and sorder.state in ["draft","sale","sent"]):
                 sorder.action_cancel()
 
         return {}
@@ -1990,7 +1991,7 @@ class sale_order_cancel_wiz_meli(models.TransientModel):
                 _logger.info("cancel_order: %s " % (order_id) )
 
                 order = orders_obj.browse(order_id)
-                if order:
+                if (order and order.state in ["draft","sale","sent"]):
                     order.action_cancel()
 
         except Exception as e:

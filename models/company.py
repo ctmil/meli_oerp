@@ -323,11 +323,11 @@ class res_company(models.Model):
                                                 help='Condición del producto predeterminado')
     mercadolibre_warranty = fields.Char(string='Garantía', size=256, help='Garantía del producto predeterminado. Es obligatorio y debe ser un número seguido por una unidad temporal. Ej. 2 meses, 3 años.')
     mercadolibre_listing_type = fields.Selection([("free","Libre"),
-                                                ("bronze","Bronce"),
+                                                ("bronze","Bronce/Clásica-(UY)"),
                                                 ("silver","Plata"),
                                                 ("gold","Oro"),
-                                                ("gold_premium","Gold Premium"),
-                                                ("gold_special","Gold Special/Clásica"),
+                                                ("gold_premium","Gold Premium/Oro Premium"),
+                                                ("gold_special","Gold Special/Clásica/Premium-(UY)"),
                                                 ("gold_pro","Oro Pro")],
                                                 string='Tipo de lista',
                                                 help='Tipo de lista  predeterminada para todos los productos')

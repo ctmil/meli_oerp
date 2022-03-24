@@ -235,8 +235,8 @@
             <field name="inherit_id" ref="product.product_template_tree_view"/>
             <field name="arch" type="xml">
                 <field name="virtual_available" position="after">
-                    <field name="meli_stock_error" invisible="0" />
-                    <field name="meli_permalink_edit" invisible="0" widget="url"/>
+                    <field name="meli_stock_error" invisible="0" optional="hide"/>
+                    <field name="meli_permalink_edit" invisible="0" widget="url" optional="hide"/>
                 </field>
             </field>
         </record>
@@ -253,8 +253,8 @@
                     <field name="meli_id_variation" invisible="0"/>
                     <field name="meli_status" invisible="0"/>
                     <field name="meli_sub_status" invisible="0"/>
-                    <field name="meli_stock_error" invisible="0"/>
-                    <field name="meli_permalink_edit" invisible="0"/>
+                    <field name="meli_stock_error" invisible="0"  optional="hide"/>
+                    <field name="meli_permalink_edit" invisible="0"  optional="hide"/>
                 </field>
             </field>
         </record>
