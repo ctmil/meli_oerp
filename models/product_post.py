@@ -298,10 +298,80 @@ class product_template_import(models.TransientModel):
 
     def check_import_status(self):
          _logger.info('Processing import status ' + str(self.import_status))
+
+         company = self.env.user.company_id
+         product_obj = self.pool.get('product.product')
+
+         meli = self.env['meli.util'].get_new_instance(company)
+         if meli.need_login():
+             return meli.redirect_login()
+
+        results = []
+        post_state_filter = {}
+
+
+
+        post_state_filter = { 'status': 'active' }
+        if meli_id:
+            post_state_filter.update( { 'meli_id': meli_id } )
+        response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token,
+                                                                                        'offset': 0,
+                                                                                        **post_state_filter } )
+        rjson = response.json()
+        _logger.info( rjson )
+        if 'error' in rjson:
+            _logger.error(rjson)
+        if 'results' in rjson:
+            results = rjson['results']
+        totalmax = 0
+        if 'paging' in rjson:
+            totalmax = rjson['paging']['total']
+        _logger.info( "totalmax: "+str(totalmax) )
+        self.actives_to_sync = str(totalmax)
+
+        post_state_filter = { 'status': 'paused' }
+        if meli_id:
+            post_state_filter.update( { 'meli_id': meli_id } )
+        response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token,
+                                                                                        'offset': 0,
+                                                                                        **post_state_filter } )
+        rjson = response.json()
+        _logger.info( rjson )
+        if 'error' in rjson:
+            _logger.error(rjson)
+        if 'results' in rjson:
+            results = rjson['results']
+        totalmax = 0
+        if 'paging' in rjson:
+            totalmax = rjson['paging']['total']
+        _logger.info( "totalmax: "+str(totalmax) )
+        self.paused_to_sync = str(totalmax)
+
+
+
+        post_state_filter = { 'status': 'closed' }
+        if meli_id:
+            post_state_filter.update( { 'meli_id': meli_id } )
+        response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token,
+                                                                                        'offset': 0,
+                                                                                        **post_state_filter } )
+
+        rjson = response.json()
+        _logger.info( rjson )
+        if 'error' in rjson:
+            _logger.error(rjson)
+        if 'results' in rjson:
+            results = rjson['results']
+        totalmax = 0
+        if 'paging' in rjson:
+            totalmax = rjson['paging']['total']
+        _logger.info( "totalmax: "+str(totalmax) )
+        self.closed_to_sync = str(totalmax)
+
+
          return {
                 "type": "set_scrollTop",
             }
-         return None
 
     def product_template_import(self, context=None):
 
