@@ -297,14 +297,14 @@ class product_template_import(models.TransientModel):
         return json.dumps( data, sort_keys=False, indent=4 )
 
     def check_import_status(self):
-         _logger.info('Processing import status ' + str(self.import_status))
+        _logger.info('Processing import status ' + str(self.import_status))
 
-         company = self.env.user.company_id
-         product_obj = self.pool.get('product.product')
+        company = self.env.user.company_id
+        product_obj = self.pool.get('product.product')
 
-         meli = self.env['meli.util'].get_new_instance(company)
-         if meli.need_login():
-             return meli.redirect_login()
+        meli = self.env['meli.util'].get_new_instance(company)
+        if meli.need_login():
+         return meli.redirect_login()
 
         results = []
         post_state_filter = {}
