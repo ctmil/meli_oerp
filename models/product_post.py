@@ -26,6 +26,8 @@ import logging
 _logger = logging.getLogger(__name__)
 
 import json
+import base64
+import mimetypes
 from datetime import datetime
 
 #from bottle import Bottle, run, template, route, request
