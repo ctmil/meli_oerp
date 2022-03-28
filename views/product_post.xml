@@ -102,6 +102,7 @@
 
                         <h4>Batch Processing</h4>
                         <field name="batch_processing_unit"/>
+                        <field name="batch_processing_unit_offset"/>
                         <field name="batch_processing_status" readonly="1"/>
                         <field name="batch_processing" readonly="1"/>
 
