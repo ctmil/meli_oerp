@@ -111,6 +111,8 @@
                         <field name="paused_to_sync" readonly="1"/>
                         <field name="closed_to_sync" readonly="1"/>
 
+                        <h4>Import Report</h4>
+                        <field name="report_import" readonly="1"/>
 
 
                       </group>
