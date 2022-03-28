@@ -287,7 +287,7 @@ class product_template_import(models.TransientModel):
                 imp.actives_to_sync = str(sync_status['actives_to_sync'])
                 imp.paused_to_sync = str(sync_status['paused_to_sync'])
                 imp.closed_to_sync = str(sync_status['closed_to_sync'])
-                imp.report_import = 'report_import' in sync_status and sync_status['report_import']
+                imp.report_import = 'report_import' in sync_status and sync_status['report_import'].id
                 if imp.report_import:
                     imp.report_import_link = 'report_import_link' in sync_status and str(sync_status['report_import_link'])
                     _logger.info('_calculate_sync_status: imp.report_import_link > ' + str(imp.report_import_link))
@@ -500,8 +500,8 @@ class product_template_import(models.TransientModel):
 
             csv_report_attachment_link= ''
             if csv_report_attachment:
-                self.report_import = csv_report_attachment
-                csv_report_attachment_link = "/web/content/"+str(self.report_import.id)+"?download=true&access_token="+str(self.report_import.access_token)
+                self.report_import = csv_report_attachment.id
+                csv_report_attachment_link = "/web/content/"+str(csv_report_attachment.id)+"?download=true&access_token="+str(csv_report_attachment.access_token)
                 self.report_import_link = csv_report_attachment_link
                 #<a class="fa fa-download" t-attf-title="Download Attachment {{asset.name}}" t-attf-href="/web/content/#{asset.attachment.id}?download=true&amp;access_token=#{asset.attachment.access_token}" target="_blank"></a>
 
