@@ -292,7 +292,8 @@ class product_template_import(models.TransientModel):
     force_meli_website_published = fields.Boolean(string="Force Website Published", default=False)
     force_meli_website_category_create_and_assign = fields.Boolean(string="Force Website Categories", default=False)
 
-    batch_processing_unit = fields.Integer(string="Numero de lotes a procesar por iteracion (0 - 100)", default=0 )
+    batch_processing_unit = fields.Integer(string="Numero de lotes a procesar por iteracion (0 - 100)", default=50 )
+    batch_processing_unit_offset = fields.Integer(string="Offset", default=0 )
     batch_processing_status = fields.Char(string="Status proceso por lotes")
     batch_processing = fields.Boolean(string="Batch Processing Active",default=False)
 
@@ -405,7 +406,9 @@ class product_template_import(models.TransientModel):
             "force_create_variants": self.force_create_variants,
             "force_dont_create": self.force_dont_create,
             "force_meli_website_published": self.force_meli_website_published,
-            "force_meli_website_category_create_and_assign": self.force_meli_website_category_create_and_assign
+            "force_meli_website_category_create_and_assign": self.force_meli_website_category_create_and_assign,
+            "batch_processing_unit": self.batch_processing_unit,
+            "batch_processing_unit_offset": self.batch_processing_unit_offset,
         }
 
         _logger.info("product_template_import custom_context:"+str(custom_context))

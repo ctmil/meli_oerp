@@ -459,6 +459,10 @@ class res_company(models.Model):
         force_meli_pub =  context and context.get("force_meli_pub")
         force_meli_website_published = context and context.get("force_meli_website_published")
         force_meli_website_category_create_and_assign = context and context.get("force_meli_website_category_create_and_assign")
+        batch_processing_unit = context and context.get("batch_processing_unit")
+        batch_processing_unit_offset = context and context.get("batch_processing_unit_offset")
+        search_limit = batch_processing_unit or 100
+        search_offset = batch_processing_unit_offset or 0
 
         meli = self.env['meli.util'].get_new_instance(company)
         if meli.need_login():
@@ -504,7 +508,7 @@ class res_company(models.Model):
             response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search",
                                 {'access_token':meli.access_token,
                                 'search_type': 'scan',
-                                'limit': '100',
+                                'limit': str(search_limit),
                                 **post_state_filter })
             rjson = response.json()
             _logger.info( rjson )
@@ -525,7 +529,7 @@ class res_company(models.Model):
                     'access_token':meli.access_token,
                     'search_type': 'scan',
                     'scroll_id': scroll_id,
-                    'limit': '100',
+                    'limit': str(search_limit),
                     **post_state_filter
                     })
                 rjson2 = response.json()
