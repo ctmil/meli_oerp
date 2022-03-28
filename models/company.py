@@ -561,7 +561,11 @@ class res_company(models.Model):
             condition_last_off = False
             while (condition_last_off!=True):
                 _logger.info( "Prefetch products ("+str(ioff)+"/"+str(rjson['paging']['total'])+")" )
-                response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token,'offset': ioff })
+                response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {
+                    'access_token':meli.access_token,
+                    'offset': ioff,
+                    'limit': str(search_limit)
+                 })
                 rjson2 = response.json()
                 if 'error' in rjson2:
                     if rjson2['message']=='invalid_token' or rjson2['message']=='expired_token':
