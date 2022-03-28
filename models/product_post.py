@@ -388,7 +388,7 @@ class product_template_import(models.TransientModel):
         report_import_link = ""
         if attachments:
             last_attachment = attachments[0]
-            report_import_link = "/web/content/"+str(self.last_attachment.id)+"?download=true&access_token="+str(self.last_attachment.access_token)
+            report_import_link = "/web/content/"+str(last_attachment.id)+"?download=true&access_token="+str(last_attachment.access_token)
 
 
         result =  {
