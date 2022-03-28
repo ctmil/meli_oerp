@@ -280,10 +280,12 @@ class product_template_import(models.TransientModel):
             imp.actives_to_sync = str(0)
             imp.paused_to_sync = str(0)
             imp.closed_to_sync = str(0)
+            imp.report_import = None
             if "actives_to_sync" in sync_status:
                 imp.actives_to_sync = str(sync_status['actives_to_sync'])
                 imp.paused_to_sync = str(sync_status['paused_to_sync'])
                 imp.closed_to_sync = str(sync_status['closed_to_sync'])
+                imp.report_import = 'report_import' in sync_status and sync_status['report_import']
 
 
     actives_to_sync = fields.Char(string="Products actives to sync",compute=_calculate_sync_status)
@@ -299,7 +301,7 @@ class product_template_import(models.TransientModel):
     batch_processing_status = fields.Char(string="Status proceso por lotes")
     batch_processing = fields.Boolean(string="Batch Processing Active",default=False)
 
-    report_import = fields.Many2one( "ir.attachment",string="Reporte Immportación" )
+    report_import = fields.Many2one( "ir.attachment",string="Reporte Importación", compute=_calculate_sync_status )
 
     def pretty_json( self, data ):
         return json.dumps( data, sort_keys=False, indent=4 )
@@ -375,11 +377,24 @@ class product_template_import(models.TransientModel):
         _logger.info( "totalmax: "+str(totalmax) )
         closed_to_sync = str(totalmax)
 
-        result =  { 'actives_to_sync': actives_to_sync, 'paused_to_sync': paused_to_sync, 'closed_to_sync': closed_to_sync }
+
+        #check last import Status
+        attachments = self.env["ir.attachment"].search([('res_id','=',self.id)], order='id desc')
+        last_attachment = None
+        if attachments:
+            last_attachment = attachments[0]
+
+        result =  {
+            'actives_to_sync': actives_to_sync,
+            'paused_to_sync': paused_to_sync,
+            'closed_to_sync': closed_to_sync
+        }
+        result.update({'report_import': last_attachment})
+
         _logger.info(result)
         return result
 
-    def check_import_status(self):
+    def check_import_status( self ):
         _logger.info('Processing import status ' + str(self.import_status))
 
         return {
