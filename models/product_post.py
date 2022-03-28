@@ -456,7 +456,7 @@ class product_template_import(models.TransientModel):
 
             csv_report = csv_report_header+"\n"+csv_report
             _logger.info(csv_report)
-            b64_csv = base64.encodestring(csv_report)
+            b64_csv = base64.b64encode(csv_report.encode())
             ATTACHMENT_NAME = "MassiveImport"
 
             attachment = self.env['ir.attachment'].create({
