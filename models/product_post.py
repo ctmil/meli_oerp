@@ -369,9 +369,9 @@ class product_template_import(models.TransientModel):
         self.closed_to_sync = str(totalmax)
 
 
-         return {
-                "type": "set_scrollTop",
-            }
+        return {
+            "type": "set_scrollTop",
+        }
 
     def product_template_import(self, context=None):
 
