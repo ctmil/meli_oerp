@@ -290,7 +290,7 @@ class product_template_import(models.TransientModel):
                 imp.report_import = 'report_import' in sync_status and sync_status['report_import']
                 if imp.report_import:
                     imp.report_import_link = 'report_import_link' in sync_status and str(sync_status['report_import_link'])
-                    _logger.info('_calculate_sync_status: ' + str(imp.report_import_link))
+                    _logger.info('_calculate_sync_status: imp.report_import_link > ' + str(imp.report_import_link))
 
 
     actives_to_sync = fields.Char(string="Products actives to sync",compute=_calculate_sync_status)
