@@ -114,6 +114,7 @@
 
                         <h4>Import Report</h4>
                         <field name="report_import" readonly="1"/>
+                        <field name="report_import_link" widget="url" readonly="1"/>
 
 
                       </group>
