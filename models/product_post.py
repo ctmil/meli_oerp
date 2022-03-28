@@ -299,7 +299,7 @@ class product_template_import(models.TransientModel):
     batch_processing_status = fields.Char(string="Status proceso por lotes")
     batch_processing = fields.Boolean(string="Batch Processing Active",default=False)
 
-    report_import = fields.Binary( string="Reporte Immportación", attachment=True )
+    report_import = fields.Many2one( "ir.attachment",string="Reporte Immportación" )
 
     def pretty_json( self, data ):
         return json.dumps( data, sort_keys=False, indent=4 )
@@ -459,7 +459,7 @@ class product_template_import(models.TransientModel):
             b64_csv = base64.b64encode(csv_report.encode())
             ATTACHMENT_NAME = "MassiveImport"
 
-            attachment = self.env['ir.attachment'].create({
+            csv_report_attachment = self.env['ir.attachment'].create({
                 'name': ATTACHMENT_NAME+'.csv',
                 'type': 'binary',
                 'datas': b64_csv,
@@ -470,6 +470,8 @@ class product_template_import(models.TransientModel):
                 'res_id': self.id,
                 'mimetype': 'text/csv'
             })
+            if csv_report_attachment:
+                self.report_import = csv_report_attachment
             res.update({'csv_report':  csv_report, 'csv_report_attachment':  csv_report_attachment })
 
         return res
