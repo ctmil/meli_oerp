@@ -441,9 +441,8 @@ class product_template_import(models.TransientModel):
 
             sep = ""
             for field in full_report[0]:
-                for field in sync:
-                    csv_report_header+= sep+str(field)
-                    sep = ";"
+                csv_report_header+= sep+str(field)
+                sep = ";"
 
             for sync in full_report:
                 sep = ""
