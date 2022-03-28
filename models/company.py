@@ -764,7 +764,18 @@ class res_company(models.Model):
                                           message="Reporte de Importación",
                                           message_html=""+html_report )
 
-            res.update( {'html_report': html_report, 'json_report': { 'synced': synced, 'duplicates': duplicates, 'missing': missing }  })
+            if batch_processing_unit:
+                res = {
+                    "type": "set_scrollTop",
+                }
+            res.update( {
+                'html_report': html_report,
+                'json_report': {
+                    'synced': synced,
+                    'duplicates': duplicates,
+                    'missing': missing
+                    }
+                })
 
         return res
 

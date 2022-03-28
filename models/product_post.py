@@ -470,6 +470,7 @@ class product_template_import(models.TransientModel):
                 'res_id': self.id,
                 'mimetype': 'text/csv'
             })
+            res.update({'csv_report':  csv_report, 'csv_report_attachment':  csv_report_attachment })
 
         return res
 
