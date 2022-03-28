@@ -463,8 +463,8 @@ class product_template_import(models.TransientModel):
                 'name': ATTACHMENT_NAME,
                 'type': 'binary',
                 'datas': b64_csv,
-                'datas_fname': ATTACHMENT_NAME + '.csv',
-                'store_fname': ATTACHMENT_NAME,
+                #'datas_fname': ATTACHMENT_NAME + '.csv',
+                'store_fname': ATTACHMENT_NAME+'.csv',
                 'res_model': 'mercadolibre.product.template.import',
                 'res_id': self.id,
                 'mimetype': 'application/pdf'
