@@ -433,6 +433,24 @@ class product_template_import(models.TransientModel):
         #    if res and 'name' in res:
         #        return res
 
+        if res and "json_report" in res:
+            #update batch_processing_unit_offset
+            json_report = res["json_report"]
+            csv_report = "meli_id;sku;status"
+            for sync in json_report["json_report"]:
+                csv_report+=
+
+            attachment = self.env['ir.attachment'].create({
+                'name': ATTACHMENT_NAME,
+                'type': 'binary',
+                'datas': b64_pdf,
+                'datas_fname': ATTACHMENT_NAME + '.pdf',
+                'store_fname': ATTACHMENT_NAME,
+                'res_model': acc_inv_model,
+                'res_id': self.id,
+                'mimetype': 'application/pdf'
+            })
+
         return res
 
 product_template_import()

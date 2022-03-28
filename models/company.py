@@ -666,12 +666,38 @@ class res_company(models.Model):
                                     posting_id.website_published = force_meli_website_published
                                 #if force_meli_website_category_create_and_assign:
                                 #    posting_id.website_published = force_meli_website_published
-                                synced.append( str(posting_id.mapped('name'))+str(posting_id.mapped('default_code')) )
+                                synced.append( {
+                                                'name': str(posting_id.mapped('name')),
+                                                'default_code': str(posting_id.mapped('default_code')),
+                                                'meli_sku': seller_sku or '',
+                                                'meli_id': item_id,
+                                                'meli_id_variation': posting_id.meli_id_variation,
+                                                'meli_status': rjson3['status'] ,
+                                                'status': 'synced'
+                                                })
                             else:
-                                duplicates.append(str(posting_id.mapped('name'))+str(posting_id.mapped('default_code')))
+                                #duplicates.append(str(posting_id.mapped('name'))+str(posting_id.mapped('default_code')))
+                                duplicates.append({
+                                                'name': str(posting_id[0].mapped('name')),
+                                                'default_code': str(posting_id[0].mapped('default_code')),
+                                                'meli_sku': seller_sku or '',
+                                                'meli_id': item_id,
+                                                'meli_id_variation': posting_id[0].meli_id_variation,
+                                                'meli_status': rjson3['status'],
+                                                'status': 'duplicate'
+                                                })
                                 _logger.error( "Item already in database but duplicated: " + str(posting_id.mapped('name')) + " skus:" + str(posting_id.mapped('default_code')) )
                         else:
-                            missing.append("meli_id: "+str(item_id) + " seller_sku: " +str(seller_sku))
+                            #missing.append("meli_id: "+str(item_id) + " seller_sku: " +str(seller_sku))
+                            missing.append({
+                                            'name': rjson3['title'],
+                                            'default_code': '',
+                                            'meli_sku': seller_sku or '',
+                                            'meli_id': item_id,
+                                            'meli_id_variation': '',
+                                            'meli_status': rjson3['status'] ,
+                                            'status': 'missing'
+                                            })
                             _logger.info( "Item not in database, no sync founded for meli_id: "+str(item_id) + " seller_sku: " +str(seller_sku) )
                         self._cr.commit()
                     #elif (not company.mercadolibre_import_search_sku):
@@ -722,21 +748,23 @@ class res_company(models.Model):
             html_report+= "<h4>Syncronizados</h4>"
             for pub in synced:
                 #
-                html_report+= "<br/>"+pub
+                html_report+= "<br/> meli_id: "+pub['meli_id']+" name:"+pub['name']+ " meli_sku:"+pub["meli_sku"]
 
             html_report+= "<h4>Duplicados</h4>"
             for pub in duplicates:
                 #
-                html_report+= "<br/>"+pub
+                html_report+= "<br/> meli_id: "+pub['meli_id']+" name:"+pub['name']+ " meli_sku:"+pub["meli_sku"]
 
             html_report+= "<h4>Faltantes</h4>"
             for pub in missing:
                 #
-                html_report+= "<br/>"+pub
+                html_report+= "<br/> meli_id: "+pub['meli_id']+" name:"+pub['name']+ " meli_sku:"+pub["meli_sku"]
 
             res = warningobj.info( title='MELI INFO IMPORT',
                                           message="Reporte de Importación",
                                           message_html=""+html_report )
+
+            res.update( {'html_report': html_report, 'json_report': { 'synced': synced, 'duplicates': duplicates, 'missing': missing }  })
 
         return res
 
