@@ -270,9 +270,26 @@ class product_template_import(models.TransientModel):
     force_dont_create = fields.Boolean( string="No crear productos (Encontrar por SKU)", default=True )
     force_meli_pub = fields.Boolean(string="Force Meli Pub", default=True)
 
+    def _calculate_sync_status( self ):
+        for imp in self:
+            imp.import_status = "Idle"
+            imp.actives_to_sync = str(0)
+            imp.paused_to_sync = str(0)
+            imp.closed_to_sync = str(0)
+
+
+    actives_to_sync = fields.Char(string="Products actives to sync",compute=_calculate_sync_status)
+    paused_to_sync = fields.Char(string="Products paused to sync",compute=_calculate_sync_status)
+    closed_to_sync = fields.Char(string="Products closed to sync",compute=_calculate_sync_status)
+    import_status = fields.Char(string="Import Status",compute=_calculate_sync_status)
+
     force_meli_website_published = fields.Boolean(string="Force Website Published", default=False)
     force_meli_website_category_create_and_assign = fields.Boolean(string="Force Website Categories", default=False)
 
+    batch_processing_unit = fields.Integer(string="Numero de lotes a procesar por iteracion (0 - 100)", default=0 )
+    batch_processing_status = fields.Char(string="Status proceso por lotes")
+
+    report_import = fields.Binary( string="Reporte Immportación", attachment=True )
 
     def pretty_json( self, data ):
         return json.dumps( data, sort_keys=False, indent=4 )
