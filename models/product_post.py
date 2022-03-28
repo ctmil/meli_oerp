@@ -288,11 +288,19 @@ class product_template_import(models.TransientModel):
 
     batch_processing_unit = fields.Integer(string="Numero de lotes a procesar por iteracion (0 - 100)", default=0 )
     batch_processing_status = fields.Char(string="Status proceso por lotes")
+    batch_processing = fields.Boolean(string="Batch Processing Active",default=False)
 
     report_import = fields.Binary( string="Reporte Immportación", attachment=True )
 
     def pretty_json( self, data ):
         return json.dumps( data, sort_keys=False, indent=4 )
+
+    def check_import_status(self):
+         _logger.info('Processing import status ' + str(self.import_status))
+         return {
+                "type": "set_scrollTop",
+            }
+         return None
 
     def product_template_import(self, context=None):
 
