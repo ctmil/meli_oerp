@@ -271,13 +271,17 @@ class product_template_import(models.TransientModel):
     force_meli_pub = fields.Boolean(string="Force Meli Pub", default=True)
 
     def _calculate_sync_status( self ):
-        actives, paused, closed = self.check_sync_status()
+        sync_status = self.check_sync_status()
         for imp in self:
-            _logger.info('_calculate_sync_status: ' + str(imp))
+            _logger.info('_calculate_sync_status: ' + str(imp)+" sync_status:"+str(sync_status))
             imp.import_status = "Idle"
-            imp.actives_to_sync = str(actives)
-            imp.paused_to_sync = str(paused)
-            imp.closed_to_sync = str(closed)
+            imp.actives_to_sync = str(0)
+            imp.paused_to_sync = str(0)
+            imp.closed_to_sync = str(0)
+            if "actives_to_sync" in sync_status:
+                imp.actives_to_sync = str(sync_status['actives_to_sync'])
+                imp.paused_to_sync = str(sync_status['paused_to_sync'])
+                imp.closed_to_sync = str(sync_status['closed_to_sync'])
 
 
     actives_to_sync = fields.Char(string="Products actives to sync",compute=_calculate_sync_status)
@@ -300,7 +304,7 @@ class product_template_import(models.TransientModel):
     def check_sync_status( self ):
 
         company = self.env.user.company_id
-        product_obj = self.pool.get('product.product')
+        product_obj = self.env['product.product']
 
         meli = self.env['meli.util'].get_new_instance(company)
         if meli.need_login():
@@ -368,7 +372,9 @@ class product_template_import(models.TransientModel):
         _logger.info( "totalmax: "+str(totalmax) )
         closed_to_sync = str(totalmax)
 
-        return { 'actives_to_sync': actives_to_sync, 'paused_to_sync': paused_to_sync, 'closed_to_sync': closed_to_sync }
+        result =  { 'actives_to_sync': actives_to_sync, 'paused_to_sync': paused_to_sync, 'closed_to_sync': closed_to_sync }
+        _logger.info(result)
+        return result
 
     def check_import_status(self):
         _logger.info('Processing import status ' + str(self.import_status))
