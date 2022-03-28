@@ -275,8 +275,9 @@ class product_template_import(models.TransientModel):
     def _calculate_sync_status( self ):
         sync_status = self.check_sync_status()
         for imp in self:
-            _logger.info('_calculate_sync_status: ' + str(imp)+" sync_status:"+str(sync_status))
-            imp.import_status = "Idle "+str(imp.report_import_link)
+            report_import_link = str('report_import_link' in sync_status and str(sync_status['report_import_link']))
+            _logger.info('_calculate_sync_status: ' + str(imp)+" sync_status:"+report_import_link)
+            imp.import_status = "Idle "+str(report_import_link)
             imp.actives_to_sync = str(0)
             imp.paused_to_sync = str(0)
             imp.closed_to_sync = str(0)
