@@ -436,9 +436,21 @@ class product_template_import(models.TransientModel):
         if res and "json_report" in res:
             #update batch_processing_unit_offset
             json_report = res["json_report"]
-            csv_report = "meli_id;sku;status"
-            for sync in json_report["json_report"]:
-                csv_report+=
+            full_report = json_report["json_report"]["synced"]+json_report["json_report"]["missing"]+json_report["json_report"]["duplicates"]
+            csv_report_header = ""
+
+            sep = ""
+            for field in full_report[0]:
+                for field in sync:
+                    csv_report_header+= sep+str(field)
+                    sep = ";"
+
+            for sync in full_report:
+                sep = ""
+                for field in sync:
+                    csv_report+= sep+str(sync[field])
+                    sep = ";"
+                csv_report+= "\n"
 
             attachment = self.env['ir.attachment'].create({
                 'name': ATTACHMENT_NAME,
