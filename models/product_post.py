@@ -436,7 +436,7 @@ class product_template_import(models.TransientModel):
         if res and "json_report" in res:
             #update batch_processing_unit_offset
             json_report = res["json_report"]
-            full_report = json_report["json_report"]["synced"]+json_report["json_report"]["missing"]+json_report["json_report"]["duplicates"]
+            full_report = json_report["synced"]+json_report["missing"]+json_report["duplicates"]
             csv_report_header = ""
 
             sep = ""
