@@ -271,12 +271,13 @@ class product_template_import(models.TransientModel):
     force_meli_pub = fields.Boolean(string="Force Meli Pub", default=True)
 
     def _calculate_sync_status( self ):
+        actives, paused, closed = self.check_sync_status()
         for imp in self:
             _logger.info('_calculate_sync_status: ' + str(imp))
             imp.import_status = "Idle"
-            imp.actives_to_sync = str(0)
-            imp.paused_to_sync = str(0)
-            imp.closed_to_sync = str(0)
+            imp.actives_to_sync = str(actives)
+            imp.paused_to_sync = str(paused)
+            imp.closed_to_sync = str(closed)
 
 
     actives_to_sync = fields.Char(string="Products actives to sync",compute=_calculate_sync_status)
@@ -296,8 +297,7 @@ class product_template_import(models.TransientModel):
     def pretty_json( self, data ):
         return json.dumps( data, sort_keys=False, indent=4 )
 
-    def check_import_status(self):
-        _logger.info('Processing import status ' + str(self.import_status))
+    def check_sync_status( self ):
 
         company = self.env.user.company_id
         product_obj = self.pool.get('product.product')
@@ -327,7 +327,7 @@ class product_template_import(models.TransientModel):
         if 'paging' in rjson:
             totalmax = rjson['paging']['total']
         _logger.info( "totalmax: "+str(totalmax) )
-        self.actives_to_sync = str(totalmax)
+        actives_to_sync = str(totalmax)
 
         post_state_filter = { 'status': 'paused' }
         if meli_id:
@@ -345,7 +345,7 @@ class product_template_import(models.TransientModel):
         if 'paging' in rjson:
             totalmax = rjson['paging']['total']
         _logger.info( "totalmax: "+str(totalmax) )
-        self.paused_to_sync = str(totalmax)
+        paused_to_sync = str(totalmax)
 
 
 
@@ -366,8 +366,12 @@ class product_template_import(models.TransientModel):
         if 'paging' in rjson:
             totalmax = rjson['paging']['total']
         _logger.info( "totalmax: "+str(totalmax) )
-        self.closed_to_sync = str(totalmax)
+        closed_to_sync = str(totalmax)
 
+        return { 'actives_to_sync': actives_to_sync, 'paused_to_sync': paused_to_sync, 'closed_to_sync': closed_to_sync }
+
+    def check_import_status(self):
+        _logger.info('Processing import status ' + str(self.import_status))
 
         return {
             "type": "set_scrollTop",
