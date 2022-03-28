@@ -438,6 +438,7 @@ class product_template_import(models.TransientModel):
             json_report = res["json_report"]
             full_report = json_report["synced"]+json_report["missing"]+json_report["duplicates"]
             csv_report_header = ""
+            csv_report = ""
 
             sep = ""
             for field in full_report[0]:
@@ -451,13 +452,18 @@ class product_template_import(models.TransientModel):
                     sep = ";"
                 csv_report+= "\n"
 
+            csv_report = csv_report_header+"\n"+csv_report
+            _logger.info(csv_report)
+            b64_csv = base64.b64encode(csv_report)
+            ATTACHMENT_NAME = "MassiveImport"
+
             attachment = self.env['ir.attachment'].create({
                 'name': ATTACHMENT_NAME,
                 'type': 'binary',
-                'datas': b64_pdf,
-                'datas_fname': ATTACHMENT_NAME + '.pdf',
+                'datas': b64_csv,
+                'datas_fname': ATTACHMENT_NAME + '.csv',
                 'store_fname': ATTACHMENT_NAME,
-                'res_model': acc_inv_model,
+                'res_model': 'mercadolibre.product.template.import',
                 'res_id': self.id,
                 'mimetype': 'application/pdf'
             })
