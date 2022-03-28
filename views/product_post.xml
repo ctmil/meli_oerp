@@ -101,12 +101,12 @@
                         <field name="force_dont_create"/>
                         <h4>Batch Processing</h4>
                         <field name="batch_processing_unit"/>
-                        <field name="batch_processing_status" readonly=1/>
+                        <field name="batch_processing_status" readonly="1"/>
                         <h4>Import Status</h4>
-                        <field name="import_status" readonly=1/>
-                        <field name="actives_to_sync" readonly=1/>
-                        <field name="paused_to_sync" readonly=1/>
-                        <field name="closed_to_sync" readonly=1/>
+                        <field name="import_status" readonly="1"/>
+                        <field name="actives_to_sync" readonly="1"/>
+                        <field name="paused_to_sync" readonly="1"/>
+                        <field name="closed_to_sync" readonly="1"/>
 
                       </group>
                     </group>
