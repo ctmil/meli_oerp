@@ -113,7 +113,7 @@
                         <field name="closed_to_sync" readonly="1"/>
 
                         <h4>Import Report</h4>
-                        <field name="report_import_link" widget="url" readonly="0"/>
+                        <field name="report_import_link" widget="url" readonly="1"/>
                         <field name="report_import" readonly="0" domain="[('res_id','=',id)]"/>
 
                       </group>
