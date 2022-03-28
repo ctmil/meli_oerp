@@ -309,7 +309,7 @@ class product_template_import(models.TransientModel):
         results = []
         post_state_filter = {}
 
-
+        meli_id = self.meli_id
 
         post_state_filter = { 'status': 'active' }
         if meli_id:
