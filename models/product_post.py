@@ -289,12 +289,14 @@ class product_template_import(models.TransientModel):
                 imp.report_import = 'report_import' in sync_status and sync_status['report_import']
                 if imp.report_import:
                     imp.report_import_link = 'report_import_link' in sync_status and sync_status['report_import_link']
+                    _logger.info('_calculate_sync_status: ' + str(report_import_link))
 
 
     actives_to_sync = fields.Char(string="Products actives to sync",compute=_calculate_sync_status)
     paused_to_sync = fields.Char(string="Products paused to sync",compute=_calculate_sync_status)
     closed_to_sync = fields.Char(string="Products closed to sync",compute=_calculate_sync_status)
     import_status = fields.Char(string="Import Status",compute=_calculate_sync_status)
+    report_import_link = fields.Char(string="Report Link", compute=_calculate_sync_status)
 
     force_meli_website_published = fields.Boolean(string="Force Website Published", default=False)
     force_meli_website_category_create_and_assign = fields.Boolean(string="Force Website Categories", default=False)
@@ -305,7 +307,7 @@ class product_template_import(models.TransientModel):
     batch_processing = fields.Boolean(string="Batch Processing Active",default=False)
 
     report_import = fields.Many2one( "ir.attachment",string="Reporte Importación", compute=_calculate_sync_status )
-    report_import_link = fields.Char(string="Report Link", compute=_calculate_sync_status)
+
 
     def pretty_json( self, data ):
         return json.dumps( data, sort_keys=False, indent=4 )
