@@ -283,13 +283,13 @@ class product_template_import(models.TransientModel):
             imp.actives_to_sync = str(0)
             imp.paused_to_sync = str(0)
             imp.closed_to_sync = str(0)
-            imp.report_import = None
+            #imp.report_import = None
             imp.report_import_link =  ""
             if "actives_to_sync" in sync_status:
                 imp.actives_to_sync = str(sync_status['actives_to_sync'])
                 imp.paused_to_sync = str(sync_status['paused_to_sync'])
                 imp.closed_to_sync = str(sync_status['closed_to_sync'])
-                imp.report_import = 'report_import' in sync_status and sync_status['report_import'] and sync_status['report_import'].id
+                #imp.report_import = 'report_import' in sync_status and sync_status['report_import'] and sync_status['report_import'].id
                 _logger.info('_calculate_sync_status: imp.report_import > ' + str(imp.report_import))
                 if imp.report_import:
                     imp.report_import_link = 'report_import_link' in sync_status and str(sync_status['report_import_link'])
@@ -310,7 +310,7 @@ class product_template_import(models.TransientModel):
     batch_processing_status = fields.Char(string="Status proceso por lotes")
     batch_processing = fields.Boolean(string="Batch Processing Active",default=False)
 
-    report_import = fields.Many2one( "ir.attachment",string="Reporte Importación", compute=_calculate_sync_status )
+    report_import = fields.Many2one( "ir.attachment",string="Reporte Importación")
 
 
     def pretty_json( self, data ):
