@@ -460,14 +460,15 @@ class product_template_import(models.TransientModel):
             ATTACHMENT_NAME = "MassiveImport"
 
             attachment = self.env['ir.attachment'].create({
-                'name': ATTACHMENT_NAME,
+                'name': ATTACHMENT_NAME+'.csv',
                 'type': 'binary',
                 'datas': b64_csv,
                 #'datas_fname': ATTACHMENT_NAME + '.csv',
-                'store_fname': ATTACHMENT_NAME+'.csv',
+                'access_token': self.env['ir.attachment']._generate_access_token(),
+                #'store_fname': ATTACHMENT_NAME+'.csv',
                 'res_model': 'mercadolibre.product.template.import',
                 'res_id': self.id,
-                'mimetype': 'application/pdf'
+                'mimetype': 'text/csv'
             })
 
         return res
