@@ -120,7 +120,7 @@
                     </group>
                     <footer>
                         <button name="product_template_import" string="Import from MELI"  type="object" class="oe_highlight"  />
-                        <button name="check_import_status" string="Check Import Status" type="object"/>
+                        <button name="check_import_status" string="Check Import Status" type="object" options='{"reload_on_button": True}'/>
                         <button string="Cancel" class="oe_link" special="cancel" />
                     </footer>
                 </form>
