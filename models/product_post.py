@@ -489,6 +489,8 @@ class product_template_import(models.TransientModel):
                 self.report_import = csv_report_attachment
             res.update({'csv_report':  csv_report, 'csv_report_attachment':  csv_report_attachment })
 
+            _logger.info('Processing import status ' + str(self.import_status)+ " report_import:"+str(self.report_import))
+            
         return res
 
 product_template_import()
