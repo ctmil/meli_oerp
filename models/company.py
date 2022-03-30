@@ -557,6 +557,9 @@ class res_company(models.Model):
                         condition_last_off = False
                     else:
                         condition_last_off = True
+                        
+                    if (batch_processing_unit and results and len(results)>=batch_processing_unit):
+                        break;
 
         #procesar solo si aun no se cubrio el limite del total
         if (totalmax<=1000 and totalmax>rjson['paging']['limit']):
@@ -589,6 +592,8 @@ class res_company(models.Model):
                     results += rjson2['results']
                     ioff+= rjson['paging']['limit']
                     condition_last_off = ( ioff>=totalmax)
+                    if (batch_processing_unit and results and len(results)>=batch_processing_unit):
+                        break;
 
         _logger.info( results )
         _logger.info( "FULL RESULTS: " + str(len(results)) )
