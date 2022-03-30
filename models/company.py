@@ -482,7 +482,8 @@ class res_company(models.Model):
             post_state_filter.update( { 'meli_id': meli_id } )
 
         response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token,
-                                                                                        'offset': 0,
+                                                                                        'offset': search_offset,
+                                                                                        'limit': search_limit,
                                                                                         **post_state_filter } )
         rjson = response.json()
         _logger.info( rjson )
@@ -496,8 +497,10 @@ class res_company(models.Model):
 
         #download?
         totalmax = 0
+        offset = 0
         if 'paging' in rjson:
             totalmax = rjson['paging']['total']
+            offset = rjson['paging']['offset']
 
         _logger.info( "totalmax: "+str(totalmax) )
 
@@ -555,10 +558,15 @@ class res_company(models.Model):
                     else:
                         condition_last_off = True
 
+        #procesar solo si aun no se cubrio el limite del total
         if (totalmax<=1000 and totalmax>rjson['paging']['limit']):
+
             pages = rjson['paging']['total']/rjson['paging']['limit']
             ioff = rjson['paging']['limit']
+
             condition_last_off = False
+
+            #Append to result all the rest
             while (condition_last_off!=True):
                 _logger.info( "Prefetch products ("+str(ioff)+"/"+str(rjson['paging']['total'])+")" )
                 response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {
