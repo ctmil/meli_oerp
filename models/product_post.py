@@ -321,6 +321,8 @@ class product_template_import(models.TransientModel):
 
         company = self.env.user.company_id
         product_obj = self.env['product.product']
+        meli_ids = product_obj.search([('meli_id','!=',False)]).mapped('meli_id')
+        _logger.info("meli_ids:"+str(meli_ids))
 
         meli = self.env['meli.util'].get_new_instance(company)
         if meli.need_login():
