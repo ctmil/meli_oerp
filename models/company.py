@@ -703,7 +703,7 @@ class res_company(models.Model):
                                                 'meli_status': rjson3['status'],
                                                 'status': 'duplicate'
                                                 })
-                                _logger.error( "Item already in database but duplicated: " + str(posting_id.name) + " skus:" + str(posting_id.default_code) )
+                                _logger.error( "Item already in database but duplicated: " + str(posting_id.mapped('name')) + " skus:" + str(posting_id.mapped('default_code')) )
                         else:
                             #missing.append("meli_id: "+str(item_id) + " seller_sku: " +str(seller_sku))
                             missing.append({
