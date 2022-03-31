@@ -465,8 +465,12 @@ class product_template_import(models.TransientModel):
 
         #    if res and 'name' in res:
         #        return res
-
+        _logger.info("import res:"+str(res))
         if res and "json_report" in res:
+            if "paging" in res:
+                if "next_offset" in res["paging"]:
+                    self.batch_processing_unit_offset = res["paging"]["next_offset"]
+
             #update batch_processing_unit_offset
             json_report = res["json_report"]
             full_report = json_report["synced"]+json_report["missing"]+json_report["duplicates"]

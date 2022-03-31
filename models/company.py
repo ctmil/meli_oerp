@@ -684,8 +684,8 @@ class res_company(models.Model):
                                 #if force_meli_website_category_create_and_assign:
                                 #    posting_id.website_published = force_meli_website_published
                                 synced.append( {
-                                                'name': str(posting_id.mapped('name')),
-                                                'default_code': str(posting_id.mapped('default_code')),
+                                                'name': str(posting_id.name),
+                                                'default_code': str(posting_id.default_code),
                                                 'meli_sku': seller_sku or '',
                                                 'meli_id': item_id,
                                                 'meli_id_variation': posting_id.meli_id_variation,
@@ -695,15 +695,15 @@ class res_company(models.Model):
                             else:
                                 #duplicates.append(str(posting_id.mapped('name'))+str(posting_id.mapped('default_code')))
                                 duplicates.append({
-                                                'name': str(posting_id[0].mapped('name')),
-                                                'default_code': str(posting_id[0].mapped('default_code')),
+                                                'name': str(posting_id[0].name),
+                                                'default_code': str(posting_id[0].default_code),
                                                 'meli_sku': seller_sku or '',
                                                 'meli_id': item_id,
                                                 'meli_id_variation': posting_id[0].meli_id_variation,
                                                 'meli_status': rjson3['status'],
                                                 'status': 'duplicate'
                                                 })
-                                _logger.error( "Item already in database but duplicated: " + str(posting_id.mapped('name')) + " skus:" + str(posting_id.mapped('default_code')) )
+                                _logger.error( "Item already in database but duplicated: " + str(posting_id.name) + " skus:" + str(posting_id.default_code) )
                         else:
                             #missing.append("meli_id: "+str(item_id) + " seller_sku: " +str(seller_sku))
                             missing.append({
