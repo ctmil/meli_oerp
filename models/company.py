@@ -557,7 +557,7 @@ class res_company(models.Model):
                         condition_last_off = False
                     else:
                         condition_last_off = True
-                        
+
                     if (batch_processing_unit and results and len(results)>=batch_processing_unit):
                         break;
 
@@ -787,6 +787,11 @@ class res_company(models.Model):
                 }
             res.update( {
                 'html_report': html_report,
+                'paging': {
+                    'offset': search_offset,
+                    'next_offset': search_offset+search_limit,
+                    'limit': search_limit
+                },
                 'json_report': {
                     'synced': synced,
                     'duplicates': duplicates,

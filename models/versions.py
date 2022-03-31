@@ -165,7 +165,8 @@ def set_delivery_line( sorder, delivery_price, delivery_message ):
     #check version
     delivery_line = get_delivery_line(sorder)
     if not delivery_line:
-        delivery_line = sorder.set_delivery_line(sorder.carrier_id, delivery_price)
+        sorder.set_delivery_line(sorder.carrier_id, delivery_price)
+        delivery_line = get_delivery_line(sorder)
         
     recompute_delivery_price = False
     
