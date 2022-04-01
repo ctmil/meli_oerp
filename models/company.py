@@ -481,10 +481,14 @@ class res_company(models.Model):
         if meli_id:
             post_state_filter.update( { 'meli_id': meli_id } )
 
-        response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token,
-                                                                                        'offset': search_offset,
+        url_get = "/users/"+str(company.mercadolibre_seller_id)+"/items/search", {'access_token':meli.access_token,
                                                                                         'limit': search_limit,
                                                                                         **post_state_filter } )
+        response = meli.get(url_get, {'access_token':meli.access_token,
+                                    'offset': 0,
+                                    'limit': search_limit,
+                                    **post_state_filter
+                                    } )
         rjson = response.json()
         _logger.info( rjson )
 
@@ -500,7 +504,7 @@ class res_company(models.Model):
         offset = 0
         if 'paging' in rjson:
             totalmax = rjson['paging']['total']
-            offset = rjson['paging']['offset']
+            offset = ('offset' in rjson['paging'] and rjson['paging']['offset']) or 0
 
         _logger.info( "totalmax: "+str(totalmax) )
 
@@ -518,7 +522,7 @@ class res_company(models.Model):
 
             condition_last_off = True
             ioff = 0
-
+            scroll_id = ""
             if ('scroll_id' in rjson):
                 scroll_id = rjson['scroll_id']
                 ioff = rjson['paging']['limit']
@@ -562,10 +566,10 @@ class res_company(models.Model):
                         break;
 
         #procesar solo si aun no se cubrio el limite del total
-        if (totalmax<=1000 and totalmax>rjson['paging']['limit']):
+        if (totalmax<=1000 and len(results)<totalmax and ('paging' in rjson and totalmax>rjson['paging']['limit']) ):
 
             pages = rjson['paging']['total']/rjson['paging']['limit']
-            ioff = rjson['paging']['limit']
+            ioff = offset+rjson['paging']['limit']
 
             condition_last_off = False
 
