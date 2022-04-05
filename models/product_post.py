@@ -317,16 +317,19 @@ class product_template_import(models.TransientModel):
     def pretty_json( self, data ):
         return json.dumps( data, sort_keys=False, indent=4 )
 
-    def check_sync_status( self ):
-
+    def check_sync_status( self, context=None, config=None, meli=None ):
+        context = context or self.env.context
+        _logger.info("check_sync_status:"+str(context))
         company = self.env.user.company_id
+        config = config or company
         #product_obj = self.env['product.product']
         #meli_ids = product_obj.search([('meli_id','!=',False)]).mapped('meli_id')
         #_logger.info("meli_ids:"+str(meli_ids))
 
-        meli = self.env['meli.util'].get_new_instance(company)
-        if meli.need_login():
-         return meli.redirect_login()
+        if not meli:
+            meli = self.env['meli.util'].get_new_instance(company)
+            if meli.need_login():
+                return meli.redirect_login()
 
         results = []
         post_state_filter = {}
@@ -336,7 +339,7 @@ class product_template_import(models.TransientModel):
         post_state_filter = { 'status': 'active' }
         if meli_id:
             post_state_filter.update( { 'meli_id': meli_id } )
-        response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token,
+        response = meli.get("/users/"+config.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token,
                                                                                         'offset': 0,
                                                                                         **post_state_filter } )
         rjson = response.json()
@@ -354,7 +357,7 @@ class product_template_import(models.TransientModel):
         post_state_filter = { 'status': 'paused' }
         if meli_id:
             post_state_filter.update( { 'meli_id': meli_id } )
-        response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token,
+        response = meli.get("/users/"+config.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token,
                                                                                         'offset': 0,
                                                                                         **post_state_filter } )
         rjson = response.json()
@@ -374,7 +377,7 @@ class product_template_import(models.TransientModel):
         post_state_filter = { 'status': 'closed' }
         if meli_id:
             post_state_filter.update( { 'meli_id': meli_id } )
-        response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token,
+        response = meli.get("/users/"+config.mercadolibre_seller_id+"/items/search", {'access_token':meli.access_token,
                                                                                         'offset': 0,
                                                                                         **post_state_filter } )
 
@@ -487,12 +490,18 @@ class product_template_import(models.TransientModel):
             for sync in full_report:
                 sep = ""
                 for field in sync:
-                    csv_report+= sep+str(sync[field])
+                    csv_report+= sep+'"'+str(sync[field])+'"'
                     sep = ";"
                 csv_report+= "\n"
 
-            csv_report = csv_report_header+"\n"+csv_report
-            _logger.info(csv_report)
+            csv_report_attachment_last = self.env["ir.attachment"].search([('res_id','=',self.id)], order='id desc', limit=1 )
+            if (csv_report_attachment_last):
+                csv_report_last = csv_report_attachment_last.index_content
+                csv_report = csv_report_last+"\n"+csv_report
+            else:
+                csv_report = csv_report_header+"\n"+csv_report
+            #_logger.info(csv_report)
+
             b64_csv = base64.b64encode(csv_report.encode())
             ATTACHMENT_NAME = "MassiveImport"
 

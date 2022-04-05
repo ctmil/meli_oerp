@@ -481,9 +481,8 @@ class res_company(models.Model):
         if meli_id:
             post_state_filter.update( { 'meli_id': meli_id } )
 
-        url_get = "/users/"+str(company.mercadolibre_seller_id)+"/items/search", {'access_token':meli.access_token,
-                                                                                        'limit': search_limit,
-                                                                                        **post_state_filter } )
+        url_get = "/users/"+str(company.mercadolibre_seller_id)+"/items/search"
+
         response = meli.get(url_get, {'access_token':meli.access_token,
                                     'offset': 0,
                                     'limit': search_limit,
@@ -522,14 +521,24 @@ class res_company(models.Model):
 
             condition_last_off = True
             ioff = 0
+            cof = 0
             scroll_id = ""
+            results = []
             if ('scroll_id' in rjson):
                 scroll_id = rjson['scroll_id']
-                ioff = rjson['paging']['limit']
+                #ioff = rjson['paging']['limit']
+                if (offset>0):
+                    for rs in rjson['results']:
+                        if (cof>=offset):
+                            results.append(rs)
+                        cof+= 1
+                else:
+                    results = rjson['results']
                 results = rjson['results']
                 condition_last_off = False
 
             while (condition_last_off!=True):
+                ioff = cof
                 _logger.info( "Prefetch products ("+str(ioff)+"/"+str(rjson['paging']['total'])+")" )
                 response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search",
                     {
@@ -554,9 +563,19 @@ class res_company(models.Model):
                     condition_last_off = True
                 else:
                     #_logger.info(rjson2)
-                    results += rjson2['results']
-                    ioff+= rjson2['paging']['limit']
-                    if ('scroll_id' in rjson2):
+                    if (offset>0):
+                        for rs in rjson2['results']:
+                            if (cof>=offset):
+                                results.append(rs)
+                            cof+= 1
+                    else:
+                        cof+= len(rjson2['results'])
+                        results += rjson2['results']
+
+                    #ioff+= rjson2['paging']['limit']
+                    if (len(results)>=rjson2['paging']['total']):
+                        condition_last_off = True
+                    elif ('scroll_id' in rjson2):
                         scroll_id = rjson2['scroll_id']
                         condition_last_off = False
                     else:
