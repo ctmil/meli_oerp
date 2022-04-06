@@ -1295,7 +1295,7 @@ class mercadolibre_orders(models.Model):
             #meli_order_fields['pack_id'] = order_json["pack_id"]
 
         if ('account.payment.term' in self.env):
-            inmediate_or_not = ('mercadolibre_payment_term' in config._fields and config.mercadolibre_payment_term) or None
+            inmediate_or_not = ('mercadolibre_payment_term' in config._fields and config.mercadolibre_payment_term) or ('mercadolibre_payment_term' in company._fields and company.mercadolibre_payment_term) or None
             meli_order_fields["payment_term_id"] = (inmediate_or_not and inmediate_or_not.id)
 
         if (order_json["shipping"]):
