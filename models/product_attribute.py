@@ -14,6 +14,10 @@ class ProductAttribute(models.Model):
     meli_default_id_attribute = fields.Many2one('mercadolibre.category.attribute',string="ML Attribute default")
     meli_id_attributes = fields.Many2many('mercadolibre.category.attribute',string="ML Attributes")
 
+    meli_default_id_attribute_hidden = fields.Boolean( related="meli_default_id_attribute.hidden", string="Hidden")
+    meli_default_id_attribute_variation_attribute = fields.Boolean( related="meli_default_id_attribute.variation_attribute", string="Variation")
+
+
     def meli_default_create_variant( self, meli_attribute=None ):
 
         create_variant = default_no_create_variant
