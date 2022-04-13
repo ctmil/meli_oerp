@@ -2461,14 +2461,14 @@ class product_product(models.Model):
                 product.meli_id = variant_principal.meli_id
 
     #Add/Update SELLER_SKU attribute, only if present in Odoo, also can update GTIN (barcode)
-    def _update_sku_attribute( self, attributes=[], set_sku=True, set_barcode=False ):
+    def _update_sku_attribute( self, attributes=[], set_sku=True, set_barcode=True ):
 
         variant = self
 
         updated_attributes = []
         sku_updated = False
         barcode_updated = False
-        attributes = attributes or []
+        attributes = attributes or []        
 
         for att in attributes:
 
@@ -2715,7 +2715,17 @@ class product_product(models.Model):
                         attributes_ids[attribute["id"]] = attribute["value_name"]
                         attributes.append(attribute)
 
-                    if (at_line_id.attribute_id.meli_default_id_attribute.id and at_line_id.attribute_id.meli_default_id_attribute.variation_attribute==False):
+                    if (not product_tmpl.meli_pub_as_variant):
+                        if (atname=="GTIN" or atname=="Código universal de producto"):
+                            attribute = { "id": "GTIN", "value_name": atval }
+                            attributes_ids[attribute["id"]] = attribute["value_name"]
+                            attributes.append(attribute)                                                    
+
+                    #if not barcode_updated and set_barcode and variant.barcode:
+                    #updated_attributes.append( { "id": "GTIN", "value_name": variant.barcode } )
+
+                    if (at_line_id.attribute_id.meli_default_id_attribute.id and 
+                        at_line_id.attribute_id.meli_default_id_attribute.variation_attribute==False):
                         attribute = {
                             "id": at_line_id.attribute_id.meli_default_id_attribute.att_id,
                             "value_name": atval
@@ -2736,6 +2746,11 @@ class product_product(models.Model):
             product.meli_brand = product_tmpl.meli_brand
         if product.meli_model==False or len(product.meli_model)==0:
             product.meli_model = product_tmpl.meli_model
+
+        if (product.barcode and not product_tmpl.meli_pub_as_variant and not "GTIN" in attributes_ids):
+            attribute = { "id": "GTIN", "value_name": product.barcode }
+            attributes_ids[attribute["id"]] = attribute["value_name"]
+            attributes.append(attribute)
 
         if product.meli_brand and len(product.meli_brand) > 0 and not "BRAND" in attributes_ids:
             attribute = { "id": "BRAND", "value_name": product.meli_brand }
