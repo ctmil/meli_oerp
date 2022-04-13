@@ -2461,14 +2461,14 @@ class product_product(models.Model):
                 product.meli_id = variant_principal.meli_id
 
     #Add/Update SELLER_SKU attribute, only if present in Odoo, also can update GTIN (barcode)
-    def _update_sku_attribute( self, attributes=[], set_sku=True, set_barcode=False ):
+    def _update_sku_attribute( self, attributes=[], set_sku=True, set_barcode=True ):
 
         variant = self
 
         updated_attributes = []
         sku_updated = False
         barcode_updated = False
-        attributes = attributes or []
+        attributes = attributes or []        
 
         for att in attributes:
 
