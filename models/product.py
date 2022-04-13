@@ -2715,6 +2715,14 @@ class product_product(models.Model):
                         attributes_ids[attribute["id"]] = attribute["value_name"]
                         attributes.append(attribute)
 
+                    if (atname=="GTIN" and not product_tmpl.meli_pub_as_variant):
+                        attribute = { "id": "GTIN", "value_name": atval }
+                        attributes_ids[attribute["id"]] = attribute["value_name"]
+                        attributes.append(attribute)
+
+                    #if not barcode_updated and set_barcode and variant.barcode:
+                    #updated_attributes.append( { "id": "GTIN", "value_name": variant.barcode } )
+
                     if (at_line_id.attribute_id.meli_default_id_attribute.id and at_line_id.attribute_id.meli_default_id_attribute.variation_attribute==False):
                         attribute = {
                             "id": at_line_id.attribute_id.meli_default_id_attribute.att_id,
