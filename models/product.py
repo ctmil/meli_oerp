@@ -2715,7 +2715,7 @@ class product_product(models.Model):
                         attributes_ids[attribute["id"]] = attribute["value_name"]
                         attributes.append(attribute)
 
-                    if (atname=="GTIN" and not product_tmpl.meli_pub_as_variant):
+                    if ((atname=="GTIN" or atname=="Código universal de producto") and not product_tmpl.meli_pub_as_variant):
                         attribute = { "id": "GTIN", "value_name": atval }
                         attributes_ids[attribute["id"]] = attribute["value_name"]
                         attributes.append(attribute)
