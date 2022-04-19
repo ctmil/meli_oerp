@@ -1508,7 +1508,7 @@ class product_product(models.Model):
             del meli_fields['name']
         if (product_template.name and not company.mercadolibre_overwrite_template):
             del tmpl_fields['name']
-        if (product_template.description_sale and not company.mercadolibre_overwrite_template):
+        if (product_template.description_sale or not company.mercadolibre_overwrite_template):
             del tmpl_fields['description_sale']
 
         if ("catalog_listing" in rjson):
@@ -2719,12 +2719,12 @@ class product_product(models.Model):
                         if (atname=="GTIN" or atname=="Código universal de producto"):
                             attribute = { "id": "GTIN", "value_name": atval }
                             attributes_ids[attribute["id"]] = attribute["value_name"]
-                            attributes.append(attribute)                                                    
+                            attributes.append(attribute)
 
                     #if not barcode_updated and set_barcode and variant.barcode:
                     #updated_attributes.append( { "id": "GTIN", "value_name": variant.barcode } )
 
-                    if (at_line_id.attribute_id.meli_default_id_attribute.id and 
+                    if (at_line_id.attribute_id.meli_default_id_attribute.id and
                         at_line_id.attribute_id.meli_default_id_attribute.variation_attribute==False):
                         attribute = {
                             "id": at_line_id.attribute_id.meli_default_id_attribute.att_id,
@@ -3090,7 +3090,7 @@ class product_product(models.Model):
                 responsevar = product.meli_id and meli.put("/items/"+product.meli_id, varias, {'access_token':meli.access_token})
                 _logger.info(str(responsevar and responsevar.json()))
                 #_logger.debug(responsevar.json())
-                resdes = product.meli_id and meli.put("/items/"+product.meli_id+"/description", bodydescription, {'access_token':meli.access_token})
+                resdes = product.meli_id and meli.put("/items/"+product.meli_id+"/description", meli_descr, {'access_token':meli.access_token})
                 #_logger.debug(resdes.json())
                 del body['price']
                 del body['available_quantity']

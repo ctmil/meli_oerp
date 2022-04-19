@@ -931,14 +931,16 @@ class mercadolibre_orders(models.Model):
 
                     vatn = Buyer['billing_info']['doc_number']
                     is_business = False
+                    #sep_millon = "."
+                    sep_millon = ""
                     if (len(vatn)==9):
-                        vatn = vatn[:2]+"."+vatn[2:5]+""+vatn[5:8]+"-"+vatn[8:9]
+                        vatn = vatn[:2]+str(sep_millon)+vatn[2:5]+""+vatn[5:8]+"-"+vatn[8:9]
                         isb = float(vatn[:2])
                         _logger.info("Chile VAT: is business:"+str(isb))
                         is_business = (isb >= 50)
                         _logger.info("Chile VAT: is business? "+str(is_business))
                     if (len(vatn)==8):
-                        vatn = vatn[:1]+"."+vatn[1:4]+""+vatn[4:7]+"-"+vatn[7:8]
+                        vatn = vatn[:1]+str(sep_millon)+vatn[1:4]+""+vatn[4:7]+"-"+vatn[7:8]
                     meli_buyer_fields['vat'] = vatn
 
                     if "l10n_cl_sii_taxpayer_type" in self.env['res.partner']._fields:
@@ -1232,7 +1234,7 @@ class mercadolibre_orders(models.Model):
 
                 if "document_number" in meli_buyer_fields and str(meli_buyer_fields['document_number'])!=str(partner_id.document_number):
                     partner_update.update(meli_buyer_fields)
-                    
+
                 if "company_type" in meli_buyer_fields and str(meli_buyer_fields['company_type'])!=str(partner_id.company_type):
                     partner_update.update(meli_buyer_fields)
 

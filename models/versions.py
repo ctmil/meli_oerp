@@ -167,16 +167,18 @@ def set_delivery_line( sorder, delivery_price, delivery_message ):
     if not delivery_line:
         sorder.set_delivery_line(sorder.carrier_id, delivery_price)
         delivery_line = get_delivery_line(sorder)
+    try:
+        recompute_delivery_price = False
         
-    recompute_delivery_price = False
-    
-    if (delivery_line and abs(delivery_line.price_unit - float(delivery_price)) < 1.1 ):        
-        recompute_delivery_price = True
-        sorder.set_delivery_line(sorder.carrier_id, delivery_price)
-        
-    sorder.write({
-    	'recompute_delivery_price': recompute_delivery_price,
-    	'delivery_message': delivery_message,
-    })
-    
+        if (delivery_line and abs(delivery_line.price_unit - float(delivery_price)) < 1.1 ):        
+            recompute_delivery_price = True
+            sorder.set_delivery_line(sorder.carrier_id, delivery_price)
+            
+        sorder.write({
+        	'recompute_delivery_price': recompute_delivery_price,
+        	'delivery_message': delivery_message,
+        })
+    except:
+            _logger.info("Error set_delivery_line failed (order invoiced)")
+            
     return delivery_line
