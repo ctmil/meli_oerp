@@ -2461,14 +2461,14 @@ class product_product(models.Model):
                 product.meli_id = variant_principal.meli_id
 
     #Add/Update SELLER_SKU attribute, only if present in Odoo, also can update GTIN (barcode)
-    def _update_sku_attribute( self, attributes=[], set_sku=True, set_barcode=True ):
+    def _update_sku_attribute( self, attributes=[], set_sku=True, set_barcode=False ):
 
         variant = self
 
         updated_attributes = []
         sku_updated = False
         barcode_updated = False
-        attributes = attributes or []        
+        attributes = attributes or []
 
         for att in attributes:
 
@@ -3112,6 +3112,7 @@ class product_product(models.Model):
             response = meli.put("/items/"+product.meli_id, body, {'access_token':meli.access_token})
             resdescription = meli.put("/items/"+product.meli_id+"/description", bodydescription, {'access_token':meli.access_token})
             rjsondes = resdescription.json()
+            _logger.info(rjsondes)
         else:
             assign_img = True and product.meli_imagen_id
             _logger.info("first post:" + str(body))
