@@ -1508,7 +1508,7 @@ class product_product(models.Model):
             del meli_fields['name']
         if (product_template.name and not company.mercadolibre_overwrite_template):
             del tmpl_fields['name']
-        if (product_template.description_sale and not company.mercadolibre_overwrite_template):
+        if (product_template.description_sale or not company.mercadolibre_overwrite_template):
             del tmpl_fields['description_sale']
 
         if ("catalog_listing" in rjson):
@@ -2724,7 +2724,7 @@ class product_product(models.Model):
                     #if not barcode_updated and set_barcode and variant.barcode:
                     #updated_attributes.append( { "id": "GTIN", "value_name": variant.barcode } )
 
-                    if (at_line_id.attribute_id.meli_default_id_attribute.id and 
+                    if (at_line_id.attribute_id.meli_default_id_attribute.id and
                         at_line_id.attribute_id.meli_default_id_attribute.variation_attribute==False):
                         attribute = {
                             "id": at_line_id.attribute_id.meli_default_id_attribute.att_id,
@@ -3112,6 +3112,7 @@ class product_product(models.Model):
             response = meli.put("/items/"+product.meli_id, body, {'access_token':meli.access_token})
             resdescription = meli.put("/items/"+product.meli_id+"/description", bodydescription, {'access_token':meli.access_token})
             rjsondes = resdescription.json()
+            #_logger.info(rjsondes)
         else:
             assign_img = True and product.meli_imagen_id
             _logger.info("first post:" + str(body))

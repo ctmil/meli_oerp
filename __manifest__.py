@@ -9,7 +9,7 @@
 {
     'name': 'MercadoLibre Publisher / Mercado Libre Odoo Connector',
     'summary': 'MercadoLibre Publisher / Mercado Libre Odoo Connector',
-    'version': '13.0.22.28',
+    'version': '13.0.22.31',
     'author': 'Moldeo Interactive',
     'website': 'https://www.moldeointeractive.com',
     "category": "Sales",
