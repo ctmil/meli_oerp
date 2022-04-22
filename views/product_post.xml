@@ -121,6 +121,7 @@
                     <footer>
                         <button name="product_template_import" string="Import from MELI"  type="object" class="oe_highlight"  />
                         <button name="check_import_status" string="Check Import Status" type="object"/>
+                        <button name="create_full_report" string="Create Full Report" type="object"/>
                         <button string="Cancel" class="oe_link" special="cancel" />
                     </footer>
                 </form>

@@ -284,6 +284,20 @@
               </field>
         </record>
 
+        <record id="view_orders_update_invoice" model="ir.ui.view">
+              <field name="name">Actualizar Estado Factura Orden de ML</field>
+              <field name="model">mercadolibre.orders.update.invoice</field>
+              <field name="type">form</field>
+              <field name="arch" type="xml">
+                <form string="Update Order Invoice" version="7.0">
+                    <footer>
+                        <button name="order_update_invoice" string="Update Order Invoice"  type="object" class="oe_highlight"  />
+                        <button string="Cancel" class="oe_link" special="cancel" />
+                    </footer>
+                </form>
+              </field>
+        </record>
+
         <record id="view_orders_cancel_meli" model="ir.ui.view">
               <field name="name">Cancelar Orden Wizard Meli</field>
               <field name="model">sale.order.cancel.wiz.meli</field>
@@ -318,6 +332,14 @@
             <field name="name">Actualizar Ordenes de ML</field>
             <field name="type">ir.actions.act_window</field>
             <field name="res_model">mercadolibre.orders.update</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+
+        <record id="action_update_meli_orders_invoice" model="ir.actions.act_window">
+            <field name="name">Actualizar Factura Ordenes de ML</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">mercadolibre.orders.update.invoice</field>
             <field name="view_mode">form</field>
             <field name="target">new</field>
         </record>
@@ -362,6 +384,17 @@
             <field name="view_mode">form</field>
             <field name="target">new</field>
         </record>
+
+        <record id="action_update_meli_orders_invoices" model="ir.actions.act_window">
+                  <field name="name">Actualizar Factura Pedidos ML</field>
+                  <field name="type">ir.actions.act_window</field>
+                  <field name="binding_model_id" ref="model_mercadolibre_orders" />
+                  <field name="res_model">mercadolibre.orders.update.invoice</field>
+                  <field name="binding_type">action</field>
+                  <field name="binding_view_types">list,form</field>
+                  <field name="view_mode">form</field>
+                  <field name="target">new</field>
+              </record>
 
             <!--act_window id="action_update_meli_orders"
                 name="Update ML Orders"

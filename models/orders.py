@@ -913,6 +913,46 @@ class mercadolibre_orders(models.Model):
                         vatn = vatn[:1]+"."+vatn[1:4]+"."+vatn[4:7]+"-"+vatn[7:8]
                     meli_buyer_fields['vat'] = vatn
 
+                #latam Chile - l10n_cl_edi
+                if ( company.country_id.code=="CL" and ('doc_type' in Buyer['billing_info']) and ('l10n_latam_identification_type_id' in self.env['res.partner']._fields ) ):
+
+                    if (Buyer['billing_info']['doc_type']=="RUT"):
+                        #rut
+                        meli_buyer_fields['l10n_latam_identification_type_id'] = self.env['l10n_latam.identification.type'].search([('name','=','RUT'),('country_id','=',company.country_id.id)],limit=1).id
+
+                    if (Buyer['billing_info']['doc_type']=="RUN"):
+                        #rut
+                        meli_buyer_fields['l10n_latam_identification_type_id'] = self.env['l10n_latam.identification.type'].search([('name','=','RUN'),('country_id','=',company.country_id.id)],limit=1).id
+
+                    if (Buyer['billing_info']['doc_type']=="DNI"):
+                        #rut
+                        meli_buyer_fields['l10n_latam_identification_type_id'] = self.env['l10n_latam.identification.type'].search([('name','=','DNI'),('country_id','=',company.country_id.id)],limit=1).id
+
+
+                    vatn = Buyer['billing_info']['doc_number']
+                    is_business = False
+                    #sep_millon = "."
+                    sep_millon = ""
+                    if (len(vatn)==9):
+                        vatn = vatn[:2]+str(sep_millon)+vatn[2:5]+""+vatn[5:8]+"-"+vatn[8:9]
+                        isb = float(vatn[:2])
+                        _logger.info("Chile VAT: is business:"+str(isb))
+                        is_business = (isb >= 50)
+                        _logger.info("Chile VAT: is business? "+str(is_business))
+                    if (len(vatn)==8):
+                        vatn = vatn[:1]+str(sep_millon)+vatn[1:4]+""+vatn[4:7]+"-"+vatn[7:8]
+                    meli_buyer_fields['vat'] = vatn
+
+                    if "l10n_cl_sii_taxpayer_type" in self.env['res.partner']._fields:
+                        if is_business:
+                            meli_buyer_fields['l10n_cl_sii_taxpayer_type'] = "1"
+                            meli_buyer_fields['company_type'] = "company"
+                        else:
+                            meli_buyer_fields['l10n_cl_sii_taxpayer_type'] = "3"
+                            meli_buyer_fields['company_type'] = "person"
+
+
+
                 if ( ('doc_type' in Buyer['billing_info']) and ('document_type_id' in self.env['res.partner']._fields) and ('document_number' in self.env['res.partner']._fields) ):
 
                     if (Buyer['billing_info']['doc_type']=="RUT"):
@@ -1194,6 +1234,9 @@ class mercadolibre_orders(models.Model):
 
                 if "document_number" in meli_buyer_fields and str(meli_buyer_fields['document_number'])!=str(partner_id.document_number):
                     partner_update.update(meli_buyer_fields)
+                    
+                if "company_type" in meli_buyer_fields and str(meli_buyer_fields['company_type'])!=str(partner_id.company_type):
+                    partner_update.update(meli_buyer_fields)
 
                 if ("vat" in meli_buyer_fields and meli_buyer_fields["vat"]!=str(partner_id.vat) ):
                     partner_update.update(meli_buyer_fields)
@@ -1202,6 +1245,9 @@ class mercadolibre_orders(models.Model):
                     partner_update.update(meli_buyer_fields)
 
                 if "l10n_latam_identification_type_id" in meli_buyer_fields and str(meli_buyer_fields['l10n_latam_identification_type_id'])!=str(partner_id.l10n_latam_identification_type_id and partner_id.l10n_latam_identification_type_id.id):
+                    partner_update.update(meli_buyer_fields)
+
+                if "l10n_cl_sii_taxpayer_type" in meli_buyer_fields and str(meli_buyer_fields['l10n_cl_sii_taxpayer_type'])!=str(partner_id.l10n_cl_sii_taxpayer_type):
                     partner_update.update(meli_buyer_fields)
 
                 if "fe_tipo_documento" in meli_buyer_fields and str(meli_buyer_fields['fe_tipo_documento'])!=str(partner_id.fe_tipo_documento):
@@ -1967,6 +2013,36 @@ class mercadolibre_orders_update(models.TransientModel):
 
         except Exception as e:
             _logger.info("order_update > Error actualizando ordenes")
+            _logger.error(e, exc_info=True)
+            self._cr.rollback()
+
+        return {}
+
+mercadolibre_orders_update()
+
+class mercadolibre_orders_update_invoice(models.TransientModel):
+    _name = "mercadolibre.orders.update.invoice"
+    _description = "Update Order Invoice"
+
+    def order_update_invoice(self, context=None):
+        context = context or self.env.context
+        orders_ids = ('active_ids' in context and context['active_ids']) or []
+        orders_obj = self.env['mercadolibre.orders']
+
+        self._cr.autocommit(False)
+        try:
+
+            for order_id in orders_ids:
+
+                _logger.info("order_update: %s " % (order_id) )
+
+                order = orders_obj.browse(order_id)
+                #order.orders_update_order()
+                if order:
+                    order.orders_get_invoice()
+
+        except Exception as e:
+            _logger.info("order_update > Error actualizando factura ordenes")
             _logger.error(e, exc_info=True)
             self._cr.rollback()
 

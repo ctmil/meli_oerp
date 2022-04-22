@@ -422,6 +422,11 @@ class product_template_import(models.TransientModel):
             "type": "set_scrollTop",
         }
 
+    def create_full_report( self, context=None, config=None, meli=None):
+        _logger.info("Creating full report")
+        context = context or self.env.context
+        company = self.env.user.company_id
+
     def product_template_import(self, context=None):
 
         context = context or self.env.context
