@@ -598,7 +598,9 @@ class product_product(models.Model):
         product_tmpl = product.product_tmpl_id
         #_logger.info("set_meli_price: "+str(product_tmpl.list_price)+ " >> "+str(product_tmpl.display_name)+": "+str(product_tmpl.meli_price)+" | "+str(product.display_name)+": "+str(product.meli_price) )
 
-        pl = config.mercadolibre_pricelist or plist
+        pl = (product.meli_currency and product.meli_currency in ["USD"] and "mercadolibre_pricelist_usd" in config._fields and config.mercadolibre_pricelist_usd and config.mercadolibre_pricelist_usd.currency_id.name=="USD" and config.mercadolibre_pricelist_usd)
+        pl = pl or config.mercadolibre_pricelist or plist
+
 
         # NEW OR NULL
         # > Set template meli price
@@ -2719,7 +2721,7 @@ class product_product(models.Model):
                         if (atname=="GTIN" or atname=="Código universal de producto"):
                             attribute = { "id": "GTIN", "value_name": atval }
                             attributes_ids[attribute["id"]] = attribute["value_name"]
-                            attributes.append(attribute)                                                    
+                            attributes.append(attribute)
 
                     #if not barcode_updated and set_barcode and variant.barcode:
                     #updated_attributes.append( { "id": "GTIN", "value_name": variant.barcode } )
