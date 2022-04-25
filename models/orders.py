@@ -1845,6 +1845,9 @@ class mercadolibre_orders(models.Model):
         config = config or (self and self.company_id)
         return config
 
+    def orders_get_invoice(self, context=None, meli=None, config=None):
+        _logger.info("orders_get_invoice")
+
     name = fields.Char(string='Order Name',index=True)
     order_id = fields.Char(string='Order Id',index=True)
     pack_id = fields.Char(string='Pack Id',index=True)
@@ -2013,6 +2016,36 @@ class mercadolibre_orders_update(models.TransientModel):
 
         except Exception as e:
             _logger.info("order_update > Error actualizando ordenes")
+            _logger.error(e, exc_info=True)
+            self._cr.rollback()
+
+        return {}
+
+mercadolibre_orders_update()
+
+class mercadolibre_orders_update_invoice(models.TransientModel):
+    _name = "mercadolibre.orders.update.invoice"
+    _description = "Update Order Invoice"
+
+    def order_update_invoice(self, context=None):
+        context = context or self.env.context
+        orders_ids = ('active_ids' in context and context['active_ids']) or []
+        orders_obj = self.env['mercadolibre.orders']
+
+        self._cr.autocommit(False)
+        try:
+
+            for order_id in orders_ids:
+
+                _logger.info("order_update: %s " % (order_id) )
+
+                order = orders_obj.browse(order_id)
+                #order.orders_update_order()
+                if order:
+                    order.orders_get_invoice()
+
+        except Exception as e:
+            _logger.info("order_update > Error actualizando factura ordenes")
             _logger.error(e, exc_info=True)
             self._cr.rollback()
 

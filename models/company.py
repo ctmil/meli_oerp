@@ -298,6 +298,8 @@ class res_company(models.Model):
     mercadolibre_create_website_categories = fields.Boolean(string='Crear categorías',help='Create Website eCommerce Categories from imported products ML categories')
     mercadolibre_pricelist = fields.Many2one( "product.pricelist", "Product Pricelist default", help="Select price list for ML product"
         "when published from Odoo to ML")
+    mercadolibre_pricelist_usd = fields.Many2one( "product.pricelist", "Product Pricelist default USD", help="USD Select price list for ML product"
+        "when published from Odoo to ML")
 
     mercadolibre_order_total_config = fields.Selection( [('manual','Manual'),('manual_conflict','Manual conflict'),('paid_amount','Paid Amount'),('total_amount','Total Amount')] , string="Total Config.", help='Order Total Config, stategy to calculate order/invoice total amount.' )
 
@@ -387,6 +389,8 @@ class res_company(models.Model):
     mercadolibre_filter_order_datetime_to = fields.Datetime("Order Closed Date To",help="Fecha final para la importacion de pedidos (vacio: el dia de hoy)")
 
     mercadolibre_payment_term = fields.Many2one("account.payment.term",string="Payment Term")
+
+    mercadolibre_banner = fields.Many2one("mercadolibre.banner",string="Plantilla Descriptiva")
 
     #mercadolibre_use_buyer_name = fields.Boolean(string="Use buyer name",default=True)
 
