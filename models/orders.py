@@ -669,6 +669,82 @@ class mercadolibre_orders(models.Model):
             product_related = product_obj.search([('meli_id','=', meli_id)])
         return product_related
 
+    def update_partner_billing_info( self, partner_id, meli_buyer_fields):
+
+        partner_update = {}
+
+        if not partner_id or not meli_buyer_fields:
+            return partner_update
+
+        if "documento" in meli_buyer_fields:
+            partner_update.update(meli_buyer_fields)
+
+        #TODO: re DO with, self.update_billing_data( partner_id, meli_buyer_fields )
+        if "document_type_id" in meli_buyer_fields and str(meli_buyer_fields['document_type_id'])!=str(partner_id.document_type_id and partner_id.document_type_id.id):
+            partner_update.update(meli_buyer_fields)
+
+        if "document_number" in meli_buyer_fields and str(meli_buyer_fields['document_number'])!=str(partner_id.document_number):
+            partner_update.update(meli_buyer_fields)
+
+        if "company_type" in meli_buyer_fields and str(meli_buyer_fields['company_type'])!=str(partner_id.company_type):
+            partner_update.update(meli_buyer_fields)
+
+        if ("vat" in meli_buyer_fields and meli_buyer_fields["vat"]!=str(partner_id.vat) ):
+            partner_update.update(meli_buyer_fields)
+
+        if "l10n_co_document_type" in meli_buyer_fields and str(meli_buyer_fields['l10n_co_document_type'])!=str(partner_id.l10n_co_document_type):
+            partner_update.update(meli_buyer_fields)
+
+        if "l10n_latam_identification_type_id" in meli_buyer_fields and str(meli_buyer_fields['l10n_latam_identification_type_id'])!=str(partner_id.l10n_latam_identification_type_id and partner_id.l10n_latam_identification_type_id.id):
+            partner_update.update(meli_buyer_fields)
+
+        if "l10n_cl_sii_taxpayer_type" in meli_buyer_fields and str(meli_buyer_fields['l10n_cl_sii_taxpayer_type'])!=str(partner_id.l10n_cl_sii_taxpayer_type):
+            partner_update.update(meli_buyer_fields)
+
+        if "fe_tipo_documento" in meli_buyer_fields and str(meli_buyer_fields['fe_tipo_documento'])!=str(partner_id.fe_tipo_documento):
+            partner_update.update(meli_buyer_fields)
+
+        if "fe_nit" in meli_buyer_fields and str(meli_buyer_fields['fe_nit'])!=str(partner_id.fe_nit):
+            partner_update.update(meli_buyer_fields)
+
+        if "main_id_number" in meli_buyer_fields and str(meli_buyer_fields['main_id_number'])!=str(partner_id.main_id_number):
+            partner_update.update(meli_buyer_fields)
+
+        if "afip_responsability_type_id" in meli_buyer_fields and str(meli_buyer_fields['afip_responsability_type_id'])!=str(partner_id.afip_responsability_type_id and partner_id.afip_responsability_type_id.id):
+            partner_update.update(meli_buyer_fields)
+
+        if "main_id_category_id" in meli_buyer_fields and str(meli_buyer_fields['main_id_category_id'])!=str(partner_id.main_id_category_id and partner_id.main_id_category_id.id):
+            partner_update.update(meli_buyer_fields)
+
+        if ("name" in meli_buyer_fields and meli_buyer_fields["name"]!=str(partner_id.name) ):
+            partner_update.update(meli_buyer_fields)
+
+        if ("x_name1" in meli_buyer_fields and meli_buyer_fields["x_name1"]!=str(partner_id.x_name1) ):
+            partner_update.update(meli_buyer_fields)
+
+        if "fiscal_responsibility_ids" in meli_buyer_fields:
+            partner_update.update(meli_buyer_fields)
+
+        if "tribute_id" in meli_buyer_fields:
+            partner_update.update(meli_buyer_fields)
+
+        if not partner_id.country_id:
+            partner_update.update({'country_id': self.country(Receiver)})
+
+        if not partner_id.state_id:
+            partner_update.update({ 'state_id': self.state(self.country(Receiver), Receiver)})
+
+        if not partner_id.street or partner_id.street=="no street":
+            partner_update.update({ 'street': self.street(Receiver)})
+
+        if not partner_id.city or partner_id.city=="":
+            partner_update.update({ 'city': self.city(Receiver) })
+
+        if "cities" in meli_buyer_fields and partner_id.cities and partner_id.cities.state_id!=partner_id.state_id:
+            partner_update.update({ 'cities': meli_buyer_fields["cities"] })
+            partner_update.update({ 'postal_id': meli_buyer_fields["postal_id"] })
+
+        return partner_update
 
     def orders_update_order_json( self, data, context=None, config=None, meli=None ):
 
@@ -822,7 +898,7 @@ class mercadolibre_orders(models.Model):
                 'state_id': self.state(self.country(Receiver,Buyer),Receiver,Buyer),
                 'phone': self.full_phone( Buyer ),
                 #'email': Buyer['email'],
-                'meli_buyer_id': Buyer['id']
+                'meli_buyer_id': Buyer['id'],
             }
             meli_buyer_fields.update(self.fix_locals(Receiver=Receiver,Buyer=Buyer))
             if company:
@@ -1201,19 +1277,49 @@ class mercadolibre_orders(models.Model):
                     if ("property_payment_term_id" in self.env['res.partner']._fields):
                         meli_buyer_fields['property_payment_term_id'] = config.mercadolibre_payment_term and config.mercadolibre_payment_term.id
 
+            partner_invoice_id = None
+            partner_invoice_meli_order_id = str(order_json['pack_id'] or order_json['id'])
+            partner_id = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ], limit=1 )
 
-            partner_ids = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ] )
-            if (len(partner_ids)>0):
-                partner_id = partner_ids[0]
             if ("fe_regimen_fiscal" in self.env['res.partner']._fields):
                 if (partner_id and not partner_id.fe_regimen_fiscal):
                     meli_buyer_fields['fe_regimen_fiscal'] = '49';
                 else:
                     meli_buyer_fields['fe_regimen_fiscal'] = '49';
+
+            if (partner_id and "vat" in meli_buyer_fields and meli_buyer_fields["vat"]!=str(partner_id.vat)):
+                #CREAR INVOICE CONTACT
+                partner_invoice_id = respartner_obj.search([  ('meli_order_id','=',partner_invoice_meli_order_id ) ], limit=1 )
+                partner_update = meli_buyer_fields
+                partner_update.update({'meli_order_id': meli_order_id, 'type': 'invoice' })
+
+                if partner_invoice_id:
+                    partner_update = self.update_partner_billing_info( partner_id=partner_invoice_id, meli_buyer_fields=partner_update )
+                    if partner_update:
+                        try:
+                            partner_invoice_id.write(partner_update)
+                        except Exception as e:
+                            _logger.info("orders_update_order > Error actualizando Partner Invoice Id:"+str(e))
+                            _logger.error(e, exc_info=True)
+                            pass;
+                else:
+                    try:
+                        partner_invoice_id = respartner_obj.create(( partner_update ))
+                        if partner_invoice_id:
+                            partner_update = self.update_partner_billing_info( partner_id=partner_invoice_id, meli_buyer_fields=partner_update )
+                            partner_invoice_id.write(partner_update)
+
+                    except Exception as e:
+                        _logger.info("orders_update_order > Error creando Partner Invoice Id:"+str(e))
+                        _logger.error(e, exc_info=True)
+                        pass;
+
+
             if not partner_id:
                 #_logger.info( "creating partner:" + str(meli_buyer_fields) )
                 try:
                     partner_id = respartner_obj.create(( meli_buyer_fields ))
+                    partner_invoice_id = partner_id
                 except Exception as e:
                     _logger.info("orders_update_order > Error creando Partner:"+str(e))
                     _logger.error(e, exc_info=True)
@@ -1225,73 +1331,7 @@ class mercadolibre_orders(models.Model):
                 #complete country at most:
                 partner_update = {}
 
-                if "documento" in meli_buyer_fields:
-                    partner_update.update(meli_buyer_fields)
-
-                #TODO: re DO with, self.update_billing_data( partner_id, meli_buyer_fields )
-                if "document_type_id" in meli_buyer_fields and str(meli_buyer_fields['document_type_id'])!=str(partner_id.document_type_id and partner_id.document_type_id.id):
-                    partner_update.update(meli_buyer_fields)
-
-                if "document_number" in meli_buyer_fields and str(meli_buyer_fields['document_number'])!=str(partner_id.document_number):
-                    partner_update.update(meli_buyer_fields)
-                    
-                if "company_type" in meli_buyer_fields and str(meli_buyer_fields['company_type'])!=str(partner_id.company_type):
-                    partner_update.update(meli_buyer_fields)
-
-                if ("vat" in meli_buyer_fields and meli_buyer_fields["vat"]!=str(partner_id.vat) ):
-                    partner_update.update(meli_buyer_fields)
-
-                if "l10n_co_document_type" in meli_buyer_fields and str(meli_buyer_fields['l10n_co_document_type'])!=str(partner_id.l10n_co_document_type):
-                    partner_update.update(meli_buyer_fields)
-
-                if "l10n_latam_identification_type_id" in meli_buyer_fields and str(meli_buyer_fields['l10n_latam_identification_type_id'])!=str(partner_id.l10n_latam_identification_type_id and partner_id.l10n_latam_identification_type_id.id):
-                    partner_update.update(meli_buyer_fields)
-
-                if "l10n_cl_sii_taxpayer_type" in meli_buyer_fields and str(meli_buyer_fields['l10n_cl_sii_taxpayer_type'])!=str(partner_id.l10n_cl_sii_taxpayer_type):
-                    partner_update.update(meli_buyer_fields)
-
-                if "fe_tipo_documento" in meli_buyer_fields and str(meli_buyer_fields['fe_tipo_documento'])!=str(partner_id.fe_tipo_documento):
-                    partner_update.update(meli_buyer_fields)
-
-                if "fe_nit" in meli_buyer_fields and str(meli_buyer_fields['fe_nit'])!=str(partner_id.fe_nit):
-                    partner_update.update(meli_buyer_fields)
-
-                if "main_id_number" in meli_buyer_fields and str(meli_buyer_fields['main_id_number'])!=str(partner_id.main_id_number):
-                    partner_update.update(meli_buyer_fields)
-
-                if "afip_responsability_type_id" in meli_buyer_fields and str(meli_buyer_fields['afip_responsability_type_id'])!=str(partner_id.afip_responsability_type_id and partner_id.afip_responsability_type_id.id):
-                    partner_update.update(meli_buyer_fields)
-
-                if "main_id_category_id" in meli_buyer_fields and str(meli_buyer_fields['main_id_category_id'])!=str(partner_id.main_id_category_id and partner_id.main_id_category_id.id):
-                    partner_update.update(meli_buyer_fields)
-
-                if ("name" in meli_buyer_fields and meli_buyer_fields["name"]!=str(partner_id.name) ):
-                    partner_update.update(meli_buyer_fields)
-
-                if ("x_name1" in meli_buyer_fields and meli_buyer_fields["x_name1"]!=str(partner_id.x_name1) ):
-                    partner_update.update(meli_buyer_fields)
-
-                if "fiscal_responsibility_ids" in meli_buyer_fields:
-                    partner_update.update(meli_buyer_fields)
-
-                if "tribute_id" in meli_buyer_fields:
-                    partner_update.update(meli_buyer_fields)
-
-                if not partner_id.country_id:
-                    partner_update.update({'country_id': self.country(Receiver)})
-
-                if not partner_id.state_id:
-                    partner_update.update({ 'state_id': self.state(self.country(Receiver), Receiver)})
-
-                if not partner_id.street or partner_id.street=="no street":
-                    partner_update.update({ 'street': self.street(Receiver)})
-
-                if not partner_id.city or partner_id.city=="":
-                    partner_update.update({ 'city': self.city(Receiver) })
-
-                if "cities" in meli_buyer_fields and partner_id.cities and partner_id.cities.state_id!=partner_id.state_id:
-                    partner_update.update({ 'cities': meli_buyer_fields["cities"] })
-                    partner_update.update({ 'postal_id': meli_buyer_fields["postal_id"] })
+                partner_update = self.update_partner_billing_info( partner_id=partner_id, meli_buyer_fields=meli_buyer_fields )
 
                 if partner_update:
                     _logger.info("Updating partner: "+str(partner_update))
@@ -1331,6 +1371,7 @@ class mercadolibre_orders(models.Model):
         meli_order_fields = self.prepare_sale_order_vals( order_json=order_json, meli=meli, config=config, sale_order=sorder )
         meli_order_fields.update({
             'partner_id': partner_id.id,
+            'partner_invoice_id': (partner_invoice_id and partner_invoice_id.id),
             'pricelist_id': plistid.id,
         })
         if partner_shipping_id:
@@ -1984,9 +2025,10 @@ mercadolibre_buyers()
 class res_partner(models.Model):
     _inherit = "res.partner"
 
-    meli_buyer_id = fields.Char('Meli Buyer Id')
+    meli_buyer_id = fields.Char('Meli Buyer Id',index=True)
     meli_buyer = fields.Many2one('mercadolibre.buyers',string='Buyer')
     meli_update_forbidden = fields.Boolean(string='Meli Update Forbiden')
+    meli_order_id = fields.Char('Meli Order Id',index=True)
 
     _sql_constraints = [
         ('unique_partner_meli_buyer_id', 'unique(meli_buyer_id)', 'Mei Partner Buyer id already exists!')

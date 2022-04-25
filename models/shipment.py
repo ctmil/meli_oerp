@@ -752,7 +752,9 @@ class mercadolibre_shipment(models.Model):
                             plistid = plistids
 
                     #buyer_ids = buyers_obj.search([  ('buyer_id','=',buyer_fields['buyer_id'] ) ] )
-                    partner_id = respartner_obj.search([  ('meli_buyer_id','=',ship_fields['receiver_id'] ) ] )
+                    partner_invoice_meli_order_id = str(all_orders[0]['pack_id'] or all_orders[0]['id'])
+                    partner_id = respartner_obj.search([  ('meli_buyer_id','=',ship_fields['receiver_id'] ) ], limit=1 )
+                    partner_invoice_id = respartner_obj.search([  ('meli_order_id','=',partner_invoice_meli_order_id ) ], limit=1 ) or partner_id
                     if (partner_id.id):
                         oname = "pack_id" in all_orders[0] and all_orders[0]["pack_id"] and str(  "ML %s" % ( str(all_orders[0]["pack_id"]) ) )
                         oname = oname or str("ML %s" % ( str(all_orders[0]["order_id"]) ) )
@@ -786,6 +788,7 @@ class mercadolibre_shipment(models.Model):
                             #'name': "ML %i" % ( all_orders[0]["pack_id"] ),
                             #'name': "ML %s" % ( str(all_orders[0]["order_id"]) ),
                             'partner_id': partner_id.id,
+                            'partner_invoice_id': partner_invoice_id and partner_invoice_id.id,
                             'pricelist_id': plistid.id,
                             #'meli_order_id': '%i' % (order_json["id"]),
                             'meli_order_id': packed_order_ids,
