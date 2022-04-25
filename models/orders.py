@@ -1234,7 +1234,7 @@ class mercadolibre_orders(models.Model):
 
                 if "document_number" in meli_buyer_fields and str(meli_buyer_fields['document_number'])!=str(partner_id.document_number):
                     partner_update.update(meli_buyer_fields)
-
+                    
                 if "company_type" in meli_buyer_fields and str(meli_buyer_fields['company_type'])!=str(partner_id.company_type):
                     partner_update.update(meli_buyer_fields)
 
@@ -1844,6 +1844,9 @@ class mercadolibre_orders(models.Model):
     def _get_config( self, config=None ):
         config = config or (self and self.company_id)
         return config
+
+    def orders_get_invoice(self, context=None, meli=None, config=None):
+        _logger.info("orders_get_invoice")
 
     name = fields.Char(string='Order Name',index=True)
     order_id = fields.Char(string='Order Id',index=True)

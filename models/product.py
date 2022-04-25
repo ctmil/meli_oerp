@@ -459,6 +459,7 @@ class product_template(models.Model):
     meli_update_error = fields.Char(string="Update Error",index=True)
 
     meli_update_stock_blocked = fields.Boolean(string="Block Update stock",default=False)
+    meli_mercadolibre_banner = fields.Many2one("mercadolibre.banner",string="Plantilla Descriptiva")
 
     def product_template_permalink(self):
         company = self.env.user.company_id
@@ -598,7 +599,9 @@ class product_product(models.Model):
         product_tmpl = product.product_tmpl_id
         #_logger.info("set_meli_price: "+str(product_tmpl.list_price)+ " >> "+str(product_tmpl.display_name)+": "+str(product_tmpl.meli_price)+" | "+str(product.display_name)+": "+str(product.meli_price) )
 
-        pl = config.mercadolibre_pricelist or plist
+        pl = (product.meli_currency and product.meli_currency in ["USD"] and "mercadolibre_pricelist_usd" in config._fields and config.mercadolibre_pricelist_usd and config.mercadolibre_pricelist_usd.currency_id.name=="USD" and config.mercadolibre_pricelist_usd)
+        pl = pl or config.mercadolibre_pricelist or plist
+
 
         # NEW OR NULL
         # > Set template meli price
@@ -2812,6 +2815,12 @@ class product_product(models.Model):
         bodydescription = {
             "plain_text": product.meli_description or '',
         }
+        mlbanner = product.meli_mercadolibre_banner or product_tmpl.meli_mercadolibre_banner
+        mlbanner = mlbanner or (config and config.mercadolibre_banner)
+        if (mlbanner):
+            bodydescription["plain_text"] = mlbanner.get_description(product=product)
+
+
         # _logger.info( body )
         assign_img = False and product.meli_id
 
@@ -3090,7 +3099,7 @@ class product_product(models.Model):
                 responsevar = product.meli_id and meli.put("/items/"+product.meli_id, varias, {'access_token':meli.access_token})
                 _logger.info(str(responsevar and responsevar.json()))
                 #_logger.debug(responsevar.json())
-                resdes = product.meli_id and meli.put("/items/"+product.meli_id+"/description", meli_descr, {'access_token':meli.access_token})
+                resdes = product.meli_id and meli.put("/items/"+product.meli_id+"/description", bodydescription, {'access_token':meli.access_token})
                 #_logger.debug(resdes.json())
                 del body['price']
                 del body['available_quantity']
@@ -3112,7 +3121,7 @@ class product_product(models.Model):
             response = meli.put("/items/"+product.meli_id, body, {'access_token':meli.access_token})
             resdescription = meli.put("/items/"+product.meli_id+"/description", bodydescription, {'access_token':meli.access_token})
             rjsondes = resdescription.json()
-            _logger.info(rjsondes)
+            #_logger.info(rjsondes)
         else:
             assign_img = True and product.meli_imagen_id
             _logger.info("first post:" + str(body))
@@ -3626,6 +3635,8 @@ class product_product(models.Model):
     meli_update_error = fields.Char(string="Update Error",index=True)
 
     meli_update_stock_blocked = fields.Boolean(string="Block Update stock",default=False)
+    meli_mercadolibre_banner = fields.Many2one("mercadolibre.banner",string="Plantilla Descriptiva")
+
 
     _defaults = {
         'meli_imagen_logo': 'None',
