@@ -1280,6 +1280,7 @@ class mercadolibre_orders(models.Model):
             partner_invoice_id = None
             partner_invoice_meli_order_id = str(order_json['pack_id'] or order_json['id'])
             partner_id = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ], limit=1 )
+            partner_invoice_id = partner_id
 
             if ("fe_regimen_fiscal" in self.env['res.partner']._fields):
                 if (partner_id and not partner_id.fe_regimen_fiscal):
