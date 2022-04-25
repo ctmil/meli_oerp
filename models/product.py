@@ -2816,7 +2816,7 @@ class product_product(models.Model):
             "plain_text": product.meli_description or '',
         }
         mlbanner = product.meli_mercadolibre_banner or product_tmpl.meli_mercadolibre_banner
-        mlbanner = mlbanner or (config and config.meli_mercadolibre_banner)
+        mlbanner = mlbanner or (config and config.mercadolibre_banner)
         if (mlbanner):
             bodydescription["plain_text"] = mlbanner.get_description(product=product)
 
