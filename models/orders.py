@@ -1303,6 +1303,7 @@ class mercadolibre_orders(models.Model):
                     partner_update = self.update_partner_billing_info( partner_id=partner_invoice_id, meli_buyer_fields=partner_update )
                     if partner_update:
                         try:
+                            _logger.info("Partner Invoice Updating: "+str(partner_update))
                             partner_invoice_id.write(partner_update)
                         except Exception as e:
                             _logger.info("orders_update_order > Error actualizando Partner Invoice Id:"+str(e))
@@ -1312,8 +1313,9 @@ class mercadolibre_orders(models.Model):
                     try:
                         partner_invoice_id = respartner_obj.create(( partner_update ))
                         if partner_invoice_id:
-                            partner_update = self.update_partner_billing_info( partner_id=partner_invoice_id, meli_buyer_fields=partner_update )
-                            partner_invoice_id.write(partner_update)
+                            #partner_update = self.update_partner_billing_info( partner_id=partner_invoice_id, meli_buyer_fields=partner_update )
+                            #partner_invoice_id.write(partner_update)
+                            _logger.info("Partner Invoice created: "+str(partner_update))
 
                     except Exception as e:
                         _logger.info("orders_update_order > Error creando Partner Invoice Id:"+str(e))
