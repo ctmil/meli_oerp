@@ -1292,7 +1292,7 @@ class mercadolibre_orders(models.Model):
                 #CREAR INVOICE CONTACT
                 partner_invoice_id = respartner_obj.search([  ('meli_order_id','=',partner_invoice_meli_order_id ) ], limit=1 )
                 partner_update = meli_buyer_fields
-                partner_update.update({'meli_order_id': meli_order_id, 'type': 'invoice' })
+                partner_update.update({'meli_order_id': partner_invoice_meli_order_id, 'type': 'invoice' })
 
                 if partner_invoice_id:
                     partner_update = self.update_partner_billing_info( partner_id=partner_invoice_id, meli_buyer_fields=partner_update )
