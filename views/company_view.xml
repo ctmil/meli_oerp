@@ -97,6 +97,7 @@
                               <group>
                                 <field name="mercadolibre_warranty" invisible="0"/>
                                 <field name="mercadolibre_listing_type" invisible="0"/>
+                                <field name="mercadolibre_banner" invisible="0"/>
                                 <field name="mercadolibre_seller_user" invisible="0"/>
                                 <field name="mercadolibre_seller_team" invisible="0"/>
                                 <field name="mercadolibre_attributes" invisible="0"/>

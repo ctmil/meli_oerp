@@ -310,6 +310,8 @@ class product_template_import(models.TransientModel):
     batch_processing_unit_offset = fields.Integer(string="Offset", default=0 )
     batch_processing_status = fields.Char(string="Status proceso por lotes")
     batch_processing = fields.Boolean(string="Batch Processing Active",default=False)
+    batch_actives_to_sync = fields.Boolean(string="Process Actives To Sync",default=False)
+    batch_paused_to_sync = fields.Boolean(string="Process Paused To Sync",default=False)
 
     report_import = fields.Many2one( "ir.attachment",string="Reporte Importación")
 
@@ -422,6 +424,11 @@ class product_template_import(models.TransientModel):
             "type": "set_scrollTop",
         }
 
+    def create_full_report( self, context=None, config=None, meli=None):
+        _logger.info("Creating full report")
+        context = context or self.env.context
+        company = self.env.user.company_id
+
     def product_template_import(self, context=None):
 
         context = context or self.env.context
@@ -447,6 +454,8 @@ class product_template_import(models.TransientModel):
             "force_meli_website_category_create_and_assign": self.force_meli_website_category_create_and_assign,
             "batch_processing_unit": self.batch_processing_unit,
             "batch_processing_unit_offset": self.batch_processing_unit_offset,
+            "batch_actives_to_sync": self.batch_actives_to_sync,
+            "batch_paused_to_sync": self.batch_paused_to_sync,
         }
 
         _logger.info("product_template_import custom_context:"+str(custom_context))
@@ -529,5 +538,7 @@ class product_template_import(models.TransientModel):
             _logger.info('Processing import status ' + str(self.import_status)+ " report_import:"+str(self.report_import))
 
         return res
+
+
 
 product_template_import()

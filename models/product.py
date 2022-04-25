@@ -459,6 +459,7 @@ class product_template(models.Model):
     meli_update_error = fields.Char(string="Update Error",index=True)
 
     meli_update_stock_blocked = fields.Boolean(string="Block Update stock",default=False)
+    meli_mercadolibre_banner = fields.Many2one("mercadolibre.banner",string="Plantilla Descriptiva")
 
     def product_template_permalink(self):
         company = self.env.user.company_id
@@ -598,7 +599,9 @@ class product_product(models.Model):
         product_tmpl = product.product_tmpl_id
         #_logger.info("set_meli_price: "+str(product_tmpl.list_price)+ " >> "+str(product_tmpl.display_name)+": "+str(product_tmpl.meli_price)+" | "+str(product.display_name)+": "+str(product.meli_price) )
 
-        pl = config.mercadolibre_pricelist or plist
+        pl = (product.meli_currency and product.meli_currency in ["USD"] and "mercadolibre_pricelist_usd" in config._fields and config.mercadolibre_pricelist_usd and config.mercadolibre_pricelist_usd.currency_id.name=="USD" and config.mercadolibre_pricelist_usd)
+        pl = pl or config.mercadolibre_pricelist or plist
+
 
         # NEW OR NULL
         # > Set template meli price
@@ -1508,7 +1511,7 @@ class product_product(models.Model):
             del meli_fields['name']
         if (product_template.name and not company.mercadolibre_overwrite_template):
             del tmpl_fields['name']
-        if (product_template.description_sale and not company.mercadolibre_overwrite_template):
+        if (product_template.description_sale or not company.mercadolibre_overwrite_template):
             del tmpl_fields['description_sale']
 
         if ("catalog_listing" in rjson):
@@ -2715,7 +2718,17 @@ class product_product(models.Model):
                         attributes_ids[attribute["id"]] = attribute["value_name"]
                         attributes.append(attribute)
 
-                    if (at_line_id.attribute_id.meli_default_id_attribute.id and at_line_id.attribute_id.meli_default_id_attribute.variation_attribute==False):
+                    if (not product_tmpl.meli_pub_as_variant):
+                        if (atname=="GTIN" or atname=="Código universal de producto"):
+                            attribute = { "id": "GTIN", "value_name": atval }
+                            attributes_ids[attribute["id"]] = attribute["value_name"]
+                            attributes.append(attribute)
+
+                    #if not barcode_updated and set_barcode and variant.barcode:
+                    #updated_attributes.append( { "id": "GTIN", "value_name": variant.barcode } )
+
+                    if (at_line_id.attribute_id.meli_default_id_attribute.id and
+                        at_line_id.attribute_id.meli_default_id_attribute.variation_attribute==False):
                         attribute = {
                             "id": at_line_id.attribute_id.meli_default_id_attribute.att_id,
                             "value_name": atval
@@ -2736,6 +2749,11 @@ class product_product(models.Model):
             product.meli_brand = product_tmpl.meli_brand
         if product.meli_model==False or len(product.meli_model)==0:
             product.meli_model = product_tmpl.meli_model
+
+        if (product.barcode and not product_tmpl.meli_pub_as_variant and not "GTIN" in attributes_ids):
+            attribute = { "id": "GTIN", "value_name": product.barcode }
+            attributes_ids[attribute["id"]] = attribute["value_name"]
+            attributes.append(attribute)
 
         if product.meli_brand and len(product.meli_brand) > 0 and not "BRAND" in attributes_ids:
             attribute = { "id": "BRAND", "value_name": product.meli_brand }
@@ -2797,6 +2815,12 @@ class product_product(models.Model):
         bodydescription = {
             "plain_text": product.meli_description or '',
         }
+        mlbanner = product.meli_mercadolibre_banner or product_tmpl.meli_mercadolibre_banner
+        mlbanner = mlbanner or (config and config.mercadolibre_banner)
+        if (mlbanner):
+            bodydescription["plain_text"] = mlbanner.get_description(product=product)
+
+
         # _logger.info( body )
         assign_img = False and product.meli_id
 
@@ -3097,6 +3121,7 @@ class product_product(models.Model):
             response = meli.put("/items/"+product.meli_id, body, {'access_token':meli.access_token})
             resdescription = meli.put("/items/"+product.meli_id+"/description", bodydescription, {'access_token':meli.access_token})
             rjsondes = resdescription.json()
+            #_logger.info(rjsondes)
         else:
             assign_img = True and product.meli_imagen_id
             _logger.info("first post:" + str(body))
@@ -3594,6 +3619,8 @@ class product_product(models.Model):
     meli_update_error = fields.Char(string="Update Error",index=True)
 
     meli_update_stock_blocked = fields.Boolean(string="Block Update stock",default=False)
+    meli_mercadolibre_banner = fields.Many2one("mercadolibre.banner",string="Plantilla Descriptiva")
+
 
     _defaults = {
         'meli_imagen_logo': 'None',
