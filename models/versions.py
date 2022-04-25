@@ -160,6 +160,14 @@ def set_delivery_line( sorder, delivery_price, delivery_message ):
     delivery_line = get_delivery_line(sorder)
     if not delivery_line:
         delivery_line = sorder._create_delivery_line(sorder.carrier_id, delivery_price)
+        
+    recompute_delivery_price = False
+    
+    if (delivery_line and abs(delivery_line.price_unit - float(delivery_price)) < 1.1 ):        
+        recompute_delivery_price = True
+        #sorder.set_delivery_line(sorder.carrier_id, delivery_price)
+        delivery_line.price_unit = delivery_price
+        
     sorder.write({
     	#'recompute_delivery_price': False,
     	'delivery_message': delivery_message,

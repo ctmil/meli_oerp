@@ -65,6 +65,7 @@ class MercadolibreNotification(models.Model):
     received = fields.Datetime(string='Received', index=True)
     resource = fields.Char(string="Resource", index=True)
     attempts = fields.Integer(string='Attempts')
+    parameters = fields.Text(string="Parameters")
 
     state = fields.Selection([
 		("RECEIVED","Notification received."),
