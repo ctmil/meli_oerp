@@ -315,6 +315,8 @@ class sale_order(models.Model):
 
             if (config.mercadolibre_order_confirmation=="paid_confirm_with_invoice" or config.mercadolibre_order_confirmation=="paid_delivered_with_invoice"):
                 self.meli_create_invoice( meli=meli, config=config )
+
+
         except Exception as e:
             _logger.info("Confirm Order Exception")
             _logger.error(e, exc_info=True)
@@ -1290,7 +1292,7 @@ class mercadolibre_orders(models.Model):
 
             if (partner_id and "vat" in meli_buyer_fields and meli_buyer_fields["vat"]!=str(partner_id.vat)):
                 #CREAR INVOICE CONTACT
-                _logger.info("Partner Invoice is NEW: "+str(partner_invoice_meli_order_id)+" VAT:"+str(meli_buyer_fields["vat"])+ " vs "+str(partner_id.vat))
+                #_logger.info("Partner Invoice is NEW: "+str(partner_invoice_meli_order_id)+" VAT:"+str(meli_buyer_fields["vat"])+ " vs "+str(partner_id.vat))
                 partner_invoice_id = respartner_obj.search([  ('meli_order_id','=',partner_invoice_meli_order_id ) ], limit=1 )
                 partner_update = {}
                 partner_update.update( meli_buyer_fields )
@@ -1753,6 +1755,11 @@ class mercadolibre_orders(models.Model):
 
             if (sorder.meli_status=="cancelled" and sorder.state in ["draft","sale","sent"]):
                 sorder.action_cancel()
+
+        try:
+            self.orders_get_invoice()
+        except:
+            pass;
 
         return {}
 

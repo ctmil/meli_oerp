@@ -182,3 +182,8 @@ def set_delivery_line( sorder, delivery_price, delivery_message ):
             _logger.info("Error set_delivery_line failed (order invoiced)")
             
     return delivery_line
+    
+def remove_delivery_line( sorder, delivery_price=0):
+    sorder._remove_delivery_line()
+    return
+    

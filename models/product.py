@@ -1621,7 +1621,7 @@ class product_product(models.Model):
                             if ("id" in att and att["id"] == "SELLER_SKU"):
                                 rjson['variations'][vindex]["seller_sku"] = att["value_name"]
             _logger.info(rjson['variations'])
-
+            #_logger.info("realmeliv:"+str(realmeliv))
             if ( realmeliv>0 and 1==1 ):
                 #associate var ids for every variant
                 product_template.meli_pub_as_variant = True
