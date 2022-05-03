@@ -671,7 +671,7 @@ class mercadolibre_orders(models.Model):
             product_related = product_obj.search([('meli_id','=', meli_id)])
         return product_related
 
-    def update_partner_billing_info( self, partner_id, meli_buyer_fields):
+    def update_partner_billing_info( self, partner_id, meli_buyer_fields, Receiver):
 
         partner_update = {}
 
@@ -1304,7 +1304,7 @@ class mercadolibre_orders(models.Model):
                 })
 
                 if partner_invoice_id:
-                    partner_update = self.update_partner_billing_info( partner_id=partner_invoice_id, meli_buyer_fields=partner_update )
+                    partner_update = self.update_partner_billing_info( partner_id=partner_invoice_id, meli_buyer_fields=partner_update, Receiver=Receiver )
                     if partner_update:
                         try:
                             _logger.info("Partner Invoice Updating: "+str(partner_update))
@@ -1343,7 +1343,7 @@ class mercadolibre_orders(models.Model):
                 #complete country at most:
                 partner_update = {}
 
-                partner_update = self.update_partner_billing_info( partner_id=partner_id, meli_buyer_fields=meli_buyer_fields )
+                partner_update = self.update_partner_billing_info( partner_id=partner_id, meli_buyer_fields=meli_buyer_fields, Receiver=Receiver )
 
                 if partner_update:
                     _logger.info("Updating partner: "+str(partner_update))
