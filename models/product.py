@@ -1621,7 +1621,7 @@ class product_product(models.Model):
                             if ("id" in att and att["id"] == "SELLER_SKU"):
                                 rjson['variations'][vindex]["seller_sku"] = att["value_name"]
             _logger.info(rjson['variations'])
-
+            #_logger.info("realmeliv:"+str(realmeliv))
             if ( realmeliv>0 and 1==1 ):
                 #associate var ids for every variant
                 product_template.meli_pub_as_variant = True
@@ -1683,12 +1683,16 @@ class product_product(models.Model):
                 for att in att_value_ids(variant):
                     _v_default_code = _v_default_code + att.attribute_id.name+':'+att.name+';'
                 #_logger.info("_v_default_code: " + _v_default_code)
+                nv = 0
                 for variation in rjson['variations']:
-                    #_logger.info(variation)
-                    #_logger.info("variation[default_code]: " + variation["default_code"])
+                    if variation["default_code"]:
+                        nv = nv + 1
+                for variation in rjson['variations']:
+                    _logger.info(variation)
+                    _logger.info("variation[default_code]: " + variation["default_code"])
                     is_v_comb = variant.is_variant_in_combination( variation["default_code"], _v_default_code )
-                    #_logger.info("variation[default_code]: " + variation["default_code"]+" is_v_comb:"+str(is_v_comb))
-                    if ( len(variation["default_code"]) and is_v_comb):
+                    _logger.info("variation[default_code]: " + variation["default_code"]+" is_v_comb:"+str(is_v_comb))
+                    if ( len(variation["default_code"]) and (is_v_comb or ( nv==1 and 1==len(product_template.product_variant_ids))) ):
                         if ("seller_custom_field" in variation or "seller_sku" in variation):
                             #_logger.info("has_sku")
                             #_logger.info(variation["seller_custom_field"])

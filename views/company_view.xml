@@ -47,6 +47,7 @@
                                 <button type="action" name="%(action_product_template_import)d"
                                   string="Importar Masivamente"
                                   title="Importar Masivamente"
+				  attrs="{'invisible':[('mercadolibre_state','=',True)]}"
                                   class="oe_stat_button"
                                   icon="fa-cloud-download"></button>
 
