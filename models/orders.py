@@ -315,6 +315,8 @@ class sale_order(models.Model):
 
             if (config.mercadolibre_order_confirmation=="paid_confirm_with_invoice" or config.mercadolibre_order_confirmation=="paid_delivered_with_invoice"):
                 self.meli_create_invoice( meli=meli, config=config )
+
+
         except Exception as e:
             _logger.info("Confirm Order Exception")
             _logger.error(e, exc_info=True)
@@ -669,7 +671,7 @@ class mercadolibre_orders(models.Model):
             product_related = product_obj.search([('meli_id','=', meli_id)])
         return product_related
 
-    def update_partner_billing_info( self, partner_id, meli_buyer_fields):
+    def update_partner_billing_info( self, partner_id, meli_buyer_fields, Receiver):
 
         partner_update = {}
 
@@ -1290,6 +1292,7 @@ class mercadolibre_orders(models.Model):
 
             if (partner_id and "vat" in meli_buyer_fields and meli_buyer_fields["vat"]!=str(partner_id.vat)):
                 #CREAR INVOICE CONTACT
+                #_logger.info("Partner Invoice is NEW: "+str(partner_invoice_meli_order_id)+" VAT:"+str(meli_buyer_fields["vat"])+ " vs "+str(partner_id.vat))
                 partner_invoice_id = respartner_obj.search([  ('meli_order_id','=',partner_invoice_meli_order_id ) ], limit=1 )
                 partner_update = {}
                 partner_update.update( meli_buyer_fields )
@@ -1301,7 +1304,7 @@ class mercadolibre_orders(models.Model):
                 })
 
                 if partner_invoice_id:
-                    partner_update = self.update_partner_billing_info( partner_id=partner_invoice_id, meli_buyer_fields=partner_update )
+                    partner_update = self.update_partner_billing_info( partner_id=partner_invoice_id, meli_buyer_fields=partner_update, Receiver=Receiver )
                     if partner_update:
                         try:
                             _logger.info("Partner Invoice Updating: "+str(partner_update))
@@ -1340,7 +1343,7 @@ class mercadolibre_orders(models.Model):
                 #complete country at most:
                 partner_update = {}
 
-                partner_update = self.update_partner_billing_info( partner_id=partner_id, meli_buyer_fields=meli_buyer_fields )
+                partner_update = self.update_partner_billing_info( partner_id=partner_id, meli_buyer_fields=meli_buyer_fields, Receiver=Receiver )
 
                 if partner_update:
                     _logger.info("Updating partner: "+str(partner_update))
@@ -1752,6 +1755,11 @@ class mercadolibre_orders(models.Model):
 
             if (sorder.meli_status=="cancelled" and sorder.state in ["draft","sale","sent"]):
                 sorder.action_cancel()
+
+        try:
+            self.orders_get_invoice()
+        except:
+            pass;
 
         return {}
 
