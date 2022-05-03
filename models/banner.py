@@ -35,7 +35,9 @@ class MercadolibreBanner(models.Model):
         if not product:
             return ""
         des = self.header
-        des+= "\n"+product.meli_description
-        des+= "\n"+self.footer
+        if product.meli_description:
+            des+= "\n"+product.meli_description
+        if self.footer:
+            des+= "\n"+self.footer
 
         return des
