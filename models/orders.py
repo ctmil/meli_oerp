@@ -356,6 +356,13 @@ class sale_order(models.Model):
             else:
                 so.sudo().write( { 'user_id': None } )
 
+    def meli_oerp_update( self ):
+        res = {}
+        for order in self:
+            if order.meli_orders:
+                res = order.meli_orders[0].orders_update_order()
+        return res
+
     _sql_constraints = [
         ('unique_meli_order_id', 'unique(meli_order_id)', 'Meli Order id already exists!')
     ]
