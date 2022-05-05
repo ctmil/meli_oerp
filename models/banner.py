@@ -47,8 +47,8 @@ class MercadolibreBanner(models.Model):
         if not meli_description:
             return ""
         if self.header:
-            meli_description = meli_description.replace(self.header, "")
+            meli_description = meli_description.replace(self.header, "").strip()
         if self.footer:
-            meli_description = meli_description.replace(self.footer, "")
+            meli_description = meli_description.replace(self.footer, "").strip()
 
-        return meli_description
+        return meli_description.strip()
