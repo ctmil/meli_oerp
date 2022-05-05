@@ -1417,6 +1417,13 @@ class product_product(models.Model):
             if (len(des)>0):
                 desplain = des
 
+            mlbanner = product.meli_mercadolibre_banner or product_template.meli_mercadolibre_banner
+            mlbanner = mlbanner or (config and config.mercadolibre_banner)
+            if (mlbanner):
+                desplain = mlbanner.get_from_ml_description(desplain)
+
+
+
         #TODO: verificar q es un video
         if 'video_id' in rjson and rjson['video_id']:
             vid = rjson['video_id']
@@ -2823,7 +2830,6 @@ class product_product(models.Model):
         mlbanner = mlbanner or (config and config.mercadolibre_banner)
         if (mlbanner):
             bodydescription["plain_text"] = mlbanner.get_description(product=product)
-
 
         # _logger.info( body )
         assign_img = False and product.meli_id
