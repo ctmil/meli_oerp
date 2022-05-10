@@ -34,10 +34,21 @@ class MercadolibreBanner(models.Model):
     def get_description( self, product ):
         if not product:
             return ""
-        des = self.header
+        des = self.header or ""
         if product.meli_description:
             des+= "\n"+product.meli_description
         if self.footer:
             des+= "\n"+self.footer
 
         return des
+
+
+    def get_from_ml_description( self, meli_description ):
+        if not meli_description:
+            return ""
+        if self.header:
+            meli_description = meli_description.replace(self.header, "").strip()
+        if self.footer:
+            meli_description = meli_description.replace(self.footer, "").strip()
+
+        return meli_description.strip()
