@@ -1793,11 +1793,14 @@ class mercadolibre_orders(models.Model):
         order_json = response.json()
         #_logger.info( order_json )
 
-        if "error" in order_json:
+        if "error" in order_json and meli.access_token!="PASIVA":
             _logger.error( order_json["error"] )
             _logger.error( order_json["message"] )
         else:
             try:
+                if meli.access_token=="PASIVA":
+                    order_json = None
+                                        
                 self.orders_update_order_json( {"id": order.id, "order_json": order_json }, meli=meli, config=config )
                 self._cr.commit()
             except Exception as e:
@@ -1939,6 +1942,12 @@ class mercadolibre_orders(models.Model):
     date_closed = fields.Datetime('Closing date')
 
     order_items = fields.One2many('mercadolibre.order_items','order_id',string='Order Items' )
+
+    def _order_product( self ):
+        for ord in self:
+            ord.order_product = ord.order_items and ord.order_items[0].product_id
+    order_product = fields.Many2one('product.product',string='Order Items',compute=_order_product )
+
     payments = fields.One2many('mercadolibre.payments','order_id',string='Payments' )
     shipping = fields.Text(string="Shipping")
     shipping_id = fields.Char(string="Shipping id")

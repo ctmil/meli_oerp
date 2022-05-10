@@ -2831,6 +2831,7 @@ class product_product(models.Model):
         if (mlbanner):
             bodydescription["plain_text"] = mlbanner.get_description(product=product)
 
+
         # _logger.info( body )
         assign_img = False and product.meli_id
 
