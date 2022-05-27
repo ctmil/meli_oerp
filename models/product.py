@@ -3530,22 +3530,39 @@ class product_product(models.Model):
                         product.meli_id_variation = pjson["variations"][0]["id"]
 
         if (product.meli_id_variation):
-            #_logger.info("Posting using product.meli_id_variation")
-            var = {
-                #"id": str( product.meli_id_variation ),
-                "price": product.meli_price,
-                #"picture_ids": ['806634-MLM28112717071_092018', '928808-MLM28112717068_092018', '643737-MLM28112717069_092018', '934652-MLM28112717070_092018']
-            }
-            responsevar = meli.put("/items/"+product.meli_id+'/variations/'+str( product.meli_id_variation ), var, {'access_token':meli.access_token})
-            if (responsevar):
-                rjson = responsevar.json()
-                if rjson:
-                    #_logger.info(rjson)
-                    if "error" in rjson:
-                        _logger.error(rjson)
-                        return rjson
-                    if (len(rjson) and rjson[0] and 'price' in rjson[0]):
-                        _logger.info( "Posted price ok " + str(product.meli_id) + ": " + str(rjson[0]['price']) )
+            meli_id = product.meli_id
+            meli_price = product.meli_price
+            response = meli.get("/items/%s" % (str(meli_id)), {'access_token':meli.access_token})
+            if (response):
+
+                pjson = response.json()
+
+                if "variations" in pjson:
+                    vars = []
+                    for varx in pjson["variations"]:
+                    #_logger.info("Posting using product.meli_id_variation")
+                        var = {
+                            "id": varx["id"],
+                            "price": meli_price,
+                            #"picture_ids": ['806634-MLM28112717071_092018', '928808-MLM28112717068_092018', '643737-MLM28112717069_092018', '934652-MLM28112717070_092018']
+                        }
+                        vars.append(var)
+                    _logger.info("product_post_price (variations):"+str(vars))
+
+                    #responsevar = meli.put("/items/"+str(meli_id)+'/variations/'+str( meli_id_variation ), var, {'access_token':meli.access_token})
+                    responsevar = meli.put("/items/"+str(meli_id), { "variations": vars }, {'access_token':meli.access_token})
+                    if (responsevar):
+                        rjson = responsevar.json()
+                        if rjson:
+                            #_logger.info('rjson'+str(rjson))
+                            if "error" in rjson:
+                                _logger.error(rjson)
+                                return rjson
+                            if ('price' in rjson):
+                                _logger.info( "Posted price ok (variations)" + str(meli_id) + ": " + str(rjson['price']) )
+                            else:
+                                _logger.info( "Posted price ok (variations)" + str(meli_id) + ": " + str('variations' in rjson and rjson['variations']))
+
         else:
             _logger.info("product_post_price:"+str(fields))
             response = meli.put("/items/"+product.meli_id, fields, {'access_token':meli.access_token})
