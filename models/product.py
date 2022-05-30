@@ -3557,7 +3557,7 @@ class product_product(models.Model):
                             #_logger.info('rjson'+str(rjson))
                             if "error" in rjson:
                                 _logger.error(rjson)
-                                self.meli_price_error = str(resjson)
+                                self.meli_price_error = str(rjson)
                                 self.product_tmpl_id.meli_price_error = self.meli_price_error
                                 return rjson
                             if ('price' in rjson):
@@ -3576,7 +3576,7 @@ class product_product(models.Model):
                 rjson = response.json()
                 if "error" in rjson:
                     _logger.error(rjson)
-                    self.meli_price_error = str(resjson)
+                    self.meli_price_error = str(rjson)
                     self.product_tmpl_id.meli_price_error = self.meli_price_error
                     return rjson
                 self.meli_price_error = 'ok'
