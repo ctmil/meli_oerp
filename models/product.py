@@ -3557,9 +3557,15 @@ class product_product(models.Model):
                             #_logger.info('rjson'+str(rjson))
                             if "error" in rjson:
                                 _logger.error(rjson)
+                                self.meli_price_error = str(resjson)
+                                self.product_tmpl_id.meli_price_error = self.meli_price_error
                                 return rjson
                             if ('price' in rjson):
                                 _logger.info( "Posted price ok (variations)" + str(meli_id) + ": " + str(rjson['price']) )
+                                self.meli_price_error = 'ok'
+                                self.meli_price_update = ml_datetime( str( datetime.now() ) )
+                                self.product_tmpl_id.meli_price_error = self.meli_price_error
+                                self.product_tmpl_id.meli_price_update = self.meli_price_update
                             else:
                                 _logger.info( "Posted price ok (variations)" + str(meli_id) + ": " + str('variations' in rjson and rjson['variations']))
 
@@ -3570,7 +3576,14 @@ class product_product(models.Model):
                 rjson = response.json()
                 if "error" in rjson:
                     _logger.error(rjson)
+                    self.meli_price_error = str(resjson)
+                    self.product_tmpl_id.meli_price_error = self.meli_price_error
                     return rjson
+                self.meli_price_error = 'ok'
+                self.meli_price_update = ml_datetime( str( datetime.now() ) )
+                self.product_tmpl_id.meli_price_error = self.meli_price_error
+                self.product_tmpl_id.meli_price_update = self.meli_price_update
+
         return {}
 
     def get_title_for_meli(self):
