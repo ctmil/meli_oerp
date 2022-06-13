@@ -435,8 +435,8 @@ class mercadolibre_shipment(models.Model):
                 #display_price = vals['carrier_price']
                 set_delivery_line(sorder, delivery_price, delivery_message )
                 
-            if (sorder.carrier_id and delivery_price<=0.0):
-                sorder._remove_delivery_line()
+            #if (sorder.carrier_id and delivery_price<=0.0):
+            #    sorder._remove_delivery_line()
                 
 
             #REMOVE OLD SALE ORDER ITEM SHIPPING ITEM
