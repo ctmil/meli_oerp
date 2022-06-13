@@ -420,9 +420,16 @@ class product_template_import(models.TransientModel):
     def check_import_status( self ):
         _logger.info('Processing import status ' + str(self.import_status))
 
-        return {
-            "type": "set_scrollTop",
-        }
+        warningobj = self.env['meli.warning']
+
+        messhtml = ""
+        messhtml+= "<br/>"+self.actives_to_sync
+        messhtml+= "<br/>"+self.paused_to_sync
+        messhtml+= "<br/>"+self.closed_to_sync
+
+        res = warningobj.info( title='CHECK IMPORT STATUS', message="Import Status", message_html=messhtml )
+
+        return res
 
     def create_full_report( self, context=None, config=None, meli=None):
         _logger.info("Creating full report")

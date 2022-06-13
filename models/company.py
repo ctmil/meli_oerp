@@ -811,7 +811,6 @@ class res_company(models.Model):
             if batch_processing_unit:
                 res = {
                     #"type": "set_scrollTop",
-                    "type": "ir.actions.do_nothing",
                 }
             res.update( {
                 'html_report': html_report,
