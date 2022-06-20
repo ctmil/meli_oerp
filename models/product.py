@@ -2753,7 +2753,7 @@ class product_product(models.Model):
                 elif (len(at_line_id.value_ids)>1):
                     variations_candidates = True
 
-            _logger.info(attributes)
+            _logger.info("attributes:"+str(attributes))
             product.meli_attributes = str(attributes)
 
         if product.meli_brand==False or len(product.meli_brand)==0:
@@ -2769,13 +2769,13 @@ class product_product(models.Model):
         if product.meli_brand and len(product.meli_brand) > 0 and not "BRAND" in attributes_ids:
             attribute = { "id": "BRAND", "value_name": product.meli_brand }
             attributes.append(attribute)
-            _logger.info(attributes)
+            _logger.info("attributes:"+str(attributes))
             product.meli_attributes = str(attributes)
 
         if product.meli_model and len(product.meli_model) > 0 and not "MODEL" in attributes_ids:
             attribute = { "id": "MODEL", "value_name": product.meli_model }
             attributes.append(attribute)
-            _logger.info(attributes)
+            _logger.info("attributes:"+str(attributes))
             product.meli_attributes = str(attributes)
 
         #_product_post_set_category
@@ -2909,6 +2909,7 @@ class product_product(models.Model):
 
         if len(attributes):
             body["attributes"] =  attributes
+            _logger.info("body attributes:"+str(attributes))
 
         #publicando multiples imagenes
         multi_images_ids = {}
