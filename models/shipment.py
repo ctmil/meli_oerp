@@ -63,7 +63,23 @@ class mercadolibre_shipment_print(models.TransientModel):
         company = self.env.user.company_id
         if not config:
             config = company
+            
+        _logger.info( "shipment_print context: " + str(context) )
         shipment_ids = ('active_ids' in context and context['active_ids']) or []
+        #check if model is stock_picking or mercadolibre.shipment
+        #stock.picking > sale_id is the order, then the shipment is sale_id.meli_shipment
+        active_model = context.get("active_model")
+        _logger.info( "shipment_print active_model: " + str(active_model) )
+        if active_model == "stock.picking":
+            shipment_ids_from_pick = []
+            for spick_id in shipment_ids:
+                spick = self.env["stock.picking"].browse(spick_id)            
+                sale_order = spick.sale_id
+                if sale_order and sale_order.meli_shipment:
+                    shipment_ids_from_pick.append(sale_order.meli_shipment.id)
+            shipment_ids = shipment_ids_from_pick
+            _logger.info("stock.picking shipment_ids:"+str(shipment_ids))
+            
         shipment_obj = self.env['mercadolibre.shipment']
         warningobj = self.env['meli.warning']
 
