@@ -1757,8 +1757,8 @@ class mercadolibre_orders(models.Model):
                     #_logger.info(line.qty_to_invoice)
                     pass;
 
-            if (config.mercadolibre_order_confirmation!="manual"):
-                sorder.confirm_ml( meli=meli, config=config )
+            #if (config.mercadolibre_order_confirmation!="manual"):
+            sorder.confirm_ml( meli=meli, config=config )
 
             if (sorder.meli_status=="cancelled" and sorder.state in ["draft","sale","sent"]):
                 sorder.action_cancel()
