@@ -598,6 +598,53 @@ class mercadolibre_orders(models.Model):
     def pretty_json( self, ids, data, indent=0, context=None ):
         return json.dumps( data, sort_keys=False, indent=4 )
 
+    def prepare_orderjson( self, meli=None, config=None ):
+        ptags = (self.pack_order and "pack_order") or ""
+        order_items = []
+        for oitem in self.order_items:
+            order_items.append({
+                "item": {
+                    "id": oitem.order_item_id,
+                    "variation_id": oitem.order_item_variation_id or oitem.seller_sku,
+                    "title": oitem.order_item_title,
+                    "category_id": oitem.order_item_category_id,
+                    'seller_sku': oitem.seller_sku,
+                    'seller_custom_field': oitem.seller_custom_field,
+                },
+                "unit_price": oitem.unit_price,
+                "currency_id": oitem.currency_id,
+                'quantity': oitem.quantity,
+
+            })
+        orderjson = {
+            "id": self.order_id,
+            "status": self.status,
+            "status_detail": self.status_detail,
+            "total_amount": self.total_amount,
+            "paid_amount": self.paid_amount,
+
+            "date_created": self.date_created,
+            "date_closed": self.date_closed,
+            "pack_id": self.pack_id,
+            "seller": "Bereket",
+            "buyer": {
+                "id": "GLOBALCOMPRADOR",
+                "name": "Comprador De MercadoLibre",
+                "nickname": "CLIENTEML",
+                "first_name": "Comprador",
+                "last_name": "De MercadoLibre",
+            },
+            "tags": [ptags],
+            "currency_id": self.currency_id,
+            "shipping": {
+                "id": "SHP-"+str(self.pack_id or self.order_id),
+                "cost": self.shipping_cost,
+                "logistic_type": "fulfillment"
+            },
+            "order_items": order_items
+        }
+        return orderjson
+
     def prepare_ml_order_vals( self, meli=None, order_json=None, config=None ):
 
         company = self.env.user.company_id
@@ -635,6 +682,12 @@ class mercadolibre_orders(models.Model):
             if 'catalog' in order_json["tags"]:
                 order_fields["catalog_order"] = True
                 #debemos buscar el codigo relacionado pero al producto real del catalogo: que se encuentra.
+
+        if meli.access_token=="PASIVA":
+            if (self):
+                order_fields["fee_amount"] = self.payments and self.payments[0].fee_amount
+                if (self.sale_order):
+                    self.sale_order.meli_fee_amount = order_fields["fee_amount"]
         return order_fields
 
     def prepare_sale_order_vals( self, meli=None, order_json=None, config=None, sale_order=None, shipment=None ):
@@ -667,15 +720,25 @@ class mercadolibre_orders(models.Model):
         return mlorder
 
     def search_meli_product( self, meli=None, meli_item=None, config=None ):
+        product_related = False
         product_obj = self.env['product.product']
         if not meli_item:
             return None
         meli_id = meli_item['id']
         meli_id_variation = ("variation_id" in meli_item and meli_item['variation_id'])
-        if (meli_id_variation):
-            product_related = product_obj.search([ ('meli_id','=',meli_id), ('meli_id_variation','=',meli_id_variation) ])
-        else:
-            product_related = product_obj.search([('meli_id','=', meli_id)])
+        meli_seller_sku = "seller_sku" in meli_item and meli_item["seller_sku"]
+        if meli_seller_sku:
+            product_related = product_obj.search([ ('default_code','=ilike',meli_seller_sku)])
+            #search by barcode
+            if ((not product_related) or len(product_related)>1):
+                product_related = product_obj.search([ ('barcode','=ilike',meli_seller_sku)])
+
+        if ((not product_related) or len(product_related)>1):
+            if (meli_id_variation):
+                product_related = product_obj.search([ ('meli_id','=',meli_id), ('meli_id_variation','=',meli_id_variation) ])
+            else:
+                product_related = product_obj.search([('meli_id','=', meli_id)])
+
         return product_related
 
     def update_partner_billing_info( self, partner_id, meli_buyer_fields, Receiver):
@@ -793,26 +856,37 @@ class mercadolibre_orders(models.Model):
         order = None
         sorder = None
 
+        if meli.access_token=="PASIVA":
+            order_json = self.prepare_orderjson(meli=meli, config=config)
+            data["order_json"] = order_json
+            _logger.info("order_json: "+str(order_json))
+
         order_fields = self.prepare_ml_order_vals( order_json=order_json, meli=meli, config=config )
 
         if (    "mercadolibre_filter_order_datetime_start" in config._fields
                 and "date_closed" in order_fields
                 and config.mercadolibre_filter_order_datetime_start
                 and config.mercadolibre_filter_order_datetime_start>parse(order_fields["date_closed"]) ):
-            return { "error": "orden filtrada por fecha START > " + str(order_fields["date_closed"]) + " inferior a "+str(ml_datetime(config.mercadolibre_filter_order_datetime_start)) }
+            error = { "error": "orden filtrada por fecha START > " + str(order_fields["date_closed"]) + " inferior a "+str(ml_datetime(config.mercadolibre_filter_order_datetime_start)) }
+            _logger.info( "orders_update_order_json > filter:" + str(error) )
+            return error
 
 
         if (    "mercadolibre_filter_order_datetime" in config._fields
                 and "date_closed" in order_fields
                 and config.mercadolibre_filter_order_datetime
                 and config.mercadolibre_filter_order_datetime>parse(order_fields["date_closed"]) ):
-            return { "error": "orden filtrada por FROM > " + str(order_fields["date_closed"]) + " inferior a "+str(ml_datetime(config.mercadolibre_filter_order_datetime)) }
+            error = { "error": "orden filtrada por FROM > " + str(order_fields["date_closed"]) + " inferior a "+str(ml_datetime(config.mercadolibre_filter_order_datetime)) }
+            _logger.info( "orders_update_order_json > filter:" + str(error) )
+            return error
 
         if (    "mercadolibre_filter_order_datetime_to" in config._fields
                 and "date_closed" in order_fields
                 and config.mercadolibre_filter_order_datetime_to
                 and config.mercadolibre_filter_order_datetime_to<parse(order_fields["date_closed"]) ):
-            return { "error": "orden filtrada por fecha TO > " + str(order_fields["date_closed"]) + " superior a "+str(ml_datetime(config.mercadolibre_filter_order_datetime_to)) }
+            error = { "error": "orden filtrada por fecha TO > " + str(order_fields["date_closed"]) + " superior a "+str(ml_datetime(config.mercadolibre_filter_order_datetime_to)) }
+            _logger.info( "orders_update_order_json > filter:" + str(error) )
+            return error
 
         _logger.info("orders_update_order_json > data "+str(data['id']) + " json:" + str(data['order_json']['id']) )
 
@@ -867,7 +941,7 @@ class mercadolibre_orders(models.Model):
             Buyer['last_name'] = ('last_name' in Buyer and Buyer['last_name']) or ('LAST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['LAST_NAME']) or ''
             Buyer['business_name'] = ('business_name' in Buyer and Buyer['business_name']) or ('BUSINESS_NAME' in Buyer['billing_info'] and Buyer['billing_info']['BUSINESS_NAME']) or ''
             Receiver = False
-            if ('shipping' in order_json):
+            if ('shipping' in order_json and order_json['shipping']):
                 if ('receiver_address' in order_json['shipping']):
                     Receiver = order_json['shipping']['receiver_address']
                 elif ('id' in order_json['shipping']):
@@ -1404,12 +1478,18 @@ class mercadolibre_orders(models.Model):
             inmediate_or_not = ('mercadolibre_payment_term' in config._fields and config.mercadolibre_payment_term) or ('mercadolibre_payment_term' in company._fields and company.mercadolibre_payment_term) or None
             meli_order_fields["payment_term_id"] = (inmediate_or_not and inmediate_or_not.id)
 
-        if (order_json["shipping"]):
+        if ("shipping" in order_json and order_json["shipping"]):
             order_fields['shipping'] = self.pretty_json( id, order_json["shipping"] )
             meli_order_fields['meli_shipping'] = self.pretty_json( id, order_json["shipping"] )
+
+            if ("logistic_type" in order_json["shipping"]):
+                order_fields['shipment_logistic_type'] = order_json["shipping"]["logistic_type"]
+                meli_order_fields["meli_shipment_logistic_type"] = order_json["shipping"]["logistic_type"]
+
             if ("cost" in order_json["shipping"]):
-                order_json["shipping_cost"] = float(order_json["shipping"]["cost"])
+                order_fields["shipping_cost"] = float(order_json["shipping"]["cost"])
                 meli_order_fields["meli_shipping_cost"] = float(order_json["shipping"]["cost"])
+
             if ("id" in order_json["shipping"]):
                 order_fields['shipping_id'] = order_json["shipping"]["id"]
                 meli_order_fields['meli_shipping_id'] = order_json["shipping"]["id"]
@@ -1763,6 +1843,12 @@ class mercadolibre_orders(models.Model):
             if (sorder.meli_status=="cancelled" and sorder.state in ["draft","sale","sent"]):
                 sorder.action_cancel()
 
+            #if "confirm_ml_financial" in self.env["mercadolibre.orders"]:
+            #sorder.confirm_ml_financial( meli=meli, config=config )
+
+            if meli.access_token=="PASIVA":
+                if (sorder):
+                    sorder.meli_fee_amount = order_fields["fee_amount"]
         try:
             self.orders_get_invoice()
         except:
@@ -1774,6 +1860,8 @@ class mercadolibre_orders(models.Model):
 
         #get with an item id
         context = context or self.env.context
+        warningobj = self.env['meli.warning']
+
         #_logger.info( "context:" + str(context) )
         company = self.env.user.company_id
 
@@ -1792,6 +1880,7 @@ class mercadolibre_orders(models.Model):
         response = meli.get("/orders/"+str(order.order_id), {'access_token':meli.access_token})
         order_json = response.json()
         #_logger.info( order_json )
+        rets = []
 
         if "error" in order_json and meli.access_token!="PASIVA":
             _logger.error( order_json["error"] )
@@ -1800,9 +1889,11 @@ class mercadolibre_orders(models.Model):
             try:
                 if meli.access_token=="PASIVA":
                     order_json = None
-                                        
-                self.orders_update_order_json( {"id": order.id, "order_json": order_json }, meli=meli, config=config )
+
+                ret = self.orders_update_order_json( {"id": order.id, "order_json": order_json }, meli=meli, config=config )
                 self._cr.commit()
+                if ret and "error" in ret:
+                    rets.append(ret)
             except Exception as e:
                 _logger.info("orders_update_order > Error actualizando ORDEN")
                 _logger.error(e, exc_info=True)
@@ -1810,7 +1901,12 @@ class mercadolibre_orders(models.Model):
                 pass;
                 #raise e
 
-        return {}
+        if rets and len(rets)==1:
+            return warningobj.info( title='MELI WARNING', message = "update order errors: "+str(len(rets)), message_html = str(rets))
+
+
+
+        return rets
 
     def orders_query_iterate( self, offset=0, context=None, config=None, meli=None ):
 
@@ -1862,7 +1958,7 @@ class mercadolibre_orders(models.Model):
                     #_logger.info( order_json )
                     pdata = {"id": False, "order_json": order_json}
                     try:
-                        self.orders_update_order_json( data=pdata, config=config, meli=meli )
+                        ret = self.orders_update_order_json( data=pdata, config=config, meli=meli )
                         self._cr.commit()
                     except Exception as e:
                         _logger.info("orders_query_iterate > Error actualizando ORDEN")
@@ -2078,8 +2174,10 @@ class mercadolibre_orders_update(models.TransientModel):
         context = context or self.env.context
         orders_ids = ('active_ids' in context and context['active_ids']) or []
         orders_obj = self.env['mercadolibre.orders']
+        warningobj = self.env['meli.warning']
 
         self._cr.autocommit(False)
+        rets = []
         try:
 
             for order_id in orders_ids:
@@ -2087,12 +2185,18 @@ class mercadolibre_orders_update(models.TransientModel):
                 _logger.info("order_update: %s " % (order_id) )
 
                 order = orders_obj.browse(order_id)
-                order.orders_update_order()
-
+                ret = order.orders_update_order()
+                if ret and ret[0] and "error" in ret[0]:
+                    rets.append(ret[0])
         except Exception as e:
             _logger.info("order_update > Error actualizando ordenes")
             _logger.error(e, exc_info=True)
             self._cr.rollback()
+
+        #Add warning with all filters errors:
+        if rets and len(rets)>0:
+            #return warning.
+            return warningobj.info( title='MELI WARNING', message = "update order errors: "+str(len(rets)), message_html = str(rets))
 
         return {}
 

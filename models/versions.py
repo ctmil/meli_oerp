@@ -156,8 +156,13 @@ def get_delivery_line(sorder):
         for line in sorder.order_line:
             if(line.product_id.id == carrier_product_id):
                 delivery_line = line
-                break
-        return delivery_line
+                return delivery_line
+                
+        delivery_lines = self.env['sale.order.line'].search([('order_id', 'in', sorder.ids), ('is_delivery', '=', True)])
+        if delivery_lines:
+            delivery_line = delivery_lines[0]
+            return delivery_line
+            
     except:
         _logger.info("Error get delivery line failed")
         return delivery_line
