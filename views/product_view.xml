@@ -235,8 +235,9 @@
             <field name="inherit_id" ref="product.product_template_tree_view"/>
             <field name="arch" type="xml">
                 <field name="virtual_available" position="after">
-                    <field name="meli_stock_error" invisible="0" optional="hide"/>
-                    <field name="meli_permalink_edit" invisible="0" widget="url" optional="hide"/>
+                    <field name="meli_stock_update"/>
+                    <field name="meli_stock_error" invisible="0" />
+                    <field name="meli_permalink_edit" invisible="0" widget="url"/>
                 </field>
             </field>
         </record>
@@ -253,8 +254,11 @@
                     <field name="meli_id_variation" invisible="0"/>
                     <field name="meli_status" invisible="0"/>
                     <field name="meli_sub_status" invisible="0"/>
-                    <field name="meli_stock_error" invisible="0"  optional="hide"/>
-                    <field name="meli_permalink_edit" invisible="0"  optional="hide"/>
+                    <field name="meli_stock_error" invisible="0"/>
+                    <field name="meli_permalink_edit" invisible="0"/>
+                    <field name="meli_stock_update"/>
+                    <field name="meli_stock_error"/>
+                    <field name="meli_available_quantity"/>
                 </field>
             </field>
         </record>
@@ -428,8 +432,8 @@
                             <group>
                               <field name="meli_condition" />
                               <field name="meli_available_quantity" />
-                              <!--field name="meli_max_purchase_quantity" />
-                              <field name="meli_manufacturing_time" /-->
+                              <field name="meli_max_purchase_quantity" />
+                              <field name="meli_manufacturing_time" />
                               <field name="meli_warranty" />
                               <field name="meli_imagen_logo" />
                               <field name="meli_imagen_id" />

@@ -178,7 +178,7 @@ def set_delivery_line( sorder, delivery_price, delivery_message ):
     try:
         recompute_delivery_price = False
         
-        if (delivery_line and abs(delivery_line.price_unit - float(delivery_price)) < 1.1 ):        
+        if (delivery_line and abs(delivery_line.price_unit - float(delivery_price)) > 1.1 ):        
             recompute_delivery_price = True
             sorder.set_delivery_line(sorder.carrier_id, delivery_price)
             

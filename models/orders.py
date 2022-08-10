@@ -213,6 +213,13 @@ class sale_order(models.Model):
 
         total_config = (config and "mercadolibre_order_total_config" in config._fields) and config.mercadolibre_order_total_config
 
+        meli_ord = None
+        meli_shipment = None
+
+        if self.meli_orders:
+            meli_ord = self.meli_orders[0]
+            meli_shipment = self.meli_shipment
+
         if not config or not total_config:
             return self.meli_total_amount;
 
@@ -221,10 +228,16 @@ class sale_order(models.Model):
             return 0
 
         if total_config in ['manual_conflict']:
+
             if abs(self.meli_total_amount - self.meli_paid_amount)<1.0:
+                if ( meli_shipment and meli_shipment.shipping_cost>0 and meli_shipment.shipping_list_cost>0 ):
+                    return 0
                 return self.meli_paid_amount
             else:
                 #conflict if do not match
+                if ( meli_shipment and meli_shipment.shipping_cost>0 and meli_shipment.shipping_list_cost>0 ):
+                    if ( self.meli_total_amount + self.shipping_cost - self.meli_paid_amount )<1.0:
+                        return self.meli_paid_amount
                 return 0
 
         if total_config in ['paid_amount']:
@@ -2045,6 +2058,16 @@ class mercadolibre_orders(models.Model):
     order_product = fields.Many2one('product.product',string='Order Items',compute=_order_product )
 
     payments = fields.One2many('mercadolibre.payments','order_id',string='Payments' )
+
+    def _payments_shipment_amount(self):
+        for mor in self:
+            sum = 0
+            for pay in mor.payments:
+                if pay.status == 'approved':
+                    sum+= pay.shipping_amount
+            mor.payments_shipment_amount = sum
+
+    payments_shipment_amount = fields.Float(string="Payments Shipment Amount", compute="_payments_shipment_amount" )
     shipping = fields.Text(string="Shipping")
     shipping_id = fields.Char(string="Shipping id")
     shipment = fields.Many2one('mercadolibre.shipment',string='Shipment')
