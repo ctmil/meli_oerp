@@ -451,8 +451,16 @@ class mercadolibre_shipment(models.Model):
                 #display_price = vals['carrier_price']
                 set_delivery_line(sorder, delivery_price, delivery_message )
                 
-            #if (sorder.carrier_id and delivery_price<=0.0):
-            #    sorder._remove_delivery_line()
+            if (sorder.carrier_id):
+                #activar para cuando no se quiere incluir en la factura? mejor setear para no ser facturado.. cuando es 0
+                if 1==2 and delivery_price<=0.0:
+                    sorder._remove_delivery_line()
+                
+                delivery_line = get_delivery_line(sorder)
+                if delivery_line and abs(delivery_line.price_unit-delivery_price)>1.0:
+                    delivery_message = "Defined by MELI"
+                    set_delivery_line(sorder, delivery_price, delivery_message )
+                    
                 
 
             #REMOVE OLD SALE ORDER ITEM SHIPPING ITEM
