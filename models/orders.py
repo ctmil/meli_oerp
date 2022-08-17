@@ -2051,7 +2051,7 @@ class mercadolibre_orders(models.Model):
     date_closed = fields.Datetime('Closing date')
 
 
-    def search_order_item_product_id(self, operator, value):
+    def search_order_order_product(self, operator, value):
         _logger.info("search_order_item_product_id")
         _logger.info(operator)
         _logger.info(value)
@@ -2070,7 +2070,7 @@ class mercadolibre_orders(models.Model):
             #if (value):
             for item in order_items:
                 #if (value in p.meli_publications):
-                id_list.append(item.order_id)
+                id_list.append(item.order_id.id)
 
             return [('id', 'in', id_list)]
         else:
@@ -2079,20 +2079,16 @@ class mercadolibre_orders(models.Model):
                 ' with the operator: {}',format(operator)
             )
             
-    def _order_item_product_id( self ):
-        for ord in self:
-            ord.order_product_id = None
-            
-            if ord.order_items and ord.order_items[0]:
-                ord.order_product_id = ord.order_items[0].product_id
-        
-    order_product_id = fields.Many2one('product.product',compute=_order_item_product_id,string='Order Product',search=search_order_item_product_id )
     order_items = fields.One2many('mercadolibre.order_items','order_id',string='Order Items' )
 
     def _order_product( self ):
         for ord in self:
-            ord.order_product = ord.order_items and ord.order_items[0].product_id
-    order_product = fields.Many2one('product.product',string='Order Items',compute=_order_product )
+            ord.order_product = False
+            
+            if ord.order_items and ord.order_items[0]:
+                ord.order_product = ord.order_items[0].product_id
+                
+    order_product = fields.Many2one('product.product',string='Order Product',compute=_order_product, search=search_order_order_product )
 
     payments = fields.One2many('mercadolibre.payments','order_id',string='Payments' )
 
