@@ -2050,6 +2050,11 @@ class mercadolibre_orders(models.Model):
     date_created = fields.Datetime('Creation date')
     date_closed = fields.Datetime('Closing date')
 
+    def _order_item_product_id( self ):
+        for or in self:
+            or.order_product_id = or.order_items and or.order_items[0] and or.order_items[0].product_id
+        
+    order_product_id = fields.Many2one('product.product',compute=_order_item_product_id,string='Order Product' )
     order_items = fields.One2many('mercadolibre.order_items','order_id',string='Order Items' )
 
     def _order_product( self ):
