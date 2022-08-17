@@ -2050,6 +2050,35 @@ class mercadolibre_orders(models.Model):
     date_created = fields.Datetime('Creation date')
     date_closed = fields.Datetime('Closing date')
 
+
+    def search_order_item_product_id(self, operator, value):
+        _logger.info("search_order_item_product_id")
+        _logger.info(operator)
+        _logger.info(value)
+        if operator == 'bool':
+            #name = self.env.context.get('name', False)
+            #if name is not False:
+            id_list = []
+            _logger.info(self.env.context)
+            #name = self.env.context.get('name', False)
+            order_items = []
+            if value == True:
+                order_items = self.env['mercadolibre.order_items'].search([('product_id','!=',False)], limit=10000)
+            else:
+                order_items = self.env['mercadolibre.order_items'].search([('product_id','=',False)], limit=10000)
+            
+            #if (value):
+            for item in order_items:
+                #if (value in p.meli_publications):
+                id_list.append(item.order_id)
+
+            return [('id', 'in', id_list)]
+        else:
+            _logger.error(
+                'The field name is not searchable'
+                ' with the operator: {}',format(operator)
+            )
+            
     def _order_item_product_id( self ):
         for ord in self:
             ord.order_product_id = None
@@ -2057,7 +2086,7 @@ class mercadolibre_orders(models.Model):
             if ord.order_items and ord.order_items[0]:
                 ord.order_product_id = ord.order_items[0].product_id
         
-    order_product_id = fields.Many2one('product.product',compute=_order_item_product_id,string='Order Product' )
+    order_product_id = fields.Many2one('product.product',compute=_order_item_product_id,string='Order Product',search=search_order_item_product_id )
     order_items = fields.One2many('mercadolibre.order_items','order_id',string='Order Items' )
 
     def _order_product( self ):
