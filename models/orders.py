@@ -2052,7 +2052,10 @@ class mercadolibre_orders(models.Model):
 
     def _order_item_product_id( self ):
         for ord in self:
-            ord.order_product_id = ord.order_items and ord.order_items[0] and ord.order_items[0].product_id
+            ord.order_product_id = None
+            
+            if ord.order_items and ord.order_items[0]:
+                ord.order_product_id = ord.order_items[0].product_id
         
     order_product_id = fields.Many2one('product.product',compute=_order_item_product_id,string='Order Product' )
     order_items = fields.One2many('mercadolibre.order_items','order_id',string='Order Items' )
