@@ -2055,7 +2055,7 @@ class mercadolibre_orders(models.Model):
         _logger.info("search_order_item_product_id")
         _logger.info(operator)
         _logger.info(value)
-        if operator == 'bool':
+        if operator == '=':
             #name = self.env.context.get('name', False)
             #if name is not False:
             id_list = []
