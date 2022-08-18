@@ -564,7 +564,7 @@ class mercadolibre_shipment(models.Model):
 
     #Return shipment object based on mercadolibre.orders "order"
     def fetch( self, order, meli=None, config=None ):
-
+        #_logger.info("ship fetch")
         company = self.env.user.company_id
         if not config:
             config = company
@@ -589,10 +589,52 @@ class mercadolibre_shipment(models.Model):
             ship_id = order.shipping_id
         else:
             return None
-
-        response = meli.get("/shipments/"+ str(ship_id),  {'access_token':meli.access_token})
+        
+        ship_json = None
+        if meli.access_token=="PASIVA":
+            ship_json = {
+                "id": ship_id,
+                "logistic_type": order.shipment_logistic_type,
+                "order_cost": 0,
+                "base_cost": 0,
+                "date_created": "",
+                "last_updated": "",
+                "site_id": "MLM",
+                "order_id": order.order_id,
+                "mode": "custom",
+                "shipping_option": {
+                    "name": "custom",
+                    "cost": order.shipping_cost,
+                    "list_cost": order.shipping_list_cost,
+                },
+                "receiver_address": {
+                    "id": "ID_RECEPTORGLOBAL",
+                    "receiver_phone": "XXXX",
+                    "receiver_name": "RECEPTORGLOBAL",
+                    "address_line": "ADDRESSLINE",
+                    "comment": "",
+                    "street_name": "STREETNAME",
+                    "street_number": "11111",
+                    "city": { "id": "MEX", "name": "México" },
+                    "state": { "id": "DF", "name": "México" },
+                    "country": { "id": "MX", "name": "México" },
+                    "latitude": "00",
+                    "longitude": "00",
+                },
+                "status": "undefined",
+                "substatus": "undefined",
+                "tracking_number": "XXXX",
+                "tracking_method": "MMMM",
+                "comments": "",
+                "date_first_printed": "",
+                "receiver_id": "GLOBALCOMPRADOR",
+                "sender_id": "ZZZ",
+            }
+            response = True
+        else:
+            response = meli.get("/shipments/"+ str(ship_id),  {'access_token':meli.access_token})
         if (response):
-            ship_json = response.json()
+            ship_json = ship_json or response.json()
             #_logger.info( ship_json )
 
             if "error" in ship_json:
@@ -600,14 +642,22 @@ class mercadolibre_shipment(models.Model):
                 _logger.error( ship_json["message"] )
             else:
                 #_logger.info("Saving shipment fields")
-                rescosts = meli.get("/shipments/"+ str(ship_id)+str('/costs'),  {'access_token':meli.access_token})
+                rcosts = None
+                if meli.access_token=="PASIVA":
+                    rcosts = {
+                        "algo": True
+                    }
+                    rescosts = True
+                else:
+                    rescosts = meli.get("/shipments/"+ str(ship_id)+str('/costs'),  {'access_token':meli.access_token})
                 if rescosts:
-                    rcosts = rescosts.json()
+                    rcosts = rcosts or rescosts.json()
                     ship_json['costs'] = rcosts
                     recdiscounts = 'receiver' in rcosts and 'discounts' in rcosts['receiver'] and rcosts['receiver']['discounts']
-                    for discount in recdiscounts:
-                        if 'promoted_amount' in discount:
-                            ship_json['promoted_amount'] =  discount['promoted_amount'] or 0.0
+                    if recdiscounts:
+                        for discount in recdiscounts:
+                            if 'promoted_amount' in discount:
+                                ship_json['promoted_amount'] =  discount['promoted_amount'] or 0.0
 
                 seller_id = None
                 if config.mercadolibre_seller_user:
@@ -676,10 +726,29 @@ class mercadolibre_shipment(models.Model):
                         "sender_longitude": ship_json["sender_address"]["longitude"],
                     });
 
-                response2 = meli.get("/shipments/"+ str(ship_id)+"/items",  {'access_token':meli.access_token})
                 items_json = []
+
+                if meli.access_token=="PASIVA":
+                    response2 = True
+                    oitems = order
+                    #buscar las ordenes asociadas al pack_id
+                    if order.pack_id:
+                        oitems = self.env["mercadolibre.orders"].search([("pack_id","=",order.pack_id)])
+
+                    for oitem in oitems:
+                        itemjson = {
+                            "order_id": oitem.order_id,
+                            "id": oitem.id,
+                            "item_id": oitem.order_items and oitem.order_items[0].order_item_id,
+                            "description": oitem.order_items and oitem.order_items[0].posting_id.name,
+                            "variation_id": oitem.order_items and oitem.order_items[0].seller_sku,
+                        }
+                        items_json.append(itemjson)
+                else:
+                    response2 = meli.get("/shipments/"+ str(ship_id)+"/items",  {'access_token':meli.access_token})
+
                 if (response2):
-                    items_json = response2.json()
+                    items_json = items_json or response2.json()
                     if "error" in items_json:
                         _logger.error( items_json["error"] )
                         _logger.error( items_json["message"] )
@@ -710,8 +779,13 @@ class mercadolibre_shipment(models.Model):
                                     packed_order_ids+= coma + item["order_id"]
                                     coma = ","
                         full_orders = ( len(items_json) == len(all_orders) )
-                        #_logger.info(items_json)
-                        #_logger.info("full_orders:"+str(full_orders))
+                        for ordi in all_orders:
+                            if (ordi.order_id==ordi.name):
+                                full_orders = False
+                                break;
+
+                        _logger.info(items_json)
+                        _logger.info("full_orders:"+str(full_orders))
                         if (full_orders):
                             #We can create order with all items now
                             ship_fields["orders"] = [(6, 0, all_orders_ids)]
@@ -730,6 +804,7 @@ class mercadolibre_shipment(models.Model):
 
                 if shipment and items_json:
                     #mercadolibre.shipment.item
+                    #_logger.info("items_json: "+str(items_json))
                     for item in items_json:
                         shipment.update_item(item)
 
@@ -770,6 +845,8 @@ class mercadolibre_shipment(models.Model):
                         sorder.meli_shipment = shipment
 
                 #if its a pack order, create it, oif full_orders were fetched (we can force this now)
+                #_logger.info("full_orders:"+str(full_orders))
+                #_logger.info("all_orders:"+str(all_orders))
                 if (full_orders and ship_fields["pack_order"]):
                     plistid = None
                     if config.mercadolibre_pricelist:
@@ -841,7 +918,9 @@ class mercadolibre_shipment(models.Model):
                         })
                         #TODO: agregar un campo para diferencia cada delivery res partner al shipment y orden asociado, crear un binding usando values diferentes... y listo
                         #_logger.info("ship_json[receiver_address]:"+str(ship_json["receiver_address"]) )
-                        partner_shipping_id = self.partner_delivery_id( partner_id=partner_id, Receiver=ship_json["receiver_address"])
+                        partner_shipping_id = None
+                        if "receiver_address" in ship_json:
+                            partner_shipping_id = self.partner_delivery_id( partner_id=partner_id, Receiver=ship_json["receiver_address"])
 
                         if partner_shipping_id:
                             meli_order_fields['partner_shipping_id'] = partner_shipping_id.id
@@ -907,7 +986,8 @@ class mercadolibre_shipment(models.Model):
                                     saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
                                 else:
                                     saleorderline_item_ids.write( ( saleorderline_item_fields ) )
-
+                    else:
+                        _logger.info("partner receiver id not founded:"+str(ship_fields['receiver_id']))
 
         if (shipment):
             shipment._update_sale_order_shipping_info( order, meli=meli, config=config )
@@ -917,6 +997,7 @@ class mercadolibre_shipment(models.Model):
     def update_item( self, item=None ):
         shipment = self
         sitem = None
+        #_logger.info("update shipment:"+str(item))
         if "variation_id" in item and item["variation_id"]:
             sitem = self.env["mercadolibre.shipment.item"].search([ ("shipment_id","=",shipment.id),("order_id","=",item["order_id"]), ("item_id","=",item["item_id"]), ("variation_id","=",item["variation_id"]) ],limit=1)
         else:
@@ -930,7 +1011,7 @@ class mercadolibre_shipment(models.Model):
             "shipment_id": shipment.id,
             "data": str(item)
         }
-
+        #_logger.info("update shipment ifields:"+str(ifields))
         if sitem:
             sitem.write(ifields)
         else:
