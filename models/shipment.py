@@ -804,7 +804,7 @@ class mercadolibre_shipment(models.Model):
 
                 if shipment and items_json:
                     #mercadolibre.shipment.item
-                    _logger.info("items_json: "+str(items_json))
+                    #_logger.info("items_json: "+str(items_json))
                     for item in items_json:
                         shipment.update_item(item)
 
@@ -871,13 +871,17 @@ class mercadolibre_shipment(models.Model):
                             ord = oi
                             totales['total_amount']+= ord["total_amount"]
                             totales['paid_amount']+= ord["paid_amount"]
-
+                        
+                        #fix ML order_json... for pack_order "shipping_cost" added
+                        if shipment.shipping_cost:
+                            totales['paid_amount']+= shipment.shipping_cost
+                            
                         order_json = {
                             "id": all_orders[0]["order_id"],
                             'status': all_orders[0]["status"],
                             'status_detail': all_orders[0]["status_detail"] or '' ,
-                            'total_amount': totales["total_amount"], #shipment.order_cost,
-                            'paid_amount': totales["paid_amount"], #shipment.order_cost,
+                            'total_amount': totales["total_amount"],
+                            'paid_amount': totales["paid_amount"], #added shipment.shipping_cost,
                             'currency_id': all_orders[0]["currency_id"],
                             "date_created": all_orders[0]["date_created"],
                             "date_closed": all_orders[0]["date_closed"],
