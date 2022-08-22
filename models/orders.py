@@ -315,19 +315,35 @@ class sale_order(models.Model):
             if not confirm_cond:
                 return {'error': "Condition not met: meli_paid_amount and amount_total doesn't match"}
 
-            if (config.mercadolibre_order_confirmation and "paid_confirm" in config.mercadolibre_order_confirmation):
+                
+            if (self.meli_shipment_logistic_type and "fulfillment" in self.meli_shipment_logistic_type):
+                
+                if ( config.mercadolibre_order_confirmation_full and "paid_confirm" in config.mercadolibre_order_confirmation_full):
+                    self.meli_confirm_order( meli=meli, config=config )
+                
+                if (config.mercadolibre_order_confirmation_full and "paid_delivered" in config.mercadolibre_order_confirmation_full):
 
-                self.meli_confirm_order( meli=meli, config=config )
+                    self.meli_confirm_order( meli=meli, config=config )
 
-            if (config.mercadolibre_order_confirmation and "paid_delivered" in config.mercadolibre_order_confirmation):
-
-                self.meli_confirm_order( meli=meli, config=config )
-
-                res = self.meli_deliver( meli=meli, config=config )
+                    res = self.meli_deliver( meli=meli, config=config )
 
 
-            if (config.mercadolibre_order_confirmation=="paid_confirm_with_invoice" or config.mercadolibre_order_confirmation=="paid_delivered_with_invoice"):
-                self.meli_create_invoice( meli=meli, config=config )
+                if (config.mercadolibre_order_confirmation_full=="paid_confirm_with_invoice" or config.mercadolibre_order_confirmation_full=="paid_delivered_with_invoice"):
+                    self.meli_create_invoice( meli=meli, config=config ) 
+                                       
+            else:            
+                
+                if (config.mercadolibre_order_confirmation and "paid_confirm" in config.mercadolibre_order_confirmation):
+                    self.meli_confirm_order( meli=meli, config=config )
+
+                if (config.mercadolibre_order_confirmation and "paid_delivered" in config.mercadolibre_order_confirmation):
+
+                    self.meli_confirm_order( meli=meli, config=config )
+
+                    res = self.meli_deliver( meli=meli, config=config )
+
+                if (config.mercadolibre_order_confirmation=="paid_confirm_with_invoice" or config.mercadolibre_order_confirmation=="paid_delivered_with_invoice"):
+                    self.meli_create_invoice( meli=meli, config=config )
 
 
         except Exception as e:
@@ -1378,6 +1394,9 @@ class mercadolibre_orders(models.Model):
             partner_id = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ], limit=1 )
             partner_invoice_id = partner_id
 
+            partner_ids = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ] )
+            if (len(partner_ids)>0):
+                partner_id = partner_ids[0]
             if ("fe_regimen_fiscal" in self.env['res.partner']._fields):
                 if (partner_id and not partner_id.fe_regimen_fiscal):
                     meli_buyer_fields['fe_regimen_fiscal'] = '49';
@@ -1760,7 +1779,8 @@ class mercadolibre_orders(models.Model):
                                                                         ('order_id','=',sorder.id)] )
 
                     if not saleorderline_item_ids:
-                        saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
+                        if sorder.amount_total<sorder.meli_paid_amount:
+                            saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
                     else:
                         saleorderline_item_ids.write( ( saleorderline_item_fields ) )
 
@@ -1869,6 +1889,45 @@ class mercadolibre_orders(models.Model):
 
         return {}
 
+    def orders_import_order( self, order_id, context=None, meli=None, config=None ):
+        if not order_id:
+            return {"error": "order_id missing"}
+            
+        context = context or self.env.context
+        warningobj = self.env['meli.warning']
+
+        #_logger.info( "context:" + str(context) )
+        company = self.env.user.company_id
+
+        order_obj = self.env['mercadolibre.orders']
+        
+        if not meli:
+            meli = self.env['meli.util'].get_new_instance(company)
+
+        if not config:
+            config = company
+            
+        morder = order_obj.search( [('order_id','=',str(order_id))], limit=1 )
+        if morder:
+            return { "error": str(order_id)+" already in Odoo" }
+        
+        response = meli.get("/orders/"+str(order_id), {'access_token':meli.access_token})
+        order_json = response.json()
+        
+        if order_json:
+            if "error" in order_json:
+                return { "error": order_json }
+            else:
+                ret = self.orders_update_order_json( {"id": False, "order_json": order_json }, meli=meli, config=config )
+                if ret:
+                    _logger.info(ret)
+                    return { "ret": ret }
+        else:
+            return { "error": "no order json "+str(order_json) }
+        
+        return {}
+        
+    
     def orders_update_order( self, context=None, meli=None, config=None ):
 
         #get with an item id
@@ -1921,10 +1980,11 @@ class mercadolibre_orders(models.Model):
 
         return rets
 
-    def orders_query_iterate( self, offset=0, context=None, config=None, meli=None ):
+    def orders_query_iterate( self, offset=0, context=None, config=None, meli=None, fetch_id_only=False, fetch_ids=[] ):
 
-        _logger.info("mercadolibre.orders >> orders_query_iterate: meli: "+str(meli)+" config:"+str(config))
+        _logger.info("mercadolibre.orders >> orders_query_iterate: meli: "+str(meli)+" config:"+str(config)+' fetch_id_only:'+str(fetch_id_only))
         offset_next = 0
+        __fetch_ids = fetch_ids
 
         company = self.env.user.company_id
         if not config:
@@ -1949,6 +2009,8 @@ class mercadolibre_orders(models.Model):
             _logger.error( orders_json["error"] )
             if (orders_json["message"]=="invalid_token"):
                 _logger.error( orders_json["message"] )
+            if __fetch_ids:
+                return __fetch_ids
             return {}
 
         order_date_filter = ("mercadolibre_filter_order_datetime" in config._fields and config.mercadolibre_filter_order_datetime)
@@ -1965,36 +2027,81 @@ class mercadolibre_orders(models.Model):
                             offset_next = offset + orders_json["paging"]["limit"]
                         _logger.info("offset_next:"+str(offset_next))
 
+        #_logger.info( orders_json )
         if "results" in orders_json:
             for order_json in orders_json["results"]:
-                if order_json:
-                    #_logger.info( order_json )
+                if order_json:                    
                     pdata = {"id": False, "order_json": order_json}
-                    try:
-                        ret = self.orders_update_order_json( data=pdata, config=config, meli=meli )
-                        self._cr.commit()
-                    except Exception as e:
-                        _logger.info("orders_query_iterate > Error actualizando ORDEN")
-                        _logger.error(e, exc_info=True)
-                        self._cr.rollback()
-                        pass;
+                    if "id" in order_json and fetch_id_only:
+                        
+                        #_logger.info( order_json["id"] )
+                        order_fields = self.prepare_ml_order_vals( order_json=order_json, meli=meli, config=config )
+                        in_range = True
+                        if (    "mercadolibre_filter_order_datetime_start" in config._fields
+                                and "date_closed" in order_fields
+                                and config.mercadolibre_filter_order_datetime_start
+                                and config.mercadolibre_filter_order_datetime_start>parse(order_fields["date_closed"]) ):
+                            #error = { "error": "orden filtrada por fecha START > " + str(order_fields["date_closed"]) + " inferior a "+str(ml_datetime(config.mercadolibre_filter_order_datetime_start)) }
+                            #_logger.info( "orders_update_order_json > filter:" + str(error) )
+                            #return error
+                            in_range = False
+                
+                
+                        if (    "mercadolibre_filter_order_datetime" in config._fields
+                                and "date_closed" in order_fields
+                                and config.mercadolibre_filter_order_datetime
+                                and config.mercadolibre_filter_order_datetime>parse(order_fields["date_closed"]) ):
+                            #error = { "error": "orden filtrada por FROM > " + str(order_fields["date_closed"]) + " inferior a "+str(ml_datetime(config.mercadolibre_filter_order_datetime)) }
+                            #_logger.info( "orders_update_order_json > filter:" + str(error) )
+                            in_range = False
+                
+                        if (    "mercadolibre_filter_order_datetime_to" in config._fields
+                                and "date_closed" in order_fields
+                                and config.mercadolibre_filter_order_datetime_to
+                                and config.mercadolibre_filter_order_datetime_to<parse(order_fields["date_closed"]) ):
+                            #error = { "error": "orden filtrada por fecha TO > " + str(order_fields["date_closed"]) + " superior a "+str(ml_datetime(config.mercadolibre_filter_order_datetime_to)) }
+                            #_logger.info( "orders_update_order_json > filter:" + str(error) )
+                            in_range = False
+                            
+                        if in_range:
+                            __fetch_ids.append(str(order_json["id"]))
+                    else:
+                        try:
+                            ret = self.orders_update_order_json( data=pdata, config=config, meli=meli )
+                            self._cr.commit()
+                        except Exception as e:
+                            _logger.info("orders_query_iterate > Error actualizando ORDEN")
+                            _logger.error(e, exc_info=True)
+                            self._cr.rollback()
+                            pass;
 
         if (offset_next>0):
-            self.orders_query_iterate( offset=offset_next, meli=meli, config=config )
+            __fetch_ids = self.orders_query_iterate( offset=offset_next, meli=meli, config=config, fetch_id_only=fetch_id_only, fetch_ids=__fetch_ids )
 
-        return {}
+        return __fetch_ids
 
-    def orders_query_recent( self, meli=None, config=None ):
+    def orders_query_recent( self, meli=None, config=None, fetch_id_only=False ):
 
-        _logger.info("mercadolibre.orders >> orders_query_recent: meli: "+str(meli)+" config:"+str(config))
+        company = self.env.user.company_id
+        if not config:
+            config = company
+        
+        if not meli:
+            meli = self.env['meli.util'].get_new_instance(company)
+
+        _logger.info("mercadolibre.orders >> orders_query_recent: meli: "+str(meli)+" config:"+str(config)+' fetch_id_only:'+str(fetch_id_only))
         self._cr.autocommit(False)
-
+        __fetch_ids = None
         try:
-            self.orders_query_iterate( offset=0, meli=meli, config=config )
+            __fetch_ids = self.orders_query_iterate( offset=0, meli=meli, config=config, fetch_id_only=fetch_id_only )
         except Exception as e:
             _logger.info("orders_query_recent > Error iterando ordenes")
             _logger.error(e, exc_info=True)
             self._cr.rollback()
+
+        if __fetch_ids:
+            _logger.info( "__fetch_ids:"+str(__fetch_ids) )
+            return { "fetch_ids": __fetch_ids }
 
         return {}
 
@@ -2252,7 +2359,10 @@ class mercadolibre_orders_update(models.TransientModel):
 
                 order = orders_obj.browse(order_id)
                 ret = order.orders_update_order()
-                if ret and ret[0] and "error" in ret[0]:
+                _logger.info("order_update ret:"+str(ret))
+                if ret and type(ret)==dict and 'name' in ret:
+                    rets.append(ret)
+                if ret and len(ret) and type(ret)==list and ret[0] and "error" in ret[0]:
                     rets.append(ret[0])
         except Exception as e:
             _logger.info("order_update > Error actualizando ordenes")

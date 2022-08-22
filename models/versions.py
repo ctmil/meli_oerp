@@ -41,11 +41,15 @@ def get_company_selected( self, context=None, company=None, company_id=None, use
 
 #variant mage ids
 def variant_image_ids(self):
-    return self.product_variant_image_ids
+    if "product_variant_image_ids" in self._fields:
+        return self.product_variant_image_ids
+    return None
 
 #template image ids
 def template_image_ids(self):
-    return self.product_template_image_ids
+    if "product_template_image_ids" in self._fields:
+        return self.product_template_image_ids
+    return None
 
 
 #att value ids

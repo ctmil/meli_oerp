@@ -2998,8 +2998,9 @@ class product_product(models.Model):
                                     var_pics_full.append({ 'id': var_product.meli_imagen_id })
                                     if (var_multi_images_ids):
                                         for pic in var_multi_images_ids:
-                                            var_pics.append(pic['id'])
-                                            var_pics_full.append({ 'id': pic['id']})
+                                            if pic and 'id' in pic:
+                                                var_pics.append(pic['id'])
+                                                var_pics_full.append({ 'id': pic['id']})
 
                                     vars_updated+= var_product
 
@@ -3504,69 +3505,84 @@ class product_product(models.Model):
 
         product.set_meli_price()
 
+        meli_id = product.meli_id
+        meli_id_variation = product.meli_id_variation
+        meli_price = product.meli_price
+        meli_currency = product.meli_currency or product_tmpl.meli_currency
+
         fields = {
-            "price": product.meli_price
+            "price": meli_price
         }
 
-        if (product.meli_id and not product.meli_id_variation):
-            #_logger.info("meli:"+str(meli))
-            response = meli.get("/items/%s" % product.meli_id, {'access_token':meli.access_token})
-            if (response):
-                pjson = response.json()
-                if "variations" in pjson:
-                    if (len(pjson["variations"])==1):
-                        product.meli_id_variation = pjson["variations"][0]["id"]
+        fields_cur = {}
 
-        if (product.meli_id_variation):
-            meli_id = product.meli_id
-            meli_price = product.meli_price
+        pjson = False
+
+        if (meli_id):
             response = meli.get("/items/%s" % (str(meli_id)), {'access_token':meli.access_token})
             if (response):
-
                 pjson = response.json()
 
-                if "variations" in pjson:
-                    vars = []
-                    for varx in pjson["variations"]:
-                    #_logger.info("Posting using product.meli_id_variation")
-                        var = {
-                            "id": varx["id"],
-                            "price": meli_price,
-                            #"picture_ids": ['806634-MLM28112717071_092018', '928808-MLM28112717068_092018', '643737-MLM28112717069_092018', '934652-MLM28112717070_092018']
-                        }
-                        vars.append(var)
-                    _logger.info("product_post_price (variations):"+str(vars))
+        if pjson and "currency_id" in pjson:
+            if meli_currency and str(pjson["currency_id"])!=str(meli_currency):
+                fields_cur = {
+                    "currency_id": meli_currency
+                }
+                fields.update(fields_cur)
 
-                    #responsevar = meli.put("/items/"+str(meli_id)+'/variations/'+str( meli_id_variation ), var, {'access_token':meli.access_token})
-                    responsevar = meli.put("/items/"+str(meli_id), { "variations": vars }, {'access_token':meli.access_token})
-                    if (responsevar):
-                        rjson = responsevar.json()
-                        if rjson:
-                            #_logger.info('rjson'+str(rjson))
-                            if "error" in rjson:
-                                _logger.error(rjson)
-                                self.meli_price_error = str(rjson)
-                                self.product_tmpl_id.meli_price_error = self.meli_price_error
-                                return rjson
-                            if ('price' in rjson):
-                                _logger.info( "Posted price ok (variations)" + str(meli_id) + ": " + str(rjson['price']) )
-                                self.meli_price_error = 'ok'
-                                self.meli_price_update = ml_datetime( str( datetime.now() ) )
-                                self.product_tmpl_id.meli_price_error = self.meli_price_error
-                                self.product_tmpl_id.meli_price_update = self.meli_price_update
-                            else:
-                                _logger.info( "Posted price ok (variations)" + str(meli_id) + ": " + str('variations' in rjson and rjson['variations']))
+        if (meli_id and not meli_id_variation and pjson):
+            #_logger.info("meli:"+str(meli))
+            if "variations" in pjson:
+                if (len(pjson["variations"])==1):
+                    meli_id_variation = pjson["variations"][0]["id"]
+                    product.meli_id_variation = meli_id_variation
+
+        if (meli_id_variation):
+            if "variations" in pjson:
+                vars = []
+                for varx in pjson["variations"]:
+                #_logger.info("Posting using product.meli_id_variation")
+                    var = {
+                        "id": varx["id"],
+                        "price": meli_price,
+                        #"picture_ids": ['806634-MLM28112717071_092018', '928808-MLM28112717068_092018', '643737-MLM28112717069_092018', '934652-MLM28112717070_092018']
+                    }
+                    vars.append(var)
+                _logger.info("product_post_price (variations):"+str(vars))
+
+                fields = { "variations": vars }
+                if fields_cur:
+                    fields.update(fields_cur)
+
+                #responsevar = meli.put("/items/"+str(meli_id)+'/variations/'+str( meli_id_variation ), var, {'access_token':meli.access_token})
+                responsevar = meli.put("/items/"+str(meli_id), fields, {'access_token':meli.access_token})
+                if (responsevar):
+                    rjson = responsevar.json()
+                    if rjson:
+                        #_logger.info('rjson'+str(rjson))
+                        if "error" in rjson:
+                            _logger.error(rjson)
+                            return rjson
+                        if ('price' in rjson):
+                            _logger.info( "Posted price ok (variations)" + str(meli_id) + ": " + str(rjson['price']) )
+                        else:
+                            _logger.info( "Posted price ok (variations)" + str(meli_id) + ": " + str('variations' in rjson and rjson['variations']))
+
 
         else:
-            _logger.info("product_post_price:"+str(fields))
-            response = meli.put("/items/"+product.meli_id, fields, {'access_token':meli.access_token})
+            _logger.info("product_post_price (single):"+str(fields))
+            response = meli.put("/items/"+str(meli_id), fields, {'access_token':meli.access_token})
             if response:
                 rjson = response.json()
-                if "error" in rjson:
+                if rjson and "error" in rjson:
                     _logger.error(rjson)
                     self.meli_price_error = str(rjson)
+                    self.meli_price_update = ml_datetime( str( datetime.now() ) )
                     self.product_tmpl_id.meli_price_error = self.meli_price_error
                     return rjson
+                _logger.info( "Posted price ok (single)" + str(rjson))
+                if (rjson and len(rjson) and 'price' in rjson):
+                    _logger.info( "Posted price ok (single)" + str(meli_id) + ": " + str(rjson['price']) )
                 self.meli_price_error = 'ok'
                 self.meli_price_update = ml_datetime( str( datetime.now() ) )
                 self.product_tmpl_id.meli_price_error = self.meli_price_error
@@ -3678,3 +3694,24 @@ class product_product(models.Model):
     ]
 
 product_product()
+
+
+
+class PricelistItem(models.Model):
+
+    _inherit = "product.pricelist.item"
+
+    @api.onchange('applied_on', 'product_id', 'product_tmpl_id', 'min_quantity','price')
+    def _meli_onchange_pricelist_item(self):
+        #set meli_price_update to False
+        for pli in self:
+            if pli.product_tmpl_id:
+                pli.product_tmpl_id.meli_price_update = False
+                for var in pli.product_tmpl_id.product_variant_ids:
+                    var.meli_price_update = False
+
+            if pli.product_id:
+                pli.product_id.meli_price_update = False
+                pli.product_id.product_tmpl_id.meli_price_update = False
+                #for bind in pli.product_id.mercadolibre_bindings:
+                #    bind.meli_price_update = False

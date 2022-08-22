@@ -140,6 +140,7 @@
                                 <field name="mercadolibre_cron_get_new_products" invisible="0"/>
                                 <field name="mercadolibre_update_local_stock" invisible="0"/>
                                 <field name="mercadolibre_order_confirmation" invisible="0"/>
+                                <!-- <field name="mercadolibre_order_confirmation_full" invisible="0"/> -->
                                 <field name="mercadolibre_payment_term" invisible="0"/>
                                 <!--
                                   <field name="mercadolibre_overwrite_template" invisible="0"/>
