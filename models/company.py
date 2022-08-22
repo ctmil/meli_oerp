@@ -355,6 +355,11 @@ class res_company(models.Model):
                                                 ("paid_delivered", "Pagado>Entregado")],
                                                 string='Acción al recibir un pedido',
                                                 help='Acción al confirmar una orden o pedido de venta')
+    mercadolibre_order_confirmation_full = fields.Selection([ ("manual", "Manual"),
+                                                ("paid_confirm", "Pagado>Confirmado"),
+                                                ("paid_delivered", "Pagado>Entregado")],
+                                                string='Acción al recibir un pedido',
+                                                help='Acción al confirmar una orden o pedido de venta')
     mercadolibre_product_attribute_creation = fields.Selection([ ("manual", "Manual"),
                                                 ("full", "Sincronizado completo (uno a uno, sin importar si se usa o no)"),
                                                 ("dynamic", "Dinámico (cuando se asocia un producto a una categoría (ML) con atributos (ML))") ],
@@ -438,13 +443,19 @@ class res_company(models.Model):
         return {}
 
 
-    def meli_query_orders(self):
-        _logger.info('company.meli_query_orders() ')
+    def meli_query_orders(self, fetch_id_only=False):
+        _logger.info('company.meli_query_orders() fetch_id_only:'+str(fetch_id_only))
         company = self.env.user.company_id
         orders_obj = self.env['mercadolibre.orders']
-        result = orders_obj.orders_query_recent()
-        return {}
+        result = orders_obj.orders_query_recent(fetch_id_only=fetch_id_only)
+        return result
 
+    def meli_import_order(self, order_id):
+        _logger.info('company.meli_import_order() order_id:'+str(order_id))
+        company = self.env.user.company_id
+        orders_obj = self.env['mercadolibre.orders']
+        result = orders_obj.orders_import_order(order_id=order_id)
+        return result
 
     def meli_query_products(self):
         _logger.info('company.meli_query_products() ')

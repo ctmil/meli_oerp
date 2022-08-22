@@ -955,6 +955,7 @@ class mercadolibre_shipment(models.Model):
 
                             #creating and updating all items related to ml.orders
                             sorder_pack.meli_fee_amount = 0.0
+                            
                             for mOrder in all_orders:
                                 #Each Order one product with one price and one quantity
                                 product_related_obj = mOrder.order_items and (mOrder.order_items[0].product_id or mOrder.order_items[0].posting_id.product_id)
@@ -983,7 +984,8 @@ class mercadolibre_shipment(models.Model):
                                                                                     ('order_id','=',shipment.sale_order.id)] )
 
                                 if not saleorderline_item_ids:
-                                    saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
+                                    if sorder_pack.amount_total<sorder_pack.meli_paid_amount:
+                                        saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
                                 else:
                                     saleorderline_item_ids.write( ( saleorderline_item_fields ) )
                     else:
