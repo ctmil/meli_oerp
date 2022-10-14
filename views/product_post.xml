@@ -14,7 +14,7 @@
                         <field name="force_meli_active"/>
                         <field name="post_stock"/>
                         <field name="post_price"/>
-                        <!--field name="action_pause"/-->
+                        <field name="action_pause"/>
                       </group>
                     </group>
                     <footer>
@@ -37,7 +37,7 @@
                         <field name="force_meli_active"/>
                         <field name="post_stock"/>
                         <field name="post_price"/>
-                        <!--field name="action_pause"/-->
+                        <field name="action_pause"/>
                       </group>
                     </group>
                     <footer>
