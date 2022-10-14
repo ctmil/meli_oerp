@@ -171,6 +171,7 @@ class product_post(models.TransientModel):
 	    #'mercadolibre_state': fields.related( 'res.company', 'mercadolibre_state', string="State" )
     post_stock = fields.Boolean(string="Actualizar Stock",help="No actualiza el producto, solo el stock",default=False)
     post_price = fields.Boolean(string="Acutalizar Precio",help="No actualiza el producto, solo el precio",default=False)
+    action_pause = fields.Boolean(string="Pausar producto",help="No actualiza el producto completo, sólo pausa el producto",default=False)
 
 
     def pretty_json( self, data ):
@@ -201,7 +202,9 @@ class product_post(models.TransientModel):
                     res = product.product_post_stock(meli=meli)
                 if self.post_price:
                     res = product.product_post_price(meli=meli)
-                if not self.post_stock and not self.post_price:
+                if self.action_pause:
+                    res = product.action_meli_pause()
+                if not self.post_stock and not self.post_price and not self.action_pause:
                     res = product.product_post()
 
             #Pausa
