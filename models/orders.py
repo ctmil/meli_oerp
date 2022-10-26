@@ -99,20 +99,22 @@ class sale_order(models.Model):
 
     meli_status = fields.Selection( [
         #Initial state of an order, and it has no payment yet.
-                                        ("confirmed","Confirmado"),
+        ("confirmed","Confirmado"),
         #The order needs a payment to become confirmed and show users information.
-                                      ("payment_required","Pago requerido"),
+        ("payment_required","Pago requerido"),
         #There is a payment related with the order, but it has not accredited yet
-                                    ("payment_in_process","Pago en proceso"),
+        ("payment_in_process","Pago en proceso"),
         #The order has a related payment and it has been accredited.
-                                    ("paid","Pagado"),
+        ("paid","Pagado"),
         #The order has a related partial payment and it has been accredited.
-                                    ("partially_paid","Parcialmente Pagado"),
+        ("partially_paid","Parcialmente Pagado"),
         #The order has not completed by some reason.
-                                    ("cancelled","Cancelado"),
+        ("cancelled","Cancelado"),
         #The order has been invalidated as it came from a malicious buyer.
-                                    ("invalid","Invalido: malicious")
-                                    ], string='Order Status')
+        ("invalid","Invalido: malicious"),
+        #The order status is cancelled, but an action is pending to complete the process.
+        ("pending_cancel", "Pendiente de cancelar"),
+        ], string='Order Status')
 
     meli_status_brief = fields.Char(string="Meli Status Brief", compute="_meli_status_brief", search=search_meli_status_brief, store=False, index=True)
 
