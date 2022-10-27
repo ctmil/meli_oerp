@@ -434,7 +434,7 @@ class mercadolibre_shipment(models.Model):
 
             _logger.info("ship_carrier_id:"+str(ship_carrier_id)+" sorder.carrier_id:"+str(sorder.carrier_id))
 
-            if (not shipment_amount_cond) or shipment_amount_cond_fix:
+            if shipment_amount_cond_fix:
                 _logger.info("shipment_cond: "+str(shipment_amount_cond)+" paid: "+str(received_amount)+" vs total: "+str(sorder.amount_total))
                 if ( ship_carrier_id and sorder.carrier_id):
                     delivery_price = 0.0
@@ -495,7 +495,7 @@ class mercadolibre_shipment(models.Model):
                 else:
                     try:
                         _logger.info("removing saleorderline_item_ids")
-                        saleorderline_item_ids.unlink()
+                        #saleorderline_item_ids.unlink()
                     except:
                         _logger.info("Could not unlink.")
 
