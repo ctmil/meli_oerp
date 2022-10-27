@@ -63,7 +63,7 @@ class mercadolibre_shipment_print(models.TransientModel):
         company = self.env.user.company_id
         if not config:
             config = company
-            
+
         _logger.info( "shipment_print context: " + str(context) )
         shipment_ids = ('active_ids' in context and context['active_ids']) or []
         #check if model is stock_picking or mercadolibre.shipment
@@ -73,13 +73,13 @@ class mercadolibre_shipment_print(models.TransientModel):
         if active_model == "stock.picking":
             shipment_ids_from_pick = []
             for spick_id in shipment_ids:
-                spick = self.env["stock.picking"].browse(spick_id)            
+                spick = self.env["stock.picking"].browse(spick_id)
                 sale_order = spick.sale_id
                 if sale_order and sale_order.meli_shipment:
                     shipment_ids_from_pick.append(sale_order.meli_shipment.id)
             shipment_ids = shipment_ids_from_pick
             _logger.info("stock.picking shipment_ids:"+str(shipment_ids))
-            
+
         shipment_obj = self.env['mercadolibre.shipment']
         warningobj = self.env['meli.warning']
 
@@ -424,24 +424,31 @@ class mercadolibre_shipment(models.Model):
 
             _logger.info("delivery_price:"+str(delivery_price)+" received_amount: "+str(received_amount) +" amount_total:"+str(sorder.amount_total) )
             shipment_amount_cond = abs(received_amount - sorder.amount_total)>1.0 and (delivery_price>0.0)
-
             _logger.info("shipment_amount_cond:"+str(shipment_amount_cond))
-            shipment_amount_cond_fix = (sorder.amount_total - received_amount)>1.0 and (delivery_price>0.0)
 
+            shipment_amount_cond_fix = (sorder.amount_total - received_amount)>1.0 and (delivery_price>0.0)
             _logger.info("shipment_amount_cond_fix:"+str(shipment_amount_cond_fix))
+
             shipment_amount_cond_fix2 = (sorder.amount_total - received_amount)<-1.0 and (delivery_price>0.0)
+            _logger.info("shipment_amount_cond_fix2:"+str(shipment_amount_cond_fix))
+
+            _logger.info("ship_carrier_id:"+str(ship_carrier_id)+" sorder.carrier_id:"+str(sorder.carrier_id))
 
             if (not shipment_amount_cond) or shipment_amount_cond_fix:
                 _logger.info("shipment_cond: "+str(shipment_amount_cond)+" paid: "+str(received_amount)+" vs total: "+str(sorder.amount_total))
                 if ( ship_carrier_id and sorder.carrier_id):
                     delivery_price = 0.0
+                    _logger.info("set_delivery_line:"+str(delivery_price))
                     set_delivery_line( sorder, delivery_price, "Defined by MELI" )
                 delivery_price = 0.0
+
             if shipment_amount_cond_fix2 and ship_carrier_id and sorder.carrier_id:
+                _logger.info("set_delivery_line (fix2):"+str(delivery_price))
                 set_delivery_line( sorder, delivery_price, "Defined by MELI" )
 
 
             if (ship_carrier_id and not sorder.carrier_id):
+                _logger.info("set_delivery_line (first set carrier):"+str(delivery_price))
                 sorder.carrier_id = ship_carrier_id
                 #vals = sorder.carrier_id.rate_shipment(sorder)
                 #if vals.get('success'):
@@ -450,18 +457,18 @@ class mercadolibre_shipment(models.Model):
                 #delivery_price = vals['price']
                 #display_price = vals['carrier_price']
                 set_delivery_line(sorder, delivery_price, delivery_message )
-                
+
             if (sorder.carrier_id):
                 #activar para cuando no se quiere incluir en la factura? mejor setear para no ser facturado.. cuando es 0
                 if 1==2 and delivery_price<=0.0:
                     sorder._remove_delivery_line()
-                
+
                 delivery_line = get_delivery_line(sorder)
                 if delivery_line and abs(delivery_line.price_unit-delivery_price)>1.0:
                     delivery_message = "Defined by MELI"
                     set_delivery_line(sorder, delivery_price, delivery_message )
-                    
-                
+
+
 
             #REMOVE OLD SALE ORDER ITEM SHIPPING ITEM
             saleorderline_item_fields = {
@@ -487,6 +494,7 @@ class mercadolibre_shipment(models.Model):
                     #saleorderline_item_ids.tax_id = None
                 else:
                     try:
+                        _logger.info("removing saleorderline_item_ids")
                         saleorderline_item_ids.unlink()
                     except:
                         _logger.info("Could not unlink.")
@@ -589,7 +597,7 @@ class mercadolibre_shipment(models.Model):
             ship_id = order.shipping_id
         else:
             return None
-        
+
         ship_json = None
         if meli.access_token=="PASIVA":
             ship_json = {
@@ -871,11 +879,11 @@ class mercadolibre_shipment(models.Model):
                             ord = oi
                             totales['total_amount']+= ord["total_amount"]
                             totales['paid_amount']+= ord["paid_amount"]
-                        
+
                         #fix ML order_json... for pack_order "shipping_cost" added
                         if shipment.shipping_cost:
                             totales['paid_amount']+= shipment.shipping_cost
-                            
+
                         order_json = {
                             "id": all_orders[0]["order_id"],
                             'status': all_orders[0]["status"],
@@ -955,7 +963,7 @@ class mercadolibre_shipment(models.Model):
 
                             #creating and updating all items related to ml.orders
                             sorder_pack.meli_fee_amount = 0.0
-                            
+
                             for mOrder in all_orders:
                                 #Each Order one product with one price and one quantity
                                 product_related_obj = mOrder.order_items and (mOrder.order_items[0].product_id or mOrder.order_items[0].posting_id.product_id)
