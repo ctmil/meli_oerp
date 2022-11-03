@@ -528,7 +528,7 @@ class res_company(models.Model):
         scroll_id = False
         if (totalmax>1000):
             #USE SCAN METHOD....
-            _logger.info( "use scan method: "+str(totalmax) )
+            _logger.info( "use scan method: "+str(totalmax)+" offset: "+str(offset)+" limit: "+str(search_limit) )
             response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search",
                                 {'access_token':meli.access_token,
                                 'search_type': 'scan',
