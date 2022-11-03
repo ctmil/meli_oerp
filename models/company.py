@@ -502,7 +502,7 @@ class res_company(models.Model):
         url_get = "/users/"+str(company.mercadolibre_seller_id)+"/items/search"
 
         response = meli.get(url_get, {'access_token':meli.access_token,
-                                    'offset': 0,
+                                    'offset': search_offset,
                                     'limit': search_limit,
                                     **post_state_filter
                                     } )
@@ -518,10 +518,10 @@ class res_company(models.Model):
 
         #download?
         totalmax = 0
-        offset = 0
+        offset = search_offset
         if 'paging' in rjson:
             totalmax = rjson['paging']['total']
-            offset = ('offset' in rjson['paging'] and rjson['paging']['offset']) or 0
+            offset = ('offset' in rjson['paging'] and rjson['paging']['offset']) or search_offset
 
         _logger.info( "totalmax: "+str(totalmax) )
 
