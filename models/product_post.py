@@ -545,6 +545,7 @@ class product_template_import(models.TransientModel):
             _logger.info('Processing import status ' + str(self.import_status)+ " report_import:"+str(self.report_import))
             messhtml = "Import status: "+str(res)
             res = warningobj.info( title='IMPORT STATUS', message="Import Status", message_html=messhtml )
+            res = self.show_import_wizard()
 
         return res
 
@@ -552,15 +553,16 @@ class product_template_import(models.TransientModel):
         #first fetch wizard view id
         context = context or self.env.context
         _logger.info("show_import_wizard:"+str(context))
-        view_id = self.env['ir.model.data'].get_object_reference( "meli_oerp", 'view_product_template_import')
+        refview = self.env['ir.model.data'].get_object_reference( "meli_oerp", 'view_product_template_import')
         res_id = self.create({
-
+#            "batch_processing_unit": "batch_processing_unit" in context and context["batch_processing_unit"],
+#            "batch_processing_unit_offset": "batch_processing_unit_offset" in context and context["batch_processing_unit_offset"]
         })
 
         return {
             'name':_("Importar Masivamente ML (...)"),
             'view_mode': 'form',
-            'view_id': view_id.id,
+            'view_id': (refview and refview[1]),
             'res_id': res_id.id,
             'view_type': 'form',
             'res_model': 'mercadolibre.product.template.import',
