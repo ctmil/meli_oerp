@@ -639,7 +639,7 @@ class res_company(models.Model):
 
         _logger.info( results )
         _logger.info( "FULL RESULTS TO PROCESS > From offset: "+str(offset) + " batch records: "+ str(len(results)) )
-        _logger.info( "("+totalmax+") total products to check...")
+        _logger.info( "("+str(totalmax)+") total products to check...")
         iitem = 0
         icommit = 0
         micom = 5
