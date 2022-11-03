@@ -529,7 +529,7 @@ class res_company(models.Model):
         if (totalmax>1000):
             #USE SCAN METHOD....
             _logger.info( "use scan method: "+str(totalmax)+" offset: "+str(offset)+" limit: "+str(search_limit) )
-            _logger.info(**post_state_filter)
+            _logger.info(str(post_state_filter))
             response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search",
                                 {'access_token':meli.access_token,
                                 'search_type': 'scan',
@@ -559,6 +559,7 @@ class res_company(models.Model):
             while (condition_last_off!=True):
                 ioff = cof
                 _logger.info( "Prefetch products ("+str(ioff)+"/"+str(rjson['paging']['total'])+")" )
+                _logger.info("len(results)"+str(len(results)))
                 response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search",
                     {
                     'access_token':meli.access_token,
@@ -581,7 +582,7 @@ class res_company(models.Model):
                         "target": "new",}
                     condition_last_off = True
                 else:
-                    #_logger.info(rjson2)
+                    _logger.info(rjson2)
                     if (offset>0):
                         for rs in rjson2['results']:
                             if (cof>=offset):
