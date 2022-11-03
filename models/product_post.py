@@ -427,8 +427,8 @@ class product_template_import(models.TransientModel):
         messhtml+= "<br/>Paused to sync: "+self.paused_to_sync
         messhtml+= "<br/>Closed to sync: "+self.closed_to_sync
 
-        res = warningobj.info( title='CHECK IMPORT STATUS', message="Import Status", message_html=messhtml )
-
+        res = warningobj.info( title='CHECK IMPORT STATUS', message="Import Status", message_html=messhtml )        
+        res = self.show_import_wizard()
         return res
 
     def create_full_report( self, context=None, config=None, meli=None):
@@ -548,6 +548,26 @@ class product_template_import(models.TransientModel):
 
         return res
 
+    def show_import_wizard(self, context=None):
+        #first fetch wizard view id
+        context = context or self.env.context
+        _logger.info("show_import_wizard:"+str(context))
+        view_id = self.env['ir.model.data'].get_object_reference( "meli_oerp", 'view_product_template_import')
+        res_id = self.create({
 
+        })
+
+        return {
+            'name':_("Importar Masivamente ML (...)"),
+            'view_mode': 'form',
+            'view_id': view_id,
+            'res_id': res_id.id,
+            'view_type': 'form',
+            'res_model': 'mercadolibre.product.template.import',
+            'type': 'ir.actions.act_window',
+            'target': 'new',
+            'domain': '[]',
+            'context': context
+        }
 
 product_template_import()
