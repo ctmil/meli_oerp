@@ -553,7 +553,6 @@ class res_company(models.Model):
                         cof+= 1
                 else:
                     results = rjson['results']
-                results = rjson['results']
                 condition_last_off = False
 
             while (condition_last_off!=True):
