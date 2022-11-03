@@ -617,7 +617,8 @@ class res_company(models.Model):
                 response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {
                     'access_token':meli.access_token,
                     'offset': ioff,
-                    'limit': str(search_limit)
+                    'limit': str(search_limit),
+                    **post_state_filter
                  })
                 rjson2 = response.json()
                 if 'error' in rjson2:
