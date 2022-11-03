@@ -581,7 +581,7 @@ class res_company(models.Model):
                         "target": "new",}
                     condition_last_off = True
                 else:
-                    _logger.info(rjson2)
+                    #_logger.info(rjson2)
                     if (offset>0):
                         for rs in rjson2['results']:
                             if (cof>=offset):

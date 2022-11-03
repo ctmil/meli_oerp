@@ -49,7 +49,8 @@ class product_template_post(models.TransientModel):
     #'company_id': fields.many2one('res.company',string='Company'),
     #'mercadolibre_state': fields.related( 'res.company', 'mercadolibre_state', string="State" )
     post_stock = fields.Boolean(string="Actualizar Stock",help="No actualiza el producto completo, solo el stock",default=False)
-    post_price = fields.Boolean(string="Acutalizar Precio",help="No actualiza el producto completo, solo el precio",default=False)
+    post_price = fields.Boolean(string="Actualizar Precio",help="No actualiza el producto completo, solo el precio",default=False)
+    action_pause = fields.Boolean(string="Pausar producto",help="No actualiza el producto completo, sólo pausa el producto",default=False)
 
 
     def pretty_json( self, data ):
@@ -75,7 +76,8 @@ class product_template_post(models.TransientModel):
             'force_meli_pub': self.force_meli_pub,
             'force_meli_active': self.force_meli_active,
             'post_stock': self.post_stock,
-            'post_price': self.post_price
+            'post_price': self.post_price,
+            'action_pause': self.action_pause
         }
         posted_products = 0
         for product_id in product_ids:
@@ -89,7 +91,9 @@ class product_template_post(models.TransientModel):
                         res = product.with_context(custom_context).product_template_post_stock(meli=meli)
                     if self.post_price:
                         res = product.with_context(custom_context).product_template_post_price(meli=meli)
-                    if not self.post_stock and not self.post_price:
+                    if self.action_pause:
+                        res = product.with_context(custom_context).action_meli_pause()
+                    if not self.post_stock and not self.post_price and not self.action_pause:
                         res = product.with_context(custom_context).product_template_post()
 
                     if (res and 'name' in res):
@@ -167,6 +171,7 @@ class product_post(models.TransientModel):
 	    #'mercadolibre_state': fields.related( 'res.company', 'mercadolibre_state', string="State" )
     post_stock = fields.Boolean(string="Actualizar Stock",help="No actualiza el producto, solo el stock",default=False)
     post_price = fields.Boolean(string="Acutalizar Precio",help="No actualiza el producto, solo el precio",default=False)
+    action_pause = fields.Boolean(string="Pausar producto",help="No actualiza el producto completo, sólo pausa el producto",default=False)
 
 
     def pretty_json( self, data ):
@@ -197,7 +202,9 @@ class product_post(models.TransientModel):
                     res = product.product_post_stock(meli=meli)
                 if self.post_price:
                     res = product.product_post_price(meli=meli)
-                if not self.post_stock and not self.post_price:
+                if self.action_pause:
+                    res = product.action_meli_pause()
+                if not self.post_stock and not self.post_price and not self.action_pause:
                     res = product.product_post()
 
             #Pausa
@@ -510,7 +517,7 @@ class product_template_import(models.TransientModel):
                     sep = ";"
                 csv_report+= "\n"
 
-            csv_report_attachment_last = self.env["ir.attachment"].search([('res_id','=',self.id)], order='id desc', limit=1 )
+            csv_report_attachment_last = self.report_import or self.env["ir.attachment"].search([('res_id','=',self.id)], order='id desc', limit=1 )
             if (csv_report_attachment_last):
                 csv_report_last = csv_report_attachment_last.index_content
                 if (csv_report_last):
@@ -520,7 +527,8 @@ class product_template_import(models.TransientModel):
             #_logger.info(csv_report)
 
             b64_csv = base64.b64encode(csv_report.encode())
-            ATTACHMENT_NAME = "MassiveImport"
+            now = datetime.now()
+            ATTACHMENT_NAME = "MassiveImport-"+str(now.strftime("%Y-%m-%d, %H:%M"))
 
             csv_report_attachment = self.env['ir.attachment'].create({
                 'name': ATTACHMENT_NAME+'.csv',
