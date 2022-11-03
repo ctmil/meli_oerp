@@ -502,7 +502,7 @@ class res_company(models.Model):
         url_get = "/users/"+str(company.mercadolibre_seller_id)+"/items/search"
 
         response = meli.get(url_get, {'access_token':meli.access_token,
-                                    'offset': search_offset,
+                                    'offset': ((search_offset+search_limit)<1000 and search_offset) or 0,
                                     'limit': search_limit,
                                     **post_state_filter
                                     } )
