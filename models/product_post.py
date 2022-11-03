@@ -423,9 +423,9 @@ class product_template_import(models.TransientModel):
         warningobj = self.env['meli.warning']
 
         messhtml = ""
-        messhtml+= "<br/>"+self.actives_to_sync
-        messhtml+= "<br/>"+self.paused_to_sync
-        messhtml+= "<br/>"+self.closed_to_sync
+        messhtml+= "<br/>Actives to sync: "+self.actives_to_sync
+        messhtml+= "<br/>Paused to sync: "+self.paused_to_sync
+        messhtml+= "<br/>Closed to sync: "+self.closed_to_sync
 
         res = warningobj.info( title='CHECK IMPORT STATUS', message="Import Status", message_html=messhtml )
 
