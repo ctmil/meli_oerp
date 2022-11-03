@@ -543,6 +543,8 @@ class product_template_import(models.TransientModel):
             res.update({'csv_report':  csv_report, 'csv_report_attachment':  csv_report_attachment, 'csv_report_attachment_link': csv_report_attachment_link })
 
             _logger.info('Processing import status ' + str(self.import_status)+ " report_import:"+str(self.report_import))
+            messhtml = "Import status: "+str(res)
+            res = warningobj.info( title='IMPORT STATUS', message="Import Status", message_html=messhtml )
 
         return res
 
