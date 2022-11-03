@@ -3664,6 +3664,7 @@ class product_product(models.Model):
     meli_catalog_automatic_relist = fields.Boolean(string='Catalog Auto Relist')
 
     meli_shipping_logistic_type = fields.Char(string="Logistic Type",index=True)
+    meli_shipping_free = fields.Boolean(string="Tiene envío gratis",index=True)
 
     meli_inventory_id = fields.Char(string="Inventory Id",index=True)
 

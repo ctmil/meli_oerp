@@ -502,7 +502,7 @@ class res_company(models.Model):
         url_get = "/users/"+str(company.mercadolibre_seller_id)+"/items/search"
 
         response = meli.get(url_get, {'access_token':meli.access_token,
-                                    'offset': 0,
+                                    'offset': ((search_offset+search_limit)<1000 and search_offset) or 0,
                                     'limit': search_limit,
                                     **post_state_filter
                                     } )
@@ -518,17 +518,18 @@ class res_company(models.Model):
 
         #download?
         totalmax = 0
-        offset = 0
+        offset = search_offset
         if 'paging' in rjson:
             totalmax = rjson['paging']['total']
-            offset = ('offset' in rjson['paging'] and rjson['paging']['offset']) or 0
+            offset = ('offset' in rjson['paging'] and rjson['paging']['offset']) or search_offset
 
         _logger.info( "totalmax: "+str(totalmax) )
 
         scroll_id = False
         if (totalmax>1000):
             #USE SCAN METHOD....
-            _logger.info( "use scan method: "+str(totalmax) )
+            _logger.info( "use scan method: "+str(totalmax)+" offset: "+str(offset)+" limit: "+str(search_limit) )
+            _logger.info(str(post_state_filter))
             response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search",
                                 {'access_token':meli.access_token,
                                 'search_type': 'scan',
@@ -552,12 +553,12 @@ class res_company(models.Model):
                         cof+= 1
                 else:
                     results = rjson['results']
-                results = rjson['results']
                 condition_last_off = False
 
             while (condition_last_off!=True):
                 ioff = cof
                 _logger.info( "Prefetch products ("+str(ioff)+"/"+str(rjson['paging']['total'])+")" )
+                _logger.info("len(results)"+str(len(results)))
                 response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search",
                     {
                     'access_token':meli.access_token,
@@ -616,7 +617,8 @@ class res_company(models.Model):
                 response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search", {
                     'access_token':meli.access_token,
                     'offset': ioff,
-                    'limit': str(search_limit)
+                    'limit': str(search_limit),
+                    **post_state_filter
                  })
                 rjson2 = response.json()
                 if 'error' in rjson2:
@@ -637,8 +639,8 @@ class res_company(models.Model):
                         break;
 
         _logger.info( results )
-        _logger.info( "FULL RESULTS: " + str(len(results)) )
-        _logger.info( "("+str(rjson['paging']['total'])+") products to check...")
+        _logger.info( "FULL RESULTS TO PROCESS > From offset: "+str(offset) + " batch records: "+ str(len(results)) )
+        _logger.info( "("+str(totalmax)+") total products to check...")
         iitem = 0
         icommit = 0
         micom = 5
