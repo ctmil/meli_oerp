@@ -430,17 +430,13 @@ class product_template_import(models.TransientModel):
         warningobj = self.env['meli.warning']
 
         messhtml = ""
-        messhtml+= "<br/>"+self.actives_to_sync
-        messhtml+= "<br/>"+self.paused_to_sync
-        messhtml+= "<br/>"+self.closed_to_sync
+        messhtml+= "<br/>Actives to sync: "+self.actives_to_sync
+        messhtml+= "<br/>Paused to sync: "+self.paused_to_sync
+        messhtml+= "<br/>Closed to sync: "+self.closed_to_sync
 
         res = warningobj.info( title='CHECK IMPORT STATUS', message="Import Status", message_html=messhtml )
-
-        #return res
-
-        return {
-            "type": "set_scrollTop",
-        }
+        res = self.show_import_wizard()
+        return res
 
     def create_full_report( self, context=None, config=None, meli=None):
         _logger.info("Creating full report")
@@ -521,16 +517,18 @@ class product_template_import(models.TransientModel):
                     sep = ";"
                 csv_report+= "\n"
 
-            csv_report_attachment_last = self.env["ir.attachment"].search([('res_id','=',self.id)], order='id desc', limit=1 )
+            csv_report_attachment_last = self.report_import or self.env["ir.attachment"].search([('res_id','=',self.id)], order='id desc', limit=1 )
             if (csv_report_attachment_last):
                 csv_report_last = csv_report_attachment_last.index_content
-                csv_report = csv_report_last+"\n"+csv_report
+                if (csv_report_last):
+                    csv_report = csv_report_last+"\n"+csv_report
             else:
                 csv_report = csv_report_header+"\n"+csv_report
             #_logger.info(csv_report)
 
             b64_csv = base64.b64encode(csv_report.encode())
-            ATTACHMENT_NAME = "MassiveImport"
+            now = datetime.now()
+            ATTACHMENT_NAME = "MassiveImport-"+str(now.strftime("%Y-%m-%d, %H:%M"))
 
             csv_report_attachment = self.env['ir.attachment'].create({
                 'name': ATTACHMENT_NAME+'.csv',
@@ -554,9 +552,43 @@ class product_template_import(models.TransientModel):
             res.update({'csv_report':  csv_report, 'csv_report_attachment':  csv_report_attachment, 'csv_report_attachment_link': csv_report_attachment_link })
 
             _logger.info('Processing import status ' + str(self.import_status)+ " report_import:"+str(self.report_import))
+            messhtml = "Import status: "+str(res)
+            res = warningobj.info( title='IMPORT STATUS', message="Import Status", message_html=messhtml )
+            res = self.show_import_wizard()
 
         return res
 
+    def show_import_wizard(self, context=None):
+        #first fetch wizard view id
+        context = context or self.env.context
+        _logger.info("show_import_wizard:"+str(context))
+        refview = self.env['ir.model.data'].get_object_reference( "meli_oerp", 'view_product_template_import')
+        res_id = self.create({
+            "post_state": ("post_state" in context and context["post_state"]) or self.post_state,
+            "force_meli_pub": ("force_meli_pub" in context and context["force_meli_pub"]) or self.force_meli_pub,
+            "force_create_variants": ("force_create_variants" in context and context["force_create_variants"]) or self.force_create_variants,
+            "force_dont_create": ("force_dont_create" in context and context["force_dont_create"]) or self.force_dont_create,
+            "batch_actives_to_sync": ("batch_actives_to_sync" in context and context["batch_actives_to_sync"]) or self.batch_actives_to_sync,
+            "batch_paused_to_sync": ("batch_paused_to_sync" in context and context["batch_paused_to_sync"]) or self.batch_paused_to_sync,
+            "post_state": ("post_state" in context and context["post_state"]) or self.post_state,
+            "batch_processing_unit": ("batch_processing_unit" in context and context["batch_processing_unit"]) or self.batch_processing_unit,
+            "batch_processing_unit_offset": ("batch_processing_unit_offset" in context and context["batch_processing_unit_offset"]) or self.batch_processing_unit_offset,
+            "report_import": (self.report_import and self.report_import.id),
+            "report_import_link": (self.report_import_link or ""),
+            "meli_id": self.meli_id,
+        })
 
+        return {
+            'name':_("Importar Masivamente ML (...)"),
+            'view_mode': 'form',
+            'view_id': (refview and refview[1]),
+            'res_id': res_id.id,
+            'view_type': 'form',
+            'res_model': 'mercadolibre.product.template.import',
+            'type': 'ir.actions.act_window',
+            'target': 'new',
+            'domain': '[]',
+            #'context': context
+        }
 
 product_template_import()
