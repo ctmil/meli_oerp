@@ -555,8 +555,11 @@ class product_template_import(models.TransientModel):
         _logger.info("show_import_wizard:"+str(context))
         refview = self.env['ir.model.data'].get_object_reference( "meli_oerp", 'view_product_template_import')
         res_id = self.create({
-#            "batch_processing_unit": "batch_processing_unit" in context and context["batch_processing_unit"],
-#            "batch_processing_unit_offset": "batch_processing_unit_offset" in context and context["batch_processing_unit_offset"]
+            "batch_processing_unit": ("batch_processing_unit" in context and context["batch_processing_unit"]) or self.batch_processing_unit,
+            "batch_processing_unit_offset": ("batch_processing_unit_offset" in context and context["batch_processing_unit_offset"]) or self.batch_processing_unit_offset,
+            "report_import": self.report_import,
+            "report_import_link": self.report_import_link,
+            "report_import_link": self.report_import_link,
         })
 
         return {
