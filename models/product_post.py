@@ -513,7 +513,8 @@ class product_template_import(models.TransientModel):
             csv_report_attachment_last = self.env["ir.attachment"].search([('res_id','=',self.id)], order='id desc', limit=1 )
             if (csv_report_attachment_last):
                 csv_report_last = csv_report_attachment_last.index_content
-                csv_report = csv_report_last+"\n"+csv_report
+                if (csv_report_last):
+                    csv_report = csv_report_last+"\n"+csv_report
             else:
                 csv_report = csv_report_header+"\n"+csv_report
             #_logger.info(csv_report)
