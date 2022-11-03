@@ -555,11 +555,18 @@ class product_template_import(models.TransientModel):
         _logger.info("show_import_wizard:"+str(context))
         refview = self.env['ir.model.data'].get_object_reference( "meli_oerp", 'view_product_template_import')
         res_id = self.create({
+            "post_state": ("post_state" in context and context["post_state"]) or self.post_state,
+            "force_meli_pub": ("force_meli_pub" in context and context["force_meli_pub"]) or self.force_meli_pub,
+            "force_create_variants": ("force_create_variants" in context and context["force_create_variants"]) or self.force_create_variants,
+            "force_dont_create": ("force_dont_create" in context and context["force_dont_create"]) or self.force_dont_create,
+            "batch_actives_to_sync": ("batch_actives_to_sync" in context and context["batch_actives_to_sync"]) or self.batch_actives_to_sync,
+            "batch_paused_to_sync": ("batch_paused_to_sync" in context and context["batch_paused_to_sync"]) or self.batch_paused_to_sync,
+            "post_state": ("post_state" in context and context["post_state"]) or self.post_state,
             "batch_processing_unit": ("batch_processing_unit" in context and context["batch_processing_unit"]) or self.batch_processing_unit,
             "batch_processing_unit_offset": ("batch_processing_unit_offset" in context and context["batch_processing_unit_offset"]) or self.batch_processing_unit_offset,
-            "report_import": self.report_import,
-            "report_import_link": self.report_import_link,
-            "report_import_link": self.report_import_link,
+            "report_import": (self.report_import and self.report_import.id),
+            "report_import_link": (self.report_import_link or ""),
+            "meli_id": self.meli_id,
         })
 
         return {
