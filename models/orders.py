@@ -315,12 +315,12 @@ class sale_order(models.Model):
             if not confirm_cond:
                 return {'error': "Condition not met: meli_paid_amount and amount_total doesn't match"}
 
-                
+
             if (self.meli_shipment_logistic_type and "fulfillment" in self.meli_shipment_logistic_type):
-                
+
                 if ( config.mercadolibre_order_confirmation_full and "paid_confirm" in config.mercadolibre_order_confirmation_full):
                     self.meli_confirm_order( meli=meli, config=config )
-                
+
                 if (config.mercadolibre_order_confirmation_full and "paid_delivered" in config.mercadolibre_order_confirmation_full):
 
                     self.meli_confirm_order( meli=meli, config=config )
@@ -1465,6 +1465,7 @@ class mercadolibre_orders(models.Model):
                     except Exception as e:
                         _logger.info("orders_update_order > Error actualizando Partner:"+str(e))
                         _logger.error(e, exc_info=True)
+                        order.message_post(body=str("Error actualizando Partner: "+str(e)),message_type=order_message_type)
                         pass;
 
 
