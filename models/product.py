@@ -651,6 +651,8 @@ class product_product(models.Model):
 
         if (product_tmpl.meli_currency and product_tmpl.meli_currency == 'MXN'):
             new_price = str((float(new_price)))
+        elif (product_tmpl.meli_currency and product_tmpl.meli_currency == 'CLP'):
+            new_price = str( int( int( math.floor(int(new_price) / 100 ) * 100 + 90 ) ) )
         else:
             new_price = math.ceil(new_price)
             new_price = str(int(float(new_price)))
@@ -1587,6 +1589,9 @@ class product_product(models.Model):
 
             if "logistic_type" in rjson["shipping"]:
                 product.meli_shipping_logistic_type = rjson["shipping"]["logistic_type"]
+
+            if "free_shipping" in rjson["shipping"]:
+                product.meli_shipping_free = rjson["shipping"]["free_shipping"]
 
             att_shipping = {
                 'name': 'Con envío',

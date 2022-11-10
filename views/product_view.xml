@@ -432,8 +432,8 @@
                             <group>
                               <field name="meli_condition" />
                               <field name="meli_available_quantity" />
-                              <!--field name="meli_max_purchase_quantity" />
-                              <field name="meli_manufacturing_time" /-->
+                              <field name="meli_max_purchase_quantity" />
+                              <field name="meli_manufacturing_time" />
                               <field name="meli_warranty" />
                               <field name="meli_imagen_logo" />
                               <field name="meli_imagen_id" />

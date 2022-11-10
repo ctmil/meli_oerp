@@ -263,6 +263,7 @@ class sale_order(models.Model):
         return res
 
     def meli_deliver( self, meli=None, config=None, data=None ):
+        _logger.info("meli_deliver base")
         res = {}
         if (self.state=="sale" or self.state=="done"):
             #spick = stock_picking.search([('order_id','=',self.id)])
@@ -315,12 +316,12 @@ class sale_order(models.Model):
             if not confirm_cond:
                 return {'error': "Condition not met: meli_paid_amount and amount_total doesn't match"}
 
-                
+
             if (self.meli_shipment_logistic_type and "fulfillment" in self.meli_shipment_logistic_type):
-                
+
                 if ( config.mercadolibre_order_confirmation_full and "paid_confirm" in config.mercadolibre_order_confirmation_full):
                     self.meli_confirm_order( meli=meli, config=config )
-                
+
                 if (config.mercadolibre_order_confirmation_full and "paid_delivered" in config.mercadolibre_order_confirmation_full):
 
                     self.meli_confirm_order( meli=meli, config=config )
@@ -1119,8 +1120,7 @@ class mercadolibre_orders(models.Model):
 
                     vatn = Buyer['billing_info']['doc_number']
                     is_business = False
-                    sep_millon = "."
-                    #sep_millon = ""
+                    sep_millon = cl_vat_sep_million
                     if (len(vatn)==9):
                         vatn = vatn[:2]+str(sep_millon)+vatn[2:5]+""+vatn[5:8]+"-"+vatn[8:9]
                         isb = float(vatn[:2])
@@ -1465,6 +1465,7 @@ class mercadolibre_orders(models.Model):
                     except Exception as e:
                         _logger.info("orders_update_order > Error actualizando Partner:"+str(e))
                         _logger.error(e, exc_info=True)
+                        order.message_post(body=str("Error actualizando Partner: "+str(e)),message_type=order_message_type)
                         pass;
 
 
@@ -1971,6 +1972,17 @@ class mercadolibre_orders(models.Model):
                 _logger.info("orders_update_order > Error actualizando ORDEN")
                 _logger.error(e, exc_info=True)
                 self._cr.rollback()
+
+                _logger.info("orders_update_order journal_id: "+str(order.name))
+                if order.sale_order and "mercadolibre_invoice_journal_id" in config._fields and config.mercadolibre_invoice_journal_id:
+                    _logger.info("order.sale_order > config.mercadolibre_invoice_journal_id: "+str(config.mercadolibre_invoice_journal_id))
+                    if "journal_id" in order.sale_order._fields:
+                        _logger.info("order.sale_order.journal_id: "+str(order.sale_order.journal_id))
+                        order.sale_order.journal_id = config.mercadolibre_invoice_journal_id
+                        _logger.info("orders_update_order order.journal_id: "+str(order.sale_order.journal_id))
+                if order.sale_order:
+                    if (config.mercadolibre_order_confirmation!="manual"):
+                        order.sale_order.confirm_ml( meli=meli, config=config )
                 pass;
                 #raise e
 
@@ -1978,8 +1990,8 @@ class mercadolibre_orders(models.Model):
             return warningobj.info( title='MELI WARNING', message = "update order errors: "+str(len(rets)), message_html = str(rets))
 
 
+        return {}
 
-        return rets
 
     def orders_query_iterate( self, offset=0, context=None, config=None, meli=None, fetch_id_only=False, fetch_ids=[] ):
 
