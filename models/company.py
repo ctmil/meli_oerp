@@ -523,10 +523,10 @@ class res_company(models.Model):
             totalmax = rjson['paging']['total']
             offset = ('offset' in rjson['paging'] and rjson['paging']['offset']) or search_offset
 
-        _logger.info( "totalmax: "+str(totalmax) )
+        _logger.info( "totalmax: "+str(totalmax)+" offset:"+str(offset) )
 
         scroll_id = False
-        if (totalmax>1000):
+        if (totalmax>1000 or totalmax>10):
             #USE SCAN METHOD....
             _logger.info( "use scan method: "+str(totalmax)+" offset: "+str(offset)+" limit: "+str(search_limit) )
             _logger.info(str(post_state_filter))
