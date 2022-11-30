@@ -26,7 +26,7 @@ class StockMove(models.Model):
 
             for bomline in bomlines:
 
-                if (1==1 and bomline.bom_id.product_id.virtual_available !=mov.product_id.virtual_available):
+                if (1==2 and bomline.bom_id.product_id.virtual_available !=mov.product_id.virtual_available):
                     _logger.info("Clone stock: " + str(bomline.bom_id.product_id.virtual_available))
                     _logger.info("Trigger stock equivalence function:")
                     movs = self.env['stock.move']
