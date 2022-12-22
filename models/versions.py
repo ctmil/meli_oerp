@@ -31,6 +31,13 @@ default_create_variant = "always"
 #'unique(product_tmpl_id,meli_imagen_id)'
 unique_meli_imagen_id_fields = 'unique(product_tmpl_id,product_variant_id,meli_imagen_id)'
 
+
+def get_ref_view( self, module_name, view_name ):
+
+    refview = self.env['ir.model.data'].get_object_reference( module_name, view_name )
+
+    return refview
+
 #TODO: get_company_selected, user with allowed companies
 def get_company_selected( self, context=None, company=None, company_id=None, user=None, user_id=None ):
     context = context or self.env.context
