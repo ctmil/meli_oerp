@@ -562,7 +562,7 @@ class product_template_import(models.TransientModel):
         #first fetch wizard view id
         context = context or self.env.context
         _logger.info("show_import_wizard:"+str(context))
-        refview = self.env['ir.model.data'].get_object_reference( "meli_oerp", 'view_product_template_import')
+        refview = get_ref_view( self, "meli_oerp", 'view_product_template_import')
         res_id = self.create({
             "post_state": ("post_state" in context and context["post_state"]) or self.post_state,
             "force_meli_pub": ("force_meli_pub" in context and context["force_meli_pub"]) or self.force_meli_pub,

@@ -3,6 +3,9 @@ from odoo.tools.translate import _
 import pdb
 import json
 
+from . import versions
+from .versions import *
+
 #CHANGE WARNING_MODULE with your module name
 WARNING_MODULE = 'meli_oerp'
 WARNING_TYPES = [('warning','Warning'),('info','Information'),('error','Error')]
@@ -143,7 +146,7 @@ class warning(models.TransientModel):
         """Get the view id
         @return: view id, or False if no view found
         """
-        res = self.env['ir.model.data'].get_object_reference( WARNING_MODULE, 'warning_form')
+        res = get_ref_view( self, WARNING_MODULE, 'warning_form')
         return res and res[1] or False
 
     def _message(self, id, context=None):
