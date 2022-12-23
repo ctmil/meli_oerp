@@ -3,6 +3,9 @@ from odoo.tools.translate import _
 import pdb
 import json
 
+from . import versions
+from .versions import *
+
 #CHANGE WARNING_MODULE with your module name
 WARNING_MODULE = 'meli_oerp'
 WARNING_TYPES = [('warning','Warning'),('info','Information'),('error','Error')]
