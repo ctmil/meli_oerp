@@ -3583,6 +3583,9 @@ class product_product(models.Model):
                         #_logger.info('rjson'+str(rjson))
                         if "error" in rjson:
                             _logger.error(rjson)
+                            self.meli_price_error = str(rjson)
+                            self.meli_price_update = ml_datetime( str( datetime.now() ) )
+                            self.product_tmpl_id.meli_price_error = self.meli_price_error
                             return rjson
                         if ('price' in rjson):
                             _logger.info( "Posted price ok (variations)" + str(meli_id) + ": " + str(rjson['price']) )
@@ -3608,6 +3611,10 @@ class product_product(models.Model):
                 self.meli_price_update = ml_datetime( str( datetime.now() ) )
                 self.product_tmpl_id.meli_price_error = self.meli_price_error
                 self.product_tmpl_id.meli_price_update = self.meli_price_update
+
+        self.meli_price_update = ml_datetime( str( datetime.now() ) )
+        self.product_tmpl_id.meli_price_error = self.meli_price_error
+        self.product_tmpl_id.meli_price_update = self.meli_price_update
 
         return {}
 
