@@ -1081,7 +1081,7 @@ class res_company(models.Model):
                 ('meli_id','like','M%'),
                 ('meli_price_update','!=',False),
                 '|',('company_id','=',False),('company_id','=',company.id)
-                ], order='meli_stock_update asc')
+                ], order='meli_price_update asc')
             product_ids = product_ids_null + product_ids_not_null
 
             _logger.info("product_ids price to update:" + str(product_ids))
