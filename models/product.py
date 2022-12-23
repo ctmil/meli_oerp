@@ -3696,7 +3696,7 @@ class product_product(models.Model):
     meli_image_update = fields.Datetime(string="Image update",index=True)
     meli_price_update = fields.Datetime(string="Price update",index=True)
     meli_stock_update = fields.Datetime(string="Stock Update",help="Ultima actualizacion de stock de Odoo a ML",index=True)
-    meli_stock_moves_update = fields.Datetime(related=stock_move_ids.create_date,string="Stock Last Move",help="Ultimo movimiento de stock")
+    meli_stock_moves_update = fields.Datetime(related='stock_move_ids.create_date',string="Stock Last Move",help="Ultimo movimiento de stock")
 
     meli_stock_error = fields.Char(string="Stock Error",index=True)
     meli_price_error = fields.Char(string="Price Error",index=True)
