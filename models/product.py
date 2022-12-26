@@ -618,7 +618,7 @@ class product_product(models.Model):
 
         if (pl):
             return_val = pl.price_get(product.id,1.0)
-            all = pl.get_products_price( product, 1.0, self.env.user.partner_id )
+            all = pl.get_product_price( product, 1.0, self.env.user.partner_id )
             _logger.info("prices all: "+str(all))
             if pl.id in return_val:
                 new_price = return_val[pl.id]
