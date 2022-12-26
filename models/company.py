@@ -649,7 +649,7 @@ class res_company(models.Model):
         synced = []
         res = {}
         if (results):
-            self._cr.autocommit(False)
+            Autocommit(self, False)
             try:
                 for item_id in results:
                     _logger.info(item_id)
@@ -874,7 +874,7 @@ class res_company(models.Model):
         if product_ids:
             cn = 0
             ct = len(product_ids)
-            self._cr.autocommit(False)
+            Autocommit(self, False)
             try:
                 for obj in product_ids:
                     cn = cn + 1
@@ -977,13 +977,13 @@ class res_company(models.Model):
             auto_commit = not getattr(threading.currentThread(), 'testing', False)
             product_ids_null = self.env['product.product'].search([
                 ('meli_pub','=',True),
-                ('meli_id','!=',False),
+                ('meli_id','like','M%'),
                 ('meli_stock_update','=',False),
                 '|',('company_id','=',False),('company_id','=',company.id)
                 ], order='id asc')
             product_ids_not_null = self.env['product.product'].search([
                 ('meli_pub','=',True),
-                ('meli_id','!=',False),
+                ('meli_id','like','M%'),
                 ('meli_stock_update','!=',False),
                 '|',('company_id','=',False),('company_id','=',company.id)
                 ], order='meli_stock_update asc')
@@ -1067,14 +1067,30 @@ class res_company(models.Model):
         company = self.env.user.company_id
         if (company.mercadolibre_cron_post_update_price):
             auto_commit = not getattr(threading.currentThread(), 'testing', False)
-            product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False),
-                                                              '|',('company_id','=',False),('company_id','=',company.id)])
+            #product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False),
+            #                                                  '|',('company_id','=',False),('company_id','=',company.id)])
+
+            product_ids_null = self.env['product.product'].search([
+                ('meli_pub','=',True),
+                ('meli_id','like','M%'),
+                ('meli_price_update','=',False),
+                '|',('company_id','=',False),('company_id','=',company.id)
+                ], order='id asc')
+            product_ids_not_null = self.env['product.product'].search([
+                ('meli_pub','=',True),
+                ('meli_id','like','M%'),
+                ('meli_price_update','!=',False),
+                '|',('company_id','=',False),('company_id','=',company.id)
+                ], order='meli_price_update asc')
+            product_ids = product_ids_null + product_ids_not_null
+
             _logger.info("product_ids price to update:" + str(product_ids))
             _logger.info("updating price #" + str(len(product_ids)) + " on " + str(company.name))
 
             icommit = 0
             icount = 0
             maxcommits = len(product_ids)
+            topcommits = 80
 
             #meli = self.env['meli.util'].get_new_instance(company)
 
@@ -1098,7 +1114,7 @@ class res_company(models.Model):
                         icommit+= 1
                         icount+= 1
                         #_logger.info( "Product remote to update: " + str(obj.id)  )
-                        if (obj.meli_id):
+                        if (obj.meli_id and icount<=topcommits):
                             try:
                                 _logger.info( "Update Price: #" + str(icount) +'/'+str(maxcommits)+ ' meli_id:'+str(obj.meli_id)  )
                                 resjson = obj.product_post_price(meli=meli)
@@ -1262,7 +1278,7 @@ class res_company(models.Model):
         icommit = 0
         micom = 5
         if (results):
-            #self._cr.autocommit(False)
+            Autocommit(self, False)
             try:
                 for item_id in results:
                     _logger.info(item_id)
@@ -1287,5 +1303,3 @@ class res_company(models.Model):
                 _logger.info(e, exc_info=True)
                 #self._cr.rollback()
         return {}
-
-res_company()

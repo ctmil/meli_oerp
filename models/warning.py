@@ -3,6 +3,10 @@ from odoo.tools.translate import _
 import pdb
 import json
 
+
+from . import versions
+from .versions import *
+
 #CHANGE WARNING_MODULE with your module name
 WARNING_MODULE = 'meli_oerp'
 WARNING_TYPES = [('warning','Warning'),('info','Information'),('error','Error')]
@@ -25,14 +29,14 @@ meli_errors = {
 
 
 
-class warning1(models.TransientModel):
-    _name = 'warning'
-    _description = 'warning'
-    type = fields.Selection(WARNING_TYPES, string='Type', readonly=True)
-    title = fields.Char(string="Title", size=100, readonly=True)
-    message = fields.Text(string="Message", readonly=True)
-    message_html = fields.Html(string="Message HTML", readonly=True)
-warning1()
+#class warning1(models.TransientModel):
+#    _name = 'warning'
+#    _description = 'warning'
+#    type = fields.Selection(WARNING_TYPES, string='Type', readonly=True)
+#    title = fields.Char(string="Title", size=100, readonly=True)
+#    message = fields.Text(string="Message", readonly=True)
+#    message_html = fields.Html(string="Message HTML", readonly=True)
+#warning1()
 
 class warning(models.TransientModel):
     _name = 'meli.warning'
@@ -47,9 +51,9 @@ class warning(models.TransientModel):
 
     def _format_meli_error( self, title, message, message_html='', context=None ):
         context = context or self.env.context
-        
+
         #process error messages:
-        
+
         #0 longitud del titulo
         #1 Debe cargar una imagen de base en el producto, si chequeo el 'Dont use first image' debe al menos poner una imagen adicional en el producto.
         #2 Problemas cargando la imagen principal
@@ -59,11 +63,11 @@ class warning(models.TransientModel):
         #6 Debe completar el campo description en la plantilla de MercadoLibre o del producto (Descripción de Ventas)
         #7 Debe iniciar sesión en MELI
         #8 Recuerde completar todos los campos y revise el mensaje siguiente
-        
+
         rjson = context and "rjson" in context and context["rjson"]
         if rjson:
             _logger.info("_format_meli_error rjson:"+str(rjson))
-            
+
             rstatus = "status" in rjson and rjson["status"]
             rcause = "cause" in rjson and rjson["cause"]
             rmessage = "message" in rjson and rjson["message"]
@@ -71,22 +75,22 @@ class warning(models.TransientModel):
                 rmessage = rmessage and json.loads(rmessage)
             except:
                 pass;
-                
+
             rerror = "error" in rjson and rjson["error"]
             alertstatus = 'warning'
-            
+
             if rstatus in ["error",403]:
                 title = "ERROR MELI: " + title
-                alertstatus = 'error'                
-            
+                alertstatus = 'error'
+
             if rstatus in ["warning"]:
                 title = "WARNING MELI: " + title
                 alertstatus = 'warning'
-                
+
             alertstatus = (alertstatus in ["error"] and "danger" ) or  ( str(alertstatus) in ["400"] and "danger" ) or alertstatus
             alertstatusico = (rstatus in ["error"] and "times-circle" ) or ( str(rstatus) in ["400"] and "times-circle" ) or rstatus
 
-                
+
             if rmessage and type(rmessage)==dict:
                 _logger.info("_format_meli_error message:"+str(rmessage))
                 _logger.info(rmessage)
@@ -107,7 +111,7 @@ class warning(models.TransientModel):
                         if len(ecause) and type(ecause)==list:
                             for eca in ecause:
                                 if type(eca)==dict:
-                                    ecatype = "type" in eca and eca["type"]                                
+                                    ecatype = "type" in eca and eca["type"]
                                     ecacode = "code" in eca and eca["code"]
                                     ecamess = "message" in eca and eca["message"]
                                 else:
@@ -128,29 +132,29 @@ class warning(models.TransientModel):
                 ecodemess = (ecode in meli_errors and meli_errors[ecode]) or ecode
 
                 message_html = '<div role="alert" class="alert alert-'+str(alertstatus)+'" title="Meli Message"><i class="fa fa-warning" role="img" aria-label="Meli Message"/> %s </div>' % (ecodemess)
-                
-                
-                                
+
+
+
                         #message_html+= "<br/>Causa: "+str(ecause)
-                        
+
                 #message_html+= '<br/><button click="alert(%s)"><i class="fa fa-copy"></i>Copy Error</button>'
-            
-                    
-        
+
+
+
         return title, message, message_html
 
     def _get_view_id(self ):
         """Get the view id
         @return: view id, or False if no view found
         """
-        res = self.env['ir.model.data'].check_object_reference( WARNING_MODULE, 'warning_form')
+        res = get_ref_view( self, WARNING_MODULE, 'warning_form')
         return res and res[1] or False
 
     def _message(self, id, context=None):
         #pdb.set_trace()
         context = context or self.env.context
 
-        message = self.browse( id)        
+        message = self.browse( id)
 
         rjson = context and "rjson" in context and context["rjson"]
         if rjson:
@@ -171,13 +175,13 @@ class warning(models.TransientModel):
             'res_id': message.id
         }
         return res
-        
+
     def copy(self):
         self.ensure_one()
-        _logger.info("copy_error:"+str(self.copy_error))    
+        _logger.info("copy_error:"+str(self.copy_error))
         return {'type': 'ir.actions.act_window_close'}
-    
-    
+
+
     def warning(self, title, message, message_html='', context=None):
         context = context or self.env.context
         title, message, message_html = self._format_meli_error(title=title,message=message,message_html=message_html,context=context)
@@ -198,5 +202,3 @@ class warning(models.TransientModel):
         id = self.create( {'title': title, 'message': message, 'message_html': message_html, 'type': 'error'}).id
         res = self._message( id,  context=context )
         return res
-
-warning()

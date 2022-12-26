@@ -51,8 +51,6 @@ class sale_order_line(models.Model):
     meli_order_item_id = fields.Char('Meli Order Item Id')
     meli_order_item_variation_id = fields.Char('Meli Order Item Variation Id')
 
-sale_order_line()
-
 class sale_order(models.Model):
     _inherit = "sale.order"
 
@@ -396,7 +394,6 @@ class sale_order(models.Model):
     _sql_constraints = [
         ('unique_meli_order_id', 'unique(meli_order_id)', 'Meli Order id already exists!')
     ]
-sale_order()
 
 class mercadolibre_orders(models.Model):
     _name = "mercadolibre.orders"
@@ -505,6 +502,9 @@ class mercadolibre_orders(models.Model):
                 country = self.env['res.country'].search([('name','like',full_country)])
                 if (len(country)):
                     country_id = country.id
+        if not country_id:
+            company = self.env.user.company_id
+            country_id = company.country_id and company.country_id.id
 
         return country_id
 
@@ -1683,7 +1683,7 @@ class mercadolibre_orders(models.Model):
                                     prod_fields['default_code'] = seller_sku
                                 #prod_fields['default_code'] = rjson3['id']
                                 #productcreated = False
-                                if config.mercadolibre_create_product_from_order and not productcreated:
+                                if seller_sku and config.mercadolibre_create_product_from_order and not productcreated:
                                     productcreated = self.env['product.product'].create((prod_fields))
                                 if (productcreated):
                                     if (productcreated.product_tmpl_id):
@@ -1884,6 +1884,45 @@ class mercadolibre_orders(models.Model):
             if meli.access_token=="PASIVA":
                 if (sorder):
                     sorder.meli_fee_amount = order_fields["fee_amount"]
+
+            if (1==2 and sorder.meli_orders):
+                #process payments
+                for meli_order in sorder.meli_orders:
+                    for payment in meli_order.payments:
+                        try:
+                            if config.mercadolibre_process_payments_customer:
+
+
+                                if 1==2 and payment.account_payment_id:
+                                    fix = payment.account_payment_id and (payment.transaction_amount!=payment.total_paid_amount)
+                                    fix = fix and (payment.account_payment_id.amount!=payment.transaction_amount)
+                                    fix = fix and str(payment.account_payment_id.payment_date) == '2021-07-05'
+
+                                    if (fix):
+                                        _logger.info("payment fixing: "+str(payment.account_payment_id))
+                                        #self.account_payment_id.cancel()
+                                        payment.account_payment_id.action_draft()
+                                        payment.account_payment_id.unlink()
+                                        payment.account_payment_id = False
+
+                                if not payment.account_payment_id:
+                                    payment.create_payment( meli=meli, config=config )
+                        except Exception as e:
+                            _logger.info("Error creating customer payment")
+                            _logger.info(e, exc_info=True)
+                        try:
+                            if config.mercadolibre_process_payments_supplier_fea and not payment.account_supplier_payment_id:
+                                payment.create_supplier_payment( meli=meli, config=config )
+                        except Exception as e:
+                            _logger.info("Error creating supplier fee payment")
+                            _logger.info(e, exc_info=True)
+                        try:
+                            if config.mercadolibre_process_payments_supplier_shipment and not payment.account_supplier_payment_shipment_id and (payment.order_id and payment.order_id.shipping_list_cost>0.0):
+                                payment.create_supplier_payment_shipment( meli=meli, config=config )
+                        except Exception as e:
+                            _logger.info("Error creating supplier shipment payment")
+                            _logger.info(e, exc_info=True)
+
         try:
             self.orders_get_invoice()
         except:
@@ -2103,7 +2142,7 @@ class mercadolibre_orders(models.Model):
             meli = self.env['meli.util'].get_new_instance(company)
 
         _logger.info("mercadolibre.orders >> orders_query_recent: meli: "+str(meli)+" config:"+str(config)+' fetch_id_only:'+str(fetch_id_only))
-        self._cr.autocommit(False)
+        Autocommit(self, False)
         __fetch_ids = None
         try:
             __fetch_ids = self.orders_query_iterate( offset=0, meli=meli, config=config, fetch_id_only=fetch_id_only )
@@ -2258,8 +2297,6 @@ class mercadolibre_orders(models.Model):
         ('unique_order_id', 'unique(order_id)', 'Meli Order id already exists!')
     ]
 
-mercadolibre_orders()
-
 
 class mercadolibre_order_items(models.Model):
     _name = "mercadolibre.order_items"
@@ -2277,8 +2314,6 @@ class mercadolibre_order_items(models.Model):
     currency_id = fields.Char(string='Currency')
     seller_sku = fields.Char(string='SKU')
     seller_custom_field = fields.Char(string='seller_custom_field')
-
-mercadolibre_order_items()
 
 
 class mercadolibre_payments(models.Model):
@@ -2303,8 +2338,6 @@ class mercadolibre_payments(models.Model):
     def _get_config( self, config=None ):
         config = config or (self and self.order_id and self.order_id._get_config(config=config))
         return config
-
-mercadolibre_payments()
 
 class mercadolibre_buyers(models.Model):
     _name = "mercadolibre.buyers"
@@ -2335,8 +2368,6 @@ class mercadolibre_buyers(models.Model):
         ('unique_buyer_id', 'unique(buyer_id)', 'Mei Buyer id already exists!')
     ]
 
-mercadolibre_buyers()
-
 class res_partner(models.Model):
     _inherit = "res.partner"
 
@@ -2349,8 +2380,6 @@ class res_partner(models.Model):
         ('unique_partner_meli_buyer_id', 'unique(meli_buyer_id)', 'Mei Partner Buyer id already exists!')
     ]
 
-res_partner()
-
 
 class mercadolibre_orders_update(models.TransientModel):
     _name = "mercadolibre.orders.update"
@@ -2362,7 +2391,7 @@ class mercadolibre_orders_update(models.TransientModel):
         orders_obj = self.env['mercadolibre.orders']
         warningobj = self.env['meli.warning']
 
-        self._cr.autocommit(False)
+        Autocommit(self, False)
         rets = []
         try:
 
@@ -2389,7 +2418,6 @@ class mercadolibre_orders_update(models.TransientModel):
 
         return {}
 
-mercadolibre_orders_update()
 
 class mercadolibre_orders_update_invoice(models.TransientModel):
     _name = "mercadolibre.orders.update.invoice"
@@ -2400,7 +2428,7 @@ class mercadolibre_orders_update_invoice(models.TransientModel):
         orders_ids = ('active_ids' in context and context['active_ids']) or []
         orders_obj = self.env['mercadolibre.orders']
 
-        self._cr.autocommit(False)
+        Autocommit(self, False)
         try:
 
             for order_id in orders_ids:
@@ -2419,8 +2447,6 @@ class mercadolibre_orders_update_invoice(models.TransientModel):
 
         return {}
 
-mercadolibre_orders_update()
-
 class sale_order_cancel_wiz_meli(models.TransientModel):
     _name = "sale.order.cancel.wiz.meli"
     _description = "Cancel Order"
@@ -2430,7 +2456,7 @@ class sale_order_cancel_wiz_meli(models.TransientModel):
         orders_ids = ('active_ids' in context and context['active_ids']) or []
         orders_obj = self.env['sale.order']
 
-        self._cr.autocommit(False)
+        Autocommit(self, False)
         try:
 
             for order_id in orders_ids:
@@ -2447,5 +2473,3 @@ class sale_order_cancel_wiz_meli(models.TransientModel):
             self._cr.rollback()
 
         return {}
-
-sale_order_cancel_wiz_meli()

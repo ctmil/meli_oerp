@@ -16,10 +16,16 @@ class StockMove(models.Model):
         config = config or self.env.user.company_id
         mov = self
 
-        if not ("mrp.bom" in self.env):
-            return False
 
         if mov.product_id:
+
+            if (config.mercadolibre_cron_post_update_stock):
+                if (mov.product_id.meli_id and mov.product_id.meli_pub):
+                    mov.product_id.product_post_stock()
+
+            if not ("mrp.bom" in self.env):
+                return False
+
             bomlines = "bom_line_ids" in mov.product_id._fields and mov.product_id.bom_line_ids
             bomlines = bomlines or self.env['mrp.bom.line'].search([('product_id','=',mov.product_id.id)])
             bomlines = bomlines or []
@@ -63,10 +69,6 @@ class StockMove(models.Model):
                         if (bomline.bom_id.product_id.meli_id and bomline.bom_id.product_id.meli_pub):
                             bomline.bom_id.product_id.product_post_stock()
 
-            if (config.mercadolibre_cron_post_update_stock):
-                if (mov.product_id.meli_id and mov.product_id.meli_pub):
-                    mov.product_id.product_post_stock()
-
         return True
 
     def _action_assign(self):
@@ -82,10 +84,11 @@ class StockMove(models.Model):
 
     def _action_done(self, cancel_backorder=False):
         #import pdb; pdb.set_trace()
+        #_logger.info("Stock move: meli_oerp > _action_done")
         company = self.env.user.company_id
-        res = super(StockMove, self)._action_done(cancel_backorder=cancel_backorder)
+        moves_todo = super(StockMove, self)._action_done(cancel_backorder=cancel_backorder)
 
         for mov in self:
             mov.meli_update_boms( config = company )
 
-        return True
+        return moves_todo

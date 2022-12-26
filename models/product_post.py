@@ -38,6 +38,10 @@ from .warning import warning
 
 from ..melisdk.meli import Meli
 
+
+from . import versions
+from .versions import *
+
 class product_template_post(models.TransientModel):
     _name = "mercadolibre.product.template.post"
     _description = "Wizard de Product Template Posting en MercadoLibre"
@@ -106,7 +110,6 @@ class product_template_post(models.TransientModel):
 
         return res
 
-product_template_post()
 
 class product_template_update(models.TransientModel):
     _name = "mercadolibre.product.template.update"
@@ -157,7 +160,6 @@ class product_template_update(models.TransientModel):
 
         return res
 
-product_template_update()
 
 class product_post(models.TransientModel):
     _name = "mercadolibre.product.post"
@@ -216,7 +218,6 @@ class product_post(models.TransientModel):
 
         return res
 
-product_post()
 
 
 class product_product_update(models.TransientModel):
@@ -264,7 +265,6 @@ class product_product_update(models.TransientModel):
 
         return res
 
-product_product_update()
 
 
 
@@ -273,11 +273,14 @@ class product_template_import(models.TransientModel):
     _name = "mercadolibre.product.template.import"
     _description = "Wizard de Product Template Import en MercadoLibre"
 
+    title = fields.Char(string="Title", size=100, readonly=True)
     post_state = fields.Selection([('all','Todos'),('active','Activos'),('paused','Pausados'),('closed','Cerrados')], default='all', string='Filtrar publicaciones por estado',help='Estado de productos a importar (todos, activos o pausados)' )
     meli_id = fields.Char(string="MercadoLibre Id's (MLMXXXXXXX, MLMYYYYYYY, MLM.... ) a importar.")
     force_create_variants = fields.Boolean( string="Forzar creacion/cambios de variantes", help="Forzar creacion de variantes (Modifica el producto de Odoo / Rompe Stock)", default=False )
     force_dont_create = fields.Boolean( string="No crear productos (Encontrar por SKU)", default=True )
     force_meli_pub = fields.Boolean(string="Force Meli Pub", default=True)
+
+    _req_name = 'title'
 
     def _calculate_sync_status( self ):
         sync_status = self.check_sync_status()
@@ -562,8 +565,9 @@ class product_template_import(models.TransientModel):
         #first fetch wizard view id
         context = context or self.env.context
         _logger.info("show_import_wizard:"+str(context))
-        refview = self.env['ir.model.data'].get_object_reference( "meli_oerp", 'view_product_template_import')
+        refview = get_ref_view( self, "meli_oerp", 'view_product_template_import')
         res_id = self.create({
+            "title": "Importar",
             "post_state": ("post_state" in context and context["post_state"]) or self.post_state,
             "force_meli_pub": ("force_meli_pub" in context and context["force_meli_pub"]) or self.force_meli_pub,
             "force_create_variants": ("force_create_variants" in context and context["force_create_variants"]) or self.force_create_variants,
@@ -582,13 +586,11 @@ class product_template_import(models.TransientModel):
             'name':_("Importar Masivamente ML (...)"),
             'view_mode': 'form',
             'view_id': (refview and refview[1]),
-            'res_id': res_id.id,
+            'res_id': (res_id and res_id.id),
             'view_type': 'form',
             'res_model': 'mercadolibre.product.template.import',
             'type': 'ir.actions.act_window',
             'target': 'new',
-            'domain': '[]',
-            #'context': context
+            'domain': [],
+            'context': context
         }
-
-product_template_import()

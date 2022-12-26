@@ -51,7 +51,7 @@ class mercadolibre_questions(models.Model):
     def compute_answer_link( self ):
         company = self.env.user.company_id
         for q in self:
-            if q.item_id and q.question_id:       
+            if q.item_id and q.question_id:
                 q.answer_link = company.get_ML_LINK_URL()+"preguntas/vendedor/articulo/"+str(q.item_id)+"?question_id="+str(q.question_id)
 
     answer_link = fields.Char(string="Answer Link",compute=compute_answer_link)
@@ -82,7 +82,7 @@ class mercadolibre_questions(models.Model):
                 _logger.error(questions_json)
             else:
                 Question = questions_json
-                
+
         return Question
 
     def process_question( self, question_id=None, Question=None, meli=None, config=None ):
@@ -110,5 +110,3 @@ class mercadolibre_questions(models.Model):
                     question.write( (question_fields) )
 
         return question
-
-mercadolibre_questions()

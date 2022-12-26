@@ -15,6 +15,11 @@ cl_vat_sep_million = "."
 order_message_type = "notification"
 product_message_type = "notification"
 
+#Autocommit
+def Autocommit( self, act=False ):
+    self._cr.autocommit(act)
+    return False
+
 # Odoo 12.0 -> Odoo 13.0
 prod_att_line = "product.template.attribute.line"
 
@@ -30,6 +35,13 @@ default_create_variant = "always"
 
 #'unique(product_tmpl_id,meli_imagen_id)'
 unique_meli_imagen_id_fields = 'unique(product_tmpl_id,product_variant_id,meli_imagen_id)'
+
+
+def get_ref_view( self, module_name, view_name ):
+
+    refview = self.env['ir.model.data'].check_object_reference( module_name, view_name )
+
+    return refview
 
 #TODO: get_company_selected, user with allowed companies
 def get_company_selected( self, context=None, company=None, company_id=None, user=None, user_id=None ):
@@ -90,12 +102,23 @@ def prepare_attribute( product_template_id, attribute_id, attribute_value_id ):
                }
     return att_vals
 
-def stock_inventory_action_done( self ):
-    #return_id = self.post_inventory()
-    #return_id = self.action_start()
-    #return_id = self.action_validate()
-    #return_id = self._action_done(cancel_backorder=cancel_backorder)
-    return_id = self.with_context(inventory_mode=True)._apply_inventory()
+def stock_inventory_action_done( self, product, stock, config ):
+    return_id = False
+    uomobj = self.env[uom_model]
+    whid = self.env['stock.location'].search([('usage','=','internal')]).id
+    product_uom_id = uomobj.search([('name','=','Unidad(es)')])
+    if (product_uom_id.id==False):
+        product_uom_id = 1
+    else:
+        product_uom_id = product_uom_id.id
+
+    stock_inventory_fields = get_inventory_fields( product, whid, quantity=_stock )
+
+    _logger.info("stock_inventory_fields:")
+    _logger.info(stock_inventory_fields)
+    StockInventory = self.env[stock_inv_model].create(stock_inventory_fields)
+    if (StockInventory):
+        return_id = self.with_context(inventory_mode=True)._apply_inventory()
     return return_id
 
 def ml_datetime(datestr):

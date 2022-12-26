@@ -60,8 +60,6 @@ class mercadolibre_posting_update(models.TransientModel):
 
         return {}
 
-mercadolibre_posting_update()
-
 
 class mercadolibre_posting(models.Model):
     _name = "mercadolibre.posting"
@@ -150,5 +148,3 @@ class mercadolibre_posting(models.Model):
     posting_questions = fields.One2many( 'mercadolibre.questions','posting_id','Questions' )
     posting_update = fields.Char( compute=_posting_update, string="Posting Update", store=False )
     meli_seller_custom_field = fields.Char('Sellect Custom Field or SKU',size=256)
-
-mercadolibre_posting()
