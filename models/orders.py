@@ -505,6 +505,9 @@ class mercadolibre_orders(models.Model):
                 country = self.env['res.country'].search([('name','like',full_country)])
                 if (len(country)):
                     country_id = country.id
+        if not country_id:
+            company = self.env.user.company_id
+            country_id = company.country_id and company.country_id.id
 
         return country_id
 
@@ -1884,6 +1887,45 @@ class mercadolibre_orders(models.Model):
             if meli.access_token=="PASIVA":
                 if (sorder):
                     sorder.meli_fee_amount = order_fields["fee_amount"]
+
+            if (1==2 and sorder.meli_orders):
+                #process payments
+                for meli_order in sorder.meli_orders:
+                    for payment in meli_order.payments:
+                        try:
+                            if config.mercadolibre_process_payments_customer:
+
+
+                                if 1==2 and payment.account_payment_id:
+                                    fix = payment.account_payment_id and (payment.transaction_amount!=payment.total_paid_amount)
+                                    fix = fix and (payment.account_payment_id.amount!=payment.transaction_amount)
+                                    fix = fix and str(payment.account_payment_id.payment_date) == '2021-07-05'
+
+                                    if (fix):
+                                        _logger.info("payment fixing: "+str(payment.account_payment_id))
+                                        #self.account_payment_id.cancel()
+                                        payment.account_payment_id.action_draft()
+                                        payment.account_payment_id.unlink()
+                                        payment.account_payment_id = False
+
+                                if not payment.account_payment_id:
+                                    payment.create_payment( meli=meli, config=config )
+                        except Exception as e:
+                            _logger.info("Error creating customer payment")
+                            _logger.info(e, exc_info=True)
+                        try:
+                            if config.mercadolibre_process_payments_supplier_fea and not payment.account_supplier_payment_id:
+                                payment.create_supplier_payment( meli=meli, config=config )
+                        except Exception as e:
+                            _logger.info("Error creating supplier fee payment")
+                            _logger.info(e, exc_info=True)
+                        try:
+                            if config.mercadolibre_process_payments_supplier_shipment and not payment.account_supplier_payment_shipment_id and (payment.order_id and payment.order_id.shipping_list_cost>0.0):
+                                payment.create_supplier_payment_shipment( meli=meli, config=config )
+                        except Exception as e:
+                            _logger.info("Error creating supplier shipment payment")
+                            _logger.info(e, exc_info=True)
+
         try:
             self.orders_get_invoice()
         except:
