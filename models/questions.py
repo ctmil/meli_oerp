@@ -82,7 +82,7 @@ class mercadolibre_questions(models.Model):
                 _logger.error(questions_json)
             else:
                 Question = questions_json
-                
+
         return Question
 
     def process_question( self, question_id=None, Question=None, meli=None, config=None ):
@@ -110,5 +110,3 @@ class mercadolibre_questions(models.Model):
                     question.write( (question_fields) )
 
         return question
-
-mercadolibre_questions()

@@ -179,7 +179,6 @@ class mercadolibre_shipment_print(models.TransientModel):
 
     include_ready_to_print = fields.Boolean(string="Include Ready To Print",default=False)
 
-mercadolibre_shipment_print()
 
 
 class mercadolibre_shipment_update(models.TransientModel):
@@ -207,8 +206,6 @@ class mercadolibre_shipment_update(models.TransientModel):
                 shipment.update(meli=meli,config=config)
 
 
-mercadolibre_shipment_update()
-
 class mercadolibre_shipment_item(models.Model):
     _name = "mercadolibre.shipment.item"
     _description = "Item de Envio de MercadoLibre"
@@ -221,7 +218,6 @@ class mercadolibre_shipment_item(models.Model):
     order_id = fields.Char(string="Order Id", index=True)
     data = fields.Text(string="Full Item Data")
 
-mercadolibre_shipment_item()
 
 class mercadolibre_shipment(models.Model):
     _name = "mercadolibre.shipment"
@@ -1100,7 +1096,6 @@ class mercadolibre_shipment(models.Model):
 
         return ship_report
 
-mercadolibre_shipment()
 
 
 class AccountInvoice(models.Model):
@@ -1157,5 +1152,3 @@ class AccountInvoice(models.Model):
                     return order.meli_shipment
 
         return ret
-
-AccountInvoice()

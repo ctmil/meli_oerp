@@ -649,7 +649,7 @@ class res_company(models.Model):
         synced = []
         res = {}
         if (results):
-            self._cr.autocommit(False)
+            Autocommit(self, False)
             try:
                 for item_id in results:
                     _logger.info(item_id)
@@ -874,7 +874,7 @@ class res_company(models.Model):
         if product_ids:
             cn = 0
             ct = len(product_ids)
-            self._cr.autocommit(False)
+            Autocommit(self, False)
             try:
                 for obj in product_ids:
                     cn = cn + 1
@@ -1278,7 +1278,7 @@ class res_company(models.Model):
         icommit = 0
         micom = 5
         if (results):
-            #self._cr.autocommit(False)
+            Autocommit(self, False)
             try:
                 for item_id in results:
                     _logger.info(item_id)
@@ -1303,5 +1303,3 @@ class res_company(models.Model):
                 _logger.info(e, exc_info=True)
                 #self._cr.rollback()
         return {}
-
-res_company()
