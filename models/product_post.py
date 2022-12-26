@@ -38,6 +38,10 @@ from .warning import warning
 
 from ..melisdk.meli import Meli
 
+
+from . import versions
+from .versions import *
+
 class product_template_post(models.TransientModel):
     _name = "mercadolibre.product.template.post"
     _description = "Wizard de Product Template Posting en MercadoLibre"

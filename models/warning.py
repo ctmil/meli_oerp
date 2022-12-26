@@ -3,6 +3,7 @@ from odoo.tools.translate import _
 import pdb
 import json
 
+
 from . import versions
 from .versions import *
 
@@ -153,7 +154,7 @@ class warning(models.TransientModel):
         #pdb.set_trace()
         context = context or self.env.context
 
-        message = self.browse( id)        
+        message = self.browse( id)
 
         rjson = context and "rjson" in context and context["rjson"]
         if rjson:

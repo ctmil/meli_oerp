@@ -84,7 +84,7 @@ class StockMove(models.Model):
 
     def _action_done(self, cancel_backorder=False):
         #import pdb; pdb.set_trace()
-        _logger.info("Stock move: meli_oerp > _action_done")
+        #_logger.info("Stock move: meli_oerp > _action_done")
         company = self.env.user.company_id
         moves_todo = super(StockMove, self)._action_done(cancel_backorder=cancel_backorder)
 
