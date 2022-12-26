@@ -28,6 +28,3 @@ class res_currency_rate(models.Model):
                         }
                         product.write(vals)
                         product.product_post()
-
-
-res_currency_rate()

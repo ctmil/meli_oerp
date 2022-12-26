@@ -16,19 +16,20 @@
                 <data>
                     <notebook>
                         <page string="MercadoLibre">
-                          <div class="oe_button_box" name="button_box_mel" style="width: auto;">
+                          <field name="mercadolibre_state"/>
+                          <div class="oe_button_box btn-group" name="button_box_mel" style="width: auto;">
             								<button name='meli_login' type="object"
             										string="Iniciar sesión"
                                 title="Iniciar sesión en ML"
                                 attrs="{'invisible':[('mercadolibre_state','=',False)]}"
-                                class="oe_stat_button"
+                                class="btn btn-primary oe_stat_button"
                                 icon="fa-user-circle"/>
 
             								<button name='meli_logout' type="object"
                                 string="Cerrar sesión"
                                 title="Cerrar sesión con ML"
                                 attrs="{'invisible':[('mercadolibre_state','=',True)]}"
-                                class="oe_stat_button"
+                                class="btn btn-primary oe_stat_button"
                                 icon="fa-user-circle"/>
 
                             <button name='meli_query_orders' type="object"
@@ -36,7 +37,7 @@
                                 title="Iniciar búsqueda de órdenes/pedidos de ML a Odoo"
                                 icon="fa-cloud-download"
                                 attrs="{'invisible':[('mercadolibre_state','=',True)]}"
-                                class="oe_stat_button"/>
+                                class="btn btn-primary oe_stat_button"/>
 
             								<!--button name='meli_query_products' type="object"
                                 string="Importar todos los productos"
@@ -47,8 +48,8 @@
                                 <button type="action" name="%(action_product_template_import)d"
                                   string="Importar Masivamente"
                                   title="Importar Masivamente"
-				  attrs="{'invisible':[('mercadolibre_state','=',True)]}"
-                                  class="oe_stat_button"
+                                  attrs="{'invisible':[('mercadolibre_state','=',True)]}"
+                                  class="btn btn-primary oe_stat_button"
                                   icon="fa-cloud-download"></button>
 
                             <button name='meli_update_local_products' type="object"
@@ -56,14 +57,14 @@
                                 title="Iniciar actualización de productos y stock desde ML a Odoo"
                                 attrs="{'invisible':[('mercadolibre_state','=',True)]}"
                                 icon="fa-cloud-download"
-                                class="oe_stat_button"/>
+                                class="btn btn-primary oe_stat_button"/>
 
                             <button name='meli_import_categories' type="object"
                                 string="Importar categorías"
                                 title="Iniciar importación de categorías de ML a Odoo (eCommerce)"
                                 attrs="{'invisible':[('mercadolibre_state','=',True)]}"
                                 icon="fa-cloud-download"
-                                class="oe_stat_button"/>
+                                class="btn btn-primary oe_stat_button"/>
 
                             <button name='meli_pause_all' type="object"
                                     string="Pausar no registrados"
@@ -71,11 +72,11 @@
                                     confirm="¿Está seguro que quiere pausar todos sus productos de ML?"
                                     attrs="{'invisible':[('mercadolibre_state','=',True)]}"
                                     icon="fa-pause"
-                                    class="oe_stat_button"/>
+                                    class="btn btn-primary oe_stat_button"/>
                             </div>
                           <group col="1">
                             <group  string="Información de conexión" name="Account" col="2">
-              								<field name="mercadolibre_state" invisible="0" groups="base.group_no_one"/>
+              								<field name="mercadolibre_state" invisible="0"/>
               								<field name="mercadolibre_client_id" groups="base.group_no_one" />
               								<field name="mercadolibre_secret_key" groups="base.group_no_one" />
               								<field name="mercadolibre_redirect_uri" groups="base.group_no_one" />

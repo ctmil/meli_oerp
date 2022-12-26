@@ -481,7 +481,6 @@ class product_template(models.Model):
     #meli_permalink = fields.Char( compute=product_template_permalink, size=256, string='Link',help='PermaLink in MercadoLibre', store=True )
     meli_permalink_edit = fields.Char( compute=product_template_permalink, size=256, string='Link Edit',help='PermaLink Edit in MercadoLibre', store=True )
 
-product_template()
 
 class product_product(models.Model):
 
@@ -620,8 +619,9 @@ class product_product(models.Model):
             return_val = pl.price_get(product.id,1.0)
             if pl.id in return_val:
                 new_price = return_val[pl.id]
-            #_logger.info("return_val: ")
-            #_logger.info(return_val)
+            _logger.info("return_val: "+str(return_val))
+            if (1==1):
+                product.meli_price_fixed = False
         else:
             #_logger.info( "new_price: " +str(new_price))
             if ( product.meli_price_fixed and product.meli_price):
@@ -3470,21 +3470,7 @@ class product_product(models.Model):
 
             if (1==2 and _stock>=0 and product._meli_available_quantity(meli=meli,config=config)!=_stock):
                 _logger.info("Updating stock for variant." + str(_stock) )
-                whid = self.env['stock.location'].search([('usage','=','internal')]).id
-                product_uom_id = uomobj.search([('name','=','Unidad(es)')])
-                if (product_uom_id.id==False):
-                    product_uom_id = 1
-                else:
-                    product_uom_id = product_uom_id.id
-
-                stock_inventory_fields = get_inventory_fields( product, whid, quantity=_stock )
-
-                _logger.info("stock_inventory_fields:")
-                _logger.info(stock_inventory_fields)
-                StockInventory = self.env[stock_inv_model].create(stock_inventory_fields)
-                if (StockInventory):
-                    return_id = stock_inventory_action_done(StockInventory)
-
+                stock_inventory_action_done( self, product=product, stock=_stock, config=config )
         except Exception as e:
             _logger.info("product_update_stock Exception")
             _logger.info(e, exc_info=True)
@@ -3710,8 +3696,6 @@ class product_product(models.Model):
     #    ('unique_variant_meli_id_variation', 'unique(meli_id,meli_id_variation)', 'Meli Id, Meli Id Variation must be unique!'),
         ('unique_variant_meli_id_variation','check(1=1)','Meli Id, Meli Id Variation duplication possible!')
     ]
-
-product_product()
 
 
 

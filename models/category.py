@@ -79,15 +79,11 @@ class mercadolibre_category_import(models.TransientModel):
                     catid = self.env["mercadolibre.category"].import_all_categories( meli_category_id, self.meli_recursive_import )
 
 
-mercadolibre_category_import()
-
 class product_public_category(models.Model):
 
     _inherit="product.public.category"
 
     mercadolibre_category = fields.Many2one( "mercadolibre.category", string="Mercado Libre Category")
-
-product_public_category()
 
 
 class mercadolibre_category_attribute(models.Model):
@@ -110,7 +106,6 @@ class mercadolibre_category_attribute(models.Model):
 
     required = fields.Boolean(string="Required by ML")
 
-mercadolibre_category_attribute()
 
 class product_attribute(models.Model):
 
@@ -118,7 +113,6 @@ class product_attribute(models.Model):
 
     mercadolibre_attribute_id = fields.Many2one( "mercadolibre.category.attribute", string="MercadoLibre Attribute")
 
-product_attribute()
 
 class mercadolibre_category(models.Model):
     _name = "mercadolibre.category"
@@ -513,5 +507,3 @@ class mercadolibre_category(models.Model):
     _sql_constraints = [
     	('unique_meli_category_id','unique(meli_category_id)','Meli Category id already exists!'),
     ]
-
-mercadolibre_category()

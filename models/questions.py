@@ -110,5 +110,3 @@ class mercadolibre_questions(models.Model):
                     question.write( (question_fields) )
 
         return question
-
-mercadolibre_questions()
