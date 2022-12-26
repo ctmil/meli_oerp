@@ -618,14 +618,15 @@ class product_product(models.Model):
 
         if (pl):
             return_val = pl.price_get(product.id,1.0)
+            all = pl.get_products_price( product, 1.0, self.env.user.partner_id )
+            _logger.info("prices all: "+str(all))
             if pl.id in return_val:
                 new_price = return_val[pl.id]
-            _logger.info("return_val: ")
-            _logger.info(return_val)
-        else:
-            _logger.info( "new_price: " +str(new_price))
+            _logger.info("return_val: "+str(return_val))
             if (1==1):
                 product.meli_price_fixed = False
+        else:
+            _logger.info( "new_price: " +str(new_price))
             if ( product.meli_price_fixed and product.meli_price):
                 new_price = int(float(product.meli_price)) or int(float(product_tmpl_id.meli_price)) or 0
                 _logger.info( "meli_price_fixed! new_price: " +str(new_price))
