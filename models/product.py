@@ -620,8 +620,8 @@ class product_product(models.Model):
             return_val = pl.price_get(product.id,1.0)
             if pl.id in return_val:
                 new_price = return_val[pl.id]
-            #_logger.info("return_val: ")
-            #_logger.info(return_val)
+            _logger.info("return_val: ")
+            _logger.info(return_val)
         else:
             #_logger.info( "new_price: " +str(new_price))
             if ( product.meli_price_fixed and product.meli_price):

@@ -3,6 +3,7 @@ from odoo.tools.translate import _
 import pdb
 import json
 
+
 from . import versions
 from .versions import *
 
