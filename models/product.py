@@ -3567,6 +3567,9 @@ class product_product(models.Model):
                         #_logger.info('rjson'+str(rjson))
                         if "error" in rjson:
                             _logger.error(rjson)
+                            self.meli_price_error = str(rjson)
+                            self.meli_price_update = ml_datetime( str( datetime.now() ) )
+                            self.product_tmpl_id.meli_price_error = self.meli_price_error
                             return rjson
                         if ('price' in rjson):
                             _logger.info( "Posted price ok (variations)" + str(meli_id) + ": " + str(rjson['price']) )
@@ -3592,6 +3595,10 @@ class product_product(models.Model):
                 self.meli_price_update = ml_datetime( str( datetime.now() ) )
                 self.product_tmpl_id.meli_price_error = self.meli_price_error
                 self.product_tmpl_id.meli_price_update = self.meli_price_update
+
+        self.meli_price_update = ml_datetime( str( datetime.now() ) )
+        self.product_tmpl_id.meli_price_error = self.meli_price_error
+        self.product_tmpl_id.meli_price_update = self.meli_price_update
 
         return {}
 
@@ -3679,7 +3686,12 @@ class product_product(models.Model):
     meli_full_update = fields.Datetime(string="Product update",index=True)
     meli_image_update = fields.Datetime(string="Image update",index=True)
     meli_price_update = fields.Datetime(string="Price update",index=True)
-    meli_stock_update = fields.Datetime(string="Stock update",index=True)
+    meli_stock_update = fields.Datetime(string="Stock Update",help="Ultima actualizacion de stock de Odoo a ML",index=True)
+    def _meli_stock_moves_update( self ):
+        for var in self:
+            var.meli_stock_moves_update = (var.stock_move_ids and var.stock_move_ids[len(var.stock_move_ids)-1].create_date) or False
+
+    meli_stock_moves_update = fields.Datetime(compute=_meli_stock_moves_update,string="Stock Last Move",help="Ultimo movimiento de stock")
 
     meli_stock_error = fields.Char(string="Stock Error",index=True)
     meli_price_error = fields.Char(string="Price Error",index=True)
