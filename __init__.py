@@ -6,6 +6,25 @@
 #
 ##############################################################################
 
+import sys
+import subprocess
+import pkg_resources
+
+def pre_init_check(cr):
+    required  = {'meli', 'pdf2image'}
+    installed = {pkg.key for pkg in pkg_resources.working_set}
+    missing   = required - installed
+
+    if missing:
+        # implement pip as a subprocess:
+        for mis in missing:
+            if mis=="meli":
+                mis = "git+https://github.com/mercadolibre/python-sdk.git"
+            subprocess.check_call([sys.executable, '-m', 'pip', 'install', mis])
+    return True
+
+pre_init_check(cr=None)
+
 from . import models
 from . import controllers
 #import wizard
