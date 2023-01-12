@@ -1090,6 +1090,30 @@ class mercadolibre_orders(models.Model):
 
                     meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
 
+                #Arg 15.0 BlueOrange
+                if ( ('doc_type' in Buyer['billing_info']) and ('parter_document_type_id' in self.env['res.partner']._fields) ):
+                    doc_type = Buyer['billing_info']['doc_type']
+                    doc_type_id = self.env["partner.document.type"].search([('name','ilike',doc_type)],limit=1)
+                    if (doc_type_id):
+                        meli_buyer_fields['parter_document_type_id'] = (doc_type_id and doc_type_id.id)
+
+                    if ('billing_info_tax_type' in Buyer['billing_info'] and Buyer['billing_info']['billing_info_tax_type']):
+                        tax_type = Buyer['billing_info']['billing_info_tax_type']
+                        if (tax_type):
+                            if (tax_type=="Monotributo"):
+                                tax_type = "Responsable Monotributo"
+                        else:
+                            tax_type = "Consumidor Final"
+
+                        tax_type_id = self.env["account.fiscal.position"].search([('name','ilike',tax_type)],limit=1)
+                        if (tax_type_id and 'property_account_position_id' in self.env['res.partner']._fields):
+                            meli_buyer_fields['property_account_position_id'] = (tax_type_id and tax_type_id.id)
+
+                    meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
+
+
+
+
                 #Chile YNext
                 if ( ('doc_type' in Buyer['billing_info']) and ('dte_email' in self.env['res.partner']._fields)):
 
