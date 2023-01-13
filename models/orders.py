@@ -1102,7 +1102,8 @@ class mercadolibre_orders(models.Model):
                         if (tax_type=="Monotributo"):
                             tax_type = "Responsable Monotributo"
                     else:
-                        tax_type = "Consumidor Final"
+                        if (doc_type=="DNI"):
+                            tax_type = "Consumidor Final"
 
                     tax_type_id = self.env["account.fiscal.position"].search([('name','ilike',tax_type)],limit=1)
                     if (tax_type_id and 'property_account_position_id' in self.env['res.partner']._fields):
