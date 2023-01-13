@@ -1097,19 +1097,19 @@ class mercadolibre_orders(models.Model):
                     if (doc_type_id):
                         meli_buyer_fields['partner_document_type_id'] = (doc_type_id and doc_type_id.id)
 
-                    if ('billing_info_tax_type' in Buyer['billing_info'] and Buyer['billing_info']['billing_info_tax_type']):
-                        tax_type = Buyer['billing_info']['billing_info_tax_type']
-                        if (tax_type):
-                            if (tax_type=="Monotributo"):
-                                tax_type = "Responsable Monotributo"
-                        else:
-                            tax_type = "Consumidor Final"
+                    tax_type = 'billing_info_tax_type' in Buyer['billing_info'] and Buyer['billing_info']['billing_info_tax_type']
+                    if (tax_type):
+                        if (tax_type=="Monotributo"):
+                            tax_type = "Responsable Monotributo"
+                    else:
+                        tax_type = "Consumidor Final"
 
-                        tax_type_id = self.env["account.fiscal.position"].search([('name','ilike',tax_type)],limit=1)
-                        if (tax_type_id and 'property_account_position_id' in self.env['res.partner']._fields):
-                            meli_buyer_fields['property_account_position_id'] = (tax_type_id and tax_type_id.id)
+                    tax_type_id = self.env["account.fiscal.position"].search([('name','ilike',tax_type)],limit=1)
+                    if (tax_type_id and 'property_account_position_id' in self.env['res.partner']._fields):
+                        meli_buyer_fields['property_account_position_id'] = (tax_type_id and tax_type_id.id)
 
                     meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
+                    _logger.info("meli_buyer_fields:"+str(meli_buyer_fields))
 
 
 
@@ -1429,7 +1429,7 @@ class mercadolibre_orders(models.Model):
 
             if (partner_id and "vat" in meli_buyer_fields and meli_buyer_fields["vat"]!=str(partner_id.vat)):
                 #CREAR INVOICE CONTACT
-                #_logger.info("Partner Invoice is NEW: "+str(partner_invoice_meli_order_id)+" VAT:"+str(meli_buyer_fields["vat"])+ " vs "+str(partner_id.vat))
+                _logger.info("Partner Invoice is NEW: "+str(partner_invoice_meli_order_id)+" VAT:"+str(meli_buyer_fields["vat"])+ " vs "+str(partner_id.vat))
                 partner_invoice_id = respartner_obj.search([  ('meli_order_id','=',partner_invoice_meli_order_id ) ], limit=1 )
                 partner_update = {}
                 partner_update.update( meli_buyer_fields )
