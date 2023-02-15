@@ -441,8 +441,8 @@ class mercadolibre_orders(models.Model):
             full_street = Receiver['address_line']
         if ( Buyer and 'billing_info' in Buyer and 'STREET_NAME' in Buyer['billing_info'] ):
             binfo = Buyer['billing_info']
-            full_street = (('STREET_NAME' in binfo and binfo['STREET_NAME']) or '')
-            full_street+= (('STREET_NUMBER' in binfo and binfo['STREET_NUMBER']) or '')
+            full_street = str( ('STREET_NAME' in binfo and binfo['STREET_NAME']) or '' )
+            full_street+= str(' ') + str(('STREET_NUMBER' in binfo and binfo['STREET_NUMBER']) or '')
         return full_street
 
     def city(self,  Receiver={}, Buyer={} ):
@@ -451,7 +451,7 @@ class mercadolibre_orders(models.Model):
             full_city = Receiver['city']['name']
         if ( Buyer and 'billing_info' in Buyer and 'CITY_NAME' in Buyer['billing_info'] ):
             binfo = Buyer['billing_info']
-            full_city = (('CITY_NAME' in binfo and binfo['CITY_NAME']) or '')
+            full_city = str(('CITY_NAME' in binfo and binfo['CITY_NAME']) or '')
         return full_city
 
     def state(self, country_id,  Receiver={}, Buyer={} ):
@@ -481,7 +481,7 @@ class mercadolibre_orders(models.Model):
 
         if ( Buyer and 'billing_info' in Buyer and 'STATE_NAME' in Buyer['billing_info'] ):
             binfo = Buyer['billing_info']
-            full_state = (('CITY_NAME' in binfo and binfo['CITY_NAME']) or '')
+            full_state = str(('CITY_NAME' in binfo and binfo['CITY_NAME']) or '')
             state = self.env['res.country.state'].search(['&',('name','ilike',full_state),('country_id','=',country_id)])
             if (len(state)):
                 state_id = state[0].id
@@ -546,6 +546,14 @@ class mercadolibre_orders(models.Model):
         full_name = business_name or full_name or ''
 
         return full_name
+
+    def zip_code( self, Receiver={}, Buyer={}):
+        if ( Receiver and 'billing_info' in Receiver and 'ZIP_CODE' in Receiver['billing_info'] ):
+            return Receiver['billing_info']["ZIP_CODE"]
+
+        if ( Buyer and 'billing_info' in Buyer and 'ZIP_CODE' in Buyer['billing_info'] ):
+            return Buyer['billing_info']["ZIP_CODE"]
+        return ""
 
     def get_billing_info( self, order_id=None, meli=None, data=None ):
         order_id = order_id or (data and 'id' in data and data['id']) or (self and self.order_id)
@@ -776,6 +784,7 @@ class mercadolibre_orders(models.Model):
         partner_update = {}
 
         if not partner_id or not meli_buyer_fields:
+            _logger.info("update_partner_billing_info: no partner id or no meli_buyer_fields")
             return partner_update
 
         if "documento" in meli_buyer_fields:
@@ -792,6 +801,9 @@ class mercadolibre_orders(models.Model):
             partner_update.update(meli_buyer_fields)
 
         if ("vat" in meli_buyer_fields and meli_buyer_fields["vat"]!=str(partner_id.vat) ):
+            partner_update.update(meli_buyer_fields)
+
+        if ("street" in meli_buyer_fields and meli_buyer_fields["street"]!=str(partner_id.street) ):
             partner_update.update(meli_buyer_fields)
 
         if "l10n_co_document_type" in meli_buyer_fields and str(meli_buyer_fields['l10n_co_document_type'])!=str(partner_id.l10n_co_document_type):
@@ -813,6 +825,9 @@ class mercadolibre_orders(models.Model):
             partner_update.update(meli_buyer_fields)
 
         if "afip_responsability_type_id" in meli_buyer_fields and str(meli_buyer_fields['afip_responsability_type_id'])!=str(partner_id.afip_responsability_type_id and partner_id.afip_responsability_type_id.id):
+            partner_update.update(meli_buyer_fields)
+
+        if "property_account_position_id" in meli_buyer_fields and str(meli_buyer_fields['property_account_position_id'])!=str(partner_id.property_account_position_id and partner_id.property_account_position_id.id):
             partner_update.update(meli_buyer_fields)
 
         if "main_id_category_id" in meli_buyer_fields and str(meli_buyer_fields['main_id_category_id'])!=str(partner_id.main_id_category_id and partner_id.main_id_category_id.id):
@@ -1009,6 +1024,7 @@ class mercadolibre_orders(models.Model):
                 'city': self.city(Receiver,Buyer),
                 'country_id': self.country(Receiver,Buyer),
                 'state_id': self.state(self.country(Receiver,Buyer),Receiver,Buyer),
+                'zip': self.zip_code(Receiver,Buyer),
                 'phone': self.full_phone( Buyer ),
                 #'email': Buyer['email'],
                 'meli_buyer_id': Buyer['id'],
@@ -1087,6 +1103,27 @@ class mercadolibre_orders(models.Model):
                         if ('TAXPAYER_TYPE_ID' in Buyer['billing_info'] and Buyer['billing_info']['TAXPAYER_TYPE_ID'] and Buyer['billing_info']['TAXPAYER_TYPE_ID']=="Responsable Monotributo"):
                             afipid = self.env['l10n_ar.afip.responsibility.type'].search([('code','=',6)]).id
                             meli_buyer_fields["l10n_ar_afip_responsibility_type_id"] = afipid
+
+                    meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
+
+                #Arg 15.0 BlueOrange
+                if ( ('doc_type' in Buyer['billing_info']) and ('partner_document_type_id' in self.env['res.partner']._fields) ):
+                    doc_type = Buyer['billing_info']['doc_type']
+                    doc_type_id = self.env["partner.document.type"].search([('name','ilike',doc_type)],limit=1)
+                    if (doc_type_id):
+                        meli_buyer_fields['partner_document_type_id'] = (doc_type_id and doc_type_id.id)
+
+                    tax_type = 'TAXPAYER_TYPE_ID' in Buyer['billing_info'] and Buyer['billing_info']['TAXPAYER_TYPE_ID']
+                    if (tax_type):
+                        if (tax_type=="Monotributo"):
+                            tax_type = "Responsable Monotributo"
+                    else:
+                        if (doc_type=="DNI"):
+                            tax_type = "Consumidor Final"
+
+                    tax_type_id = self.env["account.fiscal.position"].search([('name','ilike',tax_type)],limit=1)
+                    if (tax_type_id and 'property_account_position_id' in self.env['res.partner']._fields):
+                        meli_buyer_fields['property_account_position_id'] = (tax_type_id and tax_type_id.id)
 
                     meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
 
@@ -1393,19 +1430,32 @@ class mercadolibre_orders(models.Model):
             partner_invoice_meli_order_id = str(order_json['pack_id'] or order_json['id'])
             partner_id = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ], limit=1 )
             partner_invoice_id = partner_id
+            #_logger.info("partner_id>buyer_fields:"+str(buyer_fields)+" > partner_id: "+str(partner_id))
+            #_logger.info("meli_buyer_fields:"+str(meli_buyer_fields))
 
-            partner_ids = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ] )
-            if (len(partner_ids)>0):
-                partner_id = partner_ids[0]
+            #encapsulamos dire de facturacion
+            billing_partner_update = {}
+            if ("billing_info_street_name" in buyer_fields and buyer_fields["billing_info_street_name"]):
+                billing_partner_update.update({
+                    'street': self.street(Receiver,Buyer),
+                    'city': self.city(Receiver,Buyer),
+                    'country_id': self.country(Receiver,Buyer),
+                    'state_id': self.state(self.country(Receiver,Buyer),Receiver,Buyer),
+                    "zip": self.zip_code(Receiver, Buyer),
+                    "name": self.buyer_full_name(Buyer),
+                })
+                _logger.info("billing_partner_update: "+str(billing_partner_update))
+
             if ("fe_regimen_fiscal" in self.env['res.partner']._fields):
                 if (partner_id and not partner_id.fe_regimen_fiscal):
                     meli_buyer_fields['fe_regimen_fiscal'] = '49';
                 else:
                     meli_buyer_fields['fe_regimen_fiscal'] = '49';
 
+            #SI VAT DIFERENTE SE CREA NUEVO INVOICE PARTNER
             if (partner_id and "vat" in meli_buyer_fields and meli_buyer_fields["vat"]!=str(partner_id.vat)):
                 #CREAR INVOICE CONTACT
-                #_logger.info("Partner Invoice is NEW: "+str(partner_invoice_meli_order_id)+" VAT:"+str(meli_buyer_fields["vat"])+ " vs "+str(partner_id.vat))
+                _logger.info("Partner Invoice is NEW: "+str(partner_invoice_meli_order_id)+" VAT:"+str(meli_buyer_fields["vat"])+ " vs "+str(partner_id.vat))
                 partner_invoice_id = respartner_obj.search([  ('meli_order_id','=',partner_invoice_meli_order_id ) ], limit=1 )
                 partner_update = {}
                 partner_update.update( meli_buyer_fields )
@@ -1413,8 +1463,10 @@ class mercadolibre_orders(models.Model):
                     'meli_order_id': partner_invoice_meli_order_id,
                     'type': 'invoice',
                     "parent_id": partner_id.id,
-                    "meli_buyer_id": None,
+                    "meli_buyer_id": None,#solo puede haber un res.partner asociado al buyer id de ML
                 })
+                partner_update.update(billing_partner_update)
+
 
                 if partner_invoice_id:
                     partner_update = self.update_partner_billing_info( partner_id=partner_invoice_id, meli_buyer_fields=partner_update, Receiver=Receiver )
@@ -1441,8 +1493,9 @@ class mercadolibre_orders(models.Model):
 
 
             if not partner_id:
-                #_logger.info( "creating partner:" + str(meli_buyer_fields) )
+                #_logger.info( "creating new partner:" + str(meli_buyer_fields) )
                 try:
+                    meli_buyer_fields.update(billing_partner_update)
                     partner_id = respartner_obj.create(( meli_buyer_fields ))
                     partner_invoice_id = partner_id
                 except Exception as e:
@@ -1450,18 +1503,26 @@ class mercadolibre_orders(models.Model):
                     _logger.error(e, exc_info=True)
                     pass;
             elif (partner_id and "meli_update_forbidden" in partner_id._fields and not partner_id.meli_update_forbidden):
-                #_logger.info("Updating partner")
+                #_logger.info("Updating old partner")
                 #TODO: _logger.info("Updating partner (do not update principal, always create new one)")
                 #_logger.info(meli_buyer_fields)
                 #complete country at most:
                 partner_update = {}
-
-                partner_update = self.update_partner_billing_info( partner_id=partner_id, meli_buyer_fields=meli_buyer_fields, Receiver=Receiver )
+                #_logger.info("update_partner_billing_info partner_id: " + str(partner_id))
+                #_logger.info("update_partner_billing_info meli_buyer_fields: " + str(meli_buyer_fields))
+                #_logger.info("update_partner_billing_info Receiver: " + str(Receiver))
+                partner_update.update(self.update_partner_billing_info( partner_id=partner_id, meli_buyer_fields=meli_buyer_fields, Receiver=Receiver ))
+                #_logger.info("partner_update: " + str(partner_update))
+                #UPDATE SINGLE PARTNER ID BILLING INFO
+                if (str(partner_id.vat)==str("vat" in meli_buyer_fields and meli_buyer_fields["vat"]) ):
+                    partner_update.update(billing_partner_update)
+                    #_logger.info("partner_update BILLING INFO: " + str(billing_partner_update) )
 
                 if partner_update:
                     _logger.info("Updating partner: "+str(partner_update))
                     try:
                         partner_id.write(partner_update)
+                        self._cr.commit()
                     except Exception as e:
                         _logger.info("orders_update_order > Error actualizando Partner:"+str(e))
                         _logger.error(e, exc_info=True)
