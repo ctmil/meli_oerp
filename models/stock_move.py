@@ -79,7 +79,7 @@ class StockMove(models.Model):
         for mov in self:
             mov.meli_update_boms( config = company )
 
-        return True
+        return res
 
 
     def _action_done(self, cancel_backorder=False):
