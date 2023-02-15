@@ -36,7 +36,6 @@ meli_errors = {
 #    title = fields.Char(string="Title", size=100, readonly=True)
 #    message = fields.Text(string="Message", readonly=True)
 #    message_html = fields.Html(string="Message HTML", readonly=True)
-#warning1()
 
 class warning(models.TransientModel):
     _name = 'meli.warning'

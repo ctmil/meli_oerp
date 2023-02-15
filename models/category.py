@@ -172,8 +172,8 @@ class mercadolibre_category(models.Model):
             www_cats = self.env['product.public.category']
         if not meli:
             meli = self.env['meli.util'].get_new_instance(company)
-        if meli.need_login():
-            return meli.redirect_login()
+            if meli.need_login():
+                return meli.redirect_login()
 
         mlcatid = False
         www_cat_id = False

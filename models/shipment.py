@@ -333,14 +333,14 @@ class mercadolibre_shipment(models.Model):
             order.shipping_list_cost = shipment.shipping_list_cost
             order.shipment_logistic_type = shipment.logistic_type
 
-            if (sorder.partner_id):
-                partner_id = sorder.partner_id
-                if (partner_id and "meli_update_forbidden" in partner_id._fields and not partner_id.meli_update_forbidden):
-                    partner_id.street = shipment.receiver_address_line
-                    partner_id.street2 = shipment.receiver_address_comment
-                    partner_id.city = shipment.receiver_city
+            if (sorder.partner_shipping_id):
+                partner_shipping_id = sorder.partner_shipping_id
+                if (partner_shipping_id and "meli_update_forbidden" in partner_shipping_id._fields and not partner_shipping_id.meli_update_forbidden):
+                    partner_shipping_id.street = shipment.receiver_address_line
+                    partner_shipping_id.street2 = shipment.receiver_address_comment
+                    partner_shipping_id.city = shipment.receiver_city
                     if shipment.receiver_address_phone and not ("XXXX" in shipment.receiver_address_phone):
-                        partner_id.phone = shipment.receiver_address_phone
+                        partner_shipping_id.phone = shipment.receiver_address_phone
                 #sorder.partner_id.state = ships.receiver_state
 
             ship_name = shipment.tracking_method or (shipment.mode=="custom" and "Personalizado")  or (shipment.logistic_type=="self_service" and "Personalizado MFlex")
@@ -497,8 +497,11 @@ class mercadolibre_shipment(models.Model):
                         _logger.info("Could not unlink.")
 
     def partner_delivery_id( self, partner_id=None, Receiver=None ):
-        if not Receiver:
+
+        if (not Receiver or not partner_id):
+            _logger.info("partner_delivery_id > no Partner or no Receiver")
             return None
+
         orders_obj = self.env['mercadolibre.orders']
 
         partner_shipping_id = None
