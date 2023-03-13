@@ -17,7 +17,7 @@ product_message_type = "notification"
 
 #Autocommit
 def Autocommit( self, act=False ):
-    self._cr.autocommit(act)
+    #self._cr.autocommit(act)
     return False
 
 # Odoo 12.0 -> Odoo 13.0
