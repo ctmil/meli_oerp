@@ -19,6 +19,18 @@ product_message_type = "notification"
 def Autocommit( self, act=False ):
     self._cr.autocommit(act)
     return False
+    
+def UpdateProductType( product ):      
+    if (product.detailed_type not in ['product']):
+        try:
+            product.write( { 'detailed_type': 'product' } )
+        except Exception as e:
+            _logger.info("Set type almacenable ('product') not possible:")
+            _logger.error(e, exc_info=True)
+            pass;        
+    
+def ProductType():
+    return { "detailed_type": "product" }
 
 # Odoo 12.0 -> Odoo 13.0
 prod_att_line = "product.template.attribute.line"

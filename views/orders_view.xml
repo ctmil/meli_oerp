@@ -50,6 +50,8 @@
                     <field name="order_id"/>
                     <field name="pack_id"/>
                     <field name="shipping_id" invisible="0"/>
+                    <field name="order_product"/>
+                    <field name="order_product_sku"/>
                     <field name="status"/>
                     <field name="shipment_status" invisible="0"/>
                     <field name="shipment_substatus" invisible="0"/>
@@ -216,9 +218,11 @@
             <field name="type">tree</field>
             <field name="arch" type="xml">
                 <tree string="Lineas de la Orden" >
+                    <field name="seller_sku"/>
+                    <field name="seller_custom_field" string="SCF"/>
                     <field name="posting_id"/>
                     <field name="product_id"/>
-                    <field name="order_id"/>
+                    <!--field name="order_id"/-->
                     <field name="order_item_id"/>
                     <field name="unit_price"/>
                     <field name="quantity"/>
@@ -252,7 +256,7 @@
             <field name="model">mercadolibre.orders</field>
             <field name="arch" type="xml">
     	         <search string="Search MercadoLibre Orders Information">
-                 <field name="name" string="Order" filter_domain="['|', '|', '|', ('name', 'ilike', self), ('order_id', 'ilike', self), ('pack_id', 'ilike', self), ('buyer', 'ilike', self)]"/>
+                 <field name="name" string="Order" filter_domain="['|', '|', '|', '|', ('name', 'ilike', self), ('order_id', 'ilike', self), ('pack_id', 'ilike', self), ('order_product_sku', 'ilike', self), ('buyer', 'ilike', self)]"/>
                  <field name="order_id" string="Order ID"/>
                  <field name="pack_id" string="Pack ID"/>
                  <field name="status" string="Status"/>

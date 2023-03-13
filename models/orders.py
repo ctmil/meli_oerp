@@ -1700,8 +1700,10 @@ class mercadolibre_orders(models.Model):
                 if len(post_related):
                     post_related_obj = post_related
                 else:
-                    _logger.info( "No post related, exiting" )
-                    return { 'error': 'No post related, exiting'}
+                    error =  { 'error': 'No post related, exiting'}
+                    _logger.error( "No post related, exiting" )
+                    return error
+
 
                 product_related = order.search_meli_product( meli=meli, meli_item=Item['item'], config=config )
                 if ( product_related and len(product_related)==0 and ('seller_custom_field' in Item['item'] or 'seller_sku' in Item['item'])):
@@ -1772,8 +1774,8 @@ class mercadolibre_orders(models.Model):
                                     'description': rjson3['title'].encode("utf-8"),
                                     'meli_id': rjson3['id'],
                                     'meli_pub': True,
-                                    'detailed_type': 'product'
                                 }
+                                prod_fields.update(ProductType())
                                 if (seller_sku):
                                     prod_fields['default_code'] = seller_sku
                                 #prod_fields['default_code'] = rjson3['id']
@@ -1829,7 +1831,9 @@ class mercadolibre_orders(models.Model):
                     'order_item_category_id': Item['item']['category_id'],
                     'unit_price': Item['unit_price'],
                     'quantity': Item['quantity'],
-                    'currency_id': Item['currency_id']
+                    'currency_id': Item['currency_id'],
+                    'seller_sku': ('seller_sku' in Item['item'] and Item['item']['seller_sku']) or '',
+                    'seller_custom_field': ('seller_custom_field' in Item['item'] and Item['item']['seller_custom_field']) or ''
                 }
 
                 if (product_related):
@@ -1837,11 +1841,9 @@ class mercadolibre_orders(models.Model):
                         error = { 'error': "Error products duplicated for item:"+str(Item and 'item' in Item and Item['item']) }
                         _logger.error(error)
                         order and order.message_post(body=str(error["error"]),message_type=order_message_type)
-                        return error
-                    order_item_fields['product_id'] = product_related.id
-
-                if product_related and product_related.detailed_type!='product':
-                    product_related.detailed_type = 'product'
+                        #return error
+                    else:
+                        order_item_fields['product_id'] = product_related.id
 
                 order_item_ids = order_items_obj.search( [('order_item_id','=',order_item_fields['order_item_id']),
                                                             ('order_id','=',order.id)] )
@@ -1853,14 +1855,16 @@ class mercadolibre_orders(models.Model):
                     order_item_ids.write( ( order_item_fields ) )
 
                 if (product_related_obj == False or len(product_related_obj)==0):
-                    error = { 'error': 'No product related to meli_id '+str(Item['item']['id']), 'item': str(Item['item']) }
+                    error = { 'error': 'No product related to meli_id '+str(Item['item']['id']), 'item': str(Item['item']), 'product_related_obj': str(product_related_obj) }
                     _logger.error(error)
                     order and order.message_post(body=str(error["error"])+"\n"+str(error["item"]),message_type=order_message_type)
-                    return error
 
-                order.name = "MO [%s] %s" % ( str(order.order_id), product_related_obj.display_name )
+                order._order_product_sku()
+                prod_name = ( not product_related_obj and str("(NO ENCONTRADO) ["+order.order_product_sku+"] "+str(Item['item']['title']))) or product_related_obj.display_name
+                _logger.info("prod_name: "+str(prod_name))
+                order.name = "MO [%s] %s" % ( str(order.order_id), prod_name )
 
-                if (sorder):
+                if (sorder and product_related_obj):
                     saleorderline_item_fields = {
                         'company_id': company.id,
                         'order_id': sorder.id,
@@ -2360,10 +2364,9 @@ class mercadolibre_orders(models.Model):
             ord.order_product_sku = ""
 
             if ord.order_items and ord.order_items[0]:
-                ord.order_product_sku = ord.order_items[0].seller_sku
+                ord.order_product_sku = ord.order_items[0].seller_sku or ord.order_items[0].seller_custom_field
 
-    order_product_sku = fields.Char(string='Order Product Sku', compute=_order_product_sku )
-
+    order_product_sku = fields.Char(string='Order Product Sku', compute=_order_product_sku, store=True, index=True )
 
     payments = fields.One2many('mercadolibre.payments','order_id',string='Payments' )
 
