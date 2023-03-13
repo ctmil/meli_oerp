@@ -407,7 +407,7 @@ class mercadolibre_shipment(models.Model):
             if type(delivery_price)==tuple and len(delivery_price):
                 delivery_price = delivery_price[0]
 
-            conflict = abs( sorder.meli_paid_amount - sorder.meli_total_amount ) > 1.0
+            conflict = abs( sorder.meli_paid_amount - sorder.meli_total_amount + sorder.meli_coupon_amount ) > 1.0
 
             received_amount = sorder.meli_amount_to_invoice( meli=meli, config=config )
             conflict = ( received_amount == 0.0 )
@@ -875,10 +875,12 @@ class mercadolibre_shipment(models.Model):
                         totales = {}
                         totales['total_amount'] = 0
                         totales['paid_amount'] = 0
+                        totales['coupon_amount'] = 0
                         for oi in all_orders:
                             ord = oi
                             totales['total_amount']+= ord["total_amount"]
                             totales['paid_amount']+= ord["paid_amount"]
+                            totales['coupon_amount']+= ord["coupon_amount"]
 
                         #fix ML order_json... for pack_order "shipping_cost" added
                         if shipment.shipping_cost:
@@ -890,6 +892,7 @@ class mercadolibre_shipment(models.Model):
                             'status_detail': all_orders[0]["status_detail"] or '' ,
                             'total_amount': totales["total_amount"],
                             'paid_amount': totales["paid_amount"], #added shipment.shipping_cost,
+                            'coupon': { "amount": totales["coupon_amount"] },
                             'currency_id': all_orders[0]["currency_id"],
                             "date_created": all_orders[0]["date_created"],
                             "date_closed": all_orders[0]["date_closed"],
@@ -976,7 +979,6 @@ class mercadolibre_shipment(models.Model):
                                     'order_id': shipment.sale_order.id,
                                     'meli_order_item_id': mOrder.order_items[0]["order_item_id"],
                                     'meli_order_item_variation_id': mOrder.order_items[0]["order_item_variation_id"],
-                                    'price_unit': float(unit_price),
                                     'product_id': product_related_obj.id,
                                     'product_uom_qty': mOrder.order_items[0]["quantity"],
                                     'product_uom': product_related_obj.uom_id.id,
@@ -992,7 +994,7 @@ class mercadolibre_shipment(models.Model):
                                                                                     ('order_id','=',shipment.sale_order.id)] )
 
                                 if not saleorderline_item_ids:
-                                    if sorder_pack.amount_total<sorder_pack.meli_paid_amount:
+                                    if sorder_pack.amount_total<(sorder_pack.meli_paid_amount-sorder_pack.meli_coupon_amount):
                                         saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
                                 else:
                                     saleorderline_item_ids.write( ( saleorderline_item_fields ) )
