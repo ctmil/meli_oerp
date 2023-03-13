@@ -159,8 +159,8 @@ class res_company(models.Model):
         #True if need login
         #_logger.info('company get_meli_state() ')
         for company in self:
-            #company = self or self.env.user.company_id
-            _logger.info('company get_meli_state() '+str(company and company.name))
+            company.mercadolibre_state = True
+            #_logger.info('company get_meli_state() '+str(company and company.name))
             meli = self.env['meli.util'].get_new_instance(company)
             if meli:
                 company.mercadolibre_state = meli.needlogin_state

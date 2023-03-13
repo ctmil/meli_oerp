@@ -324,6 +324,10 @@ class mercadolibre_shipment(models.Model):
             sorder = shipment.sale_order
             if (not sorder or not order):
                 continue;
+                
+            if (sorder and sorder.meli_update_forbidden):
+                _logger.error("Forbidden to update sale order by meli_oerp" )
+                return {'error': 'Forbidden to update sale order by meli_oerp' }
 
             sorder.meli_shipping_cost = shipment.shipping_cost
             sorder.meli_shipping_list_cost = shipment.shipping_list_cost
@@ -343,16 +347,20 @@ class mercadolibre_shipment(models.Model):
                         partner_shipping_id.phone = shipment.receiver_address_phone
                 #sorder.partner_id.state = ships.receiver_state
 
-            ship_name = shipment.tracking_method or (shipment.mode=="custom" and "Personalizado")  or (shipment.logistic_type=="self_service" and "Personalizado MFlex")
+            ship_name = shipment.tracking_method or (shipment.mode=="me1" and "ME1 - zip") or (shipment.mode=="custom" and "Personalizado")  or (shipment.logistic_type=="self_service" and "Personalizado MFlex")
+            
 
             if not ship_name or len(ship_name)==0:
                 continue;
-
-            product_shipping_id = product_obj.search([('default_code','ilike','ENVIO')])
-            if (len(product_shipping_id)==0):
-                product_shipping_id = product_obj.search(['|','|',('default_code','=','ENVIO'),
-                        ('default_code','=',ship_name),
-                        ('name','=',ship_name)] )
+                
+            if (shipment.mode=="me1"):
+                product_shipping_id = product_obj.search([('default_code','ilike','ENVIO-ME1')])
+            else:
+                product_shipping_id = product_obj.search([('default_code','ilike','ENVIO')])
+                if (len(product_shipping_id)==0):
+                    product_shipping_id = product_obj.search(['|','|',('default_code','=','ENVIO'),
+                            ('default_code','=',ship_name),
+                            ('name','=',ship_name)] )
 
             if len(product_shipping_id):
                 product_shipping_id = product_shipping_id[0]
@@ -407,7 +415,7 @@ class mercadolibre_shipment(models.Model):
             if type(delivery_price)==tuple and len(delivery_price):
                 delivery_price = delivery_price[0]
 
-            conflict = abs( sorder.meli_paid_amount - sorder.meli_total_amount ) > 1.0
+            conflict = abs( sorder.meli_paid_amount - sorder.meli_total_amount + sorder.meli_coupon_amount ) > 1.0
 
             received_amount = sorder.meli_amount_to_invoice( meli=meli, config=config )
             conflict = ( received_amount == 0.0 )
@@ -872,13 +880,20 @@ class mercadolibre_shipment(models.Model):
                         oname = "pack_id" in all_orders[0] and all_orders[0]["pack_id"] and str(  "ML %s" % ( str(all_orders[0]["pack_id"]) ) )
                         oname = oname or str("ML %s" % ( str(all_orders[0]["order_id"]) ) )
                         sorder_pack = self.env["sale.order"].search( [ '|',('meli_order_id','=',packed_order_ids), ('name','like', str(oname)) ], order="id asc", limit=1 )
+                        if (sorder_pack and sorder_pack.meli_update_forbidden):
+                            _logger.error("Forbidden to update sale order by meli_oerp" )
+                            return {'error': 'Forbidden to update sale order by meli_oerp' }
                         totales = {}
                         totales['total_amount'] = 0
                         totales['paid_amount'] = 0
+                        totales['coupon_amount'] = 0
+                        totales['financing_fee_amount'] = 0
                         for oi in all_orders:
                             ord = oi
                             totales['total_amount']+= ord["total_amount"]
                             totales['paid_amount']+= ord["paid_amount"]
+                            totales['coupon_amount']+= ord["coupon_amount"]
+                            totales['financing_fee_amount']+= ord["financing_fee_amount"]
 
                         #fix ML order_json... for pack_order "shipping_cost" added
                         if shipment.shipping_cost:
@@ -890,6 +905,8 @@ class mercadolibre_shipment(models.Model):
                             'status_detail': all_orders[0]["status_detail"] or '' ,
                             'total_amount': totales["total_amount"],
                             'paid_amount': totales["paid_amount"], #added shipment.shipping_cost,
+                            'coupon': { "amount": totales["coupon_amount"] },
+                            'financing_fee_amount': totales['financing_fee_amount'],
                             'currency_id': all_orders[0]["currency_id"],
                             "date_created": all_orders[0]["date_created"],
                             "date_closed": all_orders[0]["date_closed"],
@@ -976,7 +993,6 @@ class mercadolibre_shipment(models.Model):
                                     'order_id': shipment.sale_order.id,
                                     'meli_order_item_id': mOrder.order_items[0]["order_item_id"],
                                     'meli_order_item_variation_id': mOrder.order_items[0]["order_item_variation_id"],
-                                    'price_unit': float(unit_price),
                                     'product_id': product_related_obj.id,
                                     'product_uom_qty': mOrder.order_items[0]["quantity"],
                                     'product_uom': product_related_obj.uom_id.id,
@@ -992,7 +1008,7 @@ class mercadolibre_shipment(models.Model):
                                                                                     ('order_id','=',shipment.sale_order.id)] )
 
                                 if not saleorderline_item_ids:
-                                    if sorder_pack.amount_total<sorder_pack.meli_paid_amount:
+                                    if sorder_pack.amount_total<(sorder_pack.meli_paid_amount-sorder_pack.meli_coupon_amount):
                                         saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
                                 else:
                                     saleorderline_item_ids.write( ( saleorderline_item_fields ) )

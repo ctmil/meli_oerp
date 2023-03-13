@@ -127,12 +127,16 @@ class sale_order(models.Model):
     meli_shipping_list_cost = fields.Float(string='Shipping List Cost',help='Gastos de envío, costo de lista/interno')
     meli_paid_amount = fields.Float(string='Paid amount',help='Paid amount (include shipping cost)')
     meli_fee_amount = fields.Float(string='Fee amount',help="Comisión")
+    meli_coupon_amount = fields.Float(string='Coupont amount',help="Descuento",default=0.0)
+    meli_financing_fee_amount = fields.Float(string='Financing fee amount',help="Financiamiento",default=0.0)
+
     meli_currency_id = fields.Char(string='Currency ML')
 #        'buyer': fields.many2one( "mercadolibre.buyers","Buyer"),
 #       'meli_seller': fields.text( string='Seller' ),
     meli_shipping_id =  fields.Char('Meli Shipping Id')
     meli_shipment = fields.Many2one('mercadolibre.shipment',string='Meli Shipment Obj')
     meli_shipment_logistic_type = fields.Char(string="Logistic Type",index=True)
+    meli_update_forbidden = fields.Boolean(string="Bloqueado para actualizar desde ML",default=False, index=True)
 
     def action_confirm(self):
         #_logger.info("meli order action_confirm: " + str(self.mapped("name")) )
@@ -227,19 +231,19 @@ class sale_order(models.Model):
 
         if total_config in ['manual_conflict']:
 
-            if abs(self.meli_total_amount - self.meli_paid_amount)<1.0:
+            if abs(self.meli_total_amount - self.meli_paid_amount + self.meli_coupon_amount)<1.0:
                 if ( meli_shipment and meli_shipment.shipping_cost>0 and meli_shipment.shipping_list_cost>0 ):
                     return 0
-                return self.meli_paid_amount
+                return (self.meli_paid_amount - self.meli_coupon_amount)
             else:
                 #conflict if do not match
                 if ( meli_shipment and meli_shipment.shipping_cost>0 and meli_shipment.shipping_list_cost>0 ):
                     if ( self.meli_total_amount + self.shipping_cost - self.meli_paid_amount )<1.0:
-                        return self.meli_paid_amount
+                        return (self.meli_paid_amount - self.meli_coupon_amount)
                 return 0
 
         if total_config in ['paid_amount']:
-            return self.meli_paid_amount
+            return (self.meli_paid_amount - self.meli_coupon_amount)
 
         if total_config in ['total_amount']:
             return self.meli_total_amount
@@ -354,22 +358,29 @@ class sale_order(models.Model):
         return res
 
     def meli_fix_team( self, meli=None, config=None ):
-        company = (config and "company_id" in config._fields and config.company_id) or self.env.user.company_id
-
-        seller_team = (config and config.mercadolibre_seller_team) or None
-        seller_user = (config and config.mercadolibre_seller_user) or None
-
-        #_logger.info("meli_fix_team: company: "+str(company.name)+" seller_team:"+str(seller_team and seller_team.name))
-
         so = self
         if not so:
             return None
 
+        company = (config and "company_id" in config._fields and config.company_id) or so.company_id or self.env.user.company_id
+
+        seller_team = (config and config.mercadolibre_seller_team) or None
+        seller_user = (config and config.mercadolibre_seller_user) or None
+
+        _logger.info("meli_fix_team: company: "+str(company.name)
+                    +" seller_team:"+str(seller_team and seller_team.name))
+
+
         team_id = so.sudo().team_id
         user_id = so.sudo().user_id
+        warehouse_id = so.sudo().warehouse_id
 
-        #_logger.info("meli_fix_team: so.team_id: "+str(team_id and team_id.name))
-
+        _logger.info("meli_fix_team: so.team_id: "+str(team_id and team_id.name)+ " warehouse_id: "+str(warehouse_id and warehouse_id.company_id.name) )
+        _logger.info("check warehouse_id company")
+        if (warehouse_id and warehouse_id.company_id and (warehouse_id.company_id.id != company.id)):
+            #unassign, wrong warehouse_id company
+            so.sudo().write( { 'warehouse_id': None } )
+        _logger.info("check team")
         if (team_id and team_id.company_id.id != company.id) or not team_id:
             if (seller_team and seller_team.company_id.id == company.id):
                 if team_id.id!=seller_team.id:
@@ -377,12 +388,14 @@ class sale_order(models.Model):
             else:
                 #unassign, wrong company team
                 so.sudo().write( { 'team_id': None } )
-
+        _logger.info("check user id")
         if (user_id and seller_user and user_id.id!=seller_user.id) or not user_id:
             if seller_user:
                 so.sudo().write( { 'user_id': seller_user.id } )
             else:
                 so.sudo().write( { 'user_id': None } )
+
+
 
     def meli_oerp_update( self ):
         res = {}
@@ -609,24 +622,26 @@ class mercadolibre_orders(models.Model):
         full_phone = ''
         if "alternative_phone" in buyer_json:
             phone_json = buyer_json["alternative_phone"]
-            if 'area_code' in phone_json:
+            if phone_json and 'area_code' in phone_json:
                 if phone_json['area_code']:
                     full_phone+= phone_json['area_code']
 
-            if 'number' in phone_json:
+            if phone_json and 'number' in phone_json:
                 if phone_json['number']:
                     full_phone+= phone_json['number']
 
-            if 'extension' in phone_json:
+            if phone_json and 'extension' in phone_json:
                 if phone_json['extension']:
                     full_phone+= phone_json['extension']
 
         return full_phone
 
     def _set_product_unit_price( self, product_related_obj, Item, config=None ):
-
+        order = self
+        #unit price after applied taxes
+        unit_price = float(Item['unit_price'])- float(float(order.coupon_amount)/float(Item['quantity']))
         upd_line = {
-            "price_unit": ml_product_price_conversion( self, product_related_obj=product_related_obj, price=Item['unit_price'], config=config )
+            "price_unit": ml_product_price_conversion( self, product_related_obj=product_related_obj, price=unit_price, config=config )
         }
         #else:
         #    if ( float(Item['unit_price']) == product_template.lst_price and not self.env.user.has_group('sale.group_show_price_subtotal')):
@@ -660,6 +675,8 @@ class mercadolibre_orders(models.Model):
             "status_detail": self.status_detail,
             "total_amount": self.total_amount,
             "paid_amount": self.paid_amount,
+            "coupon_amount": self.coupon_amount,
+            "financing_fee_amount": self.financing_fee_amount,
 
             "date_created": self.date_created,
             "date_closed": self.date_closed,
@@ -694,6 +711,8 @@ class mercadolibre_orders(models.Model):
         if config.mercadolibre_seller_user:
             seller_id = config.mercadolibre_seller_user.id
 
+        financing_fee_amount = 0
+
         order_fields = {
             'name': "MO [%s]" % ( str(order_json["id"]) ),
             'company_id': company.id,
@@ -704,6 +723,8 @@ class mercadolibre_orders(models.Model):
             'fee_amount': 0.0,
             'total_amount': order_json["total_amount"],
             'paid_amount': order_json["paid_amount"],
+            'coupon_amount': ("coupon" in order_json and order_json["coupon"] and "amount" in order_json["coupon"] and order_json["coupon"]["amount"]) or 0.0,
+            'financing_fee_amount': financing_fee_amount,
             'currency_id': order_json["currency_id"],
             'date_created': ml_datetime(order_json["date_created"]),
             'date_closed': ml_datetime(order_json["date_closed"]),
@@ -731,6 +752,7 @@ class mercadolibre_orders(models.Model):
     def prepare_sale_order_vals( self, meli=None, order_json=None, config=None, sale_order=None, shipment=None ):
         if not order_json:
             return {}
+        financing_fee_amount = ("financing_fee_amount" in order_json and order_json["financing_fee_amount"]) or 0
         meli_order_fields = {
             #TODO: "add parameter for":
             'name': "ML %s" % ( str(order_json["id"]) ),
@@ -741,6 +763,8 @@ class mercadolibre_orders(models.Model):
             'meli_status_detail': ("status_detail" in order_json and order_json["status_detail"]) or '' ,
             'meli_total_amount': ("total_amount" in order_json and order_json["total_amount"]),
             'meli_paid_amount': ("paid_amount" in order_json and order_json["paid_amount"]),
+            'meli_coupon_amount': ("coupon" in order_json and order_json["coupon"] and "amount" in order_json["coupon"] and order_json["coupon"]["amount"]) or 0.0,
+            'meli_financing_fee_amount': financing_fee_amount,
             'meli_currency_id': ("currency_id" in order_json and order_json["currency_id"]),
             'meli_date_created': ml_datetime(order_json["date_created"]),
             'meli_date_closed': ml_datetime(order_json["date_closed"]),
@@ -965,6 +989,11 @@ class mercadolibre_orders(models.Model):
                     sorder = sorder_s
             #if (sorder_s and len(sorder_s)>0):
             #    sorder = saleorder_obj.browse(sorder_s[0] )
+
+        if (sorder and sorder.meli_update_forbidden):
+            _logger.error("Forbidden to upate by meli_oerp" )
+            return {'error': 'Forbidden to upate by meli_oerp' }
+
         seller_id = None
         if config.mercadolibre_seller_user:
             seller_id = config.mercadolibre_seller_user.id
@@ -1106,7 +1135,7 @@ class mercadolibre_orders(models.Model):
 
                     meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
 
-                #Arg 15.0 BlueOrange
+                #Arg 15.0 BlueOrange Blue Orange
                 if ( ('doc_type' in Buyer['billing_info']) and ('partner_document_type_id' in self.env['res.partner']._fields) ):
                     doc_type = Buyer['billing_info']['doc_type']
                     doc_type_id = self.env["partner.document.type"].search([('name','ilike',doc_type)],limit=1)
@@ -1117,6 +1146,8 @@ class mercadolibre_orders(models.Model):
                     if (tax_type):
                         if (tax_type=="Monotributo"):
                             tax_type = "Responsable Monotributo"
+                        if (tax_type=="IVA Exento"):
+                            tax_type = "Exento"
                     else:
                         if (doc_type=="DNI"):
                             tax_type = "Consumidor Final"
@@ -1739,6 +1770,7 @@ class mercadolibre_orders(models.Model):
                                     'description': rjson3['title'].encode("utf-8"),
                                     'meli_id': rjson3['id'],
                                     'meli_pub': True,
+                                    'detailed_type': 'product'
                                 }
                                 if (seller_sku):
                                     prod_fields['default_code'] = seller_sku
@@ -1806,6 +1838,9 @@ class mercadolibre_orders(models.Model):
                         return error
                     order_item_fields['product_id'] = product_related.id
 
+                if product_related and product_related.detailed_type!='product':
+                    product_related.detailed_type = 'product'
+
                 order_item_ids = order_items_obj.search( [('order_item_id','=',order_item_fields['order_item_id']),
                                                             ('order_id','=',order.id)] )
                 #_logger.info( order_item_fields )
@@ -1829,7 +1864,6 @@ class mercadolibre_orders(models.Model):
                         'order_id': sorder.id,
                         'meli_order_item_id': Item['item']['id'],
                         'meli_order_item_variation_id': Item['item']['variation_id'],
-                        'price_unit': float(Item['unit_price']),
                         'product_id': product_related_obj.id,
                         'product_uom_qty': Item['quantity'],
                         'product_uom': product_related_obj.uom_id.id,
@@ -1842,13 +1876,15 @@ class mercadolibre_orders(models.Model):
                                                                         ('order_id','=',sorder.id)] )
 
                     if not saleorderline_item_ids:
-                        if sorder.amount_total<sorder.meli_paid_amount:
+                        if 1.1<abs((sorder.meli_paid_amount-sorder.meli_coupon_amount)-sorder.amount_total):
                             saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
                     else:
                         saleorderline_item_ids.write( ( saleorderline_item_fields ) )
 
         if 'payments' in order_json:
             payments = order_json['payments']
+            #sumar los financing fee aprobados
+            financing_fee_amount = 0
             cn = 0
             for Payment in payments:
                 cn = cn + 1
@@ -1868,7 +1904,8 @@ class mercadolibre_orders(models.Model):
                     'full_payment': '',
                     'fee_amount': 0,
                     'shipping_amount': 0,
-                    'taxes_amount': 0
+                    'taxes_amount': 0,
+                    'financing_fee_amount': 0
                 }
 
                 headers = {'Accept': 'application/json', 'User-Agent': 'Odoo', 'Content-type':'application/json'}
@@ -1885,12 +1922,18 @@ class mercadolibre_orders(models.Model):
                             if fee_detail and "amount" in fee_detail:
                                 fee_type = fee_detail["type"]
                                 fee_payer = fee_detail["fee_payer"]
-                                if (fee_payer and fee_payer == "collector"):
+                                if (fee_payer and fee_payer == "collector" and fee_type == "application_fee"):
                                     payment_fields["fee_amount"] = fee_detail["amount"]
+                                if (fee_payer and fee_payer == "payer" and fee_type == "financing_fee"):
+                                    payment_fields["financing_fee_amount"] = fee_detail["amount"]
+                                    if ('status' in Payment and Payment['status'] == "approved"):
+                                        financing_fee_amount+= payment_fields["financing_fee_amount"]
                         if (order):
                             order.fee_amount = payment_fields["fee_amount"]
+                            order.financing_fee_amount = financing_fee_amount
                             if (sorder):
                                 sorder.meli_fee_amount = order.fee_amount
+                                sorder.meli_financing_fee_amount = order.financing_fee_amount
                     payment_fields["taxes_amount"] = payment_fields["full_payment"]["taxes_amount"]
 
                 payment_ids = payments_obj.search( [  ('payment_id','=',payment_fields['payment_id']),
@@ -2337,10 +2380,12 @@ class mercadolibre_orders(models.Model):
     shipment_logistic_type = fields.Char(string="Logistic Type",index=True)
 
     fee_amount = fields.Float(string='Fee total amount')
+    financing_fee_amount = fields.Float(string='Financing fee amount',help="Financiamiento",default=0.0)
     total_amount = fields.Float(string='Total amount')
     shipping_cost = fields.Float(string='Shipping Cost',help='Gastos de envío')
     shipping_list_cost = fields.Float(string='Shipping List Cost',help='Gastos de envío, costo de lista/interno')
     paid_amount = fields.Float(string='Paid amount',help='Includes shipping cost')
+    coupon_amount = fields.Float(string='Coupon amount',help='Descuento',default=0.0)
     currency_id = fields.Char(string='Currency')
     buyer =  fields.Many2one( "mercadolibre.buyers","Buyer")
     buyer_billing_info = fields.Text(string="Billing Info")
@@ -2395,6 +2440,8 @@ class mercadolibre_payments(models.Model):
     fee_amount = fields.Float('Fee Amount')
     shipping_amount = fields.Float('Shipping Amount')
     taxes_amount = fields.Float('Taxes Amount')
+
+    financing_fee_amount = fields.Float('Financing fee amount')
 
     def _get_config( self, config=None ):
         config = config or (self and self.order_id and self.order_id._get_config(config=config))

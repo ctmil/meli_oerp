@@ -24,6 +24,8 @@
                   <field name="meli_order_id" string="MercadoLibre Order Id"/>
                   <field name="meli_status_brief" string="MercadoLibre Status Brief"/>
                   <field name="meli_status" string="MercadoLibre Status"/>
+                  <field name="meli_update_forbidden" string="No actualizar desde ML"/>
+
                   <separator/>
                   <filter string="MercadoLibre Quotations" name="sale_orders_ml" domain="[('meli_order_id','!=',False)]" />
                   <filter string='MercadoLibre Status' domain="[]"
@@ -55,6 +57,7 @@
                     <field name="buyer"/>
                     <field name="total_amount"/>
                     <field name="paid_amount"/>
+                    <field name="coupon_amount"/>
                     <field name="date_created"/>
                     <field name="date_closed"/>
                     <field name="tags" invisible="1"/>
@@ -74,6 +77,7 @@
                         <page string="MercadoLibre" attrs="{'invisible':[('meli_order_id', '=', False)]}">
                             <field name="meli_orders" invisible="0"/>
                             <group>
+                              <field name="meli_update_forbidden" string="No actualizar desde ML"/>
                               <field name="meli_order_id" invisible="0"/>
                               <field name="meli_status" invisible="0"/>
                               <field name="meli_status_brief" invisible="0"/>
@@ -85,6 +89,8 @@
                               <field name="meli_shipping_list_cost" invisible="0"/>
                               <field name="meli_fee_amount" invisible="0"/>
                               <field name="meli_paid_amount" invisible="0"/>
+                              <field name="meli_coupon_amount" invisible="0"/>
+                              <field name="meli_financing_fee_amount" invisible="0"/>
                               <field name="meli_currency_id" invisible="0"/>
                               <field name="meli_date_created" invisible="0"/>
                               <field name="meli_date_closed" invisible="0"/>
@@ -168,6 +174,8 @@
                         <field name="shipment_logistic_type" />
                         <field name="fee_amount"  widget="monetary"/>
                         <field name="paid_amount"  widget="monetary"/>
+                        <field name="coupon_amount" widget="monetary"/>
+                        <field name="financing_fee_amount"  widget="monetary"/>
                         <field name="currency_id"/>
                         <field name="company_id"/>
                         <field name="seller_id"/>
@@ -229,6 +237,7 @@
                     <field name="total_paid_amount"/>
                     <field name="shipping_amount"/>
                     <field name="fee_amount"/>
+                    <field name="financing_fee_amount"/>
                     <field name="taxes_amount"/>
                     <field name="currency_id"/>
                     <field name="status"/>
@@ -243,6 +252,7 @@
             <field name="model">mercadolibre.orders</field>
             <field name="arch" type="xml">
     	         <search string="Search MercadoLibre Orders Information">
+                 <field name="name" string="Order" filter_domain="['|', '|', '|', ('name', 'ilike', self), ('order_id', 'ilike', self), ('pack_id', 'ilike', self), ('buyer', 'ilike', self)]"/>
                  <field name="order_id" string="Order ID"/>
                  <field name="pack_id" string="Pack ID"/>
                  <field name="status" string="Status"/>
