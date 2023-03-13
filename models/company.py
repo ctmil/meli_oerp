@@ -49,7 +49,7 @@ class res_company(models.Model):
             "MCO": { "name": "Colombia", "AUTH_URL": "https://auth.mercadolibre.com.co" },
             "MPE": { "name": "Perú", "AUTH_URL": "https://auth.mercadolibre.com.pe" },
             "MBO": { "name": "Bolivia", "AUTH_URL": "https://auth.mercadolibre.com.bo" },
-            "MLB": { "name": "Brasil", "AUTH_URL": "https://auth.mercadolibre.com.br" },
+            "MLB": { "name": "Brasil", "AUTH_URL": "https://auth.mercadolivre.com.br" },
             "MLC": { "name": "Chile", "AUTH_URL": "https://auth.mercadolibre.cl" },
             "MCR": { "name": "Costa Rica", "AUTH_URL": "https://auth.mercadolibre.com.cr" },
             "MLV": { "name": "Venezuela", "AUTH_URL": "https://auth.mercadolibre.com.ve" },
@@ -75,7 +75,7 @@ class res_company(models.Model):
             "MCO": { "name": "Colombia", "LINK_URL": "https://www.mercadolibre.com.co" },
             "MPE": { "name": "Perú", "LINK_URL": "https://www.mercadolibre.com.pe" },
             "MBO": { "name": "Bolivia", "LINK_URL": "https://www.mercadolibre.com.bo" },
-            "MLB": { "name": "Brasil", "LINK_URL": "https://www.mercadolibre.com.br" },
+            "MLB": { "name": "Brasil", "LINK_URL": "https://www.mercadolivre.com.br" },
             "MLC": { "name": "Chile", "LINK_URL": "https://www.mercadolibre.cl" },
             "MCR": { "name": "Costa Rica", "LINK_URL": "https://www.mercadolibre.com.cr" },
             "MLV": { "name": "Venezuela", "LINK_URL": "https://www.mercadolibre.com.ve" },
@@ -159,8 +159,8 @@ class res_company(models.Model):
         #True if need login
         #_logger.info('company get_meli_state() ')
         for company in self:
-            #company = self or self.env.user.company_id
-            _logger.info('company get_meli_state() '+str(company and company.name))
+            company.mercadolibre_state = True
+            #_logger.info('company get_meli_state() '+str(company and company.name))
             meli = self.env['meli.util'].get_new_instance(company)
             if meli:
                 company.mercadolibre_state = meli.needlogin_state
