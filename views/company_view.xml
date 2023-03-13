@@ -18,7 +18,8 @@
                         <page string="MercadoLibre">
                           <field name="mercadolibre_state"/>
                           <div class="oe_button_box btn-group" name="button_box_mel" style="width: auto;">
-            								<button name='meli_login' type="object"
+
+                            <button name='meli_login' type="object"
             										string="Iniciar sesión"
                                 title="Iniciar sesión en ML"
                                 attrs="{'invisible':[('mercadolibre_state','=',False)]}"
