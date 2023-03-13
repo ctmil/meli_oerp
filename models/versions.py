@@ -19,6 +19,18 @@ product_message_type = "notification"
 def Autocommit( self, act=False ):
     self._cr.autocommit(act)
     return False
+    
+def UpdateProductType( product ):  
+    if (product.type not in ['product']):
+        try:
+            product.write( { 'type': 'product' } )
+        except Exception as e:
+            _logger.info("Set type almacenable ('product') not possible:")
+            _logger.error(e, exc_info=True)
+            pass;        
+    
+def ProductType():
+    return { "detailed_type": "product" }
 
 # Odoo 12.0 -> Odoo 13.0
 prod_att_line = "product.template.attribute.line"
@@ -54,11 +66,15 @@ def get_company_selected( self, context=None, company=None, company_id=None, use
 
 #variant mage ids
 def variant_image_ids(self):
-    return self.product_variant_image_ids
+    if "product_variant_image_ids" in self._fields:
+        return self.product_variant_image_ids
+    return None
 
 #template image ids
 def template_image_ids(self):
-    return self.product_template_image_ids
+    if "product_template_image_ids" in self._fields:
+        return self.product_template_image_ids
+    return None
 
 
 #att value ids
