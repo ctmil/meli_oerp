@@ -7,6 +7,7 @@
             <field name="type">tree</field>
             <field name="arch" type="xml">
               <tree string="Shipment" default_order="date_created desc">
+                  <field name="company_id"/>
                   <field name="name"/>
                   <field name="shipping_id"/>
                   <field name="status"/>
@@ -62,6 +63,7 @@
                     </div>
                     <group string="Details">
                       <group>
+                        <field name="company_id"/>
                         <field name="date_created"/>
                         <field name="last_updated"/>
                         <field name="order_cost"/>
