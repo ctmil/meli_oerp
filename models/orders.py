@@ -603,17 +603,18 @@ class mercadolibre_orders(models.Model):
         full_phone = ''
         if "phone" in buyer_json:
             phone_json = buyer_json["phone"]
-            if 'area_code' in phone_json:
-                if phone_json['area_code']:
-                    full_phone+= phone_json['area_code']
+            if phone_json:
+                if 'area_code' in phone_json:
+                    if phone_json['area_code']:
+                        full_phone+= phone_json['area_code']
 
-            if 'number' in phone_json:
-                if phone_json['number']:
-                    full_phone+= phone_json['number']
+                if 'number' in phone_json:
+                    if phone_json['number']:
+                        full_phone+= phone_json['number']
 
-            if 'extension' in phone_json:
-                if phone_json['extension']:
-                    full_phone+= phone_json['extension']
+                if 'extension' in phone_json:
+                    if phone_json['extension']:
+                        full_phone+= phone_json['extension']
 
         if "receiver_phone" in buyer_json and buyer_json["receiver_phone"]:
             full_phone+= buyer_json["receiver_phone"]
@@ -622,19 +623,21 @@ class mercadolibre_orders(models.Model):
 
     def full_alt_phone( self, buyer_json, context=None ):
         full_phone = ''
-        if "alternative_phone" in buyer_json:
-            phone_json = buyer_json["alternative_phone"]
-            if phone_json and 'area_code' in phone_json:
-                if phone_json['area_code']:
-                    full_phone+= phone_json['area_code']
+        if buyer_json:
+            if "alternative_phone" in buyer_json:
+                phone_json = buyer_json["alternative_phone"]
+                if phone_json:
+                    if 'area_code' in phone_json:
+                        if phone_json['area_code']:
+                            full_phone+= phone_json['area_code']
 
-            if phone_json and 'number' in phone_json:
-                if phone_json['number']:
-                    full_phone+= phone_json['number']
+                    if 'number' in phone_json:
+                        if phone_json['number']:
+                            full_phone+= phone_json['number']
 
-            if phone_json and 'extension' in phone_json:
-                if phone_json['extension']:
-                    full_phone+= phone_json['extension']
+                    if 'extension' in phone_json:
+                        if phone_json['extension']:
+                            full_phone+= phone_json['extension']
 
         return full_phone
 

@@ -235,6 +235,9 @@ class mercadolibre_shipment(models.Model):
     shipment_items = fields.One2many("mercadolibre.shipment.item","shipment_id",string="Items")
     sale_order = fields.Many2one('sale.order',string="Sale Order",help="Pedido de venta relacionado en Odoo")
 
+    company_id = fields.Many2one("res.company", related="order.company_id",string="Company",index=True)
+
+
     mode = fields.Char('Mode')
     shipping_mode = fields.Char(string='Shipping mode')
 
@@ -300,7 +303,6 @@ class mercadolibre_shipment(models.Model):
     pdfimage_file = fields.Binary(string='Pdf Image File',attachment=True)
     pdfimage_filename = fields.Char(string='Pdf Image Filename')
 
-    company_id = fields.Many2one("res.company",string="Company")
     seller_id = fields.Many2one("res.users",string="Seller")
 
     pack_order = fields.Boolean(string="Carrito de compra")
