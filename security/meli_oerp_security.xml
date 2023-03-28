@@ -13,4 +13,16 @@
         <field name="users" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/>
     </record>
 
+    <record model="ir.rule" id="mercadolibre_orders_comp_rule">
+        <field name="name">MercadoLibre Order multi-company</field>
+        <field name="model_id" ref="model_mercadolibre_orders"/>
+        <field name="domain_force">['|',('company_id','=',False),('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record model="ir.rule" id="mercadolibre_shipment_comp_rule">
+        <field name="name">MercadoLibre Shipment multi-company</field>
+        <field name="model_id" ref="model_mercadolibre_shipment"/>
+        <field name="domain_force">['|',('company_id','=',False),('company_id', 'in', company_ids)]</field>
+    </record>
+
 </odoo>
