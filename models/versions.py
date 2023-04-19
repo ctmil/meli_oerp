@@ -15,6 +15,13 @@ cl_vat_sep_million = ""
 order_message_type = "notification"
 product_message_type = "notification"
 
+#price from pricelist
+def get_price_from_pl( pricelist, product, quantity ):
+    pl = pricelist
+    return_val = {}
+    return_val = pl.price_get( product.id, quantity)
+    return return_val
+
 #Autocommit
 def Autocommit( self, act=False ):
     self._cr.autocommit(act)
@@ -30,7 +37,7 @@ def UpdateProductType( product ):
             pass;        
     
 def ProductType():
-    return { "detailed_type": "product" }
+    return { "type": "product" }
 
 # Odoo 12.0 -> Odoo 13.0
 prod_att_line = "product.template.attribute.line"
