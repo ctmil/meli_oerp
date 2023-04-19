@@ -15,6 +15,13 @@ cl_vat_sep_million = "."
 order_message_type = "notification"
 product_message_type = "notification"
 
+#price from pricelist
+def get_price_from_pl( pricelist, product, quantity ):
+    pl = pricelist
+    return_val = {}
+    return_val = pl.price_get( product.id, quantity)
+    return return_val
+
 #Autocommit
 def Autocommit( self, act=False ):
     self._cr.autocommit(act)
