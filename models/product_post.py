@@ -509,16 +509,17 @@ class product_template_import(models.TransientModel):
             csv_report = ""
 
             sep = ""
-            for field in full_report[0]:
-                csv_report_header+= sep+str(field)
-                sep = ";"
-
-            for sync in full_report:
-                sep = ""
-                for field in sync:
-                    csv_report+= sep+'"'+str(sync[field])+'"'
+            if full_report:
+                for field in full_report[0]:
+                    csv_report_header+= sep+str(field)
                     sep = ";"
-                csv_report+= "\n"
+
+                for sync in full_report:
+                    sep = ""
+                    for field in sync:
+                        csv_report+= sep+'"'+str(sync[field])+'"'
+                        sep = ";"
+                    csv_report+= "\n"
 
             csv_report_attachment_last = self.report_import or self.env["ir.attachment"].search([('res_id','=',self.id)], order='id desc', limit=1 )
             if (csv_report_attachment_last):

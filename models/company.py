@@ -29,6 +29,8 @@ import threading
 
 from .meli_oerp_config import *
 from .warning import warning
+from . import versions
+from .versions import *
 
 import requests
 
