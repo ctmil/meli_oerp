@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+        <record model="ir.ui.view" id="view_mercadolibre_category_attribute_tree">
+            <field name="name">mercadolibre.category.attribute.tree</field>
+            <field name="model">mercadolibre.category.attribute</field>
+            <field name="type">tree</field>
+            <field name="arch" type="xml">
+                <tree string="Categorías" >
+                    <field name="name"/>
+                    <field name="cat_id"/>
+                    <field name="att_id"/>
+                    <field name="value_type"/>
+                    <field name="hidden"/>
+                    <field name="variation_attribute"/>
+                    <field name="multivalued"/>
+                    <field name="type"/>
+                    <field name="required"/>
+                </tree>
+            </field>
+        </record>
+
+
+        <record model="ir.ui.view" id="view_mercadolibre_category_attribute_form">
+            <field name="name">mercadolibre.category.attribute.form</field>
+            <field name="model">mercadolibre.category.attribute</field>
+            <field name="type">form</field>
+            <field name="arch" type="xml">
+              <form string="Attributes">
+                <group>
+                    <group>
+                      <field name="name"/>
+                      <field name="cat_id"/>
+                      <field name="att_id"/>
+                      <field name="value_type"/>
+                      <field name="type"/>
+                    </group>
+                    <group>
+                      <field name="required"/>
+                      <field name="hidden"/>
+                      <field name="variation_attribute"/>
+                      <field name="multivalued"/>
+                    </group>
+                </group>
+                  <group>
+                      <field name="tooltip"/>
+                      <field name="values"/>
+                      <field name="tooltip"/>
+                  </group>
+              </form>
+            </field>
+        </record>
+
+
+        <record model="ir.actions.act_window" id="action_mercadolibre_category_attribute">
+            <field name="name">Atributos</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">mercadolibre.category.attribute</field>
+            <field name="view_mode">tree,form</field>
+        </record>
+
+        <menuitem id="menu_meli_categories_attributes"
+            action="action_mercadolibre_category_attribute"
+            parent="menu_meli"
+            name="Atributos" />
+
+    </data>
+</odoo>
