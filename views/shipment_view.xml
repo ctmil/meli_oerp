@@ -63,6 +63,7 @@
                     </div>
                     <group string="Details">
                       <group>
+                        <field name="company_id"/>
                         <field name="date_created"/>
                         <field name="last_updated"/>
                         <field name="order_cost"/>
