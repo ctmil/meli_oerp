@@ -566,13 +566,15 @@ class mercadolibre_category(models.Model):
         for cat in self:
             #https://api.mercadolibre.com/catalog/charts/search
             params = {
-                'access_token': meli.access_token,
+                'access_token': meli.access_token
+            }
+            body = {
                 'site_id': "MLA",
                 'domain_id': str(cat.catalog_domain),
                 'seller_id': int(meli.seller_id)
                 }
             _logger.info("params:"+str(params))
-            response_chart = meli.post( path="/catalog/charts/search", params=params )
+            response_chart = meli.post( path="/catalog/charts/search", body=body, params=params )
             _logger.info("response_chart para "+str(cat.catalog_domain)+": "+str(response_chart))
             rjson_chart = response_chart and response_chart.json()
             _logger.info("rjson_chart para "+str(cat.catalog_domain)+": "+str(rjson_chart))
