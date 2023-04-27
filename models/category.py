@@ -569,7 +569,7 @@ class mercadolibre_category(models.Model):
                 'access_token': meli.access_token,
                 'site_id': "MLA",
                 'domain_id': str(cat.catalog_domain),
-                'seller_id': meli.seller_id
+                'seller_id': int(meli.seller_id)
                 }
             _logger.info("params:"+str(params))
             response_chart = meli.post("/catalog/charts/search", params )
