@@ -2817,7 +2817,7 @@ class product_product(models.Model):
 
         if (product.meli_grid_chart_id):
             #get_search_chart
-            attribute = { "id": "GRID_SIZE_ID", "value_name": product.meli_grid_chart_id.meli_id }
+            attribute = { "id": "SIZE_GRID_ID", "value_name": product.meli_grid_chart_id.meli_id }
             attributes.append(attribute)
             _logger.info("attributes:"+str(attributes))
             product.meli_attributes = str(attributes)
