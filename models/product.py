@@ -238,6 +238,7 @@ class product_template(models.Model):
 
     def action_meli_pause(self):
         for product in self:
+            #product.product_meli_block()
             for variant in product.product_variant_ids:
                 if (variant.meli_pub):
                     variant.product_meli_status_pause()
@@ -245,7 +246,9 @@ class product_template(models.Model):
 
 
     def action_meli_activate(self):
+
         for product in self:
+            #product.product_meli_unblock()
             for variant in product.product_variant_ids:
                 if (variant.meli_pub):
                     variant.product_meli_status_active()
@@ -481,6 +484,8 @@ class product_template(models.Model):
     #meli_permalink = fields.Char( compute=product_template_permalink, size=256, string='Link',help='PermaLink in MercadoLibre', store=True )
     meli_permalink_edit = fields.Char( compute=product_template_permalink, size=256, string='Link Edit',help='PermaLink Edit in MercadoLibre', store=True )
 
+    gender = fields.Char(string="Genero")
+    grid_chart_id = fields.Many2one("mercadolibre.grid.chart",string="Guia de talles")
 
 class product_product(models.Model):
 
@@ -1991,6 +1996,18 @@ class product_product(models.Model):
 
         return {}
 
+    def product_meli_block( self ):
+        for product in self:
+            product_tmpl = product.product_tmpl_id
+            product.meli_update_stock_blocked = True;
+            product_tmpl.meli_update_stock_blocked = True;
+
+    def product_meli_unblock( self ):
+        for product in self:
+            product_tmpl = product.product_tmpl_id
+            product.meli_update_stock_blocked = False;
+            product_tmpl.meli_update_stock_blocked = False;
+
     def product_meli_status_pause( self, meli=False ):
         company = self.env.user.company_id
         product_obj = self.env['product.product']
@@ -2000,7 +2017,9 @@ class product_product(models.Model):
             if meli.need_login():
                 return meli.redirect_login()
 
-        response = product.meli_id and meli.put("/items/"+product.meli_id, { 'status': 'paused' }, {'access_token':meli.access_token})
+        for product in self:
+            product_tmpl = product.product_tmpl_id
+            response = product.meli_id and meli.put("/items/"+product.meli_id, { 'status': 'paused' }, {'access_token':meli.access_token})
 
         return {}
 
@@ -2019,6 +2038,8 @@ class product_product(models.Model):
             return {}
 
         for product in self:
+            product_tmpl = product.product_tmpl_id
+
             _logger.info("activating "+str(product.meli_id))
             response = product.meli_id and meli.put("/items/"+product.meli_id, { 'status': 'active' }, {'access_token':meli.access_token})
             if (response):
@@ -3377,7 +3398,7 @@ class product_product(models.Model):
                     if (sum<0):
                         sum = 0
                     best_available+= sum
-                if (best_available>0 and product.meli_status=="paused"):
+                if (best_available>0 and product.meli_status=="paused" and product.meli_update_stock_blocked==False and product_tmpl.meli_update_stock_blocked==False):
                     _logger.info("Active!")
                     product.product_meli_status_active()
                 elif (best_available<=0 and product.meli_status=="active"):
@@ -3427,7 +3448,7 @@ class product_product(models.Model):
                 if (product.meli_available_quantity<=0 and product.meli_status=="active"):
                     #product.product_meli_status_pause(meli=meli)
                     _logger.info("pause")
-                elif (product.meli_available_quantity>0 and product.meli_status=="paused"):
+                elif (product.meli_available_quantity>0 and product.meli_status=="paused" and product.meli_update_stock_blocked==False and product_tmpl.meli_update_stock_blocked==False):
                     product.product_meli_status_active(meli=meli)
 
         except Exception as e:

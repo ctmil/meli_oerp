@@ -114,6 +114,9 @@ class product_attribute(models.Model):
     mercadolibre_attribute_id = fields.Many2one( "mercadolibre.category.attribute", string="MercadoLibre Attribute")
 
 
+
+
+
 class mercadolibre_category(models.Model):
     _name = "mercadolibre.category"
     _description = "Categories of MercadoLibre"
@@ -409,6 +412,8 @@ class mercadolibre_category(models.Model):
                     'is_branch': is_branch,
                     #'meli_father_category': father
                 }
+                cat_fields["catalog_domain"] = "settings" in rjson_cat and "catalog_domain" in rjson_cat["settings"] and rjson_cat["settings"]["catalog_domain"]
+                cat_fields["data_json"] = json.dumps(rjson_cat)
                 if (father and father.id):
                     cat_fields['meli_father_category'] = father.id
                 _logger.info(cat_fields)
@@ -504,6 +509,130 @@ class mercadolibre_category(models.Model):
     #ver tambien: https://www.mercadolibre.com.mx/ayuda/Tarifas-y-facturacion_1044
     # https://api.mercadolibre.com/sites/MLM/listing_types#json
 
+    catalog_domain = fields.Char(string="Domain Id")
+    data_json = field.Text(string="Data json")
+
     _sql_constraints = [
     	('unique_meli_category_id','unique(meli_category_id)','Meli Category id already exists!'),
     ]
+
+
+class mercadolibre_grid_value(models.Model):
+    _name = "mercadolibre.grid.value"
+    _description = "Valor de Guia de talles de MercadoLibre"
+
+    meli_id = fields.Char(string="Id",required=True,index=True)
+    name = fields.Char(string="Nombre",index=True)
+
+    def prepare_vals( self, djson ):
+        fields = {
+            "meli_id": djson["id"],
+            "name": json.dumps(djson["name"]),
+        }
+
+class mercadolibre_grid_attribute(models.Model):
+    _name = "mercadolibre.grid.attribute"
+    _description = "Atributo de Guia de talles de MercadoLibre"
+
+    meli_id = fields.Char(string="Id",required=True,index=True)
+    name = fields.Char(string="Nombre",index=True)
+    values = fields.Many2many("mercadolibre.grid.value", string="Values")
+
+    def prepare_vals( self, djson ):
+        fields = {
+            "meli_id": djson["id"],
+            "name": json.dumps(djson["name"]),
+        }
+
+class mercadolibre_grid_row_line(models.Model):
+    _name = "mercadolibre.grid.row.line"
+    _description = "Linea de atributo de Guia de talles de MercadoLibre"
+
+    grid_row_id = fields.Many2one("mercadolibre.grid.row", string="row id")
+    att_id = fields.Many2one("mercadolibre.grid.attribute", string="Attribute")
+    val_id = fields.Many2one("mercadolibre.grid.value", string="Values")
+
+    def prepare_vals( self, djson ):
+        fields = {
+            "meli_id": djson["id"],
+            "name": json.dumps(djson["names"]),
+            "type": djson["type"],
+            "domain_id": djson["domain_id"],
+            "main_attribute_id": djson["main_attribute_id"],
+            "data_json": json.dumps(djson),
+        }
+
+class mercadolibre_grid_attribute_line(models.Model):
+    _name = "mercadolibre.grid.attribute.line"
+    _description = "Linea de atributo de Guia de talles de MercadoLibre"
+
+    grid_chart_id = fields.Many2one("mercadolibre.grid.chart", string="row id")
+    att_id = fields.Many2one("mercadolibre.grid.attribute", string="Attribute")
+    val_id = fields.Many2one("mercadolibre.grid.value", string="Values")
+
+    def prepare_vals( self, djson ):
+        fields = {
+            "meli_id": djson["id"],
+            "name": json.dumps(djson["names"]),
+            "type": djson["type"],
+            "domain_id": djson["domain_id"],
+            "main_attribute_id": djson["main_attribute_id"],
+            "data_json": json.dumps(djson),
+        }
+
+class mercadolibre_grid_row(models.Model):
+    _name = "mercadolibre.grid.row"
+    _description = "Fila de guia de talles de MercadoLibre"
+
+    meli_id = fields.Char(string="Id",required=True,index=True)
+    grid_chart_id = fields.Many2one("mercadolibre.grid.chart", string="Chart id")
+    attribute_values = fields.One2many("mercadolibre.grid.row.line", string="Attributes Values")
+
+    def prepare_vals( self, djson ):
+        fields = {
+            "meli_id": djson["id"],
+            "grid_chart_id": self.get_grid_chart_id(),
+
+        }
+        return fields
+
+class mercadolibre_grid_chart(models.Model):
+    _name = "mercadolibre.grid.chart"
+    _description = "Guia de talles de MercadoLibre"
+
+    meli_id = fields.Char(string="Id de guia de talle",required=True,index=True)
+    domain_id = fields.Char(string="Dominio")
+    name = fields.Char(string="Nombre de la guia de talles")
+    type = fields.Char(string="Tipo de la guia de talles")
+    main_attribute_id = fields.Char( string="Atributo principal de la guia de talles" )
+    data_json = field.Text( string="Data json" )
+    attributes = field.One2many( "mercadolibre.grid.attribute.line", string="Attributes" )
+    rows = field.One2many( "mercadolibre.grid.row", string="Rows" )
+
+    def prepare_vals( self, djson ):
+        fields = {
+            "meli_id": djson["id"],
+            "name": json.dumps(djson["names"]),
+            "type": djson["type"],
+            "domain_id": djson["domain_id"],
+            "main_attribute_id": djson["main_attribute_id"],
+            "data_json": json.dumps(djson),
+        }
+        for att in djson["attributes"]:
+            #create attribute
+            att_field = self.env["mercadolibre.grid.attribute.line"].prepare_vals(att)
+
+
+        for row in djson["rows"]:
+            row_field = self.env["mercadolibre.grid.row"].prepare_vals(row)
+
+
+        return fields
+
+    def search_charts(self, category, brand, gender ):
+        #get the category with the catalog_domain
+        return True
+
+
+
+#al pedir una categoria traer el dominio!
