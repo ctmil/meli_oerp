@@ -692,13 +692,11 @@ class mercadolibre_grid_attribute_line(models.Model):
 
     def prepare_vals( self, djson ):
         fields = {
-            "meli_id": djson["id"],
-            "name": json.dumps(djson["names"]),
-            "type": djson["type"],
-            "domain_id": djson["domain_id"],
-            "main_attribute_id": djson["main_attribute_id"],
-            "data_json": json.dumps(djson),
+            #"grid_chart_id": djson["id"],
+            #"att_id":
+            #"val_id":
         }
+        return fields
 
 class mercadolibre_grid_row(models.Model):
     _name = "mercadolibre.grid.row"
@@ -711,7 +709,7 @@ class mercadolibre_grid_row(models.Model):
     def prepare_vals( self, djson ):
         fields = {
             "meli_id": djson["id"],
-            "grid_chart_id": self.get_grid_chart_id(),
+            #"grid_chart_id": self.get_grid_chart_id(),
 
         }
         return fields
