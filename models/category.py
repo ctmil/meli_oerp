@@ -755,6 +755,7 @@ class mercadolibre_grid_chart(models.Model):
 
     def create_chart(self, djson ):
         vals = self.prepare_vals(djson)
+        _logger.info("create_chart vals: " +str(vals))
         chart = self.search([('meli_id','=',vals["meli_id"])],limit=1)
         if not chart:
             chart = self.create(vals)
