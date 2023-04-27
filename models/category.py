@@ -565,15 +565,18 @@ class mercadolibre_category(models.Model):
         meli = meli or self.env['meli.util'].get_new_instance(company)
         for cat in self:
             #https://api.mercadolibre.com/catalog/charts/search
-            response_chart = meli.post("/catalog/charts/search", {
+            params = {
                 'access_token': meli.access_token,
                 'site_id': "MLA",
                 'domain_id': str(cat.catalog_domain),
                 'seller_id': meli.seller_id
-                })
+                }
+            _logger:info("params:"+str(params))
+            response_chart = meli.post("/catalog/charts/search", )
             _logger.info("response_chart para "+str(cat.catalog_domain)+": "+str(response_chart))
             rjson_chart = response_chart and response_chart.json()
-            cat.catalog_domain_chart_result = json.dump(rjson_chart)
+            _logger.info("rjson_chart para "+str(cat.catalog_domain)+": "+str(rjson_chart))
+            cat.catalog_domain_chart_result = rjson_chart and json.dumps(rjson_chart)
             cat.catalog_domain_chart_active = ( not ("is not active to be used in charts" in cat.catalog_domain_chart_result)) or True
 
     catalog_domain_link = fields.Char(string="Domain Id Link",compute=_catalog_domain_link)
