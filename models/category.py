@@ -568,9 +568,10 @@ class mercadolibre_category(models.Model):
             params = {
                 'access_token': meli.access_token
             }
+            site_id = "MLA"
             body = {
-                'site_id': "MLA",
-                'domain_id': str(cat.catalog_domain),
+                'site_id': site_id,
+                'domain_id': str(cat.catalog_domain).replace(site_id+str("-"),""),
                 'seller_id': int(meli.seller_id)
                 }
             _logger.info("params:"+str(params))
