@@ -417,14 +417,40 @@ class mercadolibre_category(models.Model):
                 if (father and father.id):
                     cat_fields['meli_father_category'] = father.id
                 _logger.info(cat_fields)
-                ml_cat_id = category_obj.create((cat_fields))
+                ml_cat_id = ml_cat_id.create((cat_fields))
                 if (ml_cat_id.id and is_branch==False):
                   ml_cat_id._get_attributes()
 
             if (ml_cat_id):
                 _logger.info("MercadoLibre Category Ok: "+str(ml_cat_id)+" www_cats:"+str(www_cats))
+
                 if 'product.public.category' in self.env:
                     www_cat_id = ml_cat_id.public_category_id
+
+                fullname = ""
+                if ("path_from_root" in rjson_cat):
+                  path_from_root = rjson_cat["path_from_root"]
+                  for path in path_from_root:
+                    fullname = fullname + "/" + path["name"]
+                  if (len(rjson_cat["path_from_root"])>1):
+                      father_ml_id = rjson_cat["path_from_root"][len(rjson_cat["path_from_root"])-2]["id"]
+                      father_id = category_obj.search([('meli_category_id','=',father_ml_id)])
+                      if (father_id and len(father_id)):
+                          father = father_id[0]
+                cat_fields = {
+                    'name': fullname,
+                    'meli_category_id': ''+str(category_id),
+                    'is_branch': is_branch,
+                    #'meli_father_category': father
+                }
+                cat_fields["catalog_domain"] = "settings" in rjson_cat and "catalog_domain" in rjson_cat["settings"] and rjson_cat["settings"]["catalog_domain"]
+                cat_fields["data_json"] = json.dumps(rjson_cat)
+                if (father and father.id):
+                    cat_fields['meli_father_category'] = father.id
+                _logger.info(cat_fields)
+                ml_cat_id.write((cat_fields))
+                if (ml_cat_id.id and is_branch==False):
+                  ml_cat_id._get_attributes()
 
             if not www_cat_id and create_missing_website and 'product.public.category' in self.env:
                 _logger.info("Ecommerce category missing")
