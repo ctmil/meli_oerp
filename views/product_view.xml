@@ -113,7 +113,7 @@
                               class="oe_stat_button">
                               <img src="/meli_oerp/static/src/img/logo_ML.png" width="48"  alt="logo ml"/>
                               <span>Activar</span>
-                          </button>                          
+                          </button>
                           <button name='%(action_product_template_post)d' type="action"
                             string="Publicar"
                             title="Publicar/Actualizar en ML"
@@ -161,6 +161,8 @@
                         <!--<field name="meli_attributes" />-->
                         <field name="meli_brand"/>
                         <field name="meli_model"/>
+                        <field name="meli_gender"/>
+                        <field name="meli_grid_chart_id"/>
                       </group>
                       <separator string="Condiciones de venta" colspan="1"/>
                       <group name="ML buying conditions">
