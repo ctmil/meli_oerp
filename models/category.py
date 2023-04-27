@@ -421,6 +421,7 @@ class mercadolibre_category(models.Model):
                 ml_cat_id = ml_cat_id.create((cat_fields))
                 if (ml_cat_id.id and is_branch==False):
                   ml_cat_id._get_attributes()
+                  ml_cat_id.get_search_chart(meli=meli)
 
             if (ml_cat_id):
                 _logger.info("MercadoLibre Category Ok: "+str(ml_cat_id)+" www_cats:"+str(www_cats))
@@ -452,8 +453,10 @@ class mercadolibre_category(models.Model):
                     cat_fields['meli_father_category'] = father.id
                 _logger.info(cat_fields)
                 ml_cat_id.write((cat_fields))
+
                 if (ml_cat_id.id and is_branch==False):
                   ml_cat_id._get_attributes()
+                  ml_cat_id.(meli=meli)
 
             if not www_cat_id and create_missing_website and 'product.public.category' in self.env:
                 _logger.info("Ecommerce category missing")
@@ -556,9 +559,27 @@ class mercadolibre_category(models.Model):
         for cat in self:
             cat.catalog_domain_link = (cat.catalog_domain and "https://api.mercadolibre.com/catalog_domains/"+str(cat.catalog_domain)) or ""
 
+    def get_search_chart( self, meli=None ):
+        ##https://api.mercadolibre.com/catalog/charts/search
+        company = self.env.user.company_id
+        meli = meli or self.env['meli.util'].get_new_instance(company)
+        for cat in self:
+            #https://api.mercadolibre.com/catalog/charts/search
+            response_dom = meli.post("/catalog/charts/search", {
+                'access_token': meli.access_token,
+                'site_id': "MLA",
+                'domain_id': str(cat.catalog_domain),
+                'seller_id': meli.seller_id
+                })
+            _logger.info("response_chart para "+str(cat.catalog_domain)+": "+str(response_chart))
+            rjson_chart = response_chart and response_chart.json()
+            cat.catalog_domain_chart_result = json.dump(rjson_chart)
+            cat.catalog_domain_chart_active = ( not ("is not active to be used in charts" in cat.catalog_domain_chart_result)) or True
 
     catalog_domain_link = fields.Char(string="Domain Id Link",compute=_catalog_domain_link)
     catalog_domain_json = fields.Text(string="Domain id json")
+    catalog_domain_chart_active = fields.Boolean(string="Domain Charts active", index=True,readonly=True)
+    catalog_domain_chart_result = fields.Text(string="Domain Charts result",index=True)
 
     data_json = fields.Text(string="Data json")
 

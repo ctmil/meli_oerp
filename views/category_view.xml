@@ -133,8 +133,8 @@
                       <field name="public_categories" string="Ecommerce Categories"/>
                       <field name="catalog_domain"/>
                       <field name="catalog_domain_link" widget="url"/>
-                      <field name="catalog_domain_json"/>
-                      <field name="data_json"/>
+                      <field name="catalog_domain_chart_active"/>
+                      <field name="catalog_domain_chart_result"/>
                       <separator name="Settings" />
                       <field name="meli_category_settings"/>
                       <field name="meli_setting_minimum_price"/>
@@ -143,6 +143,8 @@
                     <group>
                       <field name="meli_father_category_id"/>
                       <field name="meli_father_category"/>
+                      <field name="catalog_domain_json"/>
+                      <field name="data_json"/>
                     </group>
                 </group>
                 <field name="meli_category_attributes" widget="url"/>
