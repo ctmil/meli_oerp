@@ -421,7 +421,7 @@ class mercadolibre_category(models.Model):
                 ml_cat_id = ml_cat_id.create((cat_fields))
                 if (ml_cat_id.id and is_branch==False):
                   ml_cat_id._get_attributes()
-                  ml_cat_id.get_search_chart(meli=meli)
+                  ml_cat_id.get_search_chart_filters(meli=meli)
 
             if (ml_cat_id):
                 _logger.info("MercadoLibre Category Ok: "+str(ml_cat_id)+" www_cats:"+str(www_cats))
@@ -456,7 +456,7 @@ class mercadolibre_category(models.Model):
 
                 if (ml_cat_id.id and is_branch==False):
                   ml_cat_id._get_attributes()
-                  ml_cat_id.get_search_chart(meli=meli)
+                  ml_cat_id.get_search_chart_filters(meli=meli)
 
             if not www_cat_id and create_missing_website and 'product.public.category' in self.env:
                 _logger.info("Ecommerce category missing")
@@ -559,26 +559,68 @@ class mercadolibre_category(models.Model):
         for cat in self:
             cat.catalog_domain_link = (cat.catalog_domain and "https://api.mercadolibre.com/catalog_domains/"+str(cat.catalog_domain)) or ""
 
-    def get_search_chart( self, meli=None ):
+    def get_search_chart( self, brand=None, gender=None, model=None, meli=None ):
         ##https://api.mercadolibre.com/catalog/charts/search
         company = self.env.user.company_id
         meli = meli or self.env['meli.util'].get_new_instance(company)
-        for cat in self:
-            #https://api.mercadolibre.com/catalog/charts/search
-            params = {
-                'access_token': meli.access_token
+        cat = self
+        #https://api.mercadolibre.com/catalog/charts/search
+        params = {
+            'access_token': meli.access_token
+        }
+        site_id = "MLA"
+        body = {
+            'site_id': site_id,
+            'domain_id': str(cat.catalog_domain).replace(site_id+str("-"),""),
+            'seller_id': int(meli.seller_id),
+            'attributes': []
             }
-            site_id = "MLA"
-            body = {
-                'site_id': site_id,
-                'domain_id': str(cat.catalog_domain).replace(site_id+str("-"),""),
-                'seller_id': int(meli.seller_id)
-                }
-            _logger.info("params:"+str(params))
-            response_chart = meli.post( path="/catalog/charts/search", body=body, params=params )
-            _logger.info("response_chart para "+str(cat.catalog_domain)+": "+str(response_chart))
-            rjson_chart = response_chart and response_chart.json()
-            _logger.info("rjson_chart para "+str(cat.catalog_domain)+": "+str(rjson_chart))
+
+        if brand:
+            body["attributes"].append({
+                "id": "BRAND",
+               "values": [
+                   {
+                       "name": str(brand)
+                   }
+               ]
+
+            })
+
+        if gender:
+            body["attributes"].append({
+                "id": "GENDER",
+               "values": [
+                   {
+                       "name": str(gender)
+                   }
+               ]
+            })
+
+        if model:
+            body["attributes"].append({
+                "id": "MODEL",
+               "values": [
+                   {
+                       "name": str(model)
+                   }
+               ]
+            })
+
+
+        _logger.info("params:"+str(params))
+        response_chart = meli.post( path="/catalog/charts/search", body=body, params=params )
+        _logger.info("response_chart para "+str(cat.catalog_domain)+": "+str(response_chart))
+        rjson_chart = response_chart and response_chart.json()
+        _logger.info("rjson_chart para "+str(cat.catalog_domain)+": "+str(rjson_chart))
+
+        return rjson_chart
+
+
+    def get_search_chart_filters( self, meli=None ):
+        cat = self
+        rjson_chart = cat.get_search_chart(meli=meli)
+        if rjson_chart:
             cat.catalog_domain_chart_result = rjson_chart and json.dumps(rjson_chart)
             cat.catalog_domain_chart_active = ( not ("domain_not_active" in cat.catalog_domain_chart_result))
 
