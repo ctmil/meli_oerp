@@ -582,7 +582,7 @@ class mercadolibre_category(models.Model):
     catalog_domain_link = fields.Char(string="Domain Id Link",compute=_catalog_domain_link)
     catalog_domain_json = fields.Text(string="Domain id json")
     catalog_domain_chart_active = fields.Boolean(string="Domain Charts active", index=True,readonly=True)
-    catalog_domain_chart_result = fields.Text(string="Domain Charts result",index=True)
+    catalog_domain_chart_result = fields.Text(string="Domain Charts result")
 
     data_json = fields.Text(string="Data json")
 
