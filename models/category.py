@@ -510,7 +510,7 @@ class mercadolibre_category(models.Model):
     # https://api.mercadolibre.com/sites/MLM/listing_types#json
 
     catalog_domain = fields.Char(string="Domain Id")
-    data_json = field.Text(string="Data json")
+    data_json = fields.Text(string="Data json")
 
     _sql_constraints = [
     	('unique_meli_category_id','unique(meli_category_id)','Meli Category id already exists!'),
@@ -586,7 +586,7 @@ class mercadolibre_grid_row(models.Model):
 
     meli_id = fields.Char(string="Id",required=True,index=True)
     grid_chart_id = fields.Many2one("mercadolibre.grid.chart", string="Chart id")
-    attribute_values = fields.One2many("mercadolibre.grid.row.line", string="Attributes Values")
+    attribute_values = fields.One2many("mercadolibre.grid.row.line", "grid_row_id", string="Attributes Values")
 
     def prepare_vals( self, djson ):
         fields = {
@@ -605,9 +605,9 @@ class mercadolibre_grid_chart(models.Model):
     name = fields.Char(string="Nombre de la guia de talles")
     type = fields.Char(string="Tipo de la guia de talles")
     main_attribute_id = fields.Char( string="Atributo principal de la guia de talles" )
-    data_json = field.Text( string="Data json" )
-    attributes = field.One2many( "mercadolibre.grid.attribute.line", string="Attributes" )
-    rows = field.One2many( "mercadolibre.grid.row", string="Rows" )
+    data_json = fields.Text( string="Data json" )
+    attributes = fields.One2many( "mercadolibre.grid.attribute.line", "grid_chart_id", string="Attributes" )
+    rows = fields.One2many( "mercadolibre.grid.row", "grid_chart_id", string="Rows" )
 
     def prepare_vals( self, djson ):
         fields = {
