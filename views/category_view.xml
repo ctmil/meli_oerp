@@ -132,6 +132,8 @@
                       <field name="public_category" string="Ecommerce Category"/>
                       <field name="public_categories" string="Ecommerce Categories"/>
                       <field name="catalog_domain"/>
+                      <field name="catalog_domain_link"/>
+                      <field name="catalog_domain_json"/>
                       <field name="data_json"/>
                       <separator name="Settings" />
                       <field name="meli_category_settings"/>

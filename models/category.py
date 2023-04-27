@@ -414,6 +414,7 @@ class mercadolibre_category(models.Model):
                 }
                 cat_fields["catalog_domain"] = "settings" in rjson_cat and "catalog_domain" in rjson_cat["settings"] and rjson_cat["settings"]["catalog_domain"]
                 cat_fields["data_json"] = json.dumps(rjson_cat)
+                cat_fields["catalog_domain_json"] = self.get_catalog_domain_json(catalog_domain=cat_fields["catalog_domain"],meli=meli)
                 if (father and father.id):
                     cat_fields['meli_father_category'] = father.id
                 _logger.info(cat_fields)
@@ -445,6 +446,8 @@ class mercadolibre_category(models.Model):
                 }
                 cat_fields["catalog_domain"] = "settings" in rjson_cat and "catalog_domain" in rjson_cat["settings"] and rjson_cat["settings"]["catalog_domain"]
                 cat_fields["data_json"] = json.dumps(rjson_cat)
+                cat_fields["catalog_domain_json"] = self.get_catalog_domain_json(catalog_domain=cat_fields["catalog_domain"],meli=meli)
+
                 if (father and father.id):
                     cat_fields['meli_father_category'] = father.id
                 _logger.info(cat_fields)
@@ -534,8 +537,28 @@ class mercadolibre_category(models.Model):
     # check: https://www.mercadolibre.com.mx/ayuda/Costos-de-vender-un-producto_870
     #ver tambien: https://www.mercadolibre.com.mx/ayuda/Tarifas-y-facturacion_1044
     # https://api.mercadolibre.com/sites/MLM/listing_types#json
+    def get_catalog_domain_json( self, catalog_domain=None, meli=None ):
+        company = self.env.user.company_id
+        meli = meli or self.env['meli.util'].get_new_instance(company)
+        for cat in self:
+            if not catalog_domain:
+                catalog_domain = cat.catalog_domain
+            if catalog_domain:
+                response_dom = meli.get("/catalog_domains/"+str(catalog_domain), {'access_token':meli.access_token})
+                rjson_dom = response_dom and response_dom.json()
+                if rjson_dom:
+                    cat.catalog_domain_json = json.dumps(rjson_dom)
+
 
     catalog_domain = fields.Char(string="Domain Id")
+    def _catalog_domain_link(self):
+        for cat in self:
+            cat.catalog_domain_link = (cat.catalog_domain and "https://api.mercadolibre.com/catalog_domains/"+str(cat.catalog_domain)) or ""
+
+
+    catalog_domain_link = fields.Char(string="Domain Id Link",compute=_catalog_domain_link)
+    catalog_domain_json = fields.Text(string="Domain id json")
+
     data_json = fields.Text(string="Data json")
 
     _sql_constraints = [
