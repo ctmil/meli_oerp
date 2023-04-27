@@ -565,7 +565,7 @@ class mercadolibre_category(models.Model):
         meli = meli or self.env['meli.util'].get_new_instance(company)
         for cat in self:
             #https://api.mercadolibre.com/catalog/charts/search
-            response_dom = meli.post("/catalog/charts/search", {
+            response_chart = meli.post("/catalog/charts/search", {
                 'access_token': meli.access_token,
                 'site_id': "MLA",
                 'domain_id': str(cat.catalog_domain),
