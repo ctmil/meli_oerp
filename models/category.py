@@ -571,7 +571,7 @@ class mercadolibre_category(models.Model):
                 'domain_id': str(cat.catalog_domain),
                 'seller_id': meli.seller_id
                 }
-            _logger:info("params:"+str(params))
+            _logger.info("params:"+str(params))
             response_chart = meli.post("/catalog/charts/search", )
             _logger.info("response_chart para "+str(cat.catalog_domain)+": "+str(response_chart))
             rjson_chart = response_chart and response_chart.json()
