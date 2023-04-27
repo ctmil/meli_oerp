@@ -456,7 +456,7 @@ class mercadolibre_category(models.Model):
 
                 if (ml_cat_id.id and is_branch==False):
                   ml_cat_id._get_attributes()
-                  ml_cat_id.(meli=meli)
+                  ml_cat_id.get_search_chart(meli=meli)
 
             if not www_cat_id and create_missing_website and 'product.public.category' in self.env:
                 _logger.info("Ecommerce category missing")
