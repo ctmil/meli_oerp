@@ -2801,6 +2801,26 @@ class product_product(models.Model):
             _logger.info("attributes:"+str(attributes))
             product.meli_attributes = str(attributes)
 
+
+        #GRID_SIZE_ID > GUIA DE TALLES
+        if (product.meli_category):
+            if (product.meli_category.catalog_domain_chart_active):
+                #buscar una guia de talles ok
+                rjson_charts = product.meli_category.get_search_chart( meli=meli, brand=product.meli_brand, gender=product.meli_gender)
+                _logger.info("rjson_charts: " +str(rjson_charts))
+                if rjson_charts:
+                    for charts in rjson_charts:
+                        _logger.info("charts: " +str(charts))
+                        self.env["mercadolibre.grid.chart"].create_chart(charts)
+
+
+        if (product.meli_grid_chart_id):
+            #get_search_chart
+            attribute = { "id": "GRID_SIZE_ID", "value_name": product.meli_grid_chart_id.meli_id }
+            attributes.append(attribute)
+            _logger.info("attributes:"+str(attributes))
+            product.meli_attributes = str(attributes)
+
         #_product_post_set_category
         if www_cats:
             if product.public_categ_ids:

@@ -622,7 +622,8 @@ class mercadolibre_category(models.Model):
         rjson_chart = cat.get_search_chart(meli=meli)
         if rjson_chart:
             cat.catalog_domain_chart_result = rjson_chart and json.dumps(rjson_chart)
-            cat.catalog_domain_chart_active = ( not ("domain_not_active" in cat.catalog_domain_chart_result))
+            cat.catalog_domain_chart_active = (( not ("domain_not_active" in cat.catalog_domain_chart_result)) and
+                                                "filters_validation_error" in cat.catalog_domain_chart_result)
 
     catalog_domain_link = fields.Char(string="Domain Id Link",compute=_catalog_domain_link)
     catalog_domain_json = fields.Text(string="Domain id json")
@@ -752,6 +753,14 @@ class mercadolibre_grid_chart(models.Model):
         #get the category with the catalog_domain
         return True
 
+    def create_chart(self, djson ):
+        vals = self.prepare_vals(djson)
+        chart = self.search([('meli_id','=',vals["meli_id"])],limit=1)
+        if not chart:
+            chart = self.create(vals)
+        else:
+            chart.write(vals)
+        return chart
 
 
 #al pedir una categoria traer el dominio!
