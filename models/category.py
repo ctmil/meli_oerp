@@ -540,6 +540,7 @@ class mercadolibre_category(models.Model):
     def get_catalog_domain_json( self, catalog_domain=None, meli=None ):
         company = self.env.user.company_id
         meli = meli or self.env['meli.util'].get_new_instance(company)
+        catalog_domain_json = ""
         for cat in self:
             if not catalog_domain:
                 catalog_domain = cat.catalog_domain
@@ -547,7 +548,9 @@ class mercadolibre_category(models.Model):
                 response_dom = meli.get("/catalog_domains/"+str(catalog_domain), {'access_token':meli.access_token})
                 rjson_dom = response_dom and response_dom.json()
                 if rjson_dom:
-                    cat.catalog_domain_json = json.dumps(rjson_dom)
+                    catalog_domain_json = json.dumps(rjson_dom)
+
+        return catalog_domain_json
 
 
     catalog_domain = fields.Char(string="Domain Id")
