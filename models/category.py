@@ -579,7 +579,7 @@ class mercadolibre_category(models.Model):
             rjson_chart = response_chart and response_chart.json()
             _logger.info("rjson_chart para "+str(cat.catalog_domain)+": "+str(rjson_chart))
             cat.catalog_domain_chart_result = rjson_chart and json.dumps(rjson_chart)
-            cat.catalog_domain_chart_active = ( not ("is not active to be used in charts" in cat.catalog_domain_chart_result))
+            cat.catalog_domain_chart_active = ( not ("domain_not_active" in cat.catalog_domain_chart_result))
 
     catalog_domain_link = fields.Char(string="Domain Id Link",compute=_catalog_domain_link)
     catalog_domain_json = fields.Text(string="Domain id json")
