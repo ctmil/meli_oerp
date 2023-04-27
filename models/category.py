@@ -541,14 +541,12 @@ class mercadolibre_category(models.Model):
         company = self.env.user.company_id
         meli = meli or self.env['meli.util'].get_new_instance(company)
         catalog_domain_json = ""
-        for cat in self:
-            if not catalog_domain:
-                catalog_domain = cat.catalog_domain
-            if catalog_domain:
-                response_dom = meli.get("/catalog_domains/"+str(catalog_domain), {'access_token':meli.access_token})
-                rjson_dom = response_dom and response_dom.json()
-                if rjson_dom:
-                    catalog_domain_json = json.dumps(rjson_dom)
+        if catalog_domain:
+            response_dom = meli.get("/catalog_domains/"+str(catalog_domain), {'access_token':meli.access_token})
+            _logger.info("response_dom para "+str(catalog_domain)+": "+str(response_dom))
+            rjson_dom = response_dom and response_dom.json()
+            if rjson_dom:
+                catalog_domain_json = json.dumps(rjson_dom)
 
         return catalog_domain_json
 
