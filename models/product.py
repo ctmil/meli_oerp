@@ -2809,7 +2809,8 @@ class product_product(models.Model):
                 rjson_charts = product.meli_category.get_search_chart( meli=meli, brand=product.meli_brand, gender=product.meli_gender)
                 _logger.info("rjson_charts: " +str(rjson_charts))
                 if rjson_charts:
-                    for charts in rjson_charts:
+                    rjson_charts_a = "charts" in rjson_charts and rjson_charts["charts"]
+                    for charts in rjson_charts_a:
                         _logger.info("charts: " +str(charts))
                         self.env["mercadolibre.grid.chart"].create_chart(charts)
 
