@@ -2805,6 +2805,13 @@ class product_product(models.Model):
         #GRID_SIZE_ID > GUIA DE TALLES
         if (product.meli_category):
             if (product.meli_category.catalog_domain_chart_active):
+
+                if product.meli_gender and len(product.meli_gender) > 0 and not "GENDER" in attributes_ids:
+                    attribute = { "id": "GENDER", "value_name": product.meli_gender }
+                    attributes.append(attribute)
+                    _logger.info("attributes:"+str(attributes))
+                    product.meli_attributes = str(attributes)
+
                 #buscar una guia de talles ok
                 rjson_charts = product.meli_category.get_search_chart( meli=meli, brand=product.meli_brand, gender=product.meli_gender)
                 _logger.info("rjson_charts: " +str(rjson_charts))
