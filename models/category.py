@@ -710,7 +710,7 @@ class mercadolibre_grid_row(models.Model):
         fields = {
             "meli_id": djson["id"],
             #"grid_chart_id": self.get_grid_chart_id(),
-
+            "attribute_values": []
         }
         return fields
 
@@ -740,10 +740,12 @@ class mercadolibre_grid_chart(models.Model):
             #create attribute
             att_field = self.env["mercadolibre.grid.attribute.line"].prepare_vals(att)
 
-
+        row_arrs = []
         for row in djson["rows"]:
             row_field = self.env["mercadolibre.grid.row"].prepare_vals(row)
+            row_arrs.append( (0, 0, row_field) )
 
+        fields["rows"] = row_arrs
 
         return fields
 
@@ -760,6 +762,40 @@ class mercadolibre_grid_chart(models.Model):
         else:
             chart.write(vals)
         return chart
+
+    def update_attributes(self, product=None):
+        #
+        _logger.info("update_attributes")
+        #search for an attribute SIZE also related to this chart id.
+        # if not, create it
+        ml_size_att = self.env["mercadolibre.category.attribute"].search([('att_id','=','SIZE')], limit=1)
+        all_odoo_sizes = self.env["product.attribute"].search([
+                    ('meli_default_id_attribute','=',ml_size_att.id),
+                    ('meli_chart_id','=',self.id)
+                    ])
+        if (all_odoo_sizes):
+            #solo recargar los valores o chequearlos
+            _logger.info("update_attributes: reload")
+            for osi in all_odoo_sizes:
+                self.update_attribute_values( osi )
+        else:
+            odoo_att_fields = {
+                "name": "Talle",
+                "meli_default_id_attribute": ml_size_att.id,
+                "meli_chart_id": self.id,
+                "create_variant": "always"
+            }
+            _logger.info("update_attributes: create "+str(odoo_att_fields))
+            osi = self.env["product.attribute"].create(odoo_att_fields)
+            if (osi):
+                self.update_attribute_values( osi )
+
+    def update_attribute_values(self, osi ):
+        if osi:
+            _logger.info("update_attributes: reload att values in odoo")
+
+
+
 
 
 #al pedir una categoria traer el dominio!

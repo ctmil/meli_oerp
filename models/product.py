@@ -2827,6 +2827,7 @@ class product_product(models.Model):
 
 
         if (product.meli_grid_chart_id):
+            product.meli_grid_chart_id.update_attributes(product=product)
             #get_search_chart
             attribute = { "id": "SIZE_GRID_ID", "value_name": product.meli_grid_chart_id.meli_id }
             attributes.append(attribute)
