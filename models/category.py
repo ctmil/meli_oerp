@@ -741,7 +741,7 @@ class mercadolibre_grid_chart(models.Model):
             att_field = self.env["mercadolibre.grid.attribute.line"].prepare_vals(att)
 
         row_arrs = []
-        row_arrs.append((5))
+        row_arrs.append((5,0,0))
         for row in djson["rows"]:
             row_field = self.env["mercadolibre.grid.row"].prepare_vals(row)
             row_arrs.append( (0, 0, row_field) )
