@@ -2751,6 +2751,10 @@ class product_product(models.Model):
                         attribute = { "id": "MODEL", "value_name": atval }
                         attributes_ids[attribute["id"]] = attribute["value_name"]
                         attributes.append(attribute)
+                    if (atname=="GENERO" or atname=="GENDER"):
+                        attribute = { "id": "GENDER", "value_name": atval }
+                        attributes_ids[attribute["id"]] = attribute["value_name"]
+                        attributes.append(attribute)
 
                     if (not product_tmpl.meli_pub_as_variant):
                         if (atname=="GTIN" or atname=="Código universal de producto"):
