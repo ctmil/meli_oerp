@@ -664,31 +664,13 @@ class mercadolibre_grid_attribute(models.Model):
             "name": json.dumps(djson["name"]),
         }
 
-class mercadolibre_grid_row_line(models.Model):
-    _name = "mercadolibre.grid.row.line"
-    _description = "Linea de atributo de Guia de talles de MercadoLibre"
-
-    grid_row_id = fields.Many2one("mercadolibre.grid.row", string="row id")
-    att_id = fields.Many2one("mercadolibre.grid.attribute", string="Attribute")
-    val_id = fields.Many2one("mercadolibre.grid.value", string="Values")
-
-    def prepare_vals( self, djson ):
-        fields = {
-            "meli_id": djson["id"],
-            "name": json.dumps(djson["names"]),
-            "type": djson["type"],
-            "domain_id": djson["domain_id"],
-            "main_attribute_id": djson["main_attribute_id"],
-            "data_json": json.dumps(djson),
-        }
-
 class mercadolibre_grid_attribute_line(models.Model):
     _name = "mercadolibre.grid.attribute.line"
     _description = "Linea de atributo de Guia de talles de MercadoLibre"
 
     grid_chart_id = fields.Many2one("mercadolibre.grid.chart", string="row id")
-    att_id = fields.Many2one("mercadolibre.grid.attribute", string="Attribute")
-    val_id = fields.Many2one("mercadolibre.grid.value", string="Values")
+    #att_id = fields.Many2one("mercadolibre.grid.attribute", string="Attribute")
+    #val_id = fields.Many2one("mercadolibre.grid.value", string="Values")
 
     def prepare_vals( self, djson ):
         fields = {
@@ -698,20 +680,46 @@ class mercadolibre_grid_attribute_line(models.Model):
         }
         return fields
 
+class mercadolibre_grid_row_col(models.Model):
+    _name = "mercadolibre.grid.row.col"
+    _description = "Col de atributo de Guia de talles de MercadoLibre"
+
+    grid_row_id = fields.Many2one("mercadolibre.grid.row", string="Row id")
+    #att_id = fields.Many2one("mercadolibre.grid.attribute", string="Attribute")
+    #val_id = fields.Many2one("mercadolibre.grid.value", string="Values")
+    att_id = fields.Char(string="Id",required=True,index=True)
+    att_name = fields.Char(string="Name",required=True,index=True)
+    att_value = fields.Char(string="Value",required=True,index=True)
+
+    def prepare_vals( self, djson ):
+        fields = {
+            "att_id": djson["id"],
+            "att_name": djson["name"],
+            "att_value": "values" in djson and djson["values"][0]["name"],
+        }
+        return fields
+
 class mercadolibre_grid_row(models.Model):
     _name = "mercadolibre.grid.row"
     _description = "Fila de guia de talles de MercadoLibre"
 
-    meli_id = fields.Char(string="Id",required=True,index=True)
+    row_id = fields.Char(string="Id",required=True,index=True)
     grid_chart_id = fields.Many2one("mercadolibre.grid.chart", string="Chart id")
-    attribute_values = fields.One2many("mercadolibre.grid.row.line", "grid_row_id", string="Attributes Values")
+    attribute_values = fields.One2many("mercadolibre.grid.row.col", "grid_row_id", string="Attributes Values")
 
     def prepare_vals( self, djson ):
         fields = {
-            "meli_id": djson["id"],
+            "row_id": djson["id"],
             #"grid_chart_id": self.get_grid_chart_id(),
             "attribute_values": []
         }
+        row_att_arrs = []
+        row_att_arrs.append((5,0,0))
+        for row_att in djson["attributes"]:
+            att_field = self.env["mercadolibre.grid.row.col"].prepare_vals(row_att)
+            row_att_arrs.append( (0, 0, att_field) )
+
+        fields["attribute_values"] = row_att_arrs
         return fields
 
 class mercadolibre_grid_chart(models.Model):
