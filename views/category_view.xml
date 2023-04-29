@@ -75,7 +75,7 @@
                <field name="meli_default_id_attribute"/>
              </xpath>-->
              <field name="create_variant" position="after">
-               <field name="meli_grid_chart_id"/>
+               <field name="meli_chart_id"/>
                <field name="meli_default_id_attribute"/>
                <field name="meli_default_id_attribute_hidden"/>
                <field name="meli_default_id_attribute_variation_attribute"/>
