@@ -691,8 +691,8 @@ class mercadolibre_grid_row_col(models.Model):
     #att_id = fields.Many2one("mercadolibre.grid.attribute", string="Attribute")
     #val_id = fields.Many2one("mercadolibre.grid.value", string="Values")
     att_id = fields.Char(string="Id",required=True,index=True)
-    att_name = fields.Char(string="Name",required=True,index=True)
-    att_value = fields.Char(string="Value",required=True,index=True)
+    name = fields.Char(string="Name",required=True,index=True)
+    value = fields.Char(string="Value",required=True,index=True)
 
     def name_get(self):
         """Override because in general the name of the value is confusing if it
@@ -705,13 +705,13 @@ class mercadolibre_grid_row_col(models.Model):
         """
         #if not self._context.get('show_attribute', True):
         #    return super(mercadolibre_grid_row_col, self).name_get()
-        return [(col.att_id, "%s: %s" % (col.att_name, col.att_value)) for col in self]
+        return [(col.att_id, "%s: %s" % (col.name, col.value)) for col in self]
 
     def prepare_vals( self, djson ):
         fields = {
             "att_id": djson["id"],
-            "att_name": djson["name"],
-            "att_value": "values" in djson and djson["values"][0]["name"],
+            "name": djson["name"],
+            "value": "values" in djson and djson["values"][0]["name"],
         }
         return fields
 
