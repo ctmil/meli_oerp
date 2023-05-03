@@ -694,6 +694,19 @@ class mercadolibre_grid_row_col(models.Model):
     att_name = fields.Char(string="Name",required=True,index=True)
     att_value = fields.Char(string="Value",required=True,index=True)
 
+    def name_get(self):
+        """Override because in general the name of the value is confusing if it
+        is displayed without the name of the corresponding attribute.
+        Eg. on product list & kanban views, on BOM form view
+
+        However during variant set up (on the product template form) the name of
+        the attribute is already on each line so there is no need to repeat it
+        on every value.
+        """
+        #if not self._context.get('show_attribute', True):
+        #    return super(mercadolibre_grid_row_col, self).name_get()
+        return [(col.att_id, "%s: %s" % (col.att_name, col.att_value)) for col in self]
+
     def prepare_vals( self, djson ):
         fields = {
             "att_id": djson["id"],
