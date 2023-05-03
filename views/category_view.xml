@@ -118,7 +118,6 @@
                     <group>
                       <field name="domain_id"/>
                       <field name="main_attribute_id"/>
-                      <field name="data_json"/>
                     </group>
                 </group>
                 <field name="attributes">
@@ -131,9 +130,15 @@
                   <tree delete="0">
                     <field name="row_id"/>
                     <field name="attribute_values" widget="many2many_tags">
+                      <kanban>
+                        <field name="att_id"/>
+                        <field name="att_name"/>
+                        <field name="att_value"/>
+                      </kanban>
                     </field>
                   </tree>
                 </field>
+                <field name="data_json"/>
               </form>
             </field>
         </record>
