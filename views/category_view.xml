@@ -123,7 +123,6 @@
                 </group>
                 <field name="attributes">
                   <tree delete="0">
-                    <field name="name"/>
                     <field name="att_id"/>
                     <field name="val_id"/>
                   </tree>
