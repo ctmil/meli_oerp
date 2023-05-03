@@ -643,6 +643,9 @@ class mercadolibre_grid_value(models.Model):
 
     meli_id = fields.Char(string="Id",required=True,index=True)
     name = fields.Char(string="Nombre",index=True)
+    value = fields.Char(string="Value",index=True)
+    att_id = fields.Many2one("mercadolibre.grid.attribute", string="Attribute")
+
 
     def prepare_vals( self, djson ):
         fields = {
@@ -656,7 +659,7 @@ class mercadolibre_grid_attribute(models.Model):
 
     meli_id = fields.Char(string="Id",required=True,index=True)
     name = fields.Char(string="Nombre",index=True)
-    values = fields.Many2many("mercadolibre.grid.value", string="Values")
+    values = fields.One2many("mercadolibre.grid.value", "att_id", string="Values")
 
     def prepare_vals( self, djson ):
         fields = {
@@ -669,8 +672,8 @@ class mercadolibre_grid_attribute_line(models.Model):
     _description = "Linea de atributo de Guia de talles de MercadoLibre"
 
     grid_chart_id = fields.Many2one("mercadolibre.grid.chart", string="row id")
-    #att_id = fields.Many2one("mercadolibre.grid.attribute", string="Attribute")
-    #val_id = fields.Many2one("mercadolibre.grid.value", string="Values")
+    att_id = fields.Many2one("mercadolibre.grid.attribute", string="Attribute")
+    val_id = fields.Many2one("mercadolibre.grid.value", string="Values")
 
     def prepare_vals( self, djson ):
         fields = {
