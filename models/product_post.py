@@ -153,7 +153,7 @@ class product_template_update(models.TransientModel):
                     for variant in product.product_variant_ids:
                         variant.meli_pub = True
                 if (product.meli_pub):
-                        res = product.product_template_update(meli_id=meli_id)
+                    res = product.product_template_update(meli_id=meli_id)
 
             if res and 'name' in res:
                 return res
@@ -365,7 +365,7 @@ class product_template_import(models.TransientModel):
             totalmax = rjson['paging']['total']
         _logger.info( "totalmax: "+str(totalmax) )
         actives_to_sync = str(totalmax)
-        actives_total = len(fetched_meli_ids_active)
+        #actives_total = len(fetched_meli_ids_active)
 
         post_state_filter = { 'status': 'paused' }
         if meli_id:

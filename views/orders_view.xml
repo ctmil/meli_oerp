@@ -52,6 +52,7 @@
                     <field name="shipping_id" invisible="0"/>
                     <field name="order_product"/>
                     <field name="order_product_sku"/>
+                    <field name="order_product_meli_id"/>
                     <field name="status"/>
                     <field name="shipment_status" invisible="0"/>
                     <field name="shipment_substatus" invisible="0"/>
@@ -256,7 +257,11 @@
             <field name="model">mercadolibre.orders</field>
             <field name="arch" type="xml">
     	         <search string="Search MercadoLibre Orders Information">
-                 <field name="name" string="Order" filter_domain="['|', '|', '|', '|', ('name', 'ilike', self), ('order_id', 'ilike', self), ('pack_id', 'ilike', self), ('order_product_sku', 'ilike', self), ('buyer', 'ilike', self)]"/>
+                 <field name="name" string="Order" filter_domain="['|', '|', '|', '|','|', '|', ('name', 'ilike', self), ('order_id', 'ilike', self), ('pack_id', 'ilike', self), ('order_product_sku', 'ilike', self), ('order_product_meli_id', 'ilike', self), ('order_product_meli_variation_id', 'ilike', self), ('buyer', 'ilike', self)]"/>
+                 <field name="order_id" string="Order ID"/>
+                 <field name="order_product_sku" string="Product SKU"/>
+                 <field name="order_product_meli_id" string="Product Meli Id"/>
+                 <field name="order_product_meli_variation_id" string="Product Meli Var Id"/>
                  <field name="order_id" string="Order ID"/>
                  <field name="pack_id" string="Pack ID"/>
                  <field name="status" string="Status"/>

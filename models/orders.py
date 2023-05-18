@@ -369,20 +369,20 @@ class sale_order(models.Model):
         seller_team = (config and config.mercadolibre_seller_team) or None
         seller_user = (config and config.mercadolibre_seller_user) or None
 
-        _logger.info("meli_fix_team: company: "+str(company.name)
-                    +" seller_team:"+str(seller_team and seller_team.name))
+        #_logger.info("meli_fix_team: company: "+str(company.name)
+        #            +" seller_team:"+str(seller_team and seller_team.name))
 
 
         team_id = so.sudo().team_id
         user_id = so.sudo().user_id
         warehouse_id = so.sudo().warehouse_id
 
-        _logger.info("meli_fix_team: so.team_id: "+str(team_id and team_id.name)+ " warehouse_id: "+str(warehouse_id and warehouse_id.company_id.name) )
-        _logger.info("check warehouse_id company")
+        #_logger.info("meli_fix_team: so.team_id: "+str(team_id and team_id.name)+ " warehouse_id: "+str(warehouse_id and warehouse_id.company_id.name) )
+        #_logger.info("check warehouse_id company")
         if (warehouse_id and warehouse_id.company_id and (warehouse_id.company_id.id != company.id)):
             #unassign, wrong warehouse_id company
             so.sudo().write( { 'warehouse_id': None } )
-        _logger.info("check team")
+        #_logger.info("check team")
         if (team_id and team_id.company_id.id != company.id) or not team_id:
             if (seller_team and seller_team.company_id.id == company.id):
                 if team_id.id!=seller_team.id:
@@ -390,7 +390,7 @@ class sale_order(models.Model):
             else:
                 #unassign, wrong company team
                 so.sudo().write( { 'team_id': None } )
-        _logger.info("check user id")
+        #_logger.info("check user id")
         if (user_id and seller_user and user_id.id!=seller_user.id) or not user_id:
             if seller_user:
                 so.sudo().write( { 'user_id': seller_user.id } )
@@ -560,7 +560,7 @@ class mercadolibre_orders(models.Model):
         business_name = ('business_name' in Buyer and Buyer['business_name'])
         full_name = business_name or full_name or ''
 
-        return full_name
+        return full_name or ('id' in Buyer and Buyer['id'])
 
     def zip_code( self, Receiver={}, Buyer={}):
         if ( Receiver and 'billing_info' in Receiver and 'ZIP_CODE' in Receiver['billing_info'] ):
@@ -1069,7 +1069,7 @@ class mercadolibre_orders(models.Model):
 
             buyer_fields = {
                 'buyer_id': Buyer['id'],
-                'nickname': Buyer['nickname'],
+                'nickname': ('nickname' in Buyer and Buyer['nickname']) or "",
                 'email': ('email' in Buyer and Buyer['email']) or "",
                 'phone': self.full_phone( Buyer ),
                 'alternative_phone': self.full_alt_phone( Buyer ),
@@ -1621,7 +1621,7 @@ class mercadolibre_orders(models.Model):
                 order_fields["shipping_cost"] = float(order_json["shipping"]["cost"])
                 meli_order_fields["meli_shipping_cost"] = float(order_json["shipping"]["cost"])
 
-            if ("id" in order_json["shipping"]):
+            if ("id" in order_json["shipping"] and order_json["shipping"]["id"]):
                 order_fields['shipping_id'] = order_json["shipping"]["id"]
                 meli_order_fields['meli_shipping_id'] = order_json["shipping"]["id"]
 
@@ -1648,14 +1648,17 @@ class mercadolibre_orders(models.Model):
             if (config.mercadolibre_seller_team):
                 meli_order_fields["team_id"] = config.mercadolibre_seller_team.id
 
-            if 'pack_order' in order_json["tags"]:
+            if 'pack_order' in order_json["tags"] and order.shipping_id:
                 #_logger.info("Pack Order, dont create sale.order, leave it to mercadolibre.shipment")
                 if order and not order.sale_order:
                     order.message_post(body=str("Pack Order, dont create sale.order, leave it to mercadolibre.shipment"),message_type=order_message_type)
             else:
                 #_logger.info("Adding new sale.order: " )
                 sorder = saleorder_obj.create((meli_order_fields))
-                sorder.meli_fix_team( meli=meli, config=config )
+                if sorder:
+                    sorder.meli_fix_team( meli=meli, config=config )
+                    order.message_post(body=str("Sale order created!"),message_type=order_message_type)
+
 
         #check error
         if not order:
@@ -1687,24 +1690,29 @@ class mercadolibre_orders(models.Model):
                 #prepare for catalogs:
 
 
-                post_related = posting_obj.search([('meli_id','=',Item['item']['id'])])
+                post_related = posting_obj.search([
+                                                ('meli_id','=',Item['item']['id']),
+                                                ('meli_variation_id','=',Item['item']['variation_id'])
+                                                ])
                 if (post_related):
                     pass;
-                    #_logger.info("order post related by meli_id:",post_related)
+                    #_logger.info("order post related by meli_id:"+str(post_related))
                 else:
                     #create post!
                     posting_fields = {
                         'posting_date': str(datetime.now()),
-                        'meli_id':Item['item']['id'],
-                        'name': 'Order: ' + Item['item']['title'] }
+                        'meli_id': Item['item']['id'],
+                        'meli_variation_id': Item['item']['variation_id'],
+                        'name': 'Order: ' + Item['item']['title']
+                    }
 
                     post_related = self.env['mercadolibre.posting'].create((posting_fields))
 
-                if len(post_related):
+                if len(post_related)==1:
                     post_related_obj = post_related
                 else:
-                    error =  { 'error': 'No post related, exiting'}
-                    _logger.error( "No post related, exiting" )
+                    error =  { 'error': 'No post related or too much posts related, exiting '+str(post_related)}
+                    _logger.error( str(error) )
                     return error
 
 
@@ -1827,8 +1835,11 @@ class mercadolibre_orders(models.Model):
 
                 if (post_related and product_related):
                     #only assign to post if no object is already assigned
-                    if (post_related.product_id==False):
+                    if ( len(post_related)==1 and not post_related.product_id ):
                         post_related.product_id = product_related
+
+                    if (product_related and product_related.product_tmpl_id):
+                        UpdateProductType(product=product_related.product_tmpl_id)
 
                 order_item_fields = {
                     'order_id': order.id,
@@ -1867,10 +1878,14 @@ class mercadolibre_orders(models.Model):
                     _logger.error(error)
                     order and order.message_post(body=str(error["error"])+"\n"+str(error["item"]),message_type=order_message_type)
 
+                #Short cut to meli id and sku
                 order._order_product_sku()
+                order._order_product_meli_id()
+
                 prod_name = ( not product_related_obj and str("(NO ENCONTRADO) ["+order.order_product_sku+"] "+str(Item['item']['title']))) or product_related_obj.display_name
                 _logger.info("prod_name: "+str(prod_name))
                 order.name = "MO [%s] %s" % ( str(order.order_id), prod_name )
+
 
                 if (sorder and product_related_obj):
                     saleorderline_item_fields = {
@@ -1890,7 +1905,7 @@ class mercadolibre_orders(models.Model):
                                                                         ('order_id','=',sorder.id)] )
 
                     if not saleorderline_item_ids:
-                        if 1.1<abs((sorder.meli_paid_amount-sorder.meli_coupon_amount)-sorder.amount_total):
+                        if sorder.meli_paid_amount==0.0 or 1.1<abs((sorder.meli_paid_amount-sorder.meli_coupon_amount)-sorder.amount_total):
                             saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
                     else:
                         saleorderline_item_ids.write( ( saleorderline_item_fields ) )
@@ -1962,7 +1977,7 @@ class mercadolibre_orders(models.Model):
         #    return_id = self.env['mercadolibre.orders'].update
 
         if config.mercadolibre_cron_get_orders_shipment:
-            #_logger.info("Updating order: Shipment")
+            #_logger.info("Updating order: Shipment: "+str(order.shipping_id))
             if (order and order.shipping_id):
                 shipment = shipment_obj.fetch( order, meli=meli, config=config )
                 if (shipment):
@@ -2040,6 +2055,11 @@ class mercadolibre_orders(models.Model):
                         except Exception as e:
                             _logger.info("Error creating supplier shipment payment")
                             _logger.info(e, exc_info=True)
+
+        else:
+            _logger.error("Warning: sale order not created!")
+            if order:
+                order.message_post(body=str("Warning: sale order not created!"),message_type=order_message_type)
 
         try:
             self.orders_get_invoice()
@@ -2321,7 +2341,11 @@ class mercadolibre_orders(models.Model):
         #The order has not completed by some reason.
                                     ("cancelled","Cancelado"),
         #The order has been invalidated as it came from a malicious buyer.
-                                    ("invalid","Invalido: malicious")], string='Order Status')
+                                    ("invalid","Invalido: malicious"),
+        #The order status is cancelled, but an action is pending to complete the process.
+        ("pending_cancel", "Pendiente de cancelar")
+                                    ],
+        string='Order Status')
 
     status_detail = fields.Text(string='Status detail, in case the order was cancelled.')
     date_created = fields.Datetime('Creation date')
@@ -2375,6 +2399,18 @@ class mercadolibre_orders(models.Model):
                 ord.order_product_sku = ord.order_items[0].seller_sku or ord.order_items[0].seller_custom_field
 
     order_product_sku = fields.Char(string='Order Product Sku', compute=_order_product_sku, store=True, index=True )
+
+    def _order_product_meli_id(self):
+        for ord in self:
+            ord.order_product_meli_id = None
+            ord.order_product_meli_variation_id = None
+            item = ord.order_items and ord.order_items[0]
+            if item:
+                ord.order_product_meli_id = item.order_item_id
+                ord.order_product_meli_variation_id = item.order_item_variation_id
+
+    order_product_meli_id = fields.Char(string='Order Product Meli Id', compute=_order_product_meli_id, store=True, index=True )
+    order_product_meli_variation_id = fields.Char(string='Order Product Meli Full Id', compute=_order_product_meli_id, store=True, index=True )
 
     payments = fields.One2many('mercadolibre.payments','order_id',string='Payments' )
 

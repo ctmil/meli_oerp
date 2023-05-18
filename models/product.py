@@ -142,6 +142,7 @@ class product_template(models.Model):
         return ret
 
     def product_template_update(self, meli_id=None):
+        #_logger.info("product.template >> (core) product_template_update meli_id: "+str(meli_id))
         product_obj = self.env['product.template']
         company = self.env.user.company_id
         warningobj = self.env['meli.warning']
@@ -509,7 +510,7 @@ class product_product(models.Model):
             if (txfixed>0 or txpercent>0):
                 #_logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_converted))
                 ml_price_converted = txfixed + ml_price_converted / (1.0 + txpercent*0.01)
-                _logger.info("Price adjusted with taxes:"+str(ml_price_converted))
+                #_logger.info("Price adjusted with taxes:"+str(ml_price_converted))
 
         return ml_price_converted
 
@@ -536,7 +537,7 @@ class product_product(models.Model):
             if (txfixed>0 or txpercent>0):
                 #_logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_converted))
                 ml_price_converted = txfixed + ml_price_converted / (1.0 + txpercent*0.01)
-                _logger.info("Price adjusted with taxes:"+str(ml_price_converted))
+                #_logger.info("Price adjusted with taxes:"+str(ml_price_converted))
 
         pl = False
         if config.mercadolibre_pricelist:
@@ -564,26 +565,38 @@ class product_product(models.Model):
             else:
                 _logger.info("Creating price")
                 if force_variant and not pli_var:
-                    pli_var = pli.create({
+                    try:
+                        plfields = {
                             'product_id': product.id,
                             'min_quantity': 0,
                             'applied_on': '0_product_variant',
                             'pricelist_id': pl.id,
                             'compute_price': 'fixed',
                             'currency_id': pl.currency_id.id,
-                            'fixed_price': float(ml_price_converted)
-                             })
+                            'fixed_price': float(ml_price_converted),
+                            'company_id': product.company_id and product.company_id.id
+                             }
+                        pli_var = pli.create(plfields)
+                    except:
+                        _logger.error("Failed creating var pricelist: "+str(plfields))
+                        pass;
                 else:
                     if not force_variant and not pli_tpl:
-                        pli_tpl = pli.create({
+                        try:
+                            plfields = {
                                 'product_tmpl_id': product_template.id,
                                 'min_quantity': 0,
                                 'applied_on': '1_product',
                                 'pricelist_id': pl.id,
                                 'compute_price': 'fixed',
                                 'currency_id': pl.currency_id.id,
-    				            'fixed_price': float(ml_price_converted)
-                                 })
+    				            'fixed_price': float(ml_price_converted),
+                                'company_id': product.company_id and product.company_id.id
+                                 }
+                            pli_tpl = pli.create(plfields)
+                        except:
+                            _logger.error("Failed creating tmpl pricelist: "+str(plfields))
+                            pass;
 
         else:
             if (product_template.lst_price<=1.0):
@@ -790,7 +803,7 @@ class product_product(models.Model):
                 ix_start = 1
                 thumbnail_url = pictures[0]['url']
                 image = urlopen(thumbnail_url).read()
-                image_base64 = base64.encodestring(image)
+                image_base64 = base64.b64encode(image)
                 set_image_full(product, image_base64)
 
             if (len(pictures)):
@@ -816,7 +829,7 @@ class product_product(models.Model):
                             thumbnail_url = imgjson['variations'][0]['secure_url']
 
                     image = urlopen(thumbnail_url).read()
-                    image_base64 = base64.encodestring(image)
+                    image_base64 = base64.b64encode(image)
                     meli_imagen_bytes = len(image)
                     pimage = False
                     pimg_fields = {
@@ -990,7 +1003,7 @@ class product_product(models.Model):
             if thumbnail_url:
                 _logger.info( "Setting principal IMAGE for product: " + str(product.display_name) + " thumbnail_url: " + str(thumbnail_url) )
                 image = urlopen(thumbnail_url).read()
-                image_base64 = base64.encodestring(image)
+                image_base64 = base64.b64encode(image)
                 set_image_full(product, image_base64)
 
         #ADDITIONAL MEDIAS
@@ -1013,7 +1026,7 @@ class product_product(models.Model):
                         thumbnail_url = imgjson['variations'][0]['secure_url']
 
                 image = urlopen(thumbnail_url).read()
-                image_base64 = base64.encodestring(image)
+                image_base64 = base64.b64encode(image)
                 meli_imagen_bytes = len(image)
 
                 #pimage = False
@@ -1748,6 +1761,22 @@ class product_product(models.Model):
                             except:
                                 pass;
                             has_sku = True
+
+                        if ("barcode" in variation):
+                            try:
+                                bcodes = self.env["product.product"].search([('barcode','=',variation["barcode"]),('active','=',True)])
+                                bcodes_archived = self.env["product.product"].search([('barcode','=',variation["barcode"]),('active','=',False)])
+
+                                if not bcodes and bcodes_archived:
+                                    _logger.error("Error barcode already defined! In archived product variant!!"+str(variation["barcode"]))
+                                    bcodes = bcodes_archived
+
+                                if bcodes and len(bcodes):
+                                    _logger.error("Error barcode already defined! "+str(variation["barcode"]))
+                                else:
+                                    variant.barcode = variation["barcode"]
+                            except:
+                                pass;
 
                 if (has_sku):
                     variant.set_bom()
