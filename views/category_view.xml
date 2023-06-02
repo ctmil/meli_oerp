@@ -75,9 +75,11 @@
                <field name="meli_default_id_attribute"/>
              </xpath>-->
              <field name="create_variant" position="after">
+               <field name="meli_chart_id"/>
                <field name="meli_default_id_attribute"/>
                <field name="meli_default_id_attribute_hidden"/>
                <field name="meli_default_id_attribute_variation_attribute"/>
+
              </field>
           </field>
         </record>
@@ -94,6 +96,57 @@
                     <field name="public_category_id"/>
                     <field name="public_category" string="Ecommerce Category"/>
                     <field name="is_branch"/>
+                </tree>
+            </field>
+        </record>
+
+        <record model="ir.ui.view" id="view_meli_grid_chart_form">
+            <field name="name">mercadolibre.grid.chart.form</field>
+            <field name="model">mercadolibre.grid.chart</field>
+            <field name="type">form</field>
+            <field name="arch" type="xml">
+              <form string="Grid Size Chart">
+                <div class="oe_button_box">
+
+                </div>
+                <group>
+                    <group>
+                      <field name="meli_id"/>
+                      <field name="name"/>
+                      <field name="type"/>
+                    </group>
+                    <group>
+                      <field name="domain_id"/>
+                      <field name="main_attribute_id"/>
+                    </group>
+                </group>
+                <field name="attributes">
+                  <tree delete="0">
+                    <field name="att_id"/>
+                    <field name="val_id"/>
+                  </tree>
+                </field>
+                <field name="rows">
+                  <tree delete="0">
+                    <field name="row_id"/>
+                    <field name="attribute_values" widget="many2many_tags">
+
+                    </field>
+                  </tree>
+                </field>
+                <field name="data_json"/>
+              </form>
+            </field>
+        </record>
+
+        <record model="ir.ui.view" id="view_meli_charts_tree">
+            <field name="name">mercadolibre.grid.chart.tree</field>
+            <field name="model">mercadolibre.grid.chart</field>
+            <field name="type">tree</field>
+            <field name="arch" type="xml">
+                <tree string="Guias" >
+                    <field name="meli_id"/>
+                    <field name="name"/>
                 </tree>
             </field>
         </record>
@@ -131,6 +184,10 @@
                       <field name="public_category_id"/>
                       <field name="public_category" string="Ecommerce Category"/>
                       <field name="public_categories" string="Ecommerce Categories"/>
+                      <field name="catalog_domain"/>
+                      <field name="catalog_domain_link" widget="url"/>
+                      <field name="catalog_domain_chart_active"/>
+                      <field name="catalog_domain_chart_result"/>
                       <separator name="Settings" />
                       <field name="meli_category_settings"/>
                       <field name="meli_setting_minimum_price"/>
@@ -139,6 +196,8 @@
                     <group>
                       <field name="meli_father_category_id"/>
                       <field name="meli_father_category"/>
+                      <field name="catalog_domain_json"/>
+                      <field name="data_json"/>
                     </group>
                 </group>
                 <field name="meli_category_attributes" widget="url"/>
@@ -168,6 +227,18 @@
             action="action_meli_categories_tree"
             parent="menu_meli"
             name="Categorías" />
+
+        <record model="ir.actions.act_window" id="action_meli_charts_tree">
+            <field name="name">Guias de talles</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">mercadolibre.grid.chart</field>
+            <field name="view_mode">tree,form</field>
+        </record>
+
+        <menuitem id="menu_meli_charts"
+            action="action_meli_charts_tree"
+            parent="menu_meli"
+            name="Guias de talles" />
 
     </data>
 </odoo>

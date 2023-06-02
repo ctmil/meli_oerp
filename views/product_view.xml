@@ -162,6 +162,8 @@
                         <!--<field name="meli_attributes" />-->
                         <field name="meli_brand"/>
                         <field name="meli_model"/>
+                        <field name="meli_gender"/>
+                        <field name="meli_grid_chart_id"/>
                       </group>
                       <separator string="Condiciones de venta" colspan="1"/>
                       <group name="ML buying conditions">

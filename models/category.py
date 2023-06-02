@@ -125,7 +125,7 @@ class mercadolibre_category_attribute(models.Model):
                                 self.products_to_fix = [(4,product_tmpl.id)]
                                 att_line.unlink()
                                 break;
-                    if att.number_related_products==0:
+                    if "number_related_products" in  att._fields and att.number_related_products==0:
                         _logger.info("fix_attribute_create_variant, convirtiendo a always")
                         try:
                             att.create_variant = "always"
@@ -177,8 +177,6 @@ class mercadolibre_category_attribute(models.Model):
                         continue;
 
                 self._cr.commit()
-
-
 
 
 class product_attribute(models.Model):
@@ -483,17 +481,51 @@ class mercadolibre_category(models.Model):
                     'is_branch': is_branch,
                     #'meli_father_category': father
                 }
+                cat_fields["catalog_domain"] = "settings" in rjson_cat and "catalog_domain" in rjson_cat["settings"] and rjson_cat["settings"]["catalog_domain"]
+                cat_fields["data_json"] = json.dumps(rjson_cat)
+                cat_fields["catalog_domain_json"] = self.get_catalog_domain_json(catalog_domain=cat_fields["catalog_domain"],meli=meli)
                 if (father and father.id):
                     cat_fields['meli_father_category'] = father.id
                 _logger.info(cat_fields)
-                ml_cat_id = category_obj.create((cat_fields))
+                ml_cat_id = ml_cat_id.create((cat_fields))
                 if (ml_cat_id.id and is_branch==False):
                   ml_cat_id._get_attributes()
+                  ml_cat_id.get_search_chart_filters(meli=meli)
 
             if (ml_cat_id):
                 _logger.info("MercadoLibre Category Ok: "+str(ml_cat_id)+" www_cats:"+str(www_cats))
+
                 if 'product.public.category' in self.env:
                     www_cat_id = ml_cat_id.public_category_id
+
+                fullname = ""
+                if ("path_from_root" in rjson_cat):
+                  path_from_root = rjson_cat["path_from_root"]
+                  for path in path_from_root:
+                    fullname = fullname + "/" + path["name"]
+                  if (len(rjson_cat["path_from_root"])>1):
+                      father_ml_id = rjson_cat["path_from_root"][len(rjson_cat["path_from_root"])-2]["id"]
+                      father_id = category_obj.search([('meli_category_id','=',father_ml_id)])
+                      if (father_id and len(father_id)):
+                          father = father_id[0]
+                cat_fields = {
+                    'name': fullname,
+                    'meli_category_id': ''+str(category_id),
+                    'is_branch': is_branch,
+                    #'meli_father_category': father
+                }
+                cat_fields["catalog_domain"] = "settings" in rjson_cat and "catalog_domain" in rjson_cat["settings"] and rjson_cat["settings"]["catalog_domain"]
+                cat_fields["data_json"] = json.dumps(rjson_cat)
+                cat_fields["catalog_domain_json"] = self.get_catalog_domain_json(catalog_domain=cat_fields["catalog_domain"],meli=meli)
+
+                if (father and father.id):
+                    cat_fields['meli_father_category'] = father.id
+                _logger.info(cat_fields)
+                ml_cat_id.write((cat_fields))
+
+                if (ml_cat_id.id and is_branch==False):
+                  ml_cat_id._get_attributes()
+                  ml_cat_id.get_search_chart_filters(meli=meli)
 
             if not www_cat_id and create_missing_website and 'product.public.category' in self.env:
                 _logger.info("Ecommerce category missing")
@@ -577,7 +609,287 @@ class mercadolibre_category(models.Model):
     # check: https://www.mercadolibre.com.mx/ayuda/Costos-de-vender-un-producto_870
     #ver tambien: https://www.mercadolibre.com.mx/ayuda/Tarifas-y-facturacion_1044
     # https://api.mercadolibre.com/sites/MLM/listing_types#json
+    def get_catalog_domain_json( self, catalog_domain=None, meli=None ):
+        company = self.env.user.company_id
+        meli = meli or self.env['meli.util'].get_new_instance(company)
+        catalog_domain_json = ""
+        if catalog_domain:
+            response_dom = meli.get("/catalog_domains/"+str(catalog_domain), {'access_token':meli.access_token})
+            _logger.info("response_dom para "+str(catalog_domain)+": "+str(response_dom))
+            rjson_dom = response_dom and response_dom.json()
+            if rjson_dom:
+                catalog_domain_json = json.dumps(rjson_dom)
+
+        return catalog_domain_json
+
+
+    catalog_domain = fields.Char(string="Domain Id")
+    def _catalog_domain_link(self):
+        for cat in self:
+            cat.catalog_domain_link = (cat.catalog_domain and "https://api.mercadolibre.com/catalog_domains/"+str(cat.catalog_domain)) or ""
+
+    def get_search_chart( self, brand=None, gender=None, model=None, meli=None ):
+        ##https://api.mercadolibre.com/catalog/charts/search
+        company = self.env.user.company_id
+        meli = meli or self.env['meli.util'].get_new_instance(company)
+        cat = self
+        #https://api.mercadolibre.com/catalog/charts/search
+        params = {
+            'access_token': meli.access_token
+        }
+        site_id = "MLA"
+        body = {
+            'site_id': site_id,
+            'domain_id': str(cat.catalog_domain).replace(site_id+str("-"),""),
+            'seller_id': int(meli.seller_id),
+            'attributes': []
+            }
+
+        if brand:
+            body["attributes"].append({
+                "id": "BRAND",
+               "values": [
+                   {
+                       "name": str(brand)
+                   }
+               ]
+
+            })
+
+        if gender:
+            body["attributes"].append({
+                "id": "GENDER",
+               "values": [
+                   {
+                       "name": str(gender)
+                   }
+               ]
+            })
+
+        if model:
+            body["attributes"].append({
+                "id": "MODEL",
+               "values": [
+                   {
+                       "name": str(model)
+                   }
+               ]
+            })
+
+
+        _logger.info("params:"+str(params))
+        response_chart = meli.post( path="/catalog/charts/search", body=body, params=params )
+        _logger.info("response_chart para "+str(cat.catalog_domain)+": "+str(response_chart))
+        rjson_chart = response_chart and response_chart.json()
+        _logger.info("rjson_chart para "+str(cat.catalog_domain)+": "+str(rjson_chart))
+
+        return rjson_chart
+
+
+    def get_search_chart_filters( self, meli=None ):
+        cat = self
+        rjson_chart = cat.get_search_chart(meli=meli)
+        if rjson_chart:
+            cat.catalog_domain_chart_result = rjson_chart and json.dumps(rjson_chart)
+            cat.catalog_domain_chart_active = (( not ("domain_not_active" in cat.catalog_domain_chart_result)) and
+                                                "filters_validation_error" in cat.catalog_domain_chart_result)
+
+    catalog_domain_link = fields.Char(string="Domain Id Link",compute=_catalog_domain_link)
+    catalog_domain_json = fields.Text(string="Domain id json")
+    catalog_domain_chart_active = fields.Boolean(string="Domain Charts active", index=True,readonly=True)
+    catalog_domain_chart_result = fields.Text(string="Domain Charts result")
+
+    data_json = fields.Text(string="Data json")
 
     _sql_constraints = [
     	('unique_meli_category_id','unique(meli_category_id)','Meli Category id already exists!'),
     ]
+
+
+class mercadolibre_grid_value(models.Model):
+    _name = "mercadolibre.grid.value"
+    _description = "Valor de Guia de talles de MercadoLibre"
+
+    meli_id = fields.Char(string="Id",required=True,index=True)
+    name = fields.Char(string="Nombre",index=True)
+    value = fields.Char(string="Value",index=True)
+    att_id = fields.Many2one("mercadolibre.grid.attribute", string="Attribute")
+
+
+    def prepare_vals( self, djson ):
+        fields = {
+            "meli_id": djson["id"],
+            "name": json.dumps(djson["name"]),
+        }
+
+class mercadolibre_grid_attribute(models.Model):
+    _name = "mercadolibre.grid.attribute"
+    _description = "Atributo de Guia de talles de MercadoLibre"
+
+    meli_id = fields.Char(string="Id",required=True,index=True)
+    name = fields.Char(string="Nombre",index=True)
+    values = fields.One2many("mercadolibre.grid.value", "att_id", string="Values")
+
+    def prepare_vals( self, djson ):
+        fields = {
+            "meli_id": djson["id"],
+            "name": json.dumps(djson["name"]),
+        }
+
+class mercadolibre_grid_attribute_line(models.Model):
+    _name = "mercadolibre.grid.attribute.line"
+    _description = "Linea de atributo de Guia de talles de MercadoLibre"
+
+    grid_chart_id = fields.Many2one("mercadolibre.grid.chart", string="row id")
+    att_id = fields.Many2one("mercadolibre.grid.attribute", string="Attribute")
+    val_id = fields.Many2one("mercadolibre.grid.value", string="Values")
+
+    def prepare_vals( self, djson ):
+        fields = {
+            #"grid_chart_id": djson["id"],
+            #"att_id":
+            #"val_id":
+        }
+        return fields
+
+class mercadolibre_grid_row_col(models.Model):
+    _name = "mercadolibre.grid.row.col"
+    _description = "Col de atributo de Guia de talles de MercadoLibre"
+
+    grid_row_id = fields.Many2one("mercadolibre.grid.row", string="Row id")
+    #att_id = fields.Many2one("mercadolibre.grid.attribute", string="Attribute")
+    #val_id = fields.Many2one("mercadolibre.grid.value", string="Values")
+    att_id = fields.Char(string="Id",required=True,index=True)
+    name = fields.Char(string="Name",required=True,index=True)
+    value = fields.Char(string="Value",required=True,index=True)
+
+    def name_get(self):
+        """Override because in general the name of the value is confusing if it
+        is displayed without the name of the corresponding attribute.
+        Eg. on product list & kanban views, on BOM form view
+
+        However during variant set up (on the product template form) the name of
+        the attribute is already on each line so there is no need to repeat it
+        on every value.
+        """
+        #if not self._context.get('show_attribute', True):
+        #    return super(mercadolibre_grid_row_col, self).name_get()
+        return [(col.att_id, "%s: %s" % (col.name, col.value)) for col in self]
+
+    def prepare_vals( self, djson ):
+        fields = {
+            "att_id": djson["id"],
+            "name": djson["name"],
+            "value": "values" in djson and djson["values"][0]["name"],
+        }
+        return fields
+
+class mercadolibre_grid_row(models.Model):
+    _name = "mercadolibre.grid.row"
+    _description = "Fila de guia de talles de MercadoLibre"
+
+    row_id = fields.Char(string="Id",required=True,index=True)
+    grid_chart_id = fields.Many2one("mercadolibre.grid.chart", string="Chart id")
+    attribute_values = fields.One2many("mercadolibre.grid.row.col", "grid_row_id", string="Attributes Values")
+
+    def prepare_vals( self, djson ):
+        fields = {
+            "row_id": djson["id"],
+            #"grid_chart_id": self.get_grid_chart_id(),
+            "attribute_values": []
+        }
+        row_att_arrs = []
+        row_att_arrs.append((5,0,0))
+        for row_att in djson["attributes"]:
+            att_field = self.env["mercadolibre.grid.row.col"].prepare_vals(row_att)
+            row_att_arrs.append( (0, 0, att_field) )
+
+        fields["attribute_values"] = row_att_arrs
+        return fields
+
+class mercadolibre_grid_chart(models.Model):
+    _name = "mercadolibre.grid.chart"
+    _description = "Guia de talles de MercadoLibre"
+
+    meli_id = fields.Char(string="Id de guia de talle",required=True,index=True)
+    domain_id = fields.Char(string="Dominio")
+    name = fields.Char(string="Nombre de la guia de talles")
+    type = fields.Char(string="Tipo de la guia de talles")
+    main_attribute_id = fields.Char( string="Atributo principal de la guia de talles" )
+    data_json = fields.Text( string="Data json" )
+    attributes = fields.One2many( "mercadolibre.grid.attribute.line", "grid_chart_id", string="Attributes" )
+    rows = fields.One2many( "mercadolibre.grid.row", "grid_chart_id", string="Rows" )
+
+    def prepare_vals( self, djson ):
+        fields = {
+            "meli_id": djson["id"],
+            "name": json.dumps(djson["names"]),
+            "type": djson["type"],
+            "domain_id": djson["domain_id"],
+            "main_attribute_id": djson["main_attribute_id"],
+            "data_json": json.dumps(djson),
+        }
+        for att in djson["attributes"]:
+            #create attribute
+            att_field = self.env["mercadolibre.grid.attribute.line"].prepare_vals(att)
+
+        row_arrs = []
+        row_arrs.append((5,0,0))
+        for row in djson["rows"]:
+            row_field = self.env["mercadolibre.grid.row"].prepare_vals(row)
+            row_arrs.append( (0, 0, row_field) )
+
+        fields["rows"] = row_arrs
+
+        return fields
+
+    def search_charts(self, category, brand, gender ):
+        #get the category with the catalog_domain
+        return True
+
+    def create_chart(self, djson ):
+        vals = self.prepare_vals(djson)
+        _logger.info("create_chart vals: " +str(vals))
+        chart = self.search([('meli_id','=',vals["meli_id"])],limit=1)
+        if not chart:
+            chart = self.create(vals)
+        else:
+            chart.write(vals)
+        return chart
+
+    def update_attributes(self, product=None):
+        #
+        _logger.info("update_attributes")
+        #search for an attribute SIZE also related to this chart id.
+        # if not, create it
+        ml_size_att = self.env["mercadolibre.category.attribute"].search([('att_id','=','SIZE')], limit=1)
+        all_odoo_sizes = self.env["product.attribute"].search([
+                    ('meli_default_id_attribute','=',ml_size_att.id),
+                    ('meli_chart_id','=',self.id)
+                    ])
+        if (all_odoo_sizes):
+            #solo recargar los valores o chequearlos
+            _logger.info("update_attributes: reload")
+            for osi in all_odoo_sizes:
+                self.update_attribute_values( osi )
+        else:
+            odoo_att_fields = {
+                "name": "Talle",
+                "meli_default_id_attribute": ml_size_att.id,
+                "meli_chart_id": self.id,
+                "create_variant": "always"
+            }
+            _logger.info("update_attributes: create "+str(odoo_att_fields))
+            osi = self.env["product.attribute"].create(odoo_att_fields)
+            if (osi):
+                self.update_attribute_values( osi )
+
+    def update_attribute_values(self, osi ):
+        if osi:
+            _logger.info("update_attributes: reload att values in odoo")
+
+
+
+
+
+#al pedir una categoria traer el dominio!
