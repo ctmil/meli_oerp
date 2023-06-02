@@ -17,6 +17,8 @@ class ProductAttribute(models.Model):
     meli_default_id_attribute_hidden = fields.Boolean( related="meli_default_id_attribute.hidden", string="Hidden")
     meli_default_id_attribute_variation_attribute = fields.Boolean( related="meli_default_id_attribute.variation_attribute", string="Variation")
 
+    meli_chart_id = fields.Many2one("mercadolibre.grid.chart",string="ML Guia de talle",readonly=True)
+
 
     def meli_default_create_variant( self, meli_attribute=None ):
 

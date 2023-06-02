@@ -21,6 +21,8 @@ Para Costa Rica: https://api.mercadolibre.com/sites/MCR/search?nickname=ESCRIBE_
 
 Para Uruguay: https://api.mercadolibre.com/sites/MLU/search?nickname=ESCRIBE_AQUI_TU_NICK_NAME
 
+Para Brasil: https://api.mercadolibre.com/sites/MLB/search?nickname=ESCRIBE_AQUI_TU_NICK_NAME
+
 [...]
 
 Ver http://developers.mercadolibre.com.ar para ver la API.
