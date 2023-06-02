@@ -27,7 +27,7 @@ def Autocommit( self, act=False ):
     return False
     
 def UpdateProductType( product ):      
-    if (product.detailed_type not in ['product']):
+    if (product and product.detailed_type not in ['product']):
         try:
             product.write( { 'detailed_type': 'product' } )
         except Exception as e:

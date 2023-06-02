@@ -326,7 +326,7 @@ class mercadolibre_shipment(models.Model):
             sorder = shipment.sale_order
             if (not sorder or not order):
                 continue;
-                
+
             if (sorder and sorder.meli_update_forbidden):
                 _logger.error("Forbidden to update sale order by meli_oerp" )
                 return {'error': 'Forbidden to update sale order by meli_oerp' }
@@ -350,11 +350,11 @@ class mercadolibre_shipment(models.Model):
                 #sorder.partner_id.state = ships.receiver_state
 
             ship_name = shipment.tracking_method or (shipment.mode=="me1" and "ME1 - zip") or (shipment.mode=="custom" and "Personalizado")  or (shipment.logistic_type=="self_service" and "Personalizado MFlex")
-            
+
 
             if not ship_name or len(ship_name)==0:
                 continue;
-                
+
             if (shipment.mode=="me1"):
                 product_shipping_id = product_obj.search([('default_code','ilike','ENVIO-ME1')])
             else:
@@ -809,7 +809,7 @@ class mercadolibre_shipment(models.Model):
                             ship_fields["orders"] = [(6, 0, all_orders_ids)]
 
                 shipment = shipment_obj.search([('shipping_id','=', ship_id)])
-                #_logger.info(ships)
+                #_logger.info("shipment:"+str(shipment)+" ship_id:"+str(ship_id)+" ship_fields:"+str(ship_fields) )
                 if (len(shipment)==0):
                     #_logger.info("Importing shipment: " + str(ship_id))
                     #_logger.info(str(ship_fields))
@@ -826,34 +826,34 @@ class mercadolibre_shipment(models.Model):
                     for item in items_json:
                         shipment.update_item(item)
 
-                try:
-                    #_logger.info("ships.pdf_filename:")
-                    #_logger.info(shipment.pdf_filename)
-                    if (1==1 and shipment.pdf_filename):
-                        #_logger.info("We have a pdf file")
-                        if (shipment.pdfimage_filename==False):
-                            #_logger.info("Try create a pdf image file")
-                            data = base64.b64decode( shipment.pdf_file )
-                            images = convert_from_bytes(data, dpi=300,fmt='jpg')
-                            for image in images:
-                                image_filename = "/tmp/%s-page%d.jpg" % ("Shipment_"+shipment.shipping_id, images.index(image))
-                                image.save(image_filename, "JPEG")
-                                if (images.index(image)==0):
-                                    imgdata = urlopen("file://"+image_filename).read()
-                                    shipment.pdfimage_file = base64.encodestring(imgdata)
-                                    shipment.pdfimage_filename = "Shipment_"+shipment.shipping_id+".jpg"
-                            #if (len(images)):
-                            #    _logger.info(images)
-                                #for image in images:
-                                #base64.b64decode( pimage.image )
-                            #    image = images[1]
-                            #    ships.pdfimage_file = base64.encodestring(image.tobytes())
-                            #    ships.pdfimage_filename = "Shipment_"+ships.shipping_id+".jpg"
-                except Exception as e:
-                    _logger.info("Error converting pdf to jpg: try installing pdf2image and poppler-utils, like this:")
-                    _logger.info("sudo apt install poppler-utils && sudo pip install pdf2image")
-                    _logger.info(e, exc_info=True)
-                    pass;
+                    try:
+                        #_logger.info("ships.pdf_filename:")
+                        #_logger.info(shipment.pdf_filename)
+                        if (1==1 and shipment.pdf_filename):
+                            #_logger.info("We have a pdf file")
+                            if (shipment.pdfimage_filename==False):
+                                #_logger.info("Try create a pdf image file")
+                                data = base64.b64decode( shipment.pdf_file )
+                                images = convert_from_bytes(data, dpi=300,fmt='jpg')
+                                for image in images:
+                                    image_filename = "/tmp/%s-page%d.jpg" % ("Shipment_"+shipment.shipping_id, images.index(image))
+                                    image.save(image_filename, "JPEG")
+                                    if (images.index(image)==0):
+                                        imgdata = urlopen("file://"+image_filename).read()
+                                        shipment.pdfimage_file = base64.encodestring(imgdata)
+                                        shipment.pdfimage_filename = "Shipment_"+shipment.shipping_id+".jpg"
+                                #if (len(images)):
+                                #    _logger.info(images)
+                                    #for image in images:
+                                    #base64.b64decode( pimage.image )
+                                #    image = images[1]
+                                #    ships.pdfimage_file = base64.encodestring(image.tobytes())
+                                #    ships.pdfimage_filename = "Shipment_"+ships.shipping_id+".jpg"
+                    except Exception as e:
+                        _logger.info("Error converting pdf to jpg: try installing pdf2image and poppler-utils, like this:")
+                        _logger.info("sudo apt install poppler-utils && sudo pip install pdf2image")
+                        _logger.info(e, exc_info=True)
+                        pass;
 
                 #associate order if it was non pack order created bir orders.py
                 if (ship_fields["pack_order"]==False):
@@ -971,7 +971,10 @@ class mercadolibre_shipment(models.Model):
                             sorder_pack.meli_fix_team( meli=meli, config=config )
                         else:
                             sorder_pack = self.env["sale.order"].create(meli_order_fields)
-                            sorder_pack.meli_fix_team( meli=meli, config=config )
+                            if sorder_pack:
+                                sorder_pack.meli_fix_team( meli=meli, config=config )
+                                order.message_post(body=str("Sale order created (pack)!"),message_type=order_message_type)
+
 
                         if (sorder_pack.id):
                             shipment.sale_order = sorder_pack
@@ -1096,7 +1099,7 @@ class mercadolibre_shipment(models.Model):
                     data = urlopen(shipment.pdf_link).read()
                     _logger.info(data)
                     shipment.pdf_filename = "Shipment_"+shipment.shipping_id+".pdf"
-                    shipment.pdf_file = base64.encodestring(data)
+                    shipment.pdf_file = base64.b64encode(data)
                     images = convert_from_bytes(data, dpi=300,fmt='jpg')
                     if (1==1 and len(images)>1):
                         for image in images:
@@ -1104,7 +1107,7 @@ class mercadolibre_shipment(models.Model):
                             image.save(image_filename, "JPEG")
                             if (images.index(image)==0):
                                 imgdata = urlopen("file://"+image_filename).read()
-                                shipment.pdfimage_file = base64.encodestring(imgdata)
+                                shipment.pdfimage_file = base64.b64encode(imgdata)
                                 shipment.pdfimage_filename = "Shipment_"+shipment.shipping_id+".jpg"
 
                 except Exception as e:

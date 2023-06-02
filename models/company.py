@@ -406,6 +406,164 @@ class res_company(models.Model):
 
     #mercadolibre_use_buyer_name = fields.Boolean(string="Use buyer name",default=True)
 
+    #Toma y lista los ids de las publicaciones del sitio de MercadoLibre, filtrados por official_store_id
+    def fetch_list_meli_ids( self, params=None ):
+
+        company = self or self.env.user.company_id
+
+        if not params:
+            params = {}
+
+        config = company
+
+        meli = self.env['meli.util'].get_new_instance( company )
+        if meli.need_login():
+            return meli.redirect_login()
+
+        official_store_id = config.mercadolibre_official_store_id or None
+        seller_id = config.mercadolibre_seller_id
+
+        response = meli.get("/users/"+str(seller_id)+"/items/search",
+                            {'access_token':meli.access_token,
+                            'search_type': 'scan',
+                            'limit': 100, #max paging limit is always 100
+                            **params })
+
+        rjson = response.json()
+        scroll_id = ""
+        results = []
+        ofresults = (rjson and "results" in rjson and rjson["results"]) or []
+        filt_results = self.filter_meli_ids(  ofresults, official_store_id  )
+        results+= filt_results or []
+        condition_last_off = True
+        total = (rjson and "paging" in rjson and "total" in rjson["paging"] and rjson["paging"]["total"]) or 0
+        _logger.info("fetch_list_meli_ids: params:"+str(params)+" total:"+str(total))
+
+        if (rjson and 'scroll_id' in rjson ):
+            scroll_id = rjson['scroll_id']
+            condition_last_off = False
+
+        while (condition_last_off!=True):
+            search_params = {
+                'access_token': meli.access_token,
+                'search_type': 'scan',
+                'limit': 100,
+                'scroll_id': scroll_id,
+                **params
+            }
+            response = meli.get("/users/"+str(seller_id)+"/items/search", search_params )
+            rjson2 = response.json()
+            if (rjson2 and 'error' in rjson2):
+                _logger.error(rjson2)
+                if rjson2['message']=='invalid_token' or rjson2['message']=='expired_token':
+                    ACCESS_TOKEN = ''
+                    REFRESH_TOKEN = ''
+                    account.write({'access_token': ACCESS_TOKEN, 'refresh_token': REFRESH_TOKEN, 'code': '' } )
+                    condition = True
+                    url_login_meli = meli.auth_url()
+                    return {
+                        "type": "ir.actions.act_url",
+                        "url": url_login_meli,
+                        "target": "new",}
+                condition_last_off = True
+            else:
+                #results+= (rjson2 and "results" in rjson2 and rjson2["results"]) or []
+
+                ofresults = (rjson2 and "results" in rjson2 and rjson2["results"]) or None
+                filt_results = self.filter_meli_ids(  ofresults, official_store_id  )
+                results+= filt_results or []
+                condition_last_off = (total>0 and len(results)>=total)
+
+        return results
+
+    def filter_meli_ids( self, results, store_id ):
+
+        company = self or self.env.user.company_id
+
+        config = company
+
+
+        meli = self.env['meli.util'].get_new_instance( company )
+        if meli.need_login():
+            return meli.redirect_login()
+
+        official_store_id = store_id
+        if not official_store_id:
+            return results
+
+        c = 0
+        n20 = 0
+        rresults = []
+        #_logger.info("results:"+str(results))
+        if not results:
+            return rresults
+
+        ids = ""
+        coma = ""
+        maxc = (results and len(results)) or 0
+        for meli_id in results:
+            c+=1
+            n20+=1
+
+            #read id and official_store_id to check
+            #hacer paquetes de 20 !!!!!! /items?ids=$ITEM_ID1,$ITEM_ID2&attributes=$ATTRIBUTE1,$ATTRIBUTE2,$ATTRIBUTE3
+
+            #armamos el paquete
+            ids+= coma+str(meli_id)
+            coma = ","
+
+            if n20==20 or c==maxc:
+                item_params = {
+                    "ids": str(ids),
+                    "attributes": "id,official_store_id"
+                }
+                #_logger.info("item_params:"+str(item_params))
+                responseItem = meli.get("/items"+str('?ids='+str(ids)+'&attributes='+str('id,official_store_id')), {} )
+                #[ { "code": 200, "body": { "id": "MLM863472529", "official_store_id": 3476 } },
+                #_logger.info("responseItem:"+str(responseItem and responseItem.json()))
+                if responseItem.json():
+                    for rr in responseItem.json():
+                        #_logger.info("rr:"+str(rr))
+                        if ("code" in rr and rr["code"]==200):
+                            if ("body" in rr and rr["body"]):
+                                st_id = "official_store_id" in rr["body"] and rr["body"]["official_store_id"]
+                                ml_id = "id" in rr["body"] and rr["body"]["id"]
+                                if (st_id and official_store_id and str(st_id)==str(official_store_id) ):
+                                    rresults.append(ml_id)
+                ids = ""
+                n20 = 0
+        #_logger.info("rresults:"+str(rresults))
+
+        return rresults
+
+    #list all meli ids in odoo from this account, that are not in parameter filter_ids...
+    def list_meli_ids( self, filter_ids=None ):
+        meli_ids = []
+        company = self
+        product_melis = []
+        if not filter_ids:
+            product_melis = self.env['product.product'].search([
+                                                            ('meli_id','!=',False),
+                                                            ('meli_id','ilike','M%'),
+                                                            '|',
+                                                            ('company_id','=',company.id),
+                                                            ('company_id','=',False)
+                                                        ])
+        else:
+            product_melis = self.env['product.product'].search([
+                                                            ('meli_id','!=',False),
+                                                            ('meli_id','ilike','M%'),
+                                                            ('meli_id','not in',filter_ids),
+                                                            '|',
+                                                            ('company_id','=',company.id),
+                                                            ('company_id','=',False)
+                                                        ])
+
+        if product_melis:
+            meli_ids = product_melis.mapped('meli_id')
+
+        return meli_ids
+
     def	meli_logout(self):
         _logger.info('company.meli_logout() ')
         self.ensure_one()
