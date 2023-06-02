@@ -47,6 +47,46 @@
                       <field name="values"/>
                       <field name="tooltip"/>
                   </group>
+                  <button name="fix_attribute"></button>
+
+                  <div class="oe_button_box btn-group" name="button_box_mel" style="width: auto;">
+
+                    <button name='fix_attribute_create_variant' type="object"
+                        string="Fix attribute"
+                        title="Fix attribute"
+                        class="btn btn-primary oe_stat_button"
+                        icon="fa-refresh"/>
+                  </div>
+
+                  <field name="product_attributes" readonly="1">
+                    <tree readonly="1">
+                      <field name="name"/>
+                      <field name="create_variant"/>
+                      <field name="display_type"/>
+                      <field name="visibility"/>
+                      <field name="number_related_products"/>
+                    </tree>
+                  </field>
+
+                  <div class="oe_button_box btn-group" name="button_box_mel" style="width: auto;">
+
+                    <button name='fix_products_reimport' type="object"
+                        string="Fix products reimport"
+                        title="Fix products reimport"
+                        class="btn btn-primary oe_stat_button"
+                        icon="fa-refresh"/>
+                  </div>
+                  <field name="products_to_fix" readonly="1">
+                    <tree>
+                      <field name="id"/>
+                      <field name="name"/>
+                      <field name="default_code"/>
+                      <field name="barcode"/>
+                      <field name="meli_pub"/>
+                      <field name="product_variant_ids"/>
+                    </tree>
+                  </field>
+
               </form>
             </field>
         </record>

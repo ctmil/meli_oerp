@@ -105,6 +105,78 @@ class mercadolibre_category_attribute(models.Model):
     type = fields.Char(string="Type")
 
     required = fields.Boolean(string="Required by ML")
+    product_attributes = fields.One2many("product.attribute","meli_default_id_attribute",string="Atributos de odoo asociados")
+    products_to_fix = fields.Many2many("product.template",string="Products need fixing or reimport")
+
+    def fix_attribute_create_variant( self ):
+        _logger.info("fix_attribute_create_variant, convierte de no crear variant a instantaneo")
+        #Solo borra las lineas de valores de atributos de todos los productos si el atributo esta en modo create_variant
+        meli_att_creates_variant = not self.hidden and self.variation_attribute
+        _logger.info("fix_attribute_create_variant, CONVERTIR SE DEBE")
+
+        if meli_att_creates_variant:
+            _logger.info("fix_attribute_create_variant, convirtiendo")
+            for att in self.product_attributes:
+                if (att.create_variant=="no_variant"):
+                    #eliminar el atributo de todos los productos
+                    for product_tmpl in att.product_tmpl_ids:
+                        for att_line in product_tmpl.attribute_line_ids:
+                            if att_line.attribute_id.id==att.id:
+                                self.products_to_fix = [(4,product_tmpl.id)]
+                                att_line.unlink()
+                                break;
+                    if att.number_related_products==0:
+                        _logger.info("fix_attribute_create_variant, convirtiendo a always")
+                        try:
+                            att.create_variant = "always"
+                        except Exception as E:
+                            _logger.error("Error intentando convertir: "+str(E))
+                            pass;
+
+
+    def fix_products_reimport( self ):
+        _logger.info("fix_products_reimport, reimportar")
+
+        product_ids = self.products_to_fix.mapped('id')
+        product_obj = self.env["product.template"]
+        Autocommit(self, False)
+
+        for product_tmpl_id in product_ids:
+
+            product_tmpl = product_obj.browse(product_tmpl_id)
+
+            if product_tmpl.meli_pub:
+
+                for att_line in product_tmpl.attribute_line_ids:
+                    if (att_line.attribute_id.create_variant=='always' and
+                        att_line.attribute_id.id in self.product_attributes.mapped('id')):
+                        _logger.info("Ok product fixed removing from list: "+str(product_tmpl.name))
+                        self.products_to_fix = [(3,product_tmpl.id)]
+                        continue;
+
+                #actualizar variantes:
+                try:
+                    _logger.info("Ok re-importando: "+str(product_tmpl.name))
+                    product_tmpl.product_template_update()
+                except:
+                    _logger.error("Error importando")
+
+                    #archivar variantes:
+                    #if E.
+                    #for var in product_tmpl.product_variant_ids:
+                    #    var.active = False
+
+                    break;
+
+                for att_line in product_tmpl.attribute_line_ids:
+
+                    if (att_line.attribute_id.create_variant=='always' and
+                        att_line.attribute_id.id in self.product_attributes.mapped('id')):
+                        _logger.info("Ok product fixed removing from list: "+str(product_tmpl.name))
+                        self.products_to_fix = [(3,product_tmpl.id)]
+                        continue;
+
+                self._cr.commit()
 
 
 class product_attribute(models.Model):
@@ -112,9 +184,6 @@ class product_attribute(models.Model):
     _inherit="product.attribute"
 
     mercadolibre_attribute_id = fields.Many2one( "mercadolibre.category.attribute", string="MercadoLibre Attribute")
-
-
-
 
 
 class mercadolibre_category(models.Model):
