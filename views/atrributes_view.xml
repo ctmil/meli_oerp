@@ -64,7 +64,7 @@
                       <field name="create_variant"/>
                       <field name="display_type"/>
                       <!--field name="visibility"/-->
-                      <field name="number_related_products"/>
+                      <!--field name="number_related_products"/-->
                     </tree>
                   </field>
 

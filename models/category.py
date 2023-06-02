@@ -125,7 +125,7 @@ class mercadolibre_category_attribute(models.Model):
                                 self.products_to_fix = [(4,product_tmpl.id)]
                                 att_line.unlink()
                                 break;
-                    if att.number_related_products==0:
+                    if "number_related_products" in  att._fields and att.number_related_products==0:
                         _logger.info("fix_attribute_create_variant, convirtiendo a always")
                         try:
                             att.create_variant = "always"
