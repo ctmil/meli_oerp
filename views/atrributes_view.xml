@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+        <record model="ir.ui.view" id="view_mercadolibre_category_attribute_tree">
+            <field name="name">mercadolibre.category.attribute.tree</field>
+            <field name="model">mercadolibre.category.attribute</field>
+            <field name="type">tree</field>
+            <field name="arch" type="xml">
+                <tree string="Categorías" >
+                    <field name="name"/>
+                    <field name="cat_id"/>
+                    <field name="att_id"/>
+                    <field name="value_type"/>
+                    <field name="hidden"/>
+                    <field name="variation_attribute"/>
+                    <field name="multivalued"/>
+                    <field name="type"/>
+                    <field name="required"/>
+                </tree>
+            </field>
+        </record>
+
+
+        <record model="ir.ui.view" id="view_mercadolibre_category_attribute_form">
+            <field name="name">mercadolibre.category.attribute.form</field>
+            <field name="model">mercadolibre.category.attribute</field>
+            <field name="type">form</field>
+            <field name="arch" type="xml">
+              <form string="Attributes">
+                <group>
+                    <group>
+                      <field name="name"/>
+                      <field name="cat_id"/>
+                      <field name="att_id"/>
+                      <field name="value_type"/>
+                      <field name="type"/>
+                    </group>
+                    <group>
+                      <field name="required"/>
+                      <field name="hidden"/>
+                      <field name="variation_attribute"/>
+                      <field name="multivalued"/>
+                    </group>
+                </group>
+                  <group>
+                      <field name="tooltip"/>
+                      <field name="values"/>
+                      <field name="tooltip"/>
+                  </group>
+                  <button name="fix_attribute"></button>
+
+                  <div class="oe_button_box btn-group" name="button_box_mel" style="width: auto;">
+
+                    <button name='fix_attribute_create_variant' type="object"
+                        string="Fix attribute"
+                        title="Fix attribute"
+                        class="btn btn-primary oe_stat_button"
+                        icon="fa-refresh"/>
+                  </div>
+
+                  <field name="product_attributes" readonly="1">
+                    <tree readonly="1">
+                      <field name="name"/>
+                      <field name="create_variant"/>
+                      <field name="display_type"/>
+                      <field name="visibility"/>
+                      <field name="number_related_products"/>
+                    </tree>
+                  </field>
+
+                  <div class="oe_button_box btn-group" name="button_box_mel" style="width: auto;">
+
+                    <button name='fix_products_reimport' type="object"
+                        string="Fix products reimport"
+                        title="Fix products reimport"
+                        class="btn btn-primary oe_stat_button"
+                        icon="fa-refresh"/>
+                  </div>
+                  <field name="products_to_fix" readonly="1">
+                    <tree>
+                      <field name="id"/>
+                      <field name="name"/>
+                      <field name="default_code"/>
+                      <field name="barcode"/>
+                      <field name="meli_pub"/>
+                      <field name="product_variant_ids"/>
+                    </tree>
+                  </field>
+
+              </form>
+            </field>
+        </record>
+
+
+        <record model="ir.actions.act_window" id="action_mercadolibre_category_attribute">
+            <field name="name">Atributos</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">mercadolibre.category.attribute</field>
+            <field name="view_mode">tree,form</field>
+        </record>
+
+        <menuitem id="menu_meli_categories_attributes"
+            action="action_mercadolibre_category_attribute"
+            parent="menu_meli"
+            name="Atributos" />
+
+    </data>
+</odoo>
