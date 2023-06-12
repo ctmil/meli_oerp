@@ -2608,6 +2608,8 @@ class sale_order_cancel_wiz_meli(models.TransientModel):
     _name = "sale.order.cancel.wiz.meli"
     _description = "Cancel Order"
 
+    cancel_blocked = fields.Boolean(string="Desbloquear y Cancelar", default=True)
+
     def cancel_order(self, context=None):
         context = context or self.env.context
         orders_ids = ('active_ids' in context and context['active_ids']) or []
@@ -2621,6 +2623,11 @@ class sale_order_cancel_wiz_meli(models.TransientModel):
                 _logger.info("cancel_order: %s " % (order_id) )
 
                 order = orders_obj.browse(order_id)
+                if (order and order.state in ["done"] and self.cancel_blocked):
+                    #asd
+                    order.action_unblock()
+                    order.action_cancel()
+
                 if (order and order.state in ["draft","sale","sent"]):
                     order.action_cancel()
 

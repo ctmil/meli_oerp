@@ -577,6 +577,7 @@ class res_company(models.Model):
             "target": "new",
         }
 
+
     def meli_login(self):
         _logger.info('company.meli_login() ')
         self.ensure_one()
