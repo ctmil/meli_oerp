@@ -2626,7 +2626,7 @@ class sale_order_cancel_wiz_meli(models.TransientModel):
                 if (order and order.state in ["done"] and self.cancel_blocked):
                     #asd
                     _logger.info("cancel_order: unblock")
-                    order.action_unblock()
+                    order.action_unlock()
                     order.action_cancel()
 
                 if (order and order.state in ["draft","sale","sent"]):
