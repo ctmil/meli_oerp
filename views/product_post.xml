@@ -107,6 +107,7 @@
                         <field name="batch_processing_unit_offset"/>
                         <field name="batch_actives_to_sync" readonly="0"/>
                         <field name="batch_paused_to_sync" readonly="0"/>
+                        <field name="batch_left_to_sync" readonly="0"/>
 
                         <br/>
                         <field name="batch_processing_status" readonly="1"/>

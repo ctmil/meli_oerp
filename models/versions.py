@@ -25,18 +25,34 @@ def get_price_from_pl( pricelist, product, quantity ):
 #Autocommit
 def Autocommit( self, act=False ):
     return False
-    
-def UpdateProductType( product ):      
+
+def UpdateProductType( product ):
     if (product and product.detailed_type not in ['product']):
+        failed = False
         try:
             product.write( { 'detailed_type': 'product' } )
         except Exception as e:
+            _logger.info("Set detailed_type almacenable ('product') not possible:")
+            _logger.error(e, exc_info=True)
+            failed = True
+            pass;
+        try:
+            product.write( { 'type': 'product' } )
+        except Exception as e:
             _logger.info("Set type almacenable ('product') not possible:")
             _logger.error(e, exc_info=True)
-            pass;        
-    
+            failed = True
+            pass;
+
+        query = """UPDATE product_template SET type='product', detailed_type='product' WHERE id=%i""" % (product.id)
+        cr = product._cr
+        respquery = cr.execute(query)
+
 def ProductType():
-    return { "detailed_type": "product" }
+    return {
+        "type": "product",
+        "detailed_type": "product"
+    }
 
 # Odoo 12.0 -> Odoo 13.0
 prod_att_line = "product.template.attribute.line"
@@ -145,8 +161,8 @@ def ml_datetime(datestr):
         datestr = str(datestr)
         return parse(datestr).astimezone(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
     except:
-        _logger.error(type(datestr))
-        _logger.error(datestr)
+        #_logger.error(type(datestr))
+        #_logger.error(datestr)
         return None
 
 def ml_tax_excluded(self, config=None ):
@@ -179,7 +195,7 @@ def ml_product_price_conversion( self, product_related_obj, price, config=None):
         if (txfixed>0 or txpercent>0):
             #_logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_converted))
             ml_price_converted = txfixed + ml_price_converted / (1.0 + txpercent*0.01)
-            _logger.info("Price adjusted with taxes:"+str(ml_price_converted))
+            #_logger.info("Price adjusted with taxes:"+str(ml_price_converted))
 
     ml_price_converted = round(ml_price_converted,2)
     return ml_price_converted
@@ -203,12 +219,12 @@ def get_delivery_line(sorder):
             if(line.product_id.id == carrier_product_id):
                 delivery_line = line
                 return delivery_line
-                
+
         delivery_lines = self.env['sale.order.line'].search([('order_id', 'in', sorder.ids), ('is_delivery', '=', True)])
         if delivery_lines:
             delivery_line = delivery_lines[0]
             return delivery_line
-            
+
     except:
         _logger.info("Error get delivery line failed")
         return delivery_line
@@ -223,20 +239,20 @@ def set_delivery_line( sorder, delivery_price, delivery_message ):
         delivery_line = get_delivery_line(sorder)
     try:
         recompute_delivery_price = False
-        
-        if (delivery_line and abs(delivery_line.price_unit - float(delivery_price)) > 1.1 ):        
+
+        if (delivery_line and abs(delivery_line.price_unit - float(delivery_price)) > 1.1 ):
             recompute_delivery_price = True
             sorder.set_delivery_line(sorder.carrier_id, delivery_price)
-            
+
         sorder.write({
         	'recompute_delivery_price': recompute_delivery_price,
         	'delivery_message': delivery_message,
         })
     except:
             _logger.info("Error set_delivery_line failed (order invoiced)")
-            
+
     return delivery_line
-    
+
 def remove_delivery_line( sorder, delivery_price=0):
     sorder._remove_delivery_line()
     return

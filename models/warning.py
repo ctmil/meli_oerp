@@ -29,12 +29,12 @@ meli_errors = {
 
 
 
-#class warning1(models.TransientModel):
-#    _name = 'warning'
-#    _description = 'warning'
-#    type = fields.Selection(WARNING_TYPES, string='Type', readonly=True)
-#    title = fields.Char(string="Title", size=100, readonly=True)
-#    message = fields.Text(string="Message", readonly=True)
+class warning1(models.TransientModel):
+    _name = 'warning'
+    _description = 'warning'
+    type = fields.Selection(WARNING_TYPES, string='Type', readonly=True)
+    title = fields.Char(string="Title", size=100, readonly=True)
+    message = fields.Text(string="Message", readonly=True)
 #    message_html = fields.Html(string="Message HTML", readonly=True)
 
 class warning(models.TransientModel):
