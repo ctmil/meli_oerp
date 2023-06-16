@@ -322,6 +322,7 @@ class product_template_import(models.TransientModel):
     batch_processing = fields.Boolean(string="Batch Processing Active",default=False)
     batch_actives_to_sync = fields.Boolean(string="Process Actives To Sync",default=False)
     batch_paused_to_sync = fields.Boolean(string="Process Paused To Sync",default=False)
+    batch_left_to_sync = fields.Boolean(string="Process All Lefts To Sync",default=False)
 
     report_import = fields.Many2one( "ir.attachment",string="Reporte Importación")
 
