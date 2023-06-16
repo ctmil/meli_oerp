@@ -1693,7 +1693,7 @@ class mercadolibre_orders(models.Model):
                 post_related = posting_obj.search([
                                                 ('meli_id','=',Item['item']['id']),
                                                 ('meli_variation_id','=',Item['item']['variation_id'])
-                                                ])
+                                                ],limit=1)
                 if (post_related):
                     pass;
                     #_logger.info("order post related by meli_id:"+str(post_related))

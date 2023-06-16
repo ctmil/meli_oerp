@@ -362,7 +362,7 @@ class res_company(models.Model):
                                                 ("paid_confirm", "Pagado>Confirmado"),
                                                 ("paid_delivered", "Pagado>Entregado")],
                                                 default="manual",
-                                                string='Acción al recibir un pedido',
+                                                string='Acción al recibir un pedido (FULL)',
                                                 help='Acción al confirmar una orden o pedido de venta')
     mercadolibre_product_attribute_creation = fields.Selection([ ("manual", "Manual"),
                                                 ("full", "Sincronizado completo (uno a uno, sin importar si se usa o no)"),
