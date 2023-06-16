@@ -323,6 +323,9 @@
               <field name="type">form</field>
               <field name="arch" type="xml">
                 <form string="Cancel Order" version="7.0">
+                    <group>
+                      <field name="cancel_blocked"/>
+                    </group>
                     <footer>
                         <button name="cancel_order" string="Cancel Orders"  type="object" class="oe_highlight"  />
                         <button string="Cancel" class="oe_link" special="cancel" />

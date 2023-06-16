@@ -26,9 +26,9 @@ def get_price_from_pl( pricelist, product, quantity ):
 def Autocommit( self, act=False ):
     self._cr.autocommit(act)
     return False
-    
-def UpdateProductType( product ):      
-    if (product.detailed_type not in ['product']):
+
+def UpdateProductType( product ):
+    if (product and product.detailed_type not in ['product']):
         failed = False
         try:
             product.write( { 'detailed_type': 'product' } )
@@ -36,23 +36,23 @@ def UpdateProductType( product ):
             _logger.info("Set detailed_type almacenable ('product') not possible:")
             _logger.error(e, exc_info=True)
             failed = True
-            pass;        
+            pass;
         try:
             product.write( { 'type': 'product' } )
         except Exception as e:
             _logger.info("Set type almacenable ('product') not possible:")
             _logger.error(e, exc_info=True)
             failed = True
-            pass;       
-            
+            pass;
+
         query = """UPDATE product_template SET type='product', detailed_type='product' WHERE id=%i""" % (product.id)
         cr = product._cr
-        respquery = cr.execute(query) 
-    
+        respquery = cr.execute(query)
+
 def ProductType():
-    return { 
+    return {
         "type": "product",
-        "detailed_type": "product" 
+        "detailed_type": "product"
     }
 
 # Odoo 12.0 -> Odoo 13.0
@@ -220,12 +220,12 @@ def get_delivery_line(sorder):
             if(line.product_id.id == carrier_product_id):
                 delivery_line = line
                 return delivery_line
-                
+
         delivery_lines = self.env['sale.order.line'].search([('order_id', 'in', sorder.ids), ('is_delivery', '=', True)])
         if delivery_lines:
             delivery_line = delivery_lines[0]
             return delivery_line
-            
+
     except:
         _logger.info("Error get delivery line failed")
         return delivery_line
@@ -240,20 +240,20 @@ def set_delivery_line( sorder, delivery_price, delivery_message ):
         delivery_line = get_delivery_line(sorder)
     try:
         recompute_delivery_price = False
-        
-        if (delivery_line and abs(delivery_line.price_unit - float(delivery_price)) > 1.1 ):        
+
+        if (delivery_line and abs(delivery_line.price_unit - float(delivery_price)) > 1.1 ):
             recompute_delivery_price = True
             sorder.set_delivery_line(sorder.carrier_id, delivery_price)
-            
+
         sorder.write({
         	'recompute_delivery_price': recompute_delivery_price,
         	'delivery_message': delivery_message,
         })
     except:
             _logger.info("Error set_delivery_line failed (order invoiced)")
-            
+
     return delivery_line
-    
+
 def remove_delivery_line( sorder, delivery_price=0):
     sorder._remove_delivery_line()
     return
