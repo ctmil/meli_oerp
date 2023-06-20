@@ -121,6 +121,13 @@ def prepare_attribute( product_template_id, attribute_id, attribute_value_id ):
                }
     return att_vals
 
+def stock_picking_set_quantities( picking ):
+    for spick in picking:
+        for pop in spick.move_line_ids:
+            #_logger.info(pop)
+            if (pop.qty_done==0.0 and pop.product_qty>=0.0):
+                pop.qty_done = pop.product_qty
+
 def stock_inventory_action_done( self, product, stock, config ):
     return_id = False
     uomobj = self.env[uom_model]
