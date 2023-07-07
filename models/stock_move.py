@@ -26,15 +26,15 @@ class StockMove(models.Model):
             is_meli = (mov.product_id.meli_id and mov.product_id.meli_pub)
 
             if (config and config.mercadolibre_cron_post_update_stock and is_meli):
-                _logger.info("meli_update_boms > mercadolibre_cron_post_update_stock "+str(config and config.name))
+                #_logger.info("meli_update_boms > mercadolibre_cron_post_update_stock "+str(config and config.name))
                 product_id.product_post_stock()
 
             #sin config, recorremos las companias a las que forma parte este producto
             if not config and company_ids:
                 for comp in company_ids:
                     is_company = (product_id.company_id==False or product_id.company_id==comp)
-                    _logger.info("is_company: "+str(is_company)+" product_id.company_id:"+str(product_id.company_id)+" comp:"+str(comp))
-                    _logger.info("is_meli: "+str(is_meli)+" comp.mercadolibre_cron_post_update_stock:"+str(comp.mercadolibre_cron_post_update_stock))
+                    #_logger.info("is_company: "+str(is_company)+" product_id.company_id:"+str(product_id.company_id)+" comp:"+str(comp))
+                    #_logger.info("is_meli: "+str(is_meli)+" comp.mercadolibre_cron_post_update_stock:"+str(comp.mercadolibre_cron_post_update_stock))
                     if (comp and comp.mercadolibre_cron_post_update_stock and is_company and is_meli):
                         product_id.product_post_stock()
 

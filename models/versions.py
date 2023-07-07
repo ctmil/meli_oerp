@@ -188,14 +188,19 @@ def ml_tax_excluded(self, config=None ):
     return tax_excluded
 
 def ml_product_price_conversion( self, product_related_obj, price, config=None):
+    company_id = ("company_id" in config._fields and config.company_id) or config
     product_template = product_related_obj.product_tmpl_id
     ml_price_converted = float(price)
     tax_excluded = ml_tax_excluded( self, config=config )
+    #tax_excluded = True
+    #_logger.info("Taxes:"+str(product_template.taxes_id))
     if ( tax_excluded and product_template.taxes_id ):
         txfixed = 0
         txpercent = 0
         #_logger.info("Adjust taxes")
         for txid in product_template.taxes_id:
+            if (txid.company_id!=company_id):
+                continue;
             if (txid.type_tax_use=="sale" and not txid.price_include):
                 if (txid.amount_type=="percent"):
                     txpercent = txpercent + txid.amount
