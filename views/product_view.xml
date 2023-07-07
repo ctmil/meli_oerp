@@ -492,6 +492,7 @@
           <field name="arch" type="xml">
             <field name="name" position="after">
               <field name="meli_default_id_attribute" />
+              <field name="meli_chart_id"/>
             </field>
           </field>
         </record>

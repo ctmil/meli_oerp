@@ -60,8 +60,8 @@ class mercadolibre_category_import(models.TransientModel):
 
         warningobj = self.env['meli.warning']
 
-        meli = self.env['meli.util'].get_new_instance(company)
-        if meli.need_login():
+        meli = self.env["mercadolibre.category"].get_meli()
+        if meli and meli.need_login():
             return meli.redirect_login()
 
         _logger.info("Meli Category Import Wizard")
@@ -190,6 +190,27 @@ class mercadolibre_category(models.Model):
     _name = "mercadolibre.category"
     _description = "Categories of MercadoLibre"
 
+    def get_meli( self, meli=None ):
+
+        _logger.info("get_meli")
+        _logger.info(self)
+        _logger.info(meli)
+
+        if meli:
+            return meli
+
+        company = self.env.user.company_id
+
+        if "mercadolibre_connections" in company:
+            connacc = company.mercadolibre_connections and company.mercadolibre_connections[0]
+            config = (connacc and connacc.configuration) or company
+            meli = self.env['meli.util'].get_new_instance( config, connacc)
+        else:
+            meli = self.env['meli.util'].get_new_instance( company )
+
+        return meli
+
+
     def create_ecommerce_category(self, category_id, meli=None, create_missing_website=True ):
 
         _logger.info("Creating Ecommerce Category "+str(category_id))
@@ -243,7 +264,7 @@ class mercadolibre_category(models.Model):
         if 'product.public.category' in self.env:
             www_cats = self.env['product.public.category']
         if not meli:
-            meli = self.env['meli.util'].get_new_instance(company)
+            meli = self.get_meli(meli=meli)
             if meli.need_login():
                 return meli.redirect_login()
 
@@ -275,7 +296,7 @@ class mercadolibre_category(models.Model):
 
         return mlcatid, www_cat_id
 
-    def _get_category_url( self ):
+    def _get_category_url( self, meli=None ):
         company = self.env.user.company_id
 
         warningobj = self.env['meli.warning']
@@ -283,7 +304,7 @@ class mercadolibre_category(models.Model):
         att_obj = self.env['mercadolibre.category.attribute']
         prod_att_obj = self.env['product.attribute']
 
-        meli = self.env['meli.util'].get_new_instance(company)
+        meli = self.get_meli(meli=meli)
 
         for category in self:
             if (category and category.meli_category_id):
@@ -301,11 +322,11 @@ class mercadolibre_category(models.Model):
                     category.meli_father_category_id = rjson_cat["path_from_root"][fid]["id"]
 
 
-    def get_attributes( self ):
+    def get_attributes( self, meli=None ):
         for cat in self:
-            cat._get_attributes()
+            cat._get_attributes(meli=meli)
 
-    def _get_attributes( self ):
+    def _get_attributes( self, meli=None ):
 
         company = self.env.user.company_id
 
@@ -314,7 +335,7 @@ class mercadolibre_category(models.Model):
         att_obj = self.env['mercadolibre.category.attribute']
         prod_att_obj = self.env['product.attribute']
 
-        meli = self.env['meli.util'].get_new_instance(company)
+        meli = self.get_meli(meli=meli)
 
         for category in self:
             if (category.meli_category_id
@@ -438,7 +459,7 @@ class mercadolibre_category(models.Model):
         if 'product.public.category' in self.env:
             www_cats = self.env['product.public.category']
 
-        meli = meli or self.env['meli.util'].get_new_instance(company)
+        meli = self.get_meli(meli=meli)
 
         config = company
         create_missing_website = create_missing_website or config.mercadolibre_create_website_categories
@@ -454,7 +475,7 @@ class mercadolibre_category(models.Model):
             ml_cat_id = category_obj.search([('meli_category_id','=',category_id)],limit=1)
             if (len(ml_cat_id) and ml_cat_id[0].id and is_branch==False):
                 #_logger.info("category exists!" + str(ml_cat_id))
-                ml_cat_id._get_attributes()
+                ml_cat_id._get_attributes(meli=meli)
 
             if not ml_cat_id:
                 _logger.info("Creating category: " + str(category_id))
@@ -489,7 +510,7 @@ class mercadolibre_category(models.Model):
                 _logger.info(cat_fields)
                 ml_cat_id = ml_cat_id.create((cat_fields))
                 if (ml_cat_id.id and is_branch==False):
-                  ml_cat_id._get_attributes()
+                  ml_cat_id._get_attributes(meli=meli)
                   ml_cat_id.get_search_chart_filters(meli=meli)
 
             if (ml_cat_id):
@@ -554,7 +575,7 @@ class mercadolibre_category(models.Model):
         warningobj = self.env['meli.warning']
         category_obj = self.env['mercadolibre.category']
 
-        meli = meli or self.env['meli.util'].get_new_instance(company)
+        meli = self.get_meli(meli=meli)
 
         RECURSIVE_IMPORT = recursive_import or company.mercadolibre_recursive_import
 
@@ -611,7 +632,7 @@ class mercadolibre_category(models.Model):
     # https://api.mercadolibre.com/sites/MLM/listing_types#json
     def get_catalog_domain_json( self, catalog_domain=None, meli=None ):
         company = self.env.user.company_id
-        meli = meli or self.env['meli.util'].get_new_instance(company)
+        meli = self.get_meli(meli=meli)
         catalog_domain_json = ""
         if catalog_domain:
             response_dom = meli.get("/catalog_domains/"+str(catalog_domain), {'access_token':meli.access_token})
@@ -631,13 +652,13 @@ class mercadolibre_category(models.Model):
     def get_search_chart( self, brand=None, gender=None, model=None, meli=None ):
         ##https://api.mercadolibre.com/catalog/charts/search
         company = self.env.user.company_id
-        meli = meli or self.env['meli.util'].get_new_instance(company)
+        meli = self.get_meli(meli=meli)
         cat = self
         #https://api.mercadolibre.com/catalog/charts/search
         params = {
             'access_token': meli.access_token
         }
-        site_id = "MLA"
+        site_id = company._get_ML_sites(meli=meli)
         body = {
             'site_id': site_id,
             'domain_id': str(cat.catalog_domain).replace(site_id+str("-"),""),
@@ -888,8 +909,24 @@ class mercadolibre_grid_chart(models.Model):
         if osi:
             _logger.info("update_attributes: reload att values in odoo")
 
+    def search_row_id( self, value ):
+        _logger.info( "search_row_id: for value: " + str(value) )
+        row_id = None
+        ret_row_id = None
+        for row in self.rows:
+            #_logger.info( "search_row_id: in row: " + str(row) )
+            row_id = row.row_id
 
+            for attval in row.attribute_values:
+                #_logger.info( "search_row_id: in attribute_values: " + str(attval) )
+                if (value == attval.value):
+                    ret_row_id = row_id
+                    ret_col_name = attval.name
+                    ret_col_id = attval.id
+                    #_logger.info( "search_row_id: ret_row_id found: " + str(ret_row_id) )
 
+        _logger.info( "search_row_id: ret_row_id FINAL for Value: "+str(value)+" is Col Name: "+str(ret_col_name)+" ROW ID >>> " + str(ret_row_id) )
+        return ret_row_id
 
 
 #al pedir una categoria traer el dominio!
