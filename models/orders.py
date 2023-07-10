@@ -397,8 +397,6 @@ class sale_order(models.Model):
             else:
                 so.sudo().write( { 'user_id': None } )
 
-
-
     def meli_oerp_update( self ):
         res = {}
         for order in self:

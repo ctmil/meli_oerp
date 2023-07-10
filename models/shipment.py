@@ -1009,7 +1009,7 @@ class mercadolibre_shipment(models.Model):
                                 if (mOrder.fee_amount):
                                     sorder_pack.meli_fee_amount = sorder_pack.meli_fee_amount + mOrder.fee_amount
 
-                                saleorderline_item_fields.update( order._set_product_unit_price( product_related_obj, mOrder.order_items[0] ) )
+                                saleorderline_item_fields.update( order._set_product_unit_price( product_related_obj, mOrder.order_items[0], config=config ) )
 
                                 saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),
                                                                                     ('meli_order_item_variation_id','=',saleorderline_item_fields['meli_order_item_variation_id']),
