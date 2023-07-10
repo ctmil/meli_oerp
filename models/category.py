@@ -929,4 +929,3 @@ class mercadolibre_grid_chart(models.Model):
         return ret_row_id
 
 
-#al pedir una categoria traer el dominio!
