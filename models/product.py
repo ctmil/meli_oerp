@@ -303,7 +303,10 @@ class product_template(models.Model):
 
     def get_price_for_category_predictor(self):
         pricelist = self._get_pricelist_for_meli()
-        return int(self.with_context(pricelist=pricelist.id).price)
+        if pricelist:
+            return get_price_from_pl( pricelist, self, 1.0 )[pricelist.id]
+        else:
+            return 1.0
 
     def action_category_predictor(self):
         self.ensure_one()
@@ -2683,7 +2686,7 @@ class product_product(models.Model):
             #_logger.info("translation")
             #_logger.info(translation.value)
         #    description_sale = translation.value
-        
+
 
         productjson = False
         if (product.meli_id):
