@@ -2675,14 +2675,15 @@ class product_product(models.Model):
             if meli.need_login():
                 return meli.redirect_login()
         #return {}
-        #description_sale =  product_tmpl.description_sale
-        translation = self.env['ir.translation'].search([('res_id','=',product_tmpl.id),
-                                                        ('name','=','product.template,description_sale'),
-                                                        ('lang','=','es_AR')])
-        if translation:
+        description_sale =  product_tmpl.description_sale
+        #translation = self.env['ir.translation'].search([('res_id','=',product_tmpl.id),
+        #                                                ('name','=','product.template,description_sale'),
+        #                                                ('lang','=','es_MX')])
+        #if translation:
             #_logger.info("translation")
             #_logger.info(translation.value)
-            description_sale = translation.value
+        #    description_sale = translation.value
+        
 
         productjson = False
         if (product.meli_id):
