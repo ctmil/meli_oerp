@@ -680,9 +680,10 @@ class product_product(models.Model):
                 new_price = txfixed + new_price * (1.0 + txpercent*0.01)
                 #_logger.info("Price adjusted with taxes:"+str(new_price))
 
+
         new_price = round(new_price,2)
 
-        if (product_tmpl.meli_currency and product_tmpl.meli_currency == 'MXN'):
+        if (product_tmpl.meli_currency and (product_tmpl.meli_currency == 'MXN' or product_tmpl.meli_currency == 'USD')):
             new_price = str((float(new_price)))
         elif (product_tmpl.meli_currency and product_tmpl.meli_currency == 'CLP'):
             new_price = str( int( int( math.floor(int(new_price) / 100 ) * 100 + 90 ) ) )
