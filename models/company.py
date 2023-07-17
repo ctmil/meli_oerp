@@ -43,10 +43,10 @@ class res_company(models.Model):
 
     def get_ML_AUTH_URL(self,meli=False):
 
-        AUTH_URL = "https://auth.mercadolibre.com.ar"
+        AUTH_URL = "https://auth.mercadolibre.com.mx"
 
         ML_AUTH_URL = {
-            "MLA": { "name": "Argentina", "AUTH_URL": "https://auth.mercadolibre.com.ar" },
+            "MLA": { "name": "Argentina", "AUTH_URL": "https://auth.mercadolibre.com.mx" },
             "MLM": { "name": "México", "AUTH_URL": "https://auth.mercadolibre.com.mx" },
             "MCO": { "name": "Colombia", "AUTH_URL": "https://auth.mercadolibre.com.co" },
             "MPE": { "name": "Perú", "AUTH_URL": "https://auth.mercadolibre.com.pe" },
@@ -69,10 +69,10 @@ class res_company(models.Model):
 
     def get_ML_LINK_URL(self,meli=False):
 
-        LINK_URL = "https://www.mercadolibre.com.ar"
+        LINK_URL = "https://www.mercadolibre.com.mx"
 
         ML_URL = {
-            "MLA": { "name": "Argentina", "LINK_URL": "https://www.mercadolibre.com.ar" },
+            "MLA": { "name": "Argentina", "LINK_URL": "https://www.mercadolibre.com.mx" },
             "MLM": { "name": "México", "LINK_URL": "https://www.mercadolibre.com.mx" },
             "MCO": { "name": "Colombia", "LINK_URL": "https://www.mercadolibre.com.co" },
             "MPE": { "name": "Perú", "LINK_URL": "https://www.mercadolibre.com.pe" },

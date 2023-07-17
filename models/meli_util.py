@@ -31,7 +31,7 @@ configuration = meli.Configuration(
 
 class MeliApi( meli.RestClientApi ):
 
-    AUTH_URL = "https://auth.mercadolibre.com.ar/authorization"
+    AUTH_URL = "https://auth.mercadolibre.com.mx/authorization"
 
     needlogin_state = True
 
