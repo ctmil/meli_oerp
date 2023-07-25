@@ -333,11 +333,11 @@ class mercadolibre_shipment(models.Model):
 
             sorder.meli_shipping_cost = shipment.shipping_cost
             sorder.meli_shipping_list_cost = shipment.shipping_list_cost
-            sorder.meli_shipment_logistic_type = shipment.logistic_type
+            sorder.meli_shipment_logistic_type = shipment.logistic_type or shipment.mode
 
             order.shipping_cost = shipment.shipping_cost
             order.shipping_list_cost = shipment.shipping_list_cost
-            order.shipment_logistic_type = shipment.logistic_type
+            order.shipment_logistic_type = shipment.logistic_type or shipment.mode
 
             if (sorder.partner_shipping_id):
                 partner_shipping_id = sorder.partner_shipping_id
