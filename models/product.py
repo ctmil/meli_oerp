@@ -303,7 +303,10 @@ class product_template(models.Model):
 
     def get_price_for_category_predictor(self):
         pricelist = self._get_pricelist_for_meli()
-        return int(self.with_context(pricelist=pricelist.id).price)
+        if pricelist:
+            return get_price_from_pl( pricelist, self, 1.0 )[pricelist.id]
+        else:
+            return 1.0
 
     def action_category_predictor(self):
         self.ensure_one()
@@ -677,9 +680,10 @@ class product_product(models.Model):
                 new_price = txfixed + new_price * (1.0 + txpercent*0.01)
                 #_logger.info("Price adjusted with taxes:"+str(new_price))
 
+
         new_price = round(new_price,2)
 
-        if (product_tmpl.meli_currency and product_tmpl.meli_currency == 'MXN'):
+        if (product_tmpl.meli_currency and (product_tmpl.meli_currency == 'MXN' or product_tmpl.meli_currency == 'USD')):
             new_price = str((float(new_price)))
         elif (product_tmpl.meli_currency and product_tmpl.meli_currency == 'CLP'):
             new_price = str( int( int( math.floor(int(new_price) / 100 ) * 100 + 90 ) ) )
@@ -2675,14 +2679,15 @@ class product_product(models.Model):
             if meli.need_login():
                 return meli.redirect_login()
         #return {}
-        #description_sale =  product_tmpl.description_sale
-        translation = self.env['ir.translation'].search([('res_id','=',product_tmpl.id),
-                                                        ('name','=','product.template,description_sale'),
-                                                        ('lang','=','es_AR')])
-        if translation:
+        description_sale =  product_tmpl.description_sale
+        #translation = self.env['ir.translation'].search([('res_id','=',product_tmpl.id),
+        #                                                ('name','=','product.template,description_sale'),
+        #                                                ('lang','=','es_MX')])
+        #if translation:
             #_logger.info("translation")
             #_logger.info(translation.value)
-            description_sale = translation.value
+        #    description_sale = translation.value
+
 
         productjson = False
         if (product.meli_id):
