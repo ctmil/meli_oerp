@@ -106,6 +106,7 @@ class res_company(models.Model):
                             ("CLP","Peso Chileno (CLP)"),
                             ("CRC","Colon Costarricense (CRC)"),
                             ("UYU","Peso Uruguayo (UYU)"),
+                            ("VES","Peso Venezolano (VES)"),
                             ("USD","Dolar Estadounidense (USD)")]
         if (meli):
             response = meli.get("/currencies")
@@ -121,8 +122,13 @@ class res_company(models.Model):
     def _get_ML_sites(self,meli=False):
         # to check api.mercadolibre.com/sites  > MLA
         company = self.env.user.company_id
+
         if not meli:
             meli = self.env['meli.util'].get_new_instance(company)
+
+        country = company and company.country_id
+        country_code = country and country.code
+
         ML_sites = {
             "ARS": { "name": "Argentina", "id": "MLA", "default_currency_id": "ARS" },
             "MXN": { "name": "México", "id": "MLM", "default_currency_id": "MXN" },
@@ -151,8 +157,24 @@ class res_company(models.Model):
 
         #_logger.info(ML_sites)
 
+        if (country_code and country_code=="UY"):
+            return ML_sites["UYU"]["id"]
+
+        if (country_code and country_code=="VE"):
+            return ML_sites["VES"]["id"]
+
+        if (country_code and country_code=="MX"):
+            return ML_sites["MXN"]["id"]
+
+        if (country_code and country_code=="CL"):
+            return ML_sites["CLP"]["id"]
+
+        if (country_code and country_code=="CO"):
+            return ML_sites["COP"]["id"]
+
         if (currency and currency in ML_sites):
             return ML_sites[currency]["id"]
+
         return "MLA"
 
     def get_meli_state( self ):
