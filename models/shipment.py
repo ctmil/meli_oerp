@@ -124,7 +124,7 @@ class mercadolibre_shipment_print(models.TransientModel):
                     shipid = pick.sale_id.meli_shipment.id
                 if ( (not shipid) and len(pick.sale_id.meli_orders) ):
                     shipment = shipment_obj.search([('shipping_id','=',pick.sale_id.meli_orders[0].shipping_id)])
-                    if (shipment):
+                    if (shipment and shipment.status=="ready_to_ship"):
                         shipid = shipment.id
             else:
                 continue;
@@ -1019,6 +1019,9 @@ class mercadolibre_shipment(models.Model):
                                     if sorder_pack.amount_total<(sorder_pack.meli_paid_amount-sorder_pack.meli_coupon_amount):
                                         saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
                                 else:
+                                    #_logger.info("saleorderline_item_ids:"+str(saleorderline_item_ids))
+                                    #_logger.info("saleorderline_item_ids tax_id:"+str(saleorderline_item_ids.tax_id))
+                                    #_logger.info("saleorderline_item_ids tax_id company_id:"+str(saleorderline_item_ids.tax_id.company_id))
                                     saleorderline_item_ids.write( ( saleorderline_item_fields ) )
                     else:
                         _logger.info("partner receiver id not founded:"+str(ship_fields['receiver_id']))
