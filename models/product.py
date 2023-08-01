@@ -1539,6 +1539,7 @@ class product_product(models.Model):
         tmpl_fields = {
           'name': meli_fields["name"],
           'description_sale': desplain,
+          #'company_id': company.id,
           #'name': str(rjson['id']),
           #'lst_price': ml_price_convert,
           'meli_title': meli_fields["meli_title"],
@@ -1751,8 +1752,8 @@ class product_product(models.Model):
 
                         if ("barcode" in variation):
                             try:
-                                bcodes = self.env["product.product"].search([('barcode','=',variation["barcode"]),('active','=',True)])
-                                bcodes_archived = self.env["product.product"].search([('barcode','=',variation["barcode"]),('active','=',False)])
+                                bcodes = self.env["product.product"].sudo().search([('barcode','=',variation["barcode"]),('active','=',True)])
+                                bcodes_archived = self.env["product.product"].sudo().search([('barcode','=',variation["barcode"]),('active','=',False)])
 
                                 if not bcodes and bcodes_archived:
                                     _logger.error("Error barcode already defined! In archived product variant!!"+str(variation["barcode"]))
@@ -1785,8 +1786,8 @@ class product_product(models.Model):
 
                         if ("barcode" in variation):
                             try:
-                                bcodes = self.env["product.product"].search([('barcode','=',variation["barcode"]),('active','=',True)])
-                                bcodes_archived = self.env["product.product"].search([('barcode','=',variation["barcode"]),('active','=',False)])
+                                bcodes = self.env["product.product"].sudo().search([('barcode','=',variation["barcode"]),('active','=',True)])
+                                bcodes_archived = self.env["product.product"].sudo().search([('barcode','=',variation["barcode"]),('active','=',False)])
 
                                 if not bcodes and bcodes_archived:
                                     _logger.error("Error barcode already defined! In archived product variant!!"+str(variation["barcode"]))
@@ -1829,8 +1830,8 @@ class product_product(models.Model):
 
             if barcode and not product.barcode:
                 try:
-                    bcodes = self.env["product.product"].search([('barcode','=',barcode)])
-                    bcodes_archived = self.env["product.product"].search([('barcode','=',barcode),('active','=',False)])
+                    bcodes = self.env["product.product"].sudo().search([('barcode','=',barcode)])
+                    bcodes_archived = self.env["product.product"].sudo().search([('barcode','=',barcode),('active','=',False)])
 
                     if not bcodes and bcodes_archived:
                         _logger.error("Error barcode already defined! In archived product variant!! "+str(barcode))
