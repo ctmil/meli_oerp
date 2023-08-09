@@ -3818,7 +3818,8 @@ class product_product(models.Model):
     meli_stock_update = fields.Datetime(string="Stock Update",help="Ultima actualizacion de stock de Odoo a ML",index=True)
     def _meli_stock_moves_update( self ):
         for var in self:
-            var.meli_stock_moves_update = (var.stock_move_ids and var.stock_move_ids.sorted(lambda o: o.create_date, reverse=True)[0].create_date) or False
+            _st_mv_ids = var.stock_move_ids and var.stock_move_ids.filtered(lambda x: x.create_date )
+            var.meli_stock_moves_update = (_st_mv_ids and _st_mv_ids.sorted(lambda o: o.create_date, reverse=True)[0].create_date) or False
 
     def process_meli_stock_moves_update( self ):
         for var in self:
