@@ -96,7 +96,7 @@
             <data>
                 <notebook>
                     <page string="MercadoLibre Plantilla">
-                      <group name="ML actions">
+
                         <div class="oe_button_box" name="button_box_mel" style="width: auto;">
                           <button type="object"
                               name="action_meli_pause"
@@ -132,7 +132,7 @@
                             class="oe_stat_button"
                             icon="fa-refresh"/>
                         </div>
-                      </group>
+
                       <separator string="Variants" colspan="1"/>
                       <field name="product_variant_ids" options="{'no_create': True}" domain="[('meli_id','!=',None)]">
                         <tree>
