@@ -420,7 +420,8 @@
                               title="Se requiere Iniciar Sesión en ML"
                               attrs="{'invisible':[('meli_state','=',False)]}"/>
                           </div>
-                          <group string="Informacion de ML">
+                          <group name="ML actions"></group>
+                          <group name="ML Info" string="Informacion de ML">
                             <group>
                               <field name="meli_post_required" invisible="1" />
                               <field name="meli_status" />
