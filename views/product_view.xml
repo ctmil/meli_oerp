@@ -132,7 +132,7 @@
                             class="oe_stat_button"
                             icon="fa-refresh"/>
                         </div>
-
+                      <group name="ML actions"></group>                      
                       <separator string="Variants" colspan="1"/>
                       <field name="product_variant_ids" options="{'no_create': True}" domain="[('meli_id','!=',None)]">
                         <tree>
