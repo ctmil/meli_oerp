@@ -13,6 +13,14 @@ import base64
 import mimetypes
 from urllib.request import urlopen
 
+import base64
+
+from odoo import api, fields, models, tools, _
+from odoo.exceptions import ValidationError
+
+from odoo.addons.web_editor.tools import get_video_embed_code, get_video_thumbnail
+
+
 from datetime import datetime
 
 from .meli_oerp_config import *
