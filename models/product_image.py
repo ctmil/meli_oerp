@@ -65,8 +65,8 @@ class ProductImage(models.Model):
 
 
 class MeliImage(models.Model):
-    _name = 'meli.image'
-    _description = "Meli Image"
+    _name = 'mercadolibre.image'
+    _description = "MercadoLibre Image"
     _inherit = ['image.mixin']
     _order = 'sequence, id'
 
@@ -104,3 +104,26 @@ class MeliImage(models.Model):
         for image in self:
             if image.video_url and not image.embed_code:
                 raise ValidationError(_("Provided video URL for '%s' is not valid. Please enter a valid video URL.", image.name))
+
+    meli_imagen_id = fields.Char(string='Imagen Id',index=True)
+    meli_imagen_link = fields.Char(string='Imagen Link')
+    meli_imagen_size = fields.Char(string='Size')
+    meli_imagen_max_size = fields.Char(string='Max Size')
+    meli_imagen_bytes = fields.Integer(string='Size bytes')
+    meli_imagen_hash = fields.Char(string='File Hash Id')
+    meli_pub = fields.Boolean(string='Publicar en ML',index=True)
+    meli_force_pub = fields.Boolean(string='Publicar en ML y conservar en Odoo',index=True)
+    meli_published = fields.Boolean(string='Publicado en ML',index=True)
+
+    def calculate_hash(self):
+        hexhash = ''
+        for pimage in self:
+            image = get_image_full( pimage )
+            if not image:
+                continue;
+            imagebin = base64.b64decode( image )
+            hash = hashlib.blake2b()
+            hash.update(imagebin)
+            hexhash = hash.hexdigest()
+            pimage.meli_imagen_hash = hexhash
+        return hexhash
