@@ -43,6 +43,7 @@
                   </group>
                   <group name="gimages" string="Images">
                     <field name="images"/>
+                    <field name="images_id"/>
                   </group>
                 </sheet>
               </form>
