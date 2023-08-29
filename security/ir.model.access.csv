@@ -34,8 +34,8 @@ access_sale_mercadolibre_product_product_update,mercadolibre.product.product.upd
 access_sale_mercadolibre_meli_warning,meli warning manager,model_meli_warning,sales_team.group_sale_manager,1,1,1,1
 access_sale_order_cancel_wiz_meli,sale.order.cancel.wiz.meli manager,model_sale_order_cancel_wiz_meli,sales_team.group_sale_manager,1,1,1,1
 access_sale_mercadolibre_shipment_print,shipment print  manager,model_mercadolibre_shipment_print,sales_team.group_sale_manager,1,1,1,1
-access_sale_mercadolibre_grid_chart,mercadolibre.grid.chart manager,model_mercadolibre_grid_chart,sales_team.group_sale_manager,1,1,1,1
 access_sale_mercadolibre_product_template_import,mercadolibre.product.template.import manager,model_mercadolibre_product_template_import,sales_team.group_sale_manager,1,1,1,1
+access_sale_mercadolibre_grid_chart,mercadolibre.grid.chart manager,model_mercadolibre_grid_chart,sales_team.group_sale_manager,1,1,1,1
 access_sale_mercadolibre_grid_row,mercadolibre.grid.row manager,model_mercadolibre_grid_row,sales_team.group_sale_manager,1,1,1,1
 access_sale_mercadolibre_grid_row_col,mercadolibre.grid.row.col manager,model_mercadolibre_grid_row_col,sales_team.group_sale_manager,1,1,1,1
 access_sale_mercadolibre_grid_attribute,mercadolibre.grid.attribute manager,model_mercadolibre_grid_attribute,sales_team.group_sale_manager,1,1,1,1
