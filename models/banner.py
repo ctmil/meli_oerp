@@ -30,6 +30,7 @@ class MercadolibreBanner(models.Model):
     header = fields.Text(string='Encabezado')
     footer = fields.Text(string='Pie')
     images = fields.Text(string='Imagenes (links)')
+    images_id = fields.Many2many("mercadolibre.image",string="Imagenes Meli")
 
     def get_description( self, product ):
         if not product:
