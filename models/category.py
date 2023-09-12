@@ -924,7 +924,7 @@ class mercadolibre_grid_chart(models.Model):
 
             for attval in row.attribute_values:
                 _logger.info( "search_row_id: in attribute_values: " + str(attval) )
-                if (value == attval.value or float(value)=float(attval.number)):
+                if (value == attval.value or float(value)==float(attval.number)):
                     ret_row_id = row_id
                     ret_col_name = attval.name
                     ret_col_id = attval.id
