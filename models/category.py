@@ -402,10 +402,11 @@ class mercadolibre_category(models.Model):
 
                                 prod_att = {
                                     'name': att['name'],
-                                    'create_variant': self.env["product.attribute"].meli_default_create_variant(meli_attribute=att),
+                                    'create_variant': self.env["product.attribute"].meli_default_create_variant(meli_attribute=attrs_field),
                                     'meli_default_id_attribute': attrs[0].id,
                                     #'meli_id': attrs[0].att_id
                                 }
+                                _logger.info("prod_att:"+str(prod_att))
                                 if (len(prod_attrs)>=1):
                                     #tomamos el primero
                                     _logger.error("Atención multiples atributos asignados!")
@@ -925,7 +926,7 @@ class mercadolibre_grid_chart(models.Model):
                     ret_col_id = attval.id
                     #_logger.info( "search_row_id: ret_row_id found: " + str(ret_row_id) )
 
-        _logger.info( "search_row_id: ret_row_id FINAL for Value: "+str(value)+" is Col Name: "+str(ret_col_name)+" ROW ID >>> " + str(ret_row_id) )
+                    _logger.info( "search_row_id: ret_row_id FINAL for Value: "+str(value)+" is Col Name: "+str(ret_col_name)+" ROW ID >>> " + str(ret_row_id) )
         return ret_row_id
 
 
