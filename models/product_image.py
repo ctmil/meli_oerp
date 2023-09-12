@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo import models, fields, api, osv
+from odoo import models, fields, tools, api, osv
 from odoo.tools.translate import _
 
 import pdb
@@ -13,13 +13,8 @@ import base64
 import mimetypes
 from urllib.request import urlopen
 
-import base64
-
-from odoo import api, fields, models, tools, _
 from odoo.exceptions import ValidationError
-
-from odoo.addons.web_editor.tools import get_video_embed_code, get_video_thumbnail
-
+from odoo.addons.website.tools import get_video_embed_code
 
 from datetime import datetime
 
@@ -33,7 +28,7 @@ if (not ('replace' in string.__dict__)):
 from . import versions
 from .versions import *
 
-from odoo.addons.web_editor.tools import get_video_embed_code, get_video_thumbnail
+
 
 class ProductImage(models.Model):
 
@@ -96,11 +91,11 @@ class MeliImage(models.Model):
         for image in self:
             image.can_image_1024_be_zoomed = image.image_1920 and tools.is_image_size_above(image.image_1920, image.image_1024)
 
-    @api.onchange('video_url')
-    def _onchange_video_url(self):
-        if not self.image_1920:
-            thumbnail = get_video_thumbnail(self.video_url)
-            self.image_1920 = thumbnail and base64.b64encode(thumbnail) or False
+    #@api.onchange('video_url')
+    #def _onchange_video_url(self):
+    #    if not self.image_1920:
+    #        thumbnail = get_video_thumbnail(self.video_url)
+    #        self.image_1920 = thumbnail and base64.b64encode(thumbnail) or False
 
     @api.depends('video_url')
     def _compute_embed_code(self):
