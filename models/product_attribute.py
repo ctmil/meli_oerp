@@ -23,7 +23,7 @@ class ProductAttribute(models.Model):
     def meli_default_create_variant( self, meli_attribute=None ):
 
         create_variant = default_no_create_variant
-
+        _logger.info("meli_default_create_variant meli_attribute: "+str(meli_attribute))
         if meli_attribute and "variation_attribute" in meli_attribute and "hidden" in meli_attribute:
             if meli_attribute["variation_attribute"] and not meli_attribute["hidden"]:
                 create_variant = default_create_variant
