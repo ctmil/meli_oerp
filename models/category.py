@@ -928,3 +928,5 @@ class mercadolibre_grid_chart(models.Model):
 
                     _logger.info( "search_row_id: ret_row_id FINAL for Value: "+str(value)+" is Col Name: "+str(ret_col_name)+" ROW ID >>> " + str(ret_row_id) )
         return ret_row_id
+
+
