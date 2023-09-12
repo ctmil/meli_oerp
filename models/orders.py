@@ -1906,9 +1906,14 @@ class mercadolibre_orders(models.Model):
                         if sorder.meli_paid_amount==0.0 or 1.1<abs((sorder.meli_paid_amount-sorder.meli_coupon_amount)-sorder.amount_total):
                             saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
                     else:
-                        #_logger.info("saleorderline_item_ids:"+str(saleorderline_item_ids))
-                        #_logger.info("saleorderline_item_ids tax_id:"+str(saleorderline_item_ids.tax_id))
-                        #_logger.info("saleorderline_item_ids tax_id company_id:"+str(saleorderline_item_ids.tax_id.company_id))
+                        _logger.info("saleorderline_item_ids:"+str(saleorderline_item_ids))
+                        _logger.info("product_related_obj taxes_id:"+str(product_related_obj.taxes_id))
+                        _logger.info("saleorderline_item_ids tax_id:"+str(saleorderline_item_ids.tax_id))
+                        _logger.info("saleorderline_item_ids tax_id company_id:"+str(saleorderline_item_ids.tax_id.company_id))
+                        for tid in saleorderline_item_ids.tax_id:
+                            if (tid.company_id.id!=sorder.company_id.id):
+                                saleorderline_item_ids.tax_id = [(3, tid.id)]
+
                         saleorderline_item_ids.write( ( saleorderline_item_fields ) )
 
         if 'payments' in order_json:

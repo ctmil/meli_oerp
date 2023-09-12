@@ -13,6 +13,43 @@
             </field>
         </record>
 
+        <record model="ir.ui.view" id="view_meli_banner_form">
+  					<field name="name">mercadolibre.banner.form</field>
+  					<field name="model">mercadolibre.banner</field>
+  					<field name="arch" type="xml">
+  						<form string="MercadoLibre Banner">
+  							<header>
+
+  							</header>
+  							<sheet>
+  								<div class="oe_title">
+  									<h1><field name="name"/></h1>
+  								</div>
+                    <!--div class="oe_button_box" name="button_box_mel" style="width: auto;">
+                      <button name='copy_from_company' type="object"
+    											string="Copiar de Cia"
+    											title="Copiar de Cia"
+    											class="oe_stat_button"
+    											icon="fa-user-circle"/>
+                    </div-->
+                  <group name="gheader" string="Header">
+                    <field name="header"/>
+                  </group>
+                  <group name="gdescription" string="Descprition">
+                    <field name="description"/>
+                  </group>
+                  <group name="gfooter" string="Footer">
+                    <field name="footer"/>
+                  </group>
+                  <group name="gimages" string="Images">
+                    <field name="images"/>
+                    <field name="images_id"/>
+                  </group>
+                </sheet>
+              </form>
+            </field>
+          </record>
+
 
         <record model="ir.actions.act_window" id="action_meli_banners_tree">
             <field name="name">Descripciones</field>

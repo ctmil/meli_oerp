@@ -105,7 +105,7 @@ class StockMove(models.Model):
         res = super(StockMove, self)._action_assign()
 
         for mov in self:
-            mov.meli_update_boms()
+            mov.meli_update_boms( config = company )
 
         return res
 
@@ -117,6 +117,6 @@ class StockMove(models.Model):
         moves_todo = super(StockMove, self)._action_done(cancel_backorder=cancel_backorder)
 
         for mov in self:
-            mov.meli_update_boms()
+            mov.meli_update_boms( config = company )
 
         return moves_todo
