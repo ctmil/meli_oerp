@@ -6,6 +6,9 @@ from odoo.tools.translate import _
 from . import versions
 from .versions import *
 
+import logging
+_logger = logging.getLogger(__name__)
+
 class ProductAttribute(models.Model):
 
     _inherit = 'product.attribute'
