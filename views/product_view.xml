@@ -96,7 +96,7 @@
             <data>
                 <notebook>
                     <page string="MercadoLibre Plantilla">
-                      <group name="ML actions">
+
                         <div class="oe_button_box" name="button_box_mel" style="width: auto;">
                           <button type="object"
                               name="action_meli_pause"
@@ -132,7 +132,7 @@
                             class="oe_stat_button"
                             icon="fa-refresh"/>
                         </div>
-                      </group>
+                      <group name="ML actions"></group>                      
                       <separator string="Variants" colspan="1"/>
                       <field name="product_variant_ids" options="{'no_create': True}" domain="[('meli_id','!=',None)]">
                         <tree>
@@ -420,7 +420,8 @@
                               title="Se requiere Iniciar Sesión en ML"
                               attrs="{'invisible':[('meli_state','=',False)]}"/>
                           </div>
-                          <group string="Informacion de ML">
+                          <group name="ML actions"></group>
+                          <group name="ML Info" string="Informacion de ML">
                             <group>
                               <field name="meli_post_required" invisible="1" />
                               <field name="meli_status" />
