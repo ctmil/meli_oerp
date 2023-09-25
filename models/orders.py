@@ -140,6 +140,46 @@ class sale_order(models.Model):
     meli_shipment_logistic_type = fields.Char(string="Logistic Type",index=True)
     meli_update_forbidden = fields.Boolean(string="Bloqueado para actualizar desde ML",default=False, index=True)
 
+    def _ml_shipping_status(self):
+        for ord in self:
+            ord.ml_shipping_status = 'draft'
+            stats = {
+            "draft": 0,
+            "waiting": 0,
+            "confirmed": 0,
+            "done": 0,
+            "cancel": 0,
+            }
+            for spick in ord.picking_ids:
+                if (spick.state in ['draft']):
+                    ord.ml_shipping_status = 'draft'
+                    break;
+                if (spick.state in ['waiting']):
+                    ord.ml_shipping_status = 'waiting'
+                    break;
+                if (spick.state in ['confirmed']):
+                    ord.ml_shipping_status = 'confirmed'
+                    break;
+                if (spick.state in ['assigned']):
+                    ord.ml_shipping_status = 'assigned'
+                    break;
+                if (spick.state in ['done']):
+                    ord.ml_shipping_status = 'done'
+                    continue;
+                if (spick.state in ['cancel']):
+                    ord.ml_shipping_status = 'cancel'
+                    break;
+
+
+    ml_shipping_status = fields.Selection(selection=[
+    ('draft','Entrega Borrador'),
+    ('waiting','Entrega Esperando'),
+    ('confirmed','Entrega Preparado'),
+    ('assigned','Entrega Listo'),
+    ('done','Entrega Hecho'),
+    ('cancel','Entrega Cancelado'),
+    ],compute=_ml_shipping_status)
+
     def action_confirm(self):
         #_logger.info("meli order action_confirm: " + str(self.mapped("name")) )
         res = super(sale_order,self).action_confirm()
@@ -1908,11 +1948,17 @@ class mercadolibre_orders(models.Model):
                     else:
                         _logger.info("saleorderline_item_ids:"+str(saleorderline_item_ids))
                         _logger.info("product_related_obj taxes_id:"+str(product_related_obj.taxes_id))
+                        _logger.info("product_related_obj taxes_id:"+str(product_related_obj.taxes_id and product_related_obj.taxes_id.company_id))
                         _logger.info("saleorderline_item_ids tax_id:"+str(saleorderline_item_ids.tax_id))
                         _logger.info("saleorderline_item_ids tax_id company_id:"+str(saleorderline_item_ids.tax_id.company_id))
                         for tid in saleorderline_item_ids.tax_id:
                             if (tid.company_id.id!=sorder.company_id.id):
                                 saleorderline_item_ids.tax_id = [(3, tid.id)]
+                        if not saleorderline_item_ids.tax_id and product_related_obj.taxes_id:
+                            for txid in product_related_obj.taxes_id:
+                                if txid.company_id.id==sorder.company_id.id:
+                                    saleorderline_item_ids.tax_id = [(4, txid.id)]
+
 
                         saleorderline_item_ids.write( ( saleorderline_item_fields ) )
 
