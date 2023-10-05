@@ -51,7 +51,7 @@ class MercadoLibre(http.Controller):
 
     @http.route(['/meli_notify'], type='http', auth='public')
     def meli_notify_http(self,**kw):
-        _logger.info("meli_notify")
+        _logger.info("meli_notify_http")
         #_logger.info(kw)
         company = request.env.user.company_id
         _logger.info(request.env.user)
