@@ -31,7 +31,7 @@ class MercadoLibre(http.Controller):
 
         return "MercadoLibre Publisher for Odoo - Copyright Moldeo Interactive 2021"
 
-    @http.route(['/meli_notify'], type='json', auth='public')
+    @http.route(['/meli_notify'], type='json', auth='public', methods=["POST"])
     def meli_notify(self,**kw):
         _logger.info("meli_notify")
         #_logger.info(kw)
@@ -49,7 +49,7 @@ class MercadoLibre(http.Controller):
         else:
             return ""
 
-    @http.route(['/meli_notify'], type='http', auth='public')
+    @http.route(['/meli_notify'], type='http', auth='public', methods=["GET"])
     def meli_notify_http(self,**kw):
         _logger.info("meli_notify_http")
         #_logger.info(kw)
