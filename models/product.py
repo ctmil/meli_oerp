@@ -3074,7 +3074,8 @@ class product_product(models.Model):
 
         #publicando multiples imagenes
         multi_images_ids = {}
-        if (variant_image_ids(product) or template_image_ids(product)):
+        banner_images = config and "mercadolibre_banner" in config and config.mercadolibre_banner and "images_id" in config.mercadolibre_banner and config.mercadolibre_banner.images_id
+        if (variant_image_ids(product) or template_image_ids(product) or banner_images):
             multi_images_ids = product.product_meli_upload_multi_images(meli=meli,config=config)
             _logger.info(multi_images_ids)
             if 'status' in multi_images_ids:
