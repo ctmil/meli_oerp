@@ -42,8 +42,8 @@
                     <field name="footer"/>
                   </group>
                   <group name="gimages" string="Images">
-                    <field name="images"/>
-                    <field name="images_id"/>
+                    <!--field name="images"/>
+                    <field name="images_id"/-->
                     <field name="images_id" class="o_website_sale_image_list" context="{'default_name': name}" mode="kanban" add-label="Add a Media" nolabel="1"/>
 
                   </group>

@@ -2221,6 +2221,11 @@ class product_product(models.Model):
                 product_image = tpl_image_ids[imix]
                 image_ids+= product._meli_upload_image( product_image, meli=meli, config=config )
 
+        if "mercadolibre_banner" in config and config.mercadolibre_banner and "images_id" in config.mercadolibre_banner and config.mercadolibre_banner.images_id:
+            for img in config.mercadolibre_banner.images_id:
+                _logger.info("img: " + str(img))
+                image_ids+= product._meli_upload_image( img, meli=meli, config=config )
+
         product.write( { "meli_multi_imagen_id": "%s" % (image_ids) } )
 
         return image_ids
