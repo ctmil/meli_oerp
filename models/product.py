@@ -815,6 +815,10 @@ class product_product(models.Model):
         if not ("product.image" in self.env):
             return {}
 
+        if not ("mercadolibre.image" in self.env):
+            return {}
+
+        banner_images = config and "mercadolibre_banner" in config and config.mercadolibre_banner and "images_id" in config.mercadolibre_banner and config.mercadolibre_banner.images_id
         has_variations = rjson and "variations" in rjson and len(rjson["variations"])>1
 
         try:
@@ -866,7 +870,16 @@ class product_product(models.Model):
                     #_logger.info(pimg_fields)
 
                     #for variant images:
+                    is_in_banner_images = False
+                    for img in banner_images:
+                        if img.meli_imagen_bytes == pic["meli_imagen_bytes"] and img.meli_imagen_size == pic["size"]:
+                            is_in_banner_images = True
+                        if img.meli_imagen_id == pic["id"]:
+                            is_in_banner_images = True
 
+                    if is_in_banner_images:
+                        #jump next picture
+                        continue;
 
                     if (variant_image_ids(product)):
                         #_logger.info("has variant image ids")
