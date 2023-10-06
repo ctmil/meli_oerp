@@ -2194,7 +2194,9 @@ class product_product(models.Model):
         product_obj = self.env['product.product']
         product = self
 
-        if variant_image_ids(product)==None and template_image_ids(product)==None:
+        banner_images = config and "mercadolibre_banner" in config and config.mercadolibre_banner and "images_id" in config.mercadolibre_banner and config.mercadolibre_banner.images_id
+
+        if (not banner_images and variant_image_ids(product)==None and template_image_ids(product)==None):
             return { 'error': 'product_meli_upload_multi_images error no images to upload', 'status': 'error', 'message': 'no images to upload' }
 
         image_ids = []
@@ -2221,7 +2223,9 @@ class product_product(models.Model):
                 product_image = tpl_image_ids[imix]
                 image_ids+= product._meli_upload_image( product_image, meli=meli, config=config )
 
-        if "mercadolibre_banner" in config and config.mercadolibre_banner and "images_id" in config.mercadolibre_banner and config.mercadolibre_banner.images_id:
+        product.write( { "meli_multi_imagen_id": "%s" % (image_ids) } )
+
+        if banner_images:
             for img in config.mercadolibre_banner.images_id:
                 _logger.info("img: " + str(img))
                 image_ids+= product._meli_upload_image( img, meli=meli, config=config )
