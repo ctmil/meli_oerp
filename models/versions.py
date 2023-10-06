@@ -27,26 +27,29 @@ def Autocommit( self, act=False ):
     return False
 
 def UpdateProductType( product ):
-    if (product and product.detailed_type not in ['product']):
-        failed = False
-        try:
-            product.write( { 'detailed_type': 'product' } )
-        except Exception as e:
-            _logger.info("Set detailed_type almacenable ('product') not possible:")
-            _logger.error(e, exc_info=True)
-            failed = True
-            pass;
-        try:
-            product.write( { 'type': 'product' } )
-        except Exception as e:
-            _logger.info("Set type almacenable ('product') not possible:")
-            _logger.error(e, exc_info=True)
-            failed = True
-            pass;
+    if not product:
+        return
+    for prod in product:
+        if (prod and prod.detailed_type not in ['product']):
+            failed = False
+            try:
+                prod.write( { 'detailed_type': 'product' } )
+            except Exception as e:
+                _logger.info("Set detailed_type almacenable ('product') not possible:")
+                _logger.error(e, exc_info=True)
+                failed = True
+                pass;
+            try:
+                prod.write( { 'type': 'product' } )
+            except Exception as e:
+                _logger.info("Set type almacenable ('product') not possible:")
+                _logger.error(e, exc_info=True)
+                failed = True
+                pass;
 
-        query = """UPDATE product_template SET type='product', detailed_type='product' WHERE id=%i""" % (product.id)
-        cr = product._cr
-        respquery = cr.execute(query)
+            query = """UPDATE product_template SET type='product', detailed_type='product' WHERE id=%i""" % (prod.id)
+            cr = prod._cr
+            respquery = cr.execute(query)
 
 def ProductType():
     return {
