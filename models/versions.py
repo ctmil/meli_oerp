@@ -142,9 +142,10 @@ def prepare_attribute( product_template_id, attribute_id, attribute_value_id ):
 def stock_picking_set_quantities( picking ):
     for spick in picking:
         for pop in spick.move_line_ids:
-            #_logger.info(pop)
-            if (pop.qty_done==0.0 and "reserved_uom_quantity" in pop._fields and pop.reserved_uom_quantity>=0.0):
-                pop.qty_done = pop.reserved_uom_quantity
+            _logger.info(pop)
+            _logger.info(pop.qty_done)
+            if (pop.qty_done==0.0 and "reserved_uom_qty" in pop._fields and pop.reserved_uom_qty>=0.0):
+                pop.qty_done = pop.reserved_uom_qty
 
 def stock_inventory_action_done( self, product, stock, config ):
     return_id = False
