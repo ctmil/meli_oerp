@@ -78,6 +78,11 @@
                 <data>
                     <notebook>
                         <page string="MercadoLibre" attrs="{'invisible':[('meli_order_id', '=', False)]}">
+                            <button name='meli_oerp_update' type="object"
+                            string="Actualizar"
+                            attrs="{'invisible':[('meli_order_id','=',False)]}"
+                            class="oe_stat_button"
+                            icon="fa-refresh"/>
                             <field name="meli_orders" invisible="0"/>
                             <group>
                               <field name="meli_update_forbidden" string="No actualizar desde ML"/>
