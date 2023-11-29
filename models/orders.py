@@ -112,6 +112,8 @@ class sale_order(models.Model):
         ("invalid","Invalido: malicious"),
         #The order status is cancelled, but an action is pending to complete the process.
         ("pending_cancel", "Pendiente de cancelar"),
+
+        ("partially_refunded", "Parcialmente reembolsado")
         ], string='Order Status')
 
     meli_status_brief = fields.Char(string="Meli Status Brief", compute="_meli_status_brief", search=search_meli_status_brief, store=False, index=True)
@@ -141,34 +143,49 @@ class sale_order(models.Model):
     meli_update_forbidden = fields.Boolean(string="Bloqueado para actualizar desde ML",default=False, index=True)
 
     def _ml_shipping_status(self):
+
         for ord in self:
+
             ord.ml_shipping_status = 'draft'
+
             stats = {
             "draft": 0,
             "waiting": 0,
             "confirmed": 0,
+            "assigned": 0,
             "done": 0,
             "cancel": 0,
             }
             for spick in ord.picking_ids:
                 if (spick.state in ['draft']):
                     ord.ml_shipping_status = 'draft'
+                    stats["draft"]+=1
                     break;
                 if (spick.state in ['waiting']):
                     ord.ml_shipping_status = 'waiting'
+                    stats["waiting"]+=1
                     break;
                 if (spick.state in ['confirmed']):
                     ord.ml_shipping_status = 'confirmed'
+                    stats["confirmed"]+=1
                     break;
                 if (spick.state in ['assigned']):
                     ord.ml_shipping_status = 'assigned'
+                    stats["assigned"]+=1
                     break;
                 if (spick.state in ['done']):
                     ord.ml_shipping_status = 'done'
+                    stats["done"]+=1
                     continue;
                 if (spick.state in ['cancel']):
                     ord.ml_shipping_status = 'cancel'
+                    stats["cancel"]+=1
                     break;
+
+            if stats["done"] and (stats["cancel"] or stats["draft"] or stats["waiting"] or stats["assigned"] or stats["confirmed"]):
+                ord.ml_shipping_status = 'done_to_verify'
+
+
 
 
     ml_shipping_status = fields.Selection(selection=[
@@ -177,6 +194,7 @@ class sale_order(models.Model):
     ('confirmed','Entrega Preparado'),
     ('assigned','Entrega Listo'),
     ('done','Entrega Hecho'),
+    ('done_to_verify','Entrega hecha a verificar'),
     ('cancel','Entrega Cancelado'),
     ],compute=_ml_shipping_status)
 
@@ -1636,7 +1654,11 @@ class mercadolibre_orders(models.Model):
             'pricelist_id': plistid.id,
         })
         if partner_shipping_id:
-            meli_order_fields['partner_shipping_id'] = partner_shipping_id.id
+            shipping_partner_already_set = (sorder and sorder.partner_shipping_id and sorder.partner_shipping_id.id == partner_shipping_id.id)
+            update_shipping = not sorder or (sorder and not sorder.partner_shipping_id)
+            update_shipping = update_shipping or not shipping_partner_already_set
+            if (update_shipping):
+                meli_order_fields['partner_shipping_id'] = partner_shipping_id.id
 
         if ("pack_id" in order_json and order_json["pack_id"]):
             meli_order_fields['name'] = "ML %s" % ( str(order_json["pack_id"]) )
@@ -2395,7 +2417,9 @@ class mercadolibre_orders(models.Model):
         #The order has been invalidated as it came from a malicious buyer.
                                     ("invalid","Invalido: malicious"),
         #The order status is cancelled, but an action is pending to complete the process.
-        ("pending_cancel", "Pendiente de cancelar")
+        ("pending_cancel", "Pendiente de cancelar"),
+
+        ("partially_refunded", "Parcialmente reembolsado")
                                     ],
         string='Order Status')
 

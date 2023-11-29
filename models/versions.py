@@ -272,4 +272,3 @@ def set_delivery_line( sorder, delivery_price, delivery_message ):
 def remove_delivery_line( sorder, delivery_price=0):
     sorder._remove_delivery_line()
     return
-    
