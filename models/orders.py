@@ -1654,7 +1654,11 @@ class mercadolibre_orders(models.Model):
             'pricelist_id': plistid.id,
         })
         if partner_shipping_id:
-            meli_order_fields['partner_shipping_id'] = partner_shipping_id.id
+            shipping_partner_already_set = (sorder and sorder.partner_shipping_id and sorder.partner_shipping_id.id == partner_shipping_id.id)
+            update_shipping = not sorder or (sorder and not sorder.partner_shipping_id)
+            update_shipping = update_shipping or not shipping_partner_already_set
+            if (update_shipping):
+                meli_order_fields['partner_shipping_id'] = partner_shipping_id.id
 
         if ("pack_id" in order_json and order_json["pack_id"]):
             meli_order_fields['name'] = "ML %s" % ( str(order_json["pack_id"]) )
