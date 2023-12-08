@@ -63,15 +63,15 @@
                           <div class="col-md-6 col-xl-5">
                               <label for="name" string="Image Name"/>
                               <h2><field name="name" placeholder="Image Name"/></h2>
-                              <label for="video_url" string="Video URL"/><br/>
-                              <field name="video_url"/><br/>
+                              <!--label for="video_url" string="Video URL"/><br/>
+                              <field name="video_url"/--><br/>
                           </div>
                           <div class="col-md-6 col-xl-7 text-center o_website_sale_image_modal_container">
                               <div class="row">
                                   <div class="col">
                                       <field name="image_1920" widget="image"/>
                                   </div>
-                                  <div class="col" attrs="{'invisible': [('video_url', 'in', ['', False])]}">
+                                  <!--div class="col" attrs="{'invisible': [('video_url', 'in', ['', False])]}">
                                       <div class="o_video_container p-2">
                                           <span>Video Preview</span>
                                           <field name="embed_code" class="mt-2" widget="video_preview"/>
@@ -79,7 +79,7 @@
                                               Please enter a valid Video URL.
                                           </h4>
                                       </div>
-                                  </div>
+                                  </div-->
                               </div>
                           </div>
                       </div>
