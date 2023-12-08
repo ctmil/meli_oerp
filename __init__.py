@@ -6,6 +6,7 @@
 #
 ##############################################################################
 
+from odoo import api, SUPERUSER_ID
 import sys
 import subprocess
 import pkg_resources
@@ -21,9 +22,17 @@ def pre_init_check(cr):
             if mis=="meli":
                 mis = "git+https://github.com/mercadolibre/python-sdk.git"
             subprocess.check_call([sys.executable, '-m', 'pip', 'install', mis])
+
     return True
 
 pre_init_check(cr=None)
+
+
+def pre_init_hook(cr, registry):
+
+    env = api.Environment(cr, SUPERUSER_ID, {})
+    #env['ir.model'].search([('model', '=', 'warning')]).unlink()
+
 
 from . import models
 from . import controllers
