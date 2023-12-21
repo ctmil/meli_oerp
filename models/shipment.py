@@ -468,20 +468,34 @@ class mercadolibre_shipment(models.Model):
 
             if (sorder.carrier_id):
                 #activar para cuando no se quiere incluir en la factura? mejor setear para no ser facturado.. cuando es 0
+                if 1==2 and delivery_price<=0.0:
+                    sorder._remove_delivery_line()
+
+                #UPDATE PRICE
+                delivery_line = get_delivery_line(sorder)
+
+                if delivery_line and abs(delivery_line.price_unit-delivery_price)>1.0:
+                    delivery_message = "Defined by MELI"
+                    _logger.info("Agregar delivery line delivery_price:"+str(delivery_price))
+                    set_delivery_line(sorder, delivery_price, delivery_message )
+
+
+                if shipment.shipping_list_cost:
+                    delivery_line = get_delivery_line( sorder )
+                    if delivery_line and 'purchase_price' in delivery_line._fields:
+                        delivery_line.purchase_price = float(shipment.shipping_list_cost)
+
                 if 1==1 and delivery_price<=0.0:
                     _logger.info("Procesar delivery_price == 0")
                     delivery_line = get_delivery_line(sorder)
                     if delivery_line:
                         _logger.info("Procesar delivery_price == 0 setear qty_to_invoice en 0")
+                        delivery_line.price_unit = 0.0
                         delivery_line.qty_to_invoice = 0
                     _logger.info("Procesar delivery_price == 0 remover linea")
-                    sorder._remove_delivery_line()
+                    #sorder._remove_delivery_line()
 
-                delivery_line = get_delivery_line(sorder)
-                if delivery_line and abs(delivery_line.price_unit-delivery_price)>1.0:
-                    delivery_message = "Defined by MELI"
-                    _logger.info("Agregar delivery line delivery_price:"+str(delivery_price))
-                    set_delivery_line(sorder, delivery_price, delivery_message )
+
 
 
 

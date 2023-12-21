@@ -1703,6 +1703,9 @@ class product_product(models.Model):
         published_att_variants = False
         if (company.mercadolibre_update_existings_variants and 'variations' in rjson):
             published_att_variants = self._get_variations( rjson['variations'])
+            _logger.info("after _get_variations > product_template.product_variant_ids: "+str(product_template.product_variant_ids))
+            #reset product....since variants changed
+            product = product_template.product_variant_ids and product_template.product_variant_ids[0]
 
         #_logger.info("product_uom_id")
         product_uom_id = uomobj.search([('name','=','Unidad(es)')])
@@ -1933,7 +1936,7 @@ class product_product(models.Model):
 
         if (company.mercadolibre_update_existings_variants and 'attributes' in rjson):
             _logger.info("Update attributes: "+str(rjson['attributes']))
-            self._get_non_variant_attributes(rjson['attributes'])
+            product._get_non_variant_attributes(rjson['attributes'])
         _logger.info("End product_meli_get_product")
         return {}
 
