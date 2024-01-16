@@ -345,7 +345,7 @@ class product_template(models.Model):
             if "category_id" in rjson[0]:
                 #_logger.info("Take first suggestion")
                 #meli_categ = self.env['mercadolibre.category'].import_category(rjson[0]['id'])
-                meli_categ = self.env['mercadolibre.category'].import_category(rjson[0]['category_id'])
+                meli_categ = self.env['mercadolibre.category'].import_category( rjson[0]['category_id'], meli=meli )
                 if (meli_categ==None):
                     _logger.info("Import category failed.")
         return meli_categ, rjson
