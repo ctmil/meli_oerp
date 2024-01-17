@@ -195,6 +195,9 @@ class mercadolibre_category(models.Model):
         _logger.info("get_meli")
         _logger.info(self)
         _logger.info(meli)
+        _logger.info(str(meli and meli.seller_id))
+        _logger.info(str(meli and meli.client_id))
+        _logger.info(str(meli and meli.meli_login_id))
 
         if meli:
             return meli
@@ -663,7 +666,7 @@ class mercadolibre_category(models.Model):
         body = {
             'site_id': site_id,
             'domain_id': str(cat.catalog_domain).replace(site_id+str("-"),""),
-            'seller_id': int(meli.seller_id),
+            'seller_id': int(meli and meli.seller_id),
             'attributes': []
             }
 
@@ -932,5 +935,3 @@ class mercadolibre_grid_chart(models.Model):
 
                     _logger.info( "search_row_id: ret_row_id FINAL for Value: "+str(value)+" is Col Name: "+str(ret_col_name)+" ROW ID >>> " + str(ret_row_id) )
         return ret_row_id
-
-
