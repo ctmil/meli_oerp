@@ -360,6 +360,8 @@ class res_company(models.Model):
                                                 ("gold_pro","Oro Pro")],
                                                 string='Tipo de lista',
                                                 help='Tipo de lista  predeterminada para todos los productos')
+    mercadolibre_channel_mkt = fields.Many2many( "meli.channel.mkt", string="Channels", index=True )
+                                                
     mercadolibre_attributes = fields.Boolean(string='Apply product attributes')
     mercadolibre_exclude_attributes = fields.Many2many('product.attribute.value',
         string='Valores excluidos', help='Seleccionar valores que serán excluidos para las publicaciones de variantes')
