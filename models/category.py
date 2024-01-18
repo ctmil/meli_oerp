@@ -37,16 +37,6 @@ from .versions import *
 #  "marketplace", --- No aparece sin token propietario
 #   "mshops" --- No aparece sin token propietario
 #],
-class mercadolibre_channel_marketplace(models.Model):
-
-    _name = "mercadolibre.channel.marketplace"
-    _description = "MercadoLibre Channel Marketplace"
-
-
-    name = fields.Char(string="Name",index=True)
-    code = fields.Char(string="Code",index=True)
-
-
 class meli_channel_mkt(models.Model):
 
     _name = "meli.channel.mkt"
