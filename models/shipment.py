@@ -463,6 +463,7 @@ class mercadolibre_shipment(models.Model):
                 delivery_message = "Defined by MELI"
                 #delivery_price = vals['price']
                 #display_price = vals['carrier_price']
+                _logger.info("Agregar delivery line delivery_price:"+str(delivery_price))
                 set_delivery_line(sorder, delivery_price, delivery_message )
 
             if (sorder.carrier_id):
@@ -470,10 +471,31 @@ class mercadolibre_shipment(models.Model):
                 if 1==2 and delivery_price<=0.0:
                     sorder._remove_delivery_line()
 
+                #UPDATE PRICE
                 delivery_line = get_delivery_line(sorder)
+
                 if delivery_line and abs(delivery_line.price_unit-delivery_price)>1.0:
                     delivery_message = "Defined by MELI"
+                    _logger.info("Agregar delivery line delivery_price:"+str(delivery_price))
                     set_delivery_line(sorder, delivery_price, delivery_message )
+
+
+                if shipment.shipping_list_cost:
+                    delivery_line = get_delivery_line( sorder )
+                    if delivery_line and 'purchase_price' in delivery_line._fields:
+                        delivery_line.purchase_price = float(shipment.shipping_list_cost)
+
+                if 1==1 and delivery_price<=0.0:
+                    _logger.info("Procesar delivery_price == 0")
+                    delivery_line = get_delivery_line(sorder)
+                    if delivery_line:
+                        _logger.info("Procesar delivery_price == 0 setear qty_to_invoice en 0")
+                        delivery_line.price_unit = 0.0
+                        delivery_line.qty_to_invoice = 0
+                    _logger.info("Procesar delivery_price == 0 remover linea")
+                    #sorder._remove_delivery_line()
+
+
 
 
 
@@ -950,7 +972,12 @@ class mercadolibre_shipment(models.Model):
                             partner_shipping_id = self.partner_delivery_id( partner_id=partner_id, Receiver=ship_json["receiver_address"])
 
                         if partner_shipping_id:
-                            meli_order_fields['partner_shipping_id'] = partner_shipping_id.id
+                            sorder = sorder_pack
+                            shipping_partner_already_set = (sorder and sorder.partner_shipping_id and sorder.partner_shipping_id.id == partner_shipping_id.id)
+                            update_shipping = not sorder or (sorder and not sorder.partner_shipping_id)
+                            update_shipping = update_shipping or not shipping_partner_already_set
+                            if (update_shipping):
+                                meli_order_fields['partner_shipping_id'] = partner_shipping_id.id
 
                         if ("pack_id" in all_orders[0] and all_orders[0]["pack_id"]):
                             meli_order_fields['name'] = "ML %s" % ( str(all_orders[0]["pack_id"]) )

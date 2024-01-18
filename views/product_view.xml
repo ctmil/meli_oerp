@@ -100,7 +100,7 @@
                         <div class="oe_button_box" name="button_box_mel" style="width: auto;">
                           <button type="object"
                               name="action_meli_pause"
-                              attrs="{'invisible':[('meli_variants_status', '!=', 'active')] }"
+                              invisible="meli_variants_status != 'active'"
                               confirm="Esta seguro de Pausar este Producto en Mercado Libre, esto bloqueara las publicaciones?"
                               class="oe_stat_button">
                               <img src="/meli_oerp/static/src/img/logo_ML.png" width="48" alt="logo ml"/>
@@ -108,7 +108,7 @@
                           </button>
                           <button type="object"
                               name="action_meli_activate"
-                              attrs="{'invisible':[('meli_variants_status', '!=', 'paused')]}"
+                              invisible="meli_variants_status != 'paused'"
                               confirm="Esta seguro de Pausar este Producto en Mercado Libre, esto activara las publicaciones?"
                               class="oe_stat_button">
                               <img src="/meli_oerp/static/src/img/logo_ML.png" width="48"  alt="logo ml"/>
@@ -128,11 +128,11 @@
                           icon="fa-cloud-download"/>
                           <button name='action_category_predictor' type="object"
             								string="Sugerir Categoria"
-                            attrs="{'invisible':[('meli_category','!=',False)]}"
+                            invisible="meli_category != False"
                             class="oe_stat_button"
                             icon="fa-refresh"/>
                         </div>
-                      <group name="ML actions"></group>                      
+                      <group name="ML actions"></group>
                       <separator string="Variants" colspan="1"/>
                       <field name="product_variant_ids" options="{'no_create': True}" domain="[('meli_id','!=',None)]">
                         <tree>
@@ -172,6 +172,7 @@
                         <field name="meli_warranty" />
                         <field name="meli_condition" />
                         <field name="meli_listing_type" />
+                        <field name="meli_channel_mkt" widget="many2many_tags" />
                         <!--field name="meli_shipping_mode"/>
                         <field name="meli_shipping_method"/-->
                       </group>
@@ -216,7 +217,7 @@
                     <div name="button_box" position="inside">
                         <button type="object"
                             name="action_meli_pause"
-                            attrs="{'invisible':[('meli_variants_status', '!=', 'active')] }"
+                            invisible="meli_variants_status != 'active'"
                             confirm="Esta seguro de Pausar este Producto en Mercado Libre, esto bloqueara las publicaciones?"
                             class="oe_stat_button">
                             <img src="/meli_oerp/static/src/img/logo_ML.png" width="48" alt="logo ml"/>
@@ -224,7 +225,7 @@
                         </button>
                         <button type="object"
                             name="action_meli_activate"
-                            attrs="{'invisible':[('meli_variants_status', '!=', 'paused')]}"
+                            invisible="meli_variants_status != 'paused'"
                             confirm="Esta seguro de Pausar este Producto en Mercado Libre, esto activara las publicaciones?"
                             class="oe_stat_button">
                             <img src="/meli_oerp/static/src/img/logo_ML.png" width="48"  alt="logo ml"/>
@@ -232,14 +233,14 @@
                         </button>
                         <button type="object"
                             name="action_meli_close"
-                            attrs="{'invisible':[('meli_variants_status', '!=', 'paused')]}"
+                            invisible="meli_variants_status != 'paused'"
                             class="oe_stat_button">
                             <img src="/meli_oerp/static/src/img/logo_ML.png"  width="48"  alt="logo ml"/>
                             <span>Cerrar</span>
                         </button>
                         <button type="object"
                             name="action_meli_delete"
-                            attrs="{'invisible':[('meli_variants_status', '!=', 'closed')]}"
+                            invisible="meli_variants_status != 'closed'"
                             class="oe_stat_button">
                             <img src="/meli_oerp/static/src/img/logo_ML.png"  width="48"  alt="logo ml"/>
                             <span>Eliminar</span>
@@ -295,28 +296,28 @@
                         <field name="meli_sub_status" invisible="1"/>
                         <button type="object"
                             name="product_meli_status_pause"
-                            attrs="{'invisible':[('meli_status', '!=', 'active')]}"
+                            invisible="meli_status != 'active'"
                             class="oe_stat_button">
                             <img src="/meli_oerp/static/src/img/logo_ML.png" width="48" alt="logo ml"/>
                             <span>Pausar en ML</span>
                         </button>
                         <button type="object"
                             name="product_meli_status_active"
-                            attrs="{'invisible':[('meli_status', '!=', 'paused')] }"
+                            invisible="meli_status != 'paused'"
                             class="oe_stat_button">
                             <img src="/meli_oerp/static/src/img/logo_ML.png" width="48"  alt="logo ml"/>
                             <span>Activar</span>
                         </button>
                         <button type="object"
                             name="product_meli_status_close"
-                            attrs="{'invisible':[('meli_status', '!=', 'paused')]}"
+                            invisible="meli_status != 'paused'"
                             class="oe_stat_button">
                             <img src="/meli_oerp/static/src/img/logo_ML.png"  width="48"  alt="logo ml"/>
                             <span>Cerrar</span>
                         </button>
                         <button type="object"
                             name="product_meli_delete"
-                            attrs="{'invisible':[('meli_status', '!=', 'closed')]}"
+                            invisible="meli_status != 'closed'"
                             class="oe_stat_button">
                             <img src="/meli_oerp/static/src/img/logo_ML.png"  width="48"  alt="logo ml"/>
                             <span>Eliminar</span>
@@ -348,77 +349,77 @@
                             <button name='product_meli_get_product' type="object"
                               string="Importar"
                               title="Importar desde ML"
-                              attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"
+                              invisible="meli_state == True or meli_id == False"
                               class="oe_stat_button"
               								icon="fa-cloud-download"/>
                               <button name='action_category_predictor' type="object"
                 								string="Sugerir Categoria"
                                 class="oe_stat_button"
                                 icon="fa-refresh"
-                								attrs="{'invisible':['|',('meli_state','=',True),('meli_category','!=',False)]}" />
+                								invisible="meli_state == True or meli_category != False" />
                             <button name='%(action_product_post)d' type="action"
                               string="Publicar"
                               title="Publicar producto en ML"
-                              attrs="{'invisible':['|',('meli_state','=',True),('meli_id','!=',False)]}"
+                              invisible="meli_state == True or meli_id != False"
                               class="oe_stat_button"
               								icon="fa-globe"/>
                             <button name='%(action_product_post)d' type="action"
                               string="Actualizar"
                               title="Actualizar producto en ML"
-                              attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"
+                              invisible="meli_state == True or meli_id == False"
                               class="oe_stat_button"
               								icon="fa-globe"/>
                             <button name='product_post_stock' type="object"
                               string="Publicar Stock"
                               title="Publicar Stock en ML"
-                              attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"
+                              invisible="meli_state == True or meli_id == False"
                               class="oe_stat_button"
               								icon="fa-globe"/>
                               <button name='product_post_price' type="object"
                                 string="Publicar Price"
                                 title="Publicar Price en ML"
-                                attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"
+                                invisible="meli_state == True or meli_id == False"
                                 class="oe_stat_button"
                 								icon="fa-globe"/>
                             <button name='product_meli_status_active' type="object"
                               string="Activar"
                               title="Activar producto en ML"
-                              attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"
+                              invisible="meli_state == True or meli_id == False"
                               class="oe_stat_button"
               								icon="fa-check-square"
               								confirm="Esta seguro de Activar este Producto en Mercado Libre?"/>
                             <button name='product_meli_status_pause' type="object"
                               string="Pausar"
                               title="Pausar producto en ML"
-                              attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"
+                              invisible="meli_state == True or meli_id == False"
                               class="oe_stat_button"
                               icon="fa-pause-circle"
               		      confirm="Esta seguro de Pausar este Producto en Mercado Libre, esto bloqueara la publicacion?"/>
                             <button name='product_meli_status_close' type="object"
                               string="Cerrar"
                               title="Cerrar producto en ML"
-                              attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"
+                              invisible="meli_state == True or meli_id == False"
                               icon="fa-times-circle-o"
                               class="oe_stat_button"
               								confirm="¿Esta seguro de Cerrar este Producto en Mercado Libre?"/>
                             <button name='product_meli_delete' type="object"
                               string="Eliminar"
                               title="Eliminar producto de ML"
-                              attrs="{'invisible':['|',('meli_state','=',True),('meli_id','=',False)]}"
+                              invisible="meli_state == True or meli_id == False"
                               icon="fa-trash-o"
                               class="oe_stat_button"
               								confirm="¿Esta seguro de Eliminar este Producto en Mercado Libre?. Esta accion no podra revertirse"/>
                             <button name='product_meli_upload_image' type="object"
                               string="Subir"
                               title="Subir imagen a ML"
-                              attrs="{'invisible':[('meli_state','=',True)]}"
+                              invisible="meli_state == True"
                               class="oe_stat_button" icon="fa-cloud-upload"/>
                             <button name='product_meli_login' type="object"
                               class="oe_stat_button"
                               icon="fa-user-circle"
                               string="Iniciar Sesión"
                               title="Se requiere Iniciar Sesión en ML"
-                              attrs="{'invisible':[('meli_state','=',False)]}"/>
+                              invisible="meli_state == False"/>
                           </div>
                           <group name="ML actions"></group>
                           <group name="ML Info" string="Informacion de ML">
@@ -446,7 +447,7 @@
                               <field name="meli_listing_type" />
                               <field name="meli_buying_mode" />
                               <field name="meli_price_fixed" />
-                              <field name="meli_price" attrs="{'readonly':[('meli_price_fixed', '=', False)]}"/>
+                              <field name="meli_price" readonly="meli_price_fixed == False"/>
                               <field name="meli_currency" />
                               <!--field name="meli_shipping_mode"/>
                               <field name="meli_shipping_method"/-->
@@ -551,7 +552,7 @@
             <!--field name="search_view_id" ref="producteca_sale_order_search_view" /-->
         </record>
 
-        <menuitem id="menu_meli" name="MercadoLibre" parent="sale.sale_menu_root" sequence="9"/>
+        <menuitem id="menu_meli" name="MercadoLibre" parent="sale.sale_menu_root" sequence="16"/>
 
 
         <menuitem id="menu_meli_oerp_pricelist_items"
