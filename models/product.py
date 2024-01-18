@@ -503,7 +503,7 @@ class product_template(models.Model):
     meli_gender = fields.Char(string="Genero",index=True)
     meli_grid_chart_id = fields.Many2one("mercadolibre.grid.chart",string="Guia de talles", index=True )
 
-    meli_channel_mkt = fields.Many2many( "mercadolibre.channel.marketplace", string="Channels", index=True )
+    meli_channel_mkt = fields.Many2many( "meli.channel.mkt", string="Channels", index=True )
 
 class product_product(models.Model):
 

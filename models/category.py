@@ -47,6 +47,16 @@ class mercadolibre_channel_marketplace(models.Models):
     code = fields.Char(string="Code",index=True)
 
 
+class meli_channel_mkt(models.Models):
+
+    _name = "meli.channel.mkt"
+    _description = "MercadoLibre Channel Marketplace"
+
+
+    name = fields.Char(string="Name",index=True)
+    code = fields.Char(string="Code",index=True)
+
+
 
 class mercadolibre_category_import(models.TransientModel):
     _name = "mercadolibre.category.import"
