@@ -501,7 +501,9 @@ class product_template(models.Model):
     meli_permalink_edit = fields.Char( compute=product_template_permalink, size=256, string='Link Edit',help='PermaLink Edit in MercadoLibre', store=True )
 
     meli_gender = fields.Char(string="Genero",index=True)
-    meli_grid_chart_id = fields.Many2one("mercadolibre.grid.chart",string="Guia de talles")
+    meli_grid_chart_id = fields.Many2one("mercadolibre.grid.chart",string="Guia de talles", index=True )
+
+    meli_channel_mkt = fields.Many2many( "mercadolibre.channel.marketplace", string="Channels", index=True )
 
 class product_product(models.Model):
 

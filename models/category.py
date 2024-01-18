@@ -29,8 +29,24 @@ from .warning import warning
 import requests
 from ..melisdk.meli import Meli
 import json
+import math
 
 from .versions import *
+
+#     "channels": [
+#  "marketplace", --- No aparece sin token propietario
+#   "mshops" --- No aparece sin token propietario
+#],
+class mercadolibre_channel_marketplace(models.Models):
+
+    _name = "mercadolibre.channel.marketplace"
+    _description = "MercadoLibre Channel Marketplace"
+
+
+    name = fields.Char(string="Name",index=True)
+    code = fields.Char(string="Code",index=True)
+
+
 
 class mercadolibre_category_import(models.TransientModel):
     _name = "mercadolibre.category.import"
@@ -787,8 +803,8 @@ class mercadolibre_grid_row_col(models.Model):
     att_id = fields.Char(string="Id",required=True,index=True)
     name = fields.Char(string="Name",required=True,index=True)
     value = fields.Char(string="Value",required=True,index=True)
-    number = fields.Char(string="Number",required=True,index=True)
-    unit = fields.Char(string="Unit",required=True,index=True)
+    number = fields.Char(string="Number",required=False,index=True)
+    unit = fields.Char(string="Unit",required=False,index=True)
 
     def name_get(self):
         """Override because in general the name of the value is confusing if it
@@ -804,12 +820,22 @@ class mercadolibre_grid_row_col(models.Model):
         return [(col.att_id, "%s: %s" % (col.name, col.value)) for col in self]
 
     def prepare_vals( self, djson ):
+
+        number_val = "values" in djson and djson["values"] and djson["values"] and djson["values"][0]
+        number_struc = number_val and "struct" in number_val and number_val["struct"]
+
+        val_number = number_struc and "number" in number_struc and number_struc["number"]
+        val_unit = number_struc and "unit" in number_struc and number_struc["unit"]
+        val_name = number_val and "name" in number_val and number_val["name"]
+        if not val_unit or not val_number:
+            _logger.info("prepare_vals grid_row_col > miss "+str(djson))
+
         fields = {
             "att_id": djson["id"],
             "name": djson["name"],
-            "value": "values" in djson and djson["values"][0]["name"],
-            "number": "values" in djson and djson["values"][0]["struct"] and djson["values"][0]["struct"]["number"],
-            "unit": "values" in djson and djson["values"][0]["struct"] and djson["values"][0]["struct"]["unit"]
+            "value": val_name,
+            "number": val_number,
+            "unit": val_unit
         }
         return fields
 
@@ -850,6 +876,7 @@ class mercadolibre_grid_chart(models.Model):
     rows = fields.One2many( "mercadolibre.grid.row", "grid_chart_id", string="Rows" )
 
     def prepare_vals( self, djson ):
+        #_logger.info("prepare_vals djson:"+str(djson))
         fields = {
             "meli_id": djson["id"],
             "name": json.dumps(djson["names"]),
@@ -878,7 +905,7 @@ class mercadolibre_grid_chart(models.Model):
 
     def create_chart(self, djson ):
         vals = self.prepare_vals(djson)
-        _logger.info("create_chart vals: " +str(vals))
+        _logger.info("create_chart vals: " +str(vals)+" from:"+str(djson))
         chart = self.search([('meli_id','=',vals["meli_id"])],limit=1)
         if not chart:
             chart = self.create(vals)
@@ -918,20 +945,49 @@ class mercadolibre_grid_chart(models.Model):
             _logger.info("update_attributes: reload att values in odoo")
 
     def search_row_id( self, value ):
+
         _logger.info( "search_row_id: for value: " + str(value) )
+
         row_id = None
         ret_row_id = None
+
         for row in self.rows:
+
             #_logger.info( "search_row_id: in row: " + str(row) )
             row_id = row.row_id
 
             for attval in row.attribute_values:
+
                 _logger.info( "search_row_id: in attribute_values: " + str(attval) )
-                if (value == attval.value or float(value)==float(attval.number)):
+
+                #if ( attval.number and not math.isnan(attval.number) and not math.isnan(value) and ( value == attval.value or float(value)==float(attval.number) ) ):
+                #    ret_row_id = row_id
+                #    ret_col_name = attval.name
+                #    ret_col_id = attval.id
+                #    #_logger.info( "search_row_id: ret_row_id found: " + str(ret_row_id) )
+                #    _logger.info( "search_row_id: ret_row_id FINAL for Value: "+str(value)+" is Col Name: "+str(ret_col_name)+" ROW ID >>> " + str(ret_row_id) )
+                #
+
+                _logger.info( "search_row_id: in attribute_values: name: " + str(attval.name) )
+                _logger.info( "search_row_id: in attribute_values: value: " + str(attval.value) )
+
+                if ( attval.name and ( value == attval.value or value == attval.name ) ):
+
                     ret_row_id = row_id
                     ret_col_name = attval.name
                     ret_col_id = attval.id
-                    #_logger.info( "search_row_id: ret_row_id found: " + str(ret_row_id) )
 
                     _logger.info( "search_row_id: ret_row_id FINAL for Value: "+str(value)+" is Col Name: "+str(ret_col_name)+" ROW ID >>> " + str(ret_row_id) )
+
+                else:
+                    if ( attval.number and value.isnumeric() and ( value == attval.value or float(value)==float(attval.number) ) ):
+
+                        ret_row_id = row_id
+                        ret_col_name = attval.name
+                        ret_col_id = attval.id
+                    #    #_logger.info( "search_row_id: ret_row_id found: " + str(ret_row_id) )
+                        _logger.info( "search_row_id: ret_row_id FINAL for Value: "+str(value)+" is Col Name: "+str(ret_col_name)+" ROW ID >>> " + str(ret_row_id) )
+
+                        _logger.info( "search_row_id: ret_row_id FINAL for Value: "+str(value)+" is Col Name: "+str(ret_col_name)+" ROW ID >>> " + str(ret_row_id) )
+
         return ret_row_id
