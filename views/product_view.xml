@@ -449,7 +449,6 @@
                               <field name="meli_price_fixed" />
                               <field name="meli_price" attrs="{'readonly':[('meli_price_fixed', '=', False)]}"/>
                               <field name="meli_currency" />
-
                               <!--field name="meli_shipping_mode"/>
                               <field name="meli_shipping_method"/-->
                             </group>
@@ -553,7 +552,7 @@
             <!--field name="search_view_id" ref="producteca_sale_order_search_view" /-->
         </record>
 
-        <menuitem id="menu_meli" name="MercadoLibre" parent="sale.sale_menu_root" sequence="9"/>
+        <menuitem id="menu_meli" name="MercadoLibre" parent="sale.sale_menu_root" sequence="16"/>
 
 
         <menuitem id="menu_meli_oerp_pricelist_items"

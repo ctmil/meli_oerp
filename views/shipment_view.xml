@@ -176,7 +176,7 @@
         </record>
 
 
-        <menuitem id="menu_meli" name="MercadoLibre" parent="sale.sale_menu_root" sequence="9"/>
+        <menuitem id="menu_meli" name="MercadoLibre" parent="sale.sale_menu_root" sequence="16"/>
 
         <menuitem id="menu_meli_shipment"
             action="action_meli_shipment_tree"
@@ -298,7 +298,7 @@
                     <!--field name="groups_id" eval="[(4, ref('account.group_account_invoice')),
          (4, ref('account.group_account_readonly'))]"/-->
                 </record>
-                
+
                 <!--report
                         id="report_shipment_view"
                         string="Shipment Report"
@@ -323,7 +323,7 @@
                 <!--field name="groups_id" eval="[(4, ref('account.group_account_invoice')),
      (4, ref('account.group_account_readonly'))]"/-->
             </record>
-            
+
             <!--report
                         id="report_order_shipment_view"
                         string="Order Shipment Report"
@@ -349,7 +349,7 @@
      (4, ref('account.group_account_readonly'))]"/-->
                 <field name="paperformat_id" ref="meli_oerp.paperformat_invoice_shipment"/>
             </record>
-            
+
             <!--report
                         id="report_invoice_shipment_view"
                         string="Shipment Report"

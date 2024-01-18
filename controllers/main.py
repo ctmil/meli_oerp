@@ -31,7 +31,7 @@ class MercadoLibre(http.Controller):
 
         return "MercadoLibre Publisher for Odoo - Copyright Moldeo Interactive 2021"
 
-    @http.route(['/meli_notify'], type='json', auth='public')
+    @http.route(['/meli_notify'], type='json', auth='public', methods=["POST"])
     def meli_notify(self,**kw):
         _logger.info("meli_notify")
         #_logger.info(kw)
@@ -48,6 +48,24 @@ class MercadoLibre(http.Controller):
             return Response(result["error"],content_type='text/html;charset=utf-8',status=result["status"])
         else:
             return ""
+
+    @http.route(['/meli_notify'], type='http', auth='public', methods=["GET"])
+    def meli_notify_http(self,**kw):
+        _logger.info("meli_notify_http")
+        #_logger.info(kw)
+        company = request.env.user.company_id
+        _logger.info(request.env.user)
+        _logger.info(company)
+        #_logger.info(company.display_name)
+        #_logger.info(kw)
+        #_logger.info(request)
+        #data = json.loads(request.httprequest.data)
+        #_logger.info(data)
+        #result = company.meli_notifications(data)
+        #if (result and "error" in result):
+        #    return Response(result["error"],content_type='text/html;charset=utf-8',status=result["status"])
+        #else:
+        return ""
 
     @http.route('/meli/image/<int:product_id>', type='http', auth="public")
     @http.route('/meli/image/<int:product_id>/<int:image_id>', type='http', auth="public")
