@@ -132,7 +132,7 @@
                             class="oe_stat_button"
                             icon="fa-refresh"/>
                         </div>
-                      <group name="ML actions"></group>                      
+                      <group name="ML actions"></group>
                       <separator string="Variants" colspan="1"/>
                       <field name="product_variant_ids" options="{'no_create': True}" domain="[('meli_id','!=',None)]">
                         <tree>
@@ -172,6 +172,7 @@
                         <field name="meli_warranty" />
                         <field name="meli_condition" />
                         <field name="meli_listing_type" />
+                        <field name="meli_channel_mkt" widget="many2many_tags" />
                         <!--field name="meli_shipping_mode"/>
                         <field name="meli_shipping_method"/-->
                       </group>
@@ -448,6 +449,7 @@
                               <field name="meli_price_fixed" />
                               <field name="meli_price" attrs="{'readonly':[('meli_price_fixed', '=', False)]}"/>
                               <field name="meli_currency" />
+
                               <!--field name="meli_shipping_mode"/>
                               <field name="meli_shipping_method"/-->
                             </group>
