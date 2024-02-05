@@ -2606,7 +2606,7 @@ class product_product(models.Model):
             updated_attributes.append( { "id": "GTIN", "value_name": variant.barcode } )
 
         var_attributes_grid = variant._update_row_size_grid_attribute( attributes=attributes, var_info = var_info )
-        _logger.info("var_attributes_grid:"+str(var_attributes_grid))
+        _logger.info("var_attributes_grid: "+str(var_attributes_grid))
         if var_attributes_grid:
             updated_attributes.append(var_attributes_grid)
 
@@ -2621,12 +2621,12 @@ class product_product(models.Model):
         Has_SIZE = False
         SIZE_value = None
         GRID_ROW_SIZE_id = None
-        _logger.info("_update_row_size_grid_attribute var_info:"+str(var_info))
+        #_logger.info("_update_row_size_grid_attribute var_info:"+str(var_info))
 
         attribute_combinations = (var_info and "attribute_combinations" in var_info and var_info["attribute_combinations"])
 
         for att_comb in attribute_combinations:
-            _logger.info("_update_row_size_grid_attribute att_comb:"+str(att_comb))
+            #_logger.info("_update_row_size_grid_attribute att_comb:"+str(att_comb))
             if (att_comb and "id" in att_comb and att_comb["id"] == "SIZE"):
                 Has_SIZE = True
                 SIZE_value = att_comb["value_name"]
@@ -2647,7 +2647,8 @@ class product_product(models.Model):
 
                 if not SIZE_GRID_ROW_ID_updated:
                     updated_row_size_attribute = { "id": "SIZE_GRID_ROW_ID", "value_name": str(GRID_ROW_SIZE_id) }
-
+            else:
+                _logger.error("GRID_ROW_SIZE_id not FOUNDED for value ["+str(SIZE_value)+"]")
 
         return updated_row_size_attribute
 

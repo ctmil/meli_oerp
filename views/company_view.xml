@@ -160,6 +160,7 @@
                               </group>
                               <group>
                                 <field name="mercadolibre_post_default_code" invisible="0"/>
+                                <field name="mercadolibre_post_barcode" invisible="0"/>
                                 <field name="mercadolibre_product_template_override_variant" invisible="0"/>
                                 <field name="mercadolibre_product_template_override_method" invisble="0"/>
                                 <hr/>

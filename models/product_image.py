@@ -14,6 +14,7 @@ import mimetypes
 from urllib.request import urlopen
 
 from odoo.exceptions import ValidationError
+from odoo.addons.website.tools import get_video_embed_code
 
 from datetime import datetime
 
@@ -27,9 +28,6 @@ if (not ('replace' in string.__dict__)):
 from . import versions
 from .versions import *
 
-from odoo.addons.website.tools import get_video_embed_code
-
-#from odoo.addons.web_editor.tools import get_video_embed_code, get_video_thumbnail
 
 class ProductImage(models.Model):
 
