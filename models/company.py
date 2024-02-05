@@ -361,7 +361,7 @@ class res_company(models.Model):
                                                 string='Tipo de lista',
                                                 help='Tipo de lista  predeterminada para todos los productos')
     mercadolibre_channel_mkt = fields.Many2many( "meli.channel.mkt", string="Channels", index=True )
-                                                
+
     mercadolibre_attributes = fields.Boolean(string='Apply product attributes')
     mercadolibre_exclude_attributes = fields.Many2many('product.attribute.value',
         string='Valores excluidos', help='Seleccionar valores que serán excluidos para las publicaciones de variantes')
@@ -411,6 +411,7 @@ class res_company(models.Model):
 
     mercadolibre_process_offset = fields.Char('Offset for pause all')
     mercadolibre_post_default_code = fields.Boolean(string='Post SKU',help='Post Odoo default_code field for templates or variants to seller_custom_field in ML')
+    mercadolibre_post_barcode = fields.Boolean(string='Post Barcode',help='Post Odoo barcode as GTIN')
     mercadolibre_import_search_sku = fields.Boolean(string='Search SKU',help='Search product by default_code')
 
     mercadolibre_seller_user = fields.Many2one("res.users", string="Vendedor", help="Usuario con el que se registrarán las órdenes automáticamente")
