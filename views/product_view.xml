@@ -447,7 +447,8 @@
                               <field name="meli_listing_type" />
                               <field name="meli_buying_mode" />
                               <field name="meli_price_fixed" />
-                              <field name="meli_price" attrs="{'readonly':[('meli_price_fixed', '=', False)]}"/>
+                              <field name="meli_price" 
+					attrs="{'readonly':[('meli_price_fixed', '=', False)]}"/>
                               <field name="meli_currency" />
                               <!--field name="meli_shipping_mode"/>
                               <field name="meli_shipping_method"/-->

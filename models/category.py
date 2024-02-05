@@ -946,7 +946,7 @@ class mercadolibre_grid_chart(models.Model):
 
     def search_row_id( self, value ):
 
-        _logger.info( "search_row_id: for value: " + str(value) )
+        _logger.info( "search_row_id: for value: " + str(value) + "value.isnumeric() : " + str(value and value.replace(".","").isnumeric()) )
 
         row_id = None
         ret_row_id = None
@@ -958,7 +958,7 @@ class mercadolibre_grid_chart(models.Model):
 
             for attval in row.attribute_values:
 
-                _logger.info( "search_row_id: in attribute_values: " + str(attval) )
+                #_logger.info( "search_row_id: in attribute_values: " + str(attval) )
 
                 #if ( attval.number and not math.isnan(attval.number) and not math.isnan(value) and ( value == attval.value or float(value)==float(attval.number) ) ):
                 #    ret_row_id = row_id
@@ -968,8 +968,7 @@ class mercadolibre_grid_chart(models.Model):
                 #    _logger.info( "search_row_id: ret_row_id FINAL for Value: "+str(value)+" is Col Name: "+str(ret_col_name)+" ROW ID >>> " + str(ret_row_id) )
                 #
 
-                _logger.info( "search_row_id: in attribute_values: name: " + str(attval.name) )
-                _logger.info( "search_row_id: in attribute_values: value: " + str(attval.value) )
+                _logger.info( "search_row_id: in attribute_values: name: " + str(attval.name)+ " value: " + str(attval.value) )
 
                 if ( attval.name and ( value == attval.value or value == attval.name ) ):
 
@@ -980,14 +979,15 @@ class mercadolibre_grid_chart(models.Model):
                     _logger.info( "search_row_id: ret_row_id FINAL for Value: "+str(value)+" is Col Name: "+str(ret_col_name)+" ROW ID >>> " + str(ret_row_id) )
 
                 else:
-                    if ( attval.number and value.isnumeric() and ( value == attval.value or float(value)==float(attval.number) ) ):
+                    if ( attval.number and value.replace(".","").isnumeric()):
+                        _logger.info( "search_row_id: isnumeric value:" + str(float(value))+" vs attval.number:" +str(float(attval.number)) )
+                        if ( value == attval.value or float(value)==float(attval.number) ):
 
-                        ret_row_id = row_id
-                        ret_col_name = attval.name
-                        ret_col_id = attval.id
-                    #    #_logger.info( "search_row_id: ret_row_id found: " + str(ret_row_id) )
-                        _logger.info( "search_row_id: ret_row_id FINAL for Value: "+str(value)+" is Col Name: "+str(ret_col_name)+" ROW ID >>> " + str(ret_row_id) )
-
-                        _logger.info( "search_row_id: ret_row_id FINAL for Value: "+str(value)+" is Col Name: "+str(ret_col_name)+" ROW ID >>> " + str(ret_row_id) )
+                            ret_row_id = row_id
+                            ret_col_name = attval.name
+                            ret_col_id = attval.id
+                        #    #_logger.info( "search_row_id: ret_row_id found: " + str(ret_row_id) )
+                            #_logger.info( "search_row_id: ret_row_id FINAL for Value: "+str(value)+" is Col Name: "+str(ret_col_name)+" ROW ID >>> " + str(ret_row_id) )
+                            _logger.info( "search_row_id: isnumeric ret_row_id FINAL for Value: "+str(value)+" is Col Name: "+str(ret_col_name)+" ROW ID >>> " + str(ret_row_id) )
 
         return ret_row_id
