@@ -211,6 +211,7 @@ class mercadolibre_category(models.Model):
         _logger.info("get_meli")
         _logger.info(self)
         _logger.info(meli)
+        
         #_logger.info(str(meli and meli.seller_id))
         #_logger.info(str(meli and meli.client_id))
         #_logger.info(str(meli and meli.meli_login_id))
