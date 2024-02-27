@@ -306,11 +306,9 @@ class res_company(models.Model):
     mercadolibre_recursive_import = fields.Boolean( string='Recursive import', help='Import all the category tree from Category Code')
 
     mercadolibre_cron_refresh = fields.Boolean(string='Keep alive',help='Cron Automatic Token Refresh for keeping ML connection alive.')
-    mercadolibre_cron_mail = fields.Many2one(
-        comodel_name="mail.template",
+    mercadolibre_cron_mail = fields.Many2one("mail.template",
         string="Error E-mail Template",
-        help="Select the email template that will be sent when "
-        "cron refresh fails.")
+        help="Select the email template that will be sent when cron refresh fails.")
     mercadolibre_cron_get_orders = fields.Boolean(string="Importar pedidos",help='Cron Get Orders / Pedidos de venta')
     mercadolibre_cron_get_orders_shipment = fields.Boolean(string='Importar envíos',help='Cron Get Orders Shipment')
     mercadolibre_cron_get_orders_shipment_client = fields.Boolean(string='Importar clientes',help='Cron Get Orders Shipment Client')
@@ -428,6 +426,10 @@ class res_company(models.Model):
     mercadolibre_payment_term = fields.Many2one("account.payment.term",string="Payment Term")
 
     mercadolibre_banner = fields.Many2one("mercadolibre.banner",string="Plantilla Descriptiva")
+
+    mercadolibre_contact_partner = fields.Many2one("res.partner",string="Contacto Predeterminado")
+    mercadolibre_shipping_partner = fields.Many2one("res.partner",string="Contacto de Envio Predeterminado")
+    mercadolibre_invoice_partner = fields.Many2one("res.partner",string="Contacto de Facturación Predeterminado")
 
     #mercadolibre_use_buyer_name = fields.Boolean(string="Use buyer name",default=True)
 

@@ -46,12 +46,12 @@
                                 attrs="{'invisible':[('mercadolibre_state','=',True)]}"
                                 icon="fa-cloud-download"
                                 class="oe_stat_button"/-->
-                                <button type="action" name="%(action_product_template_import)d"
-                                  string="Importar Masivamente"
-                                  title="Importar Masivamente"
-                                  attrs="{'invisible':[('mercadolibre_state','=',True)]}"
-                                  class="btn btn-primary oe_stat_button"
-                                  icon="fa-cloud-download"></button>
+                            <button type="action" name="%(action_product_template_import)d"
+                              string="Importar Masivamente"
+                              title="Importar Masivamente"
+                              attrs="{'invisible':[('mercadolibre_state','=',True)]}"
+                              class="btn btn-primary oe_stat_button"
+                              icon="fa-cloud-download"></button>
 
                             <button name='meli_update_local_products' type="object"
                                 string="Actualizar productos"
@@ -104,6 +104,11 @@
                                 <field name="mercadolibre_banner" invisible="0"/>
                                 <field name="mercadolibre_seller_user" invisible="0"/>
                                 <field name="mercadolibre_seller_team" invisible="0"/>
+
+                                <field name="mercadolibre_contact_partner" invisible="0"/>
+                                <field name="mercadolibre_shipping_partner" invisible="0"/>
+                                <field name="mercadolibre_invoice_partner" invisible="0"/>
+
                                 <field name="mercadolibre_attributes" invisible="0"/>
                                 <field name="mercadolibre_exclude_attributes"  widget="many2many" options="{'no_create': True}">
                                   <tree>

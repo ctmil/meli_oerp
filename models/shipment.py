@@ -528,10 +528,13 @@ class mercadolibre_shipment(models.Model):
                     except:
                         _logger.info("Could not unlink.")
 
-    def partner_delivery_id( self, partner_id=None, Receiver=None ):
+    def partner_delivery_id( self, partner_id=None, Receiver=None, config=None ):
 
         if (not Receiver or not partner_id):
             _logger.info("partner_delivery_id > no Partner or no Receiver")
+            return None
+
+        if (config and not config.mercadolibre_cron_get_orders_shipment_client):
             return None
 
         orders_obj = self.env['mercadolibre.orders']
@@ -969,7 +972,8 @@ class mercadolibre_shipment(models.Model):
                         #_logger.info("ship_json[receiver_address]:"+str(ship_json["receiver_address"]) )
                         partner_shipping_id = None
                         if "receiver_address" in ship_json:
-                            partner_shipping_id = self.partner_delivery_id( partner_id=partner_id, Receiver=ship_json["receiver_address"])
+                            if config.mercadolibre_cron_get_orders_shipment_client:
+                                partner_shipping_id = self.partner_delivery_id( partner_id=partner_id, Receiver=ship_json["receiver_address"])
 
                         if partner_shipping_id:
                             sorder = sorder_pack
