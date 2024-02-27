@@ -130,9 +130,17 @@ class sale_order(models.Model):
 
     def _get_meli_order( self ):
         for so in self:
-            so.meli_order = so.meli_orders and so.meli_orders[0]
-            so.meli_buyer = so.meli_order and so.meli_order.buyer
-            so.meli_buyer_name = so.meli_buyer and so.meli_buyer.name
+            so.meli_order = False
+            so.meli_buyer = False
+            so.meli_buyer_name = False
+
+            meli_order = so.meli_orders and so.meli_orders[0]
+            if meli_order:
+                so.meli_order = meli_order
+                meli_buyer = meli_order and meli_order.buyer
+                if meli_buyer:
+                    so.meli_buyer = meli_buyer
+                    so.meli_buyer_name = meli_buyer and meli_buyer.name
 
     meli_order = fields.Many2one( 'mercadolibre.orders',string="Meli Orden", compute="_get_meli_order" )
     meli_buyer =  fields.Many2one( "mercadolibre.buyers",string="Meli Comprador", compute="_get_meli_order")
