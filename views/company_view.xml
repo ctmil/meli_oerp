@@ -104,6 +104,11 @@
                                 <field name="mercadolibre_banner" invisible="0"/>
                                 <field name="mercadolibre_seller_user" invisible="0"/>
                                 <field name="mercadolibre_seller_team" invisible="0"/>
+
+                                <field name="mercadolibre_contact_partner" invisible="0"/>
+                                <field name="mercadolibre_shipping_partner" invisible="0"/>
+                                <field name="mercadolibre_invoice_partner" invisible="0"/>
+
                                 <field name="mercadolibre_attributes" invisible="0"/>
                                 <field name="mercadolibre_exclude_attributes"  widget="many2many" options="{'no_create': True}">
                                   <tree>

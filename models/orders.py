@@ -71,14 +71,14 @@ class sale_order(models.Model):
                 order.meli_status_detail = order.meli_status_detail
 
     def search_meli_status_brief(self, operator, value):
-        _logger.info("search_meli_status_brief")
-        _logger.info(operator)
-        _logger.info(value)
+        #_logger.info("search_meli_status_brief")
+        #_logger.info(operator)
+        #_logger.info(value)
         if operator == 'ilike':
             #name = self.env.context.get('name', False)
             #if name is not False:
             id_list = []
-            _logger.info(self.env.context)
+            #_logger.info(self.env.context)
             #name = self.env.context.get('name', False)
             sale_orders = self.env['sale.order'].search([], limit=10000,order='id desc')
             if (value):
@@ -93,7 +93,50 @@ class sale_order(models.Model):
                 ' with the operator: {}',format(operator)
             )
 
+    def _search_meli_buyer_name( self, operator, value ):
+        #_logger.info("_search_meli_buyer_name")
+        #_logger.info(operator)
+        #_logger.info(value)
+        if operator == 'ilike':
+            #name = self.env.context.get('name', False)
+            #if name is not False:
+            id_list = []
+            #_logger.info(self.env.context)
+            #name = self.env.context.get('name', False)
+            meli_orders = []
+            buyer_ids = []
+            if value:
+                buyers = self.env['mercadolibre.buyers'].search([('name','=ilike','%'+str(value)+'%')], limit=10000,order='name asc')
+                if buyers:
+                    for buyer in buyers:
+                        buyer_ids.append(buyer.id)
+                    if buyer_ids:
+                        meli_orders = self.env['mercadolibre.orders'].search([('buyer','in',buyers_ids)], limit=10000 )
+            #sale_orders = self.env['sale.order'].search([], limit=10000,order='id desc')
+            #if (value):
+                #for so in sale_orders:
+                #    if (value in so.meli_buyer_name):
+                #        id_list.append(so.id)
+            if (meli_orders):
+                for mo in meli_orders:
+                    if mo.sale_order and mo.sale_order.id:
+                        id_list.append(mo.sale_order.id)
+            return [('id', 'in', id_list)]
+        else:
+            _logger.error(
+                'The field name is not searchable'
+                ' with the operator: {}',format(operator)
+            )
 
+    def _get_meli_order( self ):
+        for so in self:
+            so.meli_order = so.meli_orders and so.meli_orders[0]
+            so.meli_buyer = so.meli_order and so.meli_order.buyer
+            so.meli_buyer_name = so.meli_buyer and so.meli_buyer.name
+
+    meli_order = fields.Many2one( 'mercadolibre.orders',string="Meli Orden", compute="_get_meli_order" )
+    meli_buyer =  fields.Many2one( "mercadolibre.buyers",string="Meli Comprador", compute="_get_meli_order")
+    meli_buyer_name =  fields.Char( string="Meli Comprador Nombre", compute="_get_meli_order", search=_search_meli_buyer_name, store=False, index=True )
 
     meli_status = fields.Selection( [
         #Initial state of an order, and it has no payment yet.
@@ -1572,7 +1615,8 @@ class mercadolibre_orders(models.Model):
                             pass;
                 else:
                     try:
-                        partner_invoice_id = respartner_obj.create(( partner_update ))
+                        if config.mercadolibre_cron_get_orders_shipment_client:
+                            partner_invoice_id = respartner_obj.create(( partner_update ))
                         if partner_invoice_id:
                             #partner_update = self.update_partner_billing_info( partner_id=partner_invoice_id, meli_buyer_fields=partner_update )
                             #partner_invoice_id.write(partner_update)
@@ -1588,7 +1632,8 @@ class mercadolibre_orders(models.Model):
                 #_logger.info( "creating new partner:" + str(meli_buyer_fields) )
                 try:
                     meli_buyer_fields.update(billing_partner_update)
-                    partner_id = respartner_obj.create(( meli_buyer_fields ))
+                    if config.mercadolibre_cron_get_orders_shipment_client:
+                        partner_id = respartner_obj.create(( meli_buyer_fields ))
                     partner_invoice_id = partner_id
                 except Exception as e:
                     _logger.info("orders_update_order > Error creando Partner:"+str(e))
@@ -1629,7 +1674,8 @@ class mercadolibre_orders(models.Model):
                 #partner_id.write( meli_buyer_fields )
 
             if (partner_id):
-                partner_shipping_id = self.env["mercadolibre.shipment"].partner_delivery_id( partner_id=partner_id, Receiver=Receiver)
+                if config.mercadolibre_cron_get_orders_shipment_client:
+                    partner_shipping_id = self.env["mercadolibre.shipment"].partner_delivery_id( partner_id=partner_id, Receiver=Receiver)
 
             if (partner_id):
                 if ("fe_habilitada" in self.env['res.partner']._fields):
@@ -1644,12 +1690,19 @@ class mercadolibre_orders(models.Model):
             _logger.error("Buyer not fetched!")
 
         if (not partner_id):
-            _logger.error("No partner founded or created for ML Order" )
-            return {'error': 'No partner founded or created for ML Order' }
+            if config.mercadolibre_cron_get_orders_shipment_client:
+                _logger.error("No partner founded or created for ML Order" )
+                return {'error': 'No partner founded or created for ML Order' }
+
         #process base order fields
+        #asignar datos de invoicing predeterminado....(mexico)
+        partner_id = ("mercadolibre_contact_partner" in config._fields and config.mercadolibre_contact_partner) or partner_id
+        partner_invoice_id = ("mercadolibre_invoice_partner" in config._fields and config.mercadolibre_invoice_partner) or partner_invoice_id
+        partner_shipping_id = ("mercadolibre_shipping_partner" in config._fields and config.mercadolibre_shipping_partner) or partner_shipping_id
+
         meli_order_fields = self.prepare_sale_order_vals( order_json=order_json, meli=meli, config=config, sale_order=sorder )
         meli_order_fields.update({
-            'partner_id': partner_id.id,
+            'partner_id': (partner_id and partner_id.id),
             'partner_invoice_id': (partner_invoice_id and partner_invoice_id.id),
             'pricelist_id': plistid.id,
         })

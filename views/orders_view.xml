@@ -77,14 +77,17 @@
             <field name="arch" type="xml">
                 <data>
                     <notebook>
-                        <page string="MercadoLibre" attrs="{'invisible':[('meli_order_id', '=', False)]}">
+                        <page string="MercadoLibre" invisible="meli_order_id==False">
                             <button name='meli_oerp_update' type="object"
                             string="Actualizar"
-                            attrs="{'invisible':[('meli_order_id','=',False)]}"
+                            invisible="meli_order_id==False"
                             class="oe_stat_button"
                             icon="fa-refresh"/>
                             <field name="meli_orders" invisible="0"/>
                             <group>
+                              <field name="meli_order"/>
+                              <field name="meli_buyer"/>
+                              <field name="meli_buyer_name"/>
                               <field name="meli_update_forbidden" string="No actualizar desde ML"/>
                               <field name="meli_order_id" invisible="0"/>
                               <field name="meli_status" invisible="0"/>
@@ -117,7 +120,7 @@
                 <data>
                     <notebook>
                         <page string="MercadoLibre"
-			invisible="meli_buyer_id == False">
+			                         invisible="meli_buyer_id == False">
                           <group>
                             <field name="meli_buyer_id" invisible="0"/>
                             <field name="meli_buyer" invisible="0"/>
