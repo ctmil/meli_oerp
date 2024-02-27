@@ -85,6 +85,9 @@
                             icon="fa-refresh"/>
                             <field name="meli_orders" invisible="0"/>
                             <group>
+                              <field name="meli_order"/>
+                              <field name="meli_buyer"/>
+                              <field name="meli_buyer_name"/>
                               <field name="meli_update_forbidden" string="No actualizar desde ML"/>
                               <field name="meli_order_id" invisible="0"/>
                               <field name="meli_status" invisible="0"/>
@@ -389,7 +392,7 @@
         </record>
         -->
 
-        <menuitem id="menu_meli" name="MercadoLibre" parent="sale.sale_menu_root" sequence="9"/>
+        <menuitem id="menu_meli" name="MercadoLibre" parent="sale.sale_menu_root" sequence="16"/>
 
         <menuitem id="menu_meli_orders"
             action="action_meli_orders_tree"
