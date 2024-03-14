@@ -130,9 +130,17 @@ class sale_order(models.Model):
 
     def _get_meli_order( self ):
         for so in self:
-            so.meli_order = so.meli_orders and so.meli_orders[0]
-            so.meli_buyer = so.meli_order and so.meli_order.buyer
-            so.meli_buyer_name = so.meli_buyer and so.meli_buyer.name
+            so.meli_order = False
+            so.meli_buyer = False
+            so.meli_buyer_name = False
+
+            meli_order = so.meli_orders and so.meli_orders[0]
+            if meli_order:
+                so.meli_order = meli_order
+                meli_buyer = meli_order and meli_order.buyer
+                if meli_buyer:
+                    so.meli_buyer = meli_buyer
+                    so.meli_buyer_name = meli_buyer and meli_buyer.name
 
     meli_order = fields.Many2one( 'mercadolibre.orders',string="Meli Orden", compute="_get_meli_order" )
     meli_buyer =  fields.Many2one( "mercadolibre.buyers",string="Meli Comprador", compute="_get_meli_order")
@@ -182,6 +190,8 @@ class sale_order(models.Model):
 #       'meli_seller': fields.text( string='Seller' ),
     meli_shipping_id =  fields.Char('Meli Shipping Id')
     meli_shipment = fields.Many2one('mercadolibre.shipment',string='Meli Shipment Obj')
+    meli_shipment_pdf_file = fields.Binary(string='Pdf File',attachment=True, related="meli_shipment.pdf_file",readonly=True)
+    meli_shipment_pdf_filename = fields.Char(string='Pdf Filename',related="meli_shipment.pdf_filename",readonly=True)
     meli_shipment_logistic_type = fields.Char(string="Logistic Type",index=True)
     meli_update_forbidden = fields.Boolean(string="Bloqueado para actualizar desde ML",default=False, index=True)
 
@@ -504,6 +514,14 @@ class sale_order(models.Model):
             if order.meli_orders:
                 res = order.meli_orders[0].orders_update_order()
         return res
+
+    def meli_oerp_print( self ):
+        res = {}
+        for order in self:
+            if order.meli_shipment:
+                res = order.meli_shipment.shipment_print( include_ready_to_print=True )
+        return res
+
 
     _sql_constraints = [
         ('unique_meli_order_id', 'unique(meli_order_id)', 'Meli Order id already exists!')

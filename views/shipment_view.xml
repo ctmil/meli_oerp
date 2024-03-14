@@ -243,6 +243,18 @@
             <field name="target">new</field>
         </record>
 
+
+        <record id="action_mercadolibre_sale_order_print" model="ir.actions.act_window">
+                  <field name="name">Imprimir Guias de MercadoLibre (Ordenes)</field>
+                  <field name="type">ir.actions.act_window</field>
+                  <field name="binding_model_id" ref="model_sale_order" />
+                  <field name="res_model">mercadolibre.shipment.print</field>
+                  <field name="binding_type">action</field>
+                  <field name="binding_view_types">list,form</field>
+                  <field name="view_mode">form</field>
+                  <field name="target">new</field>
+              </record>
+
         <!--act_window id="action_mercadolibre_stock_picking_print"
                 name="Imprimir Guias de MercadoLibre (Inv.)"
                 binding_model="stock.picking"

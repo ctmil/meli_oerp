@@ -65,20 +65,31 @@ class mercadolibre_shipment_print(models.TransientModel):
             config = company
 
         _logger.info( "shipment_print context: " + str(context) )
-        shipment_ids = ('active_ids' in context and context['active_ids']) or []
+        active_ids = ('active_ids' in context and context['active_ids']) or []
+        shipment_ids = []
         #check if model is stock_picking or mercadolibre.shipment
         #stock.picking > sale_id is the order, then the shipment is sale_id.meli_shipment
         active_model = context.get("active_model")
         _logger.info( "shipment_print active_model: " + str(active_model) )
+
         if active_model == "stock.picking":
             shipment_ids_from_pick = []
-            for spick_id in shipment_ids:
+            for spick_id in active_ids:
                 spick = self.env["stock.picking"].browse(spick_id)
                 sale_order = spick.sale_id
                 if sale_order and sale_order.meli_shipment:
                     shipment_ids_from_pick.append(sale_order.meli_shipment.id)
             shipment_ids = shipment_ids_from_pick
             _logger.info("stock.picking shipment_ids:"+str(shipment_ids))
+
+        if active_model == "sale.order":
+            shipment_ids_from_order = []
+            for order_id in active_ids:
+                sale_order = self.env["sale.order"].browse(order_id)
+                if sale_order and sale_order.meli_shipment:
+                    shipment_ids_from_order.append(sale_order.meli_shipment.id)
+            shipment_ids = shipment_ids_from_order
+            _logger.info("sale.order shipment_ids:"+str(shipment_ids))
 
         shipment_obj = self.env['mercadolibre.shipment']
         warningobj = self.env['meli.warning']
@@ -92,6 +103,50 @@ class mercadolibre_shipment_print(models.TransientModel):
         _logger.info(shipment_ids)
 
         return self.shipment_print_report(shipment_ids=shipment_ids,meli=meli,config=config,include_ready_to_print=self.include_ready_to_print)
+
+    def shipment_sale_order_print( self, context=None, meli=None, config=None):
+        _logger.info("shipment_sale_order_print")
+        context = context or self.env.context
+        company = self.env.user.company_id
+        if not config:
+            config = company
+        order_ids = ('active_ids' in context and context['active_ids']) or []
+        #product_obj = self.env['product.template']
+        sale_obj = self.env['sale.order']
+        shipment_obj = self.env['mercadolibre.shipment']
+        warningobj = self.env['meli.warning']
+
+        if not meli:
+            meli = self.env['meli.util'].get_new_instance(company)
+            if meli.need_login():
+                return meli.redirect_login()
+
+        sep = ""
+        shipment_ids= []
+
+        for order_id in order_ids:
+            #sacar la orden relacionada
+            #de la orden sacar el shipping id
+            sorder = sale_obj.browse(order_id)
+            shipid = None
+            shipment = None
+            if (sorder):
+                if (sorder.meli_shipment):
+                    shipid = sorder.meli_shipment.id
+                if ( (not shipid) and len(sorder.meli_orders) ):
+                    shipment = shipment_obj.search([('shipping_id','=',sorder.meli_orders[0].shipping_id)])
+                    if (shipment and shipment.status=="ready_to_ship"):
+                        shipid = shipment.id
+            else:
+                continue;
+
+            if (shipid):
+                #shipment = shipment_obj.browse(shipid)
+                #shipment.update()
+                shipment_ids.append(shipid)
+
+        return self.shipment_print_report(shipment_ids=shipment_ids,meli=meli,config=config,include_ready_to_print=self.include_ready_to_print)
+
 
     def shipment_stock_picking_print(self, context=None, meli=None, config=None):
         _logger.info("shipment_stock_picking_print")
