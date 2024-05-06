@@ -1634,7 +1634,7 @@ class product_product(models.Model):
         }
 
         posting = self.env['mercadolibre.posting'].search([('meli_id','=',rjson['id'])])
-        posting_id = posting.id
+        posting_id = posting[0].id
 
         if not posting_id:
             posting = self.env['mercadolibre.posting'].create((posting_fields))
