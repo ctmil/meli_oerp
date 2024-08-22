@@ -26,6 +26,7 @@ import pdb
 import logging
 _logger = logging.getLogger(__name__)
 
+import unidecode
 import hashlib
 import math
 import requests
@@ -48,6 +49,7 @@ from .versions import *
 from html.parser import HTMLParser
 
 class MyHTMLParser(HTMLParser):
+
     full_text = ""
 
     def handle_starttag(self, tag, attrs):
@@ -63,6 +65,7 @@ class MyHTMLParser(HTMLParser):
         self.full_text+= str(data)
 
 class product_template(models.Model):
+
     _inherit = "product.template"
 
     #product_origin_id = fields.Many2one('product.template', string='Producto')
@@ -519,7 +522,7 @@ class product_template(models.Model):
 
 
     #meli_permalink = fields.Char( compute=product_template_permalink, size=256, string='Link',help='PermaLink in MercadoLibre', store=True )
-    meli_permalink_edit = fields.Char( compute=product_template_permalink, size=256, string='Link Edit',help='PermaLink Edit in MercadoLibre', store=True )
+    meli_permalink_edit = fields.Char( compute=product_template_permalink, size=256, string='Link Edit',help='PermaLink Edit in MercadoLibre', store=False )
 
     meli_gender = fields.Char(string="Genero",index=True)
     meli_grid_chart_id = fields.Many2one("mercadolibre.grid.chart",string="Guia de talles", index=True )
@@ -2458,7 +2461,8 @@ class product_product(models.Model):
 
         att_to_pub = []
         for line in product_tmpl.meli_pub_variant_attributes:
-            att_to_pub.append(line.attribute_id.name)
+            att_odoo_name = line.attribute_id.name.capitalize()
+            att_to_pub.append(att_odoo_name)
 
         if (len(att_to_pub)==0):
             return False
@@ -2493,41 +2497,42 @@ class product_product(models.Model):
         #customized attrs:
         customs = []
         for att in att_value_ids(product):
-            if (att.attribute_id.name in att_to_pub):
+            if (att.attribute_id.name.capitalize() in att_to_pub):
                 if (not att.attribute_id.meli_default_id_attribute.id):
                     customs.append(att)
 
-        customs.sort(key=lambda x: x.attribute_id.name, reverse=True)
+        customs.sort(key=lambda x: x.attribute_id.name.capitalize(), reverse=True)
         sep = ""
         custom_name = ""
         custom_values = ""
         for att in customs:
-            custom_name = custom_name + sep + att.attribute_id.name
-            custom_values = custom_values + sep + att.name
+            custom_name = custom_name + sep + att.attribute_id.name.capitalize()
+            custom_values = custom_values + sep + att.name.capitalize()
             sep = "."
 
         if (len(customs)):
             att_combination = {
                 "name": custom_name,
-                "value_name": custom_values,
+                "value_name": custom_values.capitalize(),
             }
             var_comb["attribute_combinations"].append(att_combination)
 
         for att in att_value_ids(product):
-            if (att.attribute_id.name in att_to_pub):
+            if (att.attribute_id.name.capitalize() in att_to_pub):
                 if (att.attribute_id.meli_default_id_attribute.id):
                     if (att.attribute_id.meli_default_id_attribute.variation_attribute):
                         att_combination = {
-                            "name":att.attribute_id.meli_default_id_attribute.name,
+                            "name":att.attribute_id.meli_default_id_attribute.name.capitalize(),
                             "id": att.attribute_id.meli_default_id_attribute.att_id,
-                            "value_name": att.name,
+                            "value_name": att.name.capitalize(),
                         }
                         var_comb["attribute_combinations"].append(att_combination)
 
         return var_comb
 
-    def _is_product_combination(self, variation ):
+    def _is_product_combination(self, variation, verbose=False ):
 
+        verbose_resp = ""
         var_comb = False
         product = self
         product_tmpl = self.product_tmpl_id
@@ -2544,7 +2549,7 @@ class product_product(models.Model):
         if (_self_combinations and 'attribute_combinations' in _self_combinations):
             for att in _self_combinations['attribute_combinations']:
                 #_logger.info(att)
-                _map_combinations[att["name"]] = att["value_name"]
+                _map_combinations[att["name"]] = str(att["value_name"]).capitalize()
 
         #_logger.info('_map_combinations')
         #_logger.info(_map_combinations)
@@ -2556,18 +2561,30 @@ class product_product(models.Model):
             #check if every att combination exist in this product
             for att in variation['attribute_combinations']:
                 #_logger.info("chech att:"+str(att["name"]))
+                if verbose:
+                    verbose_resp+= "att: "+str(att)
+
                 if ( att["name"] in _map_combinations):
-                    if (_map_combinations[att["name"]]==att["value_name"]):
+                    #_map_combinations[att["name"]].capitalize()==str(att["value_name"]).capitalize()
+                    if (really_compare( _map_combinations[att["name"]], att["value_name"] )):
                         _is_p_comb = True
                         #_logger.info(_is_p_comb)
                     else:
                         _is_p_comb = False
                         #_logger.info(_is_p_comb)
+                        if verbose:
+                            verbose_resp+= "No match with  meli att: "+str(att)+" in odoo map combination: "+str(_map_combinations)
+
                         break
                 else:
                     _is_p_comb = False
                     #_logger.info(_is_p_comb)
+                    if verbose:
+                        verbose_resp+= str(att["name"]).capitalize() + " not found in odoo map combination: "+str(_map_combinations)
                     break
+
+        if (verbose):
+            return verbose_resp
 
         return _is_p_comb
 
@@ -3192,7 +3209,7 @@ class product_product(models.Model):
                             var_info = productjson["variations"][ix]
                             #_logger.info("Variation to update!!")
                             #_logger.info(var_info)
-                            var_product = product
+                            var_product = None
                             var_pics = []
                             for pvar in product_tmpl.product_variant_ids:
                                 if (pvar._is_product_combination(var_info)):
@@ -3212,18 +3229,24 @@ class product_product(models.Model):
                                                 var_pics.append(pic['id'])
                                                 var_pics_full.append({ 'id': pic['id']})
 
+                                    #TODO: add SKU
+                                    var_attributes = var_product._update_sku_attribute( attributes=("attributes" in var_info and var_info["attributes"]) or [],
+                                                                                        set_sku=config.mercadolibre_post_default_code,
+                                                                                        set_barcode=config.mercadolibre_post_barcode,
+                                                                                        var_info=var_info)
+
                                     vars_updated+= var_product
 
-                            #TODO: add SKU
-                            var_attributes = var_product._update_sku_attribute( attributes=("attributes" in var_info and var_info["attributes"]) or [],
-                                                                                set_sku=config.mercadolibre_post_default_code,
-                                                                                set_barcode=config.mercadolibre_post_barcode,
-                                                                                var_info=var_info)
+                            if not var_product:
+                                verb = ""
+                                for pvar in product_tmpl.product_variant_ids:
+                                    verb+= " ##"+str(pvar) + " >>> " + str(pvar._is_product_combination(var_info,verbose=True))
+                                _logger.error(verb)
 
                             var = {
                                 "id": str(var_info["id"]),
                                 "price": str(product_tmpl.meli_price),
-                                "available_quantity": var_product.meli_available_quantity,
+                                "available_quantity": var_product and var_product.meli_available_quantity,
                                 "picture_ids": var_pics,
                             }
                             var_attributes and var.update({"attributes": var_attributes })
@@ -3840,7 +3863,7 @@ class product_product(models.Model):
     #post only fields
     meli_post_required = fields.Boolean(string='Publicable', help='Este producto es publicable en Mercado Libre')
     meli_id = fields.Char(string='ML Id', help='Id del item asignado por Meli', size=256, index=True)
-    meli_description_banner_id = fields.Many2one("mercadolibre.banner",string="Description Banner")
+    #meli_description_banner_id = fields.Many2one("mercadolibre.banner",string="Description Banner")
     meli_buying_mode = fields.Selection(string='Método',help='Método de compra',selection=[("buy_it_now","Compre ahora"),("classified","Clasificado")])
     meli_price_fixed = fields.Boolean(string='Price is fixed')
     meli_available_quantity = fields.Integer(string='Cantidades', help='Cantidad disponible a publicar en ML')

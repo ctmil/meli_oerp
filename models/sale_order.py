@@ -4,7 +4,7 @@ from odoo import fields, osv, models, api
 import odoo.addons.decimal_precision as dp
 
 class SaleOrder(models.Model):
-    
+
     _inherit = "sale.order"
 
     meli_order_id = fields.Many2one('mercadolibre.orders', u'Meli Order Id', 
@@ -134,14 +134,14 @@ class SaleOrder(models.Model):
 #        'buyer': fields.many2one( "mercadolibre.buyers","Buyer"),
 #       'meli_seller': fields.text( string='Seller' ),
 
-    
+
     def action_print_tag_delivery(self):
         meli_orders = self.mapped('meli_order_id').filtered(lambda x: x.status == 'paid')
         if meli_orders:
             return meli_orders.action_print_tag_delivery()
 
 class SaleOrderLine(models.Model):
-    
+
     _inherit = "sale.order.line"
 
     meli_order_item_id = fields.Char('Meli Order Item Id')

@@ -355,7 +355,7 @@ class sale_order(models.Model):
                         return (self.meli_paid_amount - self.meli_coupon_amount)
                 return 0
 
-        if total_config in ['paid_amount']:
+        if total_config in ['paid_amount','transaction_amount']:
             return (self.meli_paid_amount - self.meli_coupon_amount)
 
         if total_config in ['total_amount']:
@@ -619,7 +619,9 @@ class mercadolibre_orders(models.Model):
 
         if ( Buyer and 'billing_info' in Buyer and 'STATE_NAME' in Buyer['billing_info'] ):
             binfo = Buyer['billing_info']
-            full_state = str(('CITY_NAME' in binfo and binfo['CITY_NAME']) or '')
+            full_state = str(('STATE_NAME' in binfo and binfo['STATE_NAME']) or '')
+            if (full_state=="Capital Federal"):
+                full_state = "Ciudad Autónoma de Buenos Aires"
             state = self.env['res.country.state'].search(['&',('name','ilike',full_state),('country_id','=',country_id)])
             if (len(state)):
                 state_id = state[0].id
@@ -1139,8 +1141,10 @@ class mercadolibre_orders(models.Model):
         if 'buyer' in order_json:
             Buyer = order_json['buyer']
             Buyer['billing_info'] = self.get_billing_info(order_id=order_json['id'],meli=meli,data=order_json)
-            Buyer['first_name'] = ('first_name' in Buyer and Buyer['first_name']) or ('FIRST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['FIRST_NAME']) or ''
-            Buyer['last_name'] = ('last_name' in Buyer and Buyer['last_name']) or ('LAST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['LAST_NAME']) or ''
+            #Buyer['first_name'] = ('first_name' in Buyer and Buyer['first_name']) or ('FIRST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['FIRST_NAME']) or ''
+            #Buyer['last_name'] = ('last_name' in Buyer and Buyer['last_name']) or ('LAST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['LAST_NAME']) or ''
+            Buyer['first_name'] = ('FIRST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['FIRST_NAME']) or ('first_name' in Buyer and Buyer['first_name']) or ''
+            Buyer['last_name'] = ('LAST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['LAST_NAME']) or ('last_name' in Buyer and Buyer['last_name']) or ''
             Buyer['business_name'] = ('business_name' in Buyer and Buyer['business_name']) or ('BUSINESS_NAME' in Buyer['billing_info'] and Buyer['billing_info']['BUSINESS_NAME']) or ''
             Receiver = False
             if ('shipping' in order_json and order_json['shipping']):
@@ -1176,6 +1180,8 @@ class mercadolibre_orders(models.Model):
                                 Receiver = shpjson["receiver_address"]
             #_logger.info("Buyer:"+str(Buyer) )
             #_logger.info(order_json)
+            #_logger.info("Buyer:"+str(Buyer) )
+            #_logger.info("Receiver:"+str(Receiver) )
             meli_buyer_fields = {
                 'name': self.buyer_full_name(Buyer),
                 'street': self.street(Receiver,Buyer),
@@ -1616,7 +1622,9 @@ class mercadolibre_orders(models.Model):
                     "zip": self.zip_code(Receiver, Buyer),
                     "name": self.buyer_full_name(Buyer),
                 })
-                #_logger.info(billing_partner_update: "+str(billing_partner_update))
+                #_logger.info("billing_partner_update: "+str(billing_partner_update))
+                #_logger.info("Buyer: "+str(Buyer))
+                #_logger.info("Receiver: "+str(Receiver))
 
             if ("fe_regimen_fiscal" in self.env['res.partner']._fields):
                 if (partner_id and not partner_id.fe_regimen_fiscal):
@@ -1644,7 +1652,7 @@ class mercadolibre_orders(models.Model):
                     partner_update = self.update_partner_billing_info( partner_id=partner_invoice_id, meli_buyer_fields=partner_update, Receiver=Receiver )
                     if partner_update:
                         try:
-                            #_logger.info(Partner Invoice Updating: "+str(partner_update))
+                            #_logger.info("Partner Invoice Updating: "+str(partner_update)+ str(" partner_invoice_id:")+str(partner_invoice_id))
                             partner_invoice_id.write(partner_update)
                         except Exception as e:
                             #_logger.info("orders_update_order > Error actualizando Partner Invoice Id:"+str(e))
@@ -1694,7 +1702,7 @@ class mercadolibre_orders(models.Model):
                     #_logger.info("partner_update BILLING INFO: " + str(billing_partner_update) )
 
                 if partner_update:
-                    #_logger.info(Updating partner: "+str(partner_update))
+                    #_logger.info("Updating partner: "+str(partner_update))
                     try:
                         partner_id.write(partner_update)
                         self._cr.commit()
@@ -1710,10 +1718,6 @@ class mercadolibre_orders(models.Model):
                     meli_buyer_fields["email"] = ''
                 #crear nueva direccion de entrega
                 #partner_id.write( meli_buyer_fields )
-
-            if (partner_id):
-                if config.mercadolibre_cron_get_orders_shipment_client:
-                    partner_shipping_id = self.env["mercadolibre.shipment"].partner_delivery_id( partner_id=partner_id, Receiver=Receiver)
 
             if (partner_id):
                 if ("fe_habilitada" in self.env['res.partner']._fields):
@@ -1732,11 +1736,31 @@ class mercadolibre_orders(models.Model):
                 _logger.error("No partner founded or created for ML Order" )
                 return {'error': 'No partner founded or created for ML Order' }
 
+        original_contact_partner_id = partner_id
+
+        if (original_contact_partner_id):
+            if config.mercadolibre_cron_get_orders_shipment_client:
+                partner_shipping_id = self.env["mercadolibre.shipment"].partner_delivery_id( partner_id=original_contact_partner_id,
+                                                                                            Receiver=Receiver,
+                                                                                            config=config)
+
         #process base order fields
         #asignar datos de invoicing predeterminado....(mexico)
-        partner_id = ("mercadolibre_contact_partner" in config._fields and config.mercadolibre_contact_partner) or partner_id
-        partner_invoice_id = ("mercadolibre_invoice_partner" in config._fields and config.mercadolibre_invoice_partner) or partner_invoice_id
-        partner_shipping_id = ("mercadolibre_shipping_partner" in config._fields and config.mercadolibre_shipping_partner) or partner_shipping_id
+        mercadolibre_contact_partner_id = ("mercadolibre_contact_partner" in config._fields and config.mercadolibre_contact_partner)
+        if (mercadolibre_contact_partner_id):
+            mercadolibre_contact_partner_id.meli_update_forbidden = True
+
+        mercadolibre_invoice_partner_id = ("mercadolibre_invoice_partner" in config._fields and config.mercadolibre_invoice_partner)
+        if (mercadolibre_invoice_partner_id):
+            mercadolibre_invoice_partner_id.meli_update_forbidden = True
+
+        mercadolibre_shipping_partner_id = ("mercadolibre_shipping_partner" in config._fields and config.mercadolibre_shipping_partner_id)
+        if (mercadolibre_shipping_partner_id):
+            mercadolibre_shipping_partner_id.meli_update_forbidden = True
+
+        partner_id =  mercadolibre_contact_partner_id or partner_id
+        partner_invoice_id = mercadolibre_invoice_partner_id or partner_invoice_id
+        partner_shipping_id = mercadolibre_shipping_partner_id or partner_shipping_id
 
         meli_order_fields = self.prepare_sale_order_vals( order_json=order_json, meli=meli, config=config, sale_order=sorder )
         meli_order_fields.update({
@@ -2092,8 +2116,10 @@ class mercadolibre_orders(models.Model):
                                 if txid.company_id.id==sorder.company_id.id:
                                     saleorderline_item_ids.tax_id = [(4, txid.id)]
 
-
-                        saleorderline_item_ids.write( ( saleorderline_item_fields ) )
+                        if (sorder.state and sorder.state in ['done']):
+                            _logger.error("Orden bloqueada no se puede actualizar")
+                        else:
+                            saleorderline_item_ids.write( ( saleorderline_item_fields ) )
 
         if 'payments' in order_json:
             payments = order_json['payments']
