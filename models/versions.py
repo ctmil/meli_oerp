@@ -44,10 +44,8 @@ def Autocommit( self, act=False ):
     return False
 
 def UpdateProductType( product ):
-
     if not product:
         return
-
     for prod in product:
         if (prod and "detailed_type" in prod._fields and prod.detailed_type not in ['product']):
             failed = False

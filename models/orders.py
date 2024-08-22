@@ -1720,10 +1720,6 @@ class mercadolibre_orders(models.Model):
                 #partner_id.write( meli_buyer_fields )
 
             if (partner_id):
-                if config.mercadolibre_cron_get_orders_shipment_client:
-                    partner_shipping_id = self.env["mercadolibre.shipment"].partner_delivery_id( partner_id=partner_id, Receiver=Receiver)
-
-            if (partner_id):
                 if ("fe_habilitada" in self.env['res.partner']._fields):
                     try:
                         partner_id.write( { "fe_habilitada": True } )
@@ -1740,11 +1736,31 @@ class mercadolibre_orders(models.Model):
                 _logger.error("No partner founded or created for ML Order" )
                 return {'error': 'No partner founded or created for ML Order' }
 
+        original_contact_partner_id = partner_id
+
+        if (original_contact_partner_id):
+            if config.mercadolibre_cron_get_orders_shipment_client:
+                partner_shipping_id = self.env["mercadolibre.shipment"].partner_delivery_id( partner_id=original_contact_partner_id,
+                                                                                            Receiver=Receiver,
+                                                                                            config=config)
+
         #process base order fields
         #asignar datos de invoicing predeterminado....(mexico)
-        partner_id = ("mercadolibre_contact_partner" in config._fields and config.mercadolibre_contact_partner) or partner_id
-        partner_invoice_id = ("mercadolibre_invoice_partner" in config._fields and config.mercadolibre_invoice_partner) or partner_invoice_id
-        partner_shipping_id = ("mercadolibre_shipping_partner" in config._fields and config.mercadolibre_shipping_partner) or partner_shipping_id
+        mercadolibre_contact_partner_id = ("mercadolibre_contact_partner" in config._fields and config.mercadolibre_contact_partner)
+        if (mercadolibre_contact_partner_id):
+            mercadolibre_contact_partner_id.meli_update_forbidden = True
+
+        mercadolibre_invoice_partner_id = ("mercadolibre_invoice_partner" in config._fields and config.mercadolibre_invoice_partner)
+        if (mercadolibre_invoice_partner_id):
+            mercadolibre_invoice_partner_id.meli_update_forbidden = True
+
+        mercadolibre_shipping_partner_id = ("mercadolibre_shipping_partner" in config._fields and config.mercadolibre_shipping_partner_id)
+        if (mercadolibre_shipping_partner_id):
+            mercadolibre_shipping_partner_id.meli_update_forbidden = True
+
+        partner_id =  mercadolibre_contact_partner_id or partner_id
+        partner_invoice_id = mercadolibre_invoice_partner_id or partner_invoice_id
+        partner_shipping_id = mercadolibre_shipping_partner_id or partner_shipping_id
 
         meli_order_fields = self.prepare_sale_order_vals( order_json=order_json, meli=meli, config=config, sale_order=sorder )
         meli_order_fields.update({
@@ -2100,8 +2116,10 @@ class mercadolibre_orders(models.Model):
                                 if txid.company_id.id==sorder.company_id.id:
                                     saleorderline_item_ids.tax_id = [(4, txid.id)]
 
-
-                        saleorderline_item_ids.write( ( saleorderline_item_fields ) )
+                        if (sorder.state and sorder.state in ['done']):
+                            _logger.error("Orden bloqueada no se puede actualizar")
+                        else:
+                            saleorderline_item_ids.write( ( saleorderline_item_fields ) )
 
         if 'payments' in order_json:
             payments = order_json['payments']
