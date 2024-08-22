@@ -992,7 +992,7 @@ class mercadolibre_shipment(models.Model):
                     if (mercadolibre_invoice_partner_id):
                         mercadolibre_invoice_partner_id.meli_update_forbidden = True
 
-                    mercadolibre_shipping_partner_id = ("mercadolibre_shipping_partner" in config._fields and config.mercadolibre_shipping_partner_id)
+                    mercadolibre_shipping_partner_id = ("mercadolibre_shipping_partner" in config._fields and config.mercadolibre_shipping_partner)
                     if (mercadolibre_shipping_partner_id):
                         mercadolibre_shipping_partner_id.meli_update_forbidden = True
 
