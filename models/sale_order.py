@@ -7,7 +7,7 @@ class SaleOrder(models.Model):
 
     _inherit = "sale.order"
 
-    meli_order_id = fields.Many2one('mercadolibre.orders', u'Meli Order Id', 
+    meli_order_id = fields.Many2one('mercadolibre.orders', u'Meli Order Id',
         copy=False, readonly=True)
     meli_status = fields.Selection( [
         #Initial state of an order, and it has no payment yet.
