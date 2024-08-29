@@ -371,6 +371,7 @@ class sale_order(models.Model):
         return res
 
     def meli_create_invoice( self, meli=None, config=None):
+        _logger.info("Meli Base meli_create_invoice")
         res = {}
         if so.state in ['sale','done']:
             #_logger.info(paid_confirm with invoice ok! create invoice")
@@ -1810,8 +1811,10 @@ class mercadolibre_orders(models.Model):
             order = order_obj.create( (order_fields))
 
         if (sorder and sorder.id):
-            #_logger.info("Updating sale.order: %s" % (sorder.id))
-            #_logger.info(meli_order_fields)
+            _logger.info("Updating sale.order: %s" % (sorder.id))
+            if (sorder.state in ['sale','done']):
+                del meli_order_fields["pricelist_id"]
+            _logger.info(meli_order_fields)
             sorder.meli_fix_team( meli=meli, config=config )
             sorder.write( meli_order_fields )
             sorder.meli_fix_team( meli=meli, config=config )
