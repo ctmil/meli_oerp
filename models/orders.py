@@ -367,7 +367,8 @@ class sale_order(models.Model):
         res = {}
         if ( (self.state=="draft" or self.state=="sent") and self.meli_status=="paid"):
             #_logger.info(paid_confirm ok! confirming sale")
-            self.action_confirm()
+            if (self.is_pricelist_meli( meli=meli, config=config)):
+                self.action_confirm()
         return res
 
     def meli_create_invoice( self, meli=None, config=None):
@@ -417,6 +418,13 @@ class sale_order(models.Model):
 
         return res
 
+    def is_pricelist_meli( self, meli=None, config=None ):
+        res = False
+        #config ok y pricelist existe
+        res = config and config.mercadolibre_pricelist and config.mercadolibre_pricelist.id
+        res = res and ( config.mercadolibre_pricelist.id == self.pricelist_id.id )
+        return res
+
     def confirm_ml( self, meli=None, config=None ):
         try:
             #_logger.info("meli_oerp confirm_ml")
@@ -436,8 +444,17 @@ class sale_order(models.Model):
             amount_to_invoice = self.meli_amount_to_invoice( meli=meli, config=config )
             confirm_cond = (amount_to_invoice > 0) and abs( float(amount_to_invoice) - self.amount_total ) < 1.1
             if not confirm_cond:
-                return {'error': "Condition not met: meli_paid_amount and amount_total doesn't match"}
+                serror = "MELI: Condition not met: meli_paid_amount and amount_total doesn't match, check products missings, taxes and discounts."
+                self.message_post(body=str(serror), message_type=order_message_type )
+                return {'error': serror}
 
+            #check currency
+            pricelist_is_meli = self.is_pricelist_meli(meli=meli, config=config)
+            confirm_cond = confirm_cond and pricelist_is_meli
+            if not confirm_cond:
+                serror = "MELI: Condition not met: pricelist is not correct, check partners property_product_pricelist."
+                self.message_post(body=str(serror), message_type=order_message_type )
+                return {'error': serror}
 
             if (self.is_meli_order_fulfillment()):
 
@@ -1039,12 +1056,16 @@ class mercadolibre_orders(models.Model):
         respartner_obj = self.env['res.partner']
 
         plistid = None
-        if config.mercadolibre_pricelist:
+        if (config and config.mercadolibre_pricelist):
             plistid = config.mercadolibre_pricelist
         else:
-            plistids = pricelist_obj.search([])[0]
-            if plistids:
-                plistid = plistids
+            error = { "error": "orders_update_order_json > no pricelist defined. Check config pricelist config: " + str(config and config.name)+" pricelist: "+str(config and config.mercadolibre_pricelist) }
+            _logger.error(error)
+            #_logger.info( "orders_update_order_json > filter:" + str(error) )
+            return error
+            #plistids = pricelist_obj.search([('currency_id','=','ARS')])[0]
+            #if plistids:
+            #    plistid = plistids
 
         order_obj = self.env['mercadolibre.orders']
         buyers_obj = self.env['mercadolibre.buyers']
@@ -1648,7 +1669,6 @@ class mercadolibre_orders(models.Model):
                 })
                 partner_update.update(billing_partner_update)
 
-
                 if partner_invoice_id:
                     partner_update = self.update_partner_billing_info( partner_id=partner_invoice_id, meli_buyer_fields=partner_update, Receiver=Receiver )
                     if partner_update:
@@ -1673,7 +1693,6 @@ class mercadolibre_orders(models.Model):
                         _logger.info("orders_update_order > Error creando Partner Invoice Id:"+str(e))
                         _logger.error(e, exc_info=True)
                         pass;
-
 
             if not partner_id:
                 #_logger.info( "creating new partner:" + str(meli_buyer_fields) )
@@ -1738,6 +1757,10 @@ class mercadolibre_orders(models.Model):
                 return {'error': 'No partner founded or created for ML Order' }
 
         original_contact_partner_id = partner_id
+        if original_contact_partner_id:
+            #fix Just, fijar la lista de precio predeterminada de cada cliente
+            original_contact_partner_id.property_product_pricelist = (config and config.mercadolibre_pricelist)
+
 
         if (original_contact_partner_id):
             if config.mercadolibre_cron_get_orders_shipment_client:
