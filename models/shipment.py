@@ -965,12 +965,13 @@ class mercadolibre_shipment(models.Model):
                 #_logger.info("all_orders:"+str(all_orders))
                 if (full_orders and ship_fields["pack_order"]):
                     plistid = None
-                    if config.mercadolibre_pricelist:
+                    if (config and config.mercadolibre_pricelist):
                         plistid = config.mercadolibre_pricelist
                     else:
-                        plistids = pricelist_obj.search([])[0]
-                        if plistids:
-                            plistid = plistids
+                        error = { "error": "orders_update_order_json (shipment) > no pricelist defined. Check config pricelist config: " + str(config and config.name)+" pricelist: "+str(config and config.mercadolibre_pricelist) }
+                        _logger.error(error)
+                        #_logger.info( "orders_update_order_json > filter:" + str(error) )
+                        return error
 
 
                     #buyer_ids = buyers_obj.search([  ('buyer_id','=',buyer_fields['buyer_id'] ) ] )
@@ -1048,7 +1049,7 @@ class mercadolibre_shipment(models.Model):
                             #'name': "ML %s" % ( str(all_orders[0]["order_id"]) ),
                             'partner_id': partner_id.id,
                             'partner_invoice_id': partner_invoice_id and partner_invoice_id.id,
-                            'pricelist_id': plistid.id,
+                            'pricelist_id': plistid and plistid.id,
                             #'meli_order_id': '%i' % (order_json["id"]),
                             'meli_order_id': packed_order_ids,
                             'meli_orders': [(6, 0, all_orders_ids)],
@@ -1092,6 +1093,10 @@ class mercadolibre_shipment(models.Model):
                             #_logger.info("Update sale.order pack")
                             #_logger.info(all_orders[0])
                             #_logger.info(meli_order_fields)
+
+                            if (sorder_pack.state in ['sale','done']):
+                                del meli_order_fields["pricelist_id"]
+
                             sorder_pack.meli_fix_team( meli=meli, config=config )
                             sorder_pack.write(meli_order_fields)
                             sorder_pack.meli_fix_team( meli=meli, config=config )
