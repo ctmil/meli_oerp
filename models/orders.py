@@ -2058,6 +2058,8 @@ class mercadolibre_orders(models.Model):
                     'seller_sku': ('seller_sku' in Item['item'] and Item['item']['seller_sku']) or '',
                     'seller_custom_field': ('seller_custom_field' in Item['item'] and Item['item']['seller_custom_field']) or ''
                 }
+                if ("full_unit_price" in Item and "full_unit_price" in order_items_obj._fields):
+                    order_item_fields['full_unit_price'] = Item['full_unit_price']
 
                 if (product_related):
                     if (len(product_related)>1):
@@ -2710,6 +2712,7 @@ class mercadolibre_order_items(models.Model):
     order_item_title = fields.Char(string='Item Title',index=True)
     order_item_category_id = fields.Char(string='Item Category Id',index=True)
     unit_price = fields.Char(string='Unit price',index=True)
+    full_unit_price = fields.Float(string='Full Unit price',index=True)
     quantity = fields.Integer(string='Quantity',index=True)
     currency_id = fields.Char(string='Currency',index=True)
     seller_sku = fields.Char(string='SKU',index=True)
