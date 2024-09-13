@@ -383,6 +383,10 @@ class mercadolibre_shipment(models.Model):
         for shipment in self:
             #_logger.info("_update_sale_order_shipping_info")
             sorder = shipment.sale_order
+
+            if sorder.state in ['done']:
+                continue;
+
             if (not sorder or not order):
                 continue;
 
@@ -594,12 +598,13 @@ class mercadolibre_shipment(models.Model):
                         pass;
 
     def partner_delivery_id( self, partner_id=None, Receiver=None, config=None ):
-
+        #_logger.info("Processing partner_delivery_id for partner:"+str(partner_id and partner_id.name)+" Receiver:"+str(Receiver)+" config:"+str(config) )
         if (not Receiver or not partner_id):
             _logger.info("partner_delivery_id > no Partner or no Receiver")
             return None
 
         if (config and not config.mercadolibre_cron_get_orders_shipment_client):
+            #_logger.info("Processing partner_delivery_id no config.mercadolibre_cron_get_orders_shipment_client")
             return None
 
         orders_obj = self.env['mercadolibre.orders']
@@ -668,6 +673,7 @@ class mercadolibre_shipment(models.Model):
             except:
                 _logger.error("Updating res.partner delivery issue.")
                 pass;
+        #_logger.info("Processing partner_delivery_id partner_shipping_id:"+str(partner_shipping_id and partner_shipping_id.name) )
         return partner_shipping_id
 
     #Return shipment object based on mercadolibre.orders "order"
@@ -959,17 +965,43 @@ class mercadolibre_shipment(models.Model):
                 #_logger.info("all_orders:"+str(all_orders))
                 if (full_orders and ship_fields["pack_order"]):
                     plistid = None
-                    if config.mercadolibre_pricelist:
+                    if (config and config.mercadolibre_pricelist):
                         plistid = config.mercadolibre_pricelist
                     else:
-                        plistids = pricelist_obj.search([])[0]
-                        if plistids:
-                            plistid = plistids
+                        error = { "error": "orders_update_order_json (shipment) > no pricelist defined. Check config pricelist config: " + str(config and config.name)+" pricelist: "+str(config and config.mercadolibre_pricelist) }
+                        _logger.error(error)
+                        #_logger.info( "orders_update_order_json > filter:" + str(error) )
+                        return error
+
 
                     #buyer_ids = buyers_obj.search([  ('buyer_id','=',buyer_fields['buyer_id'] ) ] )
                     partner_invoice_meli_order_id = str(all_orders[0]['pack_id'] or all_orders[0]['id'])
                     partner_id = respartner_obj.search([  ('meli_buyer_id','=',ship_fields['receiver_id'] ) ], limit=1 )
                     partner_invoice_id = respartner_obj.search([  ('meli_order_id','=',partner_invoice_meli_order_id ) ], limit=1 ) or partner_id
+
+                    original_contact_partner_id = partner_id
+                    if "receiver_address" in ship_json:
+                        if config.mercadolibre_cron_get_orders_shipment_client:
+                            partner_shipping_id = self.partner_delivery_id( partner_id=partner_id, Receiver=ship_json["receiver_address"], config=config )
+
+
+                    mercadolibre_contact_partner_id = ("mercadolibre_contact_partner" in config._fields and config.mercadolibre_contact_partner)
+                    if (mercadolibre_contact_partner_id):
+                        mercadolibre_contact_partner_id.meli_update_forbidden = True
+
+                    mercadolibre_invoice_partner_id = ("mercadolibre_invoice_partner" in config._fields and config.mercadolibre_invoice_partner)
+                    if (mercadolibre_invoice_partner_id):
+                        mercadolibre_invoice_partner_id.meli_update_forbidden = True
+
+                    mercadolibre_shipping_partner_id = ("mercadolibre_shipping_partner" in config._fields and config.mercadolibre_shipping_partner)
+                    if (mercadolibre_shipping_partner_id):
+                        mercadolibre_shipping_partner_id.meli_update_forbidden = True
+
+                    partner_id =  mercadolibre_contact_partner_id or partner_id
+                    partner_invoice_id = mercadolibre_invoice_partner_id or partner_invoice_id
+                    partner_shipping_id = mercadolibre_shipping_partner_id or partner_shipping_id
+
+
                     if (partner_id.id):
                         oname = "pack_id" in all_orders[0] and all_orders[0]["pack_id"] and str(  "ML %s" % ( str(all_orders[0]["pack_id"]) ) )
                         oname = oname or str("ML %s" % ( str(all_orders[0]["order_id"]) ) )
@@ -1017,7 +1049,7 @@ class mercadolibre_shipment(models.Model):
                             #'name': "ML %s" % ( str(all_orders[0]["order_id"]) ),
                             'partner_id': partner_id.id,
                             'partner_invoice_id': partner_invoice_id and partner_invoice_id.id,
-                            'pricelist_id': plistid.id,
+                            'pricelist_id': plistid and plistid.id,
                             #'meli_order_id': '%i' % (order_json["id"]),
                             'meli_order_id': packed_order_ids,
                             'meli_orders': [(6, 0, all_orders_ids)],
@@ -1037,10 +1069,7 @@ class mercadolibre_shipment(models.Model):
                         })
                         #TODO: agregar un campo para diferencia cada delivery res partner al shipment y orden asociado, crear un binding usando values diferentes... y listo
                         #_logger.info("ship_json[receiver_address]:"+str(ship_json["receiver_address"]) )
-                        partner_shipping_id = None
-                        if "receiver_address" in ship_json:
-                            if config.mercadolibre_cron_get_orders_shipment_client:
-                                partner_shipping_id = self.partner_delivery_id( partner_id=partner_id, Receiver=ship_json["receiver_address"])
+
 
                         if partner_shipping_id:
                             sorder = sorder_pack
@@ -1064,6 +1093,10 @@ class mercadolibre_shipment(models.Model):
                             #_logger.info("Update sale.order pack")
                             #_logger.info(all_orders[0])
                             #_logger.info(meli_order_fields)
+
+                            if (sorder_pack.state in ['sale','done']):
+                                del meli_order_fields["pricelist_id"]
+
                             sorder_pack.meli_fix_team( meli=meli, config=config )
                             sorder_pack.write(meli_order_fields)
                             sorder_pack.meli_fix_team( meli=meli, config=config )

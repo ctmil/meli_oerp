@@ -32,7 +32,7 @@ def pre_init_check(cr):
 pre_init_check(cr=None)
 
 
-def pre_init_hook(cr, registry):
+def pre_init_hook(cr, registry=None):
 
     pass;
     #env = api.Environment(cr, SUPERUSER_ID, {})

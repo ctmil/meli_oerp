@@ -242,6 +242,7 @@
                     <!--field name="order_id"/-->
                     <field name="order_item_id"/>
                     <field name="unit_price"/>
+                    <field name="full_unit_price"/>
                     <field name="quantity"/>
                 </tree>
             </field>

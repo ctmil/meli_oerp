@@ -52,6 +52,10 @@ class product_template_post(models.TransientModel):
     posting_date = fields.Date('Fecha del posting')
     #'company_id': fields.many2one('res.company',string='Company'),
     #'mercadolibre_state': fields.related( 'res.company', 'mercadolibre_state', string="State" )
+
+    force_meli_variant = fields.Boolean(string="Publicar como variante",
+                                        help="Marca la publicación para ser publicada como variante, intentara especificar unicamente los atributos marcados en Odoo que crean variantes, aunque exista una sola combinacion.",
+                                        default=False)
     post_stock = fields.Boolean(string="Actualizar Stock",help="No actualiza el producto completo, solo el stock",default=False)
     post_price = fields.Boolean(string="Actualizar Precio",help="No actualiza el producto completo, solo el precio",default=False)
     action_pause = fields.Boolean(string="Pausar producto",help="No actualiza el producto completo, sólo pausa el producto",default=False)
@@ -79,6 +83,7 @@ class product_template_post(models.TransientModel):
         custom_context = {
             'force_meli_pub': self.force_meli_pub,
             'force_meli_active': self.force_meli_active,
+            'force_meli_variant': self.force_meli_variant,
             'post_stock': self.post_stock,
             'post_price': self.post_price,
             'action_pause': self.action_pause
@@ -89,6 +94,10 @@ class product_template_post(models.TransientModel):
             if (product):
                 if (self.force_meli_pub and not product.meli_pub):
                     product.meli_pub = True
+
+                if (self.force_meli_variant):
+                    product.meli_pub_as_variant = True
+
                 if (product.meli_pub):
 
                     if self.post_stock:
