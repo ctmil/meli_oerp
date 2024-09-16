@@ -451,6 +451,7 @@ class product_template(models.Model):
                                     ("CRC","Colon Costarricense (CRC)"),
                                     ("UYU","Peso Uruguayo (UYU)"),
                                     ("VES","Bolivar Soberano (VES)"),
+                                    ("PAB","Balboa Panameño (PAB)"),
                                     ("USD","Dolar Estadounidense (USD)")],
                                     string='Moneda')
     meli_condition = fields.Selection([ ("new", "Nuevo"),
@@ -3854,6 +3855,7 @@ class product_product(models.Model):
                                         ("CRC","Colon Costarricense (CRC)"),
                                         ("UYU","Peso Uruguayo (UYU)"),
                                         ("VES","Bolivar Soberano (VES)"),
+                                        ("PAB","Balboa Panameño (PAB)"),
                                         ("USD","Dolar Estadounidense (USD)")],
                                         string='Moneda')
     meli_condition = fields.Selection([ ("new", "Nuevo"), ("used", "Usado"), ("not_specified","No especificado")],'Condición del producto')

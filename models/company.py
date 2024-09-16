@@ -344,6 +344,7 @@ class res_company(models.Model):
                                                 ("CLP","Peso Chileno (CLP)"),
                                                 ("CRC","Colon Costarricense (CRC)"),
                                                 ("VES","Bolivar Soberano (VES)"),
+                                                ("PAB","Balboa Panameño (PAB)"),
                                                 ("UYU","Peso Uruguayo (UYU)"),
                                                 ("USD","Dolar Estadounidense (USD)")],
                                                 string='Moneda predeterminada')
