@@ -107,6 +107,7 @@ class res_company(models.Model):
                             ("CRC","Colon Costarricense (CRC)"),
                             ("UYU","Peso Uruguayo (UYU)"),
                             ("VES","Peso Venezolano (VES)"),
+                            ("PAB","Balboa Panameño (PAB)"),
                             ("USD","Dolar Estadounidense (USD)")]
         if (meli):
             response = meli.get("/currencies")
@@ -140,6 +141,7 @@ class res_company(models.Model):
             "CRC": {"name": "Costa Rica", "id": "MCR", "default_currency_id": "CRC"},
             "UYU": { "name": "Uruguay", "id": "MLU", "default_currency_id": "UYU" },
             "VES":  { "name": "Venezuela", "id": "MLV", "default_currency_id": "VES" },
+            "PAB": { "name": "Panamá", "id": "MPA", "default_currency_id": "PAB" },
             "USD": { "name": "Uruguay", "id": "MLU", "default_currency_id": "UYU" },
         }
         response = meli.get("/sites")
