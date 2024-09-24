@@ -336,7 +336,7 @@ class MercadolibreNotification(models.Model):
 
         vals = self._prepare_values(values=internals)
         if vals:
-            noti = self.create(vals)
+            noti = self.sudo().create(vals)
 
         return  noti
 

@@ -31,7 +31,7 @@ class mercadolibre_questions(models.Model):
 
     name = fields.Char(string="Name")
     posting_id = fields.Many2one("mercadolibre.posting","Posting")
-    company_id = fields.Many2one("res.company",string="Empresa")    
+    company_id = fields.Many2one("res.company",string="Empresa")
     #product_id = fields.Many2one("product.product","Product")
     question_id = fields.Char('Question Id')
     date_created = fields.Date('Creation date')
@@ -70,7 +70,7 @@ class mercadolibre_questions(models.Model):
         }
         return question_fields
 
-    def fetch( self, question_id=None, meli=None, config=None ):
+    def fetch_question( self, question_id=None, meli=None, config=None ):
         Question = None
         if not meli:
             meli = self.env['meli.util'].get_new_instance(config)
@@ -90,7 +90,7 @@ class mercadolibre_questions(models.Model):
         questions_obj = self
         question = None
         if question_id and not Question:
-            Question = questions_obj.fetch( question_id=question_id, meli=meli, config=config )
+            Question = questions_obj.fetch_question( question_id=question_id, meli=meli, config=config )
 
 
         if (Question and 'id' in Question):

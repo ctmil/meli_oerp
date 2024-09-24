@@ -78,13 +78,28 @@
                 <data>
                     <notebook>
                         <page string="MercadoLibre" attrs="{'invisible':[('meli_order_id', '=', False)]}">
+                            <button name='meli_oerp_update' type="object"
+                            string="Actualizar"
+                            attrs="{'invisible':[('meli_order_id','=',False)]}"
+                            class="oe_stat_button"
+                            icon="fa-refresh"/>
+                            <button name='meli_oerp_print' type="object"
+                              string="Imprimir guia"
+                              attrs="{'invisible':[('meli_shipment','=',False)]}"
+                              class="oe_stat_button"
+                              icon="fa-print"/>
                             <field name="meli_orders" invisible="0"/>
                             <group>
+                              <field name="meli_order"/>
+                              <field name="meli_buyer"/>
+                              <field name="meli_buyer_name"/>
                               <field name="meli_update_forbidden" string="No actualizar desde ML"/>
                               <field name="meli_order_id" invisible="0"/>
                               <field name="meli_status" invisible="0"/>
                               <field name="meli_status_brief" invisible="0"/>
                               <field name="meli_shipment" invisible="0"/>
+                              <field name="meli_shipment_pdf_file" invisible="0"/>
+                              <field name="meli_shipment_pdf_filename" invisible="0"/>
                               <field name="meli_shipment_logistic_type" invisible="0"/>
                               <field name="meli_status_detail" invisible="0"/>
                               <field name="meli_total_amount" invisible="0"/>
@@ -226,6 +241,7 @@
                     <!--field name="order_id"/-->
                     <field name="order_item_id"/>
                     <field name="unit_price"/>
+                    <field name="full_unit_price"/>
                     <field name="quantity"/>
                 </tree>
             </field>
@@ -384,7 +400,7 @@
         </record>
         -->
 
-        <menuitem id="menu_meli" name="MercadoLibre" parent="sale.sale_menu_root" sequence="9"/>
+        <menuitem id="menu_meli" name="MercadoLibre" parent="sale.sale_menu_root" sequence="16"/>
 
         <menuitem id="menu_meli_orders"
             action="action_meli_orders_tree"

@@ -27,6 +27,7 @@ if (not ('replace' in string.__dict__)):
 from . import versions
 from .versions import *
 
+
 class ProductImage(models.Model):
 
     _inherit = "product.image"
