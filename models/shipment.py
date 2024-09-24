@@ -430,6 +430,7 @@ class mercadolibre_shipment(models.Model):
             if (shipment.mode=="me1"):
                 product_shipping_id = product_obj.search([('default_code','ilike','ENVIO-ME1')]
                                                             + company_domain )
+                ship_default_code = 'ENVIO-ME1'
             else:
                 product_shipping_id = product_obj.search([('default_code','ilike','ENVIO')]
                                                          + company_domain)

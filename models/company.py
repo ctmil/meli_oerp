@@ -661,6 +661,7 @@ class res_company(models.Model):
         context = context or self.env.context
         #_logger.info('company.product_meli_get_products() context: '+str(context))
         company = self.env.user.company_id
+        company_domain = ['|',('company_id','=',False),('company_id','=',company.id)]
         product_obj = self.pool.get('product.product')
         warningobj = self.env['meli.warning']
 
@@ -1499,8 +1500,8 @@ class res_company(models.Model):
                         #self._cr.commit()
                         icommit = 0
                     #_logger.info( item_id + "("+str(iitem)+"/"+str(rjson['paging']['total'])+")" )
-                    posting_id = self.env['product.product'].search([('meli_id','=',item_id),
-                                                                      '|',('company_id','=',False),('company_id','=',company.id)])
+                    posting_id = self.env['product.product'].search([('meli_id','=',item_id)]
+                                                                     +company_domain)
                     if (posting_id):
                         #_logger.info( "meli_pause_all Item already in database: " + str(posting_id[0]) )
                         pass;
