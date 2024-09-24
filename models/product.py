@@ -451,6 +451,7 @@ class product_template(models.Model):
                                     ("CRC","Colon Costarricense (CRC)"),
                                     ("UYU","Peso Uruguayo (UYU)"),
                                     ("VES","Bolivar Soberano (VES)"),
+                                    ("PAB","Balboa Panameño (PAB)"),
                                     ("USD","Dolar Estadounidense (USD)")],
                                     string='Moneda')
     meli_condition = fields.Selection([ ("new", "Nuevo"),
@@ -3854,6 +3855,7 @@ class product_product(models.Model):
                                         ("CRC","Colon Costarricense (CRC)"),
                                         ("UYU","Peso Uruguayo (UYU)"),
                                         ("VES","Bolivar Soberano (VES)"),
+                                        ("PAB","Balboa Panameño (PAB)"),
                                         ("USD","Dolar Estadounidense (USD)")],
                                         string='Moneda')
     meli_condition = fields.Selection([ ("new", "Nuevo"), ("used", "Usado"), ("not_specified","No especificado")],'Condición del producto')
@@ -3919,7 +3921,7 @@ class product_product(models.Model):
             var._meli_stock_moves_update()
 
 
-    meli_stock_moves_update = fields.Datetime(compute=_meli_stock_moves_update,string="Stock Last Move",help="Ultimo movimiento de stock",store=True,index=True)
+    meli_stock_moves_update = fields.Datetime(compute=_meli_stock_moves_update,string="Stock Last Move",help="Ultimo movimiento de stock",store=False,index=True)
 
     meli_stock_error = fields.Char(string="Stock Error",index=True)
     meli_price_error = fields.Char(string="Price Error",index=True)

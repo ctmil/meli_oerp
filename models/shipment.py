@@ -33,6 +33,12 @@ _logger = logging.getLogger(__name__)
 from urllib.request import urlopen
 import requests
 import base64
+try:
+    base64encode = base64.encodestring
+except:
+    base64encode = base64.encodebytes
+    pass;
+
 import mimetypes
 from . import orders
 from . import product
@@ -375,7 +381,8 @@ class mercadolibre_shipment(models.Model):
 
     def _update_sale_order_shipping_info( self, order, meli=None, config=None ):
 
-        company = self.env.user.company_id
+        company = (config and 'company_id' in config._fields and config.company_id) or ("company_id" in self._fields and self.company_id) or self.env.user.company_id
+        company_domain = ['|',('company_id','=',False),('company_id','=',company.id)]
         product_tpl = self.env['product.template']
         product_obj = self.env['product.product']
         saleorderline_obj = self.env['sale.order.line']
@@ -421,14 +428,17 @@ class mercadolibre_shipment(models.Model):
             ship_default_code = ship_name
 
             if (shipment.mode=="me1"):
-                product_shipping_id = product_obj.search([('default_code','ilike','ENVIO-ME1')])
+                product_shipping_id = product_obj.search([('default_code','ilike','ENVIO-ME1')]
+                                                            + company_domain )
                 ship_default_code = 'ENVIO-ME1'
             else:
-                product_shipping_id = product_obj.search([('default_code','ilike','ENVIO')])
+                product_shipping_id = product_obj.search([('default_code','ilike','ENVIO')]
+                                                         + company_domain)
                 if (len(product_shipping_id)==0):
                     product_shipping_id = product_obj.search(['|','|',('default_code','=','ENVIO'),
                             ('default_code','=',ship_name),
-                            ('name','=',ship_name)] )
+                            ('name','=',ship_name)]
+                            + company_domain )
 
             if len(product_shipping_id):
                 product_shipping_id = product_shipping_id[0]
@@ -458,9 +468,11 @@ class mercadolibre_shipment(models.Model):
 
             ship_carrier = {
                 "name": ship_name,
+                "company_id": (self.company_id and self.company_id.id),
             }
             ship_carrier["product_id"] = product_shipping_id.id
-            ship_carrier_id = self.env["delivery.carrier"].search([ ('name','=',ship_carrier['name']) ])
+            ship_carrier_id = self.env["delivery.carrier"].search([ ('name','=',ship_carrier['name'])]
+                                                                  + company_domain)
             if not ship_carrier_id:
                 ship_carrier_id = self.env["delivery.carrier"].create(ship_carrier)
             if (len(ship_carrier_id)>1):
@@ -938,14 +950,14 @@ class mercadolibre_shipment(models.Model):
                                     image.save(image_filename, "JPEG")
                                     if (images.index(image)==0):
                                         imgdata = urlopen("file://"+image_filename).read()
-                                        shipment.pdfimage_file = base64.encodestring(imgdata)
+                                        shipment.pdfimage_file = base64encode(imgdata)
                                         shipment.pdfimage_filename = "Shipment_"+shipment.shipping_id+".jpg"
                                 #if (len(images)):
                                 #    _logger.info(images)
                                     #for image in images:
                                     #base64.b64decode( pimage.image )
                                 #    image = images[1]
-                                #    ships.pdfimage_file = base64.encodestring(image.tobytes())
+                                #    ships.pdfimage_file = base64encodestring(image.tobytes())
                                 #    ships.pdfimage_filename = "Shipment_"+ships.shipping_id+".jpg"
                     except Exception as e:
                         _logger.info("Error converting pdf to jpg: try installing pdf2image and poppler-utils, like this:")
