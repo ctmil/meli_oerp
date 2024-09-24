@@ -661,6 +661,7 @@ class res_company(models.Model):
         context = context or self.env.context
         #_logger.info('company.product_meli_get_products() context: '+str(context))
         company = self.env.user.company_id
+        company_domain = ['|',('company_id','=',False),('company_id','=',company.id)]
         product_obj = self.pool.get('product.product')
         warningobj = self.env['meli.warning']
 
@@ -868,9 +869,11 @@ class res_company(models.Model):
                                     seller_sku = att["values"][0]["name"]
                                     break;
                         if (seller_sku):
-                            posting_id = self.env['product.product'].search([('default_code','=ilike',seller_sku)])
+                            posting_id = self.env['product.product'].search([('default_code','=ilike',seller_sku)]
+                                                                            + company_domain)
                             if (not posting_id or len(posting_id)==0):
-                                posting_id = self.env['product.template'].search([('default_code','=ilike',seller_sku)])
+                                posting_id = self.env['product.template'].search([('default_code','=ilike',seller_sku)]
+                                                                                + company_domain)
                                 if posting_id:
                                     if (len(posting_id)==1):
                                         #_logger.info("Founded template with default code, dont know how to handle it. seller_sku: "+str(seller_sku)+" template: "+str(posting_id.mapped('name')))
@@ -888,13 +891,15 @@ class res_company(models.Model):
                         if ('variations' in rjson3):
                             for var in rjson3['variations']:
                                 if ('seller_custom_field' in var and var['seller_custom_field'] and len(var['seller_custom_field'])):
-                                    posting_id = self.env['product.product'].search([('default_code','=',var['seller_custom_field'])])
+                                    posting_id = self.env['product.product'].search([('default_code','=',var['seller_custom_field'])]
+                                                                                    + company_domain)
                                     if (posting_id and len(posting_id)==1):
                                         posting_id.meli_id = item_id
                                         if (len(posting_id.product_tmpl_id.product_variant_ids)>1):
                                             posting_id.meli_id_variation = var['id']
                                 if (not posting_id  and 'seller_sku' in var and var['seller_sku'] and len(var['seller_sku'])):
-                                    posting_id = self.env['product.product'].search([('default_code','=',var['seller_sku'])])
+                                    posting_id = self.env['product.product'].search([('default_code','=',var['seller_sku'])]
+                                                                                    + company_domain)
                                     if (posting_id and len(posting_id)==1):
                                         posting_id.meli_id = item_id
                                         if (len(posting_id.product_tmpl_id.product_variant_ids)>1):
@@ -904,7 +909,8 @@ class res_company(models.Model):
                                         if att["id"] == "SELLER_SKU":
                                             seller_sku = att["values"][0]["name"]
                                             break;
-                                    posting_id = seller_sku and self.env['product.product'].search([('default_code','=',seller_sku) ])
+                                    posting_id = seller_sku and self.env['product.product'].search([('default_code','=',seller_sku) ]
+                                                                                                    + company_domain)
                                     if (posting_id and seller_sku and len(posting_id)==1):
                                         posting_id.meli_id = item_id
                                         if (len(posting_id.product_tmpl_id.product_variant_ids)>1):
@@ -1063,13 +1069,14 @@ class res_company(models.Model):
     def product_meli_update_local_products( self ):
         #_logger.info('company.product_meli_update_local_products() ')
         company = self.env.user.company_id
+        company_domain = ['|',('company_id','=',False),('company_id','=',company.id)]
         product_obj = self.env['product.product']
 
         meli = self.env['meli.util'].get_new_instance(company)
         url_login_meli = meli.auth_url()
 
-        product_ids = self.env['product.product'].search([('meli_id','!=',False),
-                                                          '|',('company_id','=',False),('company_id','=',company.id)])
+        product_ids = self.env['product.product'].search([('meli_id','!=',False)]
+                                                + company_domain)
         if product_ids:
             cn = 0
             ct = len(product_ids)
@@ -1097,14 +1104,15 @@ class res_company(models.Model):
     def product_meli_update_remote_products( self, post_new = False ):
         #_logger.info('company.product_meli_update_remote_products() ')
         company = self.env.user.company_id
+        company_domain = ['|',('company_id','=',False),('company_id','=',company.id)]
         product_obj = self.env['product.product']
 
         meli = self.env['meli.util'].get_new_instance(company)
         url_login_meli = meli.auth_url()
 
         #product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False)])
-        product_ids = self.env['product.template'].search([('meli_pub','=',True),
-                                                          '|',('company_id','=',False),('company_id','=',company.id)])
+        product_ids = self.env['product.template'].search([('meli_pub','=',True)]
+                                                        + company_domain )
         #_logger.info("product_ids to update or create:" + str(product_ids))
 
         ret_messages = []
@@ -1174,20 +1182,19 @@ class res_company(models.Model):
 
     def meli_update_remote_stock(self, meli=False):
         company = self.env.user.company_id
+        company_domain = ['|',('company_id','=',False),('company_id','=',company.id)]
         if (company.mercadolibre_cron_post_update_stock):
             auto_commit = not getattr(threading.currentThread(), 'testing', False)
             product_ids_null = self.env['product.product'].search([
                 ('meli_pub','=',True),
                 ('meli_id','like','M%'),
-                ('meli_stock_update','=',False),
-                '|',('company_id','=',False),('company_id','=',company.id)
-                ], order='id asc')
+                ('meli_stock_update','=',False)]
+                + company_domain, order='id asc')
             product_ids_not_null = self.env['product.product'].search([
                 ('meli_pub','=',True),
                 ('meli_id','like','M%'),
-                ('meli_stock_update','!=',False),
-                '|',('company_id','=',False),('company_id','=',company.id)
-                ], order='meli_stock_update asc')
+                ('meli_stock_update','!=',False)]
+                + company_domain, order='meli_stock_update asc')
             product_ids = product_ids_null + product_ids_not_null
             topcommits = 40
             #_logger.info("product_ids stock to update:" + str(product_ids))
@@ -1268,6 +1275,7 @@ class res_company(models.Model):
 
     def meli_update_remote_price(self, meli=False):
         company = self.env.user.company_id
+        company_domain = ['|',('company_id','=',False),('company_id','=',company.id)]
         if (company.mercadolibre_cron_post_update_price):
             auto_commit = not getattr(threading.currentThread(), 'testing', False)
             #product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False),
@@ -1276,15 +1284,13 @@ class res_company(models.Model):
             product_ids_null = self.env['product.product'].search([
                 ('meli_pub','=',True),
                 ('meli_id','like','M%'),
-                ('meli_price_update','=',False),
-                '|',('company_id','=',False),('company_id','=',company.id)
-                ], order='id asc')
+                ('meli_price_update','=',False)]
+                + company_domain, order='id asc')
             product_ids_not_null = self.env['product.product'].search([
                 ('meli_pub','=',True),
                 ('meli_id','like','M%'),
-                ('meli_price_update','!=',False),
-                '|',('company_id','=',False),('company_id','=',company.id)
-                ], order='meli_price_update asc')
+                ('meli_price_update','!=',False)]
+                + company_domain, order='meli_price_update asc')
             product_ids = product_ids_null + product_ids_not_null
 
             #_logger.info("product_ids price to update:" + str(product_ids))
@@ -1375,6 +1381,7 @@ class res_company(models.Model):
     def meli_pause_all( self ):
         #_logger.info('company.meli_pause_all() ')
         company = self.env.user.company_id
+        company_domain = ['|',('company_id','=',False),('company_id','=',company.id)]
         product_obj = self.pool.get('product.product')
 
         meli = self.env['meli.util'].get_new_instance(company)
@@ -1493,8 +1500,8 @@ class res_company(models.Model):
                         #self._cr.commit()
                         icommit = 0
                     #_logger.info( item_id + "("+str(iitem)+"/"+str(rjson['paging']['total'])+")" )
-                    posting_id = self.env['product.product'].search([('meli_id','=',item_id),
-                                                                      '|',('company_id','=',False),('company_id','=',company.id)])
+                    posting_id = self.env['product.product'].search([('meli_id','=',item_id)]
+                                                                     +company_domain)
                     if (posting_id):
                         #_logger.info( "meli_pause_all Item already in database: " + str(posting_id[0]) )
                         pass;
