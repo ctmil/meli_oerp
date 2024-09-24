@@ -930,6 +930,8 @@ class mercadolibre_orders(models.Model):
         return mlorder
 
     def search_meli_product( self, meli=None, meli_item=None, config=None ):
+        company = (config and 'company_id' in config._fields and config.company_id) or self.env.user.company_id
+        company_domain = ['|',('company_id','=',False),('company_id','=',company.id)]
         product_related = False
         product_obj = self.env['product.product']
         if not meli_item:
@@ -938,16 +940,20 @@ class mercadolibre_orders(models.Model):
         meli_id_variation = ("variation_id" in meli_item and meli_item['variation_id'])
         meli_seller_sku = "seller_sku" in meli_item and meli_item["seller_sku"]
         if meli_seller_sku:
-            product_related = product_obj.search([ ('default_code','=ilike',meli_seller_sku)])
+            product_related = product_obj.search([ ('default_code','=ilike',meli_seller_sku)]
+                                                   +company_domain)
             #search by barcode
             if ((not product_related) or len(product_related)>1):
-                product_related = product_obj.search([ ('barcode','=ilike',meli_seller_sku)])
+                product_related = product_obj.search([ ('barcode','=ilike',meli_seller_sku)]
+                                                        +company_domain)
 
         if ((not product_related) or len(product_related)>1):
             if (meli_id_variation):
-                product_related = product_obj.search([ ('meli_id','=',meli_id), ('meli_id_variation','=',meli_id_variation) ])
+                product_related = product_obj.search([ ('meli_id','=',meli_id), ('meli_id_variation','=',meli_id_variation)]
+                                                        +company_domain)
             else:
-                product_related = product_obj.search([('meli_id','=', meli_id)])
+                product_related = product_obj.search([('meli_id','=', meli_id)]
+                                                      +company_domain)
 
         return product_related
 
@@ -1043,6 +1049,7 @@ class mercadolibre_orders(models.Model):
         context = context or self.env.context
         #_logger.info( "context:" + str(context) )
         company = (config and "company_id" in config._fields and config.company_id) or self.env.user.company_id
+        company_domain = ['|',('company_id','=',False),('company_id','=',company.id)]
         if not config:
             config = company
         if not meli:
@@ -1924,13 +1931,14 @@ class mercadolibre_orders(models.Model):
                     #1ST attempt "seller_sku" or "seller_custom_field"
                     seller_sku = ('seller_sku' in Item['item'] and Item['item']['seller_sku']) or ('seller_custom_field' in Item['item'] and Item['item']['seller_custom_field'])
                     if (seller_sku):
-                        product_related = product_obj.search([('default_code','=ilike',seller_sku)])
-
+                        product_related = product_obj.search([('default_code','=ilike',seller_sku)]
+                                                              +company_domain)
                     #2ND attempt only old "seller_custom_field"
                     if (not product_related and 'seller_custom_field' in Item['item']):
                         seller_sku = ('seller_custom_field' in Item['item'] and Item['item']['seller_custom_field'])
                     if (seller_sku):
-                        product_related = product_obj.search([('default_code','=ilike',seller_sku)])
+                        product_related = product_obj.search([('default_code','=ilike',seller_sku)]
+                                                                +company_domain)
                     else:
                         seller_sku = ('seller_sku' in Item['item'] and Item['item']['seller_sku']) or ('seller_custom_field' in Item['item'] and Item['item']['seller_custom_field'])
 
@@ -1961,7 +1969,9 @@ class mercadolibre_orders(models.Model):
                         combination = []
                         if ('variation_id' in Item['item'] and Item['item']['variation_id'] ):
                             combination = [( 'meli_id_variation','=',Item['item']['variation_id'])]
-                        product_related = product_obj.search([('meli_id','=',Item['item']['id'])] + combination)
+                        product_related = product_obj.search([('meli_id','=',Item['item']['id'])]
+                                                              +company_domain
+                                                              +combination)
                         if (product_related and len(product_related)):
                             #_logger.info(Product founded:"+str(Item['item']['id']))
                             pass;
@@ -1977,13 +1987,15 @@ class mercadolibre_orders(models.Model):
                                 if rjson3 and 'variations' in rjson3['variations'] and len(rjson3['variations'])>0:
                                     if len(rjson3['variations'])==1:
                                         #only 1, usually added variation by ML
-                                        product_related = product_obj.search([('meli_id','=', Item['item']['id'])], order='id asc',limit=1)
+                                        product_related = product_obj.search([('meli_id','=', Item['item']['id'])]
+                                                                              +company_domain, order='id asc',limit=1)
                                         if (product_related):
                                             productcreated = product_related
 
                                     if len(rjson3['variations'])>1:
                                         #check missings
-                                        product_related = product_obj.search([('meli_id','=', Item['item']['id'])], order='id asc')
+                                        product_related = product_obj.search([('meli_id','=', Item['item']['id'])]
+                                                                             +company_domain, order='id asc')
                                         if product_related and len(product_related)>=1:
                                             return {'error': 'variations id missing for :'+str(Item['item']['id'])}
 

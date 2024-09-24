@@ -24,12 +24,12 @@ class StockMove(models.Model):
             product_id = mov.product_id
             product_id.process_meli_stock_moves_update()
 
-            _logger.info("meli_update_boms > mov:"+str(mov)+" product: "+str(product_id) )
+            #_logger.info("meli_update_boms > mov:"+str(mov)+" product: "+str(product_id) )
 
             is_meli = (mov.product_id.meli_id and mov.product_id.meli_pub)
 
             if (config and config.mercadolibre_cron_post_update_stock and is_meli):
-                _logger.info("meli_update_boms > process_meli_stock_moves_update() "+str(config and config.name))
+                #_logger.info("meli_update_boms > process_meli_stock_moves_update() "+str(config and config.name))
                 product_id.process_meli_stock_moves_update()
                 #product_id.product_post_stock()
 
@@ -122,7 +122,7 @@ class StockMove(models.Model):
 
     def _action_done(self, cancel_backorder=False):
         #import pdb; pdb.set_trace()
-        _logger.info("Stock move: meli_oerp > _action_done")
+        #_logger.info("Stock move: meli_oerp > _action_done")
         company = self.env.user.company_id
         moves_todo = super(StockMove, self)._action_done(cancel_backorder=cancel_backorder)
 
