@@ -16,7 +16,7 @@ import logging
 _logger = logging.getLogger(__name__)
 
 from .meli_oerp_config import REDIRECT_URI
-from ..melisdk.meli import Meli
+#from ..melisdk.meli import Meli
 
 #from ..melisdk.sdk3 import meli
 import meli

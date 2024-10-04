@@ -109,7 +109,7 @@ class StockMove(models.Model):
         return True
 
     def _action_assign(self, force_qty=False):
-        _logger.info("Stock move: meli_oerp > _action_assign movs:"+str(self))
+        #_logger.info("Stock move: meli_oerp > _action_assign movs:"+str(self))
         company = self.env.user.company_id
 
         res = super(StockMove, self)._action_assign(force_qty=force_qty)
