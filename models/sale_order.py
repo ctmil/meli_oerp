@@ -48,7 +48,7 @@ class SaleOrder(models.Model):
         ('not_specified','No especificado'),
         ('stale_ready_to_ship','A Punto de Enviar'),
         ('stale_shipped','Enviado'),
-    ], string=u'Estado de Entrega', index=True, readonly=True, related='meli_order_id.shipping_status', store=False)
+    ], string=u'Estado de Entrega', index=True, readonly=True, related='meli_order_id.shipping_status', store=True)
     shipping_substatus = fields.Selection([
         #subestados de pending
         ('cost_exceeded','Costo Exedido'),
@@ -125,7 +125,7 @@ class SaleOrder(models.Model):
         ('return_expired','Devuelto por expiracion'),
         ('return_session_expired','Sesion de devolucion expirada'),
         ('unfulfillable','Imposible de llenar'),
-    ], string=u'Estado de Impresion/Entrega', index=True, readonly=True, related='meli_order_id.shipping_substatus', store=False)
+    ], string=u'Estado de Impresion/Entrega', index=True, readonly=True, related='meli_order_id.shipping_substatus', store=True)
     shipping_mode = fields.Selection([
         ('me2','Mercado Envio'),
     ], string=u'Metodo de envio', readonly=True)

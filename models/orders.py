@@ -23,7 +23,7 @@ from odoo import fields, osv, models, api
 import logging
 from .meli_oerp_config import *
 
-from ..melisdk.meli import Meli
+#from ..melisdk.meli import Meli
 
 import json
 
@@ -128,6 +128,7 @@ class sale_order(models.Model):
                 ' with the operator: {}',format(operator)
             )
 
+    @api.depends('meli_orders')
     def _get_meli_order( self ):
         for so in self:
             so.meli_order = False
@@ -142,9 +143,9 @@ class sale_order(models.Model):
                     so.meli_buyer = meli_buyer
                     so.meli_buyer_name = meli_buyer and meli_buyer.name
 
-    meli_order = fields.Many2one( 'mercadolibre.orders',string="Meli Orden", compute="_get_meli_order" )
-    meli_buyer =  fields.Many2one( "mercadolibre.buyers",string="Meli Comprador", compute="_get_meli_order")
-    meli_buyer_name =  fields.Char( string="Meli Comprador Nombre", compute="_get_meli_order", search=_search_meli_buyer_name, store=False, index=True )
+    meli_order = fields.Many2one( 'mercadolibre.orders',string="Meli Orden", compute="_get_meli_order", store=True, index=True )
+    meli_buyer =  fields.Many2one( "mercadolibre.buyers",string="Meli Comprador", compute="_get_meli_order", store=True, index=True)
+    meli_buyer_name =  fields.Char( string="Meli Comprador Nombre", compute="_get_meli_order", search=_search_meli_buyer_name, store=True, index=True )
 
     meli_status = fields.Selection( [
         #Initial state of an order, and it has no payment yet.
@@ -1842,7 +1843,7 @@ class mercadolibre_orders(models.Model):
 
         if (sorder and sorder.id):
             _logger.info("Updating sale.order: %s" % (sorder.id))
-            if (sorder.state in ['sale','done']):
+            if (sorder.state in ['sale','done']) or ("locked" in sorder._fields and sorder.locked):
                 del meli_order_fields["pricelist_id"]
             _logger.info(meli_order_fields)
             sorder.meli_fix_team( meli=meli, config=config )
@@ -2068,8 +2069,12 @@ class mercadolibre_orders(models.Model):
                     'quantity': Item['quantity'],
                     'currency_id': Item['currency_id'],
                     'seller_sku': ('seller_sku' in Item['item'] and Item['item']['seller_sku']) or '',
-                    'seller_custom_field': ('seller_custom_field' in Item['item'] and Item['item']['seller_custom_field']) or ''
+                    'seller_custom_field': ('seller_custom_field' in Item['item'] and Item['item']['seller_custom_field']) or '',
+                    'sale_fee': ("sale_fee" in Item and Item["sale_fee"]) or 0.0
                 }
+
+                order.fee_amount = order_item_fields["sale_fee"] or 0.0
+
                 if ("full_unit_price" in Item and "full_unit_price" in order_items_obj._fields):
                     order_item_fields['full_unit_price'] = Item['full_unit_price']
 
@@ -2121,7 +2126,6 @@ class mercadolibre_orders(models.Model):
                 #_logger.info(prod_name: "+str(prod_name))
                 order.name = "MO [%s] %s" % ( str(order.order_id), prod_name )
 
-
                 if (sorder and product_related_obj):
                     saleorderline_item_fields = {
                         'company_id': company.id,
@@ -2156,7 +2160,7 @@ class mercadolibre_orders(models.Model):
                                 if txid.company_id.id==sorder.company_id.id:
                                     saleorderline_item_ids.tax_id = [(4, txid.id)]
 
-                        if (sorder.state and sorder.state in ['done']):
+                        if (sorder.state and sorder.state in ['done']) or ("locked" in sorder._fields and sorder.locked):
                             _logger.error("Orden bloqueada no se puede actualizar")
                         else:
                             saleorderline_item_ids.write( ( saleorderline_item_fields ) )
@@ -2204,12 +2208,13 @@ class mercadolibre_orders(models.Model):
                                 fee_payer = fee_detail["fee_payer"]
                                 if (fee_payer and fee_payer == "collector" and fee_type == "application_fee"):
                                     payment_fields["fee_amount"] = fee_detail["amount"]
+                                    if (order):
+                                        order.fee_amount = payment_fields["fee_amount"]
                                 if (fee_payer and fee_payer == "payer" and fee_type == "financing_fee"):
                                     payment_fields["financing_fee_amount"] = fee_detail["amount"]
                                     if ('status' in Payment and Payment['status'] == "approved"):
                                         financing_fee_amount+= payment_fields["financing_fee_amount"]
                         if (order):
-                            order.fee_amount = payment_fields["fee_amount"]
                             order.financing_fee_amount = financing_fee_amount
                             if (sorder):
                                 sorder.meli_fee_amount = order.fee_amount
@@ -2729,6 +2734,7 @@ class mercadolibre_order_items(models.Model):
     currency_id = fields.Char(string='Currency',index=True)
     seller_sku = fields.Char(string='SKU',index=True)
     seller_custom_field = fields.Char(string='seller_custom_field',index=True)
+    sale_fee = fields.Float(string="Sale Fee",index=True)
 
 
 class mercadolibre_payments(models.Model):
@@ -2789,7 +2795,7 @@ class res_partner(models.Model):
     _inherit = "res.partner"
 
     meli_buyer_id = fields.Char('Meli Buyer Id',index=True)
-    meli_buyer = fields.Many2one('mercadolibre.buyers',string='Buyer')
+    meli_buyer = fields.Many2one('mercadolibre.buyers',string='Meli Buyer')
     meli_update_forbidden = fields.Boolean(string='Meli Update Forbiden')
     meli_order_id = fields.Char('Meli Order Id',index=True)
 
@@ -2883,13 +2889,14 @@ class sale_order_cancel_wiz_meli(models.TransientModel):
                 #_logger.info("cancel_order: %s " % (order_id) )
 
                 order = orders_obj.browse(order_id)
-                if (order and order.state in ["done"] and self.cancel_blocked):
+                is_locked = (order and order.state in ["done"]) or ("locked" in sorder._fields and order.locked)
+                if (is_locked and self.cancel_blocked):
                     #asd
                     #_logger.info("cancel_order: unblock")
                     order.action_unlock()
                     order.action_cancel()
 
-                if (order and order.state in ["draft","sale","sent"]):
+                if (order and order.state in ["draft","sale","sent"]) and not is_locked:
                     order.action_cancel()
 
         except Exception as e:

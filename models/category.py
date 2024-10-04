@@ -27,7 +27,7 @@ from .meli_oerp_config import *
 from .warning import warning
 
 import requests
-from ..melisdk.meli import Meli
+#from ..melisdk.meli import Meli
 import json
 import math
 
