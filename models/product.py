@@ -2681,7 +2681,9 @@ class product_product(models.Model):
         if (Has_SIZE and SIZE_value and "meli_grid_chart_id" in self._fields and self.meli_grid_chart_id):
 
             #search for the only row id
-            GRID_ROW_SIZE_id = self.meli_grid_chart_id.search_row_id(value=SIZE_value)
+            row_vals = self.meli_grid_chart_id.search_row_id(value=SIZE_value)
+            GRID_ROW_SIZE_id = row_vals and row_vals[0]
+            GRID_ROW_SIZE_id_value = row_vals and row_vals[1]
 
             if GRID_ROW_SIZE_id:
                 #founded and assign
@@ -2693,8 +2695,18 @@ class product_product(models.Model):
 
                 if not SIZE_GRID_ROW_ID_updated:
                     updated_row_size_attribute = { "id": "SIZE_GRID_ROW_ID", "value_name": str(GRID_ROW_SIZE_id) }
+
+                str_message = "GRID_ROW_SIZE_id FOUNDED for value ["+str(SIZE_value)+"] equivalent to ["+str(GRID_ROW_SIZE_id_value)+"] in "+str(self.meli_grid_chart_id.name)
+                variant.product_tmpl_id.message_post(body=str_message,message_type=order_message_type)
+                variant.message_post(body=str_message,message_type=order_message_type)
+                self._cr.commit()
             else:
-                _logger.error("GRID_ROW_SIZE_id not FOUNDED for value ["+str(SIZE_value)+"]")
+                str_error = "ERROR! GRID_ROW_SIZE_id not FOUNDED for value ["+str(SIZE_value)+"] in "+str(self.meli_grid_chart_id.name)
+                _logger.error(str_error)
+                variant.product_tmpl_id.message_post(body=str_error)
+                variant.message_post(body=str_error,message_type=order_message_type)
+                self._cr.commit()
+
 
         return updated_row_size_attribute
 

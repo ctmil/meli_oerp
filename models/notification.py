@@ -77,7 +77,7 @@ class MercadolibreNotification(models.Model):
     processing_ended = fields.Datetime( string="Processing ended" )
     processing_errors = fields.Text( string="Processing Errors log" )
     processing_logs = fields.Text( string="Processing Logs" )
-    company_id = fields.Many2one("res.company",string="Company")
+    company_id = fields.Many2one("res.company",string="Company",index=True)
     seller_id = fields.Many2one("res.users",string="Seller")
 
     _sql_constraints = [

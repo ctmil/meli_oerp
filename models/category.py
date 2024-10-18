@@ -957,13 +957,22 @@ class mercadolibre_grid_chart(models.Model):
 
         row_id = None
         ret_row_id = None
+        ret_size_val = ""
+        ret_col_size_val = ""
 
         for row in self.rows:
 
             #_logger.info( "search_row_id: in row: " + str(row) )
             row_id = row.row_id
+            ret_col_size_val = ""
 
             for attval in row.attribute_values:
+
+                ret_col_id = attval.id
+                ret_col_name = attval.name
+                ret_col_value = attval.value
+                if attval.att_id == 'SIZE':
+                    ret_col_size_val = attval.value
 
                 #_logger.info( "search_row_id: in attribute_values: " + str(attval) )
 
@@ -976,14 +985,11 @@ class mercadolibre_grid_chart(models.Model):
                 #
 
                 #_logger.info("search_row_id: in attribute_values: name: " + str(attval.name)+ " value: " + str(attval.value) )
-
-                if ( attval.name and ( value == attval.value or value == attval.name ) ):
+                if ( attval.name and ( really_compare(value,attval.value) or really_compare(value,attval.name) ) ):
 
                     ret_row_id = row_id
-                    ret_col_name = attval.name
-                    ret_col_id = attval.id
-
-                    #_logger.info("search_row_id: ret_row_id FINAL for Value: "+str(value)+" is Col Name: "+str(ret_col_name)+" ROW ID >>> " + str(ret_row_id) )
+                    ret_size_val = ret_col_size_val
+                    _logger.info("search_row_id: ret_row_id FINAL for Value: "+str(value)+" GRID Row Val: "+str(ret_size_val)+" from Col Name: "+str(ret_col_name)+" Col Value: "+str(ret_col_value)+" ROW ID >>> " + str(ret_row_id) )
 
                 else:
                     if ( attval.number and value.replace(".","").isnumeric()):
@@ -991,10 +997,10 @@ class mercadolibre_grid_chart(models.Model):
                         if ( value == attval.value or float(value)==float(attval.number) ):
 
                             ret_row_id = row_id
-                            ret_col_name = attval.name
-                            ret_col_id = attval.id
+                            ret_size_val = ret_col_size_val
+
                         #    #_logger.info( "search_row_id: ret_row_id found: " + str(ret_row_id) )
                             #_logger.info( "search_row_id: ret_row_id FINAL for Value: "+str(value)+" is Col Name: "+str(ret_col_name)+" ROW ID >>> " + str(ret_row_id) )
                             #_logger.info("search_row_id: isnumeric ret_row_id FINAL for Value: "+str(value)+" is Col Name: "+str(ret_col_name)+" ROW ID >>> " + str(ret_row_id) )
 
-        return ret_row_id
+        return [ret_row_id, ret_size_val]
