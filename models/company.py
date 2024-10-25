@@ -670,6 +670,7 @@ class res_company(models.Model):
         force_create_variants = context and context.get("force_create_variants")
         force_dont_create = context and context.get("force_dont_create")
         force_meli_pub =  context and context.get("force_meli_pub")
+        force_import_images =  context and context.get("force_import_images")
         force_meli_website_published = context and context.get("force_meli_website_published")
         force_meli_website_category_create_and_assign = context and context.get("force_meli_website_category_create_and_assign")
         batch_processing_unit = context and context.get("batch_processing_unit")
@@ -986,7 +987,7 @@ class res_company(models.Model):
                                 #_logger.info( "product created: " + str(productcreated) + " >> meli_id:" + str(rjson3['id']) + " >> " + str( rjson3['title'].encode("utf-8")) )
                                 #pdb.set_trace()
                                 #_logger.info(productcreated)
-                                productcreated.product_meli_get_product()
+                                productcreated.product_meli_get_product(import_images=force_import_images)
                                 self._cr.commit()
                             else:
                                 _logger.error( "product couldnt be created")

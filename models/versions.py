@@ -42,16 +42,35 @@ def get_price_from_pl( pricelist, product, quantity ):
 def Autocommit( self, act=False ):
     self._cr.autocommit(act)
     return False
-    
-def UpdateProductType( product ):  
-    if (product and product.type not in ['product']):
-        try:
-            product.write( { 'type': 'product' } )
-        except Exception as e:
-            _logger.info("Set type almacenable ('product') not possible:")
-            _logger.error(e, exc_info=True)
-            pass;        
-    
+
+def UpdateProductType( product ):
+    if not product:
+        return
+    for prod in product:
+        if (prod and "detailed_type" in prod._fields and prod.detailed_type not in ['product']):
+            failed = False
+            try:
+                prod.write( { 'detailed_type': 'product' } )
+            except Exception as e:
+                _logger.info("Set detailed_type almacenable ('product') not possible:")
+                _logger.error(e, exc_info=True)
+                failed = True
+                pass;
+
+        if (prod and "type" in prod._fields and prod.type not in ['product']):
+            failed = False
+            try:
+                prod.write( { 'type': 'product' } )
+            except Exception as e:
+                _logger.info("Set type almacenable ('product') not possible:")
+                _logger.error(e, exc_info=True)
+                failed = True
+                pass;
+
+            #query = """UPDATE product_template SET type='product', detailed_type='product' WHERE id=%i""" % (prod.id)
+            #cr = prod._cr
+            #respquery = cr.execute(query)
+
 def ProductType():
     return { "type": "product" }
 
@@ -109,7 +128,7 @@ def att_line_ids(self):
     return self.attribute_line_ids
 
 def get_image_full(self):
-    return self.image_1920
+    return ("variant_image" in self._fields and self.variant_image) or self.image_1920
 
 def set_image_full(self, image):
     self.image_1920 = image
@@ -288,4 +307,3 @@ def set_delivery_line( sorder, delivery_price, delivery_message ):
 def remove_delivery_line( sorder, delivery_price=0):
     sorder._remove_delivery_line()
     return
-    

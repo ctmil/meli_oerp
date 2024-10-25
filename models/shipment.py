@@ -23,7 +23,7 @@ from odoo import fields, osv, models, api
 import logging
 from .meli_oerp_config import *
 
-from ..melisdk.meli import Meli
+#from ..melisdk.meli import Meli
 
 import json
 
@@ -391,7 +391,7 @@ class mercadolibre_shipment(models.Model):
             #_logger.info("_update_sale_order_shipping_info")
             sorder = shipment.sale_order
 
-            if sorder.state in ['done']:
+            if (sorder.state in ['done']) or ("locked" in sorder._fields and sorder.locked):
                 continue;
 
             if (not sorder or not order):
@@ -640,6 +640,7 @@ class mercadolibre_shipment(models.Model):
             'city': orders_obj.city(Receiver),
             'country_id': orders_obj.country(Receiver),
             'state_id': orders_obj.state(orders_obj.country(Receiver),Receiver),
+            'zip': ("zip_code" in Receiver and Receiver["zip_code"]) or None
             #'zip': meli_buyer_fields['name'],
             #'phone': orders_obj.full_phone( Receiver ),
             #'email':contactfields['billingInfo_email'],
@@ -1105,8 +1106,8 @@ class mercadolibre_shipment(models.Model):
                             #_logger.info("Update sale.order pack")
                             #_logger.info(all_orders[0])
                             #_logger.info(meli_order_fields)
-
-                            if (sorder_pack.state in ['sale','done']):
+                            is_locked = (sorder_pack and sorder_pack.state in ["done"]) or ("locked" in sorder_pack._fields and sorder_pack.locked)
+                            if (sorder_pack.state in ['sale','done']) or is_locked:
                                 del meli_order_fields["pricelist_id"]
 
                             sorder_pack.meli_fix_team( meli=meli, config=config )
@@ -1178,7 +1179,10 @@ class mercadolibre_shipment(models.Model):
     def update_item( self, item=None ):
         shipment = self
         sitem = None
-        #_logger.info("update shipment:"+str(item))
+        if not item or not "order_id" in item or not "item_id" in item:
+            return None
+
+        _logger.info("update shipment:"+str(item))
         if "variation_id" in item and item["variation_id"]:
             sitem = self.env["mercadolibre.shipment.item"].search([ ("shipment_id","=",shipment.id),("order_id","=",item["order_id"]), ("item_id","=",item["item_id"]), ("variation_id","=",item["variation_id"]) ],limit=1)
         else:
