@@ -38,7 +38,7 @@ from datetime import datetime
 
 from .meli_oerp_config import *
 
-from ..melisdk.meli import Meli
+#from ..melisdk.meli import Meli
 import string
 if (not ('replace' in string.__dict__)):
     string = str
@@ -151,7 +151,7 @@ class product_template(models.Model):
 
         return ret
 
-    def product_template_update(self, meli_id=None):
+    def product_template_update(self, meli_id=None,import_images=True):
         #_logger.info("product.template >> (core) product_template_update meli_id: "+str(meli_id))
         product_obj = self.env['product.template']
         company = self.env.user.company_id
@@ -167,13 +167,13 @@ class product_template(models.Model):
         for product in self:
             if (product.meli_pub_as_variant and product.meli_pub_principal_variant.id):
                 _logger.info("Updating principal variant")
-                ret = product.meli_pub_principal_variant.product_meli_get_product(meli_id=meli_id)
+                ret = product.meli_pub_principal_variant.product_meli_get_product(meli_id=meli_id,import_images=import_images)
             else:
                 for variant in product.product_variant_ids:
                     _logger.info("Variant:", variant)
                     if (variant.meli_pub):
                         _logger.info("Updating variant")
-                        ret = variant.product_meli_get_product(meli_id=meli_id)
+                        ret = variant.product_meli_get_product(meli_id=meli_id,import_images=import_images)
                         if ('name' in ret):
                             return ret
 
@@ -1428,7 +1428,7 @@ class product_product(models.Model):
         return
 
 
-    def product_meli_get_product( self, context=None, meli_id=None ):
+    def product_meli_get_product( self, context=None, meli_id=None, import_images=True ):
         company = self.env.user.company_id
 
         config = company
@@ -1572,7 +1572,7 @@ class product_product(models.Model):
             'meli_price_fixed': True,
             'meli_currency': rjson['currency_id'],
             'meli_condition': rjson['condition'],
-            'meli_available_quantity': rjson['available_quantity'],
+            'meli_available_quantity': rjson.get('available_quantity', 0), #if it does not have available_quantity, it defaults to 0,
             'meli_warranty': rjson['warranty'],
             'meli_imagen_link': rjson['thumbnail'],
             'meli_video': str(vid),
@@ -1626,15 +1626,15 @@ class product_product(models.Model):
 
         product.write( meli_fields )
         product_template.write( tmpl_fields )
-
-        if (rjson['available_quantity']>=0):
+        meli_available_quantity = rjson.get('available_quantity', 0)
+        if (meli_available_quantity >=0):
             UpdateProductType(product_template)
             #TODO: agregar parametro para esto: ml_auto_website_published_if_available  default true
-            if (1==1 and rjson['available_quantity']>0):
+            if (1==1 and meli_available_quantity >0):
                 product_template.website_published = True
 
         #TODO: agregar parametro para esto: ml_auto_website_unpublished_if_not_available default false
-        if (1==2 and rjson['available_quantity']==0):
+        if (1==2 and meli_available_quantity ==0):
             product_template.website_published = False
 
         posting_fields = {
@@ -1904,10 +1904,11 @@ class product_product(models.Model):
 
         #TODO: images complete
         pictures = rjson['pictures']
-        if pictures and len(pictures):
-            #remove all meli images not in pictures:
-            product._meli_remove_images_unsync( product_template, pictures )
-            product._meli_set_images_x(product_template=product_template, pictures=pictures, rjson=rjson)
+        if import_images:
+            if pictures and len(pictures):
+                #remove all meli images not in pictures:
+                product._meli_remove_images_unsync( product_template, pictures )
+                product._meli_set_images_x(product_template=product_template, pictures=pictures, rjson=rjson)
 
         if (company.mercadolibre_update_local_stock):
             product_template.type = 'product'
@@ -2681,7 +2682,9 @@ class product_product(models.Model):
         if (Has_SIZE and SIZE_value and "meli_grid_chart_id" in self._fields and self.meli_grid_chart_id):
 
             #search for the only row id
-            GRID_ROW_SIZE_id = self.meli_grid_chart_id.search_row_id(value=SIZE_value)
+            row_vals = self.meli_grid_chart_id.search_row_id(value=SIZE_value)
+            GRID_ROW_SIZE_id = row_vals and row_vals[0]
+            GRID_ROW_SIZE_id_value = row_vals and row_vals[1]
 
             if GRID_ROW_SIZE_id:
                 #founded and assign
@@ -2693,8 +2696,18 @@ class product_product(models.Model):
 
                 if not SIZE_GRID_ROW_ID_updated:
                     updated_row_size_attribute = { "id": "SIZE_GRID_ROW_ID", "value_name": str(GRID_ROW_SIZE_id) }
+
+                str_message = "GRID_ROW_SIZE_id FOUNDED for value ["+str(SIZE_value)+"] equivalent to ["+str(GRID_ROW_SIZE_id_value)+"] in "+str(self.meli_grid_chart_id.name)
+                variant.product_tmpl_id.message_post(body=str_message,message_type=order_message_type)
+                variant.message_post(body=str_message,message_type=order_message_type)
+                self._cr.commit()
             else:
-                _logger.error("GRID_ROW_SIZE_id not FOUNDED for value ["+str(SIZE_value)+"]")
+                str_error = "ERROR! GRID_ROW_SIZE_id not FOUNDED for value ["+str(SIZE_value)+"] in "+str(self.meli_grid_chart_id.name)
+                _logger.error(str_error)
+                variant.product_tmpl_id.message_post(body=str_error)
+                variant.message_post(body=str_error,message_type=order_message_type)
+                self._cr.commit()
+
 
         return updated_row_size_attribute
 
@@ -3921,7 +3934,7 @@ class product_product(models.Model):
             var._meli_stock_moves_update()
 
 
-    meli_stock_moves_update = fields.Datetime(compute=_meli_stock_moves_update,string="Stock Last Move",help="Ultimo movimiento de stock",store=False,index=True)
+    meli_stock_moves_update = fields.Datetime(compute=_meli_stock_moves_update,string="Stock Last Move",help="Ultimo movimiento de stock",store=True,index=True)
 
     meli_stock_error = fields.Char(string="Stock Error",index=True)
     meli_price_error = fields.Char(string="Price Error",index=True)

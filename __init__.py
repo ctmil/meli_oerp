@@ -18,7 +18,7 @@ def pre_init_check(cr):
     required  = {'meli', 'pdf2image'}
     installed = {pkg.key for pkg in pkg_resources.working_set}
     missing   = required - installed
-    _logger.info("missing:"+str(missing))
+    #_logger.info("missing:"+str(missing))
     if missing:
         # implement pip as a subprocess:
         for mis in missing:
