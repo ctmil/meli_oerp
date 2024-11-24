@@ -151,7 +151,7 @@ class product_template(models.Model):
 
         return ret
 
-    def product_template_update(self, meli_id=None):
+    def product_template_update(self, meli_id=None,import_images=True):
         #_logger.info("product.template >> (core) product_template_update meli_id: "+str(meli_id))
         product_obj = self.env['product.template']
         company = self.env.user.company_id
@@ -167,13 +167,13 @@ class product_template(models.Model):
         for product in self:
             if (product.meli_pub_as_variant and product.meli_pub_principal_variant.id):
                 _logger.info("Updating principal variant")
-                ret = product.meli_pub_principal_variant.product_meli_get_product(meli_id=meli_id)
+                ret = product.meli_pub_principal_variant.product_meli_get_product(meli_id=meli_id,import_images=import_images)
             else:
                 for variant in product.product_variant_ids:
                     _logger.info("Variant:", variant)
                     if (variant.meli_pub):
                         _logger.info("Updating variant")
-                        ret = variant.product_meli_get_product(meli_id=meli_id)
+                        ret = variant.product_meli_get_product(meli_id=meli_id,import_images=import_images)
                         if ('name' in ret):
                             return ret
 
@@ -1428,7 +1428,7 @@ class product_product(models.Model):
         return
 
 
-    def product_meli_get_product( self, context=None, meli_id=None ):
+    def product_meli_get_product( self, context=None, meli_id=None, import_images=True ):
         company = self.env.user.company_id
 
         config = company
@@ -1904,10 +1904,11 @@ class product_product(models.Model):
 
         #TODO: images complete
         pictures = rjson['pictures']
-        if pictures and len(pictures):
-            #remove all meli images not in pictures:
-            product._meli_remove_images_unsync( product_template, pictures )
-            product._meli_set_images_x(product_template=product_template, pictures=pictures, rjson=rjson)
+        if import_images:
+            if pictures and len(pictures):
+                #remove all meli images not in pictures:
+                product._meli_remove_images_unsync( product_template, pictures )
+                product._meli_set_images_x(product_template=product_template, pictures=pictures, rjson=rjson)
 
         if (company.mercadolibre_update_local_stock):
             product_template.type = 'product'

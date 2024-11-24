@@ -640,6 +640,7 @@ class mercadolibre_shipment(models.Model):
             'city': orders_obj.city(Receiver),
             'country_id': orders_obj.country(Receiver),
             'state_id': orders_obj.state(orders_obj.country(Receiver),Receiver),
+            'zip': ("zip_code" in Receiver and Receiver["zip_code"]) or None
             #'zip': meli_buyer_fields['name'],
             #'phone': orders_obj.full_phone( Receiver ),
             #'email':contactfields['billingInfo_email'],
