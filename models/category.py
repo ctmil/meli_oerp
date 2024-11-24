@@ -52,6 +52,10 @@ class mercadolibre_category_import(models.TransientModel):
     _name = "mercadolibre.category.import"
     _description = "Wizard de Importacion de Categoria desde MercadoLibre"
 
+    meli_charts = fields.Boolean(string="Importar Guias",help="Importar las guias de esta categoria, complete el genero y la marca",default=False)
+    meli_gender = fields.Char(string="Genero (GENDER)",help="Completar para importar las guias",default="")
+    meli_brand = fields.Char(string="Marca (BRAND) Category ID",help="Completar para importar las guias",default="")
+
     def _get_default_meli_category_id(self, context=None):
         context = context or self.env.context
         company = self.env.user.company_id
@@ -63,8 +67,10 @@ class mercadolibre_category_import(models.TransientModel):
         company = self.env.user.company_id
         #_logger.info("_get_default_meli_recursive_import")
         #_logger.info(context)
+        return False
 
     meli_category_id = fields.Char(string="MercadoLibre Category ID",help="MercadoLibre Category ID (ML????????)",default=_get_default_meli_category_id)
+    meli_category_id_sel = fields.Many2one("mercadolibre.category", string="MercadoLibre Category",help="MercadoLibre Category")
     meli_recursive_import = fields.Boolean(string="Recursive Import",help="Importar todas las subramas",default=_get_default_meli_recursive_import)
 
     def meli_category_import(self, context=None):
@@ -82,17 +88,27 @@ class mercadolibre_category_import(models.TransientModel):
 
         #_logger.info("Meli Category Import Wizard")
         #_logger.info(context)
-        if ( self.meli_category_id):
-            #_logger.info("Import single category: "+str(self.meli_category_id))
-            catid = self.env["mercadolibre.category"].import_all_categories( self.meli_category_id, self.meli_recursive_import )
+        if ( self.meli_category_id_sel and self.meli_charts):
+            #buscar una guia de talles ok
+            rjson_charts = self.meli_category_id_sel.get_search_chart( meli=meli, brand=self.meli_brand, gender=self.meli_gender)
+            _logger.info("rjson_charts: " +str(rjson_charts))
+            if rjson_charts:
+                rjson_charts_a = "charts" in rjson_charts and rjson_charts["charts"]
+                for charts in rjson_charts_a:
+                    _logger.info("charts: " +str(charts))
+                    self.env["mercadolibre.grid.chart"].create_chart(charts)
         else:
-            #_logger.info("Importing active categories: "+str(mlcat_ids))
-            for ml_cat_id in mlcat_ids:
-                #_logger.info("Importing single: "+str(ml_cat_id))
-                ml_cat = mlcat_obj.browse([ml_cat_id])
-                if ml_cat:
-                    meli_category_id = ml_cat.meli_category_id
-                    catid = self.env["mercadolibre.category"].import_all_categories( meli_category_id, self.meli_recursive_import )
+            if ( self.meli_category_id):
+                #_logger.info("Import single category: "+str(self.meli_category_id))
+                catid = self.env["mercadolibre.category"].import_all_categories( self.meli_category_id, self.meli_recursive_import )
+            else:
+                #_logger.info("Importing active categories: "+str(mlcat_ids))
+                for ml_cat_id in mlcat_ids:
+                    #_logger.info("Importing single: "+str(ml_cat_id))
+                    ml_cat = mlcat_obj.browse([ml_cat_id])
+                    if ml_cat:
+                        meli_category_id = ml_cat.meli_category_id
+                        catid = self.env["mercadolibre.category"].import_all_categories( meli_category_id, self.meli_recursive_import )
 
 
 class product_public_category(models.Model):
