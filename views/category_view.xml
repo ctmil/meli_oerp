@@ -25,6 +25,9 @@
                       <group>
                         <field name="meli_category_id"/>
                         <field name="meli_recursive_import"/>
+                        <field name="meli_charts"/>
+                        <field name="meli_gender"/>
+                        <field name="meli_brand"/>
                       </group>
                     </group>
                     <footer>
@@ -212,6 +215,8 @@
                     <field name="variation_attribute"/>
                   </tree>
                 </field>
+                <field name="catalog_domain_json"/>
+                <field name="data_json"/>
               </form>
             </field>
         </record>

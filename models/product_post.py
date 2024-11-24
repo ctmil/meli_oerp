@@ -131,6 +131,7 @@ class product_template_update(models.TransientModel):
     meli_id = fields.Char(string="MercadoLibre Id (MLMXXXXXXX) a importar.")
     force_create_variants = fields.Boolean(string="Forzar creacion/cambios de variantes",help="Forzar creacion de variantes (Modifica el producto de Odoo / Rompe Stock)",default=False)
 
+    force_import_images = fields.Boolean(string="Importar imagenes",help="Para acelerar la importacion es mejor destilar esta opcion",default=True)
 	    #'company_id': fields.many2one('res.company',string='Company'),
 	    #'mercadolibre_state': fields.related( 'res.company', 'mercadolibre_state', string="State" )
 
@@ -162,7 +163,7 @@ class product_template_update(models.TransientModel):
                     for variant in product.product_variant_ids:
                         variant.meli_pub = True
                 if (product.meli_pub):
-                    res = product.product_template_update(meli_id=meli_id)
+                    res = product.product_template_update(meli_id=meli_id,import_images=self.force_import_images)
 
             if res and 'name' in res:
                 return res
@@ -288,6 +289,7 @@ class product_template_import(models.TransientModel):
     force_create_variants = fields.Boolean( string="Forzar creacion/cambios de variantes", help="Forzar creacion de variantes (Modifica el producto de Odoo / Rompe Stock)", default=False )
     force_dont_create = fields.Boolean( string="No crear productos (Encontrar por SKU)", default=True )
     force_meli_pub = fields.Boolean(string="Force Meli Pub", default=True)
+    force_import_images = fields.Boolean(string="Import images",default=True)
 
     _req_name = 'title'
 
@@ -459,6 +461,7 @@ class product_template_import(models.TransientModel):
             "post_state": self.post_state,
             "meli_id": self.meli_id,
             "force_meli_pub": self.force_meli_pub,
+            "force_import_images": self.force_import_images,
             "force_create_variants": self.force_create_variants,
             "force_dont_create": self.force_dont_create,
             "force_meli_website_published": self.force_meli_website_published,
