@@ -339,6 +339,10 @@ class sale_order(models.Model):
         if not config or not total_config:
             return self.meli_total_amount;
 
+        including_shipping_cost = "mercadolibre_including_shipping_cost" in config._fields and config.mercadolibre_including_shipping_cost
+        including_shipping_cost = including_shipping_cost or "always"
+
+
         if total_config in ['manual']:
             #resolve always as conflict
             return 0
@@ -352,11 +356,16 @@ class sale_order(models.Model):
             else:
                 #conflict if do not match
                 if ( meli_shipment and meli_shipment.shipping_cost>0 and meli_shipment.shipping_list_cost>0 ):
-                    if ( self.meli_total_amount + self.shipping_cost - self.meli_paid_amount )<1.0:
+                    if ( self.meli_total_amount + self.meli_shipping_cost - self.meli_paid_amount )<1.0:
                         return (self.meli_paid_amount - self.meli_coupon_amount)
                 return 0
 
         if total_config in ['paid_amount','transaction_amount']:
+
+            if (including_shipping_cost=="never"):
+                #sacamos le precio del envio
+                return (self.meli_paid_amount - self.meli_coupon_amount - self.meli_shipping_cost)
+
             return (self.meli_paid_amount - self.meli_coupon_amount)
 
         if total_config in ['total_amount']:

@@ -397,6 +397,9 @@ class mercadolibre_shipment(models.Model):
             if (not sorder or not order):
                 continue;
 
+            including_shipping_cost = "mercadolibre_including_shipping_cost" in config._fields and config.mercadolibre_including_shipping_cost
+            including_shipping_cost = including_shipping_cost or "always"
+
             if (sorder and sorder.meli_update_forbidden):
                 _logger.error("Forbidden to update sale order by meli_oerp" )
                 return {'error': 'Forbidden to update sale order by meli_oerp' }
@@ -525,12 +528,14 @@ class mercadolibre_shipment(models.Model):
                 if ( ship_carrier_id and sorder.carrier_id):
                     delivery_price = 0.0
                     #_logger.info("set_delivery_line:"+str(delivery_price))
-                    set_delivery_line( sorder, delivery_price, "Defined by MELI" )
+                    if (not including_shipping_cost=="never"):
+                        set_delivery_line( sorder, delivery_price, "Defined by MELI" )
                 delivery_price = 0.0
 
             if shipment_amount_cond_fix2 and ship_carrier_id and sorder.carrier_id:
                 #_logger.info("set_delivery_line (fix2):"+str(delivery_price))
-                set_delivery_line( sorder, delivery_price, "Defined by MELI" )
+                if (not including_shipping_cost=="never"):
+                    set_delivery_line( sorder, delivery_price, "Defined by MELI" )
 
 
             if (ship_carrier_id and not sorder.carrier_id):
@@ -543,11 +548,12 @@ class mercadolibre_shipment(models.Model):
                 #delivery_price = vals['price']
                 #display_price = vals['carrier_price']
                 #_logger.info("Agregar delivery line delivery_price:"+str(delivery_price))
-                set_delivery_line(sorder, delivery_price, delivery_message )
+                if (not including_shipping_cost=="never"):
+                    set_delivery_line(sorder, delivery_price, delivery_message )
 
             if (sorder.carrier_id):
                 #activar para cuando no se quiere incluir en la factura? mejor setear para no ser facturado.. cuando es 0
-                if 1==2 and delivery_price<=0.0:
+                if ((1==2 and delivery_price<=0.0) or including_shipping_cost=="never"):
                     sorder._remove_delivery_line()
 
                 #UPDATE PRICE
