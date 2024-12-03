@@ -657,7 +657,7 @@ class res_company(models.Model):
         self.product_meli_get_products()
         return {}
 
-    def product_meli_get_products( self, context=None ):
+    def product_meli_get_products( self, context=None, import_images=True ):
         context = context or self.env.context
         #_logger.info('company.product_meli_get_products() context: '+str(context))
         company = self.env.user.company_id

@@ -59,6 +59,7 @@
                       <group>
                         <field name="force_meli_pub"/>
                         <field name="meli_id"/>
+                        <field name="force_import_images"/>
                         <!--field name="force_create_variants"/-->
                       </group>
                     </group>
@@ -100,6 +101,7 @@
                       <field name="post_state"/>
                       <field name="meli_id"/>
                       <field name="force_meli_pub"/>
+                      <field name="force_import_images"/>
                       <field name="force_create_variants"/>
                       <field name="force_dont_create"/>
                     </group>
