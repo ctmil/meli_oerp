@@ -1195,10 +1195,10 @@ class product_product(models.Model):
                     if (ml_attribute and ml_attribute.id):
                         #_logger.info(ml_attribute)
                         #TODO: this doesnt work if we have duplicated attributes with several ml ids
-                        attribute = self.env['product.attribute'].search([('meli_default_id_attribute','=',ml_attribute.id)])
+                        attribute = self.env['product.attribute'].search([('meli_default_id_attribute','=',ml_attribute.id)], limit=1)
                         #_logger.info(attribute)
 
-                    if (len(attribute) and attribute.id):
+                    if (attribute and len(attribute)==1 and attribute.id):
                         attribute_id = attribute.id
                         attribute_value_id = self.env['product.attribute.value'].search([('attribute_id','=',attribute_id), ('name','=',att['value_name'])]).id
                         #_logger.info("attribute_id:"+str(attribute))

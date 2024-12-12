@@ -2819,9 +2819,22 @@ class mercadolibre_orders_update(models.TransientModel):
 
     def order_update(self, context=None):
         context = context or self.env.context
-        orders_ids = ('active_ids' in context and context['active_ids']) or []
-        orders_obj = self.env['mercadolibre.orders']
+
         warningobj = self.env['meli.warning']
+        orders_obj = self.env['mercadolibre.orders']
+        sorders_obj = self.env['sale.order']
+
+        if ("active_model" in context and context["active_model"]=="mercadolibre.orders"):
+            orders_ids = ('active_ids' in context and context['active_ids']) or []
+
+        if ("active_model" in context and context["active_model"]=="sale.order"):
+            orders_ids = []
+            sorders_ids = ('active_ids' in context and context['active_ids']) or []
+            for soid in sorders_ids:
+                sorder = sorders_obj.browse(soid)
+                if sorder and sorder.meli_order:
+                    orders_ids.append(sorder.meli_order.id)
+
 
         Autocommit(self, False)
         rets = []
