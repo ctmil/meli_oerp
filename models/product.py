@@ -527,6 +527,7 @@ class product_template(models.Model):
 
     meli_gender = fields.Char(string="Genero",index=True)
     meli_grid_chart_id = fields.Many2one("mercadolibre.grid.chart",string="Guia de talles", index=True )
+    meli_catalog_domain = fields.Char(string="Meli Domain",related="meli_category.catalog_domain")
 
     meli_channel_mkt = fields.Many2many( "meli.channel.mkt", string="Channels", index=True )
 
@@ -1194,10 +1195,10 @@ class product_product(models.Model):
                     if (ml_attribute and ml_attribute.id):
                         #_logger.info(ml_attribute)
                         #TODO: this doesnt work if we have duplicated attributes with several ml ids
-                        attribute = self.env['product.attribute'].search([('meli_default_id_attribute','=',ml_attribute.id)])
+                        attribute = self.env['product.attribute'].search([('meli_default_id_attribute','=',ml_attribute.id)], limit=1)
                         #_logger.info(attribute)
 
-                    if (len(attribute) and attribute.id):
+                    if (attribute and len(attribute)==1 and attribute.id):
                         attribute_id = attribute.id
                         attribute_value_id = self.env['product.attribute.value'].search([('attribute_id','=',attribute_id), ('name','=',att['value_name'])]).id
                         #_logger.info("attribute_id:"+str(attribute))
@@ -3460,7 +3461,7 @@ class product_product(models.Model):
         product_fab = False
         if (1==1 and product.virtual_available<=0 and product.route_ids):
             for route in product.route_ids:
-                if (route.name in ['Fabricar','Manufacture']):
+                if (1==2 and route.name in ['Fabricar','Manufacture']):
                     #raise ValidationError("Fabricar")
                     #product.meli_available_quantity = product.meli_available_quantity
                     _logger.info("Fabricar:"+str(new_meli_available_quantity))
@@ -3478,10 +3479,10 @@ class product_product(models.Model):
                         _logger.info(product_tmpl.code_prefix)
                         _logger.info(bom_line.product_id.default_code)
                         for route in bom_line.product_id.route_ids:
-                            if (route.name in ['Fabricar','Manufacture']):
+                            if (1==2 and route.name in ['Fabricar','Manufacture']):
                                 _logger.info("Fabricar")
                                 new_meli_available_quantity = 1
-                            if (route.name in ['Comprar','Buy']):
+                            if (1==2 and route.name in ['Comprar','Buy']):
                                 _logger.info("Comprar")
                                 new_meli_available_quantity = bom_line.product_id.virtual_available
 
@@ -3528,7 +3529,7 @@ class product_product(models.Model):
             product_fab = False
             if (1==1 and product.virtual_available<=0 and product.route_ids):
                 for route in product.route_ids:
-                    if (route.name in ['Fabricar','Manufacture']):
+                    if (1==2 and route.name in ['Fabricar','Manufacture']):
                         _logger.info("Fabricar:"+str(product.meli_available_quantity))
                         product_fab = True
 

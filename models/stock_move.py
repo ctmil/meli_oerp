@@ -7,6 +7,7 @@ from odoo.exceptions import UserError
 from odoo.tools import float_utils
 import logging
 _logger = logging.getLogger(__name__)
+from odoo.tools import str2bool
 
 
 class StockMove(models.Model):
@@ -109,13 +110,13 @@ class StockMove(models.Model):
         return True
 
     def _action_assign(self, force_qty=False):
-        #_logger.info("Stock move: meli_oerp > _action_assign movs:"+str(self))
+        skip_stock = str2bool(self.env['ir.config_parameter'].sudo().get_param('meli_skip_stock', 'False'))
         company = self.env.user.company_id
 
-        res = super(StockMove, self)._action_assign()
-
-        for mov in self:
-            mov.meli_update_boms( config = company )
+        res = super(StockMove, self)._action_assign(force_qty=force_qty)
+        if not skip_stock:
+            for mov in self:
+                mov.meli_update_boms( config = company )
 
         return res
 
@@ -124,9 +125,11 @@ class StockMove(models.Model):
         #import pdb; pdb.set_trace()
         #_logger.info("Stock move: meli_oerp > _action_done")
         company = self.env.user.company_id
-        moves_todo = super(StockMove, self)._action_done(cancel_backorder=cancel_backorder)
 
-        for mov in self:
-            mov.meli_update_boms( config = company )
+        moves_todo = super(StockMove, self)._action_done(cancel_backorder=cancel_backorder)
+        skip_stock = str2bool(self.env['ir.config_parameter'].sudo().get_param('meli_skip_stock', 'False'))
+        if not skip_stock:
+            for mov in self:
+                mov.meli_update_boms( config = company )
 
         return moves_todo

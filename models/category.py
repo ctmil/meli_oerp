@@ -19,7 +19,7 @@
 #
 ##############################################################################
 
-from odoo import fields, osv, models, api
+from odoo import fields, osv, models, api, Command, _
 import logging
 _logger = logging.getLogger(__name__)
 
@@ -685,7 +685,7 @@ class mercadolibre_category(models.Model):
         return catalog_domain_json
 
 
-    catalog_domain = fields.Char(string="Domain Id")
+    catalog_domain = fields.Char(string="Domain Id", index=True)
     def _catalog_domain_link(self):
         for cat in self:
             cat.catalog_domain_link = (cat.catalog_domain and "https://api.mercadolibre.com/catalog_domains/"+str(cat.catalog_domain)) or ""
@@ -760,6 +760,27 @@ class mercadolibre_category(models.Model):
     catalog_domain_json = fields.Text(string="Domain id json")
     catalog_domain_chart_active = fields.Boolean(string="Domain Charts active", index=True,readonly=True)
     catalog_domain_chart_result = fields.Text(string="Domain Charts result")
+
+
+    @api.depends('catalog_domain_link', 'catalog_domain_json', 'catalog_domain_chart_active', 'catalog_domain_chart_result')
+    def _compute_catalog_domain_chart_ids(self):
+        meli = self.get_meli(meli=None)
+        for meli_cat in self:
+            if meli_cat.catalog_domain:
+                company = self.env.user.company_id
+                site_id = company._get_ML_sites(meli=meli)
+                cat_domain = str( meli_cat.catalog_domain ).replace( str(site_id) + str("-") , "" )
+                domain_charts = self.env['mercadolibre.grid.chart'].search([('domain_id','ilike',cat_domain)])
+                domain_charts_ids_command = [Command.clear()]
+                if domain_charts:
+                    domain_charts_ids_command += [Command.link(grid_chart.id) for grid_chart in domain_charts]
+                meli_cat.catalog_domain_chart_ids = domain_charts_ids_command
+            else:
+                meli_cat.catalog_domain_chart_ids = False
+            # Uses move._origin.id to handle records in edition/existing records and 0 for new records
+
+
+    catalog_domain_chart_ids = fields.Many2many(comodel_name='mercadolibre.grid.chart', compute='_compute_catalog_domain_chart_ids')
 
     data_json = fields.Text(string="Data json")
 
@@ -889,9 +910,19 @@ class mercadolibre_grid_chart(models.Model):
     _description = "Guia de talles de MercadoLibre"
 
     meli_id = fields.Char(string="Id de guia de talle",required=True,index=True)
-    domain_id = fields.Char(string="Dominio")
-    name = fields.Char(string="Nombre de la guia de talles")
-    type = fields.Char(string="Tipo de la guia de talles")
+    site_id = fields.Char(string="ML Site Id",index=True)
+    domain_id = fields.Char(string="Dominio", index=True)
+
+    @api.depends('site_id','domain_id')
+    def _meli_domain_id( self ):
+        for gchart in self:
+            if not gchart.site_id:
+                gchart.site_id = "MLA"
+            gchart.meli_domain_id = str(gchart.site_id)+str("-")+str(gchart.domain_id)
+
+    meli_domain_id = fields.Char(string="ML Dominio", compute=_meli_domain_id, index=True, store=True)
+    name = fields.Char(string="Nombre de la guia de talles", index=True)
+    type = fields.Char(string="Tipo de la guia de talles", index=True)
     main_attribute_id = fields.Char( string="Atributo principal de la guia de talles" )
     data_json = fields.Text( string="Data json" )
     attributes = fields.One2many( "mercadolibre.grid.attribute.line", "grid_chart_id", string="Attributes" )
@@ -904,6 +935,7 @@ class mercadolibre_grid_chart(models.Model):
             "name": json.dumps(djson["names"]),
             "type": djson["type"],
             "domain_id": djson["domain_id"],
+            "site_id": djson["site_id"],
             "main_attribute_id": djson["main_attribute_id"],
             "data_json": json.dumps(djson),
         }

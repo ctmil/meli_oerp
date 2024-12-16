@@ -374,6 +374,7 @@
             <field name="target">new</field>
         </record>
 
+
         <record id="action_update_meli_orders_invoice" model="ir.actions.act_window">
             <field name="name">Actualizar Factura Ordenes de ML</field>
             <field name="type">ir.actions.act_window</field>
@@ -422,6 +423,17 @@
             <field name="view_mode">form</field>
             <field name="target">new</field>
         </record>
+
+        <record id="action_update_meli_orders_from_so" model="ir.actions.act_window">
+                  <field name="name">Actualizar Pedidos ML</field>
+                  <field name="type">ir.actions.act_window</field>
+                  <field name="binding_model_id" ref="model_sale_order" />
+                  <field name="res_model">mercadolibre.orders.update</field>
+                  <field name="binding_type">action</field>
+                  <field name="binding_view_types">list,form</field>
+                  <field name="view_mode">form</field>
+                  <field name="target">new</field>
+              </record>
 
         <record id="action_update_meli_orders_invoices" model="ir.actions.act_window">
                   <field name="name">Actualizar Factura Pedidos ML</field>
