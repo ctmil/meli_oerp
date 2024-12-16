@@ -245,6 +245,7 @@ class mercadolibre_category(models.Model):
 
         return meli
 
+
     def create_ecommerce_category(self, category_id, meli=None, create_missing_website=True ):
 
         #_logger.info("Creating Ecommerce Category "+str(category_id))
