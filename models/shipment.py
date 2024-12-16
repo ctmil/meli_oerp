@@ -383,6 +383,8 @@ class mercadolibre_shipment(models.Model):
 
         company = (config and 'company_id' in config._fields and config.company_id) or ("company_id" in self._fields and self.company_id) or self.env.user.company_id
         company_domain = ['|',('company_id','=',False),('company_id','=',company.id)]
+        company_only_domain = [('company_id','=',company.id)]
+        company_domain = company_only_domain
         product_tpl = self.env['product.template']
         product_obj = self.env['product.product']
         saleorderline_obj = self.env['sale.order.line']
@@ -432,18 +434,25 @@ class mercadolibre_shipment(models.Model):
 
             if (shipment.mode=="me1"):
                 product_shipping_id = product_obj.search([('default_code','ilike','ENVIO-ME1')]
-                                                            + company_domain )
+                                                            + company_domain,
+                                                            order="company_id asc",
+                                                            limit=1 )
                 ship_default_code = 'ENVIO-ME1'
             else:
                 product_shipping_id = product_obj.search([('default_code','ilike','ENVIO')]
-                                                         + company_domain)
+                                                         + company_domain,
+                                                         order="company_id asc",
+                                                         limit=1)
                 if (len(product_shipping_id)==0):
                     product_shipping_id = product_obj.search(['|','|',('default_code','=','ENVIO'),
                             ('default_code','=',ship_name),
                             ('name','=',ship_name)]
-                            + company_domain )
+                            + company_domain,
+                            order="company_id asc",
+                            limit=1)
 
             if len(product_shipping_id):
+                _logger.info("_update_sale_order_shipping_info ")
                 product_shipping_id = product_shipping_id[0]
             else:
                 product_shipping_id = None
@@ -453,7 +462,7 @@ class mercadolibre_shipment(models.Model):
                     "type": "service",
                     #"taxes_id": None
                     #"categ_id": 279,
-                    #"company_id": company.id
+                    "company_id": company.id
                 }
                 #_logger.info(ship_prod)
                 product_shipping_tpl = product_tpl.create((ship_prod))
@@ -475,12 +484,35 @@ class mercadolibre_shipment(models.Model):
             }
             ship_carrier["product_id"] = product_shipping_id.id
             ship_carrier_id = self.env["delivery.carrier"].search([ ('name','=',ship_carrier['name'])]
-                                                                  + company_domain)
+                                                                  + company_domain,
+                                                                  order="company_id asc",
+                                                                  limit=1)
             if not ship_carrier_id:
                 ship_carrier_id = self.env["delivery.carrier"].create(ship_carrier)
-            if (len(ship_carrier_id)>1):
-                ship_carrier_id = ship_carrier_id[0]
-                ship_carrier_id.write(ship_carrier)
+
+            #if (len(ship_carrier_id)>1):
+            #    _logger.info("Actualizando delivery.carrier "+str(ship_carrier))
+            #    ship_carrier_id = ship_carrier_id[0]
+            #    ship_carrier_id.write(ship_carrier)
+            all_company_ok = False
+            if ship_carrier_id and product_shipping_id:
+                all_company_ok = ship_carrier_id.company_id == sorder.company_id and product_shipping_id.company_id == sorder.company_id
+                sorder.message_post(body=str("Companias Coinciden OK, Carrier, Servicio de envio y Pedido"))
+
+                if all_company_ok == False:
+                    #try and check to set or change products and carriers
+                    if not ship_carrier_id or not product_shipping_id:
+                        message_str_error = str("Companias no coinciden en Carrier, Servicio y Orden")
+                        message_str_error+= str("\n")
+                        message_str_error+= str( ( ship_carrier_id and str(ship_carrier_id.company_id or "Carrier sin Empresa") ) or "Sin Carrier" )
+                        message_str_error+= str("\n")
+                        message_str_error+= str( (product_shipping_id and str(product_shipping_id.company_id or "Servicio de envio sin Empresa")) or "Sin servicio de envio" )
+                        sorder.message_post(body=message_str_error)
+            else:
+                sorder.message_post(body=str("Sin servicio de envio o carrier."))
+
+
+
 
             stock_pickings = self.env["stock.picking"].search([('sale_id','=',sorder.id),('name','like','OUT')])
             #carrier_id = self.env["delivery.carrier"].search([('name','=',)])
