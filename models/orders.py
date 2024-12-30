@@ -339,6 +339,10 @@ class sale_order(models.Model):
         if not config or not total_config:
             return self.meli_total_amount;
 
+        including_shipping_cost = "mercadolibre_including_shipping_cost" in config._fields and config.mercadolibre_including_shipping_cost
+        including_shipping_cost = including_shipping_cost or "always"
+
+
         if total_config in ['manual']:
             #resolve always as conflict
             return 0
@@ -352,11 +356,16 @@ class sale_order(models.Model):
             else:
                 #conflict if do not match
                 if ( meli_shipment and meli_shipment.shipping_cost>0 and meli_shipment.shipping_list_cost>0 ):
-                    if ( self.meli_total_amount + self.shipping_cost - self.meli_paid_amount )<1.0:
+                    if ( self.meli_total_amount + self.meli_shipping_cost - self.meli_paid_amount )<1.0:
                         return (self.meli_paid_amount - self.meli_coupon_amount)
                 return 0
 
         if total_config in ['paid_amount','transaction_amount']:
+
+            if (including_shipping_cost=="never"):
+                #sacamos le precio del envio
+                return (self.meli_paid_amount - self.meli_coupon_amount - self.meli_shipping_cost)
+
             return (self.meli_paid_amount - self.meli_coupon_amount)
 
         if total_config in ['total_amount']:
@@ -375,7 +384,7 @@ class sale_order(models.Model):
     def meli_create_invoice( self, meli=None, config=None):
         _logger.info("Meli Base meli_create_invoice")
         res = {}
-        if so.state in ['sale','done']:
+        if self.state in ['sale','done']:
             #_logger.info(paid_confirm with invoice ok! create invoice")
             self.action_invoice_create()
         return res
@@ -2810,9 +2819,22 @@ class mercadolibre_orders_update(models.TransientModel):
 
     def order_update(self, context=None):
         context = context or self.env.context
-        orders_ids = ('active_ids' in context and context['active_ids']) or []
-        orders_obj = self.env['mercadolibre.orders']
+
         warningobj = self.env['meli.warning']
+        orders_obj = self.env['mercadolibre.orders']
+        sorders_obj = self.env['sale.order']
+
+        if ("active_model" in context and context["active_model"]=="mercadolibre.orders"):
+            orders_ids = ('active_ids' in context and context['active_ids']) or []
+
+        if ("active_model" in context and context["active_model"]=="sale.order"):
+            orders_ids = []
+            sorders_ids = ('active_ids' in context and context['active_ids']) or []
+            for soid in sorders_ids:
+                sorder = sorders_obj.browse(soid)
+                if sorder and sorder.meli_order:
+                    orders_ids.append(sorder.meli_order.id)
+
 
         Autocommit(self, False)
         rets = []
