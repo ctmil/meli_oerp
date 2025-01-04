@@ -7,7 +7,11 @@ from odoo import http, api
 
 from odoo import fields, osv, http
 from odoo.http import Controller, Response, request, route
-from odoo.addons.web.controllers.main import content_disposition
+try:
+    from odoo.addons.web.controllers.main import content_disposition
+except ImportError:
+    from odoo.http import content_disposition
+    pass;
 import json
 import sys
 import pprint
@@ -20,6 +24,14 @@ _logger = logging.getLogger(__name__)
 
 from ..models.versions import *
 
+def _get_headers(filename, filetype, content):
+    return [
+        ('Content-Type', filetype),
+        ('Content-Length', len(content)),
+        ('Content-Disposition', content_disposition(filename)),
+        ('X-Content-Type-Options', 'nosniff'),
+    ]
+    
 class MercadoLibre(http.Controller):
     @http.route('/meli/', auth='public')
     def index(self):

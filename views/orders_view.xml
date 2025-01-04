@@ -96,7 +96,7 @@
                               <field name="meli_update_forbidden" string="No actualizar desde ML"/>
                               <field name="meli_order_id" invisible="0"/>
                               <field name="meli_status" invisible="0"/>
-                              <!--field name="meli_status_brief" invisible="0"/-->
+                              <field name="meli_status_brief" invisible="0"/>
                               <field name="meli_shipment" invisible="0"/>
                               <field name="meli_shipment_pdf_file" invisible="0"/>
                               <field name="meli_shipment_pdf_filename" invisible="0"/>
@@ -374,7 +374,6 @@
             <field name="view_mode">form</field>
             <field name="target">new</field>
         </record>
-
 
         <record id="action_update_meli_orders_invoice" model="ir.actions.act_window">
             <field name="name">Actualizar Factura Ordenes de ML</field>
