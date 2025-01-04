@@ -1442,7 +1442,7 @@ class product_product(models.Model):
         meli_id = meli_id or product.meli_id
 
         _logger.info("product_meli_get_product: meli_id: "+str(meli_id))
-        _logger.info(product.default_code)
+        _logger.info(str(product.default_code))
 
         product_template_obj = self.env['product.template']
         product_template = product_template_obj.browse(product.product_tmpl_id.id)
@@ -1559,13 +1559,13 @@ class product_product(models.Model):
             pass;
 
         meli_fields = {
-            'name': rjson['title'].encode("utf-8"),
+            'name': str(rjson['title']),
             #'default_code': rjson['id'],
             'meli_imagen_id': imagen_id,
             #'meli_post_required': True,
             'meli_id': rjson['id'],
             'meli_permalink': rjson['permalink'],
-            'meli_title': rjson['title'].encode("utf-8"),
+            'meli_title': str(rjson['title']),
             'meli_description': desplain,
             'meli_listing_type': rjson['listing_type_id'],
             'meli_buying_mode':rjson['buying_mode'],
@@ -2247,7 +2247,9 @@ class product_product(models.Model):
         banner_images = config and "mercadolibre_banner" in config and config.mercadolibre_banner and "images_id" in config.mercadolibre_banner and config.mercadolibre_banner.images_id
 
         if (not banner_images and variant_image_ids(product)==None and template_image_ids(product)==None):
-            return { 'error': 'product_meli_upload_multi_images error no images to upload', 'status': 'error', 'message': 'no images to upload' }
+            error = { 'error': 'product_meli_upload_multi_images error no images to upload', 'status': 'error', 'message': 'no images to upload' }
+            _logger.error(str(error))
+            return error
 
         image_ids = []
 
@@ -2948,6 +2950,13 @@ class product_product(models.Model):
                             attribute = { "id": "GTIN", "value_name": atval }
                             attributes_ids[attribute["id"]] = attribute["value_name"]
                             attributes.append(attribute)
+                            continue;
+
+                        if (atname=="SELLER_SKU"):
+                            attribute = { "id": "SELLER_SKU", "value_name": atval }
+                            attributes_ids[attribute["id"]] = attribute["value_name"]
+                            attributes.append(attribute)
+                            continue;
 
                     #if not barcode_updated and set_barcode and variant.barcode:
                     #updated_attributes.append( { "id": "GTIN", "value_name": variant.barcode } )
@@ -2979,6 +2988,7 @@ class product_product(models.Model):
             attribute = { "id": "GTIN", "value_name": product.barcode }
             attributes_ids[attribute["id"]] = attribute["value_name"]
             attributes.append(attribute)
+            _logger.info("attributes:"+str(attributes))
 
         if product.meli_brand and len(product.meli_brand) > 0 and not "BRAND" in attributes_ids:
             attribute = { "id": "BRAND", "value_name": product.meli_brand }
@@ -3128,6 +3138,8 @@ class product_product(models.Model):
                     "value_name": str(product.meli_manufacturing_time)
                 })
 
+            #Completa los atributos de Odoo con los de la publicacion en ML
+            #ojo con los que se repiten por combinacion como GTIN y SELLER_SKU
             if (productjson):
                 if ("attributes" in productjson):
                     if (len(attributes)):
@@ -3140,7 +3152,11 @@ class product_product(models.Model):
                             if (att["id"] in dicatts):
                                 attributes_ml[x] = dicatts[att["id"]]
                             else:
-                                attributes.append(att)
+                                if ((att["id"]=="GTIN" or att["id"]=="SELLER_SKU") and product_tmpl.meli_pub_as_variant):
+                                    attributes.append({"id": att["id"], "value_id": None, "value_name": None })
+                                else:
+                                    attributes.append(att)
+                                    _logger.info("attributes ADDING from ML:"+str(att["id"]))
                             x = x + 1
 
                         body["attributes"] =  attributes
@@ -3159,7 +3175,7 @@ class product_product(models.Model):
         banner_images = config and "mercadolibre_banner" in config and config.mercadolibre_banner and "images_id" in config.mercadolibre_banner and config.mercadolibre_banner.images_id
         if (variant_image_ids(product) or template_image_ids(product) or banner_images):
             multi_images_ids = product.product_meli_upload_multi_images(meli=meli,config=config)
-            _logger.info(multi_images_ids)
+            _logger.info("Uploaded multi_images_ids: "+str(multi_images_ids))
             if 'status' in multi_images_ids:
                 _logger.error(multi_images_ids)
                 #return warningobj.info( title='MELI WARNING', message="Error publicando imagenes", message_html="Error: "+str(("error" in multi_images_ids and multi_images_ids["error"]) or "")+" Status:"+str(("status" in multi_images_ids and multi_images_ids["status"]) or "") )
@@ -3183,6 +3199,8 @@ class product_product(models.Model):
                     body["pictures"]+= [ { 'source': product.meli_imagen_logo} ]
                 else:
                     body["pictures"] = [ { 'source': product.meli_imagen_logo} ]
+
+            _logger.info("Setted body pictures: "+str(body["pictures"]))
         else:
             imagen_producto = ""
 
@@ -3202,7 +3220,7 @@ class product_product(models.Model):
                 if (product_tmpl.meli_pub_principal_variant.id == product.id):
                     #esta es la variante principal, si aun el producto no se publico
                     #preparamos las variantes
-
+                    #_logger.info("productjson:"+str(productjson))
                     if ( productjson and len(productjson["variations"]) ):
                         #ya hay variantes publicadas en ML
                         varias = {
@@ -3235,6 +3253,8 @@ class product_product(models.Model):
                                     #adding variant images
                                     var_product.product_meli_upload_image(meli=meli,config=config)
                                     var_multi_images_ids = var_product.product_meli_upload_multi_images(meli=meli,config=config)
+                                    #_logger.info("Uploaded var_multi_images_ids: "+str(var_multi_images_ids))
+
 
                                     var_pics.append(var_product.meli_imagen_id)
                                     var_pics_full.append({ 'id': var_product.meli_imagen_id })
@@ -3319,13 +3339,26 @@ class product_product(models.Model):
                          #responsevar = meli.put("/items/"+product.meli_id, {"initial_quantity": product.meli_available_quantity, "available_quantity": product.meli_available_quantity }, {'access_token':meli.access_token})
                          #_logger.debug(responsevar)
                          #_logger.debug(responsevar.json())
+
                         return {}
                     else:
                         variations = product_tmpl._variations(config=config)
                         _logger.info("Variations:")
                         _logger.info(variations)
                         if (variations):
-                            body["variations"] = variations
+                            body["variations"] = []
+                            for var in variations:
+                                var["price"] = str(product_tmpl.meli_price)
+                                body["variations"].append(var)
+
+                            import pprint
+                            formatted_json_str = pprint.pformat(body["variations"])
+                            _logger.info("body_varias (N var):"+str(formatted_json_str))
+                        #del body['price']
+                        del body['available_quantity']
+                        del body['price']
+                        #del body["pictures"]
+
                 else:
                     _logger.debug("Variant not able to post, variant principal.")
                     return {}
@@ -3381,27 +3414,38 @@ class product_product(models.Model):
                 return {}
 
         #check fields
-        if (product.meli_description==False or ( product.meli_description and len(product.meli_description)==0) ):
-            return warningobj.info(title='MELI WARNING', message="Debe completar el campo description en la plantilla de MercadoLibre o del producto (Descripción de Ventas)", message_html="<h3>Descripción faltante</h3>")
+        #if (product.meli_description==False or ( product.meli_description and len(product.meli_description)==0) ):
+        #    return warningobj.info(title='MELI WARNING', message="Debe completar el campo description en la plantilla de MercadoLibre o del producto (Descripción de Ventas)", message_html="<h3>Descripción faltante</h3>")
 
         #free shipping
         # https://api.mercadolibre.com/users/{user_id}/shipping_modes?category_id={category_id}&item_price=550
+        try:
+            if product.meli_id:
+                _logger.info("update meli put:"+str(body))
 
-        if product.meli_id:
-            _logger.info("update post:"+str(body))
-            response = meli.put("/items/"+product.meli_id, body, {'access_token':meli.access_token})
-            resdescription = meli.put("/items/"+product.meli_id+"/description", bodydescription, {'access_token':meli.access_token})
-            rjsondes = resdescription.json()
-            #_logger.info(rjsondes)
-        else:
-            assign_img = True and product.meli_imagen_id
-            _logger.info("first post:" + str(body))
-            response = meli.post("/items", body, {'access_token':meli.access_token})
+                resdescription = meli.put("/items/"+str(product.meli_id)+"/description", bodydescription, {'access_token':meli.access_token})
+                rjsondes = resdescription.json()
+                _logger.info("rjsondes:"+str(rjsondes))
 
+                response = meli.put("/items/"+str(product.meli_id), body, {'access_token':meli.access_token})
+                _logger.info("put response:"+str(response))
+                rjson = response.json()
+                _logger.info("put response json:"+str(response.json()))
+                _logger.info("put rjson:"+str(rjson))
+            else:
+                assign_img = True and product.meli_imagen_id
+                _logger.info("first post:" + str(body))
+                response = meli.post("/items", body, {'access_token':meli.access_token})
+                rjson = response.json()
+                _logger.info("rjson:"+str(rjson))
+
+        except Exception as E:
+            _logger.error("Exception"+str(E))
+            #rjson = { "error": str(E) }
+            pass;
         #check response
         # _logger.info( response )
-        rjson = response.json()
-        _logger.info(rjson)
+
 
         #check error
         if "error" in rjson:

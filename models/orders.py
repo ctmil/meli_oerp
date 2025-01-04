@@ -384,7 +384,7 @@ class sale_order(models.Model):
     def meli_create_invoice( self, meli=None, config=None):
         _logger.info("Meli Base meli_create_invoice")
         res = {}
-        if so.state in ['sale','done']:
+        if self.state in ['sale','done']:
             #_logger.info(paid_confirm with invoice ok! create invoice")
             self.action_invoice_create()
         return res
