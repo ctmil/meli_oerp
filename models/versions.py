@@ -163,8 +163,14 @@ def stock_picking_set_quantities( picking ):
         for pop in spick.move_line_ids:
             #_logger.info(pop)
             #_logger.info(pop.qty_done)
-            if (pop.qty_done==0.0 and "reserved_uom_qty" in pop._fields and pop.reserved_uom_qty>=0.0):
-                pop.qty_done = pop.reserved_uom_qty
+            if "qty_done" in pop._fields and pop.qty_done==0.0:
+                if "reserved_uom_qty" in pop._fields:
+                    if pop.reserved_uom_qty>=0.0:
+                        pop.qty_done = pop.reserved_uom_qty
+                    else:
+                        _logger.error("picking "+str(picking and picking.name)+" en la linea "+str(pop)+" tiene el reserved_uom_qty en 0")
+                else:
+                    _logger.error("picking "+str(picking and picking.name)+" en la linea "+str(pop)+" no contiene el campo reserved_uom_qty")
 
 def stock_inventory_action_done( self, product, stock, config ):
     return_id = False
