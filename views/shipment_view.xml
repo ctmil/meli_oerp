@@ -4,9 +4,9 @@
         <record model="ir.ui.view" id="view_meli_shipment_tree">
             <field name="name">mercadolibre.shipment.tree</field>
             <field name="model">mercadolibre.shipment</field>
-            <field name="type">tree</field>
+            <field name="type">list</field>
             <field name="arch" type="xml">
-              <tree string="Shipment" default_order="date_created desc">
+              <list string="Shipment" default_order="date_created desc">
                   <field name="company_id"/>
                   <field name="name"/>
                   <field name="shipping_id"/>
@@ -28,7 +28,7 @@
                   <field name="pdf_link" invisible="1"/>
                   <field name="pdfimage_file"/>
                   <field name="pack_order" invisible="1"/>
-              </tree>
+              </list>
             </field>
         </record>
 
@@ -172,7 +172,7 @@
             <field name="name">Envios</field>
             <field name="type">ir.actions.act_window</field>
             <field name="res_model">mercadolibre.shipment</field>
-            <field name="view_mode">tree,form</field>
+            <field name="view_mode">list,form</field>
             <field name="search_view_id" ref="meli_shipment_search_view"/>
         </record>
 

@@ -289,7 +289,7 @@ class product_template_import(models.TransientModel):
     force_create_variants = fields.Boolean( string="Forzar creacion/cambios de variantes", help="Forzar creacion de variantes (Modifica el producto de Odoo / Rompe Stock)", default=False )
     force_dont_create = fields.Boolean( string="No crear productos (Encontrar por SKU)", default=True )
     force_meli_pub = fields.Boolean(string="Force Meli Pub", default=True)
-    force_import_images = fields.Boolean(string="Import images",default=True)
+    force_import_images = fields.Boolean(string="Importar imágenes al import producto",default=True)
 
     _req_name = 'title'
 
@@ -569,6 +569,7 @@ class product_template_import(models.TransientModel):
             "title": "Importar",
             "post_state": ("post_state" in context and context["post_state"]) or self.post_state,
             "force_meli_pub": ("force_meli_pub" in context and context["force_meli_pub"]) or self.force_meli_pub,
+            "force_import_images": ("force_import_images" in context and context["force_import_images"]) or self.force_import_images,
             "force_create_variants": ("force_create_variants" in context and context["force_create_variants"]) or self.force_create_variants,
             "force_dont_create": ("force_dont_create" in context and context["force_dont_create"]) or self.force_dont_create,
             "batch_actives_to_sync": ("batch_actives_to_sync" in context and context["batch_actives_to_sync"]) or self.batch_actives_to_sync,

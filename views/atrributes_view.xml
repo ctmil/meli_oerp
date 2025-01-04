@@ -4,9 +4,9 @@
         <record model="ir.ui.view" id="view_mercadolibre_category_attribute_tree">
             <field name="name">mercadolibre.category.attribute.tree</field>
             <field name="model">mercadolibre.category.attribute</field>
-            <field name="type">tree</field>
+            <field name="type">list</field>
             <field name="arch" type="xml">
-                <tree string="Categorías" >
+                <list string="Categorías" >
                     <field name="name"/>
                     <field name="cat_id"/>
                     <field name="att_id"/>
@@ -16,7 +16,7 @@
                     <field name="multivalued"/>
                     <field name="type"/>
                     <field name="required"/>
-                </tree>
+                </list>
             </field>
         </record>
 
@@ -59,13 +59,13 @@
                   </div>
 
                   <field name="product_attributes" readonly="1">
-                    <tree readonly="1">
+                    <list readonly="1">
                       <field name="name"/>
                       <field name="create_variant"/>
                       <field name="display_type"/>
                       <field name="visibility"/>
                       <field name="number_related_products"/>
-                    </tree>
+                    </list>
                   </field>
 
                   <div class="oe_button_box btn-group" name="button_box_mel" style="width: auto;">
@@ -77,14 +77,14 @@
                         icon="fa-refresh"/>
                   </div>
                   <field name="products_to_fix" readonly="1">
-                    <tree>
+                    <list>
                       <field name="id"/>
                       <field name="name"/>
                       <field name="default_code"/>
                       <field name="barcode"/>
                       <field name="meli_pub"/>
                       <field name="product_variant_ids"/>
-                    </tree>
+                    </list>
                   </field>
 
               </form>
@@ -96,7 +96,7 @@
             <field name="name">Atributos</field>
             <field name="type">ir.actions.act_window</field>
             <field name="res_model">mercadolibre.category.attribute</field>
-            <field name="view_mode">tree,form</field>
+            <field name="view_mode">list,form</field>
         </record>
 
         <menuitem id="menu_meli_categories_attributes"

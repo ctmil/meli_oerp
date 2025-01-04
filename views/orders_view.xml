@@ -41,9 +41,9 @@
         <record model="ir.ui.view" id="view_meli_orders_tree">
             <field name="name">mercadolibre.orders.tree</field>
             <field name="model">mercadolibre.orders</field>
-            <field name="type">tree</field>
+            <field name="type">list</field>
             <field name="arch" type="xml">
-                <tree string="Ordenes" default_order="date_created desc">
+                <list string="Ordenes" default_order="date_created desc">
                     <field name="company_id"/>
                     <field name="seller_id"/>
                     <field name="name"/>
@@ -66,7 +66,7 @@
                     <field name="tags" invisible="1"/>
                     <field name="pack_order" string="Es Carrito"/>
                     <field name="catalog_order" string="Es de Catalogo"/>
-                </tree>
+                </list>
             </field>
         </record>
 
@@ -143,13 +143,13 @@
         <record model="ir.ui.view" id="view_meli_buyers_tree">
             <field name="name">mercadolibre.buyers.tree</field>
             <field name="model">mercadolibre.buyers</field>
-            <field name="type">tree</field>
+            <field name="type">list</field>
             <field name="arch" type="xml">
-                <tree string="Compradores" >
+                <list string="Compradores" >
                     <field name="buyer_id"/>
                     <field name="nickname"/>
                     <field name="email"/>
-                </tree>
+                </list>
             </field>
         </record>
 
@@ -232,9 +232,9 @@
         <record model="ir.ui.view" id="view_meli_order_items_tree">
             <field name="name">mercadolibre.order_items.tree</field>
             <field name="model">mercadolibre.order_items</field>
-            <field name="type">tree</field>
+            <field name="type">list</field>
             <field name="arch" type="xml">
-                <tree string="Lineas de la Orden" >
+                <list string="Lineas de la Orden" >
                     <field name="seller_sku"/>
                     <field name="seller_custom_field" string="SCF"/>
                     <field name="posting_id"/>
@@ -244,16 +244,16 @@
                     <field name="unit_price"/>
                     <field name="full_unit_price"/>
                     <field name="quantity"/>
-                </tree>
+                </list>
             </field>
         </record>
 
         <record model="ir.ui.view" id="view_meli_payments_tree">
             <field name="name">mercadolibre.payments.tree</field>
             <field name="model">mercadolibre.payments</field>
-            <field name="type">tree</field>
+            <field name="type">list</field>
             <field name="arch" type="xml">
-                <tree string="Pagos" >
+                <list string="Pagos" >
                     <field name="payment_id"/>
                     <field name="transaction_amount"/>
                     <field name="total_paid_amount"/>
@@ -265,7 +265,7 @@
                     <field name="status"/>
                     <field name="date_created"/>
                     <field name="date_last_modified"/>
-                </tree>
+                </list>
             </field>
         </record>
 
@@ -355,7 +355,7 @@
             <field name="name">Ordenes</field>
             <field name="type">ir.actions.act_window</field>
             <field name="res_model">mercadolibre.orders</field>
-            <field name="view_mode">tree,form</field>
+            <field name="view_mode">list,form</field>
             <!--<field name="search_view_id" ref="meli_orders_search_view"/>-->
         </record>
 
@@ -363,7 +363,7 @@
             <field name="name">Compradores</field>
             <field name="type">ir.actions.act_window</field>
             <field name="res_model">mercadolibre.buyers</field>
-            <field name="view_mode">tree,form</field>
+            <field name="view_mode">list,form</field>
             <!--<field name="search_view_id" ref="meli_buyers_search_view"/>-->
         </record>
 

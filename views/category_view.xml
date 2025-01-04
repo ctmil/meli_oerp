@@ -91,16 +91,16 @@
         <record model="ir.ui.view" id="view_meli_category_tree">
             <field name="name">mercadolibre.category.tree</field>
             <field name="model">mercadolibre.category</field>
-            <field name="type">tree</field>
+            <field name="type">list</field>
             <field name="arch" type="xml">
-                <tree string="Categorías" >
+                <list string="Categorías" >
                     <field name="name"/>
                     <field name="meli_category_id"/>
                     <!--field name="meli_category_attributes" widget="url"/-->
                     <field name="public_category_id"/>
                     <field name="public_category" string="Ecommerce Category"/>
                     <field name="is_branch"/>
-                </tree>
+                </list>
             </field>
         </record>
 
@@ -127,18 +127,18 @@
                     </group>
                 </group>
                 <field name="attributes">
-                  <tree delete="0">
+                  <list delete="0">
                     <field name="att_id"/>
                     <field name="val_id"/>
-                  </tree>
+                  </list>
                 </field>
                 <field name="rows">
-                  <tree delete="0">
+                  <list delete="0">
                     <field name="row_id"/>
                     <field name="attribute_values" widget="many2many_tags">
 
                     </field>
-                  </tree>
+                  </list>
                 </field>
                 <field name="data_json"/>
               </form>
@@ -148,12 +148,12 @@
         <record model="ir.ui.view" id="view_meli_charts_tree">
             <field name="name">mercadolibre.grid.chart.tree</field>
             <field name="model">mercadolibre.grid.chart</field>
-            <field name="type">tree</field>
+            <field name="type">list</field>
             <field name="arch" type="xml">
-                <tree string="Guias" >
+                <list string="Guias" >
                     <field name="meli_id"/>
                     <field name="name"/>
-                </tree>
+                </list>
             </field>
         </record>
 
@@ -216,14 +216,14 @@
                     <page string="Attributes">
                       <field name="meli_category_attributes" widget="url"/>
                       <field name="meli_category_attribute_ids">
-                        <tree delete="0">
+                        <list delete="0">
                           <field name="name"/>
                           <field name="att_id"/>
                           <field name="required"/>
                           <field name="value_type" optional="hide"/>
                           <field name="hidden" optional="hide"/>
                           <field name="variation_attribute"/>
-                        </tree>
+                        </list>
                       </field>
                     </page>
                     <page string="Size Charts">
@@ -251,7 +251,7 @@
             <field name="name">Categorías</field>
             <field name="type">ir.actions.act_window</field>
             <field name="res_model">mercadolibre.category</field>
-            <field name="view_mode">tree,form</field>
+            <field name="view_mode">list,form</field>
         </record>
 
         <menuitem id="menu_meli_categories"
@@ -263,7 +263,7 @@
             <field name="name">Guias de talles</field>
             <field name="type">ir.actions.act_window</field>
             <field name="res_model">mercadolibre.grid.chart</field>
-            <field name="view_mode">tree,form</field>
+            <field name="view_mode">list,form</field>
         </record>
 
         <menuitem id="menu_meli_charts"

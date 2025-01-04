@@ -5,11 +5,11 @@
         <record model="ir.ui.view" id="view_meli_banner_tree">
             <field name="name">mercadolibre.banner.tree</field>
             <field name="model">mercadolibre.banner</field>
-            <field name="type">tree</field>
+            <field name="type">list</field>
             <field name="arch" type="xml">
-                <tree string="Descripciones" >
+                <list string="Descripciones" >
                     <field name="name"/>
-                </tree>
+                </list>
             </field>
         </record>
 
@@ -136,7 +136,7 @@
             <field name="name">Descripciones</field>
             <field name="type">ir.actions.act_window</field>
             <field name="res_model">mercadolibre.banner</field>
-            <field name="view_mode">tree,form</field>
+            <field name="view_mode">list,form</field>
         </record>
 
         <menuitem id="menu_meli_banners"

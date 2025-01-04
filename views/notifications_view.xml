@@ -6,7 +6,7 @@
 			<field name="name">mercadolibre.notification.tree</field>
 			<field name="model">mercadolibre.notification</field>
 			<field name="arch" type="xml">
-				<tree create="0" edit="1" delete="1" default_order='sent desc, notification_id desc'>
+				<list create="0" edit="1" delete="1" default_order='sent desc, notification_id desc'>
 					<field name="company_id" />
 					<field name="seller_id" />
 					<field name="notification_id" />
@@ -16,7 +16,7 @@
 					<field name="user_id" />
 					<field name="state" />
 					<field name="processing_errors" invisible="0" />
-				</tree>
+				</list>
 			</field>
 		</record>
 
@@ -103,7 +103,7 @@
 			<field name="name">Notifications</field>
 			<field name="type">ir.actions.act_window</field>
 			<field name="res_model">mercadolibre.notification</field>
-			<field name="view_mode">tree,form</field>
+			<field name="view_mode">list,form</field>
 		</record>
 
 		<menuitem id="menu_meli" name="MercadoLibre" parent="sale.sale_menu_root" sequence="16"/>

@@ -34,12 +34,12 @@
           <field name="model">product.image</field>
           <field name="inherit_id" ref="website_sale.product_image_view_kanban"/>
           <field name="arch" type="xml">
-              <xpath expr="//field[@name='id']" position="after">
+              <xpath expr="//field[@name='name']" position="after">
                 <field name="meli_imagen_id" string="Product Image ML ID" readonly="1"/>
                 <field name="meli_force_pub" string="Product Image ML Force Publication"/>
                 <field name="meli_pub" string="Product Image ML Publication"/>
               </xpath>
-              <xpath expr="//div[hasclass('card-body')]//field[@name='name']" position="after">
+              <xpath expr="//div[hasclass('card')]//field[@name='name']" position="after">
                 <field name="meli_force_pub" string="ML Force Pub"/>
                 <field name="meli_imagen_id" string="ML id"/>
               </xpath>
@@ -51,7 +51,7 @@
             <field name="model">product.template</field>
             <field name="inherit_id" ref="product.product_template_search_view"/>
             <field name="arch" type="xml">
-                <xpath expr="//filter[@name='consumable']" position="after">
+                <xpath expr="//filter[@name='combo']" position="after">
                   <field name="meli_publications" string="Product ML Id" filter_domain="[('meli_publications','ilike',self)]"/>
                   <separator/>
                   <filter string="MercadoLibre, A publicar" name="meli_pub_active" domain="[('meli_pub','=',True)]"/>
@@ -135,7 +135,7 @@
                       <group name="ML actions"></group>
                       <separator string="Variants" colspan="1"/>
                       <field name="product_variant_ids" options="{'no_create': True}" domain="[('meli_id','!=',None)]">
-                        <tree>
+                        <list create="False" delete="False">
                           <field string="ML Pub" name="meli_pub"/>
                           <field string="Variant" name="name"/>
                           <field string="Id Pub" name="meli_id"/>
@@ -150,7 +150,7 @@
                           <field string="Link" name="meli_permalink" widget="url"/>
                           <field string="Link Edit" name="meli_permalink_edit" widget="url"/>
                           <field string="Link Api" name="meli_permalink_api" widget="url"/>
-                        </tree>
+                        </list>
                       </field>
                       <separator string="Descripcion del producto en ML" colspan="1"/>
                       <group name="Basic description">
@@ -253,7 +253,7 @@
         <record model="ir.ui.view" id="view_meli_product_template_tree">
             <field name="name">meli.product.template.tree</field>
             <field name="model">product.template</field>
-            <field name="type">tree</field>
+            <field name="type">list</field>
             <field name="inherit_id" ref="product.product_template_tree_view"/>
             <field name="arch" type="xml">
                 <field name="virtual_available" position="after">
@@ -267,7 +267,7 @@
         <record model="ir.ui.view" id="view_meli_variants_tree">
             <field name="name">product.product.tree</field>
             <field name="model">product.product</field>
-            <field name="type">tree</field>
+            <field name="type">list</field>
             <field name="inherit_id" ref="product.product_product_tree_view"/>
             <field name="arch" type="xml">
                 <field name="default_code" position="before">
@@ -447,7 +447,7 @@
                               <field name="meli_listing_type" />
                               <field name="meli_buying_mode" />
                               <field name="meli_price_fixed" />
-                              <field name="meli_price" 
+                              <field name="meli_price"
 					readonly="meli_price_fixed == False"/>
                               <field name="meli_currency" />
 
@@ -547,7 +547,7 @@
             <field name="type">ir.actions.act_window</field>
             <field name="res_model">product.pricelist.item</field>
             <!--field name="view_type">form</field-->
-            <field name="view_mode">tree,form</field>
+            <field name="view_mode">list,form</field>
             <field name="view_id" ref="view_meli_oerp_product_pricelist_items_tree"/>
             <field name="search_view_id" ref="meli_oerp_product_pricelist_items_search_view" />
             <!--field name="context">{"search_default_producteca_filter":1}</field-->

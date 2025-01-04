@@ -6,7 +6,7 @@ import unidecode
 import logging
 _logger = logging.getLogger(__name__)
 
-# Odoo version 17.0
+# Odoo version 18.0
 
 # Odoo 12.0 -> Odoo 13.0
 uom_model = "uom.uom"
@@ -49,9 +49,9 @@ def UpdateProductType( product ):
         if (prod and "detailed_type" in prod._fields and prod.detailed_type not in ['product']):
             failed = False
             try:
-                prod.write( { 'detailed_type': 'product' } )
+                prod.write( { 'detailed_type': 'consu' } )
             except Exception as e:
-                _logger.info("Set detailed_type almacenable ('product') not possible:")
+                _logger.info("Set detailed_type almacenable ('consu') not possible:")
                 _logger.error(e, exc_info=True)
                 failed = True
                 pass;
@@ -59,21 +59,21 @@ def UpdateProductType( product ):
         if (prod and "type" in prod._fields and prod.type not in ['product']):
             failed = False
             try:
-                prod.write( { 'type': 'product' } )
+                prod.write( { 'type': 'consu' } )
             except Exception as e:
-                _logger.info("Set type almacenable ('product') not possible:")
+                _logger.info("Set type almacenable ('consu') not possible:")
                 _logger.error(e, exc_info=True)
                 failed = True
                 pass;
 
-            query = """UPDATE product_template SET type='product', detailed_type='product' WHERE id=%i""" % (prod.id)
+            query = """UPDATE product_template SET type='consu' WHERE id=%i""" % (prod.id)
             cr = prod._cr
             respquery = cr.execute(query)
 
 def ProductType():
     return {
-        "type": "product",
-        "detailed_type": "product"
+        "type": "consu",
+        #"detailed_type": "consu"
     }
 
 # Odoo 12.0 -> Odoo 13.0

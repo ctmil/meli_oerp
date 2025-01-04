@@ -111,10 +111,10 @@
 
                                 <field name="mercadolibre_attributes" invisible="0"/>
                                 <field name="mercadolibre_exclude_attributes"  widget="many2many" options="{'no_create': True}">
-                                  <tree>
+                                  <list>
                                     <field name="attribute_id"/>
                                     <field name="name"/>
-                                  </tree>
+                                  </list>
                                 </field>
                                 <field name="mercadolibre_remove_unsync_images" invisible="0"/>
                               </group>
