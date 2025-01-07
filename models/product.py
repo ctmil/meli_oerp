@@ -667,7 +667,7 @@ class product_product(models.Model):
                 raise ValueError(f"No se pudo convertir el valor '{number_str}' a un número flotante.")
         else:
             _logger.warning(f'El valor de number_str "{number_str}" no es una cadena (str).')
-            return float(number_str or 0)
+            return float(number_str)
 
 
     def set_meli_price( self, meli=None, config=None, plist=None ):
