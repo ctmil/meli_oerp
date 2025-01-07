@@ -649,6 +649,25 @@ class product_product(models.Model):
                 _logger.info("_meli_set_product_price lst_price<1.0: "+str(ml_price_converted))
                 product_template.write({'lst_price': ml_price_converted})
 
+
+    def string_to_float(self, number_str):
+        """
+        Convierte un número en formato string con separadores de miles y coma decimal
+        (ej. "100.234.999,9") a un float (ej. 100234999.9).
+        """
+        if not isinstance(number_str, str):
+            raise ValueError("El valor debe ser una cadena (str).")
+        
+        # Elimina los separadores de miles (puntos) y reemplaza la coma decimal por un punto
+        normalized_number = number_str.replace('.', '').replace(',', '.')
+        
+        try:
+            return float(normalized_number)
+        except ValueError:
+            raise ValueError(f"No se pudo convertir el valor '{number_str}' a un número flotante.")
+
+
+
     def set_meli_price( self, meli=None, config=None, plist=None ):
         company = self.env.user.company_id
         config = config or company
@@ -664,7 +683,8 @@ class product_product(models.Model):
         # NEW OR NULL
         # > Set template meli price
         if ( product_tmpl.meli_price==False
-            or ( product_tmpl.meli_price and int(float(product_tmpl.meli_price))==0 ) ):
+            # or ( product_tmpl.meli_price and int(float(product_tmpl.meli_price))==0 ) ):
+            or ( product_tmpl.meli_price and int(self.string_to_float(product_tmpl.meli_price))==0 ) ):
             product_tmpl.meli_price = product_tmpl.list_price
 
         # UPDATE
@@ -684,7 +704,7 @@ class product_product(models.Model):
         else:
             #_logger.info( "new_price: " +str(new_price))
             if ( product.meli_price_fixed and product.meli_price):
-                new_price = int(float(product.meli_price)) or int(float(product_tmpl_id.meli_price)) or 0
+                new_price = int(self.string_to_float(product.meli_price)) or int(self.string_to_float(product_tmpl_id.meli_price)) or 0
             else:
                 if ( product.lst_price ):
                     new_price = product.lst_price
@@ -715,7 +735,7 @@ class product_product(models.Model):
             new_price = str( int( int( math.floor(int(new_price) / 100 ) * 100 + 90 ) ) )
         else:
             new_price = math.ceil(new_price)
-            new_price = str(int(float(new_price)))
+            new_price = str(int(self.string_to_float(new_price)))
 
         product_tmpl.meli_price = new_price
         product.meli_price = product_tmpl.meli_price
