@@ -655,17 +655,19 @@ class product_product(models.Model):
         Convierte un número en formato string con separadores de miles y coma decimal
         (ej. "100.234.999,9") a un float (ej. 100234999.9).
         """
-        if not isinstance(number_str, str):
-            raise ValueError("El valor debe ser una cadena (str).")
+        if isinstance(number_str, str):
+            # raise ValueError("El valor debe ser una cadena (str).")
         
         # Elimina los separadores de miles (puntos) y reemplaza la coma decimal por un punto
-        normalized_number = number_str.replace('.', '').replace(',', '.')
-        
-        try:
-            return float(normalized_number)
-        except ValueError:
-            raise ValueError(f"No se pudo convertir el valor '{number_str}' a un número flotante.")
-
+            normalized_number = number_str.replace('.', '').replace(',', '.')
+            
+            try:
+                return float(normalized_number)
+            except ValueError:
+                raise ValueError(f"No se pudo convertir el valor '{number_str}' a un número flotante.")
+        else:
+            _logger.warning(f'El valor de number_str "{number_str}" no es una cadena (str).')
+            return float(number_str or 0)
 
 
     def set_meli_price( self, meli=None, config=None, plist=None ):
