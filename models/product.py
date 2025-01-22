@@ -179,22 +179,47 @@ class product_template(models.Model):
 
         return ret
 
-    def _variations(self, config=None):
+    def _variations(self, meli=None, config=None):
         variations = False
         for product_tmpl in self:
             for variant in product_tmpl.product_variant_ids:
                 if ( variant._conditions_ok() ):
                     variant.meli_pub = True
+
+                    #COMBINACIONES: Color, Talle, etc...
                     var = variant._combination()
+                    var_pics = []
+                    var_pics_full = []
+
                     var_info = var
                     if (var):
                         if (variations==False):
                             variations = []
+
+                        #IMAGENES POR VARIANTE
+                        variant.product_meli_upload_image(meli=meli,config=config)
+                        var_multi_images_ids = variant.product_meli_upload_multi_images(meli=meli,config=config)
+
+                        var_pics.append(variant.meli_imagen_id)
+                        var_pics_full.append({ 'id': variant.meli_imagen_id })
+                        if (var_multi_images_ids):
+                            for pic in var_multi_images_ids:
+                                if pic and 'id' in pic:
+                                    var_pics.append(pic['id'])
+                                    var_pics_full.append({ 'id': pic['id']})
+                        var_pics and var.update({"picture_ids": var_pics})
+
+                        #ATRIBUTOS POR VARIANTE (SKU; GTIN, etc...)
                         var_attributes = variant._update_sku_attribute( attributes=("attributes" in var and var["attributes"]),
                                                                         set_sku=config.mercadolibre_post_default_code,
                                                                         set_barcode=config.mercadolibre_post_barcode,
                                                                         var_info=var_info)
                         var_attributes and var.update({"attributes": var_attributes })
+
+                        #STOCK POR VARIANTE
+                        var.update({"available_quantity": variant and variant.meli_available_quantity})
+
+
                         variations.append(var)
 
         return variations
@@ -1912,7 +1937,7 @@ class product_product(models.Model):
                 product._meli_set_images_x(product_template=product_template, pictures=pictures, rjson=rjson)
 
         if (company.mercadolibre_update_local_stock):
-            product_template.type = 'product'
+            product_template.write( ProductType() )
 
             if (len(product_template.product_variant_ids)):
                 for variant in product_template.product_variant_ids:
@@ -3287,9 +3312,8 @@ class product_product(models.Model):
                             var_attributes and var.update({"attributes": var_attributes })
                             varias["variations"].append(var)
                             varias["pictures"] = var_pics_full
-                        #variations = product_tmpl._variations()
-                        #varias["variations"] = variations
-                        _all_variations = product_tmpl._variations(config=config)
+
+                        _all_variations = product_tmpl._variations(meli=meli, config=config)
                         _updated_ids = vars_updated.mapped('id')
                         _logger.info(_updated_ids)
                         _new_candidates = product_tmpl.product_variant_ids.filtered(lambda pv: pv.id not in _updated_ids)
@@ -3342,7 +3366,7 @@ class product_product(models.Model):
 
                         return {}
                     else:
-                        variations = product_tmpl._variations(config=config)
+                        variations = product_tmpl._variations(meli=meli, config=config)
                         _logger.info("Variations:")
                         _logger.info(variations)
                         if (variations):
@@ -3396,8 +3420,6 @@ class product_product(models.Model):
 
                     #WARNING: only for single variation
                     product.meli_id_variation = productjson["variations"][ix]["id"]
-                #variations = product_tmpl._variations()
-                #varias["variations"] = variations
 
                 _logger.info(varias)
                 responsevar = product.meli_id and meli.put("/items/"+product.meli_id, varias, {'access_token':meli.access_token})
