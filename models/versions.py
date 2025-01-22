@@ -5,6 +5,7 @@ from datetime import *
 import unidecode
 import logging
 _logger = logging.getLogger(__name__)
+import json
 
 # Odoo version 17.0
 
@@ -15,6 +16,9 @@ cl_vat_sep_million = "."
 #message types
 order_message_type = "notification"
 product_message_type = "notification"
+
+def pretty_json( data ):
+    return json.dumps( data, sort_keys=False, indent=4 )
 
 def really_compare( a, b, sensitive=False ):
 
