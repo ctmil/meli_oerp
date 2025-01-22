@@ -109,11 +109,11 @@ class StockMove(models.Model):
 
         return True
 
-    def _action_assign(self, force_qty=False):
+    def _action_assign(self):
         skip_stock = str2bool(self.env['ir.config_parameter'].sudo().get_param('meli_skip_stock', 'False'))
         company = self.env.user.company_id
 
-        res = super(StockMove, self)._action_assign(force_qty=force_qty)
+        res = super(StockMove, self)._action_assign()
         if not skip_stock:
             for mov in self:
                 mov.meli_update_boms( config = company )

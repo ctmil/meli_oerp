@@ -5,6 +5,7 @@ from datetime import *
 import unidecode
 import logging
 _logger = logging.getLogger(__name__)
+import json
 
 # Odoo version 18.0
 
@@ -15,6 +16,9 @@ cl_vat_sep_million = "."
 #message types
 order_message_type = "notification"
 product_message_type = "notification"
+
+def pretty_json( data ):
+    return json.dumps( data, sort_keys=False, indent=4 )
 
 def really_compare( a, b, sensitive=False ):
 
@@ -66,13 +70,24 @@ def UpdateProductType( product ):
                 failed = True
                 pass;
 
-            query = """UPDATE product_template SET type='consu' WHERE id=%i""" % (prod.id)
+        if (prod and "is_storable" in prod._fields and prod.is_storable):
+            failed = False
+            try:
+                prod.write( { 'is_storable': True } )
+            except Exception as e:
+                _logger.info("Set type is_storable ('is_storable') not possible:")
+                _logger.error(e, exc_info=True)
+                failed = True
+                pass;
+
+            query = """UPDATE product_template SET type='consu', 'is_storable'=True WHERE id=%i""" % (prod.id)
             cr = prod._cr
             respquery = cr.execute(query)
 
 def ProductType():
     return {
         "type": "consu",
+        "is_storable": True
         #"detailed_type": "consu"
     }
 
@@ -299,4 +314,3 @@ def set_delivery_line( sorder, delivery_price, delivery_message ):
 def remove_delivery_line( sorder, delivery_price=0):
     sorder._remove_delivery_line()
     return
-    
