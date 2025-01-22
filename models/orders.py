@@ -900,6 +900,10 @@ class mercadolibre_orders(models.Model):
                 order_fields["catalog_order"] = True
                 #debemos buscar el codigo relacionado pero al producto real del catalogo: que se encuentra.
 
+        if 'context' in order_json:
+            if 'channel' in order_json["context"]:
+                order_fields["context"] = order_json["context"]["channel"]
+
         if meli.access_token=="PASIVA":
             if (self):
                 order_fields["fee_amount"] = self.payments and self.payments[0].fee_amount
@@ -2713,6 +2717,7 @@ class mercadolibre_orders(models.Model):
     buyer_billing_info = fields.Text(string="Billing Info")
     seller = fields.Text( string='Seller Name' )
     tags = fields.Text(string="Tags")
+    context = fields.Char(string="Context",index=True)
     pack_order = fields.Boolean(string="Order Pack (Carrito)")
     catalog_order = fields.Boolean(string="Order From Catalog")
     company_id = fields.Many2one("res.company",string="Company")
@@ -2809,7 +2814,7 @@ class res_partner(models.Model):
     meli_order_id = fields.Char('Meli Order Id',index=True)
 
     _sql_constraints = [
-        ('unique_partner_meli_buyer_id', 'unique(meli_buyer_id)', 'Mei Partner Buyer id already exists!')
+        ('unique_partner_meli_buyer_id', 'unique(meli_buyer_id,active)', 'Meli Partner Buyer id already exists!')
     ]
 
 

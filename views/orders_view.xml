@@ -64,6 +64,7 @@
                     <field name="date_created"/>
                     <field name="date_closed"/>
                     <field name="tags" invisible="1"/>
+                    <field name="context" invisible="0"/>
                     <field name="pack_order" string="Es Carrito"/>
                     <field name="catalog_order" string="Es de Catalogo"/>
                 </tree>
@@ -374,7 +375,6 @@
             <field name="view_mode">form</field>
             <field name="target">new</field>
         </record>
-
 
         <record id="action_update_meli_orders_invoice" model="ir.actions.act_window">
             <field name="name">Actualizar Factura Ordenes de ML</field>
