@@ -19,7 +19,7 @@
 #
 ##############################################################################
 
-from odoo import fields, osv, models, api, Command, _
+from odoo import fields, osv, models, api
 import logging
 _logger = logging.getLogger(__name__)
 
@@ -771,9 +771,9 @@ class mercadolibre_category(models.Model):
                 site_id = company._get_ML_sites(meli=meli)
                 cat_domain = str( meli_cat.catalog_domain ).replace( str(site_id) + str("-") , "" )
                 domain_charts = self.env['mercadolibre.grid.chart'].search([('domain_id','ilike',cat_domain)])
-                domain_charts_ids_command = [Command.clear()]
+                domain_charts_ids_command = [(5, 0, 0)]
                 if domain_charts:
-                    domain_charts_ids_command += [Command.link(grid_chart.id) for grid_chart in domain_charts]
+                    domain_charts_ids_command += [(4, grid_chart.id, 0) for grid_chart in domain_charts]
                 meli_cat.catalog_domain_chart_ids = domain_charts_ids_command
             else:
                 meli_cat.catalog_domain_chart_ids = False
