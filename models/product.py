@@ -1262,10 +1262,12 @@ class product_product(models.Model):
                                         pass
                                     else:
                                         #_logger.info("Adding value id")
-                                        attribute_line.value_ids = [(4,attribute_value_id)]
+                                        if attribute_value_id not in attribute_line.value_ids:
+                                            attribute_line.value_ids = [(4,attribute_value_id)]
                                 else:
                                     #_logger.info("Adding value id")
-                                    attribute_line.value_ids = [(4,attribute_value_id)]
+                                    if attribute_value_id not in attribute_line.value_ids:
+                                        attribute_line.value_ids = [(4,attribute_value_id)]
 
                 except Exception as e:
                     _logger.info("Attributes exception:")
@@ -1313,14 +1315,8 @@ class product_product(models.Model):
                             #attribute = self.env['product.attribute'].search([('name','=',att['name']),('meli_default_id_attribute','!=',False)])
                             #if (len(attribute)==0):
                             # ningun atributo con ese nombre asociado
-                            ml_attribute = self.env['mercadolibre.category.attribute'].search([('att_id','=',att['att_id'])])
+                            ml_attribute = self.env['mercadolibre.category.attribute'].search( [('att_id','=',att['att_id'])], limit=1)
                             attribute = []
-                            if (len(ml_attribute)>1):
-                                ml_attribute = self.env['mercadolibre.category.attribute'].search([('att_id','=',att['att_id']),('cat_id','=',(product.meli_category and product.meli_category.id))])
-                                if not ml_attribute:
-                                    ml_attribute = self.env['mercadolibre.category.attribute'].search([('att_id','=',att['att_id'])])[0]
-                                if (len(ml_attribute)==1):
-                                    attribute = self.env['product.attribute'].search([('meli_default_id_attribute','=',ml_attribute.id)])
                             if (len(ml_attribute)==1):
                                 attribute = self.env['product.attribute'].search([('meli_default_id_attribute','=',ml_attribute.id)])
                             if (len(attribute)==0):
@@ -1411,10 +1407,12 @@ class product_product(models.Model):
                                             pass
                                         else:
                                             #_logger.info("Adding value id")
-                                            attribute_line.value_ids = [(4,attribute_value_id)]
+                                            if attribute_value_id not in attribute_line.value_ids:
+                                                attribute_line.value_ids = [(4,attribute_value_id)]
                                     else:
                                         #_logger.info("Adding value id")
-                                        attribute_line.value_ids = [(4,attribute_value_id)]
+                                        if attribute_value_id not in attribute_line.value_ids:
+                                            attribute_line.value_ids = [(4,attribute_value_id)]
 
         _logger.info("_get_variations:"+str(variations))
 
