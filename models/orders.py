@@ -2814,7 +2814,7 @@ class res_partner(models.Model):
     meli_order_id = fields.Char('Meli Order Id',index=True)
 
     _sql_constraints = [
-        ('unique_partner_meli_buyer_id', 'unique(meli_buyer_id,active)', 'Mei Partner Buyer id already exists!')
+        ('unique_partner_meli_buyer_id', 'unique(meli_buyer_id,active)', 'Meli Partner Buyer id already exists!')
     ]
 
 

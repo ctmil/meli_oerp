@@ -80,7 +80,7 @@ def UpdateProductType( product ):
                 failed = True
                 pass;
 
-            query = """UPDATE product_template SET type='consu', 'is_storable'=True WHERE id=%i""" % (prod.id)
+            query = """UPDATE product_template SET type='consu', is_storable=True WHERE id=%i""" % (prod.id)
             cr = prod._cr
             respquery = cr.execute(query)
 
