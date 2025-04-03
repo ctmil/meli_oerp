@@ -25,6 +25,9 @@
                       <group>
                         <field name="meli_category_id"/>
                         <field name="meli_recursive_import"/>
+                        <field name="meli_charts"/>
+                        <field name="meli_gender"/>
+                        <field name="meli_brand"/>
                       </group>
                     </group>
                     <footer>
@@ -118,6 +121,8 @@
                     </group>
                     <group>
                       <field name="domain_id"/>
+                      <field name="site_id"/>
+                      <field name="meli_domain_id"/>
                       <field name="main_attribute_id"/>
                     </group>
                 </group>
@@ -182,36 +187,61 @@
                       <field name="is_branch"/>
                       <field name="meli_category_id"/>
                       <field name="meli_category_url" widget="url"/>
-                      <field name="public_category_id"/>
-                      <field name="public_category" string="Ecommerce Category"/>
-                      <field name="public_categories" string="Ecommerce Categories"/>
-                      <field name="catalog_domain"/>
-                      <field name="catalog_domain_link" widget="url"/>
-                      <field name="catalog_domain_chart_active"/>
-                      <field name="catalog_domain_chart_result"/>
-                      <separator name="Settings" />
+
+                      <separator string="Dominio"/>
+
+                      <field name="catalog_domain" readonly="1"/>
+                      <field name="catalog_domain_link" widget="url" readonly="1"/>
+                      <field name="catalog_domain_chart_active" readonly="1"/>
+
+
+                      <separator string="Padre"/>
+
+                      <field name="meli_father_category_id"/>
+                      <field name="meli_father_category"/>
+
+                    </group>
+                    <group>
+                      <separator string="Settings"/>
                       <field name="meli_category_settings"/>
                       <field name="meli_setting_minimum_price"/>
                       <field name="meli_setting_maximum_price"/>
-                    </group>
-                    <group>
-                      <field name="meli_father_category_id"/>
-                      <field name="meli_father_category"/>
-                      <field name="catalog_domain_json"/>
-                      <field name="data_json"/>
+                      <field name="public_category_id"/>
+                      <field name="public_category" string="Ecommerce Category"/>
+                      <field name="public_categories" string="Ecommerce Categories"/>
                     </group>
                 </group>
-                <field name="meli_category_attributes" widget="url"/>
-                <field name="meli_category_attribute_ids">
-                  <tree delete="0">
-                    <field name="name"/>
-                    <field name="att_id"/>
-                    <field name="required"/>
-                    <field name="value_type" optional="hide"/>
-                    <field name="hidden" optional="hide"/>
-                    <field name="variation_attribute"/>
-                  </tree>
-                </field>
+
+                <notebook>
+                    <page string="Attributes">
+                      <field name="meli_category_attributes" widget="url"/>
+                      <field name="meli_category_attribute_ids">
+                        <tree delete="0">
+                          <field name="name"/>
+                          <field name="att_id"/>
+                          <field name="required"/>
+                          <field name="value_type" optional="hide"/>
+                          <field name="hidden" optional="hide"/>
+                          <field name="variation_attribute"/>
+                        </tree>
+                      </field>
+                    </page>
+                    <page string="Size Charts">
+                      <group>
+                        <group>
+                          <field name="catalog_domain_chart_ids"/>
+                          <field name="catalog_domain_chart_result"/>
+                        </group>
+                        <group>
+                          <field name="catalog_domain_json"/>
+                          <field name="data_json"/>
+                        </group>
+
+                      </group>
+
+
+                    </page>
+                </notebook>
               </form>
             </field>
         </record>

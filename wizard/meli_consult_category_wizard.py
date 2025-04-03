@@ -11,7 +11,6 @@ from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
 from datetime import date, datetime
 from collections import defaultdict
-from odoo.tests import tagged, Form
 import logging
 _logger = logging.getLogger(__name__)
 

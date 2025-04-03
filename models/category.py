@@ -52,6 +52,10 @@ class mercadolibre_category_import(models.TransientModel):
     _name = "mercadolibre.category.import"
     _description = "Wizard de Importacion de Categoria desde MercadoLibre"
 
+    meli_charts = fields.Boolean(string="Importar Guias",help="Importar las guias de esta categoria, complete el genero y la marca",default=False)
+    meli_gender = fields.Char(string="Genero (GENDER)",help="Completar para importar las guias",default="")
+    meli_brand = fields.Char(string="Marca (BRAND) Category ID",help="Completar para importar las guias",default="")
+
     def _get_default_meli_category_id(self, context=None):
         context = context or self.env.context
         company = self.env.user.company_id
@@ -63,8 +67,10 @@ class mercadolibre_category_import(models.TransientModel):
         company = self.env.user.company_id
         #_logger.info("_get_default_meli_recursive_import")
         #_logger.info(context)
+        return False
 
     meli_category_id = fields.Char(string="MercadoLibre Category ID",help="MercadoLibre Category ID (ML????????)",default=_get_default_meli_category_id)
+    meli_category_id_sel = fields.Many2one("mercadolibre.category", string="MercadoLibre Category",help="MercadoLibre Category")
     meli_recursive_import = fields.Boolean(string="Recursive Import",help="Importar todas las subramas",default=_get_default_meli_recursive_import)
 
     def meli_category_import(self, context=None):
@@ -82,17 +88,27 @@ class mercadolibre_category_import(models.TransientModel):
 
         #_logger.info("Meli Category Import Wizard")
         #_logger.info(context)
-        if ( self.meli_category_id):
-            #_logger.info("Import single category: "+str(self.meli_category_id))
-            catid = self.env["mercadolibre.category"].import_all_categories( self.meli_category_id, self.meli_recursive_import )
+        if ( self.meli_category_id_sel and self.meli_charts):
+            #buscar una guia de talles ok
+            rjson_charts = self.meli_category_id_sel.get_search_chart( meli=meli, brand=self.meli_brand, gender=self.meli_gender)
+            _logger.info("rjson_charts: " +str(rjson_charts))
+            if rjson_charts:
+                rjson_charts_a = "charts" in rjson_charts and rjson_charts["charts"]
+                for charts in rjson_charts_a:
+                    _logger.info("charts: " +str(charts))
+                    self.env["mercadolibre.grid.chart"].create_chart(charts)
         else:
-            #_logger.info("Importing active categories: "+str(mlcat_ids))
-            for ml_cat_id in mlcat_ids:
-                #_logger.info("Importing single: "+str(ml_cat_id))
-                ml_cat = mlcat_obj.browse([ml_cat_id])
-                if ml_cat:
-                    meli_category_id = ml_cat.meli_category_id
-                    catid = self.env["mercadolibre.category"].import_all_categories( meli_category_id, self.meli_recursive_import )
+            if ( self.meli_category_id):
+                #_logger.info("Import single category: "+str(self.meli_category_id))
+                catid = self.env["mercadolibre.category"].import_all_categories( self.meli_category_id, self.meli_recursive_import )
+            else:
+                #_logger.info("Importing active categories: "+str(mlcat_ids))
+                for ml_cat_id in mlcat_ids:
+                    #_logger.info("Importing single: "+str(ml_cat_id))
+                    ml_cat = mlcat_obj.browse([ml_cat_id])
+                    if ml_cat:
+                        meli_category_id = ml_cat.meli_category_id
+                        catid = self.env["mercadolibre.category"].import_all_categories( meli_category_id, self.meli_recursive_import )
 
 
 class product_public_category(models.Model):
@@ -669,7 +685,7 @@ class mercadolibre_category(models.Model):
         return catalog_domain_json
 
 
-    catalog_domain = fields.Char(string="Domain Id")
+    catalog_domain = fields.Char(string="Domain Id", index=True)
     def _catalog_domain_link(self):
         for cat in self:
             cat.catalog_domain_link = (cat.catalog_domain and "https://api.mercadolibre.com/catalog_domains/"+str(cat.catalog_domain)) or ""
@@ -744,6 +760,27 @@ class mercadolibre_category(models.Model):
     catalog_domain_json = fields.Text(string="Domain id json")
     catalog_domain_chart_active = fields.Boolean(string="Domain Charts active", index=True,readonly=True)
     catalog_domain_chart_result = fields.Text(string="Domain Charts result")
+
+
+    @api.depends('catalog_domain_link', 'catalog_domain_json', 'catalog_domain_chart_active', 'catalog_domain_chart_result')
+    def _compute_catalog_domain_chart_ids(self):
+        meli = self.get_meli(meli=None)
+        for meli_cat in self:
+            if meli_cat.catalog_domain:
+                company = self.env.user.company_id
+                site_id = company._get_ML_sites(meli=meli)
+                cat_domain = str( meli_cat.catalog_domain ).replace( str(site_id) + str("-") , "" )
+                domain_charts = self.env['mercadolibre.grid.chart'].search([('domain_id','ilike',cat_domain)])
+                domain_charts_ids_command = [(5, 0, 0)]
+                if domain_charts:
+                    domain_charts_ids_command += [(4, grid_chart.id, 0) for grid_chart in domain_charts]
+                meli_cat.catalog_domain_chart_ids = domain_charts_ids_command
+            else:
+                meli_cat.catalog_domain_chart_ids = False
+            # Uses move._origin.id to handle records in edition/existing records and 0 for new records
+
+
+    catalog_domain_chart_ids = fields.Many2many(comodel_name='mercadolibre.grid.chart', compute='_compute_catalog_domain_chart_ids')
 
     data_json = fields.Text(string="Data json")
 
@@ -873,9 +910,19 @@ class mercadolibre_grid_chart(models.Model):
     _description = "Guia de talles de MercadoLibre"
 
     meli_id = fields.Char(string="Id de guia de talle",required=True,index=True)
-    domain_id = fields.Char(string="Dominio")
-    name = fields.Char(string="Nombre de la guia de talles")
-    type = fields.Char(string="Tipo de la guia de talles")
+    site_id = fields.Char(string="ML Site Id",index=True)
+    domain_id = fields.Char(string="Dominio", index=True)
+
+    @api.depends('site_id','domain_id')
+    def _meli_domain_id( self ):
+        for gchart in self:
+            if not gchart.site_id:
+                gchart.site_id = "MLA"
+            gchart.meli_domain_id = str(gchart.site_id)+str("-")+str(gchart.domain_id)
+
+    meli_domain_id = fields.Char(string="ML Dominio", compute=_meli_domain_id, index=True, store=True)
+    name = fields.Char(string="Nombre de la guia de talles", index=True)
+    type = fields.Char(string="Tipo de la guia de talles", index=True)
     main_attribute_id = fields.Char( string="Atributo principal de la guia de talles" )
     data_json = fields.Text( string="Data json" )
     attributes = fields.One2many( "mercadolibre.grid.attribute.line", "grid_chart_id", string="Attributes" )
@@ -888,6 +935,7 @@ class mercadolibre_grid_chart(models.Model):
             "name": json.dumps(djson["names"]),
             "type": djson["type"],
             "domain_id": djson["domain_id"],
+            "site_id": djson["site_id"],
             "main_attribute_id": djson["main_attribute_id"],
             "data_json": json.dumps(djson),
         }
