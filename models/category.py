@@ -448,7 +448,8 @@ class mercadolibre_category(models.Model):
                                 #_logger.info("prod_att:"+str(prod_att))
                                 if (len(prod_attrs)>=1):
                                     #tomamos el primero
-                                    _logger.error("Atención multiples atributos asignados!")
+                                    #_logger.error("Atención multiples atributos asignados! Para el atributo: "+str(prod_attrs[0] and prod_attrs[0].name))
+
                                     #prod_attrs = prod_attrs[0]
                                     for prod_attr in prod_attrs:
                                         #prod_attr['create_variant'] = prod_att.create_variant
