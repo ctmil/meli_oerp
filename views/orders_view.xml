@@ -375,7 +375,6 @@
             <field name="target">new</field>
         </record>
 
-
         <record id="action_update_meli_orders_invoice" model="ir.actions.act_window">
             <field name="name">Actualizar Factura Ordenes de ML</field>
             <field name="type">ir.actions.act_window</field>
