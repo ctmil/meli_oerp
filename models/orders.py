@@ -1307,6 +1307,7 @@ class mercadolibre_orders(models.Model):
                         if ('TAXPAYER_TYPE_ID' in Buyer['billing_info'] and Buyer['billing_info']['TAXPAYER_TYPE_ID'] and Buyer['billing_info']['TAXPAYER_TYPE_ID']=="Monotributo"):
                             afipid = self.env['l10n_ar.afip.responsibility.type'].search([('code','=',6)]).id
                             meli_buyer_fields["l10n_ar_afip_responsibility_type_id"] = afipid
+                            
 
                     meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
 
