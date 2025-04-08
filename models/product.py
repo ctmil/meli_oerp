@@ -462,6 +462,7 @@ class product_template(models.Model):
 
     #name = fields.Char('Name', size=128, required=True, translate=False, index=True)
     meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
+    meli_family_name = fields.Char(string='Nombre de la familia del user product en Mercado Libre',size=256)
     meli_description = fields.Text(string='Descripción')
     meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre")
     meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
@@ -1589,6 +1590,7 @@ class product_product(models.Model):
             'meli_id': rjson['id'],
             'meli_permalink': rjson['permalink'],
             'meli_title': str(rjson['title']),
+            'meli_family_name': str(rjson['family_name']),
             'meli_description': desplain,
             'meli_listing_type': rjson['listing_type_id'],
             'meli_buying_mode':rjson['buying_mode'],
@@ -1610,6 +1612,7 @@ class product_product(models.Model):
           #'name': str(rjson['id']),
           #'lst_price': ml_price_convert,
           'meli_title': meli_fields["meli_title"],
+          'meli_family_name': meli_fields["meli_family_name"],
           'meli_description': meli_fields["meli_description"],
           #'meli_category': meli_fields["meli_category"],
           'meli_listing_type': meli_fields["meli_listing_type"],
@@ -2832,6 +2835,9 @@ class product_product(models.Model):
         if product_tmpl.meli_title==False or ( product_tmpl.meli_title and len(product_tmpl.meli_title)==0 ):
             product_tmpl.meli_title = product_tmpl.name
 
+        if product_tmpl.meli_family_name==False or ( product_tmpl.meli_family_name and len(product_tmpl.meli_family_name)==0 ):
+            product_tmpl.meli_family_name = product_tmpl.meli_title or product_tmpl.name
+
         if config.mercadolibre_buying_mode and product_tmpl.meli_buying_mode==False:
             product_tmpl.meli_buying_mode = config.mercadolibre_buying_mode
 
@@ -3073,6 +3079,7 @@ class product_product(models.Model):
         #_product_post_set_body
         body = {
             "title": product.meli_title or '',
+            "family_name": product.meli_family_name or '',
             "category_id": product.meli_category.meli_category_id or '0',
             "listing_type_id": product.meli_listing_type or '0',
             "buying_mode": product.meli_buying_mode or '',
@@ -3138,6 +3145,7 @@ class product_product(models.Model):
         if (product.meli_id):
             body = {
                 "title": product.meli_title or '',
+                "family_name": product.meli_family_name or '',
                 #"buying_mode": product.meli_buying_mode or '',
                 "price": product.meli_price or '0',
                 #"condition": product.meli_condition or '',
@@ -3916,6 +3924,7 @@ class product_product(models.Model):
 
     #typical values
     meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
+    meli_family_name = fields.Char(string='Nombre de la familia en el user product en Mercado Libre',size=256)
     meli_description = fields.Text(string='Descripción')
     meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre")
     meli_price = fields.Char( string='Precio',help='Precio de venta en ML', size=128)
