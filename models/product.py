@@ -3078,7 +3078,7 @@ class product_product(models.Model):
 
         #_product_post_set_body
         body = {
-            "title": product.meli_title or '',
+            #"title": product.meli_title or '',
             "family_name": product.meli_family_name or '',
             "category_id": product.meli_category.meli_category_id or '0',
             "listing_type_id": product.meli_listing_type or '0',
@@ -3144,7 +3144,7 @@ class product_product(models.Model):
         #modificando datos si ya existe el producto en MLA
         if (product.meli_id):
             body = {
-                "title": product.meli_title or '',
+                #"title": product.meli_title or '',
                 "family_name": product.meli_family_name or '',
                 #"buying_mode": product.meli_buying_mode or '',
                 "price": product.meli_price or '0',
