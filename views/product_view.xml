@@ -156,6 +156,7 @@
                       <separator string="Descripcion del producto en ML" colspan="1"/>
                       <group name="Basic description">
                         <field name="meli_title" />
+                        <field name="meli_family_name" />
                         <field name="meli_description" />
                         <field name="meli_category" />
                         <field name="meli_price" />
