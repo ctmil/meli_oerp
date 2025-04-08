@@ -82,6 +82,8 @@
               								<field name="mercadolibre_secret_key" groups="base.group_no_one" />
               								<field name="mercadolibre_redirect_uri" groups="base.group_no_one" />
                               <field name="mercadolibre_seller_id" invisible="0" groups="base.group_no_one"/>
+                              <field name="mercadolibre_user_product_seller" invisible="0" groups="base.group_no_one"/>
+                              
               								<field name="mercadolibre_access_token" invisible="0" groups="base.group_no_one" />
               								<field name="mercadolibre_refresh_token" invisible="0" groups="base.group_no_one" />
               								<field name="mercadolibre_code" invisible="0" groups="base.group_no_one" />

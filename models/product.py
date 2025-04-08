@@ -2867,6 +2867,8 @@ class product_product(models.Model):
             ):
             # _logger.info( 'Assigning title: product.meli_title: %s name: %s' % (product.meli_title, product.name) )
             product.meli_title = product_tmpl.meli_title
+            product.meli_family_name = product_tmpl.meli_family_name
+
             if len(product_tmpl.meli_pub_variant_attributes):
                 values = ""
                 for line in product_tmpl.meli_pub_variant_attributes:
@@ -2890,6 +2892,10 @@ class product_product(models.Model):
 
         if ( product_tmpl.meli_title and force_template_title):
             product.meli_title = product_tmpl.meli_title
+            product.meli_family_name = product_tmpl.meli_family_name
+
+        if ( product.meli_title and len(product.meli_title)<10 ):
+            return warningobj.info( title='MELI WARNING', message="La longitud del título ("+str(len(product.meli_title))+") es muy corta o no significativa, escriba un titulo coherente con su marca, modelo, etc...", message_html=product.meli_title )
 
         if ( product.meli_title and len(product.meli_title)>60 ):
             return warningobj.info( title='MELI WARNING', message="La longitud del título ("+str(len(product.meli_title))+") es superior a 60 caracteres.", message_html=product.meli_title )
@@ -3078,8 +3084,6 @@ class product_product(models.Model):
 
         #_product_post_set_body
         body = {
-            #"title": product.meli_title or '',
-            "family_name": product.meli_family_name or '',
             "category_id": product.meli_category.meli_category_id or '0',
             "listing_type_id": product.meli_listing_type or '0',
             "buying_mode": product.meli_buying_mode or '',
@@ -3092,6 +3096,11 @@ class product_product(models.Model):
             #"pictures": [ { 'source': product.meli_imagen_logo} ] ,
             "video_id": product.meli_video  or '',
         }
+        if (config and "mercadolibre_user_product_seller" in config._fields ):
+            if (config.mercadolibre_user_product_seller):
+                body["family_name"] = product.meli_family_name or product.meli_title or ''
+            else:
+                body["title"] = product.meli_title or product.meli_family_name or ''
 
         if product.meli_max_purchase_quantity:
             body["sale_terms"].append({
@@ -3143,9 +3152,7 @@ class product_product(models.Model):
 
         #modificando datos si ya existe el producto en MLA
         if (product.meli_id):
-            body = {
-                #"title": product.meli_title or '',
-                "family_name": product.meli_family_name or '',
+            body = {                
                 #"buying_mode": product.meli_buying_mode or '',
                 "price": product.meli_price or '0',
                 #"condition": product.meli_condition or '',
@@ -3156,6 +3163,13 @@ class product_product(models.Model):
                 "pictures": [],
                 "video_id": product.meli_video or '',
             }
+            if (config and "mercadolibre_user_product_seller" in config._fields ):
+                if (config.mercadolibre_user_product_seller):
+                    body["family_name"] =product.meli_family_name or product.meli_title or ''
+                else:
+                    body["title"] = product.meli_family_name or product.meli_title or ''
+
+                
 
             if product.meli_max_purchase_quantity:
                 body["sale_terms"].append({
