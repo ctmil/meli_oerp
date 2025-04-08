@@ -395,7 +395,10 @@ class MeliUtil(models.AbstractModel):
                     #    _logger.info("phone:")
                     response.user = rjson
                     if "mercadolibre_user_product_seller" in company._fields:
-                        company.mercadolibre_user_product_seller = ("tags"in rjson and "user_product_seller" in rjson["tags"])
+                        mercadolibre_user_product_seller = ("tags"in rjson and "user_product_seller" in rjson["tags"])
+                        if (company.mercadolibre_user_product_seller!=mercadolibre_user_product_seller):
+                            company.mercadolibre_user_product_seller = mercadolibre_user_product_seller
+
 
 
             else:
