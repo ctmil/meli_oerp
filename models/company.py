@@ -562,7 +562,7 @@ class res_company(models.Model):
                     "attributes": "id,official_store_id"
                 }
                 #_logger.info("item_params:"+str(item_params))
-                responseItem = meli.get("/items"+str('?ids='+str(ids)+'&attributes='+str('id,official_store_id')), {} )
+                responseItem = meli.get("/items"+str('?ids='+str(ids)+'&attributes='+str('id,official_store_id')), {'access_token':meli.access_token } )
                 #[ { "code": 200, "body": { "id": "MLM863472529", "official_store_id": 3476 } },
                 #_logger.info("responseItem:"+str(responseItem and responseItem.json()))
                 if responseItem.json():
