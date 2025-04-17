@@ -15,7 +15,7 @@ import logging
 _logger = logging.getLogger(__name__)
 
 def pre_init_check(cr):
-    required  = {'meli', 'pdf2image'}
+    required  = {'meli', 'pdf2image', 'unidecode'}
     installed = {pkg.key for pkg in pkg_resources.working_set}
     missing   = required - installed
     #_logger.info("missing:"+str(missing))
