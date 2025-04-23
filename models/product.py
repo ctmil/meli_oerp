@@ -462,6 +462,7 @@ class product_template(models.Model):
 
     #name = fields.Char('Name', size=128, required=True, translate=False, index=True)
     meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
+    meli_family_name = fields.Char(string='Nombre de la familia del user product en Mercado Libre',size=256)
     meli_description = fields.Text(string='Descripción')
     meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre")
     meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
@@ -1262,10 +1263,12 @@ class product_product(models.Model):
                                         pass
                                     else:
                                         #_logger.info("Adding value id")
-                                        attribute_line.value_ids = [(4,attribute_value_id)]
+                                        if attribute_value_id not in attribute_line.value_ids.ids:
+                                            attribute_line.value_ids = [(4,attribute_value_id)]
                                 else:
                                     #_logger.info("Adding value id")
-                                    attribute_line.value_ids = [(4,attribute_value_id)]
+                                    if attribute_value_id not in attribute_line.value_ids.ids:
+                                        attribute_line.value_ids = [(4,attribute_value_id)]
 
                 except Exception as e:
                     _logger.info("Attributes exception:")
@@ -1313,14 +1316,8 @@ class product_product(models.Model):
                             #attribute = self.env['product.attribute'].search([('name','=',att['name']),('meli_default_id_attribute','!=',False)])
                             #if (len(attribute)==0):
                             # ningun atributo con ese nombre asociado
-                            ml_attribute = self.env['mercadolibre.category.attribute'].search([('att_id','=',att['att_id'])])
+                            ml_attribute = self.env['mercadolibre.category.attribute'].search( [('att_id','=',att['att_id'])], limit=1)
                             attribute = []
-                            if (len(ml_attribute)>1):
-                                ml_attribute = self.env['mercadolibre.category.attribute'].search([('att_id','=',att['att_id']),('cat_id','=',(product.meli_category and product.meli_category.id))])
-                                if not ml_attribute:
-                                    ml_attribute = self.env['mercadolibre.category.attribute'].search([('att_id','=',att['att_id'])])[0]
-                                if (len(ml_attribute)==1):
-                                    attribute = self.env['product.attribute'].search([('meli_default_id_attribute','=',ml_attribute.id)])
                             if (len(ml_attribute)==1):
                                 attribute = self.env['product.attribute'].search([('meli_default_id_attribute','=',ml_attribute.id)])
                             if (len(attribute)==0):
@@ -1411,10 +1408,12 @@ class product_product(models.Model):
                                             pass
                                         else:
                                             #_logger.info("Adding value id")
-                                            attribute_line.value_ids = [(4,attribute_value_id)]
+                                            if attribute_value_id not in attribute_line.value_ids.ids:
+                                                attribute_line.value_ids = [(4,attribute_value_id)]
                                     else:
                                         #_logger.info("Adding value id")
-                                        attribute_line.value_ids = [(4,attribute_value_id)]
+                                        if attribute_value_id not in attribute_line.value_ids.ids:
+                                            attribute_line.value_ids = [(4,attribute_value_id)]
 
         _logger.info("_get_variations:"+str(variations))
 
@@ -1591,6 +1590,7 @@ class product_product(models.Model):
             'meli_id': rjson['id'],
             'meli_permalink': rjson['permalink'],
             'meli_title': str(rjson['title']),
+            'meli_family_name': str(rjson['family_name']),
             'meli_description': desplain,
             'meli_listing_type': rjson['listing_type_id'],
             'meli_buying_mode':rjson['buying_mode'],
@@ -1612,6 +1612,7 @@ class product_product(models.Model):
           #'name': str(rjson['id']),
           #'lst_price': ml_price_convert,
           'meli_title': meli_fields["meli_title"],
+          'meli_family_name': meli_fields["meli_family_name"],
           'meli_description': meli_fields["meli_description"],
           #'meli_category': meli_fields["meli_category"],
           'meli_listing_type': meli_fields["meli_listing_type"],
@@ -2394,8 +2395,11 @@ class product_product(models.Model):
 
 
     def product_get_meli_update( self ):
-        #_logger.info("product_get_meli_update: " + str(self) )
-        company = self.env.user.company_id
+                
+        company = self.env.company or self.env.user.company_id
+        
+        #_logger.info("meli_oerp >> product_get_meli_update: " + str(company) )
+
         warningobj = self.env['meli.warning']
         product_obj = self.env['product.product']
 
@@ -2834,6 +2838,9 @@ class product_product(models.Model):
         if product_tmpl.meli_title==False or ( product_tmpl.meli_title and len(product_tmpl.meli_title)==0 ):
             product_tmpl.meli_title = product_tmpl.name
 
+        if product_tmpl.meli_family_name==False or ( product_tmpl.meli_family_name and len(product_tmpl.meli_family_name)==0 ):
+            product_tmpl.meli_family_name = product_tmpl.meli_title or product_tmpl.name
+
         if config.mercadolibre_buying_mode and product_tmpl.meli_buying_mode==False:
             product_tmpl.meli_buying_mode = config.mercadolibre_buying_mode
 
@@ -2863,6 +2870,8 @@ class product_product(models.Model):
             ):
             # _logger.info( 'Assigning title: product.meli_title: %s name: %s' % (product.meli_title, product.name) )
             product.meli_title = product_tmpl.meli_title
+            product.meli_family_name = product_tmpl.meli_family_name
+
             if len(product_tmpl.meli_pub_variant_attributes):
                 values = ""
                 for line in product_tmpl.meli_pub_variant_attributes:
@@ -2886,6 +2895,10 @@ class product_product(models.Model):
 
         if ( product_tmpl.meli_title and force_template_title):
             product.meli_title = product_tmpl.meli_title
+            product.meli_family_name = product_tmpl.meli_family_name
+
+        if ( product.meli_title and len(product.meli_title)<10 ):
+            return warningobj.info( title='MELI WARNING', message="La longitud del título ("+str(len(product.meli_title))+") es muy corta o no significativa, escriba un titulo coherente con su marca, modelo, etc...", message_html=product.meli_title )
 
         if ( product.meli_title and len(product.meli_title)>60 ):
             return warningobj.info( title='MELI WARNING', message="La longitud del título ("+str(len(product.meli_title))+") es superior a 60 caracteres.", message_html=product.meli_title )
@@ -3074,7 +3087,6 @@ class product_product(models.Model):
 
         #_product_post_set_body
         body = {
-            "title": product.meli_title or '',
             "category_id": product.meli_category.meli_category_id or '0',
             "listing_type_id": product.meli_listing_type or '0',
             "buying_mode": product.meli_buying_mode or '',
@@ -3087,6 +3099,11 @@ class product_product(models.Model):
             #"pictures": [ { 'source': product.meli_imagen_logo} ] ,
             "video_id": product.meli_video  or '',
         }
+        if (config and "mercadolibre_user_product_seller" in config._fields ):
+            if (config.mercadolibre_user_product_seller):
+                body["family_name"] = product.meli_family_name or product.meli_title or ''
+            else:
+                body["title"] = product.meli_title or product.meli_family_name or ''
 
         if product.meli_max_purchase_quantity:
             body["sale_terms"].append({
@@ -3138,8 +3155,7 @@ class product_product(models.Model):
 
         #modificando datos si ya existe el producto en MLA
         if (product.meli_id):
-            body = {
-                "title": product.meli_title or '',
+            body = {                
                 #"buying_mode": product.meli_buying_mode or '',
                 "price": product.meli_price or '0',
                 #"condition": product.meli_condition or '',
@@ -3150,6 +3166,13 @@ class product_product(models.Model):
                 "pictures": [],
                 "video_id": product.meli_video or '',
             }
+            if (config and "mercadolibre_user_product_seller" in config._fields ):
+                if (config.mercadolibre_user_product_seller):
+                    body["family_name"] =product.meli_family_name or product.meli_title or ''
+                else:
+                    body["title"] = product.meli_family_name or product.meli_title or ''
+
+                
 
             if product.meli_max_purchase_quantity:
                 body["sale_terms"].append({
@@ -3918,6 +3941,7 @@ class product_product(models.Model):
 
     #typical values
     meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
+    meli_family_name = fields.Char(string='Nombre de la familia en el user product en Mercado Libre',size=256)
     meli_description = fields.Text(string='Descripción')
     meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre")
     meli_price = fields.Char( string='Precio',help='Precio de venta en ML', size=128)
