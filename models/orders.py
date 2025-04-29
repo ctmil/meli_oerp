@@ -444,8 +444,31 @@ class sale_order(models.Model):
             amount_to_invoice = self.meli_amount_to_invoice( meli=meli, config=config )
             confirm_cond = (amount_to_invoice > 0) and abs( float(amount_to_invoice) - self.amount_total ) < 1.1
             if not confirm_cond:
+                
                 serror = "MELI: Condition not met: meli_paid_amount and amount_total doesn't match, check products missings, taxes and discounts."
-                self.message_post(body=str(serror), message_type=order_message_type )
+                               
+                existing_activities = self.env['mail.activity'].search([
+                    ('res_model', '=', 'sale.order'),
+                    ('res_id', '=', self.id),
+                    ('summary', '=', 'Ale. Problema en confirmación de Mercado Libre'),
+                ])
+    
+                if not existing_messages:
+                    _logger.error("\n\n 438 \n\n")
+                    self.message_post(body=str(serror), message_type=order_message_type)
+    
+                if not existing_activities:
+                    _logger.error("\n\n 438 \n\n")
+                    self.env['mail.activity'].create({
+                        'res_model_id': self.env['ir.model']._get_id('sale.order'),
+                        'res_id': self.id,
+                        'activity_type_id': self.env.ref('mail.mail_activity_data_todo').id,
+                        'user_id': self.user_id.id or self.env.user.id,
+                        'summary': 'Problema en confirmación de Mercado Libre',
+                        'note': serror,
+                        'date_deadline': fields.Date.today(),
+                    })
+    
                 return {'error': serror}
 
             #check currency
