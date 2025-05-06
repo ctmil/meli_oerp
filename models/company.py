@@ -151,8 +151,8 @@ class res_company(models.Model):
             for site in sites:
                 #_logger.info("site:")
                 #_logger.info(site)
-                _key_ = site["default_currency_id"]
-                if (_key_!="USD"):
+                _key_ = "default_currency_id" in site and site["default_currency_id"]
+                if (_key_ and _key_!="USD"):
                     ML_sites[_key_] = site
 
         currency = self.mercadolibre_currency
