@@ -165,7 +165,8 @@
                         <field name="meli_brand"/>
                         <field name="meli_model"/>
                         <field name="meli_gender"/>
-                        <field name="meli_grid_chart_id"/>
+                        <field name="meli_catalog_domain"/>
+                        <field name="meli_grid_chart_id" domain="[('meli_domain_id','=',meli_catalog_domain)]"/>
                       </group>
                       <separator string="Condiciones de venta" colspan="1"/>
                       <group name="ML buying conditions">
