@@ -145,6 +145,7 @@
                           <field string="Status" name="meli_status"/>
                           <field string="Sub Status" name="meli_sub_status"/>
                           <field string="ML Title" name="meli_title"/>
+                          <field string="ML Family Name" name="meli_family_name" />
                           <field string="ML Price" name="meli_price"/>
                           <field string="ML Qty" name="meli_available_quantity"/>
                           <field string="Link" name="meli_permalink" widget="url"/>
@@ -155,6 +156,7 @@
                       <separator string="Descripcion del producto en ML" colspan="1"/>
                       <group name="Basic description">
                         <field name="meli_title" />
+                        <field name="meli_family_name" />
                         <field name="meli_description" />
                         <field name="meli_category" />
                         <field name="meli_price" />
@@ -163,7 +165,8 @@
                         <field name="meli_brand"/>
                         <field name="meli_model"/>
                         <field name="meli_gender"/>
-                        <field name="meli_grid_chart_id"/>
+                        <field name="meli_catalog_domain"/>
+                        <field name="meli_grid_chart_id" domain="[('meli_domain_id','=',meli_catalog_domain)]"/>
                       </group>
                       <separator string="Condiciones de venta" colspan="1"/>
                       <group name="ML buying conditions">
@@ -440,6 +443,7 @@
                           <group string="Detalle de Producto en ML">
               							<group>
                               <field name="meli_title" />
+                              <field name="meli_family_name" />
                               <!--field name="meli_description_banner_id" on_change="product_on_change_meli_banner( meli_description_banner_id)" /-->
                               <field name="meli_category" options="{'no_create': True}"/>
                               <field name="meli_brand"/>
