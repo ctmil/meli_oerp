@@ -1262,11 +1262,11 @@ class product_product(models.Model):
                                         pass
                                     else:
                                         #_logger.info("Adding value id")
-                                        if attribute_value_id not in attribute_line.value_ids:
+                                        if attribute_value_id not in attribute_line.value_ids.ids:
                                             attribute_line.value_ids = [(4,attribute_value_id)]
                                 else:
                                     #_logger.info("Adding value id")
-                                    if attribute_value_id not in attribute_line.value_ids:
+                                    if attribute_value_id not in attribute_line.value_ids.ids:
                                         attribute_line.value_ids = [(4,attribute_value_id)]
 
                 except Exception as e:
@@ -1407,11 +1407,11 @@ class product_product(models.Model):
                                             pass
                                         else:
                                             #_logger.info("Adding value id")
-                                            if attribute_value_id not in attribute_line.value_ids:
+                                            if attribute_value_id not in attribute_line.value_ids.ids:
                                                 attribute_line.value_ids = [(4,attribute_value_id)]
                                     else:
                                         #_logger.info("Adding value id")
-                                        if attribute_value_id not in attribute_line.value_ids:
+                                        if attribute_value_id not in attribute_line.value_ids.ids:
                                             attribute_line.value_ids = [(4,attribute_value_id)]
 
         _logger.info("_get_variations:"+str(variations))
