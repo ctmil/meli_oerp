@@ -1059,7 +1059,7 @@ class mercadolibre_orders(models.Model):
         return partner_update
 
     def orders_update_order_json( self, data, context=None, config=None, meli=None ):
-
+        _logger.warning('ENTRANDO EN orders_update_order_json - orders.py 1062')
         oid = data["id"]
         order_json = data["order_json"]
         #_logger.info( "data:" + str(data) )
