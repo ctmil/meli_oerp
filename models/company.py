@@ -636,6 +636,7 @@ class res_company(models.Model):
 
     def meli_query_orders(self, fetch_id_only=False):
         #_logger.info('company.meli_query_orders() fetch_id_only:'+str(fetch_id_only))
+        _logger.warning('ENTRANDO A meli_query_orders en company.py')
         company = self.env.user.company_id
         orders_obj = self.env['mercadolibre.orders']
         result = orders_obj.orders_query_recent(fetch_id_only=fetch_id_only)
