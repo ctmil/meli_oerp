@@ -374,7 +374,7 @@ class mercadolibre_shipment(models.Model):
         return {}
 
     def _update_sale_order_shipping_info( self, order, meli=None, config=None ):
-
+        _logger.warning('_update_sale_order_shipping_info - shipment.py 377')
         company = self.env.user.company_id
         product_tpl = self.env['product.template']
         product_obj = self.env['product.product']
@@ -382,6 +382,7 @@ class mercadolibre_shipment(models.Model):
 
         for shipment in self:
             #_logger.info("_update_sale_order_shipping_info")
+            _logger.warning(f'for shipment in self: {shipment} - shipment.py 385')
             sorder = shipment.sale_order
 
             if sorder.state in ['done']:
@@ -679,6 +680,7 @@ class mercadolibre_shipment(models.Model):
     #Return shipment object based on mercadolibre.orders "order"
     def fetch_shipment( self, order, meli=None, config=None ):
         #_logger.info("ship fetch")
+        _logger.warning('EJECUTANDO fetch_shipment - shipment.py 682')
         company = self.env.user.company_id
         if not config:
             config = company
@@ -699,6 +701,11 @@ class mercadolibre_shipment(models.Model):
         ship_id = False
         shipment = None
         #_logger.info("order: "+str(order))
+        ## CODIGO AGREGADO
+        _logger.warning('EJECUTANDO fetch_shipment - shipment.py 703')
+        if order and order.shipping:
+            return order.shipping
+        ## FIN
         if (order and "shipping_id" in order._fields and order.shipping_id):
             ship_id = order.shipping_id
         else:
@@ -907,6 +914,12 @@ class mercadolibre_shipment(models.Model):
 
                 shipment = shipment_obj.search([('shipping_id','=', ship_id)])
                 #_logger.info("shipment:"+str(shipment)+" ship_id:"+str(ship_id)+" ship_fields:"+str(ship_fields) )
+                ## CODIGO AGREGADO
+                _logger.warning('EJECUTANDO fetch_shipment - shipment.py 916')
+                if order and order.shipping:
+                    _logger.warning('TIENE order.shipping - shipment.py 918')
+                    return order.shipping
+                ## FIN
                 if (len(shipment)==0):
                     #_logger.info("Importing shipment: " + str(ship_id))
                     #_logger.info(str(ship_fields))
