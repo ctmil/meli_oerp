@@ -389,37 +389,32 @@ class sale_order(models.Model):
             self.action_invoice_create()
         return res
 
-    def meli_deliver( self, meli=None, config=None, data=None ):
-        #_logger.info(meli_deliver base")
+    def meli_deliver(self, meli=None, config=None, data=None):
         res = {}
-        if (self.state=="sale" or self.state=="done"):
-            #spick = stock_picking.search([('order_id','=',self.id)])
-            #_logger.info(paid_delivered ok! delivering")
-            if self.picking_ids:
-                for spick in self.picking_ids:
-                    #_logger.info(str(spick)+":"+str(spick.state))
+        # Sólo operamos si la orden de venta ya está confirmada o hecha
+        if self.state in ('sale', 'done') and self.picking_ids:
+            for spick in self.picking_ids:
+                try:
+                    #Confirmar el picking si aún no está confirmado
+                    if spick.state == 'draft':
+                        spick.action_confirm()
 
-                    try:
-                        if (spick.state in ['confirmed','waiting','draft']):
-                            #_logger.info("action_assign")
-                            res = spick.action_assign()
-                            #_logger.info("action_assign res:"+str(res)+" state:"+str(spick.state))
+                    #Asignar existencias (reserva y crea move_line_ids)
+                    spick.action_assign()
 
-                        if (spick.move_line_ids):
-                            #_logger.info(spick.move_line_ids)
-                            if (len(spick.move_line_ids)>=1):
-                                for pop in spick.move_line_ids:
-                                    #_logger.info(pop)
-                                    if (pop.qty_done==0.0 and pop.product_qty>=0.0):
-                                        pop.qty_done = pop.product_qty
-                                #_logger.info("do_new_transfer")
+                    #Marcar qty_done = product_uom_qty en todas las líneas
+                    if spick.move_line_ids:
+                        spick.move_line_ids.write({
+                            'qty_done': lambda ml: ml.product_uom_qty
+                        })
 
-                                if (spick.state in ['assigned']):
-                                    spick.button_validate()
-                    except Exception as e:
-                        _logger.error("stock pick button_validate error"+str(e))
-                        res = { 'error': str(e) }
-                        pass;
+                    #Validar el picking para mover físicamente y generar valoración
+                    if spick.state == 'assigned':
+                        spick.button_validate()
+
+                except Exception as e:
+                    _logger.error(f"Error validando picking {spick.id}: {e}")
+                    res = {'error': str(e)}
         return res
 
     def is_meli_order_fulfillment( self ):
