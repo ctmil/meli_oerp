@@ -91,6 +91,24 @@
             </field>
         </record>
 
+        <record id="meli_attribute_search_view" model="ir.ui.view">
+            <field name="name">mercadolibre.category.attribute.search</field>
+            <field name="model">mercadolibre.category.attribute</field>
+            <field name="arch" type="xml">
+    	         <search string="Search MercadoLibre Attribute Information">
+                 <field name="name" string="Attribute Nombre/ID" filter_domain="['|', ('name', 'ilike', self), ('att_id', 'ilike', self)]"/>
+                 <field name="att_id" string="Attribute ID"/>
+                 <separator/>
+                 <filter string="Es Requerido" name="meli_required_filter" domain="[('required','!=',False)]" />
+                 <filter string="Es variante" name="meli_variation_attribute_group_filter" domain="[('variation_attribute','!=',False)]" />
+                 <filter string='Variante' domain="[]"
+        								context="{'group_by' : 'variation_attribute'}" name="meli_variation_attribute_group_filter"/>
+                  <filter string='Requerido' domain="[]"
+        								context="{'group_by' : 'required'}" name="meli_required_group_filter"/>                        
+    	         </search>
+            </field>
+        </record>
+
 
         <record model="ir.actions.act_window" id="action_mercadolibre_category_attribute">
             <field name="name">Atributos</field>
