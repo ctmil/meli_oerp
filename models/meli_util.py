@@ -19,15 +19,30 @@ from .meli_oerp_config import REDIRECT_URI
 #from ..melisdk.meli import Meli
 
 #from ..melisdk.sdk3 import meli
+from urllib3.util.retry import Retry
 import meli
 from meli.rest import ApiException
 from meli.api_client import ApiClient
 
 from datetime import datetime
 
-configuration = meli.Configuration(
-    host = "https://api.mercadolibre.com"
+
+class LoggingRetry(Retry):
+    def increment(self, *args, **kwargs):
+        retry_number = kwargs.get('total', self.total)
+        reason = kwargs.get('reason', 'Unknown reason')
+        _logger.info(f"Reintentando... Intento {self.total - retry_number + 1} debido a: {reason}")
+        return super().increment(*args, **kwargs)
+
+
+configuration = meli.Configuration(host = "https://api.mercadolibre.com")
+configuration.retries=LoggingRetry(
+    total=3,
+    backoff_factor=0.5,
+    status_forcelist=[413, 429, 503],
+    raise_on_status=False
 )
+
 
 class MeliApi( meli.RestClientApi ):
 
@@ -47,6 +62,10 @@ class MeliApi( meli.RestClientApi ):
     rjson = {}
 
     user = {}
+
+    def __init__(self, *args, **kwargs):
+        super(MeliApi, self).__init__(*args, **kwargs)
+        self.api_auth_client = meli.OAuth20Api(self.api_client)
 
     def need_login(self):
         return self.needlogin_state
@@ -321,8 +340,21 @@ class MeliUtil(models.AbstractModel):
                 status = "status" in rjson and rjson["status"]
                 cause = "cause" in rjson and rjson["cause"]
 
+                if status==429:
+                    return api_rest_client
+                
                 if status==500 and cause=="Internal Server Error":
-                    _logger.warning(rjson)
+                    return api_rest_client
+
+                if status==504 and cause=="Gateway Time-out":
+                    return api_rest_client
+
+                if cause and status and int(status)>=500:
+                    return api_rest_client
+
+                right_access_token = ("-"+str(api_rest_client.seller_id)) in str(api_rest_client.access_token)
+                if not right_access_token:
+                    api_rest_client.needlogin_state = True
                     return api_rest_client
 
                 #_logger.info(rjson)
