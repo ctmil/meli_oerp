@@ -340,8 +340,21 @@ class MeliUtil(models.AbstractModel):
                 status = "status" in rjson and rjson["status"]
                 cause = "cause" in rjson and rjson["cause"]
 
+                if status==429:
+                    return api_rest_client
+                
                 if status==500 and cause=="Internal Server Error":
-                    _logger.warning(rjson)
+                    return api_rest_client
+
+                if status==504 and cause=="Gateway Time-out":
+                    return api_rest_client
+
+                if cause and status and int(status)>=500:
+                    return api_rest_client
+
+                right_access_token = ("-"+str(api_rest_client.seller_id)) in str(api_rest_client.access_token)
+                if not right_access_token:
+                    api_rest_client.needlogin_state = True
                     return api_rest_client
 
                 #_logger.info(rjson)
