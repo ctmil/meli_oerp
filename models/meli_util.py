@@ -306,7 +306,7 @@ class MeliUtil(models.AbstractModel):
         return self.get_new_instance()
 
     @api.model
-    def get_new_instance(self, company=None):
+    def get_new_instance(self, company=None, refresh_force=False):
 
         if not company:
             company = self.env.user.company_id
@@ -358,9 +358,9 @@ class MeliUtil(models.AbstractModel):
                     return api_rest_client
 
                 #_logger.info(rjson)
-                if "error" in rjson:
+                if ( rjson and "error" in rjson) or refresh_force==True:
 
-                    if company.mercadolibre_cron_refresh:
+                    if company.mercadolibre_cron_refresh or api_rest_client.access_token:
                         internals = {
                             "application_id": company.mercadolibre_client_id,
                             "user_id": company.mercadolibre_seller_id,
@@ -375,7 +375,7 @@ class MeliUtil(models.AbstractModel):
 
                         api_rest_client.needlogin_state = True
 
-                        _logger.error(rjson)
+                        #_logger.error(rjson)
 
                         if rjson["error"]=="not_found":
                             api_rest_client.needlogin_state = True
@@ -393,7 +393,8 @@ class MeliUtil(models.AbstractModel):
                                     pass;
                             logs+= str(message)+"\n"
                             _logger.info("message: " +str(message))
-                            if (message=="expired_token" or message=="invalid_token"):
+                            if (refresh_force or ( message and "invalid" in str(message)) or ( message and "expired" in str(message)) 
+                                or message=="expired_token" or message=="invalid_token" or message=="internal_server_error"):
                                 api_rest_client.needlogin_state = True
                                 try:
                                     #refresh = meli.get_refresh_token()
