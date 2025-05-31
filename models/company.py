@@ -143,7 +143,7 @@ class res_company(models.Model):
             "USD": { "name": "Uruguay", "id": "MLU", "default_currency_id": "UYU" },
         }
         #response = meli.get("/sites")
-        response = meli.get("/sites")
+        response = meli and meli.get("/sites")
         
         if (response):
             sites = response.json()
