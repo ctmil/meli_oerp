@@ -142,7 +142,9 @@ class res_company(models.Model):
             "VES":  { "name": "Venezuela", "id": "MLV", "default_currency_id": "VES" },
             "USD": { "name": "Uruguay", "id": "MLU", "default_currency_id": "UYU" },
         }
+        #response = meli.get("/sites")
         response = meli.get("/sites")
+        
         if (response):
             sites = response.json()
             #_logger.info(sites)
