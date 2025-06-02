@@ -1031,6 +1031,7 @@ class mercadolibre_shipment(models.Model):
                     partner_invoice_id = respartner_obj.search([  ('meli_order_id','=',partner_invoice_meli_order_id ) ], limit=1 ) or partner_id
 
                     original_contact_partner_id = partner_id
+                    partner_shipping_id = None
                     if "receiver_address" in ship_json:
                         if config.mercadolibre_cron_get_orders_shipment_client:
                             partner_shipping_id = self.partner_delivery_id( partner_id=partner_id, Receiver=ship_json["receiver_address"], config=config )
