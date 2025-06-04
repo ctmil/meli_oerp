@@ -281,10 +281,10 @@ class MeliApi( meli.RestClientApi ):
 class MeliUtil(models.AbstractModel):
 
     _name = 'meli.util'
-    _description = u'Utilidades para Mercado Libre'
+    _description = 'Utilidades para Mercado Libre'
 
     def get_meli_state( self ):
-        return self.get_new_instance()
+        return #self.get_new_instance()
 
     @api.model
     #def get_new_instance(self, company=None):
@@ -330,7 +330,8 @@ class MeliUtil(models.AbstractModel):
                 #if "error" in rjson:
                 if ( rjson and "error" in rjson) or refresh_force==True:
 
-                    if company.mercadolibre_cron_refresh:
+                    #if company.mercadolibre_cron_refresh:
+                    if company.mercadolibre_cron_refresh or api_rest_client.access_token:
                         internals = {
                             "application_id": company.mercadolibre_client_id,
                             "user_id": company.mercadolibre_seller_id,
@@ -345,7 +346,7 @@ class MeliUtil(models.AbstractModel):
 
                         api_rest_client.needlogin_state = True
 
-                        _logger.error(rjson)
+                       #_logger.error(rjson)
 
                         if rjson["error"]=="not_found":
                             api_rest_client.needlogin_state = True
@@ -384,7 +385,7 @@ class MeliUtil(models.AbstractModel):
                                                             'mercadolibre_refresh_token': api_rest_client.refresh_token,
                                                             'mercadolibre_code': '' } )
                                             api_rest_client.needlogin_state = False
-                                except Exception as e:
+                                except Exception as e:if (message=="expired_token" or message=="invalid_token"):
                                     errors += str(e)
                                     logs += str(e)
                                     _logger.error(e)
