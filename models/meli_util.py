@@ -385,7 +385,7 @@ class MeliUtil(models.AbstractModel):
                                                             'mercadolibre_refresh_token': api_rest_client.refresh_token,
                                                             'mercadolibre_code': '' } )
                                             api_rest_client.needlogin_state = False
-                                except Exception as e:if (message=="expired_token" or message=="invalid_token"):
+                                except Exception as e:
                                     errors += str(e)
                                     logs += str(e)
                                     _logger.error(e)
