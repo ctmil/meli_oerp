@@ -541,13 +541,18 @@ class sale_order(models.Model):
             #unassign, wrong warehouse_id company
             so.sudo().write( { 'warehouse_id': None } )
         #_logger.info("check team")
-        if (team_id and team_id.company_id.id != company.id) or not team_id:
-            if (seller_team and seller_team.company_id.id == company.id):
-                if team_id.id!=seller_team.id:
-                    so.sudo().write( { 'team_id': seller_team.id } )
-            else:
-                #unassign, wrong company team
-                so.sudo().write( { 'team_id': None } )
+        # if (team_id and team_id.company_id.id != company.id) or not team_id:
+        #     if (seller_team and seller_team.company_id.id == company.id):
+        #         if team_id.id!=seller_team.id:
+        #             so.sudo().write( { 'team_id': seller_team.id } )
+        #     else:
+        #         #unassign, wrong company team
+        #         so.sudo().write( { 'team_id': None } )
+        if not team_id:
+            if seller_team and seller_team.company_id.id == company.id:
+                so.sudo().write( { 'team_id': seller_team.id } )
+        else:
+            pass
         #_logger.info("check user id")
         if (user_id and seller_user and user_id.id!=seller_user.id) or not user_id:
             if seller_user:
