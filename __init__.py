@@ -23,7 +23,7 @@ def pre_init_check(cr):
         # implement pip as a subprocess:
         for mis in missing:
             if mis=="meli":
-                mis = "git+https://github.com/mercadolibre/python-sdk.git"
+                mis = "git+https://github.com/ctmil/python-sdk-2025.git"
             _logger.info("installing dependencies: "+str(mis))
             subprocess.check_call([sys.executable, '-m', 'pip', 'install', mis])
 

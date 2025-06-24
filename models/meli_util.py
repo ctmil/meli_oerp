@@ -19,15 +19,30 @@ from .meli_oerp_config import REDIRECT_URI
 #from ..melisdk.meli import Meli
 
 #from ..melisdk.sdk3 import meli
+from urllib3.util.retry import Retry
 import meli
 from meli.rest import ApiException
 from meli.api_client import ApiClient
 
 from datetime import datetime
 
-configuration = meli.Configuration(
-    host = "https://api.mercadolibre.com"
+
+class LoggingRetry(Retry):
+    def increment(self, *args, **kwargs):
+        retry_number = kwargs.get('total', self.total)
+        reason = kwargs.get('reason', 'Unknown reason')
+        _logger.info(f"Reintentando... Intento {self.total - retry_number + 1} debido a: {reason}")
+        return super().increment(*args, **kwargs)
+
+
+configuration = meli.Configuration(host = "https://api.mercadolibre.com")
+configuration.retries=LoggingRetry(
+    total=3,
+    backoff_factor=0.5,
+    status_forcelist=[413, 429, 503],
+    raise_on_status=False
 )
+
 
 class MeliApi( meli.RestClientApi ):
 
@@ -47,6 +62,10 @@ class MeliApi( meli.RestClientApi ):
     rjson = {}
 
     user = {}
+
+    def __init__(self, *args, **kwargs):
+        super(MeliApi, self).__init__(*args, **kwargs)
+        self.api_auth_client = meli.OAuth20Api(self.api_client)
 
     def need_login(self):
         return self.needlogin_state
@@ -281,13 +300,13 @@ class MeliApi( meli.RestClientApi ):
 class MeliUtil(models.AbstractModel):
 
     _name = 'meli.util'
-    _description = u'Utilidades para Mercado Libre'
+    _description = 'Utilidades para Mercado Libre'
 
     def get_meli_state( self ):
         return self.get_new_instance()
 
     @api.model
-    def get_new_instance(self, company=None):
+    def get_new_instance(self, company=None, refresh_force=False):
 
         if not company:
             company = self.env.user.company_id
@@ -321,14 +340,27 @@ class MeliUtil(models.AbstractModel):
                 status = "status" in rjson and rjson["status"]
                 cause = "cause" in rjson and rjson["cause"]
 
+                if status==429:
+                    return api_rest_client
+                
                 if status==500 and cause=="Internal Server Error":
-                    _logger.warning(rjson)
+                    return api_rest_client
+
+                if status==504 and cause=="Gateway Time-out":
+                    return api_rest_client
+
+                if cause and status and int(status)>=500:
+                    return api_rest_client
+
+                right_access_token = ("-"+str(api_rest_client.seller_id)) in str(api_rest_client.access_token)
+                if not right_access_token:
+                    api_rest_client.needlogin_state = True
                     return api_rest_client
 
                 #_logger.info(rjson)
-                if "error" in rjson:
+                if ( rjson and "error" in rjson) or refresh_force==True:
 
-                    if company.mercadolibre_cron_refresh:
+                    if company.mercadolibre_cron_refresh or api_rest_client.access_token:
                         internals = {
                             "application_id": company.mercadolibre_client_id,
                             "user_id": company.mercadolibre_seller_id,
@@ -343,7 +375,7 @@ class MeliUtil(models.AbstractModel):
 
                         api_rest_client.needlogin_state = True
 
-                        _logger.error(rjson)
+                        #_logger.error(rjson)
 
                         if rjson["error"]=="not_found":
                             api_rest_client.needlogin_state = True
@@ -361,7 +393,8 @@ class MeliUtil(models.AbstractModel):
                                     pass;
                             logs+= str(message)+"\n"
                             _logger.info("message: " +str(message))
-                            if (message=="expired_token" or message=="invalid_token"):
+                            if (refresh_force or ( message and "invalid" in str(message)) or ( message and "expired" in str(message)) 
+                                or message=="expired_token" or message=="invalid_token" or message=="internal_server_error"):
                                 api_rest_client.needlogin_state = True
                                 try:
                                     #refresh = meli.get_refresh_token()
