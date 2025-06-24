@@ -311,7 +311,7 @@ class MeliUtil(models.AbstractModel):
         if not company:
             company = self.env.user.company_id
 
-        api_client = ApiClient()
+        api_client = ApiClient(configuration=configuration)
         api_rest_client = MeliApi(api_client)
         api_rest_client.client_id = company.mercadolibre_client_id
         api_rest_client.client_secret = company.mercadolibre_secret_key
