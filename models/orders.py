@@ -1352,7 +1352,10 @@ class mercadolibre_orders(models.Model):
                 if ( ('doc_type' in Buyer['billing_info']) and ('dte_email' in self.env['res.partner']._fields)):
 
                     meli_buyer_fields['dte_email'] = 'nomail@fake.com'
-                    meli_buyer_fields['giro'] = 'SIN GIRO'
+                    
+                    if ('giro' in self.env['res.partner']._fields):
+                        meli_buyer_fields['giro'] = 'SIN GIRO'
+                        
                     vatn = Buyer['billing_info']['doc_number']
                     if (len(vatn)==9):
                         vatn = vatn[:2]+"."+vatn[2:5]+"."+vatn[5:8]+"-"+vatn[8:9]
