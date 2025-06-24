@@ -173,7 +173,7 @@ class MeliApi( meli.RestClientApi ):
             params = {"access_token":atok}
             #headers = {'Authorization': 'Bearer '+atok}
             headers = {}
-            uri = self.api_client.configuration.host+str(path)
+            uri = configuration.host+str(path)
             _logger.info(headers)
             self.response = requests.post(uri, files=files, params=urlencode(params), headers=headers)
             self.rjson = self.response.json()
@@ -185,13 +185,13 @@ class MeliApi( meli.RestClientApi ):
             pass;
         return self
 
-    def uploadfiles( self, path, files, params={}): # No veo que se use
+    def uploadfiles( self, path, files, params={}):
         try:
             atok = ("access_token" in params and params["access_token"]) or ""
             headers = {'Accept': 'application/json', 'Content-type':'multipart/form-data'}
             params = {}
             headers = {'Authorization': 'Bearer '+atok}
-            uri = self.api_client.configuration.host+str(path)
+            uri = configuration.host+str(path)
             _logger.info(headers)
             self.response = requests.post(uri, files=files, params=urlencode(params), headers=headers)
             self.rjson = self.response.json()
@@ -223,15 +223,18 @@ class MeliApi( meli.RestClientApi ):
         }
 
     def authorize(self, code, redirect_uri=None):
+        api_client = ApiClient()
+        api_auth_client = meli.OAuth20Api(api_client)
         if redirect_uri:
             self.redirect_uri = redirect_uri
         grant_type = 'authorization_code'
-        response_info = self.api_auth_client.get_token(grant_type=grant_type,
+        response_info = api_auth_client.get_token(grant_type=grant_type,
                                             client_id=self.client_id,
                                             client_secret=self.client_secret,
                                             redirect_uri=self.redirect_uri,
                                             code=code,
                                             refresh_token=self.refresh_token)
+        #_logger.info("MeliApi authorize:"+str(response_info))
         if 'access_token' in response_info:
             self.access_token = response_info['access_token']
             if 'refresh_token' in response_info:
@@ -241,10 +244,14 @@ class MeliApi( meli.RestClientApi ):
         return response_info
 
     def get_refresh_token(self, code=None, redirect_uri=None):
+        api_client = ApiClient()
+        api_auth_client = meli.OAuth20Api(api_client)
         grant_type = 'refresh_token'
-        response_info = self.api_auth_client.get_token(grant_type=grant_type,
+        response_info = api_auth_client.get_token(grant_type=grant_type,
                                             client_id=self.client_id,
                                             client_secret=self.client_secret,
+                                            #redirect_uri=self.redirect_uri,
+                                            #code=code,
                                             refresh_token=self.refresh_token)
         if 'access_token' in response_info:
             self.access_token = response_info['access_token']
