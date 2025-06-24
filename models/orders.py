@@ -404,9 +404,7 @@ class sale_order(models.Model):
 
                     #Marcar qty_done = product_uom_qty en todas las líneas
                     if spick.move_line_ids:
-                        spick.move_line_ids.write({
-                            'qty_done': lambda ml: ml.product_uom_qty
-                        })
+                        stock_picking_set_quantities(picking=spick)
 
                     #Validar el picking para mover físicamente y generar valoración
                     if spick.state == 'assigned':
