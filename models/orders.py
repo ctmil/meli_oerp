@@ -400,6 +400,7 @@ class sale_order(models.Model):
                         spick.action_confirm()
 
                     #Asignar existencias (reserva y crea move_line_ids)
+                    #if (spick.state in ['confirmed','waiting','draft']):
                     spick.action_assign()
 
                     #Marcar qty_done = product_uom_qty en todas las líneas
@@ -1229,6 +1230,8 @@ class mercadolibre_orders(models.Model):
                 #'email': Buyer['email'],
                 'meli_buyer_id': Buyer['id'],
             }
+            if company and company.id:
+                meli_buyer_fields["company_id"] = company.id
             meli_buyer_fields.update(self.fix_locals(Receiver=Receiver,Buyer=Buyer))
             if company:
                 meli_buyer_fields["lang"] =  company.partner_id.lang
