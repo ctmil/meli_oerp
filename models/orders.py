@@ -111,7 +111,7 @@ class sale_order(models.Model):
                     for buyer in buyers:
                         buyer_ids.append(buyer.id)
                     if buyer_ids:
-                        meli_orders = self.env['mercadolibre.orders'].search([('buyer','in',buyers_ids)], limit=10000 )
+                        meli_orders = self.env['mercadolibre.orders'].search([('buyer','in',buyer_ids)], limit=10000 )
             #sale_orders = self.env['sale.order'].search([], limit=10000,order='id desc')
             #if (value):
                 #for so in sale_orders:
@@ -2211,34 +2211,48 @@ class mercadolibre_orders(models.Model):
                     payment_fields["full_payment"] = mp_response.json()
                     payment_fields["shipping_amount"] = payment_fields["full_payment"]["shipping_amount"]
                     payment_fields["total_paid_amount"] = payment_fields["full_payment"]["transaction_details"]["total_paid_amount"]
-                    if ("fee_details" in payment_fields["full_payment"] and len(payment_fields["full_payment"]["fee_details"])>0):
-                        fee_details = payment_fields["full_payment"]["fee_details"]
+                    if ("charges_details" in payment_fields["full_payment"] and len(payment_fields["full_payment"]["charges_details"])>0):
+                        fee_details = payment_fields["full_payment"]["charges_details"]
                         for fee_detail in fee_details:
+                            
                             #fee_detail = fee_details[index]
-                            if fee_detail and "amount" in fee_detail:
+
+                            if fee_detail and "amounts" in fee_detail:
+                                _logger.info("fee_detail:"+str(fee_detail))
                                 fee_type = fee_detail["type"]
-                                fee_payer = fee_detail["fee_payer"]
-                                if (fee_payer and fee_payer == "collector" and fee_type == "application_fee"):
-                                    payment_fields["fee_amount"] = fee_detail["amount"]
+                                #fee_payer = fee_detail["fee_payer"]
+                                fee_name = fee_detail["name"]
+                                _logger.info( "fee_type:" + str(fee_type) + " fee_name:" + str(fee_name) )
+                                if ( fee_type=="fee" and fee_name == "meli_percentage_fee"):
+                                    payment_fields["fee_amount"] = fee_detail["amounts"] and fee_detail["amounts"]["original"]
+                                    _logger.info("fee_amount:"+str(payment_fields["fee_amount"]))
                                     if (order):
                                         order.fee_amount = payment_fields["fee_amount"]
-                                if (fee_payer and fee_payer == "payer" and fee_type == "financing_fee"):
-                                    payment_fields["financing_fee_amount"] = fee_detail["amount"]
-                                    if ('status' in Payment and Payment['status'] == "approved"):
-                                        financing_fee_amount+= payment_fields["financing_fee_amount"]
+                                
+                                #if (fee_payer and fee_payer == "collector" and fee_type == "application_fee"):
+                                #    payment_fields["fee_amount"] = fee_detail["amount"]
+                                #    if (order):
+                                #        order.fee_amount = payment_fields["fee_amount"]
+                                #if (fee_payer and fee_payer == "payer" and fee_type == "financing_fee"):
+                                #    payment_fields["financing_fee_amount"] = fee_detail["amount"]
+                                #    if ('status' in Payment and Payment['status'] == "approved"):
+                                #        financing_fee_amount+= payment_fields["financing_fee_amount"]
+
                         if (order):
                             order.financing_fee_amount = financing_fee_amount
                             if (sorder):
                                 sorder.meli_fee_amount = order.fee_amount
                                 sorder.meli_financing_fee_amount = order.financing_fee_amount
+
                     payment_fields["taxes_amount"] = payment_fields["full_payment"]["taxes_amount"]
 
                 payment_ids = payments_obj.search( [  ('payment_id','=',payment_fields['payment_id']),
                                                             ('order_id','=',order.id ) ] )
-
                 if not payment_ids:
-	                payment_ids = payments_obj.create( ( payment_fields ))
+                    _logger.info("Creating payment fields:"+str(payment_fields) )
+                    payment_ids = payments_obj.create( ( payment_fields ) )
                 else:
+                    _logger.info("Upading payment fields:"+str(payment_fields))
                     payment_ids.write( ( payment_fields ) )
 
         #if order:
@@ -2308,6 +2322,7 @@ class mercadolibre_orders(models.Model):
 
                                 if not payment.account_payment_id:
                                     payment.create_payment( meli=meli, config=config )
+
                         except Exception as e:
                             _logger.info("Error creating customer payment")
                             _logger.info(e, exc_info=True)
@@ -2915,7 +2930,7 @@ class sale_order_cancel_wiz_meli(models.TransientModel):
                 #_logger.info("cancel_order: %s " % (order_id) )
 
                 order = orders_obj.browse(order_id)
-                is_locked = (order and order.state in ["done"]) or ("locked" in sorder._fields and order.locked)
+                is_locked = (order and order.state in ["done"]) or ("locked" in order._fields and order.locked)
                 if (is_locked and self.cancel_blocked):
                     #asd
                     #_logger.info("cancel_order: unblock")
