@@ -95,7 +95,7 @@
               </label>
             <data>
                 <notebook>
-                    <page string="MercadoLibre Plantilla">
+                    <page string="MercadoLibre Plantilla" groups="meli_oerp.group_mercadolibre_manager">
 
                         <div class="oe_button_box" name="button_box_mel" style="width: auto;">
                           <button type="object"
@@ -336,10 +336,10 @@
             <field name="inherit_id" ref="product.product_normal_form_view" />
             <field name="arch" type="xml">
               <label for="sale_ok" position="after">
-                    <field name="meli_pub" />
-                    <label for="meli_pub" />
-                    <field name="meli_update_stock_blocked"/>
-                    <label for="meli_update_stock_blocked" />
+                    <field name="meli_pub" groups="meli_oerp.group_mercadolibre_manager"/>
+                    <label for="meli_pub" groups="meli_oerp.group_mercadolibre_manager"/>
+                    <field name="meli_update_stock_blocked" groups="meli_oerp.group_mercadolibre_manager"/>
+                    <label for="meli_update_stock_blocked" groups="meli_oerp.group_mercadolibre_manager"/>
                     <!--field name="meli_master" />
                     <label for="meli_master" /-->
 
@@ -347,7 +347,7 @@
 
                 <data>
                     <notebook>
-                        <page string="MercadoLibre">
+                        <page string="MercadoLibre" groups="meli_oerp.group_mercadolibre_manager">
                           <div class="oe_button_box" name="button_box_mel" style="width: auto;">
                             <button name='product_meli_get_product' type="object"
                               string="Importar"
