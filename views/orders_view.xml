@@ -78,7 +78,8 @@
             <field name="arch" type="xml">
                 <data>
                     <notebook>
-                        <page string="MercadoLibre" attrs="{'invisible':[('meli_order_id', '=', False)]}">
+                        <page string="MercadoLibre" attrs="{'invisible':[('meli_order_id', '=', False)]}"
+                                groups="meli_oerp.group_mercadolibre_manager">
                             <button name='meli_oerp_update' type="object"
                             string="Actualizar"
                             attrs="{'invisible':[('meli_order_id','=',False)]}"
