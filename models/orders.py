@@ -690,6 +690,11 @@ class mercadolibre_orders(models.Model):
         ret['billing_info_doc_type'] = ret['billing_info_doc_type'] or ('doc_type' in billing_info and billing_info['doc_type']) or ''
         ret['billing_info_doc_number'] = ret['billing_info_doc_number'] or ('doc_number' in billing_info and billing_info['doc_number']) or ''
 
+        ret["billing_info_economic_activity"] = ("ECONOMIC_ACTIVITY" in billing_info and billing_info["ECONOMIC_ACTIVITY"]) or ""
+        ret["billing_info_neighborhood"] = ("NEIGHBORHOOD" in billing_info and billing_info["NEIGHBORHOOD"]) or ""
+        ret["billing_info_vat_discriminating_billing"] = ("VAT_DISCRIMINATED_BILLING" in billing_info and billing_info["VAT_DISCRIMINATED_BILLING"]) or ""
+        ret["billing_info_invoice_type"] = ("INVOICE_TYPE" in billing_info and billing_info["INVOICE_TYPE"]) or ""
+
         return ret
 
     def buyer_full_name( self, Buyer={}):
@@ -972,6 +977,12 @@ class mercadolibre_orders(models.Model):
         if not partner_id or not meli_buyer_fields:
             #_logger.info(update_partner_billing_info: no partner id or no meli_buyer_fields")
             return partner_update
+
+        if "activity_description" in meli_buyer_fields:
+            partner_update.update(meli_buyer_fields)
+
+        if "city_id" in meli_buyer_fields:
+            partner_update.update(meli_buyer_fields)            
 
         if "documento" in meli_buyer_fields:
             partner_update.update(meli_buyer_fields)
@@ -2844,6 +2855,11 @@ class mercadolibre_buyers(models.Model):
     billing_info_city_name = fields.Char( string='Billing Info City Name')
     billing_info_state_name = fields.Char( string='Billing Info State Name')
     billing_info_zip_code = fields.Char( string='Billing Info Zip Code')
+
+    billing_info_economic_activity = fields.Char(string='Billing Info Economic Activity')
+    billing_info_neighborhood = fields.Char(string='Billing Info Neighborhood')
+    billing_info_vat_discriminating_billing = fields.Char(string='Billing Info Vat Discriminating Billing')
+    billing_info_invoice_type = fields.Char(string='Billing Info Invoice Type')
 
     _sql_constraints = [
         ('unique_buyer_id', 'unique(buyer_id)', 'Meli Buyer id already exists!')

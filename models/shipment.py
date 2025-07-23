@@ -1034,7 +1034,7 @@ class mercadolibre_shipment(models.Model):
                     partner_shipping_id = None
                     if "receiver_address" in ship_json:
                         if config.mercadolibre_cron_get_orders_shipment_client:
-                            partner_shipping_id = self.partner_delivery_id( partner_id=partner_id, Receiver=ship_json["receiver_address"], config=config )
+                            partner_shipping_id = self.partner_delivery_id( partner_id=original_contact_partner_id, Receiver=ship_json["receiver_address"], config=config )
 
 
                     mercadolibre_contact_partner_id = ("mercadolibre_contact_partner" in config._fields and config.mercadolibre_contact_partner)
