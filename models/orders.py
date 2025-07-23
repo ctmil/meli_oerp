@@ -690,6 +690,11 @@ class mercadolibre_orders(models.Model):
         ret['billing_info_doc_type'] = ret['billing_info_doc_type'] or ('doc_type' in billing_info and billing_info['doc_type']) or ''
         ret['billing_info_doc_number'] = ret['billing_info_doc_number'] or ('doc_number' in billing_info and billing_info['doc_number']) or ''
 
+        ret["billing_info_economic_activity"] = ("ECONOMIC_ACTIVITY" in billing_info and billing_info["ECONOMIC_ACTIVITY"]) or ""
+        ret["billing_info_neighborhood"] = ("NEIGHBORHOOD" in billing_info and billing_info["NEIGHBORHOOD"]) or ""
+        ret["billing_info_vat_discriminating_billing"] = ("VAT_DISCRIMINATED_BILLING" in billing_info and billing_info["VAT_DISCRIMINATED_BILLING"]) or ""
+        ret["billing_info_invoice_type"] = ("INVOICE_TYPE" in billing_info and billing_info["INVOICE_TYPE"]) or ""
+
         return ret
 
     def buyer_full_name( self, Buyer={}):
@@ -972,6 +977,12 @@ class mercadolibre_orders(models.Model):
         if not partner_id or not meli_buyer_fields:
             #_logger.info(update_partner_billing_info: no partner id or no meli_buyer_fields")
             return partner_update
+
+        if "activity_description" in meli_buyer_fields:
+            partner_update.update(meli_buyer_fields)
+
+        if "city_id" in meli_buyer_fields:
+            partner_update.update(meli_buyer_fields)            
 
         if "documento" in meli_buyer_fields:
             partner_update.update(meli_buyer_fields)
@@ -1807,11 +1818,18 @@ class mercadolibre_orders(models.Model):
         partner_shipping_id = mercadolibre_shipping_partner_id or partner_shipping_id
 
         meli_order_fields = self.prepare_sale_order_vals( order_json=order_json, meli=meli, config=config, sale_order=sorder )
-        meli_order_fields.update({
-            'partner_id': (partner_id and partner_id.id),
-            'partner_invoice_id': (partner_invoice_id and partner_invoice_id.id),
-            'pricelist_id': plistid.id,
-        })
+        meli_order_fields.update({'pricelist_id': plistid.id })
+
+        if partner_id:
+            partner_already_set = (sorder and sorder.partner_id and sorder.partner_id.id == partner_id.id)
+            if not partner_already_set:
+                meli_order_fields.update({'partner_id': (partner_id and partner_id.id)})
+
+        if partner_invoice_id:
+            partner_invoice_already_set = (sorder and sorder.partner_invoice_id and sorder.partner_invoice_id.id == partner_invoice_id.id)
+            if not partner_invoice_already_set:
+                meli_order_fields.update({'partner_invoice_id': (partner_invoice_id and partner_invoice_id.id)})
+
         if partner_shipping_id:
             shipping_partner_already_set = (sorder and sorder.partner_shipping_id and sorder.partner_shipping_id.id == partner_shipping_id.id)
             update_shipping = not sorder or (sorder and not sorder.partner_shipping_id)
@@ -2211,6 +2229,29 @@ class mercadolibre_orders(models.Model):
                     payment_fields["full_payment"] = mp_response.json()
                     payment_fields["shipping_amount"] = payment_fields["full_payment"]["shipping_amount"]
                     payment_fields["total_paid_amount"] = payment_fields["full_payment"]["transaction_details"]["total_paid_amount"]
+
+                    if ("fee_details" in payment_fields["full_payment"] and len(payment_fields["full_payment"]["fee_details"])>0):
+                        fee_details = payment_fields["full_payment"]["fee_details"]
+                        for fee_detail in fee_details:
+                            #fee_detail = fee_details[index]
+                            if fee_detail and "amount" in fee_detail:
+                                fee_type = fee_detail["type"]
+                                fee_payer = fee_detail["fee_payer"]
+                                if (fee_payer and fee_payer == "collector" and fee_type == "application_fee"):
+                                    payment_fields["fee_amount"] = fee_detail["amount"]
+                                    if (order):
+                                        order.fee_amount = payment_fields["fee_amount"]
+                                if (fee_payer and fee_payer == "payer" and fee_type == "financing_fee"):
+                                    payment_fields["financing_fee_amount"] = fee_detail["amount"]
+                                    if ('status' in Payment and Payment['status'] == "approved"):
+                                        financing_fee_amount+= payment_fields["financing_fee_amount"]
+                        if (order):
+                            order.financing_fee_amount = financing_fee_amount
+                            if (sorder):
+                                sorder.meli_fee_amount = order.fee_amount
+                                sorder.meli_financing_fee_amount = order.financing_fee_amount
+
+
                     if ("charges_details" in payment_fields["full_payment"] and len(payment_fields["full_payment"]["charges_details"])>0):
                         fee_details = payment_fields["full_payment"]["charges_details"]
                         for fee_detail in fee_details:
@@ -2814,6 +2855,11 @@ class mercadolibre_buyers(models.Model):
     billing_info_city_name = fields.Char( string='Billing Info City Name')
     billing_info_state_name = fields.Char( string='Billing Info State Name')
     billing_info_zip_code = fields.Char( string='Billing Info Zip Code')
+
+    billing_info_economic_activity = fields.Char(string='Billing Info Economic Activity')
+    billing_info_neighborhood = fields.Char(string='Billing Info Neighborhood')
+    billing_info_vat_discriminating_billing = fields.Char(string='Billing Info Vat Discriminating Billing')
+    billing_info_invoice_type = fields.Char(string='Billing Info Invoice Type')
 
     _sql_constraints = [
         ('unique_buyer_id', 'unique(buyer_id)', 'Meli Buyer id already exists!')
