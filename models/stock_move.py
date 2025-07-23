@@ -7,6 +7,7 @@ from odoo.exceptions import UserError
 from odoo.tools import float_utils
 import logging
 _logger = logging.getLogger(__name__)
+from odoo.tools import str2bool
 
 
 class StockMove(models.Model):
@@ -93,7 +94,7 @@ class StockMove(models.Model):
                         sm._action_done()
 
                 if (config and config.mercadolibre_cron_post_update_stock and bm_product_id and bm_is_meli):
-                    _logger.info("meli_update_boms > process_meli_stock_moves_update() "+str(config and config.name))
+                    _logger.info("meli_update_boms > process_meli_stock_moves_update() "+str(config and config.name)+" bm_product_id > "+str(bm_product_id.display_name))
                     bm_product_id.process_meli_stock_moves_update()
                     #bm_product_id.product_post_stock()
 
@@ -108,13 +109,14 @@ class StockMove(models.Model):
 
         return True
 
-    def _action_assign(self):
+    def _action_assign(self, force_qty=False):
+        skip_stock = str2bool(self.env['ir.config_parameter'].sudo().get_param('meli_skip_stock', 'False'))
         company = self.env.user.company_id
 
-        res = super(StockMove, self)._action_assign()
-
-        for mov in self:
-            mov.meli_update_boms( config = company )
+        res = super(StockMove, self)._action_assign(force_qty=force_qty)
+        if not skip_stock:
+            for mov in self:
+                mov.meli_update_boms( config = company )
 
         return res
 
@@ -123,9 +125,11 @@ class StockMove(models.Model):
         #import pdb; pdb.set_trace()
         #_logger.info("Stock move: meli_oerp > _action_done")
         company = self.env.user.company_id
-        moves_todo = super(StockMove, self)._action_done(cancel_backorder=cancel_backorder)
 
-        for mov in self:
-            mov.meli_update_boms( config = company )
+        moves_todo = super(StockMove, self)._action_done(cancel_backorder=cancel_backorder)
+        skip_stock = str2bool(self.env['ir.config_parameter'].sudo().get_param('meli_skip_stock', 'False'))
+        if not skip_stock:
+            for mov in self:
+                mov.meli_update_boms( config = company )
 
         return moves_todo

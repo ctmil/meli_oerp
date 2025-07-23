@@ -59,6 +59,7 @@
                       <group>
                         <field name="force_meli_pub"/>
                         <field name="meli_id"/>
+                        <field name="force_import_images"/>
                         <!--field name="force_create_variants"/-->
                       </group>
                     </group>
@@ -100,13 +101,16 @@
                       <field name="post_state"/>
                       <field name="meli_id"/>
                       <field name="force_meli_pub"/>
+                      <field name="force_import_images"/>
                       <field name="force_create_variants"/>
                       <field name="force_dont_create"/>
                     </group>
                     <group string="Batch Processing">
-                      <field name="batch_processing_unit"/>
-                      <field name="batch_processing_unit_offset"/>
-                      <group string="Batch To sync">
+                      <group string="Rango" colspan="2">
+                        <field name="batch_processing_unit" string="Cantidad a procesar"/>
+                        <field name="batch_processing_unit_offset" string="Indice"/>
+                      </group>
+                    <group string="Batch To sync">
                         <field name="batch_actives_to_sync" readonly="0"/>
                         <field name="batch_paused_to_sync" readonly="0"/>
                         <field name="batch_left_to_sync" readonly="0"/>
@@ -117,9 +121,11 @@
                         <field name="closed_to_sync" readonly="1"/>
                       </group>
 
-                      <field name="batch_processing_status" readonly="1"/>
-                      <field name="batch_processing" readonly="1"/>
+                        <group string="Processing Status" colspan="2">
 
+                              <field name="batch_processing_status" readonly="1"/>
+                              <field name="batch_processing" readonly="1"/>
+                        </group>
                     </group>
                   </group>
 

@@ -383,6 +383,8 @@ class mercadolibre_shipment(models.Model):
 
         company = (config and 'company_id' in config._fields and config.company_id) or ("company_id" in self._fields and self.company_id) or self.env.user.company_id
         company_domain = ['|',('company_id','=',False),('company_id','=',company.id)]
+        company_only_domain = [('company_id','=',company.id)]
+        company_domain = company_only_domain
         product_tpl = self.env['product.template']
         product_obj = self.env['product.product']
         saleorderline_obj = self.env['sale.order.line']
@@ -396,6 +398,9 @@ class mercadolibre_shipment(models.Model):
 
             if (not sorder or not order):
                 continue;
+
+            including_shipping_cost = "mercadolibre_including_shipping_cost" in config._fields and config.mercadolibre_including_shipping_cost
+            including_shipping_cost = including_shipping_cost or "always"
 
             if (sorder and sorder.meli_update_forbidden):
                 _logger.error("Forbidden to update sale order by meli_oerp" )
@@ -429,18 +434,25 @@ class mercadolibre_shipment(models.Model):
 
             if (shipment.mode=="me1"):
                 product_shipping_id = product_obj.search([('default_code','ilike','ENVIO-ME1')]
-                                                            + company_domain )
+                                                            + company_domain,
+                                                            order="company_id asc",
+                                                            limit=1 )
                 ship_default_code = 'ENVIO-ME1'
             else:
                 product_shipping_id = product_obj.search([('default_code','ilike','ENVIO')]
-                                                         + company_domain)
+                                                         + company_domain,
+                                                         order="company_id asc",
+                                                         limit=1)
                 if (len(product_shipping_id)==0):
                     product_shipping_id = product_obj.search(['|','|',('default_code','=','ENVIO'),
                             ('default_code','=',ship_name),
                             ('name','=',ship_name)]
-                            + company_domain )
+                            + company_domain,
+                            order="company_id asc",
+                            limit=1)
 
             if len(product_shipping_id):
+                _logger.info("_update_sale_order_shipping_info ")
                 product_shipping_id = product_shipping_id[0]
             else:
                 product_shipping_id = None
@@ -450,7 +462,7 @@ class mercadolibre_shipment(models.Model):
                     "type": "service",
                     #"taxes_id": None
                     #"categ_id": 279,
-                    #"company_id": company.id
+                    "company_id": company.id
                 }
                 #_logger.info(ship_prod)
                 product_shipping_tpl = product_tpl.create((ship_prod))
@@ -472,12 +484,35 @@ class mercadolibre_shipment(models.Model):
             }
             ship_carrier["product_id"] = product_shipping_id.id
             ship_carrier_id = self.env["delivery.carrier"].search([ ('name','=',ship_carrier['name'])]
-                                                                  + company_domain)
+                                                                  + company_domain,
+                                                                  order="company_id asc",
+                                                                  limit=1)
             if not ship_carrier_id:
                 ship_carrier_id = self.env["delivery.carrier"].create(ship_carrier)
-            if (len(ship_carrier_id)>1):
-                ship_carrier_id = ship_carrier_id[0]
-                ship_carrier_id.write(ship_carrier)
+
+            #if (len(ship_carrier_id)>1):
+            #    _logger.info("Actualizando delivery.carrier "+str(ship_carrier))
+            #    ship_carrier_id = ship_carrier_id[0]
+            #    ship_carrier_id.write(ship_carrier)
+            all_company_ok = False
+            if ship_carrier_id and product_shipping_id:
+                all_company_ok = ship_carrier_id.company_id == sorder.company_id and product_shipping_id.company_id == sorder.company_id
+                sorder.message_post(body=str("Companias Coinciden OK, Carrier, Servicio de envio y Pedido"))
+
+                if all_company_ok == False:
+                    #try and check to set or change products and carriers
+                    if not ship_carrier_id or not product_shipping_id:
+                        message_str_error = str("Companias no coinciden en Carrier, Servicio y Orden")
+                        message_str_error+= str("\n")
+                        message_str_error+= str( ( ship_carrier_id and str(ship_carrier_id.company_id or "Carrier sin Empresa") ) or "Sin Carrier" )
+                        message_str_error+= str("\n")
+                        message_str_error+= str( (product_shipping_id and str(product_shipping_id.company_id or "Servicio de envio sin Empresa")) or "Sin servicio de envio" )
+                        sorder.message_post(body=message_str_error)
+            else:
+                sorder.message_post(body=str("Sin servicio de envio o carrier."))
+
+
+
 
             stock_pickings = self.env["stock.picking"].search([('sale_id','=',sorder.id),('name','like','OUT')])
             #carrier_id = self.env["delivery.carrier"].search([('name','=',)])
@@ -525,12 +560,14 @@ class mercadolibre_shipment(models.Model):
                 if ( ship_carrier_id and sorder.carrier_id):
                     delivery_price = 0.0
                     #_logger.info("set_delivery_line:"+str(delivery_price))
-                    set_delivery_line( sorder, delivery_price, "Defined by MELI" )
+                    if (not including_shipping_cost=="never"):
+                        set_delivery_line( sorder, delivery_price, "Defined by MELI" )
                 delivery_price = 0.0
 
             if shipment_amount_cond_fix2 and ship_carrier_id and sorder.carrier_id:
                 #_logger.info("set_delivery_line (fix2):"+str(delivery_price))
-                set_delivery_line( sorder, delivery_price, "Defined by MELI" )
+                if (not including_shipping_cost=="never"):
+                    set_delivery_line( sorder, delivery_price, "Defined by MELI" )
 
 
             if (ship_carrier_id and not sorder.carrier_id):
@@ -543,11 +580,12 @@ class mercadolibre_shipment(models.Model):
                 #delivery_price = vals['price']
                 #display_price = vals['carrier_price']
                 #_logger.info("Agregar delivery line delivery_price:"+str(delivery_price))
-                set_delivery_line(sorder, delivery_price, delivery_message )
+                if (not including_shipping_cost=="never"):
+                    set_delivery_line(sorder, delivery_price, delivery_message )
 
             if (sorder.carrier_id):
                 #activar para cuando no se quiere incluir en la factura? mejor setear para no ser facturado.. cuando es 0
-                if 1==2 and delivery_price<=0.0:
+                if ((1==2 and delivery_price<=0.0) or including_shipping_cost=="never"):
                     sorder._remove_delivery_line()
 
                 #UPDATE PRICE
@@ -993,6 +1031,7 @@ class mercadolibre_shipment(models.Model):
                     partner_invoice_id = respartner_obj.search([  ('meli_order_id','=',partner_invoice_meli_order_id ) ], limit=1 ) or partner_id
 
                     original_contact_partner_id = partner_id
+                    partner_shipping_id = None
                     if "receiver_address" in ship_json:
                         if config.mercadolibre_cron_get_orders_shipment_client:
                             partner_shipping_id = self.partner_delivery_id( partner_id=partner_id, Receiver=ship_json["receiver_address"], config=config )
@@ -1022,6 +1061,8 @@ class mercadolibre_shipment(models.Model):
                         if (sorder_pack and sorder_pack.meli_update_forbidden):
                             _logger.error("Forbidden to update sale order by meli_oerp" )
                             return {'error': 'Forbidden to update sale order by meli_oerp' }
+
+                        sorder = sorder_pack
                         totales = {}
                         totales['total_amount'] = 0
                         totales['paid_amount'] = 0
@@ -1060,8 +1101,6 @@ class mercadolibre_shipment(models.Model):
                             #TODO: "add parameter for pack_id":
                             #'name': "ML %i" % ( all_orders[0]["pack_id"] ),
                             #'name': "ML %s" % ( str(all_orders[0]["order_id"]) ),
-                            'partner_id': partner_id.id,
-                            'partner_invoice_id': partner_invoice_id and partner_invoice_id.id,
                             'pricelist_id': plistid and plistid.id,
                             #'meli_order_id': '%i' % (order_json["id"]),
                             'meli_order_id': packed_order_ids,
@@ -1082,6 +1121,18 @@ class mercadolibre_shipment(models.Model):
                         })
                         #TODO: agregar un campo para diferencia cada delivery res partner al shipment y orden asociado, crear un binding usando values diferentes... y listo
                         #_logger.info("ship_json[receiver_address]:"+str(ship_json["receiver_address"]) )
+
+
+
+                        if partner_id:
+                            partner_already_set = (sorder and sorder.partner_id and sorder.partner_id.id == partner_id.id)
+                            if not partner_already_set:
+                                meli_order_fields.update({'partner_id': (partner_id and partner_id.id)})
+
+                        if partner_invoice_id:
+                            partner_invoice_already_set = (sorder and sorder.partner_invoice_id and sorder.partner_invoice_id.id == partner_invoice_id.id)
+                            if not partner_invoice_already_set:
+                                meli_order_fields.update({'partner_invoice_id': (partner_invoice_id and partner_invoice_id.id)})
 
 
                         if partner_shipping_id:

@@ -15,7 +15,7 @@ import logging
 _logger = logging.getLogger(__name__)
 
 def pre_init_check(cr):
-    required  = {'meli', 'pdf2image'}
+    required  = {'meli', 'pdf2image', 'unidecode'}
     installed = {pkg.key for pkg in pkg_resources.working_set}
     missing   = required - installed
     #_logger.info("missing:"+str(missing))
@@ -23,7 +23,7 @@ def pre_init_check(cr):
         # implement pip as a subprocess:
         for mis in missing:
             if mis=="meli":
-                mis = "git+https://github.com/mercadolibre/python-sdk.git"
+                mis = "git+https://github.com/ctmil/python-sdk-2025.git"
             _logger.info("installing dependencies: "+str(mis))
             subprocess.check_call([sys.executable, '-m', 'pip', 'install', mis])
 
