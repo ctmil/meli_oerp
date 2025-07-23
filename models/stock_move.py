@@ -109,14 +109,13 @@ class StockMove(models.Model):
 
         return True
 
-    def _action_assign(self, force_qty=False):
-        skip_stock = str2bool(self.env['ir.config_parameter'].sudo().get_param('meli_skip_stock', 'False'))
+    def _action_assign(self):
         company = self.env.user.company_id
 
-        res = super(StockMove, self)._action_assign(force_qty=force_qty)
-        if not skip_stock:
-            for mov in self:
-                mov.meli_update_boms( config = company )
+        res = super(StockMove, self)._action_assign()
+
+        for mov in self:
+            mov.meli_update_boms( config = company )
 
         return res
 
@@ -125,11 +124,9 @@ class StockMove(models.Model):
         #import pdb; pdb.set_trace()
         #_logger.info("Stock move: meli_oerp > _action_done")
         company = self.env.user.company_id
-
         moves_todo = super(StockMove, self)._action_done(cancel_backorder=cancel_backorder)
-        skip_stock = str2bool(self.env['ir.config_parameter'].sudo().get_param('meli_skip_stock', 'False'))
-        if not skip_stock:
-            for mov in self:
-                mov.meli_update_boms( config = company )
+
+        for mov in self:
+            mov.meli_update_boms( config = company )
 
         return moves_todo
