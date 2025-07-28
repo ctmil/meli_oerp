@@ -111,7 +111,7 @@ class sale_order(models.Model):
                     for buyer in buyers:
                         buyer_ids.append(buyer.id)
                     if buyer_ids:
-                        meli_orders = self.env['mercadolibre.orders'].search([('buyer','in',buyers_ids)], limit=10000 )
+                        meli_orders = self.env['mercadolibre.orders'].search([('buyer','in',buyer_ids)], limit=10000 )
             #sale_orders = self.env['sale.order'].search([], limit=10000,order='id desc')
             #if (value):
                 #for so in sale_orders:
@@ -389,7 +389,8 @@ class sale_order(models.Model):
             self.action_invoice_create()
         return res
 
-    def meli_deliver(self, meli=None, config=None, data=None):
+    def meli_deliver( self, meli=None, config=None, data=None ):
+        #_logger.info(meli_deliver base")
         res = {}
         # Sólo operamos si la orden de venta ya está confirmada o hecha
         if self.state in ('sale', 'done') and self.picking_ids:
@@ -690,6 +691,11 @@ class mercadolibre_orders(models.Model):
         ret['billing_info_doc_type'] = ret['billing_info_doc_type'] or ('doc_type' in billing_info and billing_info['doc_type']) or ''
         ret['billing_info_doc_number'] = ret['billing_info_doc_number'] or ('doc_number' in billing_info and billing_info['doc_number']) or ''
 
+        ret["billing_info_economic_activity"] = ("ECONOMIC_ACTIVITY" in billing_info and billing_info["ECONOMIC_ACTIVITY"]) or ""
+        ret["billing_info_neighborhood"] = ("NEIGHBORHOOD" in billing_info and billing_info["NEIGHBORHOOD"]) or ""
+        ret["billing_info_vat_discriminating_billing"] = ("VAT_DISCRIMINATED_BILLING" in billing_info and billing_info["VAT_DISCRIMINATED_BILLING"]) or ""
+        ret["billing_info_invoice_type"] = ("INVOICE_TYPE" in billing_info and billing_info["INVOICE_TYPE"]) or ""
+
         return ret
 
     def buyer_full_name( self, Buyer={}):
@@ -972,6 +978,12 @@ class mercadolibre_orders(models.Model):
         if not partner_id or not meli_buyer_fields:
             #_logger.info(update_partner_billing_info: no partner id or no meli_buyer_fields")
             return partner_update
+
+        if "activity_description" in meli_buyer_fields:
+            partner_update.update(meli_buyer_fields)
+
+        if "city_id" in meli_buyer_fields:
+            partner_update.update(meli_buyer_fields)            
 
         if "documento" in meli_buyer_fields:
             partner_update.update(meli_buyer_fields)
@@ -1322,7 +1334,7 @@ class mercadolibre_orders(models.Model):
                     meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
 
                 #Arg 15.0 BlueOrange Blue Orange
-                if ( ('doc_type' in Buyer['billing_info']) and ('partner_document_type_id' in self.env['res.partner']._fields) ):
+                if (1==2 and  ('doc_type' in Buyer['billing_info']) and ('partner_document_type_id' in self.env['res.partner']._fields) ):
                     doc_type = Buyer['billing_info']['doc_type']
                     doc_type_id = self.env["partner.document.type"].search([('name','ilike',doc_type)],limit=1)
                     if (doc_type_id):
@@ -1345,22 +1357,22 @@ class mercadolibre_orders(models.Model):
                     meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
 
                 #Chile YNext
-                if ( ('doc_type' in Buyer['billing_info']) and ('dte_email' in self.env['res.partner']._fields)):
+                if (1==2 and  ('doc_type' in Buyer['billing_info']) and ('dte_email' in self.env['res.partner']._fields)):
 
                     meli_buyer_fields['dte_email'] = 'nomail@fake.com'
                     
                     if ('giro' in self.env['res.partner']._fields):
                         meli_buyer_fields['giro'] = 'SIN GIRO'
-                        
+
                     vatn = Buyer['billing_info']['doc_number']
                     if (len(vatn)==9):
                         vatn = vatn[:2]+"."+vatn[2:5]+"."+vatn[5:8]+"-"+vatn[8:9]
                     if (len(vatn)==8):
                         vatn = vatn[:1]+"."+vatn[1:4]+"."+vatn[4:7]+"-"+vatn[7:8]
-                    meli_buyer_fields['vat'] = vatn
+                    #meli_buyer_fields['vat'] = vatn
 
                 #latam Chile - l10n_cl_edi
-                if ( company.country_id.code=="CL" and ('doc_type' in Buyer['billing_info']) and ('l10n_latam_identification_type_id' in self.env['res.partner']._fields ) ):
+                if (1==2 and  company.country_id.code=="CL" and ('doc_type' in Buyer['billing_info']) and ('l10n_latam_identification_type_id' in self.env['res.partner']._fields ) ):
 
                     if (Buyer['billing_info']['doc_type']=="RUT"):
                         #rut
@@ -1385,7 +1397,7 @@ class mercadolibre_orders(models.Model):
                         is_business = (isb >= 50)
                         #_logger.info(Chile VAT: is business? "+str(is_business))
                     if (len(vatn)==8):
-                        vatn = vatn[:1]+str(sep_millon)+vatn[1:4]+""+vatn[4:7]+"-"+vatn[7:8]
+                        vatn = str("0")+vatn[:1]+str(sep_millon)+vatn[1:4]+""+vatn[4:7]+"-"+vatn[7:8]
                     meli_buyer_fields['vat'] = vatn
 
                     if "l10n_cl_sii_taxpayer_type" in self.env['res.partner']._fields:
@@ -1397,7 +1409,7 @@ class mercadolibre_orders(models.Model):
                             meli_buyer_fields['company_type'] = "person"
 
 
-
+                #CHILE, Daniel Santibañez localization
                 if ( ('doc_type' in Buyer['billing_info']) and ('document_type_id' in self.env['res.partner']._fields) and ('document_number' in self.env['res.partner']._fields) ):
 
                     if (Buyer['billing_info']['doc_type']=="RUT"):
@@ -1405,12 +1417,47 @@ class mercadolibre_orders(models.Model):
                     elif (Buyer['billing_info']['doc_type']):
                         meli_buyer_fields['document_type_id'] = self.env['sii.document_type'].search([('code','=',Buyer['billing_info']['doc_type'])],limit=1).id
 
-                    meli_buyer_fields['document_number'] = Buyer['billing_info']['doc_number']
+                    vatn = Buyer['billing_info']['doc_number']
+                    is_business = False
+                    sep_millon = cl_vat_sep_million
+                    if (len(vatn)==9):
+                        vatn = vatn[:2]+"."+vatn[2:5]+"."+vatn[5:8]+"-"+vatn[8:9]
+                        isb = float(vatn[:2])
+                        #_logger.info(Chile VAT: is business:"+str(isb))
+                        is_business = (isb >= 50)
+                        #_logger.info(Chile VAT: is business? "+str(is_business))
+                    if (len(vatn)==8):
+                        vatn = str("0")+vatn[:1]+"."+vatn[1:4]+"."+vatn[4:7]+"-"+vatn[7:8]
+                    #meli_buyer_fields['vat'] = vatn
+                    meli_buyer_fields['document_number'] = vatn
+                    meli_buyer_fields['vat'] = ""
+                    del meli_buyer_fields['vat']
+                    try:
+                        #('activity_description' in self.env['res.partner']._fields) and meli_buyer_fields.update({"activity_description": self.env["sii.activity.description"].search([('name','=','NCP')],limit=1).id })
 
-                    meli_buyer_fields['vat'] = 'CL'+str(Buyer['billing_info']['doc_number'])
-                    #meli_buyer_fields['email'] = str(Buyer['email'])
+                        if ("billing_info_economic_activity" in buyer_fields and 'activity_description' in self.env['res.partner']._fields):
+                            acti_desc = buyer_fields["billing_info_economic_activity"]
+                            sii_giro = self.env["sii.activity.description"].search([('name','=',acti_desc)], limit=1 )
+                            _logger.error("sii_giro: "+str(sii_giro))
+                            if (not sii_giro):
+                                sii_giro = self.env["sii.activity.description"].create(({
+                                    "name": acti_desc
+                                }))
+                                _logger.error("creando sii_giro: "+str(sii_giro))
 
-                    ('activity_description' in self.env['res.partner']._fields) and meli_buyer_fields.update({"activity_description": self.env["sii.activity.description"].search([('name','=','NCP')],limit=1).id })
+                            meli_buyer_fields['activity_description'] = (sii_giro and sii_giro.id) or None
+                    except E as Exception:
+                        _logger.error("billing_info_economic_activity"+str(E))
+                        pass;
+
+                    if ("billing_info_neighborhood" in buyer_fields or "billing_info_city_name" in buyer_fields):
+                        #meli_buyer_fields['city_id'] = ""
+                        comuna = buyer_fields["billing_info_neighborhood"] or buyer_fields["billing_info_city_name"]
+                        res_city = self.env["res.city"].search([('name','ilike',comuna)], limit=1 )
+                        if (res_city):
+                            meli_buyer_fields['city_id'] = (res_city and res_city.id) or None
+                        pass;
+
 
                 #Colombia
                 if ( ('doc_type' in Buyer['billing_info']) and ('l10n_co_document_type' in self.env['res.partner']._fields) ):
@@ -1745,6 +1792,17 @@ class mercadolibre_orders(models.Model):
                     #_logger.info("Updating partner: "+str(partner_update))
                     try:
                         partner_id.write(partner_update)
+                        if ("activity_description" in partner_update):
+                            try:
+                                partner_id._onchange_city_id()
+                            except Exception as EE:
+                                _logger.error("_onchange_city_id error"+str(EE))
+                                pass;
+                            try:
+                                partner_id.onchange_document()
+                            except Exception as EE:
+                                _logger.error("_onchange_city_id error"+str(EE))
+                                pass;
                         self._cr.commit()
                     except Exception as e:
                         _logger.info("orders_update_order > Error actualizando Partner:"+str(e))
@@ -2211,34 +2269,48 @@ class mercadolibre_orders(models.Model):
                     payment_fields["full_payment"] = mp_response.json()
                     payment_fields["shipping_amount"] = payment_fields["full_payment"]["shipping_amount"]
                     payment_fields["total_paid_amount"] = payment_fields["full_payment"]["transaction_details"]["total_paid_amount"]
-                    if ("fee_details" in payment_fields["full_payment"] and len(payment_fields["full_payment"]["fee_details"])>0):
-                        fee_details = payment_fields["full_payment"]["fee_details"]
+                    if ("charges_details" in payment_fields["full_payment"] and len(payment_fields["full_payment"]["charges_details"])>0):
+                        fee_details = payment_fields["full_payment"]["charges_details"]
                         for fee_detail in fee_details:
+                            
                             #fee_detail = fee_details[index]
-                            if fee_detail and "amount" in fee_detail:
+
+                            if fee_detail and "amounts" in fee_detail:
+                                _logger.info("fee_detail:"+str(fee_detail))
                                 fee_type = fee_detail["type"]
-                                fee_payer = fee_detail["fee_payer"]
-                                if (fee_payer and fee_payer == "collector" and fee_type == "application_fee"):
-                                    payment_fields["fee_amount"] = fee_detail["amount"]
+                                #fee_payer = fee_detail["fee_payer"]
+                                fee_name = fee_detail["name"]
+                                _logger.info( "fee_type:" + str(fee_type) + " fee_name:" + str(fee_name) )
+                                if ( fee_type=="fee" and fee_name == "meli_percentage_fee"):
+                                    payment_fields["fee_amount"] = fee_detail["amounts"] and fee_detail["amounts"]["original"]
+                                    _logger.info("fee_amount:"+str(payment_fields["fee_amount"]))
                                     if (order):
                                         order.fee_amount = payment_fields["fee_amount"]
-                                if (fee_payer and fee_payer == "payer" and fee_type == "financing_fee"):
-                                    payment_fields["financing_fee_amount"] = fee_detail["amount"]
-                                    if ('status' in Payment and Payment['status'] == "approved"):
-                                        financing_fee_amount+= payment_fields["financing_fee_amount"]
+                                
+                                #if (fee_payer and fee_payer == "collector" and fee_type == "application_fee"):
+                                #    payment_fields["fee_amount"] = fee_detail["amount"]
+                                #    if (order):
+                                #        order.fee_amount = payment_fields["fee_amount"]
+                                #if (fee_payer and fee_payer == "payer" and fee_type == "financing_fee"):
+                                #    payment_fields["financing_fee_amount"] = fee_detail["amount"]
+                                #    if ('status' in Payment and Payment['status'] == "approved"):
+                                #        financing_fee_amount+= payment_fields["financing_fee_amount"]
+
                         if (order):
                             order.financing_fee_amount = financing_fee_amount
                             if (sorder):
                                 sorder.meli_fee_amount = order.fee_amount
                                 sorder.meli_financing_fee_amount = order.financing_fee_amount
+
                     payment_fields["taxes_amount"] = payment_fields["full_payment"]["taxes_amount"]
 
                 payment_ids = payments_obj.search( [  ('payment_id','=',payment_fields['payment_id']),
                                                             ('order_id','=',order.id ) ] )
-
                 if not payment_ids:
-	                payment_ids = payments_obj.create( ( payment_fields ))
+                    _logger.info("Creating payment fields:"+str(payment_fields) )
+                    payment_ids = payments_obj.create( ( payment_fields ) )
                 else:
+                    _logger.info("Upading payment fields:"+str(payment_fields))
                     payment_ids.write( ( payment_fields ) )
 
         #if order:
@@ -2308,6 +2380,7 @@ class mercadolibre_orders(models.Model):
 
                                 if not payment.account_payment_id:
                                     payment.create_payment( meli=meli, config=config )
+
                         except Exception as e:
                             _logger.info("Error creating customer payment")
                             _logger.info(e, exc_info=True)
@@ -2800,6 +2873,11 @@ class mercadolibre_buyers(models.Model):
     billing_info_state_name = fields.Char( string='Billing Info State Name')
     billing_info_zip_code = fields.Char( string='Billing Info Zip Code')
 
+    billing_info_economic_activity = fields.Char(string='Billing Info Economic Activity')
+    billing_info_neighborhood = fields.Char(string='Billing Info Neighborhood')
+    billing_info_vat_discriminating_billing = fields.Char(string='Billing Info Vat Discriminating Billing')
+    billing_info_invoice_type = fields.Char(string='Billing Info Invoice Type')
+
     _sql_constraints = [
         ('unique_buyer_id', 'unique(buyer_id)', 'Meli Buyer id already exists!')
     ]
@@ -2915,7 +2993,7 @@ class sale_order_cancel_wiz_meli(models.TransientModel):
                 #_logger.info("cancel_order: %s " % (order_id) )
 
                 order = orders_obj.browse(order_id)
-                is_locked = (order and order.state in ["done"]) or ("locked" in sorder._fields and order.locked)
+                is_locked = (order and order.state in ["done"]) or ("locked" in order._fields and order.locked)
                 if (is_locked and self.cancel_blocked):
                     #asd
                     #_logger.info("cancel_order: unblock")
