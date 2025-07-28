@@ -389,8 +389,7 @@ class sale_order(models.Model):
             self.action_invoice_create()
         return res
 
-    def meli_deliver( self, meli=None, config=None, data=None ):
-        #_logger.info(meli_deliver base")
+    def meli_deliver(self, meli=None, config=None, data=None):
         res = {}
         # Sólo operamos si la orden de venta ya está confirmada o hecha
         if self.state in ('sale', 'done') and self.picking_ids:
@@ -1865,11 +1864,18 @@ class mercadolibre_orders(models.Model):
         partner_shipping_id = mercadolibre_shipping_partner_id or partner_shipping_id
 
         meli_order_fields = self.prepare_sale_order_vals( order_json=order_json, meli=meli, config=config, sale_order=sorder )
-        meli_order_fields.update({
-            'partner_id': (partner_id and partner_id.id),
-            'partner_invoice_id': (partner_invoice_id and partner_invoice_id.id),
-            'pricelist_id': plistid.id,
-        })
+        meli_order_fields.update({'pricelist_id': plistid.id })
+
+        if partner_id:
+            partner_already_set = (sorder and sorder.partner_id and sorder.partner_id.id == partner_id.id)
+            if not partner_already_set:
+                meli_order_fields.update({'partner_id': (partner_id and partner_id.id)})
+
+        if partner_invoice_id:
+            partner_invoice_already_set = (sorder and sorder.partner_invoice_id and sorder.partner_invoice_id.id == partner_invoice_id.id)
+            if not partner_invoice_already_set:
+                meli_order_fields.update({'partner_invoice_id': (partner_invoice_id and partner_invoice_id.id)})
+
         if partner_shipping_id:
             shipping_partner_already_set = (sorder and sorder.partner_shipping_id and sorder.partner_shipping_id.id == partner_shipping_id.id)
             update_shipping = not sorder or (sorder and not sorder.partner_shipping_id)
@@ -2269,6 +2275,29 @@ class mercadolibre_orders(models.Model):
                     payment_fields["full_payment"] = mp_response.json()
                     payment_fields["shipping_amount"] = payment_fields["full_payment"]["shipping_amount"]
                     payment_fields["total_paid_amount"] = payment_fields["full_payment"]["transaction_details"]["total_paid_amount"]
+
+                    if ("fee_details" in payment_fields["full_payment"] and len(payment_fields["full_payment"]["fee_details"])>0):
+                        fee_details = payment_fields["full_payment"]["fee_details"]
+                        for fee_detail in fee_details:
+                            #fee_detail = fee_details[index]
+                            if fee_detail and "amount" in fee_detail:
+                                fee_type = fee_detail["type"]
+                                fee_payer = fee_detail["fee_payer"]
+                                if (fee_payer and fee_payer == "collector" and fee_type == "application_fee"):
+                                    payment_fields["fee_amount"] = fee_detail["amount"]
+                                    if (order):
+                                        order.fee_amount = payment_fields["fee_amount"]
+                                if (fee_payer and fee_payer == "payer" and fee_type == "financing_fee"):
+                                    payment_fields["financing_fee_amount"] = fee_detail["amount"]
+                                    if ('status' in Payment and Payment['status'] == "approved"):
+                                        financing_fee_amount+= payment_fields["financing_fee_amount"]
+                        if (order):
+                            order.financing_fee_amount = financing_fee_amount
+                            if (sorder):
+                                sorder.meli_fee_amount = order.fee_amount
+                                sorder.meli_financing_fee_amount = order.financing_fee_amount
+
+
                     if ("charges_details" in payment_fields["full_payment"] and len(payment_fields["full_payment"]["charges_details"])>0):
                         fee_details = payment_fields["full_payment"]["charges_details"]
                         for fee_detail in fee_details:

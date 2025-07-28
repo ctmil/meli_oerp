@@ -9,7 +9,7 @@
 {
     'name': 'MercadoLibre Publisher / Mercado Libre Odoo Connector',
     'summary': 'MercadoLibre Publisher / Mercado Libre Odoo Connector',
-    'version': '16.0.25.11',
+    'version': '16.0.25.12',
     'author': 'Moldeo Interactive',
     'website': 'https://www.moldeointeractive.com',
     "category": "Sales",
@@ -52,5 +52,6 @@
     'active': False,
     'installable': True,
     'application': True,
+    'pre_init_hook': 'pre_init_hook',
     'license': 'GPL-3'
 }
