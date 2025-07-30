@@ -303,7 +303,7 @@ class MeliUtil(models.AbstractModel):
     _description = 'Utilidades para Mercado Libre'
 
     def get_meli_state( self ):
-        return #self.get_new_instance()
+        return self.get_new_instance()
 
     @api.model
     def get_new_instance(self, company=None, refresh_force=False):

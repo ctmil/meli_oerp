@@ -1371,7 +1371,7 @@ class mercadolibre_orders(models.Model):
                     #meli_buyer_fields['vat'] = vatn
 
                 #latam Chile - l10n_cl_edi
-                if (1==2 and  company.country_id.code=="CL" and ('doc_type' in Buyer['billing_info']) and ('l10n_latam_identification_type_id' in self.env['res.partner']._fields ) ):
+                if ( company.country_id.code=="CL" and ('doc_type' in Buyer['billing_info']) and ('l10n_latam_identification_type_id' in self.env['res.partner']._fields ) ):
 
                     if (Buyer['billing_info']['doc_type']=="RUT"):
                         #rut
@@ -1791,17 +1791,6 @@ class mercadolibre_orders(models.Model):
                     #_logger.info("Updating partner: "+str(partner_update))
                     try:
                         partner_id.write(partner_update)
-                        if ("activity_description" in partner_update):
-                            try:
-                                partner_id._onchange_city_id()
-                            except Exception as EE:
-                                _logger.error("_onchange_city_id error"+str(EE))
-                                pass;
-                            try:
-                                partner_id.onchange_document()
-                            except Exception as EE:
-                                _logger.error("_onchange_city_id error"+str(EE))
-                                pass;
                         self._cr.commit()
                     except Exception as e:
                         _logger.info("orders_update_order > Error actualizando Partner:"+str(e))
