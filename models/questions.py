@@ -31,6 +31,7 @@ class mercadolibre_questions(models.Model):
 
     name = fields.Char(string="Name")
     posting_id = fields.Many2one("mercadolibre.posting","Posting")
+    company_id = fields.Many2one("res.company",string="Empresa")
     #product_id = fields.Many2one("product.product","Product")
     question_id = fields.Char('Question Id')
     date_created = fields.Date('Creation date')
@@ -51,7 +52,7 @@ class mercadolibre_questions(models.Model):
     def compute_answer_link( self ):
         company = self.env.user.company_id
         for q in self:
-            if q.item_id and q.question_id:       
+            if q.item_id and q.question_id:
                 q.answer_link = company.get_ML_LINK_URL()+"preguntas/vendedor/articulo/"+str(q.item_id)+"?question_id="+str(q.question_id)
 
     answer_link = fields.Char(string="Answer Link",compute=compute_answer_link)
@@ -69,7 +70,7 @@ class mercadolibre_questions(models.Model):
         }
         return question_fields
 
-    def fetch( self, question_id=None, meli=None, config=None ):
+    def fetch_question( self, question_id=None, meli=None, config=None ):
         Question = None
         if not meli:
             meli = self.env['meli.util'].get_new_instance(config)
@@ -82,14 +83,14 @@ class mercadolibre_questions(models.Model):
                 _logger.error(questions_json)
             else:
                 Question = questions_json
-                
+
         return Question
 
     def process_question( self, question_id=None, Question=None, meli=None, config=None ):
         questions_obj = self
         question = None
         if question_id and not Question:
-            Question = questions_obj.fetch( question_id=question_id, meli=meli, config=config )
+            Question = questions_obj.fetch_question( question_id=question_id, meli=meli, config=config )
 
 
         if (Question and 'id' in Question):
@@ -110,5 +111,3 @@ class mercadolibre_questions(models.Model):
                     question.write( (question_fields) )
 
         return question
-
-mercadolibre_questions()

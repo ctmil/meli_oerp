@@ -23,7 +23,33 @@ from odoo import fields, osv, models, api
 
 class MercadolibreBanner(models.Model):
     _name = "mercadolibre.banner"
-    _description = "Banners for MercadoLibre descriptions"
+    _description = "Plantillas descriptivas para MercadoLibre"
 
-    name = fields.Char('Name')
-    description = fields.Html(string='Description')
+    name = fields.Char('Titulo plantilla')
+    description = fields.Text(string='Plantilla descriptiva')
+    header = fields.Text(string='Encabezado')
+    footer = fields.Text(string='Pie')
+    images = fields.Text(string='Imagenes (links)')
+    images_id = fields.Many2many("mercadolibre.image",string="Imagenes Meli")
+
+    def get_description( self, product ):
+        if not product:
+            return ""
+        des = self.header or ""
+        if product.meli_description:
+            des+= "\n"+product.meli_description
+        if self.footer:
+            des+= "\n"+self.footer
+
+        return des
+
+
+    def get_from_ml_description( self, meli_description ):
+        if not meli_description:
+            return ""
+        if self.header:
+            meli_description = meli_description.replace(self.header, "").strip()
+        if self.footer:
+            meli_description = meli_description.replace(self.footer, "").strip()
+
+        return meli_description.strip()

@@ -2,17 +2,81 @@
 from dateutil.parser import *
 from datetime import *
 
+import unidecode
 import logging
 _logger = logging.getLogger(__name__)
+import json
 
 # Odoo version 12.0
 
 # Odoo 12.0 -> Odoo 13.0
 uom_model = "uom.uom"
+cl_vat_sep_million = ""
 
 #message types
 order_message_type = "notification"
 product_message_type = "notification"
+
+def pretty_json( data ):
+    return json.dumps( data, sort_keys=False, indent=4 )
+
+def really_compare( a, b, sensitive=False ):
+
+    a = str(a).capitalize()
+    b = str(b).capitalize()
+
+    if (sensitive):
+        return (a==b)
+
+    a = unidecode.unidecode(a)
+    b = unidecode.unidecode(b)
+
+    return (a==b)
+
+
+
+#price from pricelist
+def get_price_from_pl( pricelist, product, quantity ):
+    pl = pricelist
+    return_val = {}
+    return_val = pl.price_get( product.id, quantity)
+    return return_val
+
+#Autocommit
+def Autocommit( self, act=False ):
+    self._cr.autocommit(act)
+    return False
+
+def UpdateProductType( product ):
+    if not product:
+        return
+    for prod in product:
+        if (prod and "detailed_type" in prod._fields and prod.detailed_type not in ['product']):
+            failed = False
+            try:
+                prod.write( { 'detailed_type': 'product' } )
+            except Exception as e:
+                _logger.info("Set detailed_type almacenable ('product') not possible:")
+                _logger.error(e, exc_info=True)
+                failed = True
+                pass;
+
+        if (prod and "type" in prod._fields and prod.type not in ['product']):
+            failed = False
+            try:
+                prod.write( { 'type': 'product' } )
+            except Exception as e:
+                _logger.info("Set type almacenable ('product') not possible:")
+                _logger.error(e, exc_info=True)
+                failed = True
+                pass;
+
+            #query = """UPDATE product_template SET type='product', detailed_type='product' WHERE id=%i""" % (prod.id)
+            #cr = prod._cr
+            #respquery = cr.execute(query)
+
+def ProductType():
+    return { "type": "product" }
 
 # Odoo 12.0 -> Odoo 13.0
 prod_att_line = "product.template.attribute.line"
@@ -20,20 +84,30 @@ prod_att_line = "product.template.attribute.line"
 # account
 acc_inv_model  = "account.invoice"
 
+#stock inventory to quant: 14.0 -> 15.0
+stock_inv_model = "stock.inventory"
+
 # default_create_variant
 default_no_create_variant = "no_variant"
 default_create_variant = "always"
 
 #'unique(product_tmpl_id,meli_imagen_id)'
-unique_meli_imagen_id_fields = 'unique(product_tmpl_id,meli_imagen_id)'
+unique_meli_imagen_id_fields = 'unique(product_tmpl_id,product_variant_id,meli_imagen_id)'
+
+
+def get_ref_view( self, module_name, view_name ):
+
+    refview = self.env['ir.model.data'].get_object_reference( module_name, view_name )
+
+    return refview
 
 #TODO: get_company_selected, user with allowed companies
-def get_company_selected( self, context=None, company=None, company_id=None, user=None, user_id=None):
+def get_company_selected( self, context=None, company=None, company_id=None, user=None, user_id=None ):
     context = context or self.env.context
     company = company or self.env.user.company_id
     #_logger.info("context:"+str(context)+" company:"+str(company))
     company_id = company_id or (context and 'allowed_company_ids' in context and context['allowed_company_ids'] and context['allowed_company_ids'][0]) or company.id
-    company = self.env['res.company'].browse(company_id) or company    
+    company = self.env['res.company'].browse(company_id) or company
     return company
 
 #variant mage ids
@@ -95,8 +169,8 @@ def ml_datetime(datestr):
         datestr = str(datestr)
         return parse(datestr).astimezone(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
     except:
-        _logger.error(type(datestr))
-        _logger.error(datestr)
+        #_logger.error(type(datestr))
+        #_logger.error(datestr)
         return None
 
 def ml_tax_excluded(self, config=None ):
@@ -112,14 +186,19 @@ def ml_tax_excluded(self, config=None ):
     return tax_excluded
 
 def ml_product_price_conversion( self, product_related_obj, price, config=None):
+    company_id = ("company_id" in config._fields and config.company_id) or config
     product_template = product_related_obj.product_tmpl_id
     ml_price_converted = float(price)
     tax_excluded = ml_tax_excluded( self, config=config )
+    #tax_excluded = True
+    #_logger.info("Taxes:"+str(product_template.taxes_id))
     if ( tax_excluded and product_template.taxes_id ):
         txfixed = 0
         txpercent = 0
         #_logger.info("Adjust taxes")
         for txid in product_template.taxes_id:
+            if (txid.company_id!=company_id):
+                continue;
             if (txid.type_tax_use=="sale" and not txid.price_include):
                 if (txid.amount_type=="percent"):
                     txpercent = txpercent + txid.amount
@@ -129,13 +208,13 @@ def ml_product_price_conversion( self, product_related_obj, price, config=None):
         if (txfixed>0 or txpercent>0):
             #_logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_converted))
             ml_price_converted = txfixed + ml_price_converted / (1.0 + txpercent*0.01)
-            _logger.info("Price adjusted with taxes:"+str(ml_price_converted))
+            #_logger.info("Price adjusted with taxes:"+str(ml_price_converted))
 
     ml_price_converted = round(ml_price_converted,2)
     return ml_price_converted
 
 
-def get_inventory_fields( product, warehouse ):
+def get_inventory_fields( product, warehouse, quantity=0 ):
     return {
             #"product_ids": [(4,product.id)],
             "product_id": product.id,
@@ -177,3 +256,7 @@ def set_delivery_line( sorder, delivery_price, delivery_message ):
     	'delivery_message': delivery_message,
     })
     return delivery_line
+
+def remove_delivery_line( sorder, delivery_price=0):
+    sorder._remove_delivery_line()
+    return

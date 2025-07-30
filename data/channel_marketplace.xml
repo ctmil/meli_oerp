@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+	<data noupdate="0">
+
+    <record id="meli_channel_mkt_marketplace" model="meli.channel.mkt">
+      <field name="name">MercadoLibre</field>
+      <field name="code">marketplace</field>
+    </record>
+
+    <record id="meli_channel_mkt_mshops" model="meli.channel.mkt">
+      <field name="name">MercadoShops</field>
+      <field name="code">mshops</field>
+    </record>
+
+  </data>
+</odoo>

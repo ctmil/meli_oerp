@@ -99,10 +99,33 @@
                         <field name="force_meli_pub"/>
                         <field name="force_create_variants"/>
                         <field name="force_dont_create"/>
+
+                        <h4>Batch Processing</h4>
+                        <field name="batch_processing_unit"/>
+                        <field name="batch_processing_unit_offset"/>
+                        <field name="batch_actives_to_sync" readonly="0"/>
+                        <field name="batch_paused_to_sync" readonly="0"/>
+
+                        <br/>
+                        <field name="batch_processing_status" readonly="1"/>
+                        <field name="batch_processing" readonly="1"/>
+
+                        <h4>Import Status</h4>
+                        <field name="import_status" readonly="1"/>
+                        <field name="actives_to_sync" readonly="1"/>
+                        <field name="paused_to_sync" readonly="1"/>
+                        <field name="closed_to_sync" readonly="1"/>
+
+                        <h4>Import Report</h4>
+                        <field name="report_import_link" widget="url" readonly="1"/>
+                        <field name="report_import" readonly="0" domain="[('res_id','=',id)]"/>
+
                       </group>
                     </group>
                     <footer>
                         <button name="product_template_import" string="Import from MELI"  type="object" class="oe_highlight"  />
+                        <button name="check_import_status" string="Check Import Status" type="object"/>
+                        <button name="create_full_report" string="Create Full Report" type="object"/>
                         <button string="Cancel" class="oe_link" special="cancel" />
                     </footer>
                 </form>

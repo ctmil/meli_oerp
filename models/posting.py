@@ -23,7 +23,7 @@ from odoo import fields, osv, models, api
 from odoo.tools.translate import _
 import logging
 
-from ..melisdk.meli import Meli
+#from ..melisdk.meli import Meli
 
 import logging
 _logger = logging.getLogger(__name__)
@@ -59,8 +59,6 @@ class mercadolibre_posting_update(models.TransientModel):
                 posting.posting_query_questions()
 
         return {}
-
-mercadolibre_posting_update()
 
 
 class mercadolibre_posting(models.Model):
@@ -141,7 +139,8 @@ class mercadolibre_posting(models.Model):
 
     posting_date = fields.Date('Fecha del posting')
     name = fields.Char('Name')
-    meli_id = fields.Char('Id del item asignado por Meli', size=256)
+    meli_id = fields.Char('Meli Id', size=256, index=True)
+    meli_variation_id = fields.Char('Meli Variante Id', index=True)
     product_id = fields.Many2one('product.product','product_id')
     product_id_active = fields.Boolean(related='product_id.active',string="Active product")
     meli_status = fields.Char( string="Estado del producto en MLA", size=256 )
@@ -150,5 +149,3 @@ class mercadolibre_posting(models.Model):
     posting_questions = fields.One2many( 'mercadolibre.questions','posting_id','Questions' )
     posting_update = fields.Char( compute=_posting_update, string="Posting Update", store=False )
     meli_seller_custom_field = fields.Char('Sellect Custom Field or SKU',size=256)
-
-mercadolibre_posting()

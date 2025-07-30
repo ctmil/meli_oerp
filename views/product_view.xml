@@ -93,8 +93,24 @@
             <data>
                 <notebook>
                     <page string="MercadoLibre Plantilla">
-                      <group name="ML actions">
+
                         <div class="oe_button_box" name="button_box_mel" style="width: auto;">
+                          <button type="object"
+                              name="action_meli_pause"
+                              attrs="{'invisible':[('meli_variants_status', '!=', 'active')] }"
+                              confirm="Esta seguro de Pausar este Producto en Mercado Libre, esto bloqueara las publicaciones?"
+                              class="oe_stat_button">
+                              <img src="/meli_oerp/static/src/img/logo_ML.png" width="48" alt="logo ml"/>
+                              <span>Pausar en ML</span>
+                          </button>
+                          <button type="object"
+                              name="action_meli_activate"
+                              attrs="{'invisible':[('meli_variants_status', '!=', 'paused')]}"
+                              confirm="Esta seguro de Pausar este Producto en Mercado Libre, esto activara las publicaciones?"
+                              class="oe_stat_button">
+                              <img src="/meli_oerp/static/src/img/logo_ML.png" width="48"  alt="logo ml"/>
+                              <span>Activar</span>
+                          </button>
                           <button name='%(action_product_template_post)d' type="action"
                             string="Publicar"
                             title="Publicar/Actualizar en ML"
@@ -113,7 +129,7 @@
                             class="oe_stat_button"
                             icon="fa-refresh"/>
                         </div>
-                      </group>
+                      <group name="ML actions"></group>
                       <separator string="Variants" colspan="1"/>
                       <field name="product_variant_ids" options="{'no_create': True}" domain="[('meli_id','!=',None)]">
                         <tree>
@@ -122,9 +138,11 @@
                           <field string="Id Pub" name="meli_id"/>
                           <field string="Id Var" name="meli_id_variation"/>
                           <field string="Sku" name="default_code"/>
+                          <field string="Barcode" name="barcode"/>
                           <field string="Status" name="meli_status"/>
                           <field string="Sub Status" name="meli_sub_status"/>
                           <field string="ML Title" name="meli_title"/>
+                          <field string="ML Family Name" name="meli_family_name" />
                           <field string="ML Price" name="meli_price"/>
                           <field string="ML Qty" name="meli_available_quantity"/>
                           <field string="Link" name="meli_permalink" widget="url"/>
@@ -135,6 +153,7 @@
                       <separator string="Descripcion del producto en ML" colspan="1"/>
                       <group name="Basic description">
                         <field name="meli_title" />
+                        <field name="meli_family_name" />
                         <field name="meli_description" />
                         <field name="meli_category" />
                         <field name="meli_price" />
@@ -142,6 +161,9 @@
                         <!--<field name="meli_attributes" />-->
                         <field name="meli_brand"/>
                         <field name="meli_model"/>
+                        <field name="meli_gender"/>
+                        <field name="meli_catalog_domain"/>
+                        <field name="meli_grid_chart_id" domain="[('meli_domain_id','=',meli_catalog_domain)]"/>
                       </group>
                       <separator string="Condiciones de venta" colspan="1"/>
                       <group name="ML buying conditions">
@@ -150,6 +172,7 @@
                         <field name="meli_warranty" />
                         <field name="meli_condition" />
                         <field name="meli_listing_type" />
+                        <field name="meli_channel_mkt" widget="many2many_tags" />
                         <!--field name="meli_shipping_mode"/>
                         <field name="meli_shipping_method"/-->
                       </group>
@@ -410,15 +433,18 @@
                           <group string="Detalle de Producto en ML">
               							<group>
                               <field name="meli_title" />
-                              <field name="meli_description_banner_id" on_change="product_on_change_meli_banner( meli_description_banner_id)" />
+                              <field name="meli_family_name" />
+                              <!--field name="meli_description_banner_id" on_change="product_on_change_meli_banner( meli_description_banner_id)" /-->
                               <field name="meli_category" options="{'no_create': True}"/>
                               <field name="meli_brand"/>
                               <field name="meli_model"/>
                               <field name="meli_listing_type" />
                               <field name="meli_buying_mode" />
                               <field name="meli_price_fixed" />
-                              <field name="meli_price" attrs="{'readonly':[('meli_price_fixed', '=', False)]}"/>
+                              <field name="meli_price"
+					attrs="{'readonly':[('meli_price_fixed', '=', False)]}"/>
                               <field name="meli_currency" />
+
                               <!--field name="meli_shipping_mode"/>
                               <field name="meli_shipping_method"/-->
                             </group>
@@ -464,6 +490,7 @@
           <field name="arch" type="xml">
             <field name="name" position="after">
               <field name="meli_default_id_attribute" />
+              <field name="meli_chart_id"/>
             </field>
           </field>
         </record>
@@ -521,7 +548,7 @@
             <!--field name="search_view_id" ref="producteca_sale_order_search_view" /-->
         </record>
 
-        <menuitem id="menu_meli" name="MercadoLibre" parent="sale.sale_menu_root" sequence="9"/>
+        <menuitem id="menu_meli" name="MercadoLibre" parent="sale.sale_menu_root" sequence="16"/>
 
 
         <menuitem id="menu_meli_oerp_pricelist_items"

@@ -26,6 +26,8 @@ import logging
 _logger = logging.getLogger(__name__)
 
 import json
+import base64
+import mimetypes
 from datetime import datetime
 
 #from bottle import Bottle, run, template, route, request
@@ -34,7 +36,11 @@ from .meli_oerp_config import *
 
 from .warning import warning
 
-from ..melisdk.meli import Meli
+#from ..melisdk.meli import Meli
+
+
+from . import versions
+from .versions import *
 
 class product_template_post(models.TransientModel):
     _name = "mercadolibre.product.template.post"
@@ -46,8 +52,13 @@ class product_template_post(models.TransientModel):
     posting_date = fields.Date('Fecha del posting')
     #'company_id': fields.many2one('res.company',string='Company'),
     #'mercadolibre_state': fields.related( 'res.company', 'mercadolibre_state', string="State" )
+
+    force_meli_variant = fields.Boolean(string="Publicar como variante",
+                                        help="Marca la publicación para ser publicada como variante, intentara especificar unicamente los atributos marcados en Odoo que crean variantes, aunque exista una sola combinacion.",
+                                        default=False)
     post_stock = fields.Boolean(string="Actualizar Stock",help="No actualiza el producto completo, solo el stock",default=False)
-    post_price = fields.Boolean(string="Acutalizar Precio",help="No actualiza el producto completo, solo el precio",default=False)
+    post_price = fields.Boolean(string="Actualizar Precio",help="No actualiza el producto completo, solo el precio",default=False)
+    action_pause = fields.Boolean(string="Pausar producto",help="No actualiza el producto completo, sólo pausa el producto",default=False)
 
 
     def pretty_json( self, data ):
@@ -72,8 +83,10 @@ class product_template_post(models.TransientModel):
         custom_context = {
             'force_meli_pub': self.force_meli_pub,
             'force_meli_active': self.force_meli_active,
+            'force_meli_variant': self.force_meli_variant,
             'post_stock': self.post_stock,
-            'post_price': self.post_price
+            'post_price': self.post_price,
+            'action_pause': self.action_pause
         }
         posted_products = 0
         for product_id in product_ids:
@@ -81,13 +94,19 @@ class product_template_post(models.TransientModel):
             if (product):
                 if (self.force_meli_pub and not product.meli_pub):
                     product.meli_pub = True
+
+                if (self.force_meli_variant):
+                    product.meli_pub_as_variant = True
+
                 if (product.meli_pub):
 
                     if self.post_stock:
                         res = product.with_context(custom_context).product_template_post_stock(meli=meli)
                     if self.post_price:
                         res = product.with_context(custom_context).product_template_post_price(meli=meli)
-                    if not self.post_stock and not self.post_price:
+                    if self.action_pause:
+                        res = product.with_context(custom_context).action_meli_pause()
+                    if not self.post_stock and not self.post_price and not self.action_pause:
                         res = product.with_context(custom_context).product_template_post()
 
                     if (res and 'name' in res):
@@ -100,7 +119,6 @@ class product_template_post(models.TransientModel):
 
         return res
 
-product_template_post()
 
 class product_template_update(models.TransientModel):
     _name = "mercadolibre.product.template.update"
@@ -113,6 +131,7 @@ class product_template_update(models.TransientModel):
     meli_id = fields.Char(string="MercadoLibre Id (MLMXXXXXXX) a importar.")
     force_create_variants = fields.Boolean(string="Forzar creacion/cambios de variantes",help="Forzar creacion de variantes (Modifica el producto de Odoo / Rompe Stock)",default=False)
 
+    force_import_images = fields.Boolean(string="Importar imagenes",help="Para acelerar la importacion es mejor destilar esta opcion",default=True)
 	    #'company_id': fields.many2one('res.company',string='Company'),
 	    #'mercadolibre_state': fields.related( 'res.company', 'mercadolibre_state', string="State" )
 
@@ -144,14 +163,13 @@ class product_template_update(models.TransientModel):
                     for variant in product.product_variant_ids:
                         variant.meli_pub = True
                 if (product.meli_pub):
-                        res = product.product_template_update(meli_id=meli_id)
+                    res = product.product_template_update(meli_id=meli_id,import_images=self.force_import_images)
 
             if res and 'name' in res:
                 return res
 
         return res
 
-product_template_update()
 
 class product_post(models.TransientModel):
     _name = "mercadolibre.product.post"
@@ -165,6 +183,7 @@ class product_post(models.TransientModel):
 	    #'mercadolibre_state': fields.related( 'res.company', 'mercadolibre_state', string="State" )
     post_stock = fields.Boolean(string="Actualizar Stock",help="No actualiza el producto, solo el stock",default=False)
     post_price = fields.Boolean(string="Acutalizar Precio",help="No actualiza el producto, solo el precio",default=False)
+    action_pause = fields.Boolean(string="Pausar producto",help="No actualiza el producto completo, sólo pausa el producto",default=False)
 
 
     def pretty_json( self, data ):
@@ -195,7 +214,9 @@ class product_post(models.TransientModel):
                     res = product.product_post_stock(meli=meli)
                 if self.post_price:
                     res = product.product_post_price(meli=meli)
-                if not self.post_stock and not self.post_price:
+                if self.action_pause:
+                    res = product.action_meli_pause()
+                if not self.post_stock and not self.post_price and not self.action_pause:
                     res = product.product_post()
 
             #Pausa
@@ -207,7 +228,6 @@ class product_post(models.TransientModel):
 
         return res
 
-product_post()
 
 
 class product_product_update(models.TransientModel):
@@ -255,7 +275,6 @@ class product_product_update(models.TransientModel):
 
         return res
 
-product_product_update()
 
 
 
@@ -264,18 +283,164 @@ class product_template_import(models.TransientModel):
     _name = "mercadolibre.product.template.import"
     _description = "Wizard de Product Template Import en MercadoLibre"
 
+    title = fields.Char(string="Title", size=100, readonly=True)
     post_state = fields.Selection([('all','Todos'),('active','Activos'),('paused','Pausados'),('closed','Cerrados')], default='all', string='Filtrar publicaciones por estado',help='Estado de productos a importar (todos, activos o pausados)' )
     meli_id = fields.Char(string="MercadoLibre Id's (MLMXXXXXXX, MLMYYYYYYY, MLM.... ) a importar.")
     force_create_variants = fields.Boolean( string="Forzar creacion/cambios de variantes", help="Forzar creacion de variantes (Modifica el producto de Odoo / Rompe Stock)", default=False )
     force_dont_create = fields.Boolean( string="No crear productos (Encontrar por SKU)", default=True )
     force_meli_pub = fields.Boolean(string="Force Meli Pub", default=True)
+    force_import_images = fields.Boolean(string="Importar imágenes al import producto",default=True)
+
+    _req_name = 'title'
+
+    def _calculate_sync_status( self ):
+        sync_status = self.check_sync_status()
+        _logger.info('self: ' + str(self.report_import))
+        _logger.info('self._origin: ' + str(self._origin))
+        _logger.info('self._origin.report_import: ' + str(self._origin.report_import))
+        for imp in self:
+            report_import_link = str('report_import_link' in sync_status and str(sync_status['report_import_link']))
+            _logger.info('_calculate_sync_status: ' + str(imp)+" sync_status:"+report_import_link)
+            imp.import_status = "Idle "+str(report_import_link)
+            imp.actives_to_sync = str(0)
+            imp.paused_to_sync = str(0)
+            imp.closed_to_sync = str(0)
+            #imp.report_import = None
+            imp.report_import_link =  ""
+            if "actives_to_sync" in sync_status:
+                imp.actives_to_sync = str(sync_status['actives_to_sync'])
+                imp.paused_to_sync = str(sync_status['paused_to_sync'])
+                imp.closed_to_sync = str(sync_status['closed_to_sync'])
+                #imp.report_import = 'report_import' in sync_status and sync_status['report_import'] and sync_status['report_import'].id
+                _logger.info('_calculate_sync_status: imp.report_import > ' + str(imp.report_import))
+                if imp.report_import:
+                    imp.report_import_link = 'report_import_link' in sync_status and str(sync_status['report_import_link'])
+                    _logger.info('_calculate_sync_status: imp.report_import_link > ' + str(imp.report_import_link))
+
+
+    actives_to_sync = fields.Char(string="Products actives to sync",compute=_calculate_sync_status)
+    paused_to_sync = fields.Char(string="Products paused to sync",compute=_calculate_sync_status)
+    closed_to_sync = fields.Char(string="Products closed to sync",compute=_calculate_sync_status)
+    import_status = fields.Char(string="Import Status",compute=_calculate_sync_status)
+    report_import_link = fields.Char(string="Report Link", compute=_calculate_sync_status)
 
     force_meli_website_published = fields.Boolean(string="Force Website Published", default=False)
     force_meli_website_category_create_and_assign = fields.Boolean(string="Force Website Categories", default=False)
 
+    batch_processing_unit = fields.Integer(string="Numero de lotes a procesar por iteracion (0 - 100)", default=50 )
+    batch_processing_unit_offset = fields.Integer(string="Offset", default=0 )
+    batch_processing_status = fields.Char(string="Status proceso por lotes")
+    batch_processing = fields.Boolean(string="Batch Processing Active",default=False)
+    batch_actives_to_sync = fields.Boolean(string="Process Actives To Sync",default=False)
+    batch_paused_to_sync = fields.Boolean(string="Process Paused To Sync",default=False)
+    batch_left_to_sync = fields.Boolean(string="Process All Lefts To Sync",default=False)
+
+    report_import = fields.Many2one( "ir.attachment",string="Reporte Importación")
+
 
     def pretty_json( self, data ):
         return json.dumps( data, sort_keys=False, indent=4 )
+
+    def check_sync_status( self, context=None, config=None, meli=None ):
+        context = context or self.env.context
+        _logger.info("check_sync_status:"+str(context))
+        company = self.env.user.company_id
+        config = config or company
+        #product_obj = self.env['product.product']
+        #meli_ids = product_obj.search([('meli_id','!=',False)]).mapped('meli_id')
+        #_logger.info("meli_ids:"+str(meli_ids))
+
+        if not meli:
+            meli = self.env['meli.util'].get_new_instance(company)
+            if meli.need_login():
+                return meli.redirect_login()
+
+        results = []
+        post_state_filter = {}
+
+        meli_id = self.meli_id
+        odoo_meli_ids = company.list_meli_ids()
+        _logger.info("odoo_meli_ids: ###" + str(len(odoo_meli_ids)) )
+
+        ### ACTIVE
+        post_state_filter = { 'status': 'active' }
+        if meli_id:
+            post_state_filter.update( { 'meli_id': meli_id } )
+
+        fetched_meli_ids_active = company.fetch_list_meli_ids( params=post_state_filter )
+
+        actives_total = len(fetched_meli_ids_active)
+
+        actives_to_sync = []
+        for mli in fetched_meli_ids_active:
+            if mli not in odoo_meli_ids:
+                actives_to_sync.append(mli)
+
+        ### PAUSED
+        post_state_filter = { 'status': 'paused' }
+        if meli_id:
+            post_state_filter.update( { 'meli_id': meli_id } )
+
+        fetched_meli_ids_paused = company.fetch_list_meli_ids( params=post_state_filter )
+        paused_total = len(fetched_meli_ids_paused)
+
+        paused_to_sync = []
+        for mli in fetched_meli_ids_paused:
+            if mli not in odoo_meli_ids:
+                paused_to_sync.append(mli)
+
+        ### CLOSED
+        post_state_filter = { 'status': 'closed' }
+        if meli_id:
+            post_state_filter.update( { 'meli_id': meli_id } )
+
+        fetched_meli_ids_closed = company.fetch_list_meli_ids( params=post_state_filter )
+        closed_total = len(fetched_meli_ids_closed)
+
+        closed_to_sync = []
+        for mli in fetched_meli_ids_closed:
+            if mli not in odoo_meli_ids:
+                closed_to_sync.append(mli)
+
+        #check last import Status
+        attachments = self.env["ir.attachment"].search([('res_id','=',self.id)], order='id desc')
+        last_attachment = None
+        report_import_link = ""
+        if attachments:
+            last_attachment = attachments[0]
+            report_import_link = "/web/content/"+str(last_attachment.id)+"?download=true&access_token="+str(last_attachment.access_token)
+
+
+        result =  {
+            'actives_to_sync': str(len(actives_to_sync))+" / "+str(actives_total),
+            'paused_to_sync': str(len(paused_to_sync))+" / "+str(paused_total),
+            'closed_to_sync': str(len(closed_to_sync))+" / "+str(closed_total),
+        }
+
+        result.update({'report_import': last_attachment})
+        result.update({'report_import_link': report_import_link})
+
+        _logger.info(result)
+        return result
+
+    def check_import_status( self ):
+        _logger.info('Processing import status ' + str(self.import_status))
+
+        warningobj = self.env['meli.warning']
+
+        messhtml = ""
+        messhtml+= "<br/>Actives to sync: "+self.actives_to_sync
+        messhtml+= "<br/>Paused to sync: "+self.paused_to_sync
+        messhtml+= "<br/>Closed to sync: "+self.closed_to_sync
+
+        res = warningobj.info( title='CHECK IMPORT STATUS', message="Import Status", message_html=messhtml )
+        res = self.show_import_wizard()
+        return res
+
+    def create_full_report( self, context=None, config=None, meli=None):
+        _logger.info("Creating full report")
+        context = context or self.env.context
+        company = self.env.user.company_id
 
     def product_template_import(self, context=None):
 
@@ -296,10 +461,15 @@ class product_template_import(models.TransientModel):
             "post_state": self.post_state,
             "meli_id": self.meli_id,
             "force_meli_pub": self.force_meli_pub,
+            "force_import_images": self.force_import_images,
             "force_create_variants": self.force_create_variants,
             "force_dont_create": self.force_dont_create,
             "force_meli_website_published": self.force_meli_website_published,
-            "force_meli_website_category_create_and_assign": self.force_meli_website_category_create_and_assign
+            "force_meli_website_category_create_and_assign": self.force_meli_website_category_create_and_assign,
+            "batch_processing_unit": self.batch_processing_unit,
+            "batch_processing_unit_offset": self.batch_processing_unit_offset,
+            "batch_actives_to_sync": self.batch_actives_to_sync,
+            "batch_paused_to_sync": self.batch_paused_to_sync,
         }
 
         _logger.info("product_template_import custom_context:"+str(custom_context))
@@ -323,7 +493,104 @@ class product_template_import(models.TransientModel):
 
         #    if res and 'name' in res:
         #        return res
+        _logger.info("import res:"+str(res))
+        if res and "json_report" in res:
+            if "paging" in res:
+                if "next_offset" in res["paging"]:
+                    self.batch_processing_unit_offset = res["paging"]["next_offset"]
+
+            #update batch_processing_unit_offset
+            json_report = res["json_report"]
+            full_report = json_report["synced"]+json_report["missing"]+json_report["duplicates"]
+            csv_report_header = ""
+            csv_report = ""
+
+            sep = ""
+            full_report = full_report or []
+            if full_report:
+                for field in full_report[0]:
+                    csv_report_header+= sep+str(field)
+                    sep = ";"
+
+                for sync in full_report:
+                    sep = ""
+                    for field in sync:
+                        csv_report+= sep+'"'+str(sync[field])+'"'
+                        sep = ";"
+                    csv_report+= "\n"
+
+            csv_report_attachment_last = self.report_import or self.env["ir.attachment"].search([('res_id','=',self.id)], order='id desc', limit=1 )
+            if (csv_report_attachment_last):
+                csv_report_last = csv_report_attachment_last.index_content
+                if (csv_report_last):
+                    csv_report = csv_report_last+"\n"+csv_report
+            else:
+                csv_report = csv_report_header+"\n"+csv_report
+            #_logger.info(csv_report)
+
+            b64_csv = base64.b64encode(csv_report.encode())
+            now = datetime.now()
+            ATTACHMENT_NAME = "MassiveImport-"+str(now.strftime("%Y-%m-%d, %H:%M"))
+
+            csv_report_attachment = self.env['ir.attachment'].create({
+                'name': ATTACHMENT_NAME+'.csv',
+                'type': 'binary',
+                'datas': b64_csv,
+                #'datas_fname': ATTACHMENT_NAME + '.csv',
+                'access_token': self.env['ir.attachment']._generate_access_token(),
+                #'store_fname': ATTACHMENT_NAME+'.csv',
+                'res_model': 'mercadolibre.product.template.import',
+                'res_id': self.id,
+                'mimetype': 'text/csv'
+            })
+
+            csv_report_attachment_link= ''
+            if csv_report_attachment:
+                self.report_import = csv_report_attachment.id
+                csv_report_attachment_link = "/web/content/"+str(csv_report_attachment.id)+"?download=true&access_token="+str(csv_report_attachment.access_token)
+                self.report_import_link = csv_report_attachment_link
+                #<a class="fa fa-download" t-attf-title="Download Attachment {{asset.name}}" t-attf-href="/web/content/#{asset.attachment.id}?download=true&amp;access_token=#{asset.attachment.access_token}" target="_blank"></a>
+
+            res.update({'csv_report':  csv_report, 'csv_report_attachment':  csv_report_attachment, 'csv_report_attachment_link': csv_report_attachment_link })
+
+            _logger.info('Processing import status ' + str(self.import_status)+ " report_import:"+str(self.report_import))
+            messhtml = "Import status: "+str(res)
+            res = warningobj.info( title='IMPORT STATUS', message="Import Status", message_html=messhtml )
+            res = self.show_import_wizard()
 
         return res
 
-product_template_import()
+    def show_import_wizard(self, context=None):
+        #first fetch wizard view id
+        context = context or self.env.context
+        _logger.info("show_import_wizard:"+str(context))
+        refview = get_ref_view( self, "meli_oerp", 'view_product_template_import')
+        res_id = self.create({
+            "title": "Importar",
+            "post_state": ("post_state" in context and context["post_state"]) or self.post_state,
+            "force_meli_pub": ("force_meli_pub" in context and context["force_meli_pub"]) or self.force_meli_pub,
+            "force_import_images": ("force_import_images" in context and context["force_import_images"]) or self.force_import_images,
+            "force_create_variants": ("force_create_variants" in context and context["force_create_variants"]) or self.force_create_variants,
+            "force_dont_create": ("force_dont_create" in context and context["force_dont_create"]) or self.force_dont_create,
+            "batch_actives_to_sync": ("batch_actives_to_sync" in context and context["batch_actives_to_sync"]) or self.batch_actives_to_sync,
+            "batch_paused_to_sync": ("batch_paused_to_sync" in context and context["batch_paused_to_sync"]) or self.batch_paused_to_sync,
+            "post_state": ("post_state" in context and context["post_state"]) or self.post_state,
+            "batch_processing_unit": ("batch_processing_unit" in context and context["batch_processing_unit"]) or self.batch_processing_unit,
+            "batch_processing_unit_offset": ("batch_processing_unit_offset" in context and context["batch_processing_unit_offset"]) or self.batch_processing_unit_offset,
+            "report_import": (self.report_import and self.report_import.id),
+            "report_import_link": (self.report_import_link or ""),
+            "meli_id": self.meli_id,
+        })
+
+        return {
+            'name':_("Importar Masivamente ML (...)"),
+            'view_mode': 'form',
+            'view_id': (refview and refview[1]),
+            'res_id': (res_id and res_id.id),
+            'view_type': 'form',
+            'res_model': 'mercadolibre.product.template.import',
+            'type': 'ir.actions.act_window',
+            'target': 'new',
+            'domain': [],
+            'context': context
+        }

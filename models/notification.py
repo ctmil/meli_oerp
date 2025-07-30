@@ -65,6 +65,7 @@ class MercadolibreNotification(models.Model):
     received = fields.Datetime(string='Received', index=True)
     resource = fields.Char(string="Resource", index=True)
     attempts = fields.Integer(string='Attempts')
+    parameters = fields.Text(string="Parameters")
 
     state = fields.Selection([
 		("RECEIVED","Notification received."),
@@ -76,7 +77,7 @@ class MercadolibreNotification(models.Model):
     processing_ended = fields.Datetime( string="Processing ended" )
     processing_errors = fields.Text( string="Processing Errors log" )
     processing_logs = fields.Text( string="Processing Logs" )
-    company_id = fields.Many2one("res.company",string="Company")
+    company_id = fields.Many2one("res.company",string="Company",index=True)
     seller_id = fields.Many2one("res.users",string="Seller")
 
     _sql_constraints = [
@@ -335,7 +336,7 @@ class MercadolibreNotification(models.Model):
 
         vals = self._prepare_values(values=internals)
         if vals:
-            noti = self.create(vals)
+            noti = self.sudo().create(vals)
 
         return  noti
 

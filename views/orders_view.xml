@@ -24,6 +24,8 @@
                   <field name="meli_order_id" string="MercadoLibre Order Id"/>
                   <field name="meli_status_brief" string="MercadoLibre Status Brief"/>
                   <field name="meli_status" string="MercadoLibre Status"/>
+                  <field name="meli_update_forbidden" string="No actualizar desde ML"/>
+
                   <separator/>
                   <filter string="MercadoLibre Quotations" name="sale_orders_ml" domain="[('meli_order_id','!=',False)]" />
                   <filter string='MercadoLibre Status' domain="[]"
@@ -48,6 +50,9 @@
                     <field name="order_id"/>
                     <field name="pack_id"/>
                     <field name="shipping_id" invisible="0"/>
+                    <field name="order_product"/>
+                    <field name="order_product_sku"/>
+                    <field name="order_product_meli_id"/>
                     <field name="status"/>
                     <field name="shipment_status" invisible="0"/>
                     <field name="shipment_substatus" invisible="0"/>
@@ -55,9 +60,11 @@
                     <field name="buyer"/>
                     <field name="total_amount"/>
                     <field name="paid_amount"/>
+                    <field name="coupon_amount"/>
                     <field name="date_created"/>
                     <field name="date_closed"/>
                     <field name="tags" invisible="1"/>
+                    <field name="context" invisible="0"/>
                     <field name="pack_order" string="Es Carrito"/>
                     <field name="catalog_order" string="Es de Catalogo"/>
                 </tree>
@@ -72,12 +79,28 @@
                 <data>
                     <notebook>
                         <page string="MercadoLibre" attrs="{'invisible':[('meli_order_id', '=', False)]}">
+                            <button name='meli_oerp_update' type="object"
+                            string="Actualizar"
+                            attrs="{'invisible':[('meli_order_id','=',False)]}"
+                            class="oe_stat_button"
+                            icon="fa-refresh"/>
+                            <button name='meli_oerp_print' type="object"
+                              string="Imprimir guia"
+                              attrs="{'invisible':[('meli_shipment','=',False)]}"
+                              class="oe_stat_button"
+                              icon="fa-print"/>
                             <field name="meli_orders" invisible="0"/>
                             <group>
+                              <field name="meli_order"/>
+                              <field name="meli_buyer"/>
+                              <field name="meli_buyer_name"/>
+                              <field name="meli_update_forbidden" string="No actualizar desde ML"/>
                               <field name="meli_order_id" invisible="0"/>
                               <field name="meli_status" invisible="0"/>
                               <field name="meli_status_brief" invisible="0"/>
                               <field name="meli_shipment" invisible="0"/>
+                              <field name="meli_shipment_pdf_file" invisible="0"/>
+                              <field name="meli_shipment_pdf_filename" invisible="0"/>
                               <field name="meli_shipment_logistic_type" invisible="0"/>
                               <field name="meli_status_detail" invisible="0"/>
                               <field name="meli_total_amount" invisible="0"/>
@@ -85,6 +108,8 @@
                               <field name="meli_shipping_list_cost" invisible="0"/>
                               <field name="meli_fee_amount" invisible="0"/>
                               <field name="meli_paid_amount" invisible="0"/>
+                              <field name="meli_coupon_amount" invisible="0"/>
+                              <field name="meli_financing_fee_amount" invisible="0"/>
                               <field name="meli_currency_id" invisible="0"/>
                               <field name="meli_date_created" invisible="0"/>
                               <field name="meli_date_closed" invisible="0"/>
@@ -168,6 +193,8 @@
                         <field name="shipment_logistic_type" />
                         <field name="fee_amount"  widget="monetary"/>
                         <field name="paid_amount"  widget="monetary"/>
+                        <field name="coupon_amount" widget="monetary"/>
+                        <field name="financing_fee_amount"  widget="monetary"/>
                         <field name="currency_id"/>
                         <field name="company_id"/>
                         <field name="seller_id"/>
@@ -208,11 +235,14 @@
             <field name="type">tree</field>
             <field name="arch" type="xml">
                 <tree string="Lineas de la Orden" >
+                    <field name="seller_sku"/>
+                    <field name="seller_custom_field" string="SCF"/>
                     <field name="posting_id"/>
                     <field name="product_id"/>
-                    <field name="order_id"/>
+                    <!--field name="order_id"/-->
                     <field name="order_item_id"/>
                     <field name="unit_price"/>
+                    <field name="full_unit_price"/>
                     <field name="quantity"/>
                 </tree>
             </field>
@@ -229,6 +259,7 @@
                     <field name="total_paid_amount"/>
                     <field name="shipping_amount"/>
                     <field name="fee_amount"/>
+                    <field name="financing_fee_amount"/>
                     <field name="taxes_amount"/>
                     <field name="currency_id"/>
                     <field name="status"/>
@@ -243,6 +274,11 @@
             <field name="model">mercadolibre.orders</field>
             <field name="arch" type="xml">
     	         <search string="Search MercadoLibre Orders Information">
+                 <field name="name" string="Order" filter_domain="['|', '|', '|', '|','|', '|', ('name', 'ilike', self), ('order_id', 'ilike', self), ('pack_id', 'ilike', self), ('order_product_sku', 'ilike', self), ('order_product_meli_id', 'ilike', self), ('order_product_meli_variation_id', 'ilike', self), ('buyer', 'ilike', self)]"/>
+                 <field name="order_id" string="Order ID"/>
+                 <field name="order_product_sku" string="Product SKU"/>
+                 <field name="order_product_meli_id" string="Product Meli Id"/>
+                 <field name="order_product_meli_variation_id" string="Product Meli Var Id"/>
                  <field name="order_id" string="Order ID"/>
                  <field name="pack_id" string="Pack ID"/>
                  <field name="status" string="Status"/>
@@ -284,12 +320,29 @@
               </field>
         </record>
 
+        <record id="view_orders_update_invoice" model="ir.ui.view">
+              <field name="name">Actualizar Estado Factura Orden de ML</field>
+              <field name="model">mercadolibre.orders.update.invoice</field>
+              <field name="type">form</field>
+              <field name="arch" type="xml">
+                <form string="Update Order Invoice" version="7.0">
+                    <footer>
+                        <button name="order_update_invoice" string="Update Order Invoice"  type="object" class="oe_highlight"  />
+                        <button string="Cancel" class="oe_link" special="cancel" />
+                    </footer>
+                </form>
+              </field>
+        </record>
+
         <record id="view_orders_cancel_meli" model="ir.ui.view">
               <field name="name">Cancelar Orden Wizard Meli</field>
               <field name="model">sale.order.cancel.wiz.meli</field>
               <field name="type">form</field>
               <field name="arch" type="xml">
                 <form string="Cancel Order" version="7.0">
+                    <group>
+                      <field name="cancel_blocked"/>
+                    </group>
                     <footer>
                         <button name="cancel_order" string="Cancel Orders"  type="object" class="oe_highlight"  />
                         <button string="Cancel" class="oe_link" special="cancel" />
@@ -326,6 +379,16 @@
             <field name="target">new</field>
         </record>
 
+        <record id="action_update_meli_orders_invoice" model="ir.actions.act_window">
+            <field name="name">Actualizar Factura Ordenes de ML</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="src_model">mercadolibre.orders</field>
+            <field name="res_model">mercadolibre.orders.update.invoice</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+
         <record id="action_cancel_orders" model="ir.actions.act_window">
             <field name="name">Cancelar Ordenes</field>
             <field name="type">ir.actions.act_window</field>
@@ -346,7 +409,7 @@
         </record>
         -->
 
-        <menuitem id="menu_meli" name="MercadoLibre" parent="sale.sale_menu_root" sequence="9"/>
+        <menuitem id="menu_meli" name="MercadoLibre" parent="sale.sale_menu_root" sequence="16"/>
 
         <menuitem id="menu_meli_orders"
             action="action_meli_orders_tree"
@@ -359,9 +422,18 @@
             name="Compradores" />
 
             <act_window id="action_update_meli_orders"
-                name="Update ML Orders"
+                name="Actualizar Pedidos ML"
                 src_model="mercadolibre.orders"
                 res_model="mercadolibre.orders.update"
+                view_type="form"
+                view_mode="form"
+                key2="client_action_multi"
+                target="new"/>
+
+            <act_window id="action_update_meli_orders_invoices"
+                name="Actualizar Factura Pedidos ML"
+                src_model="mercadolibre.orders"
+                res_model="mercadolibre.orders.update.invoice"
                 view_type="form"
                 view_mode="form"
                 key2="client_action_multi"

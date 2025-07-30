@@ -9,7 +9,7 @@
 {
     'name': 'MercadoLibre Publisher / Mercado Libre Odoo Connector',
     'summary': 'MercadoLibre Publisher / Mercado Libre Odoo Connector',
-    'version': '12.0.22.23',
+    'version': '12.0.25.12',
     'author': 'Moldeo Interactive',
     'website': 'https://www.moldeointeractive.com',
     "category": "Sales",
@@ -26,13 +26,16 @@
         'views/warning_view.xml',
         'views/questions_view.xml',
         'views/orders_view.xml',
+        'views/atrributes_view.xml',
         'data/cron_jobs.xml',
         'data/error_template_data.xml',
         'data/parameters_data.xml',
+        'data/channel_marketplace.xml',
         'report/report_shipment_view.xml',
         'report/report_invoice_shipment_view.xml',
         'views/shipment_view.xml',
-        'views/notifications_view.xml'
+        'views/notifications_view.xml',
+        'wizard/meli_consult_category_wizard.xml'
     ],
     'price': '350.00',
     'currency': 'USD',
