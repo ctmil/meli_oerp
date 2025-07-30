@@ -1034,7 +1034,7 @@ class mercadolibre_shipment(models.Model):
                     partner_shipping_id = None
                     if "receiver_address" in ship_json:
                         if config.mercadolibre_cron_get_orders_shipment_client:
-                            partner_shipping_id = self.partner_delivery_id( partner_id=partner_id, Receiver=ship_json["receiver_address"], config=config )
+                            partner_shipping_id = self.partner_delivery_id( partner_id=original_contact_partner_id, Receiver=ship_json["receiver_address"], config=config )
 
 
                     mercadolibre_contact_partner_id = ("mercadolibre_contact_partner" in config._fields and config.mercadolibre_contact_partner)
@@ -1061,6 +1061,8 @@ class mercadolibre_shipment(models.Model):
                         if (sorder_pack and sorder_pack.meli_update_forbidden):
                             _logger.error("Forbidden to update sale order by meli_oerp" )
                             return {'error': 'Forbidden to update sale order by meli_oerp' }
+
+                        sorder = sorder_pack
                         totales = {}
                         totales['total_amount'] = 0
                         totales['paid_amount'] = 0
@@ -1099,8 +1101,6 @@ class mercadolibre_shipment(models.Model):
                             #TODO: "add parameter for pack_id":
                             #'name': "ML %i" % ( all_orders[0]["pack_id"] ),
                             #'name': "ML %s" % ( str(all_orders[0]["order_id"]) ),
-                            'partner_id': partner_id.id,
-                            'partner_invoice_id': partner_invoice_id and partner_invoice_id.id,
                             'pricelist_id': plistid and plistid.id,
                             #'meli_order_id': '%i' % (order_json["id"]),
                             'meli_order_id': packed_order_ids,
@@ -1121,6 +1121,18 @@ class mercadolibre_shipment(models.Model):
                         })
                         #TODO: agregar un campo para diferencia cada delivery res partner al shipment y orden asociado, crear un binding usando values diferentes... y listo
                         #_logger.info("ship_json[receiver_address]:"+str(ship_json["receiver_address"]) )
+
+
+
+                        if partner_id:
+                            partner_already_set = (sorder and sorder.partner_id and sorder.partner_id.id == partner_id.id)
+                            if not partner_already_set:
+                                meli_order_fields.update({'partner_id': (partner_id and partner_id.id)})
+
+                        if partner_invoice_id:
+                            partner_invoice_already_set = (sorder and sorder.partner_invoice_id and sorder.partner_invoice_id.id == partner_invoice_id.id)
+                            if not partner_invoice_already_set:
+                                meli_order_fields.update({'partner_invoice_id': (partner_invoice_id and partner_invoice_id.id)})
 
 
                         if partner_shipping_id:
