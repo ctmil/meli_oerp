@@ -40,7 +40,7 @@
                                 invisible="mercadolibre_state == True"
                                 class="btn btn-primary oe_stat_button"/>
 
-            								<!--button name='meli_query_products' type="object"
+            		<!--button name='meli_query_products' type="object"
                                 string="Importar todos los productos"
                                 title="Iniciar importación de todos los productos desde ML a Odoo"
                                 invisible="mercadolibre_state == True"
