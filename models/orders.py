@@ -1368,7 +1368,7 @@ class mercadolibre_orders(models.Model):
                         vatn = vatn[:2]+"."+vatn[2:5]+"."+vatn[5:8]+"-"+vatn[8:9]
                     if (len(vatn)==8):
                         vatn = vatn[:1]+"."+vatn[1:4]+"."+vatn[4:7]+"-"+vatn[7:8]
-                    #meli_buyer_fields['vat'] = vatn
+                    meli_buyer_fields['vat'] = vatn
 
                 #latam Chile - l10n_cl_edi
                 if ( company.country_id.code=="CL" and ('doc_type' in Buyer['billing_info']) and ('l10n_latam_identification_type_id' in self.env['res.partner']._fields ) ):

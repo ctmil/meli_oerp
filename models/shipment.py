@@ -220,6 +220,7 @@ class mercadolibre_shipment_print(models.TransientModel):
                     full_url_link_pdf[atoken]['comma']  = ","
 
                     full_url_link_pdf[atoken]['full_link'] = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_url_link_pdf[atoken]['full_ids']+"&response_type=pdf&access_token="+atoken
+                    #full_url_link_pdf[atoken]['full_link'] = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_url_link_pdf[atoken]['full_ids']+"&response_type=zpl2&access_token="+atoken
 
             sep = "<br>"+"\n"
 
@@ -230,18 +231,22 @@ class mercadolibre_shipment_print(models.TransientModel):
             full_link = full_url_link_pdf[atoken]['full_link']
             #_logger.info(full_link)
             if full_link:
-                full_links+= '<a href="'+full_link+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'
+                full_links+= '<a href="'+full_link+'" target="_blank"><strong><u>Descargar PDF/ZPL</u></strong></a>'
 
         # full_url_link_pdf = {'otken': {'full_link': "https://api.mercadolibre.com/shipment_labels?shipment_ids=43272588025&amp;response_type=pdf&amp;access_token=APP_USR-6866649250908201-040908-e22cf17b7005c0ee37b953b972c7c53b-1682539048"}}
         self.full_links= json.dumps(full_url_link_pdf)
         if (full_links):
-            return warningobj.info( title='Impresión de etiquetas', message="Abrir links para descargar PDF", message_html=""+full_ids+'<br><br>'+full_links+"<br><br>Reporte de no impresas:<br>"+reporte )
+            return warningobj.info( title='Impresión de etiquetas', message="Abrir links para descargar PDF/ZPL", message_html=""+full_ids+'<br><br>'+full_links+"<br><br>Reporte de no impresas:<br>"+reporte )
         else:
             return warningobj.info( title='Impresión de etiquetas: Estas etiquetas ya fueron todas impresas.', message=reporte )
 
 
     include_ready_to_print = fields.Boolean(string="Include Ready To Print",default=False)
     full_links = fields.Text(default='{}')
+
+    print_mode = fields.Selection(string="Modo",help="PDF o ZPL2",selection=[('pdf','PDF'),('zpl','ZPL')])
+    #&savePdf=Y
+    #&response_type=zpl2
 
 
 
@@ -1296,34 +1301,54 @@ class mercadolibre_shipment(models.Model):
             meli = self.env['meli.util'].get_new_instance( company )
 
         ship_report = { 'message': '', 'access_token': meli.access_token }
+        print_mode = "pdf"
+        if (config and "mercadolibre_shipment_print_guide" in config._fields):
+            if (config and "mercadolibre_shipment_print_guide_mode" in config._fields):
+                print_mode = config["mercadolibre_shipment_print_guide_mode"]        
 
         if (shipment and shipment.status=="ready_to_ship"):
 
             #full_str_ids = full_str_ids + comma + shipment
-            download_url = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+shipment.shipping_id+"&response_type=pdf&access_token="+meli.access_token
+            if (print_mode=='pdf'):
+                download_url = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+shipment.shipping_id+"&response_type=pdf&access_token="+meli.access_token
+            if (print_mode=='zpl'):
+                download_url = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+shipment.shipping_id+"&response_type=zpl2&access_token="+meli.access_token
+    
             shipment.pdf_link = download_url
 
-            if (shipment.substatus=="printed" or include_ready_to_print):
+            if (shipment.substatus=="printed" or include_ready_to_print):            
+
                 try:
-                    data = urlopen(shipment.pdf_link).read()
-                    #_logger.info(data)
-                    shipment.pdf_filename = "Shipment_"+shipment.shipping_id+".pdf"
-                    shipment.pdf_file = base64.b64encode(data)
-                    images = convert_from_bytes(data, dpi=300,fmt='jpg')
-                    if (1==1 and len(images)>1):
-                        for image in images:
-                            image_filename = "/tmp/%s-page%d.jpg" % ("Shipment_"+shipment.shipping_id, images.index(image))
-                            image.save(image_filename, "JPEG")
-                            if (images.index(image)==0):
-                                imgdata = urlopen("file://"+image_filename).read()
-                                shipment.pdfimage_file = base64.b64encode(imgdata)
-                                shipment.pdfimage_filename = "Shipment_"+shipment.shipping_id+".jpg"
+                    if (print_mode=='pdf'):
+                        data = urlopen(shipment.pdf_link).read()
+                        #_logger.info(data)
+                        shipment.pdf_filename = "Shipment_"+shipment.shipping_id+".pdf"
+                        shipment.pdf_file = base64.b64encode(data)
+                        images = convert_from_bytes(data, dpi=300,fmt='jpg')
+                        if (1==1 and len(images)>1):
+                            for image in images:
+                                image_filename = "/tmp/%s-page%d.jpg" % ("Shipment_"+shipment.shipping_id, images.index(image))
+                                image.save(image_filename, "JPEG")
+                                if (images.index(image)==0):
+                                    imgdata = urlopen("file://"+image_filename).read()
+                                    shipment.pdfimage_file = base64.b64encode(imgdata)
+                                    shipment.pdfimage_filename = "Shipment_"+shipment.shipping_id+".jpg"
+                    
+                    if (print_mode=='zpl'):
+                        data = urlopen(shipment.pdf_link).read()
+                        shipment.pdf_filename = "Shipment_"+shipment.shipping_id+".zpl"
+                        shipment.pdf_file = base64.b64encode(data)
+
 
                 except Exception as e:
                     _logger.info("Exception!")
                     _logger.info(e, exc_info=True)
                     #return warningobj.info( title='Impresión de etiquetas: Error descargando guias', message=download_url )
-                    ship_report['message'] = "Error descargando pdf:" + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)+'<a href="'+download_url+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'
+                    if (print_mode=='pdf'):
+                        ship_report['message'] = "Error descargando pdf:" + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)+'<a href="'+download_url+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'
+                    if (print_mode=='zpl'):
+                        ship_report['message'] = "Error descargando zpl:" + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)+'<a href="'+download_url+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'
+
                     #sep = "<br>"+"\n"
 
         else:
