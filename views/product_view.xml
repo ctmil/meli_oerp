@@ -95,7 +95,7 @@
               </label>
             <data>
                 <notebook>
-                    <page string="MercadoLibre Plantilla">
+                    <page string="MercadoLibre Plantilla" groups="meli_oerp.group_mercadolibre_manager">
 
                         <div class="oe_button_box" name="button_box_mel" style="width: auto;">
                           <button type="object"
@@ -135,7 +135,7 @@
                       <group name="ML actions"></group>
                       <separator string="Variants" colspan="1"/>
                       <field name="product_variant_ids" options="{'no_create': True}" domain="[('meli_id','!=',None)]">
-                        <tree>
+                        <tree create="False" delete="False">
                           <field string="ML Pub" name="meli_pub"/>
                           <field string="Variant" name="name"/>
                           <field string="Id Pub" name="meli_id"/>
@@ -336,10 +336,10 @@
             <field name="inherit_id" ref="product.product_normal_form_view" />
             <field name="arch" type="xml">
               <label for="sale_ok" position="after">
-                    <field name="meli_pub" />
-                    <label for="meli_pub" />
-                    <field name="meli_update_stock_blocked"/>
-                    <label for="meli_update_stock_blocked" />
+                    <field name="meli_pub" groups="meli_oerp.group_mercadolibre_manager"/>
+                    <label for="meli_pub" groups="meli_oerp.group_mercadolibre_manager"/>
+                    <field name="meli_update_stock_blocked" groups="meli_oerp.group_mercadolibre_manager"/>
+                    <label for="meli_update_stock_blocked" groups="meli_oerp.group_mercadolibre_manager"/>
                     <!--field name="meli_master" />
                     <label for="meli_master" /-->
 
@@ -347,7 +347,7 @@
 
                 <data>
                     <notebook>
-                        <page string="MercadoLibre">
+                        <page string="MercadoLibre" groups="meli_oerp.group_mercadolibre_manager">
                           <div class="oe_button_box" name="button_box_mel" style="width: auto;">
                             <button name='product_meli_get_product' type="object"
                               string="Importar"
@@ -451,7 +451,7 @@
                               <field name="meli_listing_type" />
                               <field name="meli_buying_mode" />
                               <field name="meli_price_fixed" />
-                              <field name="meli_price" 
+                              <field name="meli_price"
 					readonly="meli_price_fixed == False"/>
                               <field name="meli_currency" />
 

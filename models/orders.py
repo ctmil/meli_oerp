@@ -1333,7 +1333,7 @@ class mercadolibre_orders(models.Model):
                     meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
 
                 #Arg 15.0 BlueOrange Blue Orange
-                if ( ('doc_type' in Buyer['billing_info']) and ('partner_document_type_id' in self.env['res.partner']._fields) ):
+                if (1==2 and  ('doc_type' in Buyer['billing_info']) and ('partner_document_type_id' in self.env['res.partner']._fields) ):
                     doc_type = Buyer['billing_info']['doc_type']
                     doc_type_id = self.env["partner.document.type"].search([('name','ilike',doc_type)],limit=1)
                     if (doc_type_id):
@@ -1356,13 +1356,13 @@ class mercadolibre_orders(models.Model):
                     meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
 
                 #Chile YNext
-                if ( ('doc_type' in Buyer['billing_info']) and ('dte_email' in self.env['res.partner']._fields)):
+                if (1==2 and  ('doc_type' in Buyer['billing_info']) and ('dte_email' in self.env['res.partner']._fields)):
 
                     meli_buyer_fields['dte_email'] = 'nomail@fake.com'
                     
                     if ('giro' in self.env['res.partner']._fields):
                         meli_buyer_fields['giro'] = 'SIN GIRO'
-                        
+
                     vatn = Buyer['billing_info']['doc_number']
                     if (len(vatn)==9):
                         vatn = vatn[:2]+"."+vatn[2:5]+"."+vatn[5:8]+"-"+vatn[8:9]
