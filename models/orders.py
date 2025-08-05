@@ -1333,7 +1333,7 @@ class mercadolibre_orders(models.Model):
                     meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
 
                 #Arg 15.0 BlueOrange Blue Orange
-                if ( ('doc_type' in Buyer['billing_info']) and ('partner_document_type_id' in self.env['res.partner']._fields) ):
+                if (1==2 and  ('doc_type' in Buyer['billing_info']) and ('partner_document_type_id' in self.env['res.partner']._fields) ):
                     doc_type = Buyer['billing_info']['doc_type']
                     doc_type_id = self.env["partner.document.type"].search([('name','ilike',doc_type)],limit=1)
                     if (doc_type_id):
@@ -1356,13 +1356,13 @@ class mercadolibre_orders(models.Model):
                     meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
 
                 #Chile YNext
-                if ( ('doc_type' in Buyer['billing_info']) and ('dte_email' in self.env['res.partner']._fields)):
+                if (1==2 and  ('doc_type' in Buyer['billing_info']) and ('dte_email' in self.env['res.partner']._fields)):
 
                     meli_buyer_fields['dte_email'] = 'nomail@fake.com'
                     
                     if ('giro' in self.env['res.partner']._fields):
                         meli_buyer_fields['giro'] = 'SIN GIRO'
-                        
+
                     vatn = Buyer['billing_info']['doc_number']
                     if (len(vatn)==9):
                         vatn = vatn[:2]+"."+vatn[2:5]+"."+vatn[5:8]+"-"+vatn[8:9]
@@ -1396,7 +1396,7 @@ class mercadolibre_orders(models.Model):
                         is_business = (isb >= 50)
                         #_logger.info(Chile VAT: is business? "+str(is_business))
                     if (len(vatn)==8):
-                        vatn = vatn[:1]+str(sep_millon)+vatn[1:4]+""+vatn[4:7]+"-"+vatn[7:8]
+                        vatn = str("0")+vatn[:1]+str(sep_millon)+vatn[1:4]+""+vatn[4:7]+"-"+vatn[7:8]
                     meli_buyer_fields['vat'] = vatn
 
                     if "l10n_cl_sii_taxpayer_type" in self.env['res.partner']._fields:
@@ -1408,7 +1408,7 @@ class mercadolibre_orders(models.Model):
                             meli_buyer_fields['company_type'] = "person"
 
 
-
+                #CHILE, Daniel Santibañez localization
                 if ( ('doc_type' in Buyer['billing_info']) and ('document_type_id' in self.env['res.partner']._fields) and ('document_number' in self.env['res.partner']._fields) ):
 
                     if (Buyer['billing_info']['doc_type']=="RUT"):
@@ -1416,12 +1416,47 @@ class mercadolibre_orders(models.Model):
                     elif (Buyer['billing_info']['doc_type']):
                         meli_buyer_fields['document_type_id'] = self.env['sii.document_type'].search([('code','=',Buyer['billing_info']['doc_type'])],limit=1).id
 
-                    meli_buyer_fields['document_number'] = Buyer['billing_info']['doc_number']
+                    vatn = Buyer['billing_info']['doc_number']
+                    is_business = False
+                    sep_millon = cl_vat_sep_million
+                    if (len(vatn)==9):
+                        vatn = vatn[:2]+"."+vatn[2:5]+"."+vatn[5:8]+"-"+vatn[8:9]
+                        isb = float(vatn[:2])
+                        #_logger.info(Chile VAT: is business:"+str(isb))
+                        is_business = (isb >= 50)
+                        #_logger.info(Chile VAT: is business? "+str(is_business))
+                    if (len(vatn)==8):
+                        vatn = str("0")+vatn[:1]+"."+vatn[1:4]+"."+vatn[4:7]+"-"+vatn[7:8]
+                    #meli_buyer_fields['vat'] = vatn
+                    meli_buyer_fields['document_number'] = vatn
+                    meli_buyer_fields['vat'] = ""
+                    del meli_buyer_fields['vat']
+                    try:
+                        #('activity_description' in self.env['res.partner']._fields) and meli_buyer_fields.update({"activity_description": self.env["sii.activity.description"].search([('name','=','NCP')],limit=1).id })
 
-                    meli_buyer_fields['vat'] = 'CL'+str(Buyer['billing_info']['doc_number'])
-                    #meli_buyer_fields['email'] = str(Buyer['email'])
+                        if ("billing_info_economic_activity" in buyer_fields and 'activity_description' in self.env['res.partner']._fields):
+                            acti_desc = buyer_fields["billing_info_economic_activity"]
+                            sii_giro = self.env["sii.activity.description"].search([('name','=',acti_desc)], limit=1 )
+                            _logger.error("sii_giro: "+str(sii_giro))
+                            if (not sii_giro):
+                                sii_giro = self.env["sii.activity.description"].create(({
+                                    "name": acti_desc
+                                }))
+                                _logger.error("creando sii_giro: "+str(sii_giro))
 
-                    ('activity_description' in self.env['res.partner']._fields) and meli_buyer_fields.update({"activity_description": self.env["sii.activity.description"].search([('name','=','NCP')],limit=1).id })
+                            meli_buyer_fields['activity_description'] = (sii_giro and sii_giro.id) or None
+                    except E as Exception:
+                        _logger.error("billing_info_economic_activity"+str(E))
+                        pass;
+
+                    if ("billing_info_neighborhood" in buyer_fields or "billing_info_city_name" in buyer_fields):
+                        #meli_buyer_fields['city_id'] = ""
+                        comuna = buyer_fields["billing_info_neighborhood"] or buyer_fields["billing_info_city_name"]
+                        res_city = self.env["res.city"].search([('name','ilike',comuna)], limit=1 )
+                        if (res_city):
+                            meli_buyer_fields['city_id'] = (res_city and res_city.id) or None
+                        pass;
+
 
                 #Colombia
                 if ( ('doc_type' in Buyer['billing_info']) and ('l10n_co_document_type' in self.env['res.partner']._fields) ):
