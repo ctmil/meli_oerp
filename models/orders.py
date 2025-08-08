@@ -179,6 +179,7 @@ class sale_order(models.Model):
     meli_shipping = fields.Text(string="Shipping")
 
     meli_total_amount = fields.Float(string='Total amount')
+    meli_shipping_amount = fields.Float(string='Shipping Amount',help='Pago envío')
     meli_shipping_cost = fields.Float(string='Shipping Cost',help='Gastos de envío')
     meli_shipping_list_cost = fields.Float(string='Shipping List Cost',help='Gastos de envío, costo de lista/interno')
     meli_paid_amount = fields.Float(string='Paid amount',help='Paid amount (include shipping cost)')
@@ -364,7 +365,7 @@ class sale_order(models.Model):
 
             if (including_shipping_cost=="never"):
                 #sacamos le precio del envio
-                return (self.meli_paid_amount - self.meli_coupon_amount - self.meli_shipping_cost)
+                return (self.meli_paid_amount - self.meli_coupon_amount - self.meli_shipping_amount)
 
             return (self.meli_paid_amount - self.meli_coupon_amount)
 
@@ -451,6 +452,9 @@ class sale_order(models.Model):
                 serror = "MELI: Condition not met: meli_paid_amount and amount_total doesn't match, check products missings, taxes and discounts."
                 self.message_post(body=str(serror), message_type=order_message_type )
                 return {'error': serror}
+
+            if (self.state in ['draft']):
+                self.message_post(body=str("Monto correcto, listo para confirmar venta."), message_type=order_message_type )
 
             #check currency
             pricelist_is_meli = self.is_pricelist_meli(meli=meli, config=config)
@@ -2334,7 +2338,7 @@ class mercadolibre_orders(models.Model):
         #if order:
         #    return_id = self.env['mercadolibre.orders'].update
 
-        if config.mercadolibre_cron_get_orders_shipment:
+        if (1==1 or config.mercadolibre_cron_get_orders_shipment):
             #_logger.info("Updating order: Shipment: "+str(order.shipping_id))
             if (order and order.shipping_id):
                 shipment = shipment_obj.fetch_shipment( order, meli=meli, config=config )
