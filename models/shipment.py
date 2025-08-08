@@ -315,6 +315,7 @@ class mercadolibre_shipment(models.Model):
 
     order_cost = fields.Float(string='Order Cost')
     base_cost = fields.Float(string='Base Cost')
+    shipping_amount = fields.Float(string='Shipping Amount')
     shipping_cost = fields.Float(string='Shipping Cost')
     shipping_list_cost = fields.Float(string='Shipping List Cost')
     promoted_amount = fields.Float(string='Promoted amount')
@@ -531,7 +532,8 @@ class mercadolibre_shipment(models.Model):
                 pass;
                 #continue
 
-            del_price = shipment.shipping_cost
+            #del_price = shipment.shipping_cost
+            del_price = order.payments_shipment_amount;
             delivery_price = ml_product_price_conversion( self, product_related_obj=product_shipping_id, price=del_price, config=config ),
             if type(delivery_price)==tuple and len(delivery_price):
                 delivery_price = delivery_price[0]
@@ -918,6 +920,9 @@ class mercadolibre_shipment(models.Model):
                 else:
                     response2 = meli.get("/shipments/"+ str(ship_id)+"/items",  {'access_token':meli.access_token})
 
+                all_orders = []
+                all_orders_ids = []
+
                 if (response2):
                     items_json = items_json or response2.json()
                     if "error" in items_json:
@@ -931,8 +936,7 @@ class mercadolibre_shipment(models.Model):
                             ship_fields["pack_order"] = False
 
                         full_orders = False
-                        all_orders = []
-                        all_orders_ids = []
+                        
                         coma = ""
                         packed_order_ids =""
                         items_json_sorted = sorted(items_json, key=lambda x: x["order_id"], reverse=False)
@@ -961,7 +965,7 @@ class mercadolibre_shipment(models.Model):
                             #We can create order with all items now
                             ship_fields["orders"] = [(6, 0, all_orders_ids)]
 
-                shipment = shipment_obj.search([('shipping_id','=', ship_id)])
+                shipment = shipment_obj.search([('shipping_id','=', ship_id)],limit=1)
                 #_logger.info("shipment:"+str(shipment)+" ship_id:"+str(ship_id)+" ship_fields:"+str(ship_fields) )
                 if (len(shipment)==0):
                     #_logger.info("Importing shipment: " + str(ship_id))
@@ -1011,10 +1015,13 @@ class mercadolibre_shipment(models.Model):
 
                 #associate order if it was non pack order created bir orders.py
                 if (ship_fields["pack_order"]==False):
-                    sorder = self.env["sale.order"].search( [ ('meli_order_id','=',ship_fields["order_id"]) ] )
-                    if len(sorder):
+                    sorder = self.env["sale.order"].search( [ ('meli_order_id','=',ship_fields["order_id"]) ], limit=1 )
+                    if sorder:
                         shipment.sale_order = sorder[0]
                         sorder.meli_shipment = shipment
+                        _logger.info("setting meli_shipping_amount:"+str(sorder)+" all_orders: " +str(all_orders))
+                        if all_orders:
+                            sorder.meli_shipping_amount = all_orders and all_orders[0] and all_orders[0].payments_shipment_amount
 
                 #if its a pack order, create it, oif full_orders were fetched (we can force this now)
                 #_logger.info("full_orders:"+str(full_orders))
@@ -1073,15 +1080,17 @@ class mercadolibre_shipment(models.Model):
                         totales['paid_amount'] = 0
                         totales['coupon_amount'] = 0
                         totales['financing_fee_amount'] = 0
+                        totales['shipping_amount'] = 0
                         for oi in all_orders:
                             ord = oi
                             totales['total_amount']+= ord["total_amount"]
                             totales['paid_amount']+= ord["paid_amount"]
                             totales['coupon_amount']+= ord["coupon_amount"]
                             totales['financing_fee_amount']+= ord["financing_fee_amount"]
+                            totales['shipping_amount']+= ord.payments_shipment_amount
 
                         #fix ML order_json... for pack_order "shipping_cost" added
-                        if shipment.shipping_cost:
+                        if 1==2 and shipment.shipping_cost:
                             totales['paid_amount']+= shipment.shipping_cost
 
                         order_json = {
@@ -1116,6 +1125,7 @@ class mercadolibre_shipment(models.Model):
                             #'meli_status': all_orders[0]["status"],
                             #'meli_status_detail': all_orders[0]["status_detail"] or '' ,
                             #'meli_total_amount': shipment.order_cost,
+                            'meli_shipping_amount': totales["shipping_amount"],
                             'meli_shipping_cost': shipment.shipping_cost,
                             'meli_shipping_list_cost': shipment.shipping_list_cost,
                             #'meli_paid_amount': shipment.order_cost,
