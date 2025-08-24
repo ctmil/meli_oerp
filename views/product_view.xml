@@ -135,7 +135,7 @@
                       <group name="ML actions"></group>
                       <separator string="Variants" colspan="1"/>
                       <field name="product_variant_ids" options="{'no_create': True}" domain="[('meli_id','!=',None)]">
-                        <tree>
+                        <tree create="False" delete="False">
                           <field string="ML Pub" name="meli_pub"/>
                           <field string="Variant" name="name"/>
                           <field string="Id Pub" name="meli_id"/>

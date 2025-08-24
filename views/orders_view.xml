@@ -105,6 +105,7 @@
                               <field name="meli_shipment_logistic_type" invisible="0"/>
                               <field name="meli_status_detail" invisible="0"/>
                               <field name="meli_total_amount" invisible="0"/>
+                              <field name="meli_shipping_amount" invisible="0"/>
                               <field name="meli_shipping_cost" invisible="0"/>
                               <field name="meli_shipping_list_cost" invisible="0"/>
                               <field name="meli_fee_amount" invisible="0"/>
@@ -190,6 +191,7 @@
                     </group>
                     <group>
                         <field name="total_amount" widget="monetary"/>
+                        <field name="payments_shipment_amount"  widget="monetary"/>
                         <field name="shipping_cost"  widget="monetary"/>
                         <field name="shipping_list_cost"  widget="monetary"/>
                         <field name="shipment_logistic_type" />
