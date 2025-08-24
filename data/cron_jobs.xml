@@ -6,7 +6,7 @@
 		<field name="name">Get Meli State</field>
 		<field name="active">True</field>
 		<field name="user_id" ref="base.user_root" />
-		<field name="interval_number">1</field>
+		<field name="interval_number">10</field>
 		<field name="interval_type">minutes</field>
 		<field ref="model_res_company" name="model_id" />
 		<field name="state">code</field>

@@ -1114,6 +1114,20 @@ class mercadolibre_orders(models.Model):
 
         order_fields = self.prepare_ml_order_vals( order_json=order_json, meli=meli, config=config )
 
+        if ( "mercadolibre_channel_mkt" in config._fields and config.mercadolibre_channel_mkt and order_fields["context"] ):
+            
+            channel_block = True
+
+            for channel in config.mercadolibre_channel_mkt:
+                if channel.code == order_fields["context"]:
+                    channel_block = False
+
+            if channel_block:
+                error = { "error": "orden filtrada por canal "+str(order_fields["context"]) }
+                #_logger.info( "orders_update_order_json > filter:" + str(error) )
+                return error
+
+
         if (    "mercadolibre_filter_order_datetime_start" in config._fields
                 and "date_closed" in order_fields
                 and config.mercadolibre_filter_order_datetime_start
@@ -1264,7 +1278,7 @@ class mercadolibre_orders(models.Model):
             buyer_fields.update(self.buyer_additional_info(Buyer['billing_info']))
             buyer_fields.update({'name': self.buyer_full_name(Buyer) })
 
-            #buyer_ids = buyers_obj.sudo().search([  ('buyer_id','=',buyer_fields['buyer_id'] ) ] )
+            #buyer_ids = buyers_obj.sudo().search([  ('buyer_id','=',buyer_fields['buyer_id'] ) ] + company_domain, limit=1 )
 
             query = """SELECT id
             FROM   mercadolibre_buyers
@@ -1283,6 +1297,7 @@ class mercadolibre_orders(models.Model):
                 buyer_id = buyers_obj.sudo().create(( buyer_fields ))
             else:
                 buyer_id = buyers_obj.sudo().browse(buyer_ids and buyer_ids[0])
+                #buyer_id = buyer_ids[0]
                 if buyer_id:
                     buyer_id.sudo().write( ( buyer_fields ) )
                 #if (len(buyer_ids)>0):
@@ -1420,6 +1435,7 @@ class mercadolibre_orders(models.Model):
                     elif (Buyer['billing_info']['doc_type']):
                         meli_buyer_fields['document_type_id'] = self.env['sii.document_type'].search([('code','=',Buyer['billing_info']['doc_type'])],limit=1).id
 
+                    meli_buyer_fields['es_mipyme'] = True
                     vatn = Buyer['billing_info']['doc_number']
                     is_business = False
                     sep_millon = cl_vat_sep_million
@@ -1698,7 +1714,7 @@ class mercadolibre_orders(models.Model):
 
             partner_invoice_id = None
             partner_invoice_meli_order_id = str(order_json['pack_id'] or order_json['id'])
-            partner_id = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ], limit=1 )
+            partner_id = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ]+company_domain, limit=1 )
             partner_invoice_id = partner_id
             #_logger.info("partner_id>buyer_fields:"+str(buyer_fields)+" > partner_id: "+str(partner_id))
             #_logger.info("meli_buyer_fields:"+str(meli_buyer_fields))
@@ -2684,6 +2700,13 @@ class mercadolibre_orders(models.Model):
                     order.sale_order.confirm_ml(meli=meli,config=config)
 
     def _get_config( self, config=None ):
+        
+        _logger.info("_get_config from meli_oerp")
+
+        if ("connection_account" in self._fields):
+            config = config or (self and self.connection_account and self.connection_account.configuration) or (self and self.company_id)
+            return config
+
         config = config or (self and self.company_id)
         return config
 
@@ -2913,7 +2936,7 @@ class res_partner(models.Model):
     meli_order_id = fields.Char('Meli Order Id',index=True)
 
     _sql_constraints = [
-        ('unique_partner_meli_buyer_id', 'unique(meli_buyer_id,active)', 'Meli Partner Buyer id already exists!')
+        ('unique_partner_meli_buyer_id', 'unique(meli_buyer_id,active,company_id)', 'Meli Partner Buyer id already exists in this company!')
     ]
 
 
