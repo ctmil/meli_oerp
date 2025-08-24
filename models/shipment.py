@@ -965,9 +965,20 @@ class mercadolibre_shipment(models.Model):
                             #We can create order with all items now
                             ship_fields["orders"] = [(6, 0, all_orders_ids)]
 
-                shipment = shipment_obj.search([('shipping_id','=', ship_id)],limit=1)
-                #_logger.info("shipment:"+str(shipment)+" ship_id:"+str(ship_id)+" ship_fields:"+str(ship_fields) )
-                if (len(shipment)==0):
+                #shipment = shipment_obj.search([('shipping_id','=', ship_id)],limit=1)
+                query = """SELECT id
+                FROM   mercadolibre_shipment
+                WHERE
+                shipping_id = '%s'
+                """ % (ship_id)
+                cr = self._cr
+                respquery = cr.execute(query)
+                results = cr.fetchall()
+                shipment_ids = results
+                shipment = False
+                _logger.info("shipment_ids:"+str(shipment_ids)+" ship_id:"+str(ship_id))
+                if (not shipment_ids):
+                #if ( or len(shipment)==0):
                     #_logger.info("Importing shipment: " + str(ship_id))
                     #_logger.info(str(ship_fields))
                     shipment = shipment_obj.create((ship_fields))
@@ -976,7 +987,9 @@ class mercadolibre_shipment(models.Model):
                         pass;
                 else:
                     #_logger.info("Updating shipment: " + str(ship_id))
-                    shipment.write((ship_fields))
+                    shipment = shipment_obj.sudo().browse(shipment_ids and shipment_ids[0])
+                    if (shipment):
+                        shipment.write((ship_fields))
 
                 if shipment and items_json:
                     #mercadolibre.shipment.item
@@ -1232,7 +1245,9 @@ class mercadolibre_shipment(models.Model):
                                     #_logger.info("saleorderline_item_ids:"+str(saleorderline_item_ids))
                                     #_logger.info("saleorderline_item_ids tax_id:"+str(saleorderline_item_ids.tax_id))
                                     #_logger.info("saleorderline_item_ids tax_id company_id:"+str(saleorderline_item_ids.tax_id.company_id))
-                                    saleorderline_item_ids.write( ( saleorderline_item_fields ) )
+                                    is_locked = (sorder_pack and sorder_pack.state in ["done"]) or ("locked" in sorder_pack._fields and sorder_pack.locked)
+                                    if (not sorder_pack.state in ['sale','done']) and not is_locked:
+                                        saleorderline_item_ids.write( ( saleorderline_item_fields ) )
                     else:
                         #_logger.info("partner receiver id not founded:"+str(ship_fields['receiver_id']))
                         pass;

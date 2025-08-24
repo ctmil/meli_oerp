@@ -51,7 +51,7 @@ class SaleOrder(models.Model):
     ], string=u'Estado de Entrega', index=True, readonly=True, related='meli_order_id.shipping_status', store=True)
     shipping_substatus = fields.Selection([
         #subestados de pending
-        ('cost_exceeded','Costo Exedido'),
+        ('cost_exceeded','Costo Excedido'),
         ('under_review','Bajo Revision'),
         ('reviewed','Revisado'),
         ('fraudulent','Fraudulento'),
