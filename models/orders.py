@@ -179,6 +179,7 @@ class sale_order(models.Model):
     meli_shipping = fields.Text(string="Shipping")
 
     meli_total_amount = fields.Float(string='Total amount')
+    meli_shipping_amount = fields.Float(string='Shipping Amount',help='Pago envío')
     meli_shipping_cost = fields.Float(string='Shipping Cost',help='Gastos de envío')
     meli_shipping_list_cost = fields.Float(string='Shipping List Cost',help='Gastos de envío, costo de lista/interno')
     meli_paid_amount = fields.Float(string='Paid amount',help='Paid amount (include shipping cost)')
@@ -364,7 +365,7 @@ class sale_order(models.Model):
 
             if (including_shipping_cost=="never"):
                 #sacamos le precio del envio
-                return (self.meli_paid_amount - self.meli_coupon_amount - self.meli_shipping_cost)
+                return (self.meli_paid_amount - self.meli_coupon_amount - self.meli_shipping_amount)
 
             return (self.meli_paid_amount - self.meli_coupon_amount)
 
@@ -451,6 +452,9 @@ class sale_order(models.Model):
                 serror = "MELI: Condition not met: meli_paid_amount and amount_total doesn't match, check products missings, taxes and discounts."
                 self.message_post(body=str(serror), message_type=order_message_type )
                 return {'error': serror}
+
+            if (self.state in ['draft']):
+                self.message_post(body=str("Monto correcto, listo para confirmar venta."), message_type=order_message_type )
 
             #check currency
             pricelist_is_meli = self.is_pricelist_meli(meli=meli, config=config)
@@ -1110,6 +1114,20 @@ class mercadolibre_orders(models.Model):
 
         order_fields = self.prepare_ml_order_vals( order_json=order_json, meli=meli, config=config )
 
+        if ( "mercadolibre_channel_mkt" in config._fields and config.mercadolibre_channel_mkt and order_fields["context"] ):
+            
+            channel_block = True
+
+            for channel in config.mercadolibre_channel_mkt:
+                if channel.code == order_fields["context"]:
+                    channel_block = False
+
+            if channel_block:
+                error = { "error": "orden filtrada por canal "+str(order_fields["context"]) }
+                #_logger.info( "orders_update_order_json > filter:" + str(error) )
+                return error
+
+
         if (    "mercadolibre_filter_order_datetime_start" in config._fields
                 and "date_closed" in order_fields
                 and config.mercadolibre_filter_order_datetime_start
@@ -1260,7 +1278,7 @@ class mercadolibre_orders(models.Model):
             buyer_fields.update(self.buyer_additional_info(Buyer['billing_info']))
             buyer_fields.update({'name': self.buyer_full_name(Buyer) })
 
-            #buyer_ids = buyers_obj.sudo().search([  ('buyer_id','=',buyer_fields['buyer_id'] ) ] )
+            #buyer_ids = buyers_obj.sudo().search([  ('buyer_id','=',buyer_fields['buyer_id'] ) ] + company_domain, limit=1 )
 
             query = """SELECT id
             FROM   mercadolibre_buyers
@@ -1279,6 +1297,7 @@ class mercadolibre_orders(models.Model):
                 buyer_id = buyers_obj.sudo().create(( buyer_fields ))
             else:
                 buyer_id = buyers_obj.sudo().browse(buyer_ids and buyer_ids[0])
+                #buyer_id = buyer_ids[0]
                 if buyer_id:
                     buyer_id.sudo().write( ( buyer_fields ) )
                 #if (len(buyer_ids)>0):
@@ -1416,6 +1435,7 @@ class mercadolibre_orders(models.Model):
                     elif (Buyer['billing_info']['doc_type']):
                         meli_buyer_fields['document_type_id'] = self.env['sii.document_type'].search([('code','=',Buyer['billing_info']['doc_type'])],limit=1).id
 
+                    meli_buyer_fields['es_mipyme'] = True
                     vatn = Buyer['billing_info']['doc_number']
                     is_business = False
                     sep_millon = cl_vat_sep_million
@@ -1694,7 +1714,7 @@ class mercadolibre_orders(models.Model):
 
             partner_invoice_id = None
             partner_invoice_meli_order_id = str(order_json['pack_id'] or order_json['id'])
-            partner_id = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ], limit=1 )
+            partner_id = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ]+company_domain, limit=1 )
             partner_invoice_id = partner_id
             #_logger.info("partner_id>buyer_fields:"+str(buyer_fields)+" > partner_id: "+str(partner_id))
             #_logger.info("meli_buyer_fields:"+str(meli_buyer_fields))
@@ -1907,10 +1927,10 @@ class mercadolibre_orders(models.Model):
             order = order_obj.create( (order_fields))
 
         if (sorder and sorder.id):
-            _logger.info("Updating sale.order: %s" % (sorder.id))
+            #_logger.info("Updating sale.order: %s" % (sorder.id))
             if (sorder.state in ['sale','done']) or ("locked" in sorder._fields and sorder.locked):
                 del meli_order_fields["pricelist_id"]
-            _logger.info(meli_order_fields)
+            #_logger.info(meli_order_fields)
             sorder.meli_fix_team( meli=meli, config=config )
             sorder.write( meli_order_fields )
             sorder.meli_fix_team( meli=meli, config=config )
@@ -2294,11 +2314,11 @@ class mercadolibre_orders(models.Model):
                             #fee_detail = fee_details[index]
 
                             if fee_detail and "amounts" in fee_detail:
-                                _logger.info("fee_detail:"+str(fee_detail))
+                                #_logger.info("fee_detail:"+str(fee_detail))
                                 fee_type = fee_detail["type"]
                                 #fee_payer = fee_detail["fee_payer"]
                                 fee_name = fee_detail["name"]
-                                _logger.info( "fee_type:" + str(fee_type) + " fee_name:" + str(fee_name) )
+                                #_logger.info( "fee_type:" + str(fee_type) + " fee_name:" + str(fee_name) )
                                 if ( fee_type=="fee" and fee_name == "meli_percentage_fee"):
                                     payment_fields["fee_amount"] = fee_detail["amounts"] and fee_detail["amounts"]["original"]
                                     _logger.info("fee_amount:"+str(payment_fields["fee_amount"]))
@@ -2325,16 +2345,16 @@ class mercadolibre_orders(models.Model):
                 payment_ids = payments_obj.search( [  ('payment_id','=',payment_fields['payment_id']),
                                                             ('order_id','=',order.id ) ] )
                 if not payment_ids:
-                    _logger.info("Creating payment fields:"+str(payment_fields) )
+                    #_logger.info("Creating payment fields:"+str(payment_fields) )
                     payment_ids = payments_obj.create( ( payment_fields ) )
                 else:
-                    _logger.info("Upading payment fields:"+str(payment_fields))
+                    #_logger.info("Upading payment fields:"+str(payment_fields))
                     payment_ids.write( ( payment_fields ) )
 
         #if order:
         #    return_id = self.env['mercadolibre.orders'].update
 
-        if config.mercadolibre_cron_get_orders_shipment:
+        if (1==1 or config.mercadolibre_cron_get_orders_shipment):
             #_logger.info("Updating order: Shipment: "+str(order.shipping_id))
             if (order and order.shipping_id):
                 shipment = shipment_obj.fetch_shipment( order, meli=meli, config=config )
@@ -2680,6 +2700,13 @@ class mercadolibre_orders(models.Model):
                     order.sale_order.confirm_ml(meli=meli,config=config)
 
     def _get_config( self, config=None ):
+        
+        _logger.info("_get_config from meli_oerp")
+
+        if ("connection_account" in self._fields):
+            config = config or (self and self.connection_account and self.connection_account.configuration) or (self and self.company_id)
+            return config
+
         config = config or (self and self.company_id)
         return config
 
@@ -2909,7 +2936,7 @@ class res_partner(models.Model):
     meli_order_id = fields.Char('Meli Order Id',index=True)
 
     _sql_constraints = [
-        ('unique_partner_meli_buyer_id', 'unique(meli_buyer_id,active)', 'Meli Partner Buyer id already exists!')
+        ('unique_partner_meli_buyer_id', 'unique(meli_buyer_id,active,company_id)', 'Meli Partner Buyer id already exists in this company!')
     ]
 
 
