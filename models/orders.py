@@ -1927,10 +1927,10 @@ class mercadolibre_orders(models.Model):
             order = order_obj.create( (order_fields))
 
         if (sorder and sorder.id):
-            _logger.info("Updating sale.order: %s" % (sorder.id))
+            #_logger.info("Updating sale.order: %s" % (sorder.id))
             if (sorder.state in ['sale','done']) or ("locked" in sorder._fields and sorder.locked):
                 del meli_order_fields["pricelist_id"]
-            _logger.info(meli_order_fields)
+            #_logger.info(meli_order_fields)
             sorder.meli_fix_team( meli=meli, config=config )
             sorder.write( meli_order_fields )
             sorder.meli_fix_team( meli=meli, config=config )
@@ -2314,11 +2314,11 @@ class mercadolibre_orders(models.Model):
                             #fee_detail = fee_details[index]
 
                             if fee_detail and "amounts" in fee_detail:
-                                _logger.info("fee_detail:"+str(fee_detail))
+                                #_logger.info("fee_detail:"+str(fee_detail))
                                 fee_type = fee_detail["type"]
                                 #fee_payer = fee_detail["fee_payer"]
                                 fee_name = fee_detail["name"]
-                                _logger.info( "fee_type:" + str(fee_type) + " fee_name:" + str(fee_name) )
+                                #_logger.info( "fee_type:" + str(fee_type) + " fee_name:" + str(fee_name) )
                                 if ( fee_type=="fee" and fee_name == "meli_percentage_fee"):
                                     payment_fields["fee_amount"] = fee_detail["amounts"] and fee_detail["amounts"]["original"]
                                     _logger.info("fee_amount:"+str(payment_fields["fee_amount"]))
@@ -2345,10 +2345,10 @@ class mercadolibre_orders(models.Model):
                 payment_ids = payments_obj.search( [  ('payment_id','=',payment_fields['payment_id']),
                                                             ('order_id','=',order.id ) ] )
                 if not payment_ids:
-                    _logger.info("Creating payment fields:"+str(payment_fields) )
+                    #_logger.info("Creating payment fields:"+str(payment_fields) )
                     payment_ids = payments_obj.create( ( payment_fields ) )
                 else:
-                    _logger.info("Upading payment fields:"+str(payment_fields))
+                    #_logger.info("Upading payment fields:"+str(payment_fields))
                     payment_ids.write( ( payment_fields ) )
 
         #if order:
