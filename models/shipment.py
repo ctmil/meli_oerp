@@ -76,7 +76,7 @@ class mercadolibre_shipment_print(models.TransientModel):
         #check if model is stock_picking or mercadolibre.shipment
         #stock.picking > sale_id is the order, then the shipment is sale_id.meli_shipment
         active_model = context.get("active_model")
-        _logger.info( "shipment_print active_model: " + str(active_model) )
+        #_logger.info( "shipment_print active_model: " + str(active_model) )
 
         if active_model == "stock.picking":
             shipment_ids_from_pick = []
@@ -86,7 +86,7 @@ class mercadolibre_shipment_print(models.TransientModel):
                 if sale_order and sale_order.meli_shipment:
                     shipment_ids_from_pick.append(sale_order.meli_shipment.id)
             shipment_ids = shipment_ids_from_pick
-            _logger.info("stock.picking shipment_ids:"+str(shipment_ids))
+            #_logger.info("stock.picking shipment_ids:"+str(shipment_ids))
 
         if active_model == "sale.order":
             shipment_ids_from_order = []
@@ -95,7 +95,7 @@ class mercadolibre_shipment_print(models.TransientModel):
                 if sale_order and sale_order.meli_shipment:
                     shipment_ids_from_order.append(sale_order.meli_shipment.id)
             shipment_ids = shipment_ids_from_order
-            _logger.info("sale.order shipment_ids:"+str(shipment_ids))
+            #_logger.info("sale.order shipment_ids:"+str(shipment_ids))
 
         shipment_obj = self.env['mercadolibre.shipment']
         warningobj = self.env['meli.warning']
@@ -105,8 +105,8 @@ class mercadolibre_shipment_print(models.TransientModel):
             if meli.need_login():
                 return meli.redirect_login()
 
-        _logger.info("shipment_print")
-        _logger.info(shipment_ids)
+        #_logger.info("shipment_print")
+        #_logger.info(shipment_ids)
 
         return self.shipment_print_report(shipment_ids=shipment_ids,meli=meli,config=config,include_ready_to_print=self.include_ready_to_print)
 
@@ -315,6 +315,7 @@ class mercadolibre_shipment(models.Model):
 
     order_cost = fields.Float(string='Order Cost')
     base_cost = fields.Float(string='Base Cost')
+    shipping_amount = fields.Float(string='Shipping Amount')
     shipping_cost = fields.Float(string='Shipping Cost')
     shipping_list_cost = fields.Float(string='Shipping List Cost')
     promoted_amount = fields.Float(string='Promoted amount')
@@ -457,7 +458,7 @@ class mercadolibre_shipment(models.Model):
                             limit=1)
 
             if len(product_shipping_id):
-                _logger.info("_update_sale_order_shipping_info ")
+                #_logger.info("_update_sale_order_shipping_info ")
                 product_shipping_id = product_shipping_id[0]
             else:
                 product_shipping_id = None
@@ -531,7 +532,8 @@ class mercadolibre_shipment(models.Model):
                 pass;
                 #continue
 
-            del_price = shipment.shipping_cost
+            #del_price = shipment.shipping_cost
+            del_price = order.payments_shipment_amount;
             delivery_price = ml_product_price_conversion( self, product_related_obj=product_shipping_id, price=del_price, config=config ),
             if type(delivery_price)==tuple and len(delivery_price):
                 delivery_price = delivery_price[0]
@@ -918,6 +920,9 @@ class mercadolibre_shipment(models.Model):
                 else:
                     response2 = meli.get("/shipments/"+ str(ship_id)+"/items",  {'access_token':meli.access_token})
 
+                all_orders = []
+                all_orders_ids = []
+
                 if (response2):
                     items_json = items_json or response2.json()
                     if "error" in items_json:
@@ -931,8 +936,7 @@ class mercadolibre_shipment(models.Model):
                             ship_fields["pack_order"] = False
 
                         full_orders = False
-                        all_orders = []
-                        all_orders_ids = []
+                        
                         coma = ""
                         packed_order_ids =""
                         items_json_sorted = sorted(items_json, key=lambda x: x["order_id"], reverse=False)
@@ -961,9 +965,20 @@ class mercadolibre_shipment(models.Model):
                             #We can create order with all items now
                             ship_fields["orders"] = [(6, 0, all_orders_ids)]
 
-                shipment = shipment_obj.search([('shipping_id','=', ship_id)])
-                #_logger.info("shipment:"+str(shipment)+" ship_id:"+str(ship_id)+" ship_fields:"+str(ship_fields) )
-                if (len(shipment)==0):
+                #shipment = shipment_obj.search([('shipping_id','=', ship_id)],limit=1)
+                query = """SELECT id
+                FROM   mercadolibre_shipment
+                WHERE
+                shipping_id = '%s'
+                """ % (ship_id)
+                cr = self._cr
+                respquery = cr.execute(query)
+                results = cr.fetchall()
+                shipment_ids = results
+                shipment = False
+                #_logger.info("shipment_ids:"+str(shipment_ids)+" ship_id:"+str(ship_id))
+                if (not shipment_ids):
+                #if ( or len(shipment)==0):
                     #_logger.info("Importing shipment: " + str(ship_id))
                     #_logger.info(str(ship_fields))
                     shipment = shipment_obj.create((ship_fields))
@@ -972,7 +987,9 @@ class mercadolibre_shipment(models.Model):
                         pass;
                 else:
                     #_logger.info("Updating shipment: " + str(ship_id))
-                    shipment.write((ship_fields))
+                    shipment = shipment_obj.sudo().browse(shipment_ids and shipment_ids[0])
+                    if (shipment):
+                        shipment.write((ship_fields))
 
                 if shipment and items_json:
                     #mercadolibre.shipment.item
@@ -1011,10 +1028,13 @@ class mercadolibre_shipment(models.Model):
 
                 #associate order if it was non pack order created bir orders.py
                 if (ship_fields["pack_order"]==False):
-                    sorder = self.env["sale.order"].search( [ ('meli_order_id','=',ship_fields["order_id"]) ] )
-                    if len(sorder):
+                    sorder = self.env["sale.order"].search( [ ('meli_order_id','=',ship_fields["order_id"]) ], limit=1 )
+                    if sorder:
                         shipment.sale_order = sorder[0]
                         sorder.meli_shipment = shipment
+                        _logger.info("setting meli_shipping_amount:"+str(sorder)+" all_orders: " +str(all_orders))
+                        if all_orders:
+                            sorder.meli_shipping_amount = all_orders and all_orders[0] and all_orders[0].payments_shipment_amount
 
                 #if its a pack order, create it, oif full_orders were fetched (we can force this now)
                 #_logger.info("full_orders:"+str(full_orders))
@@ -1062,7 +1082,8 @@ class mercadolibre_shipment(models.Model):
                     if (partner_id.id):
                         oname = "pack_id" in all_orders[0] and all_orders[0]["pack_id"] and str(  "ML %s" % ( str(all_orders[0]["pack_id"]) ) )
                         oname = oname or str("ML %s" % ( str(all_orders[0]["order_id"]) ) )
-                        sorder_pack = self.env["sale.order"].search( [ '|',('meli_order_id','=',packed_order_ids), ('name','like', str(oname)) ], order="id asc", limit=1 )
+                        #sorder_pack = self.env["sale.order"].search( [ '|',('meli_order_id','=',packed_order_ids), ('name','like', str(oname)) ], order="id asc", limit=1 )
+                        sorder_pack = self.env["sale.order"].search( [ ('meli_order_id','=',packed_order_ids) ], order="id asc", limit=1 )
                         if (sorder_pack and sorder_pack.meli_update_forbidden):
                             _logger.error("Forbidden to update sale order by meli_oerp" )
                             return {'error': 'Forbidden to update sale order by meli_oerp' }
@@ -1073,15 +1094,17 @@ class mercadolibre_shipment(models.Model):
                         totales['paid_amount'] = 0
                         totales['coupon_amount'] = 0
                         totales['financing_fee_amount'] = 0
+                        totales['shipping_amount'] = 0
                         for oi in all_orders:
                             ord = oi
                             totales['total_amount']+= ord["total_amount"]
                             totales['paid_amount']+= ord["paid_amount"]
                             totales['coupon_amount']+= ord["coupon_amount"]
                             totales['financing_fee_amount']+= ord["financing_fee_amount"]
+                            totales['shipping_amount']+= ord.payments_shipment_amount
 
                         #fix ML order_json... for pack_order "shipping_cost" added
-                        if shipment.shipping_cost:
+                        if 1==2 and shipment.shipping_cost:
                             totales['paid_amount']+= shipment.shipping_cost
 
                         order_json = {
@@ -1116,6 +1139,7 @@ class mercadolibre_shipment(models.Model):
                             #'meli_status': all_orders[0]["status"],
                             #'meli_status_detail': all_orders[0]["status_detail"] or '' ,
                             #'meli_total_amount': shipment.order_cost,
+                            'meli_shipping_amount': totales["shipping_amount"],
                             'meli_shipping_cost': shipment.shipping_cost,
                             'meli_shipping_list_cost': shipment.shipping_list_cost,
                             #'meli_paid_amount': shipment.order_cost,
@@ -1222,7 +1246,9 @@ class mercadolibre_shipment(models.Model):
                                     #_logger.info("saleorderline_item_ids:"+str(saleorderline_item_ids))
                                     #_logger.info("saleorderline_item_ids tax_id:"+str(saleorderline_item_ids.tax_id))
                                     #_logger.info("saleorderline_item_ids tax_id company_id:"+str(saleorderline_item_ids.tax_id.company_id))
-                                    saleorderline_item_ids.write( ( saleorderline_item_fields ) )
+                                    is_locked = (sorder_pack and sorder_pack.state in ["done"]) or ("locked" in sorder_pack._fields and sorder_pack.locked)
+                                    if (not sorder_pack.state in ['sale','done']) and not is_locked:
+                                        saleorderline_item_ids.write( ( saleorderline_item_fields ) )
                     else:
                         #_logger.info("partner receiver id not founded:"+str(ship_fields['receiver_id']))
                         pass;

@@ -95,7 +95,7 @@
               </label>
             <data>
                 <notebook>
-                    <page string="MercadoLibre Plantilla">
+                    <page string="MercadoLibre Plantilla" groups="meli_oerp.group_mercadolibre_manager">
 
                         <div class="oe_button_box" name="button_box_mel" style="width: auto;">
                           <button type="object"
@@ -135,7 +135,7 @@
                       <group name="ML actions"></group>
                       <separator string="Variants" colspan="1"/>
                       <field name="product_variant_ids" options="{'no_create': True}" domain="[('meli_id','!=',None)]">
-                        <tree>
+                        <tree create="False" delete="False">
                           <field string="ML Pub" name="meli_pub"/>
                           <field string="Variant" name="name"/>
                           <field string="Id Pub" name="meli_id"/>
@@ -260,9 +260,9 @@
             <field name="inherit_id" ref="product.product_template_tree_view"/>
             <field name="arch" type="xml">
                 <field name="virtual_available" position="after">
-                    <field name="meli_stock_update"/>
-                    <field name="meli_stock_error" invisible="0" />
-                    <field name="meli_permalink_edit" invisible="0" widget="url"/>
+                    <field name="meli_stock_update" groups="meli_oerp.group_mercadolibre_manager"/>
+                    <field name="meli_stock_error" invisible="0" groups="meli_oerp.group_mercadolibre_manager"/>
+                    <field name="meli_permalink_edit" invisible="0" widget="url" groups="meli_oerp.group_mercadolibre_manager"/>
                 </field>
             </field>
         </record>
@@ -274,7 +274,7 @@
             <field name="inherit_id" ref="product.product_product_tree_view"/>
             <field name="arch" type="xml">
                 <field name="default_code" position="before">
-                  <field name="meli_pub"/>
+                  <field name="meli_pub" groups="meli_oerp.group_mercadolibre_manager"/>
                       <!--field name="meli_id" invisible="0"/-->
                       <!--field name="meli_id_variation" invisible="0"/-->
                       <!--field name="meli_status" invisible="0"/-->
@@ -294,7 +294,7 @@
             <field name="inherit_id" ref="product.product_normal_form_view"/>
             <field name="arch" type="xml">
                 <data>
-                    <div name="button_box" position="inside">
+                    <div name="button_box" position="inside" >
                         <field name="meli_status" invisible="1"/>
                         <field name="meli_sub_status" invisible="1"/>
                         <button type="object"
@@ -336,10 +336,10 @@
             <field name="inherit_id" ref="product.product_normal_form_view" />
             <field name="arch" type="xml">
               <label for="sale_ok" position="after">
-                    <field name="meli_pub" />
-                    <label for="meli_pub" />
-                    <field name="meli_update_stock_blocked"/>
-                    <label for="meli_update_stock_blocked" />
+                    <field name="meli_pub" groups="meli_oerp.group_mercadolibre_manager"/>
+                    <label for="meli_pub" groups="meli_oerp.group_mercadolibre_manager"/>
+                    <field name="meli_update_stock_blocked" groups="meli_oerp.group_mercadolibre_manager"/>
+                    <label for="meli_update_stock_blocked" groups="meli_oerp.group_mercadolibre_manager"/>
                     <!--field name="meli_master" />
                     <label for="meli_master" /-->
 
@@ -347,7 +347,7 @@
 
                 <data>
                     <notebook>
-                        <page string="MercadoLibre">
+                        <page string="MercadoLibre" groups="meli_oerp.group_mercadolibre_manager">
                           <div class="oe_button_box" name="button_box_mel" style="width: auto;">
                             <button name='product_meli_get_product' type="object"
                               string="Importar"
