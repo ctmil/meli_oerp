@@ -23,6 +23,9 @@ from odoo import fields, osv, models
 import logging
 from . import versions
 from .versions import *
+import logging
+
+_logger = logging.getLogger(__name__)
 #https://api.mercadolibre.com/questions/search?item_id=MLA508223205
 
 class mercadolibre_questions(models.Model):
@@ -51,9 +54,12 @@ class mercadolibre_questions(models.Model):
 
     def compute_answer_link( self ):
         company = self.env.user.company_id
-        for q in self:
-            if q.item_id and q.question_id:
-                q.answer_link = company.get_ML_LINK_URL()+"preguntas/vendedor/articulo/"+str(q.item_id)+"?question_id="+str(q.question_id)
+        cgurl = company.get_ML_LINK_URL()    
+        for qs in self:
+            qs.answer_link =""
+            if cgurl and qs.item_id and qs.question_id:
+                answer_link = cgurl+str("preguntas/vendedor/articulo/")+str(qs.item_id)+str("?question_id=")+str(qs.question_id)
+                qs.answer_link = answer_link
 
     answer_link = fields.Char(string="Answer Link",compute=compute_answer_link)
 
