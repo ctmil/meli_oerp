@@ -76,7 +76,7 @@ class mercadolibre_shipment_print(models.TransientModel):
         #check if model is stock_picking or mercadolibre.shipment
         #stock.picking > sale_id is the order, then the shipment is sale_id.meli_shipment
         active_model = context.get("active_model")
-        _logger.info( "shipment_print active_model: " + str(active_model) )
+        #_logger.info( "shipment_print active_model: " + str(active_model) )
 
         if active_model == "stock.picking":
             shipment_ids_from_pick = []
@@ -86,7 +86,7 @@ class mercadolibre_shipment_print(models.TransientModel):
                 if sale_order and sale_order.meli_shipment:
                     shipment_ids_from_pick.append(sale_order.meli_shipment.id)
             shipment_ids = shipment_ids_from_pick
-            _logger.info("stock.picking shipment_ids:"+str(shipment_ids))
+            #_logger.info("stock.picking shipment_ids:"+str(shipment_ids))
 
         if active_model == "sale.order":
             shipment_ids_from_order = []
@@ -95,7 +95,7 @@ class mercadolibre_shipment_print(models.TransientModel):
                 if sale_order and sale_order.meli_shipment:
                     shipment_ids_from_order.append(sale_order.meli_shipment.id)
             shipment_ids = shipment_ids_from_order
-            _logger.info("sale.order shipment_ids:"+str(shipment_ids))
+            #_logger.info("sale.order shipment_ids:"+str(shipment_ids))
 
         shipment_obj = self.env['mercadolibre.shipment']
         warningobj = self.env['meli.warning']
@@ -105,8 +105,8 @@ class mercadolibre_shipment_print(models.TransientModel):
             if meli.need_login():
                 return meli.redirect_login()
 
-        _logger.info("shipment_print")
-        _logger.info(shipment_ids)
+        #_logger.info("shipment_print")
+        #_logger.info(shipment_ids)
 
         return self.shipment_print_report(shipment_ids=shipment_ids,meli=meli,config=config,include_ready_to_print=self.include_ready_to_print)
 
@@ -458,7 +458,7 @@ class mercadolibre_shipment(models.Model):
                             limit=1)
 
             if len(product_shipping_id):
-                _logger.info("_update_sale_order_shipping_info ")
+                #_logger.info("_update_sale_order_shipping_info ")
                 product_shipping_id = product_shipping_id[0]
             else:
                 product_shipping_id = None
@@ -976,7 +976,7 @@ class mercadolibre_shipment(models.Model):
                 results = cr.fetchall()
                 shipment_ids = results
                 shipment = False
-                _logger.info("shipment_ids:"+str(shipment_ids)+" ship_id:"+str(ship_id))
+                #_logger.info("shipment_ids:"+str(shipment_ids)+" ship_id:"+str(ship_id))
                 if (not shipment_ids):
                 #if ( or len(shipment)==0):
                     #_logger.info("Importing shipment: " + str(ship_id))
@@ -1082,7 +1082,8 @@ class mercadolibre_shipment(models.Model):
                     if (partner_id.id):
                         oname = "pack_id" in all_orders[0] and all_orders[0]["pack_id"] and str(  "ML %s" % ( str(all_orders[0]["pack_id"]) ) )
                         oname = oname or str("ML %s" % ( str(all_orders[0]["order_id"]) ) )
-                        sorder_pack = self.env["sale.order"].search( [ '|',('meli_order_id','=',packed_order_ids), ('name','like', str(oname)) ], order="id asc", limit=1 )
+                        #sorder_pack = self.env["sale.order"].search( [ '|',('meli_order_id','=',packed_order_ids), ('name','like', str(oname)) ], order="id asc", limit=1 )
+                        sorder_pack = self.env["sale.order"].search( [ ('meli_order_id','=',packed_order_ids) ], order="id asc", limit=1 )
                         if (sorder_pack and sorder_pack.meli_update_forbidden):
                             _logger.error("Forbidden to update sale order by meli_oerp" )
                             return {'error': 'Forbidden to update sale order by meli_oerp' }
