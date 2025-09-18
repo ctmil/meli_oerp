@@ -61,7 +61,7 @@ class mercadolibre_questions(models.Model):
                 answer_link = cgurl+str("preguntas/vendedor/articulo/")+str(qs.item_id)+str("?question_id=")+str(qs.question_id)
                 qs.answer_link = answer_link
 
-    answer_link = fields.Char(string="Answer Link",compute=compute_answer_link)
+    answer_link = fields.Char(string="Answer Link",compute=compute_answer_link, store=False)
 
     def prepare_question_fields( self, Question, meli=None, config=None ):
         question_fields = {
