@@ -30,6 +30,9 @@ import json
 import logging
 _logger = logging.getLogger(__name__)
 
+import builtins  # so we can use builtins.Exception safely
+from odoo.exceptions import ValidationError
+
 from . import posting
 from . import product
 from . import shipment
@@ -401,8 +404,8 @@ class sale_order(models.Model):
                         spick.action_confirm()
 
                     #Asignar existencias (reserva y crea move_line_ids)
-                    #if (spick.state in ['confirmed','waiting','draft']):
-                    spick.action_assign()
+                    if (spick.state in ['confirmed','waiting','draft']):
+                        spick.action_assign()
 
                     #Marcar qty_done = product_uom_qty en todas las líneas
                     if spick.move_line_ids:
@@ -442,8 +445,9 @@ class sale_order(models.Model):
             #cancelling with no conditions, here because paid_amount is 0, dont use confirm_cond
             if (self.meli_status=="cancelled"):
                 if (self.state in ["draft","sale","sent"]):
-                    self.action_cancel()
-                    #_logger.info(Confirm Order Cancelled")
+                    _logger.info("Confirm Order Cancelling")
+                    self.with_context(disable_cancel_warning=True).action_cancel()
+                    _logger.info("Confirm Order Cancelled")
                 return res
 
             amount_to_invoice = self.meli_amount_to_invoice( meli=meli, config=config )
@@ -985,7 +989,7 @@ class mercadolibre_orders(models.Model):
         if "activity_description" in meli_buyer_fields:
             partner_update.update(meli_buyer_fields)
 
-        if "city_id" in meli_buyer_fields:
+        if "city_id" in meli_buyer_fields or "city" in meli_buyer_fields:
             partner_update.update(meli_buyer_fields)            
 
         if "documento" in meli_buyer_fields:
@@ -1325,6 +1329,11 @@ class mercadolibre_orders(models.Model):
                     else:
                         _logger.error("res.partner.id_category:" + str(Buyer['billing_info']['doc_type']))
 
+                #Mexico
+                if (('doc_type' in Buyer['billing_info']) and ('l10n_mx_edi_fiscal_regime' in self.env['res.partner']._fields)):
+                    if ( Buyer['billing_info']['doc_type'] and Buyer['billing_info']['doc_type'] != "CURP" ):
+                        meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
+                    
 
                 #Chile/Arg/Latam
                 if ( ('doc_type' in Buyer['billing_info']) and ('l10n_latam_identification_type_id' in self.env['res.partner']._fields) ):
@@ -1476,6 +1485,11 @@ class mercadolibre_orders(models.Model):
                         if (res_city):
                             meli_buyer_fields['city_id'] = (res_city and res_city.id) or None
                         pass;
+                
+                    if ("billing_info_state_name" in buyer_fields and buyer_fields["billing_info_state_name"]):
+                        if ("RM" in buyer_fields["billing_info_state_name"]):
+                            meli_buyer_fields['city'] = "Santiago"
+
 
 
                 #Colombia
@@ -1812,7 +1826,12 @@ class mercadolibre_orders(models.Model):
                     try:
                         partner_id.write(partner_update)
                         self._cr.commit()
-                    except Exception as e:
+                    except ValidationError as ve:
+                        # If RFC still rejected by Odoo's deeper checks, keep raw & retry without VAT
+                        bad_vat = partner_update.pop("vat", None)
+                        if bad_vat:
+                            partner_id.write(partner_update)
+                    except builtins.Exception as e:
                         _logger.info("orders_update_order > Error actualizando Partner:"+str(e))
                         _logger.error(e, exc_info=True)
                         order.message_post(body=str("Error actualizando Partner: "+str(e)),message_type=order_message_type)
@@ -2387,7 +2406,7 @@ class mercadolibre_orders(models.Model):
             sorder.confirm_ml( meli=meli, config=config )
 
             if (sorder.meli_status=="cancelled" and sorder.state in ["draft","sale","sent"]):
-                sorder.action_cancel()
+                sorder.with_context(disable_cancel_warning=True).action_cancel()
 
             #if "confirm_ml_financial" in self.env["mercadolibre.orders"]:
             #sorder.confirm_ml_financial( meli=meli, config=config )
@@ -3043,10 +3062,10 @@ class sale_order_cancel_wiz_meli(models.TransientModel):
                     #asd
                     #_logger.info("cancel_order: unblock")
                     order.action_unlock()
-                    order.action_cancel()
+                    order.with_context(disable_cancel_warning=True).action_cancel()()
 
                 if (order and order.state in ["draft","sale","sent"]) and not is_locked:
-                    order.action_cancel()
+                    order.with_context(disable_cancel_warning=True).action_cancel()()
 
         except Exception as e:
             #_logger.info("order_update > Error cancelando ordenes")

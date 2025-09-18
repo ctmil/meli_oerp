@@ -303,7 +303,7 @@ class res_company(models.Model):
     mercadolibre_refresh_token = fields.Char( string='Refresh Token', help='Refresh Token', size=256)
     mercadolibre_code = fields.Char( string='Code', help='Code', size=256)
     mercadolibre_seller_id = fields.Char( string='Vendedor Id', size=256)
-    mercadolibre_user_product_seller = fields.Boolean( string='User Product Seller')
+    mercadolibre_user_product_seller = fields.Boolean( string='User Product Seller',index=True)
     mercadolibre_state = fields.Boolean( compute=get_meli_state, string='Desconectado', help="Se requiere Iniciar Sesión con MLA", store=False )
     mercadolibre_category_import = fields.Char( string='Category to import', help='Category Code to Import, check Recursive Import to import the full tree', size=256)
     mercadolibre_recursive_import = fields.Boolean( string='Recursive import', help='Import all the category tree from Category Code')
