@@ -8,9 +8,9 @@ from odoo import http, api
 from odoo import fields, osv, http
 from odoo.http import Controller, Response, request, route
 try:
-    from odoo.addons.web.controllers.main import content_disposition
-except ImportError:
     from odoo.http import content_disposition
+except ImportError:
+    from odoo.addons.web.controllers.main import content_disposition
     pass;
 import json
 import sys

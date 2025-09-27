@@ -3,7 +3,6 @@
 import pytz
 
 from odoo import models, api, fields
-import odoo.addons.decimal_precision as dp
 from odoo.tools.translate import _
 
 import requests
