@@ -3062,10 +3062,10 @@ class sale_order_cancel_wiz_meli(models.TransientModel):
                     #asd
                     #_logger.info("cancel_order: unblock")
                     order.action_unlock()
-                    order.with_context(disable_cancel_warning=True).action_cancel()()
+                    order.with_context(disable_cancel_warning=True).action_cancel()
 
                 if (order and order.state in ["draft","sale","sent"]) and not is_locked:
-                    order.with_context(disable_cancel_warning=True).action_cancel()()
+                    order.with_context(disable_cancel_warning=True).action_cancel()
 
         except Exception as e:
             #_logger.info("order_update > Error cancelando ordenes")
