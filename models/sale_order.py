@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from odoo import fields, osv, models, api
-import odoo.addons.decimal_precision as dp
 
 class SaleOrder(models.Model):
 
@@ -31,7 +30,7 @@ class SaleOrder(models.Model):
     shipping_id = fields.Char(u'ID de Entrega')
     shipping_name = fields.Char(u'Metodo de Entrega')
     shipping_method_id = fields.Char(u'ID de Metodo de Entrega')
-    shipping_cost = fields.Float(u'Costo de Entrega', digits=dp.get_precision('Account'))
+    shipping_cost = fields.Float(u'Costo de Entrega', digits='Account')
     shipping_status = fields.Selection([
         ('to_be_agreed', 'A Convenir(Acuerdo entre comprador y vendedor)'),
         ('pending','Pendiente'),
