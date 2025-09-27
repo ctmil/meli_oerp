@@ -618,8 +618,8 @@ class mercadolibre_shipment(models.Model):
                         delivery_line.qty_to_invoice = 0
                     #_logger.info("Procesar delivery_price == 0 remover linea")
                     #sorder._remove_delivery_line()
-
-
+                _logger.info("Finished _update_sale_order_shipping_info")
+            return
 
 
 
