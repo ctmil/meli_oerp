@@ -618,8 +618,8 @@ class mercadolibre_shipment(models.Model):
                         delivery_line.qty_to_invoice = 0
                     #_logger.info("Procesar delivery_price == 0 remover linea")
                     #sorder._remove_delivery_line()
-
-
+                _logger.info("Finished _update_sale_order_shipping_info")
+            return
 
 
 
@@ -1150,7 +1150,9 @@ class mercadolibre_shipment(models.Model):
                         })
                         #TODO: agregar un campo para diferencia cada delivery res partner al shipment y orden asociado, crear un binding usando values diferentes... y listo
                         #_logger.info("ship_json[receiver_address]:"+str(ship_json["receiver_address"]) )
-
+                        if ('account.payment.term' in self.env):
+                            inmediate_or_not = ('mercadolibre_payment_term' in config._fields and config.mercadolibre_payment_term) or ('mercadolibre_payment_term' in company._fields and company.mercadolibre_payment_term) or None
+                            meli_order_fields["payment_term_id"] = (inmediate_or_not and inmediate_or_not.id)
 
 
                         if partner_id:
