@@ -139,6 +139,7 @@
                                 <field name="mercadolibre_filter_order_datetime_to" invisible="0"/>
                                 <field name="mercadolibre_cron_get_orders_shipment" invisible="0"/>
                                 <field name="mercadolibre_cron_get_orders_shipment_client" invisible="0"/>
+                                <field name="mercadolibre_cron_get_orders_client_set_company" invisible="0"/>
                                 <field name="mercadolibre_cron_get_questions" invisible="0"/>
                                 <field name="mercadolibre_import_search_sku" invisible="0"/>
                                 <field name="mercadolibre_order_total_config" invisible="0"/>
