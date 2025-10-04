@@ -1265,7 +1265,8 @@ class mercadolibre_orders(models.Model):
                 #'email': Buyer['email'],
                 'meli_buyer_id': Buyer['id'],
             }
-            if company and company.id:
+            set_client_company = "mercadolibre_cron_get_orders_client_set_company" in config._fields and config.mercadolibre_cron_get_orders_client_set_company
+            if company and company.id and set_client_company:
                 meli_buyer_fields["company_id"] = company.id
             meli_buyer_fields.update(self.fix_locals(Receiver=Receiver,Buyer=Buyer))
             if company:
