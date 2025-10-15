@@ -3579,7 +3579,7 @@ class product_product(models.Model):
 
     def product_post_stock( self, context=None, meli=False, config=None ):
         context = context or self.env.context
-        _logger.info("meli_oerp product_post_stock context: " + str(context))
+        _logger.info("meli_oerp > product_post_stock context: " + str(context))
         company = self.env.user.company_id
         warningobj = self.env['meli.warning']
 
