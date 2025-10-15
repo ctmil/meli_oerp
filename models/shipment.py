@@ -737,9 +737,12 @@ class mercadolibre_shipment(models.Model):
     #Return shipment object based on mercadolibre.orders "order"
     def fetch_shipment( self, order, meli=None, config=None ):
         #_logger.info("ship fetch")
-        company = self.env.user.company_id
+        company = (config and "company_id" in config._fields and config.company_id) or config or self.env.user.company_id
         if not config:
             config = company
+        company_only_domain = [('company_id','=',company.id)]
+        company_none_domain = [('company_id','=',False)]  
+
         sale_order_pack = None
         saleorder_obj = self.env['sale.order']
         saleorderline_obj = self.env['sale.order.line']
@@ -1052,8 +1055,13 @@ class mercadolibre_shipment(models.Model):
 
                     #buyer_ids = buyers_obj.search([  ('buyer_id','=',buyer_fields['buyer_id'] ) ] )
                     partner_invoice_meli_order_id = str(all_orders[0]['pack_id'] or all_orders[0]['id'])
-                    partner_id = respartner_obj.search([  ('meli_buyer_id','=',ship_fields['receiver_id'] ) ], limit=1 )
-                    partner_invoice_id = respartner_obj.search([  ('meli_order_id','=',partner_invoice_meli_order_id ) ], limit=1 ) or partner_id
+                    partner_id = respartner_obj.search([  ('meli_buyer_id','=',ship_fields['receiver_id'] ) ]+company_only_domain, limit=1 )
+                    if not partner_id:
+                        partner_id = respartner_obj.search([  ('meli_buyer_id','=',ship_fields['receiver_id'] ) ]+company_none_domain, limit=1 )
+
+                    partner_invoice_id = respartner_obj.search([  ('meli_order_id','=',partner_invoice_meli_order_id ) ]+company_only_domain, limit=1 )
+                    if not partner_invoice_id:
+                        partner_invoice_id = respartner_obj.search([  ('meli_order_id','=',partner_invoice_meli_order_id ) ]+company_none_domain, limit=1 ) or partner_id
 
                     original_contact_partner_id = partner_id
                     partner_shipping_id = None
@@ -1196,7 +1204,9 @@ class mercadolibre_shipment(models.Model):
                             sorder_pack.write(meli_order_fields)
                             sorder_pack.meli_fix_team( meli=meli, config=config )
                         else:
+                            #_logger.info("Create sale.order pack")
                             sorder_pack = self.env["sale.order"].create(meli_order_fields)
+                            #_logger.info("Create sale.order pack: ALL PASS OK")
                             if sorder_pack:
                                 sorder_pack.meli_fix_team( meli=meli, config=config )
                                 order.message_post(body=str("Sale order created (pack)!"),message_type=order_message_type)

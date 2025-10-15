@@ -266,7 +266,7 @@ class sale_order(models.Model):
                         #_logger.info(line)
                         #_logger.info(line.is_delivery)
                         #_logger.info(line.price_unit)
-                        if line.is_delivery and line.price_unit<=0.0:
+                        if line.is_delivery or line.price_unit<=0.0:
                             #_logger.info(line)
                             line.write({ "qty_to_invoice": 0.0 })
                             #_logger.info(line.qty_to_invoice)
@@ -278,12 +278,12 @@ class sale_order(models.Model):
             company = self.env.user.company_id
             #_logger.info(Company: "+str(company))
             #_logger.info(Order done: company.mercadolibre_cron_post_update_stock: "+str(company.mercadolibre_cron_post_update_stock))
-            for order in self:
-                for line in order.order_line:
-                    if (company.mercadolibre_cron_post_update_stock):
-                        if line.product_id and line.product_id.meli_id and line.product_id.meli_pub:
-                            #_logger.info(Order done: product_post_stock: "+str(line.product_id.meli_id))
-                            line.product_id.product_post_stock()
+            #for order in self:
+            #    for line in order.order_line:
+            #        if (company.mercadolibre_cron_post_update_stock):
+            #            if line.product_id and line.product_id.meli_id and line.product_id.meli_pub:
+            #                _logger.info("Order done: product_post_stock: "+str(line.product_id.meli_id))
+            #                #line.product_id.product_post_stock()
         except:
             pass;
         return res
@@ -310,12 +310,12 @@ class sale_order(models.Model):
             company = self.env.user.company_id
             #_logger.info(Company: "+str(company))
             #_logger.info(Order done: company.mercadolibre_cron_post_update_stock: "+str(company.mercadolibre_cron_post_update_stock))
-            for order in self:
-                for line in order.order_line:
-                    if (company.mercadolibre_cron_post_update_stock):
-                        if line.product_id and line.product_id.meli_id and line.product_id.meli_pub:
-                            #_logger.info(Order done: product_post_stock: "+str(line.product_id.meli_id))
-                            line.product_id.product_post_stock()
+            #for order in self:
+            #    for line in order.order_line:
+            #        if (company.mercadolibre_cron_post_update_stock):
+            #            if line.product_id and line.product_id.meli_id and line.product_id.meli_pub:
+            #                #_logger.info(Order done: product_post_stock: "+str(line.product_id.meli_id))
+            #                line.product_id.product_post_stock()
         except:
             pass;
         return res
@@ -1075,8 +1075,10 @@ class mercadolibre_orders(models.Model):
         #_logger.info( "data:" + str(data) )
         context = context or self.env.context
         #_logger.info( "context:" + str(context) )
-        company = (config and "company_id" in config._fields and config.company_id) or self.env.user.company_id
+        company = (config and "company_id" in config._fields and config.company_id) or config or self.env.user.company_id
         company_domain = ['|',('company_id','=',False),('company_id','=',company.id)]
+        company_only_domain = [('company_id','=',company.id)]
+        company_none_domain = [('company_id','=',False)]        
         if not config:
             config = company
         if not meli:
@@ -1263,7 +1265,8 @@ class mercadolibre_orders(models.Model):
                 #'email': Buyer['email'],
                 'meli_buyer_id': Buyer['id'],
             }
-            if company and company.id:
+            set_client_company = "mercadolibre_cron_get_orders_client_set_company" in config._fields and config.mercadolibre_cron_get_orders_client_set_company
+            if company and company.id and set_client_company:
                 meli_buyer_fields["company_id"] = company.id
             meli_buyer_fields.update(self.fix_locals(Receiver=Receiver,Buyer=Buyer))
             if company:
@@ -1728,7 +1731,11 @@ class mercadolibre_orders(models.Model):
 
             partner_invoice_id = None
             partner_invoice_meli_order_id = str(order_json['pack_id'] or order_json['id'])
-            partner_id = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ]+company_domain, limit=1 )
+            partner_id = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ]+company_only_domain, limit=1 )
+            if not partner_id:
+                partner_id = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ]+company_none_domain, limit=1 )
+
+
             partner_invoice_id = partner_id
             #_logger.info("partner_id>buyer_fields:"+str(buyer_fields)+" > partner_id: "+str(partner_id))
             #_logger.info("meli_buyer_fields:"+str(meli_buyer_fields))
@@ -1758,7 +1765,10 @@ class mercadolibre_orders(models.Model):
             if (partner_id and "vat" in meli_buyer_fields and meli_buyer_fields["vat"]!=str(partner_id.vat)):
                 #CREAR INVOICE CONTACT
                 #_logger.info(Partner Invoice is NEW: "+str(partner_invoice_meli_order_id)+" VAT:"+str(meli_buyer_fields["vat"])+ " vs "+str(partner_id.vat))
-                partner_invoice_id = respartner_obj.search([  ('meli_order_id','=',partner_invoice_meli_order_id ) ], limit=1 )
+                partner_invoice_id = respartner_obj.search([  ('meli_order_id','=',partner_invoice_meli_order_id ) ]+company_only_domain, limit=1 )
+                if not partner_invoice_id:
+                    partner_invoice_id = respartner_obj.search([  ('meli_order_id','=',partner_invoice_meli_order_id ) ]+company_none_domain, limit=1 )
+
                 partner_update = {}
                 partner_update.update( meli_buyer_fields )
                 partner_update.update({
@@ -1836,7 +1846,6 @@ class mercadolibre_orders(models.Model):
                         _logger.error(e, exc_info=True)
                         order.message_post(body=str("Error actualizando Partner: "+str(e)),message_type=order_message_type)
                         pass;
-
 
                 if (partner_id.email and (partner_id.email==buyer_fields["email"] or "mercadolibre.com" in partner_id.email)):
                     #eliminar email de ML que no es valido
@@ -2265,7 +2274,7 @@ class mercadolibre_orders(models.Model):
                                     saleorderline_item_ids.tax_id = [(4, txid.id)]
 
                         if (sorder.state and sorder.state in ['done']) or ("locked" in sorder._fields and sorder.locked):
-                            _logger.error("Orden bloqueada no se puede actualizar")
+                            _logger.warning("Orden bloqueada no se puede actualizar")
                         else:
                             saleorderline_item_ids.write( ( saleorderline_item_fields ) )
 
