@@ -1204,7 +1204,9 @@ class mercadolibre_shipment(models.Model):
                             sorder_pack.write(meli_order_fields)
                             sorder_pack.meli_fix_team( meli=meli, config=config )
                         else:
+                            #_logger.info("Create sale.order pack")
                             sorder_pack = self.env["sale.order"].create(meli_order_fields)
+                            #_logger.info("Create sale.order pack: ALL PASS OK")
                             if sorder_pack:
                                 sorder_pack.meli_fix_team( meli=meli, config=config )
                                 order.message_post(body=str("Sale order created (pack)!"),message_type=order_message_type)
