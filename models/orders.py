@@ -266,7 +266,7 @@ class sale_order(models.Model):
                         #_logger.info(line)
                         #_logger.info(line.is_delivery)
                         #_logger.info(line.price_unit)
-                        if line.is_delivery and line.price_unit<=0.0:
+                        if line.is_delivery or line.price_unit<=0.0:
                             #_logger.info(line)
                             line.write({ "qty_to_invoice": 0.0 })
                             #_logger.info(line.qty_to_invoice)
@@ -278,12 +278,12 @@ class sale_order(models.Model):
             company = self.env.user.company_id
             #_logger.info(Company: "+str(company))
             #_logger.info(Order done: company.mercadolibre_cron_post_update_stock: "+str(company.mercadolibre_cron_post_update_stock))
-            for order in self:
-                for line in order.order_line:
-                    if (company.mercadolibre_cron_post_update_stock):
-                        if line.product_id and line.product_id.meli_id and line.product_id.meli_pub:
-                            #_logger.info(Order done: product_post_stock: "+str(line.product_id.meli_id))
-                            line.product_id.product_post_stock()
+            #for order in self:
+            #    for line in order.order_line:
+            #        if (company.mercadolibre_cron_post_update_stock):
+            #            if line.product_id and line.product_id.meli_id and line.product_id.meli_pub:
+            #                _logger.info("Order done: product_post_stock: "+str(line.product_id.meli_id))
+            #                #line.product_id.product_post_stock()
         except:
             pass;
         return res
@@ -310,12 +310,12 @@ class sale_order(models.Model):
             company = self.env.user.company_id
             #_logger.info(Company: "+str(company))
             #_logger.info(Order done: company.mercadolibre_cron_post_update_stock: "+str(company.mercadolibre_cron_post_update_stock))
-            for order in self:
-                for line in order.order_line:
-                    if (company.mercadolibre_cron_post_update_stock):
-                        if line.product_id and line.product_id.meli_id and line.product_id.meli_pub:
-                            #_logger.info(Order done: product_post_stock: "+str(line.product_id.meli_id))
-                            line.product_id.product_post_stock()
+            #for order in self:
+            #    for line in order.order_line:
+            #        if (company.mercadolibre_cron_post_update_stock):
+            #            if line.product_id and line.product_id.meli_id and line.product_id.meli_pub:
+            #                #_logger.info(Order done: product_post_stock: "+str(line.product_id.meli_id))
+            #                line.product_id.product_post_stock()
         except:
             pass;
         return res
@@ -2274,7 +2274,7 @@ class mercadolibre_orders(models.Model):
                                     saleorderline_item_ids.tax_id = [(4, txid.id)]
 
                         if (sorder.state and sorder.state in ['done']) or ("locked" in sorder._fields and sorder.locked):
-                            _logger.error("Orden bloqueada no se puede actualizar")
+                            _logger.warning("Orden bloqueada no se puede actualizar")
                         else:
                             saleorderline_item_ids.write( ( saleorderline_item_fields ) )
 
