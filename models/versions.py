@@ -6,7 +6,7 @@ import unidecode
 import logging
 _logger = logging.getLogger(__name__)
 import json
-
+import re
 # Odoo version 19.0
 
 # Odoo 12.0 -> Odoo 13.0
@@ -17,6 +17,7 @@ cl_vat_sep_million = "."
 order_message_type = "notification"
 product_message_type = "notification"
 disable_cancel_warning_enabled = True
+price_list_apply_tax = True
 
 def pretty_json( data ):
     return json.dumps( data, sort_keys=False, indent=4 )
@@ -180,13 +181,14 @@ def stock_picking_set_quantities( picking ):
             #_logger.info(pop)
             #_logger.info(pop.qty_done)
             if "qty_done" in pop._fields and pop.qty_done==0.0:
-                if "reserved_uom_qty" in pop._fields:
-                    if pop.reserved_uom_qty>=0.0:
-                        pop.qty_done = pop.reserved_uom_qty
+                #old reserved_uom_qty
+                if "quantity" in pop._fields:
+                    if pop.quantity>=0.0:
+                        pop.qty_done = pop.quantity
                     else:
-                        _logger.error("picking "+str(picking and picking.name)+" en la linea "+str(pop)+" tiene el reserved_uom_qty en 0")
+                        _logger.error("picking "+str(picking and picking.name)+" en la linea "+str(pop)+" tiene el quantity en 0")
                 else:
-                    _logger.error("picking "+str(picking and picking.name)+" en la linea "+str(pop)+" no contiene el campo reserved_uom_qty")
+                    _logger.error("picking "+str(picking and picking.name)+" en la linea "+str(pop)+" no contiene el campo quantity")
 
 def stock_inventory_action_done( self, product, stock, config ):
     return_id = False
