@@ -6,7 +6,7 @@ import unidecode
 import logging
 _logger = logging.getLogger(__name__)
 import json
-
+import re
 # Odoo version 17.0
 
 # Odoo 12.0 -> Odoo 13.0
@@ -17,6 +17,7 @@ cl_vat_sep_million = "."
 order_message_type = "notification"
 product_message_type = "notification"
 disable_cancel_warning_enabled = True
+price_list_apply_tax = True
 
 def pretty_json( data ):
     return json.dumps( data, sort_keys=False, indent=4 )
@@ -305,3 +306,25 @@ def remove_delivery_line( sorder, delivery_price=0):
     sorder._remove_delivery_line()
     return
     
+def normalize_tax_name(tax_name: str):
+    """
+    Normaliza un nombre de impuesto.
+    Ejemplo: "21 %" -> (21, ""), "21% EPS" -> (21, "EPS")
+    """
+    # quitar espacios extras
+    tax_name = tax_name.strip()
+    # buscar número con regex
+    match = re.search(r"(\d+)\s*%?\s*(.*)", tax_name)
+    if match:
+        rate = int(match.group(1))
+        extra = match.group(2).strip()
+        return rate, extra.upper()
+    return None, None
+
+def tax_names_equivalent(name1: str, name2: str) -> bool:
+    r1, e1 = normalize_tax_name(name1)
+    r2, e2 = normalize_tax_name(name2)
+    if r1 is None or r2 is None:
+        return False
+    # reconocemos equivalencia si las tasas son iguales
+    return r1 == r2
