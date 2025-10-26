@@ -718,7 +718,7 @@ class product_product(models.Model):
                     new_price = product.lst_price
 
         tax_excluded = ml_tax_excluded(self)
-        if ( tax_excluded and product_tmpl.taxes_id ):
+        if ( price_list_apply_tax and tax_excluded and product_tmpl.taxes_id ):
             _logger.info("Adjust taxes for publish")
             txfixed = 0
             txpercent = 0
