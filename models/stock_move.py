@@ -14,7 +14,7 @@ class StockMove(models.Model):
 
     def meli_update_boms( self, config=None ):
         #config = config or self.env.user.company_id
-        
+
         company_ids = self.env.user.company_ids
         _logger.info("meli_update_boms > company_ids: "+str(company_ids))
 
@@ -90,7 +90,7 @@ class StockMove(models.Model):
         return True
 
     def _action_assign(self):
-        _logger.info("Stock move: meli_oerp > _action_assign")
+        #_logger.info("Stock move: meli_oerp > _action_assign")
         skip_stock = str2bool(self.env['ir.config_parameter'].sudo().get_param('meli_skip_stock', 'False'))
 
         res = super(StockMove, self)._action_assign()
@@ -101,7 +101,7 @@ class StockMove(models.Model):
 
 
     def _action_done(self, cancel_backorder=False):
-        _logger.info("Stock move: meli_oerp > _action_done")
+        #_logger.info("Stock move: meli_oerp > _action_done")
         moves_todo = super(StockMove, self)._action_done(cancel_backorder=cancel_backorder)
         skip_stock = str2bool(self.env['ir.config_parameter'].sudo().get_param('meli_skip_stock', 'False'))
         if not skip_stock:
@@ -110,7 +110,7 @@ class StockMove(models.Model):
         return moves_todo
 
     def _action_cancel(self):
-        _logger.info("Stock move: meli_oerp > _action_cancel")
+        #_logger.info("Stock move: meli_oerp > _action_cancel")
         skip_stock = str2bool(self.env['ir.config_parameter'].sudo().get_param('meli_skip_stock', 'False'))
         
         res = super(StockMove, self)._action_cancel()
@@ -120,7 +120,7 @@ class StockMove(models.Model):
         return res
     
     def _do_unreserve(self):
-        _logger.info("Stock move: meli_oerp > _do_unreserve")
+        #_logger.info("Stock move: meli_oerp > _do_unreserve")
         skip_stock = str2bool(self.env['ir.config_parameter'].sudo().get_param('meli_skip_stock', 'False'))
         company = self.env.user.company_id
 

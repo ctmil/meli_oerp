@@ -6,7 +6,7 @@ import unidecode
 import logging
 _logger = logging.getLogger(__name__)
 import json
-
+import re
 # Odoo version 18.0
 
 # Odoo 12.0 -> Odoo 13.0
@@ -17,6 +17,7 @@ cl_vat_sep_million = "."
 order_message_type = "notification"
 product_message_type = "notification"
 disable_cancel_warning_enabled = True
+price_list_apply_tax = True
 
 def pretty_json( data ):
     return json.dumps( data, sort_keys=False, indent=4 )
