@@ -14,7 +14,7 @@ import mimetypes
 from urllib.request import urlopen
 
 from odoo.exceptions import ValidationError
-from odoo.addons.website.tools import get_video_embed_code
+from odoo.addons.web_editor.tools import get_video_embed_code, get_video_thumbnail
 
 from datetime import datetime
 

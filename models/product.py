@@ -718,7 +718,7 @@ class product_product(models.Model):
                     new_price = product.lst_price
 
         tax_excluded = ml_tax_excluded(self)
-        if ( tax_excluded and product_tmpl.taxes_id ):
+        if ( price_list_apply_tax and tax_excluded and product_tmpl.taxes_id ):
             _logger.info("Adjust taxes for publish")
             txfixed = 0
             txpercent = 0
@@ -4021,7 +4021,9 @@ class product_product(models.Model):
             if ("mrp.bom" in self.env):
                 product_id = var
                 #check all boms of this kit
-                bom_ids = self.env['mrp.bom'].search([('product_id','=',product_id.id)]) or []
+                bom_ids = ( self.env['mrp.bom'].search([('product_id','=',product_id.id)])  or 
+                            self.env['mrp.bom'].search([('product_tmpl_id','=',product_id.product_tmpl_id.id)]) 
+                            or [] )
                 _st_mv_ids = _st_mv_ids or self.env['stock.move']		
                 for bom_id in bom_ids:
                     if (not bom_id or not bom_id.bom_line_ids):

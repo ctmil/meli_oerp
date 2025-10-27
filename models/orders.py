@@ -53,6 +53,7 @@ class sale_order_line(models.Model):
 
     meli_order_item_id = fields.Char('Meli Order Item Id')
     meli_order_item_variation_id = fields.Char('Meli Order Item Variation Id')
+    meli_order_item_iva = fields.Char("Meli Order Item IVA")
 
 class sale_order(models.Model):
     _inherit = "sale.order"
@@ -263,13 +264,10 @@ class sale_order(models.Model):
             for order in self:
                 if(order.meli_order_id):
                     for line in order.order_line:
-                        #_logger.info(line)
-                        #_logger.info(line.is_delivery)
-                        #_logger.info(line.price_unit)
-                        if line.is_delivery or line.price_unit<=0.0:
+                        if ((line.is_delivery or line.price_unit<=0.0) and line.qty_to_invoice>0):
                             #_logger.info(line)
                             line.write({ "qty_to_invoice": 0.0 })
-                            #_logger.info(line.qty_to_invoice)
+                            _logger.info(line.qty_to_invoice)
                             pass;
         except:
             pass;
@@ -295,13 +293,10 @@ class sale_order(models.Model):
             for order in self:
                 if(order.meli_order_id):
                     for line in order.order_line:
-                        #_logger.info(line)
-                        #_logger.info(line.is_delivery)
-                        #_logger.info(line.price_unit)
-                        if line.is_delivery and line.price_unit<=0.0:
+                        if ((line.is_delivery or line.price_unit<=0.0) and line.qty_to_invoice>0):
                             #_logger.info(line)
                             line.write({ "qty_to_invoice": 0.0 })
-                            #_logger.info(line.qty_to_invoice)
+                            _logger.info(line.qty_to_invoice)
                             pass;
         except:
             pass;
@@ -379,10 +374,15 @@ class sale_order(models.Model):
 
     def meli_confirm_order( self, meli=None, config=None ):
         res = {}
-        if ( (self.state=="draft" or self.state=="sent") and self.meli_status=="paid"):
+
+        if ( self.meli_status=="paid" and self.state in ('draft','sent')):
+
             #_logger.info(paid_confirm ok! confirming sale")
+
             if (self.is_pricelist_meli( meli=meli, config=config)):
+                _logger.info("Action confirm!!")
                 self.action_confirm()
+
         return res
 
     def meli_create_invoice( self, meli=None, config=None):
@@ -395,6 +395,7 @@ class sale_order(models.Model):
 
     def meli_deliver(self, meli=None, config=None, data=None):
         res = {}
+        cancel_backorder = False
         # Sólo operamos si la orden de venta ya está confirmada o hecha
         if self.state in ('sale', 'done') and self.picking_ids:
             for spick in self.picking_ids:
@@ -404,7 +405,7 @@ class sale_order(models.Model):
                         spick.action_confirm()
 
                     #Asignar existencias (reserva y crea move_line_ids)
-                    if (spick.state in ['confirmed','waiting','draft']):
+                    if (spick.state in ['confirmed','partially_available','waiting','draft']):
                         spick.action_assign()
 
                     #Marcar qty_done = product_uom_qty en todas las líneas
@@ -413,7 +414,29 @@ class sale_order(models.Model):
 
                     #Validar el picking para mover físicamente y generar valoración
                     if spick.state == 'assigned':
-                        spick.button_validate()
+                        action = spick.button_validate()
+                        if isinstance(action, dict) and action.get('res_model') == 'stock.immediate.transfer':
+                            Immediate = self.env['stock.immediate.transfer'].sudo()
+                            wiz = action.get('res_id') and Immediate.browse(action['res_id']).exists()
+                            if not wiz:
+                                # Fallback: create wizard binding
+                                wiz = Immediate.create({'pick_ids': [(6, 0, [spick.id])]})
+                            wiz.process()
+
+                        # 6) Handle "Backorder" wizard (stock.backorder.confirmation)
+                        if isinstance(action, dict) and action.get('res_model') == 'stock.backorder.confirmation':
+                            Backorder = self.env['stock.backorder.confirmation'].sudo()
+                            wiz = action.get('res_id') and Backorder.browse(action['res_id']).exists()
+                            if not wiz:
+                                wiz = Backorder.create({'pick_ids': [(6, 0, [spick.id])]})
+                            if cancel_backorder:
+                                # method name differs slightly by version—try both defensively
+                                if hasattr(wiz, 'process_cancel_backorder'):
+                                    wiz.process_cancel_backorder()
+                                else:
+                                    wiz.with_context(cancel_backorder=True).process()
+                            else:
+                                wiz.process()
 
                 except Exception as e:
                     _logger.error(f"Error validando picking {spick.id}: {e}")
@@ -446,7 +469,7 @@ class sale_order(models.Model):
             if (self.meli_status=="cancelled"):
                 if (self.state in ["draft","sale","sent"]):
                     _logger.info("Confirm Order Cancelling")
-                    self.with_context(disable_cancel_warning=True).action_cancel()
+                    self.with_context(disable_cancel_warning=disable_cancel_warning_enabled).action_cancel()
                     _logger.info("Confirm Order Cancelled")
                 return res
 
@@ -1067,6 +1090,58 @@ class mercadolibre_orders(models.Model):
             partner_update.update({ 'postal_id': meli_buyer_fields["postal_id"] })
 
         return partner_update
+
+    def fetchIVA( self, meli_id, meli=None, config=None, rjson=None ):
+        
+        order_item_iva = ""
+
+        if not meli_id:
+            return order_item_iva
+
+
+        if not rjson:
+            response = meli.get("/items/"+str(meli_id), {'access_token':meli.access_token, 'include_attributes': 'all'})
+            rjson = response and response.json()            
+        tax_found = False
+        if rjson:
+            for att in rjson['attributes']:
+                # att["name"] == "IVA"
+                if att["id"] == "VALUE_ADDED_TAX":
+                    tax_found = True
+                    order_item_iva = (att["values"]["value_name"]) or (att["values"][0] and att["values"][0]["name"])
+                    break;
+            if not tax_found:
+                #TODO: check other taxes for IVA for this product...
+                pass;        
+
+        return order_item_iva
+
+    def fetchImpuestoInterno( self, meli_id, meli=None, config=None, rjson=None ):
+        
+        order_item_impuesto_interno = ""
+
+        if not meli_id:
+            return order_item_impuesto_interno
+
+
+        if not rjson:
+            response = meli.get("/items/"+str(meli_id), {'access_token':meli.access_token, 'include_attributes': 'all'})
+            rjson = response and response.json()            
+
+        tax_found = False
+        if rjson:
+            for att in rjson['attributes']:
+                # att["name"] == "Impuesto interno"
+                if att["id"] == "IMPORT_DUTY":
+                    tax_found = True
+                    order_item_impuesto_interno = (att["values"]["value_name"]) or (att["values"][0] and att["values"][0]["name"])
+                    break;
+            if not tax_found:
+                #TODO: check other taxes for IVA for this product...
+                pass;  
+
+
+        return order_item_impuesto_interno
 
     def orders_update_order_json( self, data, context=None, config=None, meli=None ):
 
@@ -2009,7 +2084,17 @@ class mercadolibre_orders(models.Model):
                 product_related_obj = ''
                 product_related_obj_id = False
 
-                #prepare for catalogs:
+                #prepare for iva, catalogs, etc...
+                order_item_iva = ""
+                response3 = meli.get("/items/"+str(Item['item']['id']), {'access_token':meli.access_token, 'include_attributes': 'all'})
+                rjson3 = response3 and response3.json()
+                if rjson3:
+                    #check IVA and impuesto interno:
+                    #order_item_iva = "21 %" or "10 %"                    
+                    order_item_iva = self.fetchIVA( meli_id=str(Item['item']['id']),
+                                                    meli=meli,
+                                                    config=config,
+                                                    rjson=rjson3 )
 
 
                 post_related = posting_obj.search([
@@ -2036,7 +2121,6 @@ class mercadolibre_orders(models.Model):
                     error =  { 'error': 'No post related or too much posts related, exiting '+str(post_related)}
                     _logger.error( str(error) )
                     return error
-
 
                 product_related = order.search_meli_product( meli=meli, meli_item=Item['item'], config=config )
                 #_logger.info(1st attempt: "+str(product_related)+" Item: "+str(Item["item"]) )
@@ -2095,9 +2179,6 @@ class mercadolibre_orders(models.Model):
                             product_related = None
 
                             try:
-                                response3 = meli.get("/items/"+str(Item['item']['id']), {'access_token':meli.access_token, 'include_attributes': 'all'})
-                                rjson3 = response3.json()
-
                                 if rjson3 and 'variations' in rjson3['variations'] and len(rjson3['variations'])>0:
                                     if len(rjson3['variations'])==1:
                                         #only 1, usually added variation by ML
@@ -2175,6 +2256,7 @@ class mercadolibre_orders(models.Model):
                     'order_id': order.id,
                     'posting_id': post_related_obj.id,
                     'order_item_id': Item['item']['id'],
+                    'order_item_iva': order_item_iva or None,
                     'order_item_variation_id': Item['item']['variation_id'],
                     'order_item_title': Item['item']['title'],
                     'order_item_category_id': Item['item']['category_id'],
@@ -2214,7 +2296,9 @@ class mercadolibre_orders(models.Model):
                 results = cr.fetchall()
                 order_item_ids = results
 
-                #_logger.info("Order item ids: "+str(order_item_ids))
+                #### CREATE ORDER ITEM !!! ####
+
+                _logger.info("Order item ids: "+str(order_item_ids))
                 order_item_id = False
                 #_logger.info( order_item_fields )
                 if (not order_item_ids):
@@ -2233,17 +2317,20 @@ class mercadolibre_orders(models.Model):
 
                 #Short cut to meli id and sku
                 order._order_product_sku()
+                order._order_product_iva()
                 order._order_product_meli_id()
 
                 prod_name = ( not product_related_obj and str("(NO ENCONTRADO) ["+order.order_product_sku+"] "+str(Item['item']['title']))) or product_related_obj.display_name
                 #_logger.info(prod_name: "+str(prod_name))
                 order.name = "MO [%s] %s" % ( str(order.order_id), prod_name )
 
+                #only when not a pack
                 if (sorder and product_related_obj):
                     saleorderline_item_fields = {
                         'company_id': company.id,
                         'order_id': sorder.id,
                         'meli_order_item_id': Item['item']['id'],
+                        'meli_order_item_iva': order_item_iva,
                         'meli_order_item_variation_id': Item['item']['variation_id'],
                         'product_id': product_related_obj.id,
                         'product_uom_qty': Item['quantity'],
@@ -2252,30 +2339,51 @@ class mercadolibre_orders(models.Model):
                     }
                     saleorderline_item_fields.update( self._set_product_unit_price( product_related_obj=product_related_obj, Item=Item, config=config ) )
 
+                    #TODO: agregar meli_order_id !!! (mismo item dos ordenes diferentes...puede pasar...)
                     saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),
                                                                         ('meli_order_item_variation_id','=',saleorderline_item_fields['meli_order_item_variation_id']),
-                                                                        ('order_id','=',sorder.id)] )
+                                                                        ('order_id','=',sorder.id)], limit=1 )
 
                     if not saleorderline_item_ids:
                         if sorder.meli_paid_amount==0.0 or 1.1<abs((sorder.meli_paid_amount-sorder.meli_coupon_amount)-sorder.amount_total):
                             saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
-                    else:
+                    
+                    if saleorderline_item_ids:
                         #_logger.info(saleorderline_item_ids:"+str(saleorderline_item_ids))
                         #_logger.info(product_related_obj taxes_id:"+str(product_related_obj.taxes_id))
                         #_logger.info(product_related_obj taxes_id:"+str(product_related_obj.taxes_id and product_related_obj.taxes_id.company_id))
                         #_logger.info(saleorderline_item_ids tax_id:"+str(saleorderline_item_ids.tax_id))
                         #_logger.info(saleorderline_item_ids tax_id company_id:"+str(saleorderline_item_ids.tax_id.company_id))
+                        tax_iva_name = saleorderline_item_ids.meli_order_item_iva
+                        tax_iva_name = tax_iva_name
+                        tax_iva_id = None
+                        if tax_iva_name and product_related_obj.taxes_id:
+                            for txid in product_related_obj.taxes_id:
+                                if ( tax_names_equivalent(txid.name,tax_iva_name) ):
+                                    tax_iva_id = txid
+
                         for tid in saleorderline_item_ids.tax_id:
-                            if (tid.company_id.id!=sorder.company_id.id):
+
+                            if (tid.company_id.id!=sorder.company_id.id 
+                                or (tax_iva_id and tax_iva_id!=tid) ):
+                                #remove
                                 saleorderline_item_ids.tax_id = [(3, tid.id)]
+
                         if not saleorderline_item_ids.tax_id and product_related_obj.taxes_id:
                             for txid in product_related_obj.taxes_id:
-                                if txid.company_id.id==sorder.company_id.id:
-                                    saleorderline_item_ids.tax_id = [(4, txid.id)]
+                                if (txid.company_id.id==sorder.company_id.id):
+                                    if (tax_iva_id):
+                                        if (tax_iva_id!=tid):
+                                            #add
+                                            saleorderline_item_ids.tax_id = [(4, txid.id)]
+                                    else:
+                                        #add
+                                        saleorderline_item_ids.tax_id = [(4, txid.id)]
 
-                        if (sorder.state and sorder.state in ['done']) or ("locked" in sorder._fields and sorder.locked):
+                        if (sorder.state and sorder.state in ['done','sale']) or ("locked" in sorder._fields and sorder.locked):
                             _logger.warning("Orden bloqueada no se puede actualizar")
                         else:
+                            _logger.info("Sale Order line write")
                             saleorderline_item_ids.write( ( saleorderline_item_fields ) )
 
         if 'payments' in order_json:
@@ -2349,7 +2457,7 @@ class mercadolibre_orders(models.Model):
                                 #_logger.info( "fee_type:" + str(fee_type) + " fee_name:" + str(fee_name) )
                                 if ( fee_type=="fee" and fee_name == "meli_percentage_fee"):
                                     payment_fields["fee_amount"] = fee_detail["amounts"] and fee_detail["amounts"]["original"]
-                                    _logger.info("fee_amount:"+str(payment_fields["fee_amount"]))
+                                    #_logger.info("fee_amount:"+str(payment_fields["fee_amount"]))
                                     if (order):
                                         order.fee_amount = payment_fields["fee_amount"]
                                 
@@ -2402,20 +2510,16 @@ class mercadolibre_orders(models.Model):
         #could be packed sorder or standard one product item order
         if sorder:
             for line in sorder.order_line:
-                #_logger.info(line)
-                #_logger.info(line.is_delivery)
-                #_logger.info(line.price_unit)
-                if sorder.meli_order_id and line.is_delivery and line.price_unit<=0.0:
+                if (sorder.meli_order_id and line.is_delivery and line.price_unit<=0.0 and line.qty_to_invoice>0):
                     #_logger.info(line)
                     line.write({ "qty_to_invoice": 0.0 })
-                    #_logger.info(line.qty_to_invoice)
                     pass;
 
             #if (config.mercadolibre_order_confirmation!="manual"):
             sorder.confirm_ml( meli=meli, config=config )
 
             if (sorder.meli_status=="cancelled" and sorder.state in ["draft","sale","sent"]):
-                sorder.with_context(disable_cancel_warning=True).action_cancel()
+                sorder.with_context(disable_cancel_warning=disable_cancel_warning_enabled).action_cancel()
 
             #if "confirm_ml_financial" in self.env["mercadolibre.orders"]:
             #sorder.confirm_ml_financial( meli=meli, config=config )
@@ -2822,6 +2926,16 @@ class mercadolibre_orders(models.Model):
 
     order_product_sku = fields.Char(string='Order Product Sku', compute=_order_product_sku, store=True, index=True )
 
+    def _order_product_iva( self ):
+        for ord in self:
+            ord.order_product_iva = ""
+
+            if ord.order_items and ord.order_items[0]:
+                ord.order_product_iva = ord.order_items[0].order_item_iva
+
+    order_product_iva = fields.Char(string='Order Product IVA', compute=_order_product_iva, store=True, index=True )
+
+
     def _order_product_meli_id(self):
         for ord in self:
             ord.order_product_meli_id = None
@@ -2884,6 +2998,7 @@ class mercadolibre_order_items(models.Model):
     product_id = fields.Many2one("product.product",string="Product",help="Product Variant",index=True)
     order_id = fields.Many2one("mercadolibre.orders",string="Order",index=True)
     order_item_id = fields.Char(string='Item Id',index=True)
+    order_item_iva = fields.Char(string='Item IVA',index=True)
     order_item_variation_id = fields.Char(string='Item Variation Id',index=True)
     order_item_title = fields.Char(string='Item Title',index=True)
     order_item_category_id = fields.Char(string='Item Category Id',index=True)
@@ -3071,10 +3186,10 @@ class sale_order_cancel_wiz_meli(models.TransientModel):
                     #asd
                     #_logger.info("cancel_order: unblock")
                     order.action_unlock()
-                    order.with_context(disable_cancel_warning=True).action_cancel()
+                    order.with_context(disable_cancel_warning=disable_cancel_warning_enabled).action_cancel()
 
                 if (order and order.state in ["draft","sale","sent"]) and not is_locked:
-                    order.with_context(disable_cancel_warning=True).action_cancel()
+                    order.with_context(disable_cancel_warning=disable_cancel_warning_enabled).action_cancel()
 
         except Exception as e:
             #_logger.info("order_update > Error cancelando ordenes")
