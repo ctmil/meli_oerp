@@ -1108,7 +1108,7 @@ class mercadolibre_orders(models.Model):
                 # att["name"] == "IVA"
                 if att["id"] == "VALUE_ADDED_TAX":
                     tax_found = True
-                    order_item_iva = att["values"][0]["value_name"]
+                    order_item_iva = (att["values"]["value_name"]) or (att["values"][0] and att["values"][0]["name"])
                     break;
             if not tax_found:
                 #TODO: check other taxes for IVA for this product...
@@ -1134,7 +1134,7 @@ class mercadolibre_orders(models.Model):
                 # att["name"] == "Impuesto interno"
                 if att["id"] == "IMPORT_DUTY":
                     tax_found = True
-                    order_item_impuesto_interno = att["values"][0]["value_name"]
+                    order_item_impuesto_interno = (att["values"]["value_name"]) or (att["values"][0] and att["values"][0]["name"])
                     break;
             if not tax_found:
                 #TODO: check other taxes for IVA for this product...
