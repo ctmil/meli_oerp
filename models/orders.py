@@ -374,11 +374,15 @@ class sale_order(models.Model):
 
     def meli_confirm_order( self, meli=None, config=None ):
         res = {}
-        if ( (self.state=="draft" or self.state=="sent") and self.meli_status=="paid" and self.state in ('draft','sent')):
+
+        if ( self.meli_status=="paid" and self.state in ('draft','sent')):
+
             #_logger.info(paid_confirm ok! confirming sale")
+
             if (self.is_pricelist_meli( meli=meli, config=config)):
                 _logger.info("Action confirm!!")
                 self.action_confirm()
+
         return res
 
     def meli_create_invoice( self, meli=None, config=None):
@@ -1104,7 +1108,7 @@ class mercadolibre_orders(models.Model):
                 # att["name"] == "IVA"
                 if att["id"] == "VALUE_ADDED_TAX":
                     tax_found = True
-                    order_item_iva = att["values"][0]["value_name"]
+                    order_item_iva = (att["values"]["value_name"]) or (att["values"][0] and att["values"][0]["name"])
                     break;
             if not tax_found:
                 #TODO: check other taxes for IVA for this product...
@@ -1130,7 +1134,7 @@ class mercadolibre_orders(models.Model):
                 # att["name"] == "Impuesto interno"
                 if att["id"] == "IMPORT_DUTY":
                     tax_found = True
-                    order_item_impuesto_interno = att["values"][0]["value_name"]
+                    order_item_impuesto_interno = (att["values"]["value_name"]) or (att["values"][0] and att["values"][0]["name"])
                     break;
             if not tax_found:
                 #TODO: check other taxes for IVA for this product...
@@ -2453,7 +2457,7 @@ class mercadolibre_orders(models.Model):
                                 #_logger.info( "fee_type:" + str(fee_type) + " fee_name:" + str(fee_name) )
                                 if ( fee_type=="fee" and fee_name == "meli_percentage_fee"):
                                     payment_fields["fee_amount"] = fee_detail["amounts"] and fee_detail["amounts"]["original"]
-                                    _logger.info("fee_amount:"+str(payment_fields["fee_amount"]))
+                                    #_logger.info("fee_amount:"+str(payment_fields["fee_amount"]))
                                     if (order):
                                         order.fee_amount = payment_fields["fee_amount"]
                                 
