@@ -267,7 +267,7 @@ class sale_order(models.Model):
                         if ((line.is_delivery or line.price_unit<=0.0) and line.qty_to_invoice>0):
                             #_logger.info(line)
                             line.write({ "qty_to_invoice": 0.0 })
-                            _logger.info(line.qty_to_invoice)
+                            #_logger.info(line.qty_to_invoice)
                             pass;
         except:
             pass;
@@ -296,7 +296,7 @@ class sale_order(models.Model):
                         if ((line.is_delivery or line.price_unit<=0.0) and line.qty_to_invoice>0):
                             #_logger.info(line)
                             line.write({ "qty_to_invoice": 0.0 })
-                            _logger.info(line.qty_to_invoice)
+                            #_logger.info(line.qty_to_invoice)
                             pass;
         except:
             pass;
@@ -374,11 +374,15 @@ class sale_order(models.Model):
 
     def meli_confirm_order( self, meli=None, config=None ):
         res = {}
-        if ( (self.state=="draft" or self.state=="sent") and self.meli_status=="paid" and self.state in ('draft','sent')):
+
+        if ( self.meli_status=="paid" and self.state in ('draft','sent')):
+
             #_logger.info(paid_confirm ok! confirming sale")
+
             if (self.is_pricelist_meli( meli=meli, config=config)):
-                _logger.info("Action confirm!!")
+                #_logger.info("Action confirm!!")
                 self.action_confirm()
+
         return res
 
     def meli_create_invoice( self, meli=None, config=None):
@@ -464,9 +468,9 @@ class sale_order(models.Model):
             #cancelling with no conditions, here because paid_amount is 0, dont use confirm_cond
             if (self.meli_status=="cancelled"):
                 if (self.state in ["draft","sale","sent"]):
-                    _logger.info("Confirm Order Cancelling")
+                    #_logger.info("Confirm Order Cancelling")
                     self.with_context(disable_cancel_warning=disable_cancel_warning_enabled).action_cancel()
-                    _logger.info("Confirm Order Cancelled")
+                    #_logger.info("Confirm Order Cancelled")
                 return res
 
             amount_to_invoice = self.meli_amount_to_invoice( meli=meli, config=config )
@@ -1104,7 +1108,7 @@ class mercadolibre_orders(models.Model):
                 # att["name"] == "IVA"
                 if att["id"] == "VALUE_ADDED_TAX":
                     tax_found = True
-                    order_item_iva = att["values"][0]["value_name"]
+                    order_item_iva = (att["value_name"]) or (att["values"] and att["values"][0] and att["values"][0]["name"])
                     break;
             if not tax_found:
                 #TODO: check other taxes for IVA for this product...
@@ -1130,7 +1134,7 @@ class mercadolibre_orders(models.Model):
                 # att["name"] == "Impuesto interno"
                 if att["id"] == "IMPORT_DUTY":
                     tax_found = True
-                    order_item_impuesto_interno = att["values"][0]["value_name"]
+                    order_item_impuesto_interno = (att["value_name"]) or (att["values"] and att["values"][0] and att["values"][0]["name"])
                     break;
             if not tax_found:
                 #TODO: check other taxes for IVA for this product...
@@ -1370,7 +1374,7 @@ class mercadolibre_orders(models.Model):
             #_logger.info("Buyer ids: "+str(buyer_ids))
             buyer_id = False
             if ( not buyer_ids ):
-                _logger.info( "creating buyer "+str(buyer_fields['buyer_id'])+" order id:" + str(order and order.name))
+                #_logger.info( "creating buyer "+str(buyer_fields['buyer_id'])+" order id:" + str(order and order.name))
                 #_logger.info(buyer_fields)
                 buyer_id = buyers_obj.sudo().create(( buyer_fields ))
             else:
@@ -1806,6 +1810,13 @@ class mercadolibre_orders(models.Model):
             if not partner_id:
                 partner_id = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ]+company_none_domain, limit=1 )
 
+            
+            if not partner_id and 'billing_info_doc_number' in buyer_fields and buyer_fields['billing_info_doc_number']:
+                partner_id = respartner_obj.search([  ('vat','=',buyer_fields['billing_info_doc_number'] ) ]+company_only_domain, limit=1 )
+                if (partner_id):
+                    partner_id.meli_buyer_id = buyer_fields['buyer_id']
+                else:
+                    partner_id = respartner_obj.search([  ('vat','=',buyer_fields['billing_info_doc_number'] ) ]+company_none_domain, limit=1 )
 
             partner_invoice_id = partner_id
             #_logger.info("partner_id>buyer_fields:"+str(buyer_fields)+" > partner_id: "+str(partner_id))
@@ -2294,7 +2305,7 @@ class mercadolibre_orders(models.Model):
 
                 #### CREATE ORDER ITEM !!! ####
 
-                _logger.info("Order item ids: "+str(order_item_ids))
+                #_logger.info("Order item ids: "+str(order_item_ids))
                 order_item_id = False
                 #_logger.info( order_item_fields )
                 if (not order_item_ids):
@@ -2377,7 +2388,8 @@ class mercadolibre_orders(models.Model):
                                         saleorderline_item_ids.tax_id = [(4, txid.id)]
 
                         if (sorder.state and sorder.state in ['done','sale']) or ("locked" in sorder._fields and sorder.locked):
-                            _logger.warning("Orden bloqueada no se puede actualizar")
+                            #_logger.warning("Orden bloqueada no se puede actualizar")
+                            pass;
                         else:
                             _logger.info("Sale Order line write")
                             saleorderline_item_ids.write( ( saleorderline_item_fields ) )
@@ -2453,7 +2465,7 @@ class mercadolibre_orders(models.Model):
                                 #_logger.info( "fee_type:" + str(fee_type) + " fee_name:" + str(fee_name) )
                                 if ( fee_type=="fee" and fee_name == "meli_percentage_fee"):
                                     payment_fields["fee_amount"] = fee_detail["amounts"] and fee_detail["amounts"]["original"]
-                                    _logger.info("fee_amount:"+str(payment_fields["fee_amount"]))
+                                    #_logger.info("fee_amount:"+str(payment_fields["fee_amount"]))
                                     if (order):
                                         order.fee_amount = payment_fields["fee_amount"]
                                 

@@ -532,8 +532,15 @@ class mercadolibre_shipment(models.Model):
                 pass;
                 #continue
 
-            #del_price = shipment.shipping_cost
+            mercadolibre_use_payment_shipping_amount = True
+            if (config and "mercadolibre_use_payment_shipping_amount" in config._fields):
+                mercadolibre_use_payment_shipping_amount = config.mercadolibre_use_payment_shipping_amount
+
             del_price = order.payments_shipment_amount;
+            
+            if not mercadolibre_use_payment_shipping_amount:
+                del_price = shipment.shipping_cost
+
             delivery_price = ml_product_price_conversion( self, product_related_obj=product_shipping_id, price=del_price, config=config ),
             if type(delivery_price)==tuple and len(delivery_price):
                 delivery_price = delivery_price[0]
@@ -544,7 +551,7 @@ class mercadolibre_shipment(models.Model):
             conflict = ( received_amount == 0.0 )
 
             if conflict:
-                _logger.error("Order totals conflict, manual check needed.")
+                #_logger.error("Order totals conflict, manual check needed.")
                 continue;
             #if (1==2):
             #    received_amount = sorder.meli_total_amount
@@ -618,7 +625,7 @@ class mercadolibre_shipment(models.Model):
                         delivery_line.qty_to_invoice = 0
                     #_logger.info("Procesar delivery_price == 0 remover linea")
                     #sorder._remove_delivery_line()
-                _logger.info("Finished _update_sale_order_shipping_info")
+                #_logger.info("Finished _update_sale_order_shipping_info")
             return
 
 
@@ -1035,7 +1042,7 @@ class mercadolibre_shipment(models.Model):
                     if sorder:
                         shipment.sale_order = sorder[0]
                         sorder.meli_shipment = shipment
-                        _logger.info("setting meli_shipping_amount:"+str(sorder)+" all_orders: " +str(all_orders))
+                        #_logger.info("setting meli_shipping_amount:"+str(sorder)+" all_orders: " +str(all_orders))
                         if all_orders:
                             sorder.meli_shipping_amount = all_orders and all_orders[0] and all_orders[0].payments_shipment_amount
 
@@ -1103,16 +1110,24 @@ class mercadolibre_shipment(models.Model):
                         totales['coupon_amount'] = 0
                         totales['financing_fee_amount'] = 0
                         totales['shipping_amount'] = 0
+
+                        mercadolibre_use_payment_shipping_amount = True
+                        if (config and "mercadolibre_use_payment_shipping_amount" in config._fields):
+                            mercadolibre_use_payment_shipping_amount = config.mercadolibre_use_payment_shipping_amount
+                        
                         for oi in all_orders:
                             ord = oi
                             totales['total_amount']+= ord["total_amount"]
                             totales['paid_amount']+= ord["paid_amount"]
                             totales['coupon_amount']+= ord["coupon_amount"]
                             totales['financing_fee_amount']+= ord["financing_fee_amount"]
-                            totales['shipping_amount']+= ord.payments_shipment_amount
+                            if mercadolibre_use_payment_shipping_amount:
+                                totales['shipping_amount']+= ord.payments_shipment_amount
+                            else:
+                                totales['shipping_amount'] = shipment.shipping_cost
 
                         #fix ML order_json... for pack_order "shipping_cost" added
-                        if 1==2 and shipment.shipping_cost:
+                        if not mercadolibre_use_payment_shipping_amount and shipment.shipping_cost:
                             totales['paid_amount']+= shipment.shipping_cost
 
                         order_json = {
@@ -1292,7 +1307,8 @@ class mercadolibre_shipment(models.Model):
                                     is_locked = ((sorder_pack and sorder_pack.state in ["done","sale"]) 
                                                 or ("locked" in sorder_pack._fields and sorder_pack.locked))
                                     if (is_locked):
-                                        _logger.warning("Orden bloqueada no se puede actualizar linea de la orden")
+                                        #_logger.warning("Orden bloqueada no se puede actualizar linea de la orden")
+                                        pass;
                                     else:
                                         #_logger.info("sale order line to write")
                                         saleorderline_item_ids.write( ( saleorderline_item_fields ) )
@@ -1311,7 +1327,7 @@ class mercadolibre_shipment(models.Model):
         if not item or not "order_id" in item or not "item_id" in item:
             return None
 
-        _logger.info("update shipment:"+str(item))
+        #_logger.info("update shipment:"+str(item))
         if "variation_id" in item and item["variation_id"]:
             sitem = self.env["mercadolibre.shipment.item"].search([ ("shipment_id","=",shipment.id),("order_id","=",item["order_id"]), ("item_id","=",item["item_id"]), ("variation_id","=",item["variation_id"]) ],limit=1)
         else:

@@ -511,9 +511,11 @@ class product_template(models.Model):
 
     meli_ids = fields.Char(size=2048,string="MercadoLibre Ids.",help="ML Ids de variantes separados por coma.",index=True)
 
+    meli_user_product_id = fields.Char(string='Product User Id')
+
     meli_catalog_listing = fields.Boolean(string='Catalog Listing')
-    meli_catalog_product_id = fields.Char(string='Catalog Product Id', size=256)
-    meli_catalog_item_relations = fields.Char(string='Catalog Item Relations', size=256)
+    meli_catalog_product_id = fields.Char(string='Catalog Product Id')
+    meli_catalog_item_relations = fields.Char(string='Catalog Item Relations')
     meli_catalog_automatic_relist = fields.Boolean(string='Catalog Auto Relist')
 
     meli_shipping_mode = fields.Char(string="Shipping Mode",help="Shipping modes (por usuario): custom, not_specified, me2. https://api.mercadolibre.com/users/USERID/shipping_preferences",index=True)
@@ -1630,6 +1632,10 @@ class product_product(models.Model):
             del tmpl_fields['name']
         if (product_template.description_sale or not company.mercadolibre_overwrite_template):
             del tmpl_fields['description_sale']
+
+        if ("user_product_id" in rjson):
+            meli_fields["meli_user_product_id"] = rjson["user_product_id"]
+            tmpl_fields["meli_user_product_id"] = rjson["user_product_id"]
 
         if ("catalog_listing" in rjson):
             meli_fields["meli_catalog_listing"] = rjson["catalog_listing"]
@@ -3996,6 +4002,8 @@ class product_product(models.Model):
     meli_brand = fields.Char(string="Marca",size=256)
     meli_default_stock_product = fields.Many2one("product.product","Producto de referencia para stock")
     meli_id_variation = fields.Char( string='Variation Id',help='Id de Variante de Meli', size=256, index=True )
+
+    meli_user_product_id = fields.Char(string='Product User Id')
 
     meli_catalog_listing = fields.Boolean(string='Catalog Listing')
     meli_catalog_product_id = fields.Char(string='Catalog Product Id', size=256)
