@@ -16,7 +16,8 @@ cl_vat_sep_million = ""
 #message types
 order_message_type = "notification"
 product_message_type = "notification"
-disable_cancel_warning_enabled = True
+disable_cancel_warning_enabled = False
+price_list_apply_tax = True
 
 def pretty_json( data ):
     return json.dumps( data, sort_keys=False, indent=4 )

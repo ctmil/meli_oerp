@@ -14,121 +14,118 @@ class StockMove(models.Model):
 
     def meli_update_boms( self, config=None ):
         #config = config or self.env.user.company_id
+
         company_ids = self.env.user.company_ids
-        mov = self
+        _logger.info("meli_update_boms > company_ids: "+str(company_ids))
 
-        _logger.info("meli_update_boms > "+str(config and config.name))
+        for mov in self:
+            
+            company = mov.company_id
 
-        if mov.product_id:
+            _logger.info("meli_update_boms > mov company: "+str(company and company.name))
+            company = company or self.env.user.company_id
+            if not mov.product_id:
+                continue;
+
 
             product_id = mov.product_id
+
+            _logger.info("meli_update_boms > mov product: "+str(product_id and product_id.name) )
+
             product_id.process_meli_stock_moves_update()
 
-            #_logger.info("meli_update_boms > mov:"+str(mov)+" product: "+str(product_id) )
-
+            is_company_post_stock = company  and company.mercadolibre_cron_post_update_stock
             is_meli = (mov.product_id.meli_id and mov.product_id.meli_pub)
 
-            if (config and config.mercadolibre_cron_post_update_stock and is_meli):
+            #if (config and config.mercadolibre_cron_post_update_stock and is_meli):
                 #_logger.info("meli_update_boms > process_meli_stock_moves_update() "+str(config and config.name))
-                product_id.process_meli_stock_moves_update()
+            #    product_id.process_meli_stock_moves_update()
                 #product_id.product_post_stock()
 
             #sin config, recorremos las companias a las que forma parte este producto
-            if not config and company_ids:
-                for comp in company_ids:
-                    is_company = (product_id.company_id==False or product_id.company_id==comp)
-                    #_logger.info("is_company: "+str(is_company)+" product_id.company_id:"+str(product_id.company_id)+" comp:"+str(comp))
-                    #_logger.info("is_meli: "+str(is_meli)+" comp.mercadolibre_cron_post_update_stock:"+str(comp.mercadolibre_cron_post_updat()e_stock))
-                    if (comp and comp.mercadolibre_cron_post_update_stock and is_company and is_meli):
-                        _logger.info("update bom product_id process_meli_stock_moves_update()")
-                        product_id.process_meli_stock_moves_update()
+            #if not config and company_ids:
+            #    for comp in company_ids:
+            #        is_company = (product_id.company_id==False or product_id.company_id==comp)
+            #        #_logger.info("is_company: "+str(is_company)+" product_id.company_id:"+str(product_id.company_id)+" comp:"+str(comp))
+            #        #_logger.info("is_meli: "+str(is_meli)+" comp.mercadolibre_cron_post_update_stock:"+str(comp.mercadolibre_cron_post_updat()e_stock))
+            #        if (comp and comp.mercadolibre_cron_post_update_stock and is_company and is_meli):
+            #            _logger.info("update bom product_id process_meli_stock_moves_update()")
+            #            product_id.process_meli_stock_moves_update()
                         #product_id.product_post_stock()
 
 
 
             #BOM SECTION POST STOCK if needed
-
+            
             if not ("mrp.bom" in self.env):
-                return False
+                continue;
 
             bomlines = "bom_line_ids" in product_id._fields and product_id.bom_line_ids
-            bomlines = bomlines or self.env['mrp.bom.line'].search([('product_id','=',product_id.id)])
+            bomlines = bomlines or self.env['mrp.bom.line'].sudo().search([('product_id','=',product_id.id)])
             bomlines = bomlines or []
+            
+            _logger.info("meli_update_boms > bomlines related: "+str(bomlines))
 
             for bomline in bomlines:
-
+                
+                bm_product_tmpl_id = bomline.bom_id and bomline.bom_id.product_tmpl_id
                 bm_product_id = bomline.bom_id and bomline.bom_id.product_id
+                bm_product_id = bm_product_id or (bm_product_tmpl_id and bm_product_tmpl_id.product_variant_ids) or self.env["product.product"]
                 bm_is_meli = (bm_product_id.meli_id and bm_product_id.meli_pub)
-
-                if (1==2 and bm_product_id.virtual_available !=product_id.virtual_available):
-                    #_logger.info("Clone stock: " + str(bomline.bom_id.product_id.virtual_available))
-                    #_logger.info("Trigger stock equivalence function:")
-                    movs = self.env['stock.move']
-                    qty = mov.ordered_qty
-                    #_logger.info("ordered_qty:"+str(qty))
-                    #_logger.info("bomline.product_qty:"+str(bomline.product_qty))
-                    if (bomline.product_qty>0):
-                        qty_base = mov.product_id.virtual_available * (1.0 / bomline.product_qty)
-                    else:
-                        qty_base = mov.product_id.virtual_available
-                    #_logger.info("qty_base:"+str(qty_base))
-                    qtydiff =  qty_base - bomline.bom_id.product_id.virtual_available
-                    #_logger.info("qtydiff:"+str(qtydiff))
-                    if (qtydiff>qty):
-                        qty = qtydiff
-                    #_logger.info("qty:"+str(qty))
-                    movfields = {
-                        "name": mov.name+str(' (clone)'),
-                        "product_id": bomline.bom_id.product_id.id,
-                        "location_id": mov.location_id.id,
-                        "location_dest_id": mov.location_dest_id.id,
-                        "procure_method": mov.procure_method,
-                        "product_uom_qty": qty,
-                        #"ordered_qty": qty,
-                        "product_uom": mov.product_uom.id
-                    }
-                    _logger.info(movfields)
-                    sm = movs.create(movfields)
-                    if (sm):
-                        sm._action_done()
-
-                if (config and config.mercadolibre_cron_post_update_stock and bm_product_id and bm_is_meli):
-                    _logger.info("meli_update_boms > process_meli_stock_moves_update() "+str(config and config.name)+" bm_product_id > "+str(bm_product_id.display_name))
-                    bm_product_id.process_meli_stock_moves_update()
-                    #bm_product_id.product_post_stock()
+                _logger.info("meli_update_boms > process bom product KIT: "+str(bm_product_id and bm_product_id.name))
+                if bm_product_id:
+                    for bmpid in bm_product_id:
+                        bmpid.process_meli_stock_moves_update()
 
                 #sin config, recorremos las companias a las que forma parte este producto
                 if not config and company_ids and bm_product_id:
 
                     for comp in company_ids:
-                        bm_is_company = (bm_product_id.company_id==False or bm_product_id.company_id==comp)
-                        if (comp and comp.mercadolibre_cron_post_update_stock and bm_is_company and bm_is_meli):
-                            bm_product_id.process_meli_stock_moves_update()
-                            #bm_product_id.product_post_stock()
+                        for bmpid in bm_product_id:
+                            bm_is_company = (bmpid.company_id==False or bmpid.company_id==comp)
+                            if (comp and comp.mercadolibre_cron_post_update_stock and bm_is_company and bm_is_meli):
+                                _logger.info("meli_update_boms multicomp > process_meli_stock_moves_update() "+str(comp and comp.name)+" bm_product_id > "+str(bmpid.display_name))
+                                bmpid.process_meli_stock_moves_update()
 
         return True
 
     def _action_assign(self):
+        #_logger.info("Stock move: meli_oerp > _action_assign")
         skip_stock = str2bool(self.env['ir.config_parameter'].sudo().get_param('meli_skip_stock', 'False'))
-        company = self.env.user.company_id
 
         res = super(StockMove, self)._action_assign()
         if not skip_stock:
-            for mov in self:
-                mov.meli_update_boms( config = company )
+            self.meli_update_boms()
 
         return res
 
 
     def _action_done(self, cancel_backorder=False):
-        #import pdb; pdb.set_trace()
         #_logger.info("Stock move: meli_oerp > _action_done")
-        company = self.env.user.company_id
-
         moves_todo = super(StockMove, self)._action_done(cancel_backorder=cancel_backorder)
         skip_stock = str2bool(self.env['ir.config_parameter'].sudo().get_param('meli_skip_stock', 'False'))
         if not skip_stock:
-            for mov in self:
-                mov.meli_update_boms( config = company )
+            self.meli_update_boms()
 
         return moves_todo
+
+    def _action_cancel(self):
+        #_logger.info("Stock move: meli_oerp > _action_cancel")
+        skip_stock = str2bool(self.env['ir.config_parameter'].sudo().get_param('meli_skip_stock', 'False'))
+        
+        res = super(StockMove, self)._action_cancel()
+        if not skip_stock:
+            self.meli_update_boms()
+
+        return res
+    
+    def _do_unreserve(self):
+        #_logger.info("Stock move: meli_oerp > _do_unreserve")
+        skip_stock = str2bool(self.env['ir.config_parameter'].sudo().get_param('meli_skip_stock', 'False'))
+        company = self.env.user.company_id
+
+        res = super(StockMove, self)._do_unreserve()
+        if not skip_stock:
+            self.meli_update_boms()
+
+        return res

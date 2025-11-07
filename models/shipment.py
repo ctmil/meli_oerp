@@ -737,9 +737,12 @@ class mercadolibre_shipment(models.Model):
     #Return shipment object based on mercadolibre.orders "order"
     def fetch_shipment( self, order, meli=None, config=None ):
         #_logger.info("ship fetch")
-        company = self.env.user.company_id
+        company = (config and "company_id" in config._fields and config.company_id) or config or self.env.user.company_id
         if not config:
             config = company
+        company_only_domain = [('company_id','=',company.id)]
+        company_none_domain = [('company_id','=',False)]  
+
         sale_order_pack = None
         saleorder_obj = self.env['sale.order']
         saleorderline_obj = self.env['sale.order.line']
@@ -1052,8 +1055,13 @@ class mercadolibre_shipment(models.Model):
 
                     #buyer_ids = buyers_obj.search([  ('buyer_id','=',buyer_fields['buyer_id'] ) ] )
                     partner_invoice_meli_order_id = str(all_orders[0]['pack_id'] or all_orders[0]['id'])
-                    partner_id = respartner_obj.search([  ('meli_buyer_id','=',ship_fields['receiver_id'] ) ], limit=1 )
-                    partner_invoice_id = respartner_obj.search([  ('meli_order_id','=',partner_invoice_meli_order_id ) ], limit=1 ) or partner_id
+                    partner_id = respartner_obj.search([  ('meli_buyer_id','=',ship_fields['receiver_id'] ) ]+company_only_domain, limit=1 )
+                    if not partner_id:
+                        partner_id = respartner_obj.search([  ('meli_buyer_id','=',ship_fields['receiver_id'] ) ]+company_none_domain, limit=1 )
+
+                    partner_invoice_id = respartner_obj.search([  ('meli_order_id','=',partner_invoice_meli_order_id ) ]+company_only_domain, limit=1 )
+                    if not partner_invoice_id:
+                        partner_invoice_id = respartner_obj.search([  ('meli_order_id','=',partner_invoice_meli_order_id ) ]+company_none_domain, limit=1 ) or partner_id
 
                     original_contact_partner_id = partner_id
                     partner_shipping_id = None
@@ -1186,22 +1194,24 @@ class mercadolibre_shipment(models.Model):
                         if (len(sorder_pack)):
                             sorder_pack = sorder_pack[0]
                             #_logger.info("Update sale.order pack")
-                            #_logger.info(all_orders[0])
                             #_logger.info(meli_order_fields)
                             is_locked = (sorder_pack and sorder_pack.state in ["done"]) or ("locked" in sorder_pack._fields and sorder_pack.locked)
                             if (sorder_pack.state in ['sale','done']) or is_locked:
                                 del meli_order_fields["pricelist_id"]
 
-                            sorder_pack.meli_fix_team( meli=meli, config=config )
-                            sorder_pack.write(meli_order_fields)
-                            sorder_pack.meli_fix_team( meli=meli, config=config )
+                            #sorder_pack.meli_fix_team( meli=meli, config=config )
+                            if (sorder_pack.state in ['draft']):
+                                _logger.info("Pack Sale Order writing")
+                                sorder_pack.write(meli_order_fields)
+                            #sorder_pack.meli_fix_team( meli=meli, config=config )
                         else:
+                            #_logger.info("Create sale.order pack")
                             sorder_pack = self.env["sale.order"].create(meli_order_fields)
+                            #_logger.info("Create sale.order pack: ALL PASS OK")
                             if sorder_pack:
                                 sorder_pack.meli_fix_team( meli=meli, config=config )
                                 order.message_post(body=str("Sale order created (pack)!"),message_type=order_message_type)
-
-
+                    
                         if (sorder_pack.id):
                             shipment.sale_order = sorder_pack
 
@@ -1226,6 +1236,7 @@ class mercadolibre_shipment(models.Model):
                                     'company_id': company.id,
                                     'order_id': shipment.sale_order.id,
                                     'meli_order_item_id': mOrder.order_items[0]["order_item_id"],
+                                    'meli_order_item_iva': mOrder.order_items[0]["order_item_iva"],
                                     'meli_order_item_variation_id': mOrder.order_items[0]["order_item_variation_id"],
                                     'product_id': product_related_obj.id,
                                     'product_uom_qty': mOrder.order_items[0]["quantity"],
@@ -1243,13 +1254,47 @@ class mercadolibre_shipment(models.Model):
 
                                 if not saleorderline_item_ids:
                                     if sorder_pack.amount_total<(sorder_pack.meli_paid_amount-sorder_pack.meli_coupon_amount):
+                                        #_logger.info("Sale Order Pack Create line")
                                         saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
-                                else:
-                                    #_logger.info("saleorderline_item_ids:"+str(saleorderline_item_ids))
-                                    #_logger.info("saleorderline_item_ids tax_id:"+str(saleorderline_item_ids.tax_id))
-                                    #_logger.info("saleorderline_item_ids tax_id company_id:"+str(saleorderline_item_ids.tax_id.company_id))
-                                    is_locked = (sorder_pack and sorder_pack.state in ["done"]) or ("locked" in sorder_pack._fields and sorder_pack.locked)
-                                    if (not sorder_pack.state in ['sale','done']) and not is_locked:
+                                
+                                
+                                if saleorderline_item_ids:
+                                    #_logger.info(saleorderline_item_ids:"+str(saleorderline_item_ids))
+                                    #_logger.info(product_related_obj taxes_id:"+str(product_related_obj.taxes_id))
+                                    #_logger.info(product_related_obj taxes_id:"+str(product_related_obj.taxes_id and product_related_obj.taxes_id.company_id))
+                                    #_logger.info(saleorderline_item_ids tax_id:"+str(saleorderline_item_ids.tax_id))
+                                    #_logger.info(saleorderline_item_ids tax_id company_id:"+str(saleorderline_item_ids.tax_id.company_id))
+                                    tax_iva_name = saleorderline_item_ids.meli_order_item_iva
+                                    tax_iva_name = tax_iva_name
+                                    tax_iva_id = None
+                                    if tax_iva_name and product_related_obj.taxes_id:
+                                        for txid in product_related_obj.taxes_id:
+                                            if ( tax_names_equivalent(txid.name,tax_iva_name) ):
+                                                tax_iva_id = txid
+
+                                    for tid in saleorderline_item_ids.tax_id:
+
+                                        if (tid.company_id.id!=sorder.company_id.id 
+                                            or (tax_iva_id and tax_iva_id!=tid) ):
+                                            #remove
+                                            saleorderline_item_ids.tax_id = [(3, tid.id)]
+
+                                    if not saleorderline_item_ids.tax_id and product_related_obj.taxes_id:
+                                        for txid in product_related_obj.taxes_id:
+                                            if (txid.company_id.id==sorder.company_id.id):
+                                                if (tax_iva_id):
+                                                    if (tax_iva_id!=tid):
+                                                        #add
+                                                        saleorderline_item_ids.tax_id = [(4, txid.id)]
+                                                else:
+                                                    #add
+                                                    saleorderline_item_ids.tax_id = [(4, txid.id)]
+                                    is_locked = ((sorder_pack and sorder_pack.state in ["done","sale"]) 
+                                                or ("locked" in sorder_pack._fields and sorder_pack.locked))
+                                    if (is_locked):
+                                        _logger.warning("Orden bloqueada no se puede actualizar linea de la orden")
+                                    else:
+                                        #_logger.info("sale order line to write")
                                         saleorderline_item_ids.write( ( saleorderline_item_fields ) )
                     else:
                         #_logger.info("partner receiver id not founded:"+str(ship_fields['receiver_id']))
