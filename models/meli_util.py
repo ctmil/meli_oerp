@@ -303,18 +303,6 @@ class MeliApi( meli.RestClientApi ):
             atok = params.get("access_token", "") or ""
             headers = params.get("headers", {}) or {}
 
-            # Si es multi-origen y falta X-Version, hace GET previo para leerlo
-            #if path.startswith("/user-products/") and path.endswith("/stock") and "X-Version" not in headers:
-            #    # usar el get_with_http_info para extraer headers
-            #    _, _, resp_headers = self.resource_get_with_http_info(
-            #        resource=path.lstrip('/'),
-            #        access_token=atok,
-            #        _return_http_data_only=False
-            #    )
-            #    xver = resp_headers.get('x-version') or resp_headers.get('X-Version')
-            #    if xver:
-            #        headers["X-Version"] = xver
-
             self.response = self.resource_put(resource=path,
                                             access_token=atok,
                                             body=body,
