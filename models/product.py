@@ -511,9 +511,11 @@ class product_template(models.Model):
 
     meli_ids = fields.Char(size=2048,string="MercadoLibre Ids.",help="ML Ids de variantes separados por coma.",index=True)
 
+    meli_user_product_id = fields.Char(string='Product User Id')
+
     meli_catalog_listing = fields.Boolean(string='Catalog Listing')
-    meli_catalog_product_id = fields.Char(string='Catalog Product Id', size=256)
-    meli_catalog_item_relations = fields.Char(string='Catalog Item Relations', size=256)
+    meli_catalog_product_id = fields.Char(string='Catalog Product Id')
+    meli_catalog_item_relations = fields.Char(string='Catalog Item Relations')
     meli_catalog_automatic_relist = fields.Boolean(string='Catalog Auto Relist')
 
     meli_shipping_mode = fields.Char(string="Shipping Mode",help="Shipping modes (por usuario): custom, not_specified, me2. https://api.mercadolibre.com/users/USERID/shipping_preferences",index=True)
@@ -1274,7 +1276,7 @@ class product_product(models.Model):
                     _logger.info("Attributes exception:")
                     _logger.info(e, exc_info=True)
 
-    def _get_variations( self, variations ):
+    def X_get_variations( self, variations, create_variations=False ):
 
         #recorrer los variations>attribute_combinations y agregarlos como atributos de las variantes
         _logger.info("_get_variations:"+str(len(variations)))
@@ -1337,14 +1339,14 @@ class product_product(models.Model):
                                     _logger.info("attribute_duplicates:",len(attribute_duplicates))
                                     for attdup in attribute_duplicates:
                                         _logger.info("duplicate:"+attdup.name+":"+str(attdup.id))
-                                        attdup_line =  self.env[prod_att_line].search([('attribute_id','=',attdup.id),('product_tmpl_id','=',product_template.id)])
+                                        attdup_line =  self.env[prod_att_line].with_context(create_product_variant=create_variations).search([('attribute_id','=',attdup.id),('product_tmpl_id','=',product_template.id)])
                                         if (len(attdup_line)):
                                             for attline in attdup_line:
-                                                attline.unlink()
+                                                attline.with_context(create_product_variant=create_variations).unlink()
 
                             #buscar en las lineas existentes
                             if (len(attribute)>1):
-                                att_line = self.env[prod_att_line].search([('attribute_id','in',attribute.ids),('product_tmpl_id','=',product_template.id)])
+                                att_line = self.env[prod_att_line].with_context(create_product_variant=create_variations).search([('attribute_id','in',attribute.ids),('product_tmpl_id','=',product_template.id)])
                                 _logger.info(att_line)
                                 if (len(att_line)):
                                     _logger.info("Atributo ya asignado!")
@@ -1385,7 +1387,7 @@ class product_product(models.Model):
                                 #_logger.info("attribute_value_id:")
                                 #_logger.info(attribute_value_id)
                                 #search for line ids.
-                                attribute_line =  self.env[prod_att_line].search([('attribute_id','=',attribute_id),('product_tmpl_id','=',product_template.id)])
+                                attribute_line =  self.env[prod_att_line].with_context(create_product_variant=create_variations).search([('attribute_id','=',attribute_id),('product_tmpl_id','=',product_template.id)])
                                 #_logger.info(attribute_line)
                                 if (attribute_line and attribute_line.id):
                                     #_logger.info(attribute_line)
@@ -1393,7 +1395,7 @@ class product_product(models.Model):
                                 else:
                                     #_logger.info("Creating att line id:")
                                     att_vals = prepare_attribute( product_template_id=product_template.id, attribute_id=attribute_id, attribute_value_id=attribute_value_id )
-                                    attribute_line =  self.env[prod_att_line].create(att_vals)
+                                    attribute_line =  self.env[prod_att_line].with_context(create_product_variant=create_variations).create(att_vals)
 
                                 if (attribute_line):
                                     #_logger.info("Check attribute line values id.")
@@ -1418,6 +1420,161 @@ class product_product(models.Model):
         _logger.info("_get_variations:"+str(variations))
 
         return published_att_variants
+
+
+    def _get_variations(self, variations):
+        """
+        Construye las líneas de atributos del template a partir de las variations
+        de MercadoLibre en un solo paso, evitando escribir sobre attribute_line.value_ids
+        de forma incremental (lo que dispara _create_variant_ids en estados intermedios).
+        """
+
+        _logger.info("_get_variations: %s", len(variations))
+
+        product = self
+        product_template = product.product_tmpl_id
+
+        ProductAttribute = self.env['product.attribute']
+        ProductAttributeValue = self.env['product.attribute.value']
+        ProdAttLine = self.env[prod_att_line]
+
+        # key -> datos agregados del atributo
+        aggregated_attrs = {}
+
+        published_att_variants = False
+
+        vindex = -1
+        for variation in variations:
+            vindex += 1
+            if 'attribute_combinations' not in variation:
+                continue
+
+            variations[vindex].setdefault("default_code", "")
+
+            for attcomb in variation['attribute_combinations']:
+                namecap = attcomb.get('name') or ''
+                if not namecap:
+                    continue
+
+                value_name = attcomb.get('value_name')
+                create_variant = attcomb.get('create_variant', default_create_variant)
+                att_id = attcomb.get('id') or False
+
+                if not att_id:
+                    namecap_strip = namecap.strip()
+                    if namecap_strip:
+                        namecap = namecap_strip[0].upper() + namecap_strip[1:]
+
+                key = att_id or namecap
+
+                data = aggregated_attrs.setdefault(key, {
+                    'name': namecap,
+                    'att_id': att_id,
+                    'create_variant': create_variant,
+                    'value_names': set(),
+                })
+
+                # si viene create_variant en el attcomb, pisamos el default
+                if 'create_variant' in attcomb:
+                    data['create_variant'] = attcomb['create_variant']
+
+                if value_name:
+                    data['value_names'].add(value_name)
+
+                if 'create_variant' not in attcomb:
+                    variations[vindex]["default_code"] += "%s:%s;" % (namecap, value_name)
+
+        new_lines_vals = []
+
+        for key, data in aggregated_attrs.items():
+            name = data['name']
+            att_id = data['att_id']
+            create_variant = data['create_variant']
+            value_names = [vn for vn in data['value_names'] if vn]
+
+            if not value_names:
+                continue
+
+            # buscar/crear product.attribute
+            if att_id:
+                ml_attribute = self.env['mercadolibre.category.attribute'].search(
+                    [('att_id', '=', att_id)], limit=1
+                )
+                attribute = ProductAttribute.browse()
+                if ml_attribute:
+                    attribute = ProductAttribute.search(
+                        [('meli_default_id_attribute', '=', ml_attribute.id)],
+                        limit=1
+                    )
+                if not attribute:
+                    attribute = ProductAttribute.search([('name', '=', name)], limit=1)
+            else:
+                attribute = ProductAttribute.search(
+                    [('name', '=', name), ('meli_default_id_attribute', '=', False)],
+                    limit=1
+                )
+
+            if not attribute:
+                attribute = ProductAttribute.create({
+                    'name': name,
+                    'create_variant': create_variant,
+                })
+            elif len(attribute) > 1:
+                _logger.error("Attributes duplicated names for %s -> %s", name, attribute.ids)
+                attribute = attribute[0]
+
+            # aquí seguimos usando create_variant a nivel atributo solo para el flag
+            if create_variant == default_create_variant:
+                published_att_variants = True
+
+            # buscar/crear valores
+            value_ids = []
+            for vname in sorted(value_names):
+                val = ProductAttributeValue.search(
+                    [('attribute_id', '=', attribute.id), ('name', '=', vname)],
+                    limit=1
+                )
+                if not val:
+                    _logger.info("Creating attribute value for attribute %s: %s", attribute.name, vname)
+                    val = ProductAttributeValue.create({
+                        'attribute_id': attribute.id,
+                        'name': vname,
+                    })
+                value_ids.append(val.id)
+
+            if not value_ids:
+                continue
+
+            existing_line = ProdAttLine.search([
+                ('attribute_id', '=', attribute.id),
+                ('product_tmpl_id', '=', product_template.id),
+            ], limit=1)
+
+            new_lines_vals.append({
+                'id': existing_line.id if existing_line else False,
+                'attribute_id': attribute.id,
+                'value_ids': value_ids,
+            })
+
+        if new_lines_vals:
+            commands = [(5, 0, 0)]  # limpiar líneas actuales
+
+            for line_vals in new_lines_vals:
+                commands.append((
+                    0, 0, {
+                        'attribute_id': line_vals['attribute_id'],
+                        'value_ids': [(6, 0, line_vals['value_ids'])],
+                        # Ojo: ya no pasamos create_variant aquí
+                    }
+                ))
+
+            _logger.info("_get_variations: writing attribute_line_ids in one shot: %s", new_lines_vals)
+
+            product_template.write({'attribute_line_ids': commands})
+
+        _logger.info("_get_variations final variations: %s", variations)
+        return published_att_variants
+
 
     def is_variant_in_combination( self, ml_var_comb_default_code, var_default_code ):
         splits = ml_var_comb_default_code.split(";")
@@ -1630,6 +1787,10 @@ class product_product(models.Model):
             del tmpl_fields['name']
         if (product_template.description_sale or not company.mercadolibre_overwrite_template):
             del tmpl_fields['description_sale']
+
+        if ("user_product_id" in rjson):
+            meli_fields["meli_user_product_id"] = rjson["user_product_id"]
+            tmpl_fields["meli_user_product_id"] = rjson["user_product_id"]
 
         if ("catalog_listing" in rjson):
             meli_fields["meli_catalog_listing"] = rjson["catalog_listing"]
@@ -3996,6 +4157,8 @@ class product_product(models.Model):
     meli_brand = fields.Char(string="Marca",size=256)
     meli_default_stock_product = fields.Many2one("product.product","Producto de referencia para stock")
     meli_id_variation = fields.Char( string='Variation Id',help='Id de Variante de Meli', size=256, index=True )
+
+    meli_user_product_id = fields.Char(string='Product User Id')
 
     meli_catalog_listing = fields.Boolean(string='Catalog Listing')
     meli_catalog_product_id = fields.Char(string='Catalog Product Id', size=256)

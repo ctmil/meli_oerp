@@ -107,6 +107,88 @@ class MeliApi( meli.RestClientApi ):
             pass;
         return self
 
+    def get_mini(self, path, params={}):
+        """
+        GET genérico (sin SDK)
+        - Firma idéntica: get(self, path, params={})
+        - Mantiene self.response y self.rjson
+        - Retorna self
+        Soporta:
+        • access_token → Authorization: Bearer
+        • headers personalizados
+        • scroll_id (como en tu versión)
+        • timeout
+        • query params (compat con estilo viejo)
+        """
+        def _abs_url(p):
+            if p.startswith("http://") or p.startswith("https://"):
+                return p
+            base = getattr(self, "base_url", "https://api.mercadolibre.com").rstrip("/")
+            return base + "/" + p.lstrip("/")
+
+        def _parse(resp):
+            try:
+                return resp.json()
+            except Exception:
+                return resp.text
+
+        # --- Extrae datos de params sin mutar el original ---
+        atok = params.get("access_token", "") or ""
+        if atok == "PASIVA":  # compat con tu versión
+            atok = ""
+
+        headers  = (params.get("headers") or {}).copy()
+        timeout  = params.get("timeout", 20)
+        scroll_id = params.get("scroll_id", None)
+        qparams = params.get("query", None)
+
+        # compatibilidad con viejo estilo de query
+        if qparams is None:
+            reserved = {"access_token", "headers", "timeout", "scroll_id", "query"}
+            qparams = {k: v for k, v in params.items() if k not in reserved}
+            if not qparams:
+                qparams = None
+
+        # construye query string
+        url = _abs_url(path)
+        query_parts = []
+        if qparams:
+            query_parts.append(urlencode(qparams))
+        if scroll_id:
+            query_parts.append(f"scroll_id={scroll_id}")
+        if query_parts:
+            sep = "&" if ("?" in url) else "?"
+            url = f"{url}{sep}{'&'.join(query_parts)}"
+
+        # headers finales
+        final_headers = {"Accept": "application/json"}
+        if atok:
+            final_headers["Authorization"] = f"Bearer {atok}"
+        final_headers.update(headers)
+
+        # Ejecuta GET
+        try:
+            resp = requests.get(
+                url,
+                headers=final_headers,
+                timeout=timeout,
+                allow_redirects=True
+            )
+            self.response = _parse(resp)
+            self.rjson = self.response
+            return self
+
+        except requests.RequestException as e:
+            self.rjson = {
+                "error": "get error",
+                "status": 0,
+                "cause": "request_exception",
+                "message": str(e),
+                "get_url": path
+            }
+            self.response = self.rjson
+            return self
+
     def post(self, path, body=None, params={}):
         try:
             atok = ("access_token" in params and params["access_token"]) or ""
@@ -129,24 +211,192 @@ class MeliApi( meli.RestClientApi ):
         except:
             pass;
         return self
+        
+    def post_mini(self, path, body=None, params={}):
+        """
+        POST genérico (sin SDK), mantiene el contrato:
+        - firma: post(self, path, body=None, params={})
+        - setea self.response y self.rjson
+        - retorna self
+
+        Extras:
+        - Bearer desde params['access_token']
+        - headers adicionales desde params['headers']
+        - query string via params['query'] o el resto de params (para compat)
+        - autodetección JSON vs raw body
+        - soporte multipart via params['files']
+        - timeout via params['timeout']
+        """
+        def _abs_url(p):
+            if p.startswith("http://") or p.startswith("https://"):
+                return p
+            base = getattr(self, "base_url", "https://api.mercadolibre.com").rstrip("/")
+            return base + "/" + p.lstrip("/")
+
+        def _parse(resp):
+            try:
+                return resp.json()
+            except Exception:
+                return resp.text
+
+        # --- Extrae y NO muta el dict original ---
+        atok    = params.get("access_token", "") or ""
+        headers = (params.get("headers") or {}).copy()
+        timeout = params.get("timeout", 20)
+        files   = params.get("files", None)  # e.g., {"file": open("x.png","rb")}
+        qparams = params.get("query", None)
+
+        # Compat: si no se pasó 'query', construyo con el resto (igual que tu versión antigua)
+        if qparams is None:
+            # copiamos params pero sin keys reservadas
+            reserved = {"access_token", "headers", "timeout", "files", "query"}
+            qparams = {k: v for k, v in params.items() if k not in reserved}
+            if not qparams:
+                qparams = None
+
+        # Construcción de URL (con query si corresponde)
+        url = _abs_url(path)
+        if qparams:
+            sep = "&" if ("?" in url) else "?"
+            url = f"{url}{sep}{urlencode(qparams)}"
+
+        # Headers finales
+        final_headers = {"Accept": "application/json"}
+        if atok:
+            final_headers["Authorization"] = f"Bearer {atok}"
+        # Si es JSON y no hay files, fijamos Content-Type si no fue provisto
+        if isinstance(body, (dict, list)) and not files:
+            # respetar Content-Type custom si vino en headers
+            if "Content-Type" not in {k.title(): v for k, v in headers.items()}:
+                final_headers["Content-Type"] = "application/json"
+        # merge caller headers (caller override)
+        final_headers.update(headers)
+
+        # Ejecuta POST
+        try:
+            resp = requests.post(
+                url,
+                headers=final_headers,
+                json=body if (isinstance(body, (dict, list)) and not files) else None,
+                data=None if (isinstance(body, (dict, list)) and not files) else body,
+                files=files,            # si hay files, requests arma multipart/form-data
+                timeout=timeout,
+                allow_redirects=True,
+            )
+            self.response = _parse(resp)
+            self.rjson    = self.response
+            return self
+
+        except requests.RequestException as e:
+            self.rjson = {
+                "error": "post error",
+                "status": 0,
+                "cause": "request_exception",
+                "message": str(e),
+                "post_url": path
+            }
+            self.response = self.rjson
+            return self
 
     def put(self, path, body=None, params={}):
         try:
-            atok = ("access_token" in params and params["access_token"]) or ""
-            #_logger.info("MeliApi.put(%s,%s)  %s" % (path,str(atok),str(body)) )
-            self.response = self.resource_put(resource=path, access_token=atok, body=body )
+            atok = params.get("access_token", "") or ""
+            headers = params.get("headers", {}) or {}
+
+            self.response = self.resource_put(resource=path,
+                                            access_token=atok,
+                                            body=body,
+                                            headers=headers)
             self.rjson = self.response
         except ApiException as e:
-            self.rjson = {
-                "error": "%s" % str("put error"),
-                "status": e.status,
-                "cause": e.reason,
-                "message": e.body
-            }
-            pass;
-        except:
-            pass;
+            self.rjson = {"error": "put error", "status": e.status, "cause": e.reason, "message": e.body}
+        except Exception:
+            pass
         return self
+
+    def _safe_body(self, resp):
+        try:
+            return resp.json()
+        except Exception:
+            return resp.text
+
+    def put_mini(self, path, body=None, params={}):
+        """
+        Minimal, generic PUT that mimics the old SDK return style.
+        - Sets self.response to parsed JSON (or raw text if not JSON)
+        - Sets self.rjson to the same value (for backward compatibility)
+        - Reads token and headers from params
+        - Optional auto_x_version for Multi-Origen stock endpoints
+        """
+        def _abs_url(p):
+            if not p:
+                return p
+            if p.startswith("http://") or p.startswith("https://"):
+                return p
+            base = getattr(self, "base_url", "https://api.mercadolibre.com").rstrip("/")
+            return base + "/" + p.lstrip("/")
+
+        def _clean_stock_path(p):
+            # normalize stock endpoint (remove wrong /type/... trail)
+            if not p:
+                return p
+            return p.replace("/stock/type/seller_warehouse", "/stock")
+
+        def _parse(resp):
+            try:
+                return resp.json()
+            except Exception:
+                return resp.text
+
+        atok    = params.get("access_token", "") or ""
+        headers = params.get("headers", {}) or {}
+        timeout = params.get("timeout", 20)
+        qparams = params.get("query", None)
+        auto_xv = params.get("auto_x_version", False)  # opt-in
+
+        # Normalize path
+        path = _clean_stock_path(path)
+        url  = _abs_url(path)
+
+        # Compose final headers
+        final_headers = {"Accept": "application/json"}
+        if atok:
+            final_headers["Authorization"] = f"Bearer {atok}"
+        # Only set Content-Type if body is JSON-like (dict/list) and caller didn’t specify it
+        if isinstance(body, (dict, list)) and "Content-Type" not in {k.title(): v for k, v in headers.items()}:
+            final_headers["Content-Type"] = "application/json"
+        final_headers.update(headers or {})
+
+        # Execute PUT
+        try:
+            _logger.info("put_mini > url:"+str(url)+" final_headers:"+str(final_headers)+" body:"+str(body)+" params:"+str(qparams)+" atok:"+str(atok))
+            r = requests.put(
+                url,
+                headers=final_headers,
+                json=body if isinstance(body, (dict, list)) else None,
+                data=None if isinstance(body, (dict, list)) else body,
+                params=qparams,
+                timeout=timeout,
+                allow_redirects=True,
+            )
+
+            # Mimic old return: self.response + self.rjson set to parsed payload
+            self.response = _parse(r)
+            self.rjson    = self.response
+            return self
+
+        except requests.RequestException as e:
+            # Keep your old error object style on hard transport errors
+            self.rjson = {
+                "error": "put error",
+                "status": 0,
+                "cause": "request_exception",
+                "message": str(e)
+            }
+            # Also store in self.response to keep parity
+            self.response = self.rjson
+            return self
+
 
     def delete(self, path, params={}):
         try:
@@ -294,6 +544,18 @@ class MeliApi( meli.RestClientApi ):
                 return sale_terms_by_id[ sale_terms_by_id ]
 
         return sale_terms_by_id
+
+    def get_user_product_stock_with_version(self, up_id, access_token):
+        # devuelve (json, x_version)
+        data, status, headers = self.resource_get_with_http_info(
+            resource="user-products/{}/stock".format(up_id),
+            access_token=access_token,
+            _return_http_data_only=False  # queremos headers
+        )
+        xver = None
+        if headers:
+            xver = headers.get('x-version') or headers.get('X-Version')
+        return data, xver
 
 
 class MeliUtil(models.AbstractModel):
