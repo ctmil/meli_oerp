@@ -185,6 +185,7 @@ class sale_order(models.Model):
     meli_total_amount = fields.Float(string='Total amount')
     meli_shipping_amount = fields.Float(string='Shipping Amount',help='Pago envío')
     meli_shipping_cost = fields.Float(string='Shipping Cost',help='Gastos de envío')
+    meli_shipping_seller_cost = fields.Float(string='Shipping Seller Cost',help='Gastos de envío (Vendedor)')
     meli_shipping_list_cost = fields.Float(string='Shipping List Cost',help='Gastos de envío, costo de lista/interno')
     meli_paid_amount = fields.Float(string='Paid amount',help='Paid amount (include shipping cost)')
     meli_fee_amount = fields.Float(string='Fee amount',help="Comisión")
@@ -2427,6 +2428,7 @@ class mercadolibre_orders(models.Model):
                 if (mp_response):
                     payment_fields["full_payment"] = mp_response.json()
                     payment_fields["shipping_amount"] = payment_fields["full_payment"]["shipping_amount"]
+                    payment_fields["shipping_seller_cost"] = 0
                     payment_fields["total_paid_amount"] = payment_fields["full_payment"]["transaction_details"]["total_paid_amount"]
 
                     if ("fee_details" in payment_fields["full_payment"] and len(payment_fields["full_payment"]["fee_details"])>0):
@@ -2471,7 +2473,13 @@ class mercadolibre_orders(models.Model):
                                     #_logger.info("fee_amount:"+str(payment_fields["fee_amount"]))
                                     if (order):
                                         order.fee_amount = payment_fields["fee_amount"]
-                                
+
+                                if ( fee_type=="shipping" or (fee_name == "shp_fulfillment") ):
+                                    #put in shipping_seller_cost
+                                    payment_fields["shipping_seller_cost"]+= fee_detail["amounts"] and fee_detail["amounts"]["original"]
+                                    if (order):
+                                        order.shipping_seller_cost = payment_fields["shipping_seller_cost"]
+
                                 #if (fee_payer and fee_payer == "collector" and fee_type == "application_fee"):
                                 #    payment_fields["fee_amount"] = fee_detail["amount"]
                                 #    if (order):
@@ -2486,6 +2494,7 @@ class mercadolibre_orders(models.Model):
                             if (sorder):
                                 sorder.meli_fee_amount = order.fee_amount
                                 sorder.meli_financing_fee_amount = order.financing_fee_amount
+                                sorder.meli_shipping_seller_cost = order.shipping_seller_cost
 
                     payment_fields["taxes_amount"] = payment_fields["full_payment"]["taxes_amount"]
 
@@ -2507,6 +2516,8 @@ class mercadolibre_orders(models.Model):
                 shipment = shipment_obj.fetch_shipment( order, meli=meli, config=config )
                 if (shipment):
                     order.shipment = shipment
+                    if (order.shipping_seller_cost):
+                        shipment.shipping_seller_cost = order.shipping_seller_cost
                     #TODO: enhance with _order_update_pack()...
                     #Updated sorder because shipment could create sorder pack...
                     if (sorder):
@@ -2576,7 +2587,8 @@ class mercadolibre_orders(models.Model):
                             pass;
 
                         try:
-                            if config.mercadolibre_process_payments_supplier_shipment and not payment.account_supplier_payment_shipment_id and (payment.order_id and payment.order_id.shipping_list_cost>0.0):
+                            if ( config.mercadolibre_process_payments_supplier_shipment and not payment.account_supplier_payment_shipment_id 
+                                and (payment.order_id and (payment.order_id.shipping_list_cost>0.0 or payment.order_id.shipping_seller_cost>0.0) )):
                                 payment.create_supplier_payment_shipment( meli=meli, config=config )
                         except Exception as e:
                             _logger.info("Error creating supplier shipment payment")
@@ -2979,6 +2991,7 @@ class mercadolibre_orders(models.Model):
     financing_fee_amount = fields.Float(string='Financing fee amount',help="Financiamiento",default=0.0)
     total_amount = fields.Float(string='Total amount')
     shipping_cost = fields.Float(string='Shipping Cost',help='Gastos de envío')
+    shipping_seller_cost = fields.Float(string='Shipping Seller Cost',help='Gastos de envío (Vendedor)')
     shipping_list_cost = fields.Float(string='Shipping List Cost',help='Gastos de envío, costo de lista/interno')
     paid_amount = fields.Float(string='Paid amount',help='Includes shipping cost')
     coupon_amount = fields.Float(string='Coupon amount',help='Descuento',default=0.0)
@@ -3039,6 +3052,7 @@ class mercadolibre_payments(models.Model):
 
     fee_amount = fields.Float('Fee Amount')
     shipping_amount = fields.Float('Shipping Amount')
+    shipping_seller_cost = fields.Float('Shipping Seller Cost')
     taxes_amount = fields.Float('Taxes Amount')
 
     financing_fee_amount = fields.Float('Financing fee amount')

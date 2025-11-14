@@ -104,14 +104,15 @@
                               <field name="meli_shipment_pdf_filename" invisible="0"/>
                               <field name="meli_shipment_logistic_type" invisible="0"/>
                               <field name="meli_status_detail" invisible="0"/>
-                              <field name="meli_total_amount" invisible="0"/>
-                              <field name="meli_shipping_amount" invisible="0"/>
-                              <field name="meli_shipping_cost" invisible="0"/>
-                              <field name="meli_shipping_list_cost" invisible="0"/>
-                              <field name="meli_fee_amount" invisible="0"/>
-                              <field name="meli_paid_amount" invisible="0"/>
-                              <field name="meli_coupon_amount" invisible="0"/>
-                              <field name="meli_financing_fee_amount" invisible="0"/>
+                              <field name="meli_total_amount" widget="monetary" invisible="0"/>
+                              <field name="meli_shipping_amount" widget="monetary" invisible="0"/>
+                              <field name="meli_shipping_cost" widget="monetary" invisible="0"/>
+                              <field name="meli_shipping_list_cost" widget="monetary" invisible="0"/>
+                              <field name="meli_shipping_seller_cost"  widget="monetary"/>
+                              <field name="meli_fee_amount" widget="monetary" invisible="0"/>
+                              <field name="meli_paid_amount" widget="monetary" invisible="0"/>
+                              <field name="meli_coupon_amount" widget="monetary" invisible="0"/>
+                              <field name="meli_financing_fee_amount" widget="monetary" invisible="0"/>
                               <field name="meli_currency_id" invisible="0"/>
                               <field name="meli_date_created" invisible="0"/>
                               <field name="meli_date_closed" invisible="0"/>
@@ -192,8 +193,11 @@
                     <group>
                         <field name="total_amount" widget="monetary"/>
                         <field name="payments_shipment_amount"  widget="monetary"/>
+                        <field name="shipping_seller_cost"  widget="monetary"/>
+
                         <field name="shipping_cost"  widget="monetary"/>
                         <field name="shipping_list_cost"  widget="monetary"/>
+                        
                         <field name="shipment_logistic_type" />
                         <field name="fee_amount"  widget="monetary"/>
                         <field name="paid_amount"  widget="monetary"/>
@@ -258,6 +262,7 @@
                     <field name="transaction_amount"/>
                     <field name="total_paid_amount"/>
                     <field name="shipping_amount"/>
+                    <field name="shipping_seller_cost"/>
                     <field name="fee_amount"/>
                     <field name="financing_fee_amount"/>
                     <field name="taxes_amount"/>

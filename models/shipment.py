@@ -317,6 +317,7 @@ class mercadolibre_shipment(models.Model):
     base_cost = fields.Float(string='Base Cost')
     shipping_amount = fields.Float(string='Shipping Amount')
     shipping_cost = fields.Float(string='Shipping Cost')
+    shipping_seller_cost = fields.Float(string='Shipping Seller Cost')
     shipping_list_cost = fields.Float(string='Shipping List Cost')
     promoted_amount = fields.Float(string='Promoted amount')
 
@@ -413,10 +414,12 @@ class mercadolibre_shipment(models.Model):
                 return {'error': 'Forbidden to update sale order by meli_oerp' }
 
             sorder.meli_shipping_cost = shipment.shipping_cost
+            #sorder.meli_shipping_seller_cost = shipment.shipping_seller_cost
             sorder.meli_shipping_list_cost = shipment.shipping_list_cost
             sorder.meli_shipment_logistic_type = shipment.logistic_type or shipment.mode
 
             order.shipping_cost = shipment.shipping_cost
+            #order.shipping_seller_cost = shipment.shipping_seller_cost
             order.shipping_list_cost = shipment.shipping_list_cost
             order.shipment_logistic_type = shipment.logistic_type or shipment.mode
 
@@ -614,7 +617,7 @@ class mercadolibre_shipment(models.Model):
                 if shipment.shipping_list_cost:
                     delivery_line = get_delivery_line( sorder )
                     if delivery_line and 'purchase_price' in delivery_line._fields:
-                        delivery_line.purchase_price = float(shipment.shipping_list_cost)
+                        delivery_line.purchase_price = float(shipment.shipping_seller_cost)
 
                 if 1==1 and delivery_price<=0.0:
                     #_logger.info("Procesar delivery_price == 0")
@@ -1232,6 +1235,8 @@ class mercadolibre_shipment(models.Model):
 
                             order.sale_order = sorder_pack
                             order.shipping_cost = shipment.shipping_cost
+                            #order.shipping_seller_cost = shipment.shipping_seller_cost
+                            
                             order.shipping_list_cost = shipment.shipping_list_cost
 
                             #creating and updating all items related to ml.orders
