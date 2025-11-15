@@ -614,10 +614,15 @@ class mercadolibre_shipment(models.Model):
                     set_delivery_line(sorder, delivery_price, delivery_message )
 
 
-                if shipment.shipping_list_cost:
+                if shipment.shipping_list_cost or shipment.shipping_seller_cost:
                     delivery_line = get_delivery_line( sorder )
                     if delivery_line and 'purchase_price' in delivery_line._fields:
-                        delivery_line.purchase_price = float(shipment.shipping_seller_cost)
+                        delivery_line.purchase_price = sorder._ml_get_purchase_price_from_amount( 
+                            product=product_shipping_id,
+                            amount=shipment.shipping_seller_cost,
+                            amount_type="tax_excluded",  # or 'tax_excluded' depending on what fea_amount is
+                            quantity=1.0 )
+                        #float(shipment.shipping_seller_cost)
 
                 if 1==1 and delivery_price<=0.0:
                     #_logger.info("Procesar delivery_price == 0")
