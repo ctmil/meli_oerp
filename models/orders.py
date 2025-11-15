@@ -582,6 +582,74 @@ class sale_order(models.Model):
                 res = order.meli_shipment.shipment_print( include_ready_to_print=True )
         return res
 
+    def _ml_get_purchase_price_from_amount(
+            self,
+            product,
+            amount,
+            amount_type="tax_included",  # or 'tax_excluded'
+            quantity=1.0,
+        ):
+        """Return a *tax-excluded* unit price for purchase_price, based on product taxes.
+
+        :param product: product.product record
+        :param amount:  external amount (e.g. MELI fee)
+        :param amount_type: 'tax_included' if amount already contains tax,
+                            'tax_excluded' if it's net (no tax applied yet)
+        :param quantity:  usually 1.0 for fee lines
+        :return: float (tax-excluded unit price)
+        """
+        self.ensure_one()
+        if not product:
+            return float(amount or 0.0)
+
+        # 1) Get taxes of product for this company
+        taxes = product.taxes_id.filtered(lambda t: t.company_id == self.company_id)
+
+        # 2) Apply fiscal position, if any
+        if self.fiscal_position_id:
+            taxes = self.fiscal_position_id.map_tax(taxes, product, self.partner_id)
+
+        # No taxes? Just return the amount as-is
+        if not taxes:
+            return float(amount or 0.0)
+
+        # 3) Use tax engine
+        # NOTE: `compute_all` expects a unit price. We decide what that unit price means
+        # using amount_type + tax price_include config.
+
+        # If amount is TAX INCLUDED: we want to find the net (total_excluded)
+        if amount_type == "tax_included":
+            # Trick: if taxes are price_include=True, passing the gross amount is fine:
+            # compute_all will give us total_excluded as the base.
+            # If your taxes are not price_include, you may need a different approach.
+            res = taxes.compute_all(
+                amount,
+                currency=self.currency_id,
+                quantity=quantity,
+                product=product,
+                partner=self.partner_id,
+                is_refund=False,
+                handle_price_include=True,
+            )
+            base = res["total_excluded"] / (quantity or 1.0)
+
+        # If amount is TAX EXCLUDED: it's already net; we just normalize with taxes
+        else:  # amount_type == 'tax_excluded'
+            res = taxes.compute_all(
+                amount,
+                currency=self.currency_id,
+                quantity=quantity,
+                product=product,
+                partner=self.partner_id,
+                is_refund=False,
+                handle_price_include=True,
+            )
+            # Here `amount` is already net, but compute_all might adjust for
+            # price_include taxes; we still trust total_excluded.
+            base = res["total_excluded"] / (quantity or 1.0)
+
+        # Optional: round according to currency
+        return self.currency_id.round(base)
 
     _sql_constraints = [
         ('unique_meli_order_id', 'unique(meli_order_id)', 'Meli Order id already exists!')
@@ -1812,7 +1880,7 @@ class mercadolibre_orders(models.Model):
                 partner_id = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ]+company_none_domain, limit=1 )
 
             
-            if not partner_id and 'billing_info_doc_number' in buyer_fields and buyer_fields['billing_info_doc_number']:
+            if (search_partner_vat_match and (not partner_id and 'billing_info_doc_number' in buyer_fields and buyer_fields['billing_info_doc_number'])):
                 partner_id = respartner_obj.search([  ('vat','=',buyer_fields['billing_info_doc_number'] ) ]+company_only_domain, limit=1 )
                 if (partner_id):
                     partner_id.meli_buyer_id = buyer_fields['buyer_id']
