@@ -582,74 +582,104 @@ class sale_order(models.Model):
                 res = order.meli_shipment.shipment_print( include_ready_to_print=True )
         return res
 
+
+
     def _ml_get_purchase_price_from_amount(
-            self,
-            product,
-            amount,
-            amount_type="tax_included",  # or 'tax_excluded'
-            quantity=1.0,
-        ):
-        """Return a *tax-excluded* unit price for purchase_price, based on product taxes.
+        self,
+        product,
+        amount,
+        amount_type="tax_included",  # 'tax_included' or 'tax_excluded'
+        quantity=1.0,
+    ):
+        """Return a *tax-excluded* unit price (base) for purchase_price.
 
-        :param product: product.product record
-        :param amount:  external amount (e.g. MELI fee)
-        :param amount_type: 'tax_included' if amount already contains tax,
-                            'tax_excluded' if it's net (no tax applied yet)
-        :param quantity:  usually 1.0 for fee lines
-        :return: float (tax-excluded unit price)
+        - amount_type = 'tax_included': `amount` is gross (with all taxes)
+        - amount_type = 'tax_excluded': `amount` is already net/base
         """
-        self.ensure_one()
-        if not product:
-            return float(amount or 0.0)
 
-        # 1) Get taxes of product for this company
+        self.ensure_one()
+        amount = float(amount or 0.0)
+
+        if not product:
+            return amount
+
+        # 1) Taxes for this product & company
         taxes = product.taxes_id.filtered(lambda t: t.company_id == self.company_id)
 
-        # 2) Apply fiscal position, if any
+        # 2) Fiscal position mapping
         if self.fiscal_position_id:
             taxes = self.fiscal_position_id.map_tax(taxes, product, self.partner_id)
 
-        # No taxes? Just return the amount as-is
         if not taxes:
-            return float(amount or 0.0)
+            #_logger.info(
+            #    "_ml_get_purchase_price_from_amount > no taxes, returning amount as base: %s",
+            #    amount,
+            #)
+            return self.currency_id.round(amount)
 
-        # 3) Use tax engine
-        # NOTE: `compute_all` expects a unit price. We decide what that unit price means
-        # using amount_type + tax price_include config.
+        #_logger.info(
+        #    "_ml_get_purchase_price_from_amount > product:%s amount:%s amount_type:%s taxes:%s",
+        #    product, amount, amount_type, taxes.ids,
+        #)
 
-        # If amount is TAX INCLUDED: we want to find the net (total_excluded)
-        if amount_type == "tax_included":
-            # Trick: if taxes are price_include=True, passing the gross amount is fine:
-            # compute_all will give us total_excluded as the base.
-            # If your taxes are not price_include, you may need a different approach.
+        # CASE A: amount is already tax-excluded
+        if amount_type == "tax_excluded":
+            # Just let Odoo normalize price_include taxes if any,
+            # but base is basically the amount.
             res = taxes.compute_all(
                 amount,
                 currency=self.currency_id,
                 quantity=quantity,
                 product=product,
                 partner=self.partner_id,
-                is_refund=False,
                 handle_price_include=True,
             )
             base = res["total_excluded"] / (quantity or 1.0)
+            #_logger.info(
+            #    "_ml_get_purchase_price_from_amount > tax_excluded res:%s base:%s",
+            #    res, base,
+            #)
+            return self.currency_id.round(base)
 
-        # If amount is TAX EXCLUDED: it's already net; we just normalize with taxes
-        else:  # amount_type == 'tax_excluded'
-            res = taxes.compute_all(
-                amount,
-                currency=self.currency_id,
-                quantity=quantity,
-                product=product,
-                partner=self.partner_id,
-                is_refund=False,
-                handle_price_include=True,
-            )
-            # Here `amount` is already net, but compute_all might adjust for
-            # price_include taxes; we still trust total_excluded.
-            base = res["total_excluded"] / (quantity or 1.0)
+        # CASE B: amount is tax-included and taxes are price_excluded (your case)
+        # We compute a ratio using a dummy base=1.0
+        # so we can reverse GROSS -> NET.
+        # This assumes all relevant taxes are price_include=False (as in your log).
+        dummy = taxes.compute_all(
+            1.0,
+            currency=self.currency_id,
+            quantity=1.0,
+            product=product,
+            partner=self.partner_id,
+            handle_price_include=True,
+        )
+        total_excluded = dummy["total_excluded"]
+        total_included = dummy["total_included"]
 
-        # Optional: round according to currency
-        return self.currency_id.round(base)
+        #_logger.info(
+        #    "_ml_get_purchase_price_from_amount > dummy res:%s total_excluded:%s total_included:%s",
+        #    dummy, total_excluded, total_included,
+        #)
+
+        if not total_excluded or not total_included or total_included == total_excluded:
+            # Fallback: no effect of taxes or odd config; assume amount ~ base
+            base = amount
+        else:
+            # e.g. with 21% IVA:
+            # total_excluded = 1.0
+            # total_included = 1.21
+            # factor = 1.21; base = gross / 1.21
+            factor = total_included / total_excluded
+            base = amount / factor
+
+        #_logger.info(
+        #    "_ml_get_purchase_price_from_amount > final base (unit):%s from gross:%s",
+        #    base, amount,
+        #)
+
+        # Divide by quantity if needed (in your case quantity=1.0 for fee)
+        base_unit = base / (quantity or 1.0)
+        return self.currency_id.round(base_unit)
 
     _sql_constraints = [
         ('unique_meli_order_id', 'unique(meli_order_id)', 'Meli Order id already exists!')

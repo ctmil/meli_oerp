@@ -620,7 +620,7 @@ class mercadolibre_shipment(models.Model):
                         delivery_line.purchase_price = sorder._ml_get_purchase_price_from_amount( 
                             product=product_shipping_id,
                             amount=shipment.shipping_seller_cost,
-                            amount_type="tax_excluded",  # or 'tax_excluded' depending on what fea_amount is
+                            amount_type="tax_included",  # or 'tax_excluded' depending on what fea_amount is
                             quantity=1.0 )
                         #float(shipment.shipping_seller_cost)
 
