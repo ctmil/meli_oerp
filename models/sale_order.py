@@ -32,6 +32,7 @@ class SaleOrder(models.Model):
     shipping_name = fields.Char(u'Metodo de Entrega')
     shipping_method_id = fields.Char(u'ID de Metodo de Entrega')
     shipping_cost = fields.Float(u'Costo de Entrega', digits=dp.get_precision('Account'))
+    shipping_seller_cost = fields.Float(u'Costo de Entrega (Vendedor)')
     shipping_status = fields.Selection([
         ('to_be_agreed', 'A Convenir(Acuerdo entre comprador y vendedor)'),
         ('pending','Pendiente'),
