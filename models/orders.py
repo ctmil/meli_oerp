@@ -2566,7 +2566,7 @@ class mercadolibre_orders(models.Model):
                                 #fee_payer = fee_detail["fee_payer"]
                                 fee_name = fee_detail["name"]
                                 #_logger.info( "fee_type:" + str(fee_type) + " fee_name:" + str(fee_name) )
-                                if ( fee_type=="fee" and (fee_name == "meli_percentage_fee" or fee_name=="flat_fee") ):
+                                if ( fee_type=="fee" and (fee_name == "meli_percentage_fee" or fee_name=="flat_fee" or fee_name=="financing_add_on_fee" ) ):
                                     payment_fields["fee_amount"]+= fee_detail["amounts"] and fee_detail["amounts"]["original"]
                                     #_logger.info("fee_amount:"+str(payment_fields["fee_amount"]))
                                     if (order):
