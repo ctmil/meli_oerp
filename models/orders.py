@@ -185,6 +185,7 @@ class sale_order(models.Model):
     meli_total_amount = fields.Float(string='Total amount')
     meli_shipping_amount = fields.Float(string='Shipping Amount',help='Pago envío')
     meli_shipping_cost = fields.Float(string='Shipping Cost',help='Gastos de envío')
+    meli_shipping_seller_cost = fields.Float(string='Shipping Seller Cost',help='Gastos de envío (Vendedor)')
     meli_shipping_list_cost = fields.Float(string='Shipping List Cost',help='Gastos de envío, costo de lista/interno')
     meli_paid_amount = fields.Float(string='Paid amount',help='Paid amount (include shipping cost)')
     meli_fee_amount = fields.Float(string='Fee amount',help="Comisión")
@@ -267,7 +268,7 @@ class sale_order(models.Model):
                         if ((line.is_delivery or line.price_unit<=0.0) and line.qty_to_invoice>0):
                             #_logger.info(line)
                             line.write({ "qty_to_invoice": 0.0 })
-                            _logger.info(line.qty_to_invoice)
+                            #_logger.info(line.qty_to_invoice)
                             pass;
         except:
             pass;
@@ -296,7 +297,7 @@ class sale_order(models.Model):
                         if ((line.is_delivery or line.price_unit<=0.0) and line.qty_to_invoice>0):
                             #_logger.info(line)
                             line.write({ "qty_to_invoice": 0.0 })
-                            _logger.info(line.qty_to_invoice)
+                            #_logger.info(line.qty_to_invoice)
                             pass;
         except:
             pass;
@@ -380,7 +381,7 @@ class sale_order(models.Model):
             #_logger.info(paid_confirm ok! confirming sale")
 
             if (self.is_pricelist_meli( meli=meli, config=config)):
-                _logger.info("Action confirm!!")
+                #_logger.info("Action confirm!!")
                 self.action_confirm()
 
         return res
@@ -468,9 +469,9 @@ class sale_order(models.Model):
             #cancelling with no conditions, here because paid_amount is 0, dont use confirm_cond
             if (self.meli_status=="cancelled"):
                 if (self.state in ["draft","sale","sent"]):
-                    _logger.info("Confirm Order Cancelling")
+                    #_logger.info("Confirm Order Cancelling")
                     self.with_context(disable_cancel_warning=disable_cancel_warning_enabled).action_cancel()
-                    _logger.info("Confirm Order Cancelled")
+                    #_logger.info("Confirm Order Cancelled")
                 return res
 
             amount_to_invoice = self.meli_amount_to_invoice( meli=meli, config=config )
@@ -1374,7 +1375,7 @@ class mercadolibre_orders(models.Model):
             #_logger.info("Buyer ids: "+str(buyer_ids))
             buyer_id = False
             if ( not buyer_ids ):
-                _logger.info( "creating buyer "+str(buyer_fields['buyer_id'])+" order id:" + str(order and order.name))
+                #_logger.info( "creating buyer "+str(buyer_fields['buyer_id'])+" order id:" + str(order and order.name))
                 #_logger.info(buyer_fields)
                 buyer_id = buyers_obj.sudo().create(( buyer_fields ))
             else:
@@ -1810,6 +1811,13 @@ class mercadolibre_orders(models.Model):
             if not partner_id:
                 partner_id = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ]+company_none_domain, limit=1 )
 
+            
+            if (search_partner_vat_match and (not partner_id and 'billing_info_doc_number' in buyer_fields and buyer_fields['billing_info_doc_number'])):
+                partner_id = respartner_obj.search([  ('vat','=',buyer_fields['billing_info_doc_number'] ) ]+company_only_domain, limit=1 )
+                if (partner_id):
+                    partner_id.meli_buyer_id = buyer_fields['buyer_id']
+                else:
+                    partner_id = respartner_obj.search([  ('vat','=',buyer_fields['billing_info_doc_number'] ) ]+company_none_domain, limit=1 )
 
             partner_invoice_id = partner_id
             #_logger.info("partner_id>buyer_fields:"+str(buyer_fields)+" > partner_id: "+str(partner_id))
@@ -2298,7 +2306,7 @@ class mercadolibre_orders(models.Model):
 
                 #### CREATE ORDER ITEM !!! ####
 
-                _logger.info("Order item ids: "+str(order_item_ids))
+                #_logger.info("Order item ids: "+str(order_item_ids))
                 order_item_id = False
                 #_logger.info( order_item_fields )
                 if (not order_item_ids):
@@ -2381,7 +2389,8 @@ class mercadolibre_orders(models.Model):
                                         saleorderline_item_ids.tax_id = [(4, txid.id)]
 
                         if (sorder.state and sorder.state in ['done','sale']) or ("locked" in sorder._fields and sorder.locked):
-                            _logger.warning("Orden bloqueada no se puede actualizar")
+                            #_logger.warning("Orden bloqueada no se puede actualizar")
+                            pass;
                         else:
                             _logger.info("Sale Order line write")
                             saleorderline_item_ids.write( ( saleorderline_item_fields ) )
@@ -2419,6 +2428,7 @@ class mercadolibre_orders(models.Model):
                 if (mp_response):
                     payment_fields["full_payment"] = mp_response.json()
                     payment_fields["shipping_amount"] = payment_fields["full_payment"]["shipping_amount"]
+                    payment_fields["shipping_seller_cost"] = 0
                     payment_fields["total_paid_amount"] = payment_fields["full_payment"]["transaction_details"]["total_paid_amount"]
 
                     if ("fee_details" in payment_fields["full_payment"] and len(payment_fields["full_payment"]["fee_details"])>0):
@@ -2445,6 +2455,9 @@ class mercadolibre_orders(models.Model):
 
                     if ("charges_details" in payment_fields["full_payment"] and len(payment_fields["full_payment"]["charges_details"])>0):
                         fee_details = payment_fields["full_payment"]["charges_details"]
+                        
+                        payment_fields["fee_amount"] = 0
+
                         for fee_detail in fee_details:
                             
                             #fee_detail = fee_details[index]
@@ -2455,12 +2468,18 @@ class mercadolibre_orders(models.Model):
                                 #fee_payer = fee_detail["fee_payer"]
                                 fee_name = fee_detail["name"]
                                 #_logger.info( "fee_type:" + str(fee_type) + " fee_name:" + str(fee_name) )
-                                if ( fee_type=="fee" and fee_name == "meli_percentage_fee"):
-                                    payment_fields["fee_amount"] = fee_detail["amounts"] and fee_detail["amounts"]["original"]
+                                if ( fee_type=="fee" and (fee_name == "meli_percentage_fee" or fee_name=="flat_fee" or fee_name=="financing_add_on_fee" ) ):
+                                    payment_fields["fee_amount"]+= fee_detail["amounts"] and fee_detail["amounts"]["original"]
                                     #_logger.info("fee_amount:"+str(payment_fields["fee_amount"]))
                                     if (order):
                                         order.fee_amount = payment_fields["fee_amount"]
-                                
+
+                                if ( fee_type=="shipping" or (fee_name == "shp_fulfillment") ):
+                                    #put in shipping_seller_cost
+                                    payment_fields["shipping_seller_cost"]+= fee_detail["amounts"] and fee_detail["amounts"]["original"]
+                                    if (order):
+                                        order.shipping_seller_cost = payment_fields["shipping_seller_cost"]
+
                                 #if (fee_payer and fee_payer == "collector" and fee_type == "application_fee"):
                                 #    payment_fields["fee_amount"] = fee_detail["amount"]
                                 #    if (order):
@@ -2475,6 +2494,7 @@ class mercadolibre_orders(models.Model):
                             if (sorder):
                                 sorder.meli_fee_amount = order.fee_amount
                                 sorder.meli_financing_fee_amount = order.financing_fee_amount
+                                sorder.meli_shipping_seller_cost = order.shipping_seller_cost
 
                     payment_fields["taxes_amount"] = payment_fields["full_payment"]["taxes_amount"]
 
@@ -2496,6 +2516,8 @@ class mercadolibre_orders(models.Model):
                 shipment = shipment_obj.fetch_shipment( order, meli=meli, config=config )
                 if (shipment):
                     order.shipment = shipment
+                    if (order.shipping_seller_cost):
+                        shipment.shipping_seller_cost = order.shipping_seller_cost
                     #TODO: enhance with _order_update_pack()...
                     #Updated sorder because shipment could create sorder pack...
                     if (sorder):
@@ -2565,7 +2587,8 @@ class mercadolibre_orders(models.Model):
                             pass;
 
                         try:
-                            if config.mercadolibre_process_payments_supplier_shipment and not payment.account_supplier_payment_shipment_id and (payment.order_id and payment.order_id.shipping_list_cost>0.0):
+                            if ( config.mercadolibre_process_payments_supplier_shipment and not payment.account_supplier_payment_shipment_id 
+                                and (payment.order_id and (payment.order_id.shipping_list_cost>0.0 or payment.order_id.shipping_seller_cost>0.0) )):
                                 payment.create_supplier_payment_shipment( meli=meli, config=config )
                         except Exception as e:
                             _logger.info("Error creating supplier shipment payment")
@@ -2968,6 +2991,7 @@ class mercadolibre_orders(models.Model):
     financing_fee_amount = fields.Float(string='Financing fee amount',help="Financiamiento",default=0.0)
     total_amount = fields.Float(string='Total amount')
     shipping_cost = fields.Float(string='Shipping Cost',help='Gastos de envío')
+    shipping_seller_cost = fields.Float(string='Shipping Seller Cost',help='Gastos de envío (Vendedor)')
     shipping_list_cost = fields.Float(string='Shipping List Cost',help='Gastos de envío, costo de lista/interno')
     paid_amount = fields.Float(string='Paid amount',help='Includes shipping cost')
     coupon_amount = fields.Float(string='Coupon amount',help='Descuento',default=0.0)
@@ -3028,6 +3052,7 @@ class mercadolibre_payments(models.Model):
 
     fee_amount = fields.Float('Fee Amount')
     shipping_amount = fields.Float('Shipping Amount')
+    shipping_seller_cost = fields.Float('Shipping Seller Cost')
     taxes_amount = fields.Float('Taxes Amount')
 
     financing_fee_amount = fields.Float('Financing fee amount')

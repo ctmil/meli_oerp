@@ -16,13 +16,13 @@ class StockMove(models.Model):
         #config = config or self.env.user.company_id
 
         company_ids = self.env.user.company_ids
-        _logger.info("meli_update_boms > company_ids: "+str(company_ids))
+        #_logger.info("meli_update_boms > company_ids: "+str(company_ids))
 
         for mov in self:
             
             company = mov.company_id
 
-            _logger.info("meli_update_boms > mov company: "+str(company and company.name))
+            #_logger.info("meli_update_boms > mov company: "+str(company and company.name))
             company = company or self.env.user.company_id
             if not mov.product_id:
                 continue;
@@ -30,7 +30,7 @@ class StockMove(models.Model):
 
             product_id = mov.product_id
 
-            _logger.info("meli_update_boms > mov product: "+str(product_id and product_id.name) )
+            #_logger.info("meli_update_boms > mov product: "+str(product_id and product_id.name) )
 
             product_id.process_meli_stock_moves_update()
 
@@ -64,7 +64,7 @@ class StockMove(models.Model):
             bomlines = bomlines or self.env['mrp.bom.line'].sudo().search([('product_id','=',product_id.id)])
             bomlines = bomlines or []
             
-            _logger.info("meli_update_boms > bomlines related: "+str(bomlines))
+            #_logger.info("meli_update_boms > bomlines related: "+str(bomlines))
 
             for bomline in bomlines:
                 
@@ -72,7 +72,7 @@ class StockMove(models.Model):
                 bm_product_id = bomline.bom_id and bomline.bom_id.product_id
                 bm_product_id = bm_product_id or (bm_product_tmpl_id and bm_product_tmpl_id.product_variant_ids) or self.env["product.product"]
                 bm_is_meli = (bm_product_id.meli_id and bm_product_id.meli_pub)
-                _logger.info("meli_update_boms > process bom product KIT: "+str(bm_product_id and bm_product_id.name))
+                #_logger.info("meli_update_boms > process bom product KIT: "+str(bm_product_id and bm_product_id.name))
                 if bm_product_id:
                     for bmpid in bm_product_id:
                         bmpid.process_meli_stock_moves_update()
@@ -84,7 +84,7 @@ class StockMove(models.Model):
                         for bmpid in bm_product_id:
                             bm_is_company = (bmpid.company_id==False or bmpid.company_id==comp)
                             if (comp and comp.mercadolibre_cron_post_update_stock and bm_is_company and bm_is_meli):
-                                _logger.info("meli_update_boms multicomp > process_meli_stock_moves_update() "+str(comp and comp.name)+" bm_product_id > "+str(bmpid.display_name))
+                                #_logger.info("meli_update_boms multicomp > process_meli_stock_moves_update() "+str(comp and comp.name)+" bm_product_id > "+str(bmpid.display_name))
                                 bmpid.process_meli_stock_moves_update()
 
         return True
