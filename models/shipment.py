@@ -535,8 +535,15 @@ class mercadolibre_shipment(models.Model):
                 pass;
                 #continue
 
-            #del_price = shipment.shipping_cost
+            mercadolibre_use_payment_shipping_amount = True
+            if (config and "mercadolibre_use_payment_shipping_amount" in config._fields):
+                mercadolibre_use_payment_shipping_amount = config.mercadolibre_use_payment_shipping_amount
+
             del_price = order.payments_shipment_amount;
+            
+            if not mercadolibre_use_payment_shipping_amount:
+                del_price = shipment.shipping_cost
+
             delivery_price = ml_product_price_conversion( self, product_related_obj=product_shipping_id, price=del_price, config=config ),
             if type(delivery_price)==tuple and len(delivery_price):
                 delivery_price = delivery_price[0]
@@ -547,7 +554,7 @@ class mercadolibre_shipment(models.Model):
             conflict = ( received_amount == 0.0 )
 
             if conflict:
-                _logger.error("Order totals conflict, manual check needed.")
+                #_logger.error("Order totals conflict, manual check needed.")
                 continue;
             #if (1==2):
             #    received_amount = sorder.meli_total_amount
@@ -607,10 +614,15 @@ class mercadolibre_shipment(models.Model):
                     set_delivery_line(sorder, delivery_price, delivery_message )
 
 
-                if shipment.shipping_list_cost:
+                if shipment.shipping_list_cost or shipment.shipping_seller_cost:
                     delivery_line = get_delivery_line( sorder )
                     if delivery_line and 'purchase_price' in delivery_line._fields:
-                        delivery_line.purchase_price = float(shipment.shipping_list_cost)
+                        delivery_line.purchase_price = sorder._ml_get_purchase_price_from_amount( 
+                            product=product_shipping_id,
+                            amount=shipment.shipping_seller_cost,
+                            amount_type="tax_included",  # or 'tax_excluded' depending on what fea_amount is
+                            quantity=1.0 )
+                        #float(shipment.shipping_seller_cost)
 
                 if 1==1 and delivery_price<=0.0:
                     #_logger.info("Procesar delivery_price == 0")
@@ -621,7 +633,7 @@ class mercadolibre_shipment(models.Model):
                         delivery_line.qty_to_invoice = 0
                     #_logger.info("Procesar delivery_price == 0 remover linea")
                     #sorder._remove_delivery_line()
-                _logger.info("Finished _update_sale_order_shipping_info")
+                #_logger.info("Finished _update_sale_order_shipping_info")
             return
 
 
@@ -656,6 +668,30 @@ class mercadolibre_shipment(models.Model):
                     except:
                         #_logger.info("Could not unlink.")
                         pass;
+
+    def _get_or_create_delivery_address(self, parent_partner, shipping_vals, create_if_not_found=False):
+        Partner = self.env['res.partner']
+
+        # 1) Try to find a similar existing delivery address
+        existing = Partner.find_similar_delivery_address(
+            parent_partner=parent_partner,
+            address_vals=shipping_vals,
+            similarity_threshold=0.82,  # tune per backend if needed
+        )
+        if existing:
+            return existing
+    
+        if create_if_not_found:
+            # 2) If none found, create a new child delivery contact
+            shipping_vals = dict(shipping_vals)  # copy
+            shipping_vals.update({
+                'parent_id': parent_partner.id,
+                'commercial_partner_id': parent_partner.id,
+                'type': 'delivery',
+            })
+            return Partner.create(shipping_vals)
+
+        return Partner
 
     def partner_delivery_id( self, partner_id=None, Receiver=None, config=None ):
         #_logger.info("Processing partner_delivery_id for partner:"+str(partner_id and partner_id.name)+" Receiver:"+str(Receiver)+" config:"+str(config) )
@@ -693,6 +729,7 @@ class mercadolibre_shipment(models.Model):
             #'phone': orders_obj.full_phone( Receiver ),
             #'email':contactfields['billingInfo_email'],
         }
+
         full_phone = orders_obj.full_phone( Receiver )
         if full_phone and not ("XXXX" in full_phone):
             pdelivery_fields['phone'] = full_phone
@@ -700,11 +737,15 @@ class mercadolibre_shipment(models.Model):
             pdelivery_fields["lang"] =  partner_id.lang
 
         pdelivery_fields.update(orders_obj.fix_locals(Receiver))
+        
         #TODO: agregar un campo para diferencia cada delivery res partner al shipment y orden asociado, crear un binding usando values diferentes... y listo
         deliv_id = self.env["res.partner"].search([("parent_id","=",pdelivery_fields['parent_id']),
                                                     ("type","=","delivery"),
                                                     ('street','=',pdelivery_fields['street'])],
                                                     limit=1)
+        
+        deliv_id = deliv_id or self._get_or_create_delivery_address( parent_partner=pdelivery_fields['parent_id'], shipping_vals=pdelivery_fields  )
+
         if not deliv_id or len(deliv_id)==0:
             #_logger.info("Create partner delivery")
             respartner_obj = self.env['res.partner']
@@ -1038,7 +1079,7 @@ class mercadolibre_shipment(models.Model):
                     if sorder:
                         shipment.sale_order = sorder[0]
                         sorder.meli_shipment = shipment
-                        _logger.info("setting meli_shipping_amount:"+str(sorder)+" all_orders: " +str(all_orders))
+                        #_logger.info("setting meli_shipping_amount:"+str(sorder)+" all_orders: " +str(all_orders))
                         if all_orders:
                             sorder.meli_shipping_amount = all_orders and all_orders[0] and all_orders[0].payments_shipment_amount
 
@@ -1106,16 +1147,24 @@ class mercadolibre_shipment(models.Model):
                         totales['coupon_amount'] = 0
                         totales['financing_fee_amount'] = 0
                         totales['shipping_amount'] = 0
+
+                        mercadolibre_use_payment_shipping_amount = True
+                        if (config and "mercadolibre_use_payment_shipping_amount" in config._fields):
+                            mercadolibre_use_payment_shipping_amount = config.mercadolibre_use_payment_shipping_amount
+                        
                         for oi in all_orders:
                             ord = oi
                             totales['total_amount']+= ord["total_amount"]
                             totales['paid_amount']+= ord["paid_amount"]
                             totales['coupon_amount']+= ord["coupon_amount"]
                             totales['financing_fee_amount']+= ord["financing_fee_amount"]
-                            totales['shipping_amount']+= ord.payments_shipment_amount
+                            if mercadolibre_use_payment_shipping_amount:
+                                totales['shipping_amount']+= ord.payments_shipment_amount
+                            else:
+                                totales['shipping_amount'] = shipment.shipping_cost
 
                         #fix ML order_json... for pack_order "shipping_cost" added
-                        if 1==2 and shipment.shipping_cost:
+                        if not mercadolibre_use_payment_shipping_amount and shipment.shipping_cost:
                             totales['paid_amount']+= shipment.shipping_cost
 
                         order_json = {
@@ -1220,6 +1269,8 @@ class mercadolibre_shipment(models.Model):
 
                             order.sale_order = sorder_pack
                             order.shipping_cost = shipment.shipping_cost
+                            #order.shipping_seller_cost = shipment.shipping_seller_cost
+                            
                             order.shipping_list_cost = shipment.shipping_list_cost
 
                             #creating and updating all items related to ml.orders
@@ -1295,7 +1346,8 @@ class mercadolibre_shipment(models.Model):
                                     is_locked = ((sorder_pack and sorder_pack.state in ["done","sale"]) 
                                                 or ("locked" in sorder_pack._fields and sorder_pack.locked))
                                     if (is_locked):
-                                        _logger.warning("Orden bloqueada no se puede actualizar linea de la orden")
+                                        #_logger.warning("Orden bloqueada no se puede actualizar linea de la orden")
+                                        pass;
                                     else:
                                         #_logger.info("sale order line to write")
                                         saleorderline_item_ids.write( ( saleorderline_item_fields ) )
@@ -1314,7 +1366,7 @@ class mercadolibre_shipment(models.Model):
         if not item or not "order_id" in item or not "item_id" in item:
             return None
 
-        _logger.info("update shipment:"+str(item))
+        #_logger.info("update shipment:"+str(item))
         if "variation_id" in item and item["variation_id"]:
             sitem = self.env["mercadolibre.shipment.item"].search([ ("shipment_id","=",shipment.id),("order_id","=",item["order_id"]), ("item_id","=",item["item_id"]), ("variation_id","=",item["variation_id"]) ],limit=1)
         else:
