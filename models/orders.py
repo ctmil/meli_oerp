@@ -3193,19 +3193,6 @@ class mercadolibre_buyers(models.Model):
         ('unique_buyer_id', 'unique(buyer_id)', 'Meli Buyer id already exists!')
     ]
 
-class res_partner(models.Model):
-    _inherit = "res.partner"
-
-    meli_buyer_id = fields.Char('Meli Buyer Id',index=True)
-    meli_buyer = fields.Many2one('mercadolibre.buyers',string='Meli Buyer')
-    meli_update_forbidden = fields.Boolean(string='Meli Update Forbiden')
-    meli_order_id = fields.Char('Meli Order Id',index=True)
-
-    _sql_constraints = [
-        ('unique_partner_meli_buyer_id', 'unique(meli_buyer_id,active,company_id)', 'Meli Partner Buyer id already exists in this company!')
-    ]
-
-
 class mercadolibre_orders_update(models.TransientModel):
     _name = "mercadolibre.orders.update"
     _description = "Update Order"

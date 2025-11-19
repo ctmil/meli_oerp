@@ -669,6 +669,30 @@ class mercadolibre_shipment(models.Model):
                         #_logger.info("Could not unlink.")
                         pass;
 
+    def _get_or_create_delivery_address(self, parent_partner, shipping_vals, create_if_not_found=False):
+        Partner = self.env['res.partner']
+
+        # 1) Try to find a similar existing delivery address
+        existing = Partner.find_similar_delivery_address(
+            parent_partner=parent_partner,
+            address_vals=shipping_vals,
+            similarity_threshold=0.82,  # tune per backend if needed
+        )
+        if existing:
+            return existing
+    
+        if create_if_not_found:
+            # 2) If none found, create a new child delivery contact
+            shipping_vals = dict(shipping_vals)  # copy
+            shipping_vals.update({
+                'parent_id': parent_partner.id,
+                'commercial_partner_id': parent_partner.id,
+                'type': 'delivery',
+            })
+            return Partner.create(shipping_vals)
+
+        return Partner
+
     def partner_delivery_id( self, partner_id=None, Receiver=None, config=None ):
         #_logger.info("Processing partner_delivery_id for partner:"+str(partner_id and partner_id.name)+" Receiver:"+str(Receiver)+" config:"+str(config) )
         if (not Receiver or not partner_id):
@@ -705,6 +729,7 @@ class mercadolibre_shipment(models.Model):
             #'phone': orders_obj.full_phone( Receiver ),
             #'email':contactfields['billingInfo_email'],
         }
+
         full_phone = orders_obj.full_phone( Receiver )
         if full_phone and not ("XXXX" in full_phone):
             pdelivery_fields['phone'] = full_phone
@@ -712,11 +737,15 @@ class mercadolibre_shipment(models.Model):
             pdelivery_fields["lang"] =  partner_id.lang
 
         pdelivery_fields.update(orders_obj.fix_locals(Receiver))
+        
         #TODO: agregar un campo para diferencia cada delivery res partner al shipment y orden asociado, crear un binding usando values diferentes... y listo
         deliv_id = self.env["res.partner"].search([("parent_id","=",pdelivery_fields['parent_id']),
                                                     ("type","=","delivery"),
                                                     ('street','=',pdelivery_fields['street'])],
                                                     limit=1)
+        
+        deliv_id = deliv_id or self._get_or_create_delivery_address( parent_partner=pdelivery_fields['parent_id'], shipping_vals=pdelivery_fields  )
+
         if not deliv_id or len(deliv_id)==0:
             #_logger.info("Create partner delivery")
             respartner_obj = self.env['res.partner']
