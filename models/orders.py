@@ -2686,7 +2686,7 @@ class mercadolibre_orders(models.Model):
 
                         try:
                             if ( config.mercadolibre_process_payments_supplier_shipment and not payment.account_supplier_payment_shipment_id 
-                                and (payment.order_id and (payment.order_id.shipping_list_cost>0.0 or payment.order_id.shipping_seller_cost>0.0) )):
+                                and (payment.order_id and (payment.order_id.payments_shipment_amount>0.0 or payment.order_id.shipping_seller_cost>0.0) )):
                                 payment.create_supplier_payment_shipment( meli=meli, config=config )
                         except Exception as e:
                             _logger.info("Error creating supplier shipment payment")
@@ -3192,19 +3192,6 @@ class mercadolibre_buyers(models.Model):
     _sql_constraints = [
         ('unique_buyer_id', 'unique(buyer_id)', 'Meli Buyer id already exists!')
     ]
-
-class res_partner(models.Model):
-    _inherit = "res.partner"
-
-    meli_buyer_id = fields.Char('Meli Buyer Id',index=True)
-    meli_buyer = fields.Many2one('mercadolibre.buyers',string='Meli Buyer')
-    meli_update_forbidden = fields.Boolean(string='Meli Update Forbiden')
-    meli_order_id = fields.Char('Meli Order Id',index=True)
-
-    _sql_constraints = [
-        ('unique_partner_meli_buyer_id', 'unique(meli_buyer_id,active,company_id)', 'Meli Partner Buyer id already exists in this company!')
-    ]
-
 
 class mercadolibre_orders_update(models.TransientModel):
     _name = "mercadolibre.orders.update"
