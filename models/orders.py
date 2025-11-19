@@ -2686,7 +2686,7 @@ class mercadolibre_orders(models.Model):
 
                         try:
                             if ( config.mercadolibre_process_payments_supplier_shipment and not payment.account_supplier_payment_shipment_id 
-                                and (payment.order_id and (payment.order_id.shipping_list_cost>0.0 or payment.order_id.shipping_seller_cost>0.0) )):
+                                and (payment.order_id and (payment.order_id.payments_shipment_amount>0.0 or payment.order_id.shipping_seller_cost>0.0) )):
                                 payment.create_supplier_payment_shipment( meli=meli, config=config )
                         except Exception as e:
                             _logger.info("Error creating supplier shipment payment")
