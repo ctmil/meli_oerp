@@ -34,7 +34,7 @@ class ResPartner(models.Model):
         :param similarity_threshold: float between 0 and 1
         :return: res.partner record or False
         """
-        self.ensure_one()  # we just use env on this model
+        #self.ensure_one()  # we just use env on this model
 
         if not parent_partner:
             return False
