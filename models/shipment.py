@@ -744,7 +744,7 @@ class mercadolibre_shipment(models.Model):
                                                     ('street','=',pdelivery_fields['street'])],
                                                     limit=1)
         
-        deliv_id = deliv_id or self._get_or_create_delivery_address( parent_partner=pdelivery_fields['parent_id'], shipping_vals=pdelivery_fields  )
+        deliv_id = deliv_id or self._get_or_create_delivery_address( parent_partner=partner_id, shipping_vals=pdelivery_fields  )
 
         if not deliv_id or len(deliv_id)==0:
             #_logger.info("Create partner delivery")
