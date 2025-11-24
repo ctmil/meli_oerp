@@ -89,47 +89,67 @@
               </field>
           </record>
           <record id="mercadolibre_image_view_kanban" model="ir.ui.view">
-              <field name="name">mercadolibre.image.view.kanban</field>
-              <field name="model">mercadolibre.image</field>
-              <field name="arch" type="xml">
-                  <kanban string="MercadoLibre Images" default_order="sequence">
-                      <field name="id"/>
-                      <field name="name"/>
-                      <field name="image_1920"/>
-                      <field name="sequence" widget="handle"/>
-                      <templates>
-                          <t t-name="kanban-box">
-                              <div class="card oe_kanban_global_click p-0">
-                                  <div class="o_squared_image">
-                                      <img class="card-img-top" t-att-src="kanban_image('mercadolibre.image', 'image_1920', record.id.raw_value)" t-att-alt="record.name.value"/>
-                                  </div>
-                                  <div class="card-body p-0">
-                                      <h4 class="card-title p-2 m-0 bg-200">
-                                          <small><field name="name"/></small>
-                                      </h4>
-                                  </div>
-                                  <!-- below 100 Kb: good -->
-                                  <t t-if="record.image_1920.raw_value.length &lt; 100*1000">
-                                      <t t-set="size_status" t-value="'text-bg-success'"/>
-                                      <t t-set="message">Acceptable file size</t>
-                                  </t>
-                                  <!-- below 1000 Kb: decent -->
-                                  <t t-elif="record.image_1920.raw_value.length &lt; 1000*1000">
-                                      <t t-set="size_status" t-value="'text-bg-warning'" />
-                                      <t t-set="message">Huge file size. The image should be optimized/reduced.</t>
-                                  </t>
-                                  <!-- above 1000 Kb: bad -->
-                                  <t t-else="1">
-                                      <t t-set="size_status" t-value="'text-bg-danger'"/>
-                                      <t t-set="message">Optimization required! Reduce the image size or increase your compression settings.</t>
-                                  </t>
-                                  <span t-attf-class="badge #{size_status} o_product_image_size" t-esc="record.image_1920.value" t-att-title="message"/>
-                              </div>
-                          </t>
-                      </templates>
-                  </kanban>
-              </field>
-          </record>
+            <field name="name">mercadolibre.image.view.kanban</field>
+            <field name="model">mercadolibre.image</field>
+            <field name="arch" type="xml">
+                <kanban string="MercadoLibre Images" default_order="sequence">
+                <field name="id"/>
+                <field name="name"/>
+                <field name="image_1920"/>
+                <field name="sequence" widget="handle"/>
+
+                <templates>
+                    <!-- Odoo 18+ canonical template name -->
+                    <t t-name="card">
+                    <div class="o_kanban_record card h-100 shadow-sm oe_kanban_global_click p-0">
+
+                        <!-- Square thumbnail -->
+                        <div class="ratio ratio-1x1">
+                        <t t-if="record.image_1920.raw_value">
+                            <img
+                            class="card-img-top object-fit-cover"
+                            t-att-src="kanban_image('mercadolibre.image', 'image_1920', record.id.raw_value)"
+                            t-att-alt="record.name.value || ''"
+                            />
+                        </t>
+                        <t t-else="">
+                            <div class="d-flex align-items-center justify-content-center bg-light text-muted">
+                            <small>No image</small>
+                            </div>
+                        </t>
+                        </div>
+
+                        <!-- Body -->
+                        <div class="card-body p-2">
+                        <h6 class="card-title mb-2 text-truncate" t-esc="record.name.value"/>
+
+                        <!-- Size badge (approx from base64 length) -->
+                        <t t-set="b64len" t-value="(record.image_1920.raw_value &amp;&amp; record.image_1920.raw_value.length) || 0"/>
+                        <t t-set="bytes" t-value="Math.floor(b64len * 0.75)"/>
+                        <t t-set="kb" t-value="Math.max(0, Math.floor(bytes / 1024))"/>
+
+                        <t t-if="kb">
+                            <t t-set="size_status"
+                            t-value="kb &lt; 100 ? 'text-bg-success' : (kb &lt; 1000 ? 'text-bg-warning' : 'text-bg-danger')"/>
+                            <t t-set="message"
+                            t-value="kb &lt; 100 ? 'Acceptable file size' : (kb &lt; 1000 ? 'Huge file size. Optimize image.' : 'Optimization required! Reduce size or increase compression.')"/>
+                            <span t-attf-class="badge rounded-pill #{size_status}"
+                                t-att-title="message"
+                                t-esc="kb + ' KB'"/>
+                        </t>
+                        </div>
+
+                        <!-- Drag handle -->
+                        <field name="sequence"
+                            widget="handle"
+                            class="o_kanban_drag_handle position-absolute top-0 end-0 m-1"/>
+                    </div>
+                    </t>
+                </templates>
+                </kanban>
+            </field>
+            </record>
+
 
 
         <record model="ir.actions.act_window" id="action_meli_banners_tree">

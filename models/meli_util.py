@@ -369,7 +369,7 @@ class MeliApi( meli.RestClientApi ):
 
         # Execute PUT
         try:
-            _logger.info("put_mini > url:"+str(url)+" final_headers:"+str(final_headers)+" body:"+str(body)+" params:"+str(qparams)+" atok:"+str(atok))
+            #_logger.info("put_mini > url:"+str(url)+" final_headers:"+str(final_headers)+" body:"+str(body)+" params:"+str(qparams)+" atok:"+str(atok))
             r = requests.put(
                 url,
                 headers=final_headers,
