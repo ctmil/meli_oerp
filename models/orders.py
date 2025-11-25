@@ -2440,7 +2440,7 @@ class mercadolibre_orders(models.Model):
                         'meli_order_item_variation_id': Item['item']['variation_id'],
                         'product_id': product_related_obj.id,
                         'product_uom_qty': Item['quantity'],
-                        'product_uom': product_related_obj.uom_id.id,
+                        'product_uom_id': product_related_obj.uom_id.id,
                         'name': product_related_obj.display_name or Item['item']['title'],
                     }
                     saleorderline_item_fields.update( self._set_product_unit_price( product_related_obj=product_related_obj, Item=Item, config=config ) )
