@@ -416,22 +416,25 @@ class sale_order(models.Model):
                     #Validar el picking para mover físicamente y generar valoración
                     if spick.state == 'assigned':
                         action = spick.button_validate()
+
+                        # Wizard de transferencia inmediata (stock.immediate.transfer)
                         if isinstance(action, dict) and action.get('res_model') == 'stock.immediate.transfer':
                             Immediate = self.env['stock.immediate.transfer'].sudo()
                             wiz = action.get('res_id') and Immediate.browse(action['res_id']).exists()
                             if not wiz:
-                                # Fallback: create wizard binding
+                                # Fallback: crear wizard si por alguna razón no vino res_id
                                 wiz = Immediate.create({'pick_ids': [(6, 0, [spick.id])]})
-                            wiz.process()
+                            # En v15+ process() mira button_validate_picking_ids en el contexto
+                            wiz.with_context(button_validate_picking_ids=spick.ids).process()
 
-                        # 6) Handle "Backorder" wizard (stock.backorder.confirmation)
+                        # Wizard de backorder (stock.backorder.confirmation)
                         if isinstance(action, dict) and action.get('res_model') == 'stock.backorder.confirmation':
                             Backorder = self.env['stock.backorder.confirmation'].sudo()
                             wiz = action.get('res_id') and Backorder.browse(action['res_id']).exists()
                             if not wiz:
                                 wiz = Backorder.create({'pick_ids': [(6, 0, [spick.id])]})
                             if cancel_backorder:
-                                # method name differs slightly by version—try both defensively
+                                # Algunas versiones traen process_cancel_backorder, otras usan process() + contexto
                                 if hasattr(wiz, 'process_cancel_backorder'):
                                     wiz.process_cancel_backorder()
                                 else:
