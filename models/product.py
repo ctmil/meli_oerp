@@ -1613,6 +1613,8 @@ class product_product(models.Model):
         
         upid = None
         upids = []
+
+        #_logger.info("meli_oerp > _fetch_meli_user_product_id > meli_id:"+str(meli_id)+" meli_id_variation:"+str(meli_id_variation))
         
         if not meli_id:
             return upid
@@ -1626,7 +1628,8 @@ class product_product(models.Model):
         if ( "variations" in item_json and len(item_json["variations"]) ):
 
             for var in item_json["variations"]:
-                if (meli_id_variation and var["id"]==meli_id_variation):
+                if (meli_id_variation and str(var["id"])==str(meli_id_variation)):
+                    #_logger.info("meli_oerp > _fetch_meli_user_product_id > found! "+str(var))
                     if "user_product_id" in var and var["user_product_id"]:
                         upid = var["user_product_id"]
                         return upid
