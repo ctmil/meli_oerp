@@ -1609,6 +1609,42 @@ class product_product(models.Model):
         #        product.combination_indices = product.product_template_attribute_value_ids._ids2str()
         return
 
+    def _fetch_meli_user_product_id( self, meli_id=None, meli_id_variation=None, meli=False, config=False, item_json=None ):
+        
+        upid = None
+        upids = []
+
+        #_logger.info("meli_oerp > _fetch_meli_user_product_id > meli_id:"+str(meli_id)+" meli_id_variation:"+str(meli_id_variation))
+        
+        if not meli_id:
+            return upid
+        
+        if not item_json:
+            return upid
+        
+        if (item_json  and "user_product_id" in item_json and item_json["user_product_id"]):
+            upid = item_json["user_product_id"]
+        
+        if ( "variations" in item_json and len(item_json["variations"]) ):
+
+            for var in item_json["variations"]:
+                if (meli_id_variation and str(var["id"])==str(meli_id_variation)):
+                    #_logger.info("meli_oerp > _fetch_meli_user_product_id > found! "+str(var))
+                    if "user_product_id" in var and var["user_product_id"]:
+                        upid = var["user_product_id"]
+                        return upid
+                else:
+                    if "user_product_id" in var and var["user_product_id"]:
+                        upid = var["user_product_id"]
+            
+            if (upid):
+                upids.append(upid)
+                if (not meli_id_variation):
+                    #devolvemos el arreglo de upids para referenciarlo en la publicacion
+                    #solo si tiene contenido
+                    return str(upids)
+
+        return upid
 
     def product_meli_get_product( self, context=None, meli_id=None, import_images=True ):
         company = self.env.user.company_id
@@ -1788,9 +1824,10 @@ class product_product(models.Model):
         if (product_template.description_sale or not company.mercadolibre_overwrite_template):
             del tmpl_fields['description_sale']
 
-        if ("user_product_id" in rjson):
-            meli_fields["meli_user_product_id"] = rjson["user_product_id"]
-            tmpl_fields["meli_user_product_id"] = rjson["user_product_id"]
+        has_user_product_id = product._fetch_meli_user_product_id( meli_id=meli_id, meli_id_variation=None, meli=meli, config=config, item_json=rjson )
+        if (has_user_product_id):
+            meli_fields["meli_user_product_id"] = has_user_product_id
+            tmpl_fields["meli_user_product_id"] = has_user_product_id
 
         if ("catalog_listing" in rjson):
             meli_fields["meli_catalog_listing"] = rjson["catalog_listing"]

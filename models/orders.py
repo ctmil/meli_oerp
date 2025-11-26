@@ -416,22 +416,25 @@ class sale_order(models.Model):
                     #Validar el picking para mover físicamente y generar valoración
                     if spick.state == 'assigned':
                         action = spick.button_validate()
+
+                        # Wizard de transferencia inmediata (stock.immediate.transfer)
                         if isinstance(action, dict) and action.get('res_model') == 'stock.immediate.transfer':
                             Immediate = self.env['stock.immediate.transfer'].sudo()
                             wiz = action.get('res_id') and Immediate.browse(action['res_id']).exists()
                             if not wiz:
-                                # Fallback: create wizard binding
+                                # Fallback: crear wizard si por alguna razón no vino res_id
                                 wiz = Immediate.create({'pick_ids': [(6, 0, [spick.id])]})
-                            wiz.process()
+                            # En v15+ process() mira button_validate_picking_ids en el contexto
+                            wiz.with_context(button_validate_picking_ids=spick.ids).process()
 
-                        # 6) Handle "Backorder" wizard (stock.backorder.confirmation)
+                        # Wizard de backorder (stock.backorder.confirmation)
                         if isinstance(action, dict) and action.get('res_model') == 'stock.backorder.confirmation':
                             Backorder = self.env['stock.backorder.confirmation'].sudo()
                             wiz = action.get('res_id') and Backorder.browse(action['res_id']).exists()
                             if not wiz:
                                 wiz = Backorder.create({'pick_ids': [(6, 0, [spick.id])]})
                             if cancel_backorder:
-                                # method name differs slightly by version—try both defensively
+                                # Algunas versiones traen process_cancel_backorder, otras usan process() + contexto
                                 if hasattr(wiz, 'process_cancel_backorder'):
                                     wiz.process_cancel_backorder()
                                 else:
@@ -582,6 +585,104 @@ class sale_order(models.Model):
                 res = order.meli_shipment.shipment_print( include_ready_to_print=True )
         return res
 
+
+
+    def _ml_get_purchase_price_from_amount(
+        self,
+        product,
+        amount,
+        amount_type="tax_included",  # 'tax_included' or 'tax_excluded'
+        quantity=1.0,
+    ):
+        """Return a *tax-excluded* unit price (base) for purchase_price.
+
+        - amount_type = 'tax_included': `amount` is gross (with all taxes)
+        - amount_type = 'tax_excluded': `amount` is already net/base
+        """
+
+        self.ensure_one()
+        amount = float(amount or 0.0)
+
+        if not product:
+            return amount
+
+        # 1) Taxes for this product & company
+        taxes = product.taxes_id.filtered(lambda t: t.company_id == self.company_id)
+
+        # 2) Fiscal position mapping
+        if self.fiscal_position_id:
+            taxes = self.fiscal_position_id.map_tax(taxes, product, self.partner_id)
+
+        if not taxes:
+            #_logger.info(
+            #    "_ml_get_purchase_price_from_amount > no taxes, returning amount as base: %s",
+            #    amount,
+            #)
+            return self.currency_id.round(amount)
+
+        #_logger.info(
+        #    "_ml_get_purchase_price_from_amount > product:%s amount:%s amount_type:%s taxes:%s",
+        #    product, amount, amount_type, taxes.ids,
+        #)
+
+        # CASE A: amount is already tax-excluded
+        if amount_type == "tax_excluded":
+            # Just let Odoo normalize price_include taxes if any,
+            # but base is basically the amount.
+            res = taxes.compute_all(
+                amount,
+                currency=self.currency_id,
+                quantity=quantity,
+                product=product,
+                partner=self.partner_id,
+                handle_price_include=True,
+            )
+            base = res["total_excluded"] / (quantity or 1.0)
+            #_logger.info(
+            #    "_ml_get_purchase_price_from_amount > tax_excluded res:%s base:%s",
+            #    res, base,
+            #)
+            return self.currency_id.round(base)
+
+        # CASE B: amount is tax-included and taxes are price_excluded (your case)
+        # We compute a ratio using a dummy base=1.0
+        # so we can reverse GROSS -> NET.
+        # This assumes all relevant taxes are price_include=False (as in your log).
+        dummy = taxes.compute_all(
+            1.0,
+            currency=self.currency_id,
+            quantity=1.0,
+            product=product,
+            partner=self.partner_id,
+            handle_price_include=True,
+        )
+        total_excluded = dummy["total_excluded"]
+        total_included = dummy["total_included"]
+
+        #_logger.info(
+        #    "_ml_get_purchase_price_from_amount > dummy res:%s total_excluded:%s total_included:%s",
+        #    dummy, total_excluded, total_included,
+        #)
+
+        if not total_excluded or not total_included or total_included == total_excluded:
+            # Fallback: no effect of taxes or odd config; assume amount ~ base
+            base = amount
+        else:
+            # e.g. with 21% IVA:
+            # total_excluded = 1.0
+            # total_included = 1.21
+            # factor = 1.21; base = gross / 1.21
+            factor = total_included / total_excluded
+            base = amount / factor
+
+        #_logger.info(
+        #    "_ml_get_purchase_price_from_amount > final base (unit):%s from gross:%s",
+        #    base, amount,
+        #)
+
+        # Divide by quantity if needed (in your case quantity=1.0 for fee)
+        base_unit = base / (quantity or 1.0)
+        return self.currency_id.round(base_unit)
 
     _sql_constraints = [
         ('unique_meli_order_id', 'unique(meli_order_id)', 'Meli Order id already exists!')
@@ -2588,7 +2689,7 @@ class mercadolibre_orders(models.Model):
 
                         try:
                             if ( config.mercadolibre_process_payments_supplier_shipment and not payment.account_supplier_payment_shipment_id 
-                                and (payment.order_id and (payment.order_id.shipping_list_cost>0.0 or payment.order_id.shipping_seller_cost>0.0) )):
+                                and (payment.order_id and (payment.order_id.payments_shipment_amount>0.0 or payment.order_id.shipping_seller_cost>0.0) )):
                                 payment.create_supplier_payment_shipment( meli=meli, config=config )
                         except Exception as e:
                             _logger.info("Error creating supplier shipment payment")
@@ -3094,19 +3195,6 @@ class mercadolibre_buyers(models.Model):
     _sql_constraints = [
         ('unique_buyer_id', 'unique(buyer_id)', 'Meli Buyer id already exists!')
     ]
-
-class res_partner(models.Model):
-    _inherit = "res.partner"
-
-    meli_buyer_id = fields.Char('Meli Buyer Id',index=True)
-    meli_buyer = fields.Many2one('mercadolibre.buyers',string='Meli Buyer')
-    meli_update_forbidden = fields.Boolean(string='Meli Update Forbiden')
-    meli_order_id = fields.Char('Meli Order Id',index=True)
-
-    _sql_constraints = [
-        ('unique_partner_meli_buyer_id', 'unique(meli_buyer_id,active,company_id)', 'Meli Partner Buyer id already exists in this company!')
-    ]
-
 
 class mercadolibre_orders_update(models.TransientModel):
     _name = "mercadolibre.orders.update"

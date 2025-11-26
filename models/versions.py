@@ -20,29 +20,81 @@ disable_cancel_warning_enabled = False
 price_list_apply_tax = True
 search_partner_vat_match = False
 
+# Detectar si unidecode está disponible
+UNIDECODE_AVAILABLE = False
+try:
+    import unidecode as unidecode_lib
+    UNIDECODE_AVAILABLE = True
+    _logger.info("✓ unidecode disponible - Usando normalización avanzada")
+except ImportError:
+    _logger.info("⚠ unidecode no disponible - Usando unicodedata (estándar Python)")
+
+
+def normalize_text(text):
+    """
+    Normaliza texto removiendo acentos y caracteres especiales
+    
+    Usa unidecode si está disponible (mejor calidad)
+    Sino usa unicodedata (estándar Python)
+    
+    Args:
+        text (str): Texto a normalizar
+        
+    Returns:
+        str: Texto normalizado
+    """
+    if not text:
+        return ''
+    
+    text = str(text)
+    
+    if UNIDECODE_AVAILABLE:
+        # Versión premium: unidecode
+        # Convierte: "Niño" → "Nino", "北京" → "Bei Jing", etc.
+        return unidecode_lib.unidecode(text)
+    else:
+        # Fallback: unicodedata (solo remueve acentos latinos)
+        # Convierte: "Niño" → "Nino"
+        # Pero: "北京" → "北京" (no transliterar caracteres no-latinos)
+        normalized = unicodedata.normalize('NFD', text)
+        return ''.join(
+            char for char in normalized
+            if unicodedata.category(char) != 'Mn'
+        )
+
+
+def really_compare(a, b, sensitive=False):
+    """
+    Compara dos strings con normalización inteligente
+    
+    Args:
+        a: Primer string
+        b: Segundo string  
+        sensitive: Si True, mantiene case y acentos
+        
+    Returns:
+        bool: True si son iguales
+    """
+    a = str(a)
+    b = str(b)
+    
+    if sensitive:
+        return a == b
+    
+    # Convertir a minúsculas y normalizar
+    a = normalize_text(a.lower())
+    b = normalize_text(b.lower())
+    
+    return a == b
+
 def pretty_json( data ):
     return json.dumps( data, sort_keys=False, indent=4 )
-
-def really_compare( a, b, sensitive=False ):
-
-    a = str(a).capitalize()
-    b = str(b).capitalize()
-
-    if (sensitive):
-        return (a==b)
-
-    a = unidecode.unidecode(a)
-    b = unidecode.unidecode(b)
-
-    return (a==b)
-
-
 
 #price from pricelist
 def get_price_from_pl( pricelist, product, quantity ):
     pl = pricelist
     return_val = {}
-    return_val = pl.price_get( product.id, quantity)
+    return_val[pl.id] = pl._get_product_price(product=product,quantity=quantity)
     return return_val
 
 #Autocommit
