@@ -208,6 +208,12 @@ class mercadolibre_shipment_print(models.TransientModel):
         for shipid in shipment_ids:
             shipment = shipment_obj.browse(shipid)
             ship_report = shipment.shipment_print( meli=meli, config=config, include_ready_to_print=include_ready_to_print )
+
+            print_mode = "zpl"
+            if (config and "mercadolibre_shipment_print_guide" in config._fields):
+                if (config and "mercadolibre_shipment_print_guide_mode" in config._fields):
+                    print_mode = config["mercadolibre_shipment_print_guide_mode"]        
+
             reporte = reporte + sep + str( ship_report['message'] )
 
             if (shipment and shipment.status=="ready_to_ship"):
@@ -220,7 +226,8 @@ class mercadolibre_shipment_print(models.TransientModel):
                     full_url_link_pdf[atoken]['comma']  = ","
 
                     full_url_link_pdf[atoken]['full_link'] = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_url_link_pdf[atoken]['full_ids']+"&response_type=pdf&access_token="+atoken
-                    #full_url_link_pdf[atoken]['full_link'] = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_url_link_pdf[atoken]['full_ids']+"&response_type=zpl2&access_token="+atoken
+                    if (print_mode=="zpl"):
+                        full_url_link_pdf[atoken]['full_link'] = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_url_link_pdf[atoken]['full_ids']+"&response_type=zpl2&access_token="+atoken
 
             sep = "<br>"+"\n"
 
