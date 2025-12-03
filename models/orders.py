@@ -935,7 +935,7 @@ class mercadolibre_orders(models.Model):
         }
         #else:
         #    if ( float(Item['unit_price']) == product_template.lst_price and not self.env.user.has_group('sale.group_show_price_subtotal')):
-        #        upd_line["tax_id"] = None
+        #        upd_line[tax_field] = None
         return upd_line
 
     def pretty_json( self, ids, data, indent=0, context=None ):
@@ -1469,7 +1469,7 @@ class mercadolibre_orders(models.Model):
             WHERE
             buyer_id = '%s'
             """ % (buyer_fields['buyer_id'])
-            cr = self._cr
+            cr = MeliCr( self )
             respquery = cr.execute(query)
             results = cr.fetchall()
             buyer_ids = results
@@ -2019,7 +2019,7 @@ class mercadolibre_orders(models.Model):
                     #_logger.info("Updating partner: "+str(partner_update))
                     try:
                         partner_id.write(partner_update)
-                        self._cr.commit()
+                        MeliCommit( self )
                     except ValidationError as ve:
                         # If RFC still rejected by Odoo's deeper checks, keep raw & retry without VAT
                         bad_vat = partner_update.pop("vat", None)
@@ -2400,7 +2400,7 @@ class mercadolibre_orders(models.Model):
                 order_item_id = '%s'
                 AND order_id = %i
                 """ % ( order_item_fields['order_item_id'], order and order.id)
-                cr = self._cr
+                cr = MeliCr( self )
                 respquery = cr.execute(query)
                 results = cr.fetchall()
                 order_item_ids = results
@@ -2435,6 +2435,9 @@ class mercadolibre_orders(models.Model):
 
                 #only when not a pack
                 if (sorder and product_related_obj):
+                    
+                    tax_field = SaleOrderLineTaxField( self )
+                    uom_field = SaleOrderLineUomField( self )
                     saleorderline_item_fields = {
                         'company_id': company.id,
                         'order_id': sorder.id,
@@ -2443,9 +2446,9 @@ class mercadolibre_orders(models.Model):
                         'meli_order_item_variation_id': Item['item']['variation_id'],
                         'product_id': product_related_obj.id,
                         'product_uom_qty': Item['quantity'],
-                        'product_uom_id': product_related_obj.uom_id.id,
                         'name': product_related_obj.display_name or Item['item']['title'],
                     }
+                    saleorderline_item_fields[uom_field] = product_related_obj.uom_id.id
                     saleorderline_item_fields.update( self._set_product_unit_price( product_related_obj=product_related_obj, Item=Item, config=config ) )
 
                     #TODO: agregar meli_order_id !!! (mismo item dos ordenes diferentes...puede pasar...)
@@ -2461,8 +2464,8 @@ class mercadolibre_orders(models.Model):
                         #_logger.info(saleorderline_item_ids:"+str(saleorderline_item_ids))
                         #_logger.info(product_related_obj taxes_id:"+str(product_related_obj.taxes_id))
                         #_logger.info(product_related_obj taxes_id:"+str(product_related_obj.taxes_id and product_related_obj.taxes_id.company_id))
-                        #_logger.info(saleorderline_item_ids tax_id:"+str(saleorderline_item_ids.tax_id))
-                        #_logger.info(saleorderline_item_ids tax_id company_id:"+str(saleorderline_item_ids.tax_id.company_id))
+                        #_logger.info(saleorderline_item_ids tax:"+str(saleorderline_item_ids[tax_field]))
+                        #_logger.info(saleorderline_item_ids tax company_id:"+str(saleorderline_item_ids[tax_field].company_id))
                         tax_iva_name = saleorderline_item_ids.meli_order_item_iva
                         tax_iva_name = tax_iva_name
                         tax_iva_id = None
@@ -2471,23 +2474,23 @@ class mercadolibre_orders(models.Model):
                                 if ( tax_names_equivalent(txid.name,tax_iva_name) ):
                                     tax_iva_id = txid
 
-                        for tid in saleorderline_item_ids.tax_id:
+                        for tid in saleorderline_item_ids[tax_field]:
 
                             if (tid.company_id.id!=sorder.company_id.id 
                                 or (tax_iva_id and tax_iva_id!=tid) ):
                                 #remove
-                                saleorderline_item_ids.tax_id = [(3, tid.id)]
+                                saleorderline_item_ids[tax_field] = [(3, tid.id)]
 
-                        if not saleorderline_item_ids.tax_id and product_related_obj.taxes_id:
+                        if not saleorderline_item_ids[tax_field] and product_related_obj.taxes_id:
                             for txid in product_related_obj.taxes_id:
                                 if (txid.company_id.id==sorder.company_id.id):
                                     if (tax_iva_id):
                                         if (tax_iva_id!=tid):
                                             #add
-                                            saleorderline_item_ids.tax_id = [(4, txid.id)]
+                                            saleorderline_item_ids[tax_field] = [(4, txid.id)]
                                     else:
                                         #add
-                                        saleorderline_item_ids.tax_id = [(4, txid.id)]
+                                        saleorderline_item_ids[tax_field] = [(4, txid.id)]
 
                         if (sorder.state and sorder.state in ['done','sale']) or ("locked" in sorder._fields and sorder.locked):
                             #_logger.warning("Orden bloqueada no se puede actualizar")
@@ -2782,13 +2785,13 @@ class mercadolibre_orders(models.Model):
                     order_json = None
 
                 ret = self.orders_update_order_json( {"id": order.id, "order_json": order_json }, meli=meli, config=config )
-                self._cr.commit()
+                MeliCommit( self )
                 if ret and "error" in ret:
                     rets.append(ret)
             except Exception as e:
                 _logger.info("orders_update_order > Error actualizando ORDEN")
                 _logger.error(e, exc_info=True)
-                self._cr.rollback()
+                MeliRollback( self )
 
                 #_logger.info(orders_update_order journal_id: "+str(order.name))
                 if order.sale_order and "mercadolibre_invoice_journal_id" in config._fields and config.mercadolibre_invoice_journal_id:
@@ -2898,11 +2901,11 @@ class mercadolibre_orders(models.Model):
                     else:
                         try:
                             ret = self.orders_update_order_json( data=pdata, config=config, meli=meli )
-                            self._cr.commit()
+                            MeliCommit( self )
                         except Exception as e:
                             _logger.info("orders_query_iterate > Error actualizando ORDEN")
                             _logger.error(e, exc_info=True)
-                            self._cr.rollback()
+                            MeliRollback( self )
                             pass;
 
         if (offset_next>0):
@@ -2927,7 +2930,7 @@ class mercadolibre_orders(models.Model):
         except Exception as e:
             _logger.info("orders_query_recent > Error iterando ordenes")
             _logger.error(e, exc_info=True)
-            self._cr.rollback()
+            MeliRollback( self )
 
         if __fetch_ids:
             #_logger.info( "__fetch_ids:"+str(__fetch_ids) )
@@ -3237,7 +3240,7 @@ class mercadolibre_orders_update(models.TransientModel):
         except Exception as e:
             _logger.info("order_update > Error actualizando ordenes")
             _logger.error(e, exc_info=True)
-            self._cr.rollback()
+            MeliRollback( self )
 
         #Add warning with all filters errors:
         if rets and len(rets)>0:
@@ -3271,7 +3274,7 @@ class mercadolibre_orders_update_invoice(models.TransientModel):
         except Exception as e:
             _logger.info("order_update > Error actualizando factura ordenes")
             _logger.error(e, exc_info=True)
-            self._cr.rollback()
+            MeliRollback( self )
 
         return {}
 
@@ -3307,6 +3310,6 @@ class sale_order_cancel_wiz_meli(models.TransientModel):
         except Exception as e:
             #_logger.info("order_update > Error cancelando ordenes")
             _logger.error(e, exc_info=True)
-            self._cr.rollback()
+            MeliRollback( self )
 
         return {}
