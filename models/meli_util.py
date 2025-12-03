@@ -24,7 +24,7 @@ from meli.rest import ApiException
 from meli.api_client import ApiClient
 
 from datetime import datetime
-
+from .versions import *
 
 class LoggingRetry(Retry):
     def increment(self, *args, **kwargs):
@@ -369,7 +369,7 @@ class MeliApi( meli.RestClientApi ):
 
         # Execute PUT
         try:
-            _logger.info("put_mini > url:"+str(url)+" final_headers:"+str(final_headers)+" body:"+str(body)+" params:"+str(qparams)+" atok:"+str(atok))
+            #_logger.info("put_mini > url:"+str(url)+" final_headers:"+str(final_headers)+" body:"+str(body)+" params:"+str(qparams)+" atok:"+str(atok))
             r = requests.put(
                 url,
                 headers=final_headers,
@@ -721,7 +721,7 @@ class MeliUtil(models.AbstractModel):
                     # the email template
                     context = {
                         'job_exception': message,
-                        'dbname': self._cr.dbname,
+                        'dbname': MeliCr( self ).dbname,
                     }
 
                     _logger.info(
