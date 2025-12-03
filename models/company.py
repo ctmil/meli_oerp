@@ -773,7 +773,7 @@ class res_company(models.Model):
                     iitem+= 1
                     icommit+= 1
                     if (icommit>=micom):
-                        self._cr.commit()
+                        MeliCommit( self )
                         icommit = 0
                     #_logger.info( item_id + "("+str(iitem)+"/"+str(rjson['paging']['total'])+")" )
                     posting_id = self.env['product.product'].search([('meli_id','=',item_id)])
@@ -883,7 +883,7 @@ class res_company(models.Model):
                                             'status': 'missing'
                                             })
                             #_logger.info( "Item not in database, no sync founded for meli_id: "+str(item_id) + " seller_sku: " +str(seller_sku) )
-                        self._cr.commit()
+                        MeliCommit( self )
                     #elif (not company.mercadolibre_import_search_sku):
                     else:
                         #idcreated = self.pool.get('product.product').create(cr,uid,{ 'name': rjson3['title'], 'meli_id': rjson3['id'] })
@@ -912,7 +912,7 @@ class res_company(models.Model):
                                 #pdb.set_trace()
                                 #_logger.info(productcreated)
                                 productcreated.product_meli_get_product(import_images=force_import_images)
-                                self._cr.commit()
+                                MeliCommit( self )
                             else:
                                 _logger.error( "product couldnt be created")
                                 pass;
@@ -930,7 +930,7 @@ class res_company(models.Model):
                 _logger.info("Synced: "+str(synced))
                 _logger.info("Duplicates: "+str(duplicates))
                 _logger.info("Missing: "+str(missing))
-                self._cr.rollback()
+                MeliRollback( self )
                 pass;
 
             html_report = "<h2>Reporte Importación</h2>"
@@ -1012,7 +1012,7 @@ class res_company(models.Model):
                     #_logger.info( "Product to update: [" + str(obj.id) + "] " + str(cn)+"/"+str(ct))
                     try:
                         obj.product_meli_get_product()
-                        self._cr.commit()
+                        MeliCommit( self )
                     except Exception as e:
                         _logger.info("updating product > Exception error.")
                         _logger.error(e, exc_info=True)
@@ -1021,7 +1021,7 @@ class res_company(models.Model):
             except Exception as e:
                 _logger.info("product_meli_update_products > Exception error.")
                 _logger.error(e, exc_info=True)
-                self._cr.rollback()
+                MeliRollback( self )
                 pass;
 
         return {}
@@ -1140,7 +1140,7 @@ class res_company(models.Model):
 
             try:
                 if auto_commit:
-                    self.env.cr.commit()
+                    MeliCommit( self )
                 for obj in product_ids:
                     #_logger.info( "Product check if active: " + str(obj.id)+ ' meli_id:'+str(obj.meli_id)  )
                     if (obj.meli_id and icount<=topcommits):
@@ -1170,7 +1170,7 @@ class res_company(models.Model):
                                 #_logger.info("meli_update_remote_stock commiting")
                                 icommit=0
                                 if auto_commit:
-                                    self.env.cr.commit()
+                                    MeliCommit( self )
 
                         except Exception as e:
                             _logger.info("meli_update_remote_stock > Exception founded!")
@@ -1192,7 +1192,7 @@ class res_company(models.Model):
                     self.env.cr.rollback()
                 noti.stop_internal_notification( errors=errors , logs=logs )
                 if auto_commit:
-                    self.env.cr.commit()
+                    MeliCommit( self )
                 pass;
 
         return {}
@@ -1242,7 +1242,7 @@ class res_company(models.Model):
                 errors = ""
                 try:
                     if auto_commit:
-                        self.env.cr.commit()
+                        MeliCommit( self )
                     for obj in product_ids:
 
                         icommit+= 1
@@ -1263,7 +1263,7 @@ class res_company(models.Model):
                                     #_logger.info("meli_update_remote_price commiting")
                                     icommit=0
                                     if auto_commit:
-                                        self.env.cr.commit()
+                                        MeliCommit( self )
 
                             except Exception as e:
                                 _logger.info("meli_update_remote_price > Exception founded!")
@@ -1285,7 +1285,7 @@ class res_company(models.Model):
                         self.env.cr.rollback()
                     noti.stop_internal_notification( errors=errors , logs=logs )
                     if auto_commit:
-                        self.env.cr.commit()
+                        MeliCommit( self )
                     pass;
 
         return {}
@@ -1422,7 +1422,7 @@ class res_company(models.Model):
                     iitem+= 1
                     icommit+= 1
                     if (icommit>=micom):
-                        #self._cr.commit()
+                        #MeliCommit( self )
                         icommit = 0
                     #_logger.info( item_id + "("+str(iitem)+"/"+str(rjson['paging']['total'])+")" )
                     posting_id = self.env['product.product'].search([('meli_id','=',item_id)]
@@ -1440,5 +1440,5 @@ class res_company(models.Model):
                 _logger.info("meli_pause_all Exception!")
                 _logger.info(e, exc_info=True)
                 pass;
-                #self._cr.rollback()
+                #MeliRollback( self )
         return {}

@@ -209,7 +209,7 @@ class mercadolibre_shipment_print(models.TransientModel):
             shipment = shipment_obj.browse(shipid)
             ship_report = shipment.shipment_print( meli=meli, config=config, include_ready_to_print=include_ready_to_print )
 
-            print_mode = "zpl"
+            print_mode = "pdf"
             if (config and "mercadolibre_shipment_print_guide" in config._fields):
                 if (config and "mercadolibre_shipment_print_guide_mode" in config._fields):
                     print_mode = config["mercadolibre_shipment_print_guide_mode"]        
@@ -653,10 +653,10 @@ class mercadolibre_shipment(models.Model):
                 'price_unit': delivery_price,
                 'product_id': product_shipping_id.id,
                 'product_uom_qty': 1.0,
-                #'tax_id': None,
-                'product_uom': product_shipping_id.uom_id.id,
                 'name': "Shipping " + str(shipment.shipping_mode),
             }
+            uom_field = SaleOrderLineUomField( self )
+            saleorderline_item_fields[uom_field] = product_shipping_id.uom_id.id
             saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),
                                                                 ('order_id','=',sorder.id)] )
 
@@ -666,7 +666,6 @@ class mercadolibre_shipment(models.Model):
             else:
                 if (1==2 and del_price>0):
                     saleorderline_item_ids.write( ( saleorderline_item_fields ) )
-                    #saleorderline_item_ids.tax_id = None
                 else:
                     try:
                         #_logger.info("removing saleorderline_item_ids")
@@ -1025,7 +1024,7 @@ class mercadolibre_shipment(models.Model):
                 WHERE
                 shipping_id = '%s'
                 """ % (ship_id)
-                cr = self._cr
+                cr = MeliCr( self )
                 respquery = cr.execute(query)
                 results = cr.fetchall()
                 shipment_ids = results
@@ -1293,6 +1292,9 @@ class mercadolibre_shipment(models.Model):
                                     #mOrder and mOrder.message_post(body=str(error["error"])+"\n"+str(error["item"]),message_type=order_message_type)
                                     continue;
                                 unit_price = mOrder.order_items and mOrder.order_items[0]["unit_price"]
+
+                                tax_field = SaleOrderLineTaxField( self )
+                                uom_field = SaleOrderLineUomField( self )
                                 saleorderline_item_fields = {
                                     'company_id': company.id,
                                     'order_id': shipment.sale_order.id,
@@ -1300,10 +1302,11 @@ class mercadolibre_shipment(models.Model):
                                     'meli_order_item_iva': mOrder.order_items[0]["order_item_iva"],
                                     'meli_order_item_variation_id': mOrder.order_items[0]["order_item_variation_id"],
                                     'product_id': product_related_obj.id,
-                                    'product_uom_qty': mOrder.order_items[0]["quantity"],
-                                    'product_uom': product_related_obj.uom_id.id,
+                                    'product_uom_qty': mOrder.order_items[0]["quantity"],                                    
                                     'name': product_related_obj.display_name or mOrder.order_items[0]["order_item_title"],
                                 }
+                                saleorderline_item_fields[uom_field] = product_related_obj.uom_id.id
+                                
                                 if (mOrder.fee_amount):
                                     sorder_pack.meli_fee_amount = sorder_pack.meli_fee_amount + mOrder.fee_amount
 
@@ -1323,8 +1326,8 @@ class mercadolibre_shipment(models.Model):
                                     #_logger.info(saleorderline_item_ids:"+str(saleorderline_item_ids))
                                     #_logger.info(product_related_obj taxes_id:"+str(product_related_obj.taxes_id))
                                     #_logger.info(product_related_obj taxes_id:"+str(product_related_obj.taxes_id and product_related_obj.taxes_id.company_id))
-                                    #_logger.info(saleorderline_item_ids tax_id:"+str(saleorderline_item_ids.tax_id))
-                                    #_logger.info(saleorderline_item_ids tax_id company_id:"+str(saleorderline_item_ids.tax_id.company_id))
+                                    #_logger.info(saleorderline_item_ids tax:"+str(saleorderline_item_ids[tax_field]))
+                                    #_logger.info(saleorderline_item_ids tax company_id:"+str(saleorderline_item_ids[tax_field].company_id))
                                     tax_iva_name = saleorderline_item_ids.meli_order_item_iva
                                     tax_iva_name = tax_iva_name
                                     tax_iva_id = None
@@ -1333,23 +1336,23 @@ class mercadolibre_shipment(models.Model):
                                             if ( tax_names_equivalent(txid.name,tax_iva_name) ):
                                                 tax_iva_id = txid
 
-                                    for tid in saleorderline_item_ids.tax_id:
+                                    for tid in saleorderline_item_ids[tax_field]:
 
                                         if (tid.company_id.id!=sorder.company_id.id 
                                             or (tax_iva_id and tax_iva_id!=tid) ):
                                             #remove
-                                            saleorderline_item_ids.tax_id = [(3, tid.id)]
+                                            saleorderline_item_ids[tax_field] = [(3, tid.id)]
 
-                                    if not saleorderline_item_ids.tax_id and product_related_obj.taxes_id:
+                                    if not saleorderline_item_ids[tax_field] and product_related_obj.taxes_id:
                                         for txid in product_related_obj.taxes_id:
                                             if (txid.company_id.id==sorder.company_id.id):
                                                 if (tax_iva_id):
                                                     if (tax_iva_id!=tid):
                                                         #add
-                                                        saleorderline_item_ids.tax_id = [(4, txid.id)]
+                                                        saleorderline_item_ids[tax_field] = [(4, txid.id)]
                                                 else:
                                                     #add
-                                                    saleorderline_item_ids.tax_id = [(4, txid.id)]
+                                                    saleorderline_item_ids[tax_field] = [(4, txid.id)]
                                     is_locked = ((sorder_pack and sorder_pack.state in ["done","sale"]) 
                                                 or ("locked" in sorder_pack._fields and sorder_pack.locked))
                                     if (is_locked):

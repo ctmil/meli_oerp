@@ -101,6 +101,38 @@ def get_price_from_pl( pricelist, product, quantity ):
 def Autocommit( self, act=False ):
     return False
 
+def MeliCr( self ):    
+    return self.env.cr
+    #or return self._cr
+
+def MeliCommit( self ):
+    return self.env.cr.commit();
+
+def MeliRollback( self ):
+    return self.env.cr.rollback();
+
+
+def SaleOrderLineTaxField( self ):
+    """
+    Devuelve el nombre correcto del campo de impuestos de sale.order.line
+    según la versión de Odoo: 'tax_id' (<=18) o 'tax_ids' (19+).
+    """
+    so_line_fields = self.env['sale.order.line']._fields
+    if 'tax_ids' in so_line_fields:
+        return 'tax_ids'
+    return 'tax_id'
+
+def SaleOrderLineUomField(self):
+    """
+    Devuelve el nombre correcto del campo de UoM de sale.order.line
+    según la versión de Odoo: 'product_uom' (<=18) o 'product_uom_id' (19+).
+    """
+    so_line_fields = self.env['sale.order.line']._fields
+    if 'product_uom' in so_line_fields:
+        return 'product_uom'
+    return 'product_uom_id'
+
+
 def UpdateProductType( product ):
     if not product:
         return
