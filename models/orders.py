@@ -265,7 +265,7 @@ class sale_order(models.Model):
             for order in self:
                 if(order.meli_order_id):
                     for line in order.order_line:
-                        if ((line.is_delivery or line.price_unit<=0.0) and line.qty_to_invoice>0):
+                        if ((line.is_delivery and line.price_unit<=0.0) and line.qty_to_invoice>0):
                             #_logger.info(line)
                             line.write({ "qty_to_invoice": 0.0 })
                             #_logger.info(line.qty_to_invoice)
@@ -294,7 +294,7 @@ class sale_order(models.Model):
             for order in self:
                 if(order.meli_order_id):
                     for line in order.order_line:
-                        if ((line.is_delivery or line.price_unit<=0.0) and line.qty_to_invoice>0):
+                        if ((line.is_delivery and line.price_unit<=0.0) and line.qty_to_invoice>0):
                             #_logger.info(line)
                             line.write({ "qty_to_invoice": 0.0 })
                             #_logger.info(line.qty_to_invoice)
@@ -838,12 +838,13 @@ class mercadolibre_orders(models.Model):
         last_name = str( ('last_name' in Buyer and Buyer['last_name']) or '' )
 
         if first_name and last_name:
-            last_name = ' '+last_name
+            first_name = first_name.capitalize()
+            last_name = ' '+last_name.capitalize()
 
         full_name = first_name + last_name
 
         business_name = ('business_name' in Buyer and Buyer['business_name'])
-        full_name = business_name or full_name or ''
+        full_name = full_name or business_name or ''
 
         return full_name or ('id' in Buyer and Buyer['id'])
 
@@ -1392,8 +1393,10 @@ class mercadolibre_orders(models.Model):
             Buyer['billing_info'] = self.get_billing_info(order_id=order_json['id'],meli=meli,data=order_json)
             #Buyer['first_name'] = ('first_name' in Buyer and Buyer['first_name']) or ('FIRST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['FIRST_NAME']) or ''
             #Buyer['last_name'] = ('last_name' in Buyer and Buyer['last_name']) or ('LAST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['LAST_NAME']) or ''
-            Buyer['first_name'] = ('FIRST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['FIRST_NAME']) or ('first_name' in Buyer and Buyer['first_name']) or ''
-            Buyer['last_name'] = ('LAST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['LAST_NAME']) or ('last_name' in Buyer and Buyer['last_name']) or ''
+            Buyer['first_name'] = ('first_name' in Buyer and Buyer['first_name']) or ('FIRST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['FIRST_NAME']) or ''
+            Buyer['first_name'] = Buyer['first_name'] and Buyer['first_name'].capitalize()
+            Buyer['last_name'] = ('last_name' in Buyer and Buyer['last_name']) or ('LAST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['LAST_NAME']) or ''
+            Buyer['last_name'] = Buyer['last_name'] and Buyer['last_name'].capitalize()
             Buyer['business_name'] = ('business_name' in Buyer and Buyer['business_name']) or ('BUSINESS_NAME' in Buyer['billing_info'] and Buyer['billing_info']['BUSINESS_NAME']) or ''
             Receiver = False
             if ('shipping' in order_json and order_json['shipping']):
@@ -1945,7 +1948,7 @@ class mercadolibre_orders(models.Model):
                 else:
                     meli_buyer_fields['fe_regimen_fiscal'] = '49';
 
-            #SI VAT DIFERENTE SE CREA NUEVO INVOICE PARTNER
+            #SI VAT DIFERENTE SE CREA NUEVO INVOICE PARTNER: TODO: cambiar esto por una funcion de condicion para crear un nuevo contacto de facturacion
             if (partner_id and "vat" in meli_buyer_fields and meli_buyer_fields["vat"]!=str(partner_id.vat)):
                 #CREAR INVOICE CONTACT
                 #_logger.info(Partner Invoice is NEW: "+str(partner_invoice_meli_order_id)+" VAT:"+str(meli_buyer_fields["vat"])+ " vs "+str(partner_id.vat))
@@ -1965,6 +1968,11 @@ class mercadolibre_orders(models.Model):
 
                 if partner_invoice_id:
                     partner_update = self.update_partner_billing_info( partner_id=partner_invoice_id, meli_buyer_fields=partner_update, Receiver=Receiver )
+                    
+                    if (Buyer['billing_info'] and buyer_fields and "billing_info_business_name" in buyer_fields and buyer_fields["billing_info_business_name"]):
+                        partner_update['name'] = buyer_fields["billing_info_business_name"]
+                        
+
                     if partner_update:
                         try:
                             #_logger.info("Partner Invoice Updating: "+str(partner_update)+ str(" partner_invoice_id:")+str(partner_invoice_id))
@@ -2583,6 +2591,20 @@ class mercadolibre_orders(models.Model):
                                     payment_fields["shipping_seller_cost"]+= fee_detail["amounts"] and fee_detail["amounts"]["original"]
                                     if (order):
                                         order.shipping_seller_cost = payment_fields["shipping_seller_cost"]
+
+                                # Handle coupon as fee (seller absorbs the coupon cost)
+                                # When type is 'coupon' and accounts.from='ml' and accounts.to='payer'
+                                # it means ML gives discount to buyer, seller must absorb it as cost
+                                if ( fee_type=="coupon" ):
+                                    coupon_fee_amount = fee_detail["amounts"] and fee_detail["amounts"]["original"] or 0
+                                    if coupon_fee_amount > 0:
+                                        payment_fields["fee_amount"]+= coupon_fee_amount
+                                        _logger.info("MELI: Adding coupon as fee: %.2f (name: %s)", coupon_fee_amount, fee_name)
+                                        if (order):
+                                            order.fee_amount = payment_fields["fee_amount"]
+                                            # Also update coupon_amount if it wasn't set from order json
+                                            #if order.coupon_amount == 0:
+                                            #    order.coupon_amount = coupon_fee_amount
 
                                 #if (fee_payer and fee_payer == "collector" and fee_type == "application_fee"):
                                 #    payment_fields["fee_amount"] = fee_detail["amount"]
