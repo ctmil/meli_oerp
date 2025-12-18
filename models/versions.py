@@ -329,7 +329,9 @@ def ml_product_price_conversion( self, product_related_obj, price, config=None):
             ml_price_converted = txfixed + ml_price_converted / (1.0 + txpercent*0.01)
             #_logger.info("Price adjusted with taxes:"+str(ml_price_converted))
 
-    ml_price_converted = round(ml_price_converted,2)
+    # Use higher precision (6 decimals) to avoid rounding errors in tax calculations
+    # Odoo will round to the configured decimal precision when saving
+    ml_price_converted = round(ml_price_converted, 6)
     return ml_price_converted
 
 
