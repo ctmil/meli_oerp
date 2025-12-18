@@ -207,6 +207,9 @@ class product_template(models.Model):
                                 if pic and 'id' in pic:
                                     var_pics.append(pic['id'])
                                     var_pics_full.append({ 'id': pic['id']})
+                        # Limit variation pictures to 10 (MercadoLibre API limit per variation)
+                        if var_pics and len(var_pics) > 10:
+                            var_pics = var_pics[:10]
                         var_pics and var.update({"picture_ids": var_pics})
 
                         #ATRIBUTOS POR VARIANTE (SKU; GTIN, etc...)
