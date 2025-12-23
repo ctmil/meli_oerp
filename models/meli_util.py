@@ -24,7 +24,7 @@ from meli.rest import ApiException
 from meli.api_client import ApiClient
 
 from datetime import datetime
-
+from .versions import *
 
 class LoggingRetry(Retry):
     def increment(self, *args, **kwargs):

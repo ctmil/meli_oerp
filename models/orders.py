@@ -265,7 +265,7 @@ class sale_order(models.Model):
             for order in self:
                 if(order.meli_order_id):
                     for line in order.order_line:
-                        if ((line.is_delivery or line.price_unit<=0.0) and line.qty_to_invoice>0):
+                        if ((line.is_delivery and line.price_unit<=0.0) and line.qty_to_invoice>0):
                             #_logger.info(line)
                             line.write({ "qty_to_invoice": 0.0 })
                             #_logger.info(line.qty_to_invoice)
