@@ -207,6 +207,9 @@ class product_template(models.Model):
                                 if pic and 'id' in pic:
                                     var_pics.append(pic['id'])
                                     var_pics_full.append({ 'id': pic['id']})
+                        # Limit variation pictures to 10 (MercadoLibre API limit per variation)
+                        if var_pics and len(var_pics) > 10:
+                            var_pics = var_pics[:10]
                         var_pics and var.update({"picture_ids": var_pics})
 
                         #ATRIBUTOS POR VARIANTE (SKU; GTIN, etc...)
@@ -2930,13 +2933,13 @@ class product_product(models.Model):
                 str_message = "GRID_ROW_SIZE_id FOUNDED for value ["+str(SIZE_value)+"] equivalent to ["+str(GRID_ROW_SIZE_id_value)+"] in "+str(self.meli_grid_chart_id.name)
                 variant.product_tmpl_id.message_post(body=str_message,message_type=order_message_type)
                 variant.message_post(body=str_message,message_type=order_message_type)
-                self._cr.commit()
+                MeliCommit( self )
             else:
                 str_error = "ERROR! GRID_ROW_SIZE_id not FOUNDED for value ["+str(SIZE_value)+"] in "+str(self.meli_grid_chart_id.name)
                 _logger.error(str_error)
                 variant.product_tmpl_id.message_post(body=str_error)
                 variant.message_post(body=str_error,message_type=order_message_type)
-                self._cr.commit()
+                MeliCommit( self )
 
 
         return updated_row_size_attribute

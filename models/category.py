@@ -158,7 +158,7 @@ class mercadolibre_category_attribute(models.Model):
                                 try:
                                     att_line.unlink()
                                     self.products_to_fix = [(4,product_tmpl.id)]
-                                    self._cr.commit();
+                                    MeliCommit( self );
                                 except:
                                     pass;
 
@@ -214,7 +214,7 @@ class mercadolibre_category_attribute(models.Model):
                         self.products_to_fix = [(3,product_tmpl.id)]
                         continue;
 
-                self._cr.commit()
+                MeliCommit( self )
 
 
 class product_attribute(models.Model):
