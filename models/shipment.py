@@ -209,7 +209,7 @@ class mercadolibre_shipment_print(models.TransientModel):
             shipment = shipment_obj.browse(shipid)
             ship_report = shipment.shipment_print( meli=meli, config=config, include_ready_to_print=include_ready_to_print )
 
-            print_mode = "zpl"
+            print_mode = "pdf"
             if (config and "mercadolibre_shipment_print_guide" in config._fields):
                 if (config and "mercadolibre_shipment_print_guide_mode" in config._fields):
                     print_mode = config["mercadolibre_shipment_print_guide_mode"]        
