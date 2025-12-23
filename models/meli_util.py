@@ -24,7 +24,7 @@ from meli.rest import ApiException
 from meli.api_client import ApiClient
 
 from datetime import datetime
-
+from .versions import *
 
 class LoggingRetry(Retry):
     def increment(self, *args, **kwargs):
@@ -721,7 +721,7 @@ class MeliUtil(models.AbstractModel):
                     # the email template
                     context = {
                         'job_exception': message,
-                        'dbname': self._cr.dbname,
+                        'dbname': MeliCr( self ).dbname,
                     }
 
                     _logger.info(
