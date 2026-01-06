@@ -721,10 +721,15 @@ class mercadolibre_shipment(models.Model):
 
         #_logger.info("partner_delivery_id > Receiver: "+str(Receiver) )
 
+        # Ensure delivery partner always has a valid name (constraint: res_partner_check_name)
+        receiver_name = Receiver.get("receiver_name") or ""
+        if not receiver_name:
+            receiver_name = partner_id.name or "Entrega MeLi"
+
         pdelivery_fields = {
             "type": "delivery",
             "parent_id": partner_id.id,
-            'name': Receiver["receiver_name"],
+            'name': receiver_name,
             'street': Receiver['address_line'],
             #'street2': meli_buyer_fields['name'],
             'city': orders_obj.city(Receiver),

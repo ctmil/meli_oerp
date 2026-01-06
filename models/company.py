@@ -227,6 +227,20 @@ class res_company(models.Model):
             #_logger.info("company.mercadolibre_cron_post_update_stock")
             self.meli_update_remote_stock(meli=meli)
 
+
+    def cron_meli_process_post_stock_rt( self, meli=None ):
+
+        company = self.env.user.company_id
+
+        if not meli:
+            meli = self.env['meli.util'].get_new_instance(company)
+            if meli.needlogin_state:
+                return True
+
+        if (company.mercadolibre_cron_post_update_stock):
+            #_logger.info("company.mercadolibre_cron_post_update_stock")
+            self.meli_update_remote_stock_rt(meli=meli)
+
     def cron_meli_process_post_price( self, meli=None ):
 
         company = self.env.user.company_id
@@ -1197,6 +1211,98 @@ class res_company(models.Model):
 
         return {}
 
+    def meli_update_remote_stock_rt(self, meli=False):
+        company = self.env.user.company_id
+        company_domain = ['|',('company_id','=',False),('company_id','=',company.id)]
+        if (company.mercadolibre_cron_post_update_stock):
+            auto_commit = not getattr(threading.currentThread(), 'testing', False)
+            product_ids_null = self.env['product.product'].search([
+                ('meli_pub','=',True),
+                ('meli_id','like','M%'),
+                ('meli_stock_update','=',False)]
+                + company_domain, order='id asc')
+            product_ids_not_null = self.env['product.product'].search([
+                ('meli_pub','=',True),
+                ('meli_id','like','M%'),
+                ('meli_stock_update','!=',False)]
+                + company_domain, order='meli_stock_update asc')
+            product_ids = product_ids_null + product_ids_not_null
+            topcommits = 40
+            #_logger.info("product_ids stock to update:" + str(product_ids))
+            #_logger.info("updating stock #" + str(len(product_ids)) + " on " + str(company.name)+ " cron top:"+str(topcommits))
+            icommit = 0
+            icount = 0
+            maxcommits = len(product_ids)
+            internals = {
+                "application_id": company.mercadolibre_client_id,
+                "user_id": company.mercadolibre_seller_id,
+                "topic": "internal",
+                "resource": "meli_update_remote_stock #"+str(maxcommits),
+                "state": "PROCESSING"
+            }
+            noti = self.env["mercadolibre.notification"].start_internal_notification( internals )
+            logs = ""
+            errors = ""
+
+            try:
+                if auto_commit:
+                    MeliCommit( self )
+                for obj in product_ids:
+                    #_logger.info( "Product check if active: " + str(obj.id)+ ' meli_id:'+str(obj.meli_id)  )
+                    if (obj.meli_id and icount<=topcommits):
+                        icommit+= 1
+                        icount+= 1
+                        try:
+                            #_logger.info( "Update Stock: #" + str(icount) +'/'+str(maxcommits)+ ' meli_id:'+str(obj.meli_id)  )
+                            resjson = obj.product_post_stock(meli=meli)
+                            logs+= str(obj.default_code)+" "+str(obj.meli_id)+": "+str(obj.meli_available_quantity)+"\n"
+
+                            if "error" in resjson:
+
+                                obj.meli_stock_error = str(resjson)
+                                errors+= str(obj.default_code)+" "+str(obj.meli_id)+" >> "+str(resjson)+"\n"
+
+                                is_fulfillment = obj.meli_shipping_logistic_type and "fulfillment" in obj.meli_shipping_logistic_type
+                                if is_fulfillment:
+                                    obj.meli_stock_error = "fulfillment"
+
+                            else:
+                                obj.meli_stock_error = str({})
+
+                            if ( icommit==40 or icount==maxcommits or icount==topcommits ):
+                                noti.processing_errors = errors
+                                noti.processing_logs = logs
+                                noti.resource = "meli_update_remote_stock #"+str(icount) +'/'+str(maxcommits)
+                                #_logger.info("meli_update_remote_stock commiting")
+                                icommit=0
+                                if auto_commit:
+                                    MeliCommit( self )
+
+                        except Exception as e:
+                            _logger.info("meli_update_remote_stock > Exception founded!")
+                            _logger.info(e, exc_info=True)
+                            logs+= str(obj.default_code)+" "+str(obj.meli_id)+": "+str(obj.meli_available_quantity)+", "
+                            #errors+= str(obj.default_code)+" "+str(obj.meli_id)+" >> "+str(e.args[0])+str(", ")
+                            errors+= str(obj.default_code)+" "+str(obj.meli_id)+" >> "+str(e)+"\n"
+                            if auto_commit:
+                                self.env.cr.rollback()
+                            pass;
+
+                noti.resource = "meli_update_remote_stock_rt #"+str(icount) +'/'+str(maxcommits)
+                noti.stop_internal_notification(errors=errors,logs=logs)
+
+            except Exception as e:
+                _logger.info("meli_update_remote_stock_rt > Exception founded!")
+                _logger.info(e, exc_info=True)
+                if auto_commit:
+                    self.env.cr.rollback()
+                noti.stop_internal_notification( errors=errors , logs=logs )
+                if auto_commit:
+                    MeliCommit( self )
+                pass;
+
+        return {}
+
 
     def meli_update_remote_price(self, meli=False):
         company = self.env.user.company_id
@@ -1435,7 +1541,7 @@ class res_company(models.Model):
                     else:
                         #idcreated = self.pool.get('product.product').create(cr,uid,{ 'name': rjson3['title'], 'meli_id': rjson3['id'] })
                         #prod_fields['default_code'] = rjson3['id']
-                        response = meli.put("/items/"+item_id, { 'status': 'paused' }, {'access_token':meli.access_token})
+                        response = meli.put_mini("/items/"+item_id, { 'status': 'paused' }, {'access_token':meli.access_token})
             except Exception as e:
                 _logger.info("meli_pause_all Exception!")
                 _logger.info(e, exc_info=True)

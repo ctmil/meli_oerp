@@ -846,7 +846,14 @@ class mercadolibre_orders(models.Model):
         business_name = ('business_name' in Buyer and Buyer['business_name'])
         full_name = full_name or business_name or ''
 
-        return full_name or ('id' in Buyer and Buyer['id'])
+        # Fallback to buyer ID if no name available
+        if not full_name:
+            buyer_id = Buyer.get('id')
+            if buyer_id:
+                full_name = "Cliente MeLi " + str(buyer_id)
+
+        # Ultimate fallback - never return empty name (violates res_partner constraint)
+        return full_name or "Cliente MercadoLibre"
 
     def zip_code( self, Receiver={}, Buyer={}):
         if ( Receiver and 'billing_info' in Receiver and 'ZIP_CODE' in Receiver['billing_info'] ):
@@ -2036,7 +2043,8 @@ class mercadolibre_orders(models.Model):
                     except builtins.Exception as e:
                         _logger.info("orders_update_order > Error actualizando Partner:"+str(e))
                         _logger.error(e, exc_info=True)
-                        order.message_post(body=str("Error actualizando Partner: "+str(e)),message_type=order_message_type)
+                        if order:
+                            order.message_post(body=str("Error actualizando Partner: "+str(e)),message_type=order_message_type)
                         pass;
 
                 if (partner_id.email and (partner_id.email==buyer_fields["email"] or "mercadolibre.com" in partner_id.email)):
@@ -2162,7 +2170,7 @@ class mercadolibre_orders(models.Model):
             if (config.mercadolibre_seller_team):
                 meli_order_fields["team_id"] = config.mercadolibre_seller_team.id
 
-            if 'pack_order' in order_json["tags"] and order.shipping_id:
+            if 'pack_order' in order_json["tags"] and order and order.shipping_id:
                 #_logger.info("Pack Order, dont create sale.order, leave it to mercadolibre.shipment")
                 if order and not order.sale_order:
                     order.message_post(body=str("Pack Order, dont create sale.order, leave it to mercadolibre.shipment"),message_type=order_message_type)

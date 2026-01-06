@@ -268,7 +268,8 @@ class MercadolibreNotification(models.Model):
                     if (morder and len(morder)):
                         pdata["id"] =  morder.id
 
-                    rsjson = morder.orders_update_order_json( pdata )
+                    # Skip invoice validation on notifications to avoid AFIP concurrent numbering issues
+                    rsjson = morder.with_context(meli_skip_invoice_validation=True).orders_update_order_json( pdata )
                     _logger.info("rsjson:"+str(rsjson))
 
                     if (rsjson and 'error' in rsjson):
