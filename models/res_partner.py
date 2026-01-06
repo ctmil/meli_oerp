@@ -121,7 +121,8 @@ class ResPartner(models.Model):
         raw = ' '.join(p for p in parts if p)
 
         # Lowercase, remove accents, remove non-alphanumeric except spaces
-        raw = tools.ustr(raw).lower()
+        # Note: ustr() is deprecated in Odoo 18, raw is already a string
+        raw = str(raw).lower()
         raw = tools.remove_accents(raw)
         raw = re.sub(r'[^a-z0-9\s]', ' ', raw)
         raw = re.sub(r'\s+', ' ', raw).strip()
