@@ -55,13 +55,25 @@
 		<field name="name">Cron Meli Process Post Stock</field>
 		<field name="active">True</field>
 		<field name="user_id" ref="base.user_root" />
-		<field name="interval_number">30</field>
+		<field name="interval_number">10</field>
 		<field name="interval_type">minutes</field>
 		<field ref="model_res_company" name="model_id" />
 		<field name="state">code</field>
 		<field name="code">model.cron_meli_process_post_stock()</field>
 		<field name="priority">1000</field>
-			</record>
+	</record>
+
+	<record id="ir_cron_module_cron_meli_process_post_stock_rt" model="ir.cron">
+		<field name="name">Cron Meli Process Post Stock RT</field>
+		<field name="active">True</field>
+		<field name="user_id" ref="base.user_root" />
+		<field name="interval_number">5</field>
+		<field name="interval_type">minutes</field>
+		<field ref="model_res_company" name="model_id" />
+		<field name="state">code</field>
+		<field name="code">model.cron_meli_process_post_stock_rt()</field>
+		<field name="priority">1000</field>
+	</record>	
 
 	<record id="ir_cron_module_cron_meli_process_post_price" model="ir.cron">
 		<field name="name">Cron Meli Process Post Price</field>
@@ -97,7 +109,7 @@
 		<field name="state">code</field>
 		<field name="code">model.cron_meli_questions()</field>
 		<field name="priority">1000</field>
-			</record>
+	</record>
 
     </data>
 </odoo>
