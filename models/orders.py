@@ -2172,14 +2172,15 @@ class mercadolibre_orders(models.Model):
 
             if 'pack_order' in order_json["tags"] and order and order.shipping_id:
                 #_logger.info("Pack Order, dont create sale.order, leave it to mercadolibre.shipment")
-                if order and not order.sale_order:
+                if not order.sale_order:
                     order.message_post(body=str("Pack Order, dont create sale.order, leave it to mercadolibre.shipment"),message_type=order_message_type)
             else:
                 #_logger.info("Adding new sale.order: " )
                 sorder = saleorder_obj.create((meli_order_fields))
                 if sorder:
                     sorder.meli_fix_team( meli=meli, config=config )
-                    order.message_post(body=str("Sale order created!"),message_type=order_message_type)
+                    if order:
+                        order.message_post(body=str("Sale order created!"),message_type=order_message_type)
 
 
         #check error

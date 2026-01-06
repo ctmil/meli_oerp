@@ -33,6 +33,7 @@ from . import versions
 from .versions import *
 
 import requests
+import time
 
 class res_company(models.Model):
     _name = "res.company"
@@ -144,7 +145,7 @@ class res_company(models.Model):
             "PAB": { "name": "Panamá", "id": "MPA", "default_currency_id": "PAB" },
             "USD": { "name": "Uruguay", "id": "MLU", "default_currency_id": "UYU" },
         }
-        response = meli and meli.get("/sites")
+        response = meli and meli.get("/sites",{ "access_token": str(meli.access_token) } )
         if (response):
             sites = response.json()
             #_logger.info(sites)
@@ -321,6 +322,8 @@ class res_company(models.Model):
     mercadolibre_state = fields.Boolean( compute=get_meli_state, string='Desconectado', help="Se requiere Iniciar Sesión con MLA", store=False )
     mercadolibre_category_import = fields.Char( string='Category to import', help='Category Code to Import, check Recursive Import to import the full tree', size=256)
     mercadolibre_recursive_import = fields.Boolean( string='Recursive import', help='Import all the category tree from Category Code')
+
+    mercadolibre_sending_message_to_customer = fields.Boolean(string='Activate sending message to customer')
 
     mercadolibre_cron_refresh = fields.Boolean(string='Keep alive',help='Cron Automatic Token Refresh for keeping ML connection alive.')
     mercadolibre_cron_mail = fields.Many2one(
@@ -994,6 +997,136 @@ class res_company(models.Model):
         self.product_meli_update_local_products()
         return {}
 
+    def get_fulfillment_items(self):
+        context = self.env.context
+        _logger.info('company.product_meli_get_products() context: '+str(context))
+        company = self.env.user.company_id
+        meli_id = context and context.get("meli_id")
+        meli = self.env['meli.util'].get_new_instance(company)
+        batch_processing_unit_offset = context and context.get("batch_processing_unit_offset")
+        batch_processing_unit = context and context.get("batch_processing_unit")
+        search_limit = batch_processing_unit or 100
+        search_offset = batch_processing_unit_offset or 0
+        if meli.need_login():
+            return meli.redirect_login()
+        url_get = "/users/"+str(company.mercadolibre_seller_id)+"/items/search?logistic_type=fulfillment"
+        response = meli.get(url_get, {'access_token':meli.access_token,
+                                    'offset': ((search_offset+search_limit)<1000 and search_offset) or 0,
+                                    'limit': search_limit
+                                    } )
+        rjson = response.json()
+        _logger.info( rjson )
+        if 'error' in rjson:
+            return []
+        if 'results' in rjson:
+            results = rjson['results']
+
+        if 'paging' in rjson:
+            totalmax = rjson['paging']['total']
+            offset = ('offset' in rjson['paging'] and rjson['paging']['offset']) or 0
+
+        scroll_id = False
+        if (totalmax>1000 or totalmax>10):
+            #USE SCAN METHOD....
+            _logger.info( "use scan method: "+str(totalmax)+" offset: "+str(offset)+" limit: "+str(search_limit) )
+            response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search?logistic_type=fulfillment",
+                                {'access_token':meli.access_token,
+                                'search_type': 'scan',
+                                'limit': str(search_limit) })
+            rjson = response.json()
+            _logger.info( rjson )
+            condition_last_off = True
+            ioff = 0
+            cof = 0
+            scroll_id = ""
+            results = []
+            if ('scroll_id' in rjson):
+                scroll_id = rjson['scroll_id']
+                if (offset>0):
+                    for rs in rjson['results']:
+                        if (cof>=offset):
+                            results.append(rs)
+                        cof+= 1
+                else:
+                    results = rjson['results']
+                condition_last_off = False
+            while (condition_last_off!=True):
+                _logger.info( "Prefetch products ("+str(ioff)+"/"+str(rjson['paging']['total'])+")" )
+                _logger.info("len(results)"+str(len(results)))
+                response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search?logistic_type=fulfillment",
+                    {
+                    'access_token':meli.access_token,
+                    'search_type': 'scan',
+                    'scroll_id': scroll_id,
+                    'limit': str(search_limit),
+                    })
+                rjson2 = response.json()
+                
+                if 'error' in rjson2:
+                    _logger.error(rjson2)
+                    if rjson2['message']=='invalid_token' or rjson2['message']=='expired_token':
+                        ACCESS_TOKEN = ''
+                        REFRESH_TOKEN = ''
+                        company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
+                        condition = True
+                        url_login_meli = meli.auth_url()
+                        return {
+                        "type": "ir.actions.act_url",
+                        "url": url_login_meli,
+                        "target": "new",}
+                    condition_last_off = True
+                else:
+                    if (offset>0):
+                        for rs in rjson2['results']:
+                            if (cof>=offset):
+                                results.append(rs)
+                            cof+= 1
+                    else:
+                        cof+= len(rjson2['results'])
+                        results += rjson2['results']  
+                    
+                    if (len(results)>=rjson2['paging']['total']):
+                        condition_last_off = True
+                    elif ('scroll_id' in rjson2):
+                        scroll_id = rjson2['scroll_id']
+                        condition_last_off = False
+                    else:
+                        condition_last_off = True
+
+                    # if (batch_processing_unit and results and len(results)>=batch_processing_unit):
+                    #     break
+
+        if (totalmax<=1000 and len(results)<totalmax and ('paging' in rjson and totalmax>rjson['paging']['limit']) ):
+            pages = rjson['paging']['total']/rjson['paging']['limit']
+            ioff = offset+rjson['paging']['limit']
+
+            condition_last_off = False
+
+            while (condition_last_off!=True):
+                _logger.info( "Prefetch products ("+str(ioff)+"/"+str(rjson['paging']['total'])+")" )
+                response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search?logistic_type=fulfillment", {
+                    'access_token':meli.access_token,
+                    'offset': ioff,
+                    'limit': str(search_limit)})
+                rjson2 = response.json()
+                
+                if 'error' in rjson2:
+                    if rjson2['message']=='invalid_token' or rjson2['message']=='expired_token':
+                        ACCESS_TOKEN = ''
+                        REFRESH_TOKEN = ''
+                        company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
+                        return {
+                        "type": "ir.actions.act_url",
+                        "url": url_login_meli,
+                        "target": "new",}
+                    condition_last_off = True
+                else:
+                    results += rjson2['results']
+                    ioff+= rjson['paging']['limit']
+                    condition_last_off = ( ioff>=totalmax)
+
+        return results  
+
 
     def meli_post_new_remote_products(self):
         #_logger.info('company.meli_post_new_remote_products() ')
@@ -1004,6 +1137,141 @@ class res_company(models.Model):
         #_logger.info('company.meli_update_remote_products() ')
         self.product_meli_update_remote_products(post_new=post_new)
         return {}
+
+    @api.model
+    def get_all_items_from_existing_sku(self, products):
+        company = self.env.company
+        company = self.env.company
+        meli = self.env['meli.util'].get_new_instance(company)
+        params = {
+            'access_token': meli.access_token
+        }
+        meli_ids = []
+        for product in products:
+            _logger.info(f"Buscando producto con sku [{product.default_code}]")
+            params = {'access_token': meli.access_token}
+            response = meli.get(
+                f"/users/{str(meli.seller_id)}/items/search?seller_sku={str(product.default_code)}", 
+                params=params
+            )
+            data = response.json()
+            results = data.get('results', [])
+            if len(results):
+                result = results[0]
+                ids_string = ','.join(results)
+                product.meli_id = result
+                meli_ids.extend(results)
+                params['access_token'] = meli.access_token
+                response = meli.get(
+                    f"/items?ids={ids_string}", 
+                    params=params
+                )
+                res = response.rjson
+                if len(res):
+                    res = res[0]
+                    if res.get('body', False):
+                        try:
+                            product.product_meli_get_product(meli_rjson=res['body'])
+                        except:
+                            continue
+                    else:
+                        _logger.warning("Sin información disponible.")
+            time.sleep(RATE_LIMIT)
+                
+    @api.model
+    def get_all_items_from_ML(self):
+        ICP = self.env['ir.config_parameter'].sudo()
+        def chunks(lst, n):
+            for i in range(0, len(lst), n):
+                yield lst[i:i + n]
+        company = self.env.company
+        limit_parameter = int(ICP.get_param('meli_local_products_search_range'))
+        offset_parameter = int(ICP.get_param('meli_local_products_search_last_offset'))
+        total_items_parameter = int(ICP.get_param('meli_local_products_search_total'))
+        meli = self.env['meli.util'].get_new_instance(company)
+        params = {
+            'access_token': meli.access_token, 
+            'include_attributes': 'all',
+            #'offset': 0,
+            'offset': offset_parameter,
+            'limit': 50,
+        }
+        all_items = []
+        meli_ids = []
+        total = total_items_parameter
+        while True:
+            params['access_token'] = meli.access_token
+            response = meli.get(
+                f"/users/{str(meli.seller_id)}/items/search?search_type=scan", 
+                params=params
+            )
+            data = response.json()
+            try:
+                total = data['paging']['total']
+                difference = total - offset_parameter
+                meli_ids.extend(data['results'])
+                if total < limit_parameter:
+                    limit_parameter = total
+                if limit_parameter <= len(meli_ids):
+                    break
+                if difference < limit_parameter and difference <= len(meli_ids):
+                    break
+                params['offset'] += params['limit']
+            except:
+                _logger.error(f"Error al obtener productos: {data}")
+                break
+        
+        new_offset = offset_parameter + len(meli_ids)
+        if new_offset >= total:
+            new_offset = 0
+        new_total = total
+        ICP.set_param('meli_local_products_search_last_offset', new_offset)
+        ICP.set_param('meli_local_products_search_total', new_total)
+
+        # Aquí aseguramos que `access_token` sigue presente en el segundo parámetro
+        params = {
+            'access_token': meli.access_token,  # Aseguramos que el token esté aquí también
+            'include_attributes': 'all',
+        }
+    
+        ## Convertir meli_ids en una cadena separada por comas
+        #meli_ids = ','.join(meli_ids)
+        #response = meli.get(
+        #    f"/items?ids={meli_ids}", 
+        #    params=params
+        #)
+        #all_items = response.json
+
+        for meli_id_chunk in chunks(meli_ids, 20):
+            params['access_token'] = meli.access_token
+            # Convertir cada bloque en una cadena separada por comas
+            ids_string = ','.join(meli_id_chunk)
+            try:
+                # Realizar la solicitud para ese bloque de IDs
+                response = meli.get(
+                    f"/items?ids={ids_string}", 
+                    params=params
+                )
+                # Agregar los productos obtenidos a la lista total
+                all_items.extend(response.json())
+            except:
+                _logger.error(f"Error al obtener información de productos: {response.json()}")
+                continue
+            
+        return all_items
+
+    @staticmethod
+    def search_item_by_sku(sku, all_items):
+        def filter_items_by_sku(item):
+            body = item['body']
+            attributes = body.get('attributes', False)
+            if not attributes:
+                return False
+            seller_sku = next((attr['value_name'] for attr in attributes if attr['id'] == 'SELLER_SKU'), '')
+            return seller_sku == sku
+        filtered_item = list(filter(filter_items_by_sku, all_items))
+        _logger.info(f"Producto encontrado: {filtered_item}")
+        return filtered_item
 
     def product_meli_update_local_products( self ):
         #_logger.info('company.product_meli_update_local_products() ')
