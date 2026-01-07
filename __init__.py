@@ -67,7 +67,7 @@ def pre_init_hook(cr, registry=None):
     #env['ir.model'].search([('model', '=', 'warning')]).unlink()
 
 
-def post_init_hook(cr, registry):
+def post_init_hook(cr, registry=None):
     """
     Increase 'Product Price' decimal precision to 6 digits.
     This allows storing prices with higher precision to avoid rounding
