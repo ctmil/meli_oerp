@@ -35,6 +35,7 @@
         'report/report_invoice_shipment_view.xml',
         'views/shipment_view.xml',
         'views/notifications_view.xml',
+        #'views/res_config_settings.xml',
         'wizard/meli_consult_category_wizard.xml'
     ],
     'price': '350.00',
