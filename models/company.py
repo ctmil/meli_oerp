@@ -33,6 +33,7 @@ from . import versions
 from .versions import *
 
 import requests
+import time
 
 class res_company(models.Model):
     _name = "res.company"
@@ -144,7 +145,7 @@ class res_company(models.Model):
             "PAB": { "name": "Panamá", "id": "MPA", "default_currency_id": "PAB" },
             "USD": { "name": "Uruguay", "id": "MLU", "default_currency_id": "UYU" },
         }
-        response = meli and meli.get("/sites")
+        response = meli and meli.get("/sites",{ "access_token": str(meli.access_token) } )
         if (response):
             sites = response.json()
             #_logger.info(sites)
@@ -321,6 +322,8 @@ class res_company(models.Model):
     mercadolibre_state = fields.Boolean( compute=get_meli_state, string='Desconectado', help="Se requiere Iniciar Sesión con MLA", store=False )
     mercadolibre_category_import = fields.Char( string='Category to import', help='Category Code to Import, check Recursive Import to import the full tree', size=256)
     mercadolibre_recursive_import = fields.Boolean( string='Recursive import', help='Import all the category tree from Category Code')
+
+    #mercadolibre_sending_message_to_customer = fields.Boolean(string='Activate sending message to customer')
 
     mercadolibre_cron_refresh = fields.Boolean(string='Keep alive',help='Cron Automatic Token Refresh for keeping ML connection alive.')
     mercadolibre_cron_mail = fields.Many2one(

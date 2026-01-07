@@ -96,11 +96,15 @@ class MeliApi( meli.RestClientApi ):
             #   self.response = self.call_get( resource=path, access_token=atok, **params)
             self.rjson = self.response
         except ApiException as e:
+            _logger.warning(
+                "GET %s falló sin reintentos restantes: status=%s reason=%s body=%s",
+                path, getattr(e, "status", None), getattr(e, "reason", None), getattr(e, "body", None)
+            )
             self.rjson = {
-                "error": "%s" % str("get error"),
-                "status": e.status,
-                "cause": e.reason,
-                "message": e.body
+                "error": "get error",
+                "status": getattr(e, "status", None),
+                "cause": getattr(e, "reason", None),
+                "message": getattr(e, "body", None),
             }
             pass;
         except:
