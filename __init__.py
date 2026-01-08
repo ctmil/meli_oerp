@@ -60,20 +60,28 @@ except Exception as e:
     _logger.warning("meli_oerp: pre_init_check failed: %s", str(e))
 
 
-def pre_init_hook(cr, registry=None):
-
-    pass;
-    #env = api.Environment(cr, SUPERUSER_ID, {})
-    #env['ir.model'].search([('model', '=', 'warning')]).unlink()
+def pre_init_hook(cr):
+    """Pre-init hook compatible with Odoo 14-19"""
+    pass
 
 
-def post_init_hook(cr, registry=None):
+def post_init_hook(env_or_cr, registry=None):
     """
     Increase 'Product Price' decimal precision to 6 digits.
     This allows storing prices with higher precision to avoid rounding
     errors when calculating inverse taxes (e.g., 21% IVA).
+
+    Compatible with:
+    - Odoo 14-16: receives (cr, registry)
+    - Odoo 17-19: receives (env) directly
     """
-    env = api.Environment(cr, SUPERUSER_ID, {})
+    # Check if we received env directly (Odoo 17+) or cr (Odoo 14-16)
+    if hasattr(env_or_cr, 'cr'):
+        # Odoo 17+: first argument is already the Environment
+        env = env_or_cr
+    else:
+        # Odoo 14-16: first argument is cursor, need to create Environment
+        env = api.Environment(env_or_cr, SUPERUSER_ID, {})
 
     # Find and update existing 'Product Price' precision
     precision = env['decimal.precision'].search([('name', '=', 'Product Price')], limit=1)
