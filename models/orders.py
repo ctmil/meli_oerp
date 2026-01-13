@@ -611,7 +611,10 @@ class sale_order(models.Model):
 
         # 2) Fiscal position mapping
         if self.fiscal_position_id:
-            taxes = self.fiscal_position_id.map_tax(taxes, product, self.partner_id)
+            #taxes = self.fiscal_position_id.map_tax(taxes, product, self.partner_id)
+            taxes = map_tax_compat(
+                self.fiscal_position_id, taxes, product, self.partner_id
+            )
 
         if not taxes:
             #_logger.info(
@@ -2545,7 +2548,15 @@ class mercadolibre_orders(models.Model):
 
                 headers = {'Accept': 'application/json', 'User-Agent': 'Odoo', 'Content-type':'application/json'}
                 params = { 'access_token': meli.access_token }
-                mp_response = requests.get( mp_payment_url, params=urlencode(params), headers=headers )
+
+                # Wrap API call in try/except to handle network errors gracefully
+                # Order processing should continue even if MP API is unreachable
+                mp_response = None
+                try:
+                    mp_response = requests.get( mp_payment_url, params=urlencode(params), headers=headers, timeout=10 )
+                except requests.exceptions.RequestException as e:
+                    _logger.warning("MELI: Could not fetch payment details from MercadoPago API (order will continue): %s", str(e))
+
                 if (mp_response):
                     payment_fields["full_payment"] = mp_response.json()
                     payment_fields["shipping_amount"] = payment_fields["full_payment"]["shipping_amount"]
