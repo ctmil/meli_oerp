@@ -75,7 +75,7 @@ class ResPartner(models.Model):
                 'zip': partner.zip,
                 'city': partner.city,
                 'phone': partner.phone,
-                'mobile': partner.mobile,
+                'mobile': getattr(partner, 'mobile', False) or False,
             }
             candidate_str = self._build_normalized_address_string(candidate_vals)
 
@@ -90,7 +90,7 @@ class ResPartner(models.Model):
 
             # Bonus points if phone matches (when provided)
             in_phone = self._normalize_phone(address_vals.get('phone') or address_vals.get('mobile') or '')
-            p_phone = self._normalize_phone(partner.phone or partner.mobile or '')
+            p_phone = self._normalize_phone(partner.phone or getattr(partner, 'mobile', '') or '')
             if in_phone and p_phone and in_phone == p_phone:
                 score += 0.1
 

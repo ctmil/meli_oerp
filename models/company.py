@@ -1388,186 +1388,180 @@ class res_company(models.Model):
 
 
     def meli_update_remote_stock(self, meli=False):
+        """
+        OPTIMIZED: Uses single SQL query with NULLS FIRST ordering instead of two ORM searches.
+        Uses list append + join instead of string concatenation for logs/errors.
+        """
         company = self.env.user.company_id
-        company_domain = ['|',('company_id','=',False),('company_id','=',company.id)]
-        if (company.mercadolibre_cron_post_update_stock):
-            auto_commit = not getattr(threading.currentThread(), 'testing', False)
-            product_ids_null = self.env['product.product'].search([
-                ('meli_pub','=',True),
-                ('meli_id','like','M%'),
-                ('meli_stock_update','=',False)]
-                + company_domain, order='id asc')
-            product_ids_not_null = self.env['product.product'].search([
-                ('meli_pub','=',True),
-                ('meli_id','like','M%'),
-                ('meli_stock_update','!=',False)]
-                + company_domain, order='meli_stock_update asc')
-            product_ids = product_ids_null + product_ids_not_null
-            topcommits = 40
-            #_logger.info("product_ids stock to update:" + str(product_ids))
-            #_logger.info("updating stock #" + str(len(product_ids)) + " on " + str(company.name)+ " cron top:"+str(topcommits))
-            icommit = 0
-            icount = 0
-            maxcommits = len(product_ids)
-            internals = {
-                "application_id": company.mercadolibre_client_id,
-                "user_id": company.mercadolibre_seller_id,
-                "topic": "internal",
-                "resource": "meli_update_remote_stock #"+str(maxcommits),
-                "state": "PROCESSING"
-            }
-            noti = self.env["mercadolibre.notification"].start_internal_notification( internals )
-            logs = ""
-            errors = ""
+        if not company.mercadolibre_cron_post_update_stock:
+            return {}
 
-            try:
-                if auto_commit:
-                    MeliCommit( self )
-                for obj in product_ids:
-                    #_logger.info( "Product check if active: " + str(obj.id)+ ' meli_id:'+str(obj.meli_id)  )
-                    if (obj.meli_id and icount<=topcommits):
-                        icommit+= 1
-                        icount+= 1
-                        try:
-                            #_logger.info( "Update Stock: #" + str(icount) +'/'+str(maxcommits)+ ' meli_id:'+str(obj.meli_id)  )
-                            resjson = obj.product_post_stock(meli=meli)
-                            logs+= str(obj.default_code)+" "+str(obj.meli_id)+": "+str(obj.meli_available_quantity)+"\n"
+        auto_commit = not getattr(threading.currentThread(), 'testing', False)
+        topcommits = 40
 
-                            if "error" in resjson:
+        # OPTIMIZED: Single SQL query with NULLS FIRST ordering instead of two separate ORM searches
+        # This is more efficient and reduces database round trips
+        self.env.cr.execute("""
+            SELECT id FROM product_product
+            WHERE meli_pub IS TRUE
+            AND meli_id LIKE 'M%%'
+            AND (company_id IS NULL OR company_id = %s)
+            ORDER BY meli_stock_update ASC NULLS FIRST
+        """, (company.id,))
+        product_ids = self.env['product.product'].browse([r[0] for r in self.env.cr.fetchall()])
 
-                                obj.meli_stock_error = str(resjson)
-                                errors+= str(obj.default_code)+" "+str(obj.meli_id)+" >> "+str(resjson)+"\n"
+        icommit = 0
+        icount = 0
+        maxcommits = len(product_ids)
+        internals = {
+            "application_id": company.mercadolibre_client_id,
+            "user_id": company.mercadolibre_seller_id,
+            "topic": "internal",
+            "resource": "meli_update_remote_stock #"+str(maxcommits),
+            "state": "PROCESSING"
+        }
+        noti = self.env["mercadolibre.notification"].start_internal_notification( internals )
+        # OPTIMIZED: Use lists instead of string concatenation
+        logs_list = []
+        errors_list = []
 
-                                is_fulfillment = obj.meli_shipping_logistic_type and "fulfillment" in obj.meli_shipping_logistic_type
-                                if is_fulfillment:
-                                    obj.meli_stock_error = "fulfillment"
+        try:
+            if auto_commit:
+                MeliCommit( self )
+            for obj in product_ids:
+                if (obj.meli_id and icount<=topcommits):
+                    icommit+= 1
+                    icount+= 1
+                    try:
+                        resjson = obj.product_post_stock(meli=meli)
+                        logs_list.append(f"{obj.default_code} {obj.meli_id}: {obj.meli_available_quantity}")
 
-                            else:
-                                obj.meli_stock_error = str({})
+                        if "error" in resjson:
+                            obj.meli_stock_error = str(resjson)
+                            errors_list.append(f"{obj.default_code} {obj.meli_id} >> {resjson}")
 
-                            if ( icommit==40 or icount==maxcommits or icount==topcommits ):
-                                noti.processing_errors = errors
-                                noti.processing_logs = logs
-                                noti.resource = "meli_update_remote_stock #"+str(icount) +'/'+str(maxcommits)
-                                #_logger.info("meli_update_remote_stock commiting")
-                                icommit=0
-                                if auto_commit:
-                                    MeliCommit( self )
+                            is_fulfillment = obj.meli_shipping_logistic_type and "fulfillment" in obj.meli_shipping_logistic_type
+                            if is_fulfillment:
+                                obj.meli_stock_error = "fulfillment"
+                        else:
+                            obj.meli_stock_error = str({})
 
-                        except Exception as e:
-                            _logger.info("meli_update_remote_stock > Exception founded!")
-                            _logger.info(e, exc_info=True)
-                            logs+= str(obj.default_code)+" "+str(obj.meli_id)+": "+str(obj.meli_available_quantity)+", "
-                            #errors+= str(obj.default_code)+" "+str(obj.meli_id)+" >> "+str(e.args[0])+str(", ")
-                            errors+= str(obj.default_code)+" "+str(obj.meli_id)+" >> "+str(e)+"\n"
+                        if ( icommit==40 or icount==maxcommits or icount==topcommits ):
+                            noti.processing_errors = "\n".join(errors_list)
+                            noti.processing_logs = "\n".join(logs_list)
+                            noti.resource = "meli_update_remote_stock #"+str(icount) +'/'+str(maxcommits)
+                            icommit=0
                             if auto_commit:
-                                self.env.cr.rollback()
-                            pass;
+                                MeliCommit( self )
 
-                noti.resource = "meli_update_remote_stock #"+str(icount) +'/'+str(maxcommits)
-                noti.stop_internal_notification(errors=errors,logs=logs)
+                    except Exception as e:
+                        _logger.info("meli_update_remote_stock > Exception founded!")
+                        _logger.info(e, exc_info=True)
+                        logs_list.append(f"{obj.default_code} {obj.meli_id}: {obj.meli_available_quantity}")
+                        errors_list.append(f"{obj.default_code} {obj.meli_id} >> {e}")
+                        if auto_commit:
+                            self.env.cr.rollback()
 
-            except Exception as e:
-                _logger.info("meli_update_remote_stock > Exception founded!")
-                _logger.info(e, exc_info=True)
-                if auto_commit:
-                    self.env.cr.rollback()
-                noti.stop_internal_notification( errors=errors , logs=logs )
-                if auto_commit:
-                    MeliCommit( self )
-                pass;
+            noti.resource = "meli_update_remote_stock #"+str(icount) +'/'+str(maxcommits)
+            noti.stop_internal_notification(errors="\n".join(errors_list), logs="\n".join(logs_list))
+
+        except Exception as e:
+            _logger.info("meli_update_remote_stock > Exception founded!")
+            _logger.info(e, exc_info=True)
+            if auto_commit:
+                self.env.cr.rollback()
+            noti.stop_internal_notification(errors="\n".join(errors_list), logs="\n".join(logs_list))
+            if auto_commit:
+                MeliCommit( self )
 
         return {}
 
     def meli_update_remote_stock_rt(self, meli=False):
+        """
+        OPTIMIZED: Uses single SQL query with NULLS FIRST ordering instead of two ORM searches.
+        Uses list append + join instead of string concatenation for logs/errors.
+        Real-time variant for urgent stock updates.
+        """
         company = self.env.user.company_id
-        company_domain = ['|',('company_id','=',False),('company_id','=',company.id)]
-        if (company.mercadolibre_cron_post_update_stock):
-            auto_commit = not getattr(threading.currentThread(), 'testing', False)
-            product_ids_null = self.env['product.product'].search([
-                ('meli_pub','=',True),
-                ('meli_id','like','M%'),
-                ('meli_stock_update','=',False)]
-                + company_domain, order='id asc')
-            product_ids_not_null = self.env['product.product'].search([
-                ('meli_pub','=',True),
-                ('meli_id','like','M%'),
-                ('meli_stock_update','!=',False)]
-                + company_domain, order='meli_stock_update asc')
-            product_ids = product_ids_null + product_ids_not_null
-            topcommits = 40
-            #_logger.info("product_ids stock to update:" + str(product_ids))
-            #_logger.info("updating stock #" + str(len(product_ids)) + " on " + str(company.name)+ " cron top:"+str(topcommits))
-            icommit = 0
-            icount = 0
-            maxcommits = len(product_ids)
-            internals = {
-                "application_id": company.mercadolibre_client_id,
-                "user_id": company.mercadolibre_seller_id,
-                "topic": "internal",
-                "resource": "meli_update_remote_stock #"+str(maxcommits),
-                "state": "PROCESSING"
-            }
-            noti = self.env["mercadolibre.notification"].start_internal_notification( internals )
-            logs = ""
-            errors = ""
+        if not company.mercadolibre_cron_post_update_stock:
+            return {}
 
-            try:
-                if auto_commit:
-                    MeliCommit( self )
-                for obj in product_ids:
-                    #_logger.info( "Product check if active: " + str(obj.id)+ ' meli_id:'+str(obj.meli_id)  )
-                    if (obj.meli_id and icount<=topcommits):
-                        icommit+= 1
-                        icount+= 1
-                        try:
-                            #_logger.info( "Update Stock: #" + str(icount) +'/'+str(maxcommits)+ ' meli_id:'+str(obj.meli_id)  )
-                            resjson = obj.product_post_stock(meli=meli)
-                            logs+= str(obj.default_code)+" "+str(obj.meli_id)+": "+str(obj.meli_available_quantity)+"\n"
+        auto_commit = not getattr(threading.currentThread(), 'testing', False)
+        topcommits = 40
 
-                            if "error" in resjson:
+        # OPTIMIZED: Single SQL query with NULLS FIRST ordering instead of two separate ORM searches
+        self.env.cr.execute("""
+            SELECT id FROM product_product
+            WHERE meli_pub IS TRUE
+            AND meli_id LIKE 'M%%'
+            AND (company_id IS NULL OR company_id = %s)
+            ORDER BY meli_stock_update ASC NULLS FIRST
+        """, (company.id,))
+        product_ids = self.env['product.product'].browse([r[0] for r in self.env.cr.fetchall()])
 
-                                obj.meli_stock_error = str(resjson)
-                                errors+= str(obj.default_code)+" "+str(obj.meli_id)+" >> "+str(resjson)+"\n"
+        icommit = 0
+        icount = 0
+        maxcommits = len(product_ids)
+        internals = {
+            "application_id": company.mercadolibre_client_id,
+            "user_id": company.mercadolibre_seller_id,
+            "topic": "internal",
+            "resource": "meli_update_remote_stock_rt #"+str(maxcommits),
+            "state": "PROCESSING"
+        }
+        noti = self.env["mercadolibre.notification"].start_internal_notification( internals )
+        # OPTIMIZED: Use lists instead of string concatenation
+        logs_list = []
+        errors_list = []
 
-                                is_fulfillment = obj.meli_shipping_logistic_type and "fulfillment" in obj.meli_shipping_logistic_type
-                                if is_fulfillment:
-                                    obj.meli_stock_error = "fulfillment"
+        try:
+            if auto_commit:
+                MeliCommit( self )
+            for obj in product_ids:
+                if (obj.meli_id and icount<=topcommits):
+                    icommit+= 1
+                    icount+= 1
+                    try:
+                        resjson = obj.product_post_stock(meli=meli)
+                        logs_list.append(f"{obj.default_code} {obj.meli_id}: {obj.meli_available_quantity}")
 
-                            else:
-                                obj.meli_stock_error = str({})
+                        if "error" in resjson:
+                            obj.meli_stock_error = str(resjson)
+                            errors_list.append(f"{obj.default_code} {obj.meli_id} >> {resjson}")
 
-                            if ( icommit==40 or icount==maxcommits or icount==topcommits ):
-                                noti.processing_errors = errors
-                                noti.processing_logs = logs
-                                noti.resource = "meli_update_remote_stock #"+str(icount) +'/'+str(maxcommits)
-                                #_logger.info("meli_update_remote_stock commiting")
-                                icommit=0
-                                if auto_commit:
-                                    MeliCommit( self )
+                            is_fulfillment = obj.meli_shipping_logistic_type and "fulfillment" in obj.meli_shipping_logistic_type
+                            if is_fulfillment:
+                                obj.meli_stock_error = "fulfillment"
+                        else:
+                            obj.meli_stock_error = str({})
 
-                        except Exception as e:
-                            _logger.info("meli_update_remote_stock > Exception founded!")
-                            _logger.info(e, exc_info=True)
-                            logs+= str(obj.default_code)+" "+str(obj.meli_id)+": "+str(obj.meli_available_quantity)+", "
-                            #errors+= str(obj.default_code)+" "+str(obj.meli_id)+" >> "+str(e.args[0])+str(", ")
-                            errors+= str(obj.default_code)+" "+str(obj.meli_id)+" >> "+str(e)+"\n"
+                        if ( icommit==40 or icount==maxcommits or icount==topcommits ):
+                            noti.processing_errors = "\n".join(errors_list)
+                            noti.processing_logs = "\n".join(logs_list)
+                            noti.resource = "meli_update_remote_stock_rt #"+str(icount) +'/'+str(maxcommits)
+                            icommit=0
                             if auto_commit:
-                                self.env.cr.rollback()
-                            pass;
+                                MeliCommit( self )
 
-                noti.resource = "meli_update_remote_stock_rt #"+str(icount) +'/'+str(maxcommits)
-                noti.stop_internal_notification(errors=errors,logs=logs)
+                    except Exception as e:
+                        _logger.info("meli_update_remote_stock_rt > Exception founded!")
+                        _logger.info(e, exc_info=True)
+                        logs_list.append(f"{obj.default_code} {obj.meli_id}: {obj.meli_available_quantity}")
+                        errors_list.append(f"{obj.default_code} {obj.meli_id} >> {e}")
+                        if auto_commit:
+                            self.env.cr.rollback()
 
-            except Exception as e:
-                _logger.info("meli_update_remote_stock_rt > Exception founded!")
-                _logger.info(e, exc_info=True)
-                if auto_commit:
-                    self.env.cr.rollback()
-                noti.stop_internal_notification( errors=errors , logs=logs )
-                if auto_commit:
-                    MeliCommit( self )
-                pass;
+            noti.resource = "meli_update_remote_stock_rt #"+str(icount) +'/'+str(maxcommits)
+            noti.stop_internal_notification(errors="\n".join(errors_list), logs="\n".join(logs_list))
+
+        except Exception as e:
+            _logger.info("meli_update_remote_stock_rt > Exception founded!")
+            _logger.info(e, exc_info=True)
+            if auto_commit:
+                self.env.cr.rollback()
+            noti.stop_internal_notification(errors="\n".join(errors_list), logs="\n".join(logs_list))
+            if auto_commit:
+                MeliCommit( self )
 
         return {}
 
