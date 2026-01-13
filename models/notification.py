@@ -171,12 +171,14 @@ class MercadolibreNotification(models.Model):
                             if (noti):
                                 noti._process_notification_order()
 
-                    if (1==2 and n["topic"]=="items"):
+                    if (n["topic"]=="items"):
                         nn = self.search([('notification_id','=',n["_id"])])
                         if (len(nn)==0):
                             vals = self._prepare_values(values=n)
                             noti = self.create(vals)
                             _logger.info("Created new ITEM notification.")
+                            if (noti):
+                                noti._process_notification_item()
 
                     if (n["topic"] in ["payments"]):
                         nn = self.search([('notification_id','=',n["_id"])])
@@ -286,6 +288,78 @@ class MercadolibreNotification(models.Model):
             finally:
                 noti.processing_ended = ml_datetime(str(datetime.now()))
 
+    def _process_notification_item(self):
+        """Process item notification to update publication status."""
+        #_logger.info("_process_notification_item")
+
+        company = self.env.user.company_id
+        meli_util_model = self.env['meli.util']
+        meli = meli_util_model.get_new_instance(company)
+
+        for noti in self:
+
+            noti.state = 'PROCESSING'
+            noti.processing_started = ml_datetime(str(datetime.now()))
+
+            try:
+                # Resource format: /items/MLA123456789
+                resource = str(noti.resource)
+                if not resource.startswith('/items/'):
+                    noti.state = 'FAILED'
+                    noti.processing_errors = f"Invalid item resource format: {resource}"
+                    continue
+
+                meli_id = resource.replace('/items/', '')
+
+                # Fetch item data from ML API
+                response = meli.get(resource, {'access_token': meli.access_token})
+                item_json = response.json()
+
+                if 'error' in item_json:
+                    noti.state = 'FAILED'
+                    noti.processing_errors = str(item_json.get('message', item_json.get('error', 'Unknown error')))
+                    continue
+
+                # Find binding by meli_id
+                binding = None
+                # Try meli_oerp_multiple binding first
+                if 'mercadolibre.product' in self.env:
+                    binding = self.env['mercadolibre.product'].search([('meli_id', '=', meli_id)], limit=1)
+
+                if binding:
+                    # Use the new method from binding model
+                    result = binding.process_item_notification(item_json=item_json, meli=meli)
+                    if result.get('error'):
+                        noti.state = 'FAILED'
+                        noti.processing_errors = str(result['error'])
+                    else:
+                        noti.state = 'SUCCESS'
+                        noti.processing_logs = f"Status updated: {result.get('status', 'N/A')} ({result.get('sub_status', '')})"
+                else:
+                    # Try meli_oerp posting model
+                    if 'mercadolibre.posting' in self.env:
+                        posting = self.env['mercadolibre.posting'].search([('meli_id', '=', meli_id)], limit=1)
+                        if posting:
+                            # Update status on legacy posting model
+                            new_status = item_json.get('status', '')
+                            if new_status and hasattr(posting, 'meli_status'):
+                                posting.meli_status = new_status
+                            noti.state = 'SUCCESS'
+                            noti.processing_logs = f"Posting status: {new_status}"
+                        else:
+                            noti.state = 'FAILED'
+                            noti.processing_errors = f"No binding found for item: {meli_id}"
+                    else:
+                        noti.state = 'FAILED'
+                        noti.processing_errors = f"No binding found for item: {meli_id}"
+
+            except Exception as E:
+                noti.state = 'FAILED'
+                noti.processing_errors = str(E)
+                _logger.error("_process_notification_item:" + str(E))
+            finally:
+                noti.processing_ended = ml_datetime(str(datetime.now()))
+
     def process_notification(self):
         #_logger.info("_process_notification")
 
@@ -304,6 +378,9 @@ class MercadolibreNotification(models.Model):
 
                 if (noti.topic in ["order","created_orders","orders_v2"]):
                     noti._process_notification_order()
+
+                if (noti.topic in ["items"]):
+                    noti._process_notification_item()
 
     def process_notifications(self, limit=None):
         #process all

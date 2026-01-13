@@ -997,6 +997,136 @@ class res_company(models.Model):
         self.product_meli_update_local_products()
         return {}
 
+    def get_fulfillment_items(self):
+        context = self.env.context
+        _logger.info('company.product_meli_get_products() context: '+str(context))
+        company = self.env.user.company_id
+        meli_id = context and context.get("meli_id")
+        meli = self.env['meli.util'].get_new_instance(company)
+        batch_processing_unit_offset = context and context.get("batch_processing_unit_offset")
+        batch_processing_unit = context and context.get("batch_processing_unit")
+        search_limit = batch_processing_unit or 100
+        search_offset = batch_processing_unit_offset or 0
+        if meli.need_login():
+            return meli.redirect_login()
+        url_get = "/users/"+str(company.mercadolibre_seller_id)+"/items/search?logistic_type=fulfillment"
+        response = meli.get(url_get, {'access_token':meli.access_token,
+                                    'offset': ((search_offset+search_limit)<1000 and search_offset) or 0,
+                                    'limit': search_limit
+                                    } )
+        rjson = response.json()
+        _logger.info( rjson )
+        if 'error' in rjson:
+            return []
+        if 'results' in rjson:
+            results = rjson['results']
+
+        if 'paging' in rjson:
+            totalmax = rjson['paging']['total']
+            offset = ('offset' in rjson['paging'] and rjson['paging']['offset']) or 0
+
+        scroll_id = False
+        if (totalmax>1000 or totalmax>10):
+            #USE SCAN METHOD....
+            _logger.info( "use scan method: "+str(totalmax)+" offset: "+str(offset)+" limit: "+str(search_limit) )
+            response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search?logistic_type=fulfillment",
+                                {'access_token':meli.access_token,
+                                'search_type': 'scan',
+                                'limit': str(search_limit) })
+            rjson = response.json()
+            _logger.info( rjson )
+            condition_last_off = True
+            ioff = 0
+            cof = 0
+            scroll_id = ""
+            results = []
+            if ('scroll_id' in rjson):
+                scroll_id = rjson['scroll_id']
+                if (offset>0):
+                    for rs in rjson['results']:
+                        if (cof>=offset):
+                            results.append(rs)
+                        cof+= 1
+                else:
+                    results = rjson['results']
+                condition_last_off = False
+            while (condition_last_off!=True):
+                _logger.info( "Prefetch products ("+str(ioff)+"/"+str(rjson['paging']['total'])+")" )
+                _logger.info("len(results)"+str(len(results)))
+                response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search?logistic_type=fulfillment",
+                    {
+                    'access_token':meli.access_token,
+                    'search_type': 'scan',
+                    'scroll_id': scroll_id,
+                    'limit': str(search_limit),
+                    })
+                rjson2 = response.json()
+                
+                if 'error' in rjson2:
+                    _logger.error(rjson2)
+                    if rjson2['message']=='invalid_token' or rjson2['message']=='expired_token':
+                        ACCESS_TOKEN = ''
+                        REFRESH_TOKEN = ''
+                        company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
+                        condition = True
+                        url_login_meli = meli.auth_url()
+                        return {
+                        "type": "ir.actions.act_url",
+                        "url": url_login_meli,
+                        "target": "new",}
+                    condition_last_off = True
+                else:
+                    if (offset>0):
+                        for rs in rjson2['results']:
+                            if (cof>=offset):
+                                results.append(rs)
+                            cof+= 1
+                    else:
+                        cof+= len(rjson2['results'])
+                        results += rjson2['results']  
+                    
+                    if (len(results)>=rjson2['paging']['total']):
+                        condition_last_off = True
+                    elif ('scroll_id' in rjson2):
+                        scroll_id = rjson2['scroll_id']
+                        condition_last_off = False
+                    else:
+                        condition_last_off = True
+
+                    # if (batch_processing_unit and results and len(results)>=batch_processing_unit):
+                    #     break
+
+        if (totalmax<=1000 and len(results)<totalmax and ('paging' in rjson and totalmax>rjson['paging']['limit']) ):
+            pages = rjson['paging']['total']/rjson['paging']['limit']
+            ioff = offset+rjson['paging']['limit']
+
+            condition_last_off = False
+
+            while (condition_last_off!=True):
+                _logger.info( "Prefetch products ("+str(ioff)+"/"+str(rjson['paging']['total'])+")" )
+                response = meli.get("/users/"+company.mercadolibre_seller_id+"/items/search?logistic_type=fulfillment", {
+                    'access_token':meli.access_token,
+                    'offset': ioff,
+                    'limit': str(search_limit)})
+                rjson2 = response.json()
+                
+                if 'error' in rjson2:
+                    if rjson2['message']=='invalid_token' or rjson2['message']=='expired_token':
+                        ACCESS_TOKEN = ''
+                        REFRESH_TOKEN = ''
+                        company.write({'mercadolibre_access_token': ACCESS_TOKEN, 'mercadolibre_refresh_token': REFRESH_TOKEN, 'mercadolibre_code': '' } )
+                        return {
+                        "type": "ir.actions.act_url",
+                        "url": url_login_meli,
+                        "target": "new",}
+                    condition_last_off = True
+                else:
+                    results += rjson2['results']
+                    ioff+= rjson['paging']['limit']
+                    condition_last_off = ( ioff>=totalmax)
+
+        return results  
+
 
     def meli_post_new_remote_products(self):
         #_logger.info('company.meli_post_new_remote_products() ')
@@ -1007,6 +1137,141 @@ class res_company(models.Model):
         #_logger.info('company.meli_update_remote_products() ')
         self.product_meli_update_remote_products(post_new=post_new)
         return {}
+
+    @api.model
+    def get_all_items_from_existing_sku(self, products):
+        company = self.env.company
+        company = self.env.company
+        meli = self.env['meli.util'].get_new_instance(company)
+        params = {
+            'access_token': meli.access_token
+        }
+        meli_ids = []
+        for product in products:
+            _logger.info(f"Buscando producto con sku [{product.default_code}]")
+            params = {'access_token': meli.access_token}
+            response = meli.get(
+                f"/users/{str(meli.seller_id)}/items/search?seller_sku={str(product.default_code)}", 
+                params=params
+            )
+            data = response.json()
+            results = data.get('results', [])
+            if len(results):
+                result = results[0]
+                ids_string = ','.join(results)
+                product.meli_id = result
+                meli_ids.extend(results)
+                params['access_token'] = meli.access_token
+                response = meli.get(
+                    f"/items?ids={ids_string}", 
+                    params=params
+                )
+                res = response.rjson
+                if len(res):
+                    res = res[0]
+                    if res.get('body', False):
+                        try:
+                            product.product_meli_get_product(meli_rjson=res['body'])
+                        except:
+                            continue
+                    else:
+                        _logger.warning("Sin información disponible.")
+            time.sleep(RATE_LIMIT)
+                
+    @api.model
+    def get_all_items_from_ML(self):
+        ICP = self.env['ir.config_parameter'].sudo()
+        def chunks(lst, n):
+            for i in range(0, len(lst), n):
+                yield lst[i:i + n]
+        company = self.env.company
+        limit_parameter = int(ICP.get_param('meli_local_products_search_range'))
+        offset_parameter = int(ICP.get_param('meli_local_products_search_last_offset'))
+        total_items_parameter = int(ICP.get_param('meli_local_products_search_total'))
+        meli = self.env['meli.util'].get_new_instance(company)
+        params = {
+            'access_token': meli.access_token, 
+            'include_attributes': 'all',
+            #'offset': 0,
+            'offset': offset_parameter,
+            'limit': 50,
+        }
+        all_items = []
+        meli_ids = []
+        total = total_items_parameter
+        while True:
+            params['access_token'] = meli.access_token
+            response = meli.get(
+                f"/users/{str(meli.seller_id)}/items/search?search_type=scan", 
+                params=params
+            )
+            data = response.json()
+            try:
+                total = data['paging']['total']
+                difference = total - offset_parameter
+                meli_ids.extend(data['results'])
+                if total < limit_parameter:
+                    limit_parameter = total
+                if limit_parameter <= len(meli_ids):
+                    break
+                if difference < limit_parameter and difference <= len(meli_ids):
+                    break
+                params['offset'] += params['limit']
+            except:
+                _logger.error(f"Error al obtener productos: {data}")
+                break
+        
+        new_offset = offset_parameter + len(meli_ids)
+        if new_offset >= total:
+            new_offset = 0
+        new_total = total
+        ICP.set_param('meli_local_products_search_last_offset', new_offset)
+        ICP.set_param('meli_local_products_search_total', new_total)
+
+        # Aquí aseguramos que `access_token` sigue presente en el segundo parámetro
+        params = {
+            'access_token': meli.access_token,  # Aseguramos que el token esté aquí también
+            'include_attributes': 'all',
+        }
+    
+        ## Convertir meli_ids en una cadena separada por comas
+        #meli_ids = ','.join(meli_ids)
+        #response = meli.get(
+        #    f"/items?ids={meli_ids}", 
+        #    params=params
+        #)
+        #all_items = response.json
+
+        for meli_id_chunk in chunks(meli_ids, 20):
+            params['access_token'] = meli.access_token
+            # Convertir cada bloque en una cadena separada por comas
+            ids_string = ','.join(meli_id_chunk)
+            try:
+                # Realizar la solicitud para ese bloque de IDs
+                response = meli.get(
+                    f"/items?ids={ids_string}", 
+                    params=params
+                )
+                # Agregar los productos obtenidos a la lista total
+                all_items.extend(response.json())
+            except:
+                _logger.error(f"Error al obtener información de productos: {response.json()}")
+                continue
+            
+        return all_items
+
+    @staticmethod
+    def search_item_by_sku(sku, all_items):
+        def filter_items_by_sku(item):
+            body = item['body']
+            attributes = body.get('attributes', False)
+            if not attributes:
+                return False
+            seller_sku = next((attr['value_name'] for attr in attributes if attr['id'] == 'SELLER_SKU'), '')
+            return seller_sku == sku
+        filtered_item = list(filter(filter_items_by_sku, all_items))
+        _logger.info(f"Producto encontrado: {filtered_item}")
+        return filtered_item
 
     def product_meli_update_local_products( self ):
         #_logger.info('company.product_meli_update_local_products() ')
@@ -1123,186 +1388,180 @@ class res_company(models.Model):
 
 
     def meli_update_remote_stock(self, meli=False):
+        """
+        OPTIMIZED: Uses single SQL query with NULLS FIRST ordering instead of two ORM searches.
+        Uses list append + join instead of string concatenation for logs/errors.
+        """
         company = self.env.user.company_id
-        company_domain = ['|',('company_id','=',False),('company_id','=',company.id)]
-        if (company.mercadolibre_cron_post_update_stock):
-            auto_commit = not getattr(threading.currentThread(), 'testing', False)
-            product_ids_null = self.env['product.product'].search([
-                ('meli_pub','=',True),
-                ('meli_id','like','M%'),
-                ('meli_stock_update','=',False)]
-                + company_domain, order='id asc')
-            product_ids_not_null = self.env['product.product'].search([
-                ('meli_pub','=',True),
-                ('meli_id','like','M%'),
-                ('meli_stock_update','!=',False)]
-                + company_domain, order='meli_stock_update asc')
-            product_ids = product_ids_null + product_ids_not_null
-            topcommits = 40
-            #_logger.info("product_ids stock to update:" + str(product_ids))
-            #_logger.info("updating stock #" + str(len(product_ids)) + " on " + str(company.name)+ " cron top:"+str(topcommits))
-            icommit = 0
-            icount = 0
-            maxcommits = len(product_ids)
-            internals = {
-                "application_id": company.mercadolibre_client_id,
-                "user_id": company.mercadolibre_seller_id,
-                "topic": "internal",
-                "resource": "meli_update_remote_stock #"+str(maxcommits),
-                "state": "PROCESSING"
-            }
-            noti = self.env["mercadolibre.notification"].start_internal_notification( internals )
-            logs = ""
-            errors = ""
+        if not company.mercadolibre_cron_post_update_stock:
+            return {}
 
-            try:
-                if auto_commit:
-                    MeliCommit( self )
-                for obj in product_ids:
-                    #_logger.info( "Product check if active: " + str(obj.id)+ ' meli_id:'+str(obj.meli_id)  )
-                    if (obj.meli_id and icount<=topcommits):
-                        icommit+= 1
-                        icount+= 1
-                        try:
-                            #_logger.info( "Update Stock: #" + str(icount) +'/'+str(maxcommits)+ ' meli_id:'+str(obj.meli_id)  )
-                            resjson = obj.product_post_stock(meli=meli)
-                            logs+= str(obj.default_code)+" "+str(obj.meli_id)+": "+str(obj.meli_available_quantity)+"\n"
+        auto_commit = not getattr(threading.currentThread(), 'testing', False)
+        topcommits = 40
 
-                            if "error" in resjson:
+        # OPTIMIZED: Single SQL query with NULLS FIRST ordering instead of two separate ORM searches
+        # This is more efficient and reduces database round trips
+        self.env.cr.execute("""
+            SELECT id FROM product_product
+            WHERE meli_pub IS TRUE
+            AND meli_id LIKE 'M%%'
+            AND (company_id IS NULL OR company_id = %s)
+            ORDER BY meli_stock_update ASC NULLS FIRST
+        """, (company.id,))
+        product_ids = self.env['product.product'].browse([r[0] for r in self.env.cr.fetchall()])
 
-                                obj.meli_stock_error = str(resjson)
-                                errors+= str(obj.default_code)+" "+str(obj.meli_id)+" >> "+str(resjson)+"\n"
+        icommit = 0
+        icount = 0
+        maxcommits = len(product_ids)
+        internals = {
+            "application_id": company.mercadolibre_client_id,
+            "user_id": company.mercadolibre_seller_id,
+            "topic": "internal",
+            "resource": "meli_update_remote_stock #"+str(maxcommits),
+            "state": "PROCESSING"
+        }
+        noti = self.env["mercadolibre.notification"].start_internal_notification( internals )
+        # OPTIMIZED: Use lists instead of string concatenation
+        logs_list = []
+        errors_list = []
 
-                                is_fulfillment = obj.meli_shipping_logistic_type and "fulfillment" in obj.meli_shipping_logistic_type
-                                if is_fulfillment:
-                                    obj.meli_stock_error = "fulfillment"
+        try:
+            if auto_commit:
+                MeliCommit( self )
+            for obj in product_ids:
+                if (obj.meli_id and icount<=topcommits):
+                    icommit+= 1
+                    icount+= 1
+                    try:
+                        resjson = obj.product_post_stock(meli=meli)
+                        logs_list.append(f"{obj.default_code} {obj.meli_id}: {obj.meli_available_quantity}")
 
-                            else:
-                                obj.meli_stock_error = str({})
+                        if "error" in resjson:
+                            obj.meli_stock_error = str(resjson)
+                            errors_list.append(f"{obj.default_code} {obj.meli_id} >> {resjson}")
 
-                            if ( icommit==40 or icount==maxcommits or icount==topcommits ):
-                                noti.processing_errors = errors
-                                noti.processing_logs = logs
-                                noti.resource = "meli_update_remote_stock #"+str(icount) +'/'+str(maxcommits)
-                                #_logger.info("meli_update_remote_stock commiting")
-                                icommit=0
-                                if auto_commit:
-                                    MeliCommit( self )
+                            is_fulfillment = obj.meli_shipping_logistic_type and "fulfillment" in obj.meli_shipping_logistic_type
+                            if is_fulfillment:
+                                obj.meli_stock_error = "fulfillment"
+                        else:
+                            obj.meli_stock_error = str({})
 
-                        except Exception as e:
-                            _logger.info("meli_update_remote_stock > Exception founded!")
-                            _logger.info(e, exc_info=True)
-                            logs+= str(obj.default_code)+" "+str(obj.meli_id)+": "+str(obj.meli_available_quantity)+", "
-                            #errors+= str(obj.default_code)+" "+str(obj.meli_id)+" >> "+str(e.args[0])+str(", ")
-                            errors+= str(obj.default_code)+" "+str(obj.meli_id)+" >> "+str(e)+"\n"
+                        if ( icommit==40 or icount==maxcommits or icount==topcommits ):
+                            noti.processing_errors = "\n".join(errors_list)
+                            noti.processing_logs = "\n".join(logs_list)
+                            noti.resource = "meli_update_remote_stock #"+str(icount) +'/'+str(maxcommits)
+                            icommit=0
                             if auto_commit:
-                                self.env.cr.rollback()
-                            pass;
+                                MeliCommit( self )
 
-                noti.resource = "meli_update_remote_stock #"+str(icount) +'/'+str(maxcommits)
-                noti.stop_internal_notification(errors=errors,logs=logs)
+                    except Exception as e:
+                        _logger.info("meli_update_remote_stock > Exception founded!")
+                        _logger.info(e, exc_info=True)
+                        logs_list.append(f"{obj.default_code} {obj.meli_id}: {obj.meli_available_quantity}")
+                        errors_list.append(f"{obj.default_code} {obj.meli_id} >> {e}")
+                        if auto_commit:
+                            self.env.cr.rollback()
 
-            except Exception as e:
-                _logger.info("meli_update_remote_stock > Exception founded!")
-                _logger.info(e, exc_info=True)
-                if auto_commit:
-                    self.env.cr.rollback()
-                noti.stop_internal_notification( errors=errors , logs=logs )
-                if auto_commit:
-                    MeliCommit( self )
-                pass;
+            noti.resource = "meli_update_remote_stock #"+str(icount) +'/'+str(maxcommits)
+            noti.stop_internal_notification(errors="\n".join(errors_list), logs="\n".join(logs_list))
+
+        except Exception as e:
+            _logger.info("meli_update_remote_stock > Exception founded!")
+            _logger.info(e, exc_info=True)
+            if auto_commit:
+                self.env.cr.rollback()
+            noti.stop_internal_notification(errors="\n".join(errors_list), logs="\n".join(logs_list))
+            if auto_commit:
+                MeliCommit( self )
 
         return {}
 
     def meli_update_remote_stock_rt(self, meli=False):
+        """
+        OPTIMIZED: Uses single SQL query with NULLS FIRST ordering instead of two ORM searches.
+        Uses list append + join instead of string concatenation for logs/errors.
+        Real-time variant for urgent stock updates.
+        """
         company = self.env.user.company_id
-        company_domain = ['|',('company_id','=',False),('company_id','=',company.id)]
-        if (company.mercadolibre_cron_post_update_stock):
-            auto_commit = not getattr(threading.currentThread(), 'testing', False)
-            product_ids_null = self.env['product.product'].search([
-                ('meli_pub','=',True),
-                ('meli_id','like','M%'),
-                ('meli_stock_update','=',False)]
-                + company_domain, order='id asc')
-            product_ids_not_null = self.env['product.product'].search([
-                ('meli_pub','=',True),
-                ('meli_id','like','M%'),
-                ('meli_stock_update','!=',False)]
-                + company_domain, order='meli_stock_update asc')
-            product_ids = product_ids_null + product_ids_not_null
-            topcommits = 40
-            #_logger.info("product_ids stock to update:" + str(product_ids))
-            #_logger.info("updating stock #" + str(len(product_ids)) + " on " + str(company.name)+ " cron top:"+str(topcommits))
-            icommit = 0
-            icount = 0
-            maxcommits = len(product_ids)
-            internals = {
-                "application_id": company.mercadolibre_client_id,
-                "user_id": company.mercadolibre_seller_id,
-                "topic": "internal",
-                "resource": "meli_update_remote_stock #"+str(maxcommits),
-                "state": "PROCESSING"
-            }
-            noti = self.env["mercadolibre.notification"].start_internal_notification( internals )
-            logs = ""
-            errors = ""
+        if not company.mercadolibre_cron_post_update_stock:
+            return {}
 
-            try:
-                if auto_commit:
-                    MeliCommit( self )
-                for obj in product_ids:
-                    #_logger.info( "Product check if active: " + str(obj.id)+ ' meli_id:'+str(obj.meli_id)  )
-                    if (obj.meli_id and icount<=topcommits):
-                        icommit+= 1
-                        icount+= 1
-                        try:
-                            #_logger.info( "Update Stock: #" + str(icount) +'/'+str(maxcommits)+ ' meli_id:'+str(obj.meli_id)  )
-                            resjson = obj.product_post_stock(meli=meli)
-                            logs+= str(obj.default_code)+" "+str(obj.meli_id)+": "+str(obj.meli_available_quantity)+"\n"
+        auto_commit = not getattr(threading.currentThread(), 'testing', False)
+        topcommits = 40
 
-                            if "error" in resjson:
+        # OPTIMIZED: Single SQL query with NULLS FIRST ordering instead of two separate ORM searches
+        self.env.cr.execute("""
+            SELECT id FROM product_product
+            WHERE meli_pub IS TRUE
+            AND meli_id LIKE 'M%%'
+            AND (company_id IS NULL OR company_id = %s)
+            ORDER BY meli_stock_update ASC NULLS FIRST
+        """, (company.id,))
+        product_ids = self.env['product.product'].browse([r[0] for r in self.env.cr.fetchall()])
 
-                                obj.meli_stock_error = str(resjson)
-                                errors+= str(obj.default_code)+" "+str(obj.meli_id)+" >> "+str(resjson)+"\n"
+        icommit = 0
+        icount = 0
+        maxcommits = len(product_ids)
+        internals = {
+            "application_id": company.mercadolibre_client_id,
+            "user_id": company.mercadolibre_seller_id,
+            "topic": "internal",
+            "resource": "meli_update_remote_stock_rt #"+str(maxcommits),
+            "state": "PROCESSING"
+        }
+        noti = self.env["mercadolibre.notification"].start_internal_notification( internals )
+        # OPTIMIZED: Use lists instead of string concatenation
+        logs_list = []
+        errors_list = []
 
-                                is_fulfillment = obj.meli_shipping_logistic_type and "fulfillment" in obj.meli_shipping_logistic_type
-                                if is_fulfillment:
-                                    obj.meli_stock_error = "fulfillment"
+        try:
+            if auto_commit:
+                MeliCommit( self )
+            for obj in product_ids:
+                if (obj.meli_id and icount<=topcommits):
+                    icommit+= 1
+                    icount+= 1
+                    try:
+                        resjson = obj.product_post_stock(meli=meli)
+                        logs_list.append(f"{obj.default_code} {obj.meli_id}: {obj.meli_available_quantity}")
 
-                            else:
-                                obj.meli_stock_error = str({})
+                        if "error" in resjson:
+                            obj.meli_stock_error = str(resjson)
+                            errors_list.append(f"{obj.default_code} {obj.meli_id} >> {resjson}")
 
-                            if ( icommit==40 or icount==maxcommits or icount==topcommits ):
-                                noti.processing_errors = errors
-                                noti.processing_logs = logs
-                                noti.resource = "meli_update_remote_stock #"+str(icount) +'/'+str(maxcommits)
-                                #_logger.info("meli_update_remote_stock commiting")
-                                icommit=0
-                                if auto_commit:
-                                    MeliCommit( self )
+                            is_fulfillment = obj.meli_shipping_logistic_type and "fulfillment" in obj.meli_shipping_logistic_type
+                            if is_fulfillment:
+                                obj.meli_stock_error = "fulfillment"
+                        else:
+                            obj.meli_stock_error = str({})
 
-                        except Exception as e:
-                            _logger.info("meli_update_remote_stock > Exception founded!")
-                            _logger.info(e, exc_info=True)
-                            logs+= str(obj.default_code)+" "+str(obj.meli_id)+": "+str(obj.meli_available_quantity)+", "
-                            #errors+= str(obj.default_code)+" "+str(obj.meli_id)+" >> "+str(e.args[0])+str(", ")
-                            errors+= str(obj.default_code)+" "+str(obj.meli_id)+" >> "+str(e)+"\n"
+                        if ( icommit==40 or icount==maxcommits or icount==topcommits ):
+                            noti.processing_errors = "\n".join(errors_list)
+                            noti.processing_logs = "\n".join(logs_list)
+                            noti.resource = "meli_update_remote_stock_rt #"+str(icount) +'/'+str(maxcommits)
+                            icommit=0
                             if auto_commit:
-                                self.env.cr.rollback()
-                            pass;
+                                MeliCommit( self )
 
-                noti.resource = "meli_update_remote_stock_rt #"+str(icount) +'/'+str(maxcommits)
-                noti.stop_internal_notification(errors=errors,logs=logs)
+                    except Exception as e:
+                        _logger.info("meli_update_remote_stock_rt > Exception founded!")
+                        _logger.info(e, exc_info=True)
+                        logs_list.append(f"{obj.default_code} {obj.meli_id}: {obj.meli_available_quantity}")
+                        errors_list.append(f"{obj.default_code} {obj.meli_id} >> {e}")
+                        if auto_commit:
+                            self.env.cr.rollback()
 
-            except Exception as e:
-                _logger.info("meli_update_remote_stock_rt > Exception founded!")
-                _logger.info(e, exc_info=True)
-                if auto_commit:
-                    self.env.cr.rollback()
-                noti.stop_internal_notification( errors=errors , logs=logs )
-                if auto_commit:
-                    MeliCommit( self )
-                pass;
+            noti.resource = "meli_update_remote_stock_rt #"+str(icount) +'/'+str(maxcommits)
+            noti.stop_internal_notification(errors="\n".join(errors_list), logs="\n".join(logs_list))
+
+        except Exception as e:
+            _logger.info("meli_update_remote_stock_rt > Exception founded!")
+            _logger.info(e, exc_info=True)
+            if auto_commit:
+                self.env.cr.rollback()
+            noti.stop_internal_notification(errors="\n".join(errors_list), logs="\n".join(logs_list))
+            if auto_commit:
+                MeliCommit( self )
 
         return {}
 
