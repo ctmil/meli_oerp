@@ -25,7 +25,12 @@ def pre_init_check(cr):
     # Try importlib.metadata first (standard library, Python 3.8+)
     try:
         from importlib.metadata import distributions
-        installed = {dist.metadata['Name'].lower() for dist in distributions()}
+        # Use .get() to avoid DeprecationWarning for implicit None on missing keys
+        installed = {
+            dist.metadata.get('Name', '').lower()
+            for dist in distributions()
+            if dist.metadata.get('Name')
+        }
     except ImportError:
         # Fallback to pkg_resources if available
         try:
