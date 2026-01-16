@@ -209,9 +209,9 @@ class mercadolibre_shipment_print(models.TransientModel):
             shipment = shipment_obj.browse(shipid)
             ship_report = shipment.shipment_print( meli=meli, config=config, include_ready_to_print=include_ready_to_print )
 
-            print_mode = "pdf"
+            print_mode = mercadolibre_shipment_print_guide_mode
             if (config and "mercadolibre_shipment_print_guide" in config._fields):
-                if (config and "mercadolibre_shipment_print_guide_mode" in config._fields):
+                if (config["mercadolibre_shipment_print_guide_mode"]):
                     print_mode = config["mercadolibre_shipment_print_guide_mode"]        
 
             reporte = reporte + sep + str( ship_report['message'] )
