@@ -24,7 +24,7 @@ from meli.rest import ApiException
 from meli.api_client import ApiClient
 
 from datetime import datetime
-
+from .versions import *
 
 class LoggingRetry(Retry):
     def increment(self, *args, **kwargs):
@@ -96,11 +96,15 @@ class MeliApi( meli.RestClientApi ):
             #   self.response = self.call_get( resource=path, access_token=atok, **params)
             self.rjson = self.response
         except ApiException as e:
+            _logger.warning(
+                "GET %s falló sin reintentos restantes: status=%s reason=%s body=%s",
+                path, getattr(e, "status", None), getattr(e, "reason", None), getattr(e, "body", None)
+            )
             self.rjson = {
-                "error": "%s" % str("get error"),
-                "status": e.status,
-                "cause": e.reason,
-                "message": e.body
+                "error": "get error",
+                "status": getattr(e, "status", None),
+                "cause": getattr(e, "reason", None),
+                "message": getattr(e, "body", None),
             }
             pass;
         except:
@@ -369,7 +373,7 @@ class MeliApi( meli.RestClientApi ):
 
         # Execute PUT
         try:
-            _logger.info("put_mini > url:"+str(url)+" final_headers:"+str(final_headers)+" body:"+str(body)+" params:"+str(qparams)+" atok:"+str(atok))
+            #_logger.info("put_mini > url:"+str(url)+" final_headers:"+str(final_headers)+" body:"+str(body)+" params:"+str(qparams)+" atok:"+str(atok))
             r = requests.put(
                 url,
                 headers=final_headers,
@@ -721,7 +725,7 @@ class MeliUtil(models.AbstractModel):
                     # the email template
                     context = {
                         'job_exception': message,
-                        'dbname': self._cr.dbname,
+                        'dbname': MeliCr( self ).dbname,
                     }
 
                     _logger.info(

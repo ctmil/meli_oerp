@@ -265,7 +265,7 @@ class sale_order(models.Model):
             for order in self:
                 if(order.meli_order_id):
                     for line in order.order_line:
-                        if ((line.is_delivery or line.price_unit<=0.0) and line.qty_to_invoice>0):
+                        if ((line.is_delivery and line.price_unit<=0.0) and line.qty_to_invoice>0):
                             #_logger.info(line)
                             line.write({ "qty_to_invoice": 0.0 })
                             #_logger.info(line.qty_to_invoice)
@@ -294,7 +294,7 @@ class sale_order(models.Model):
             for order in self:
                 if(order.meli_order_id):
                     for line in order.order_line:
-                        if ((line.is_delivery or line.price_unit<=0.0) and line.qty_to_invoice>0):
+                        if ((line.is_delivery and line.price_unit<=0.0) and line.qty_to_invoice>0):
                             #_logger.info(line)
                             line.write({ "qty_to_invoice": 0.0 })
                             #_logger.info(line.qty_to_invoice)
@@ -838,14 +838,22 @@ class mercadolibre_orders(models.Model):
         last_name = str( ('last_name' in Buyer and Buyer['last_name']) or '' )
 
         if first_name and last_name:
-            last_name = ' '+last_name
+            first_name = first_name.capitalize()
+            last_name = ' '+last_name.capitalize()
 
         full_name = first_name + last_name
 
         business_name = ('business_name' in Buyer and Buyer['business_name'])
-        full_name = business_name or full_name or ''
+        full_name = full_name or business_name or ''
 
-        return full_name or ('id' in Buyer and Buyer['id'])
+        # Fallback to buyer ID if no name available
+        if not full_name:
+            buyer_id = Buyer.get('id')
+            if buyer_id:
+                full_name = "Cliente MeLi " + str(buyer_id)
+
+        # Ultimate fallback - never return empty name (violates res_partner constraint)
+        return full_name or "Cliente MercadoLibre"
 
     def zip_code( self, Receiver={}, Buyer={}):
         if ( Receiver and 'billing_info' in Receiver and 'ZIP_CODE' in Receiver['billing_info'] ):
@@ -935,7 +943,7 @@ class mercadolibre_orders(models.Model):
         }
         #else:
         #    if ( float(Item['unit_price']) == product_template.lst_price and not self.env.user.has_group('sale.group_show_price_subtotal')):
-        #        upd_line["tax_id"] = None
+        #        upd_line[tax_field] = None
         return upd_line
 
     def pretty_json( self, ids, data, indent=0, context=None ):
@@ -1392,8 +1400,10 @@ class mercadolibre_orders(models.Model):
             Buyer['billing_info'] = self.get_billing_info(order_id=order_json['id'],meli=meli,data=order_json)
             #Buyer['first_name'] = ('first_name' in Buyer and Buyer['first_name']) or ('FIRST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['FIRST_NAME']) or ''
             #Buyer['last_name'] = ('last_name' in Buyer and Buyer['last_name']) or ('LAST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['LAST_NAME']) or ''
-            Buyer['first_name'] = ('FIRST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['FIRST_NAME']) or ('first_name' in Buyer and Buyer['first_name']) or ''
-            Buyer['last_name'] = ('LAST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['LAST_NAME']) or ('last_name' in Buyer and Buyer['last_name']) or ''
+            Buyer['first_name'] = ('first_name' in Buyer and Buyer['first_name']) or ('FIRST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['FIRST_NAME']) or ''
+            Buyer['first_name'] = Buyer['first_name'] and Buyer['first_name'].capitalize()
+            Buyer['last_name'] = ('last_name' in Buyer and Buyer['last_name']) or ('LAST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['LAST_NAME']) or ''
+            Buyer['last_name'] = Buyer['last_name'] and Buyer['last_name'].capitalize()
             Buyer['business_name'] = ('business_name' in Buyer and Buyer['business_name']) or ('BUSINESS_NAME' in Buyer['billing_info'] and Buyer['billing_info']['BUSINESS_NAME']) or ''
             Receiver = False
             if ('shipping' in order_json and order_json['shipping']):
@@ -1469,7 +1479,7 @@ class mercadolibre_orders(models.Model):
             WHERE
             buyer_id = '%s'
             """ % (buyer_fields['buyer_id'])
-            cr = self._cr
+            cr = MeliCr( self )
             respquery = cr.execute(query)
             results = cr.fetchall()
             buyer_ids = results
@@ -1945,7 +1955,7 @@ class mercadolibre_orders(models.Model):
                 else:
                     meli_buyer_fields['fe_regimen_fiscal'] = '49';
 
-            #SI VAT DIFERENTE SE CREA NUEVO INVOICE PARTNER
+            #SI VAT DIFERENTE SE CREA NUEVO INVOICE PARTNER: TODO: cambiar esto por una funcion de condicion para crear un nuevo contacto de facturacion
             if (partner_id and "vat" in meli_buyer_fields and meli_buyer_fields["vat"]!=str(partner_id.vat)):
                 #CREAR INVOICE CONTACT
                 #_logger.info(Partner Invoice is NEW: "+str(partner_invoice_meli_order_id)+" VAT:"+str(meli_buyer_fields["vat"])+ " vs "+str(partner_id.vat))
@@ -1965,6 +1975,11 @@ class mercadolibre_orders(models.Model):
 
                 if partner_invoice_id:
                     partner_update = self.update_partner_billing_info( partner_id=partner_invoice_id, meli_buyer_fields=partner_update, Receiver=Receiver )
+                    
+                    if (Buyer['billing_info'] and buyer_fields and "billing_info_business_name" in buyer_fields and buyer_fields["billing_info_business_name"]):
+                        partner_update['name'] = buyer_fields["billing_info_business_name"]
+                        
+
                     if partner_update:
                         try:
                             #_logger.info("Partner Invoice Updating: "+str(partner_update)+ str(" partner_invoice_id:")+str(partner_invoice_id))
@@ -2019,7 +2034,7 @@ class mercadolibre_orders(models.Model):
                     #_logger.info("Updating partner: "+str(partner_update))
                     try:
                         partner_id.write(partner_update)
-                        self._cr.commit()
+                        MeliCommit( self )
                     except ValidationError as ve:
                         # If RFC still rejected by Odoo's deeper checks, keep raw & retry without VAT
                         bad_vat = partner_update.pop("vat", None)
@@ -2028,7 +2043,8 @@ class mercadolibre_orders(models.Model):
                     except builtins.Exception as e:
                         _logger.info("orders_update_order > Error actualizando Partner:"+str(e))
                         _logger.error(e, exc_info=True)
-                        order.message_post(body=str("Error actualizando Partner: "+str(e)),message_type=order_message_type)
+                        if order:
+                            order.message_post(body=str("Error actualizando Partner: "+str(e)),message_type=order_message_type)
                         pass;
 
                 if (partner_id.email and (partner_id.email==buyer_fields["email"] or "mercadolibre.com" in partner_id.email)):
@@ -2154,16 +2170,17 @@ class mercadolibre_orders(models.Model):
             if (config.mercadolibre_seller_team):
                 meli_order_fields["team_id"] = config.mercadolibre_seller_team.id
 
-            if 'pack_order' in order_json["tags"] and order.shipping_id:
+            if 'pack_order' in order_json["tags"] and order and order.shipping_id:
                 #_logger.info("Pack Order, dont create sale.order, leave it to mercadolibre.shipment")
-                if order and not order.sale_order:
+                if not order.sale_order:
                     order.message_post(body=str("Pack Order, dont create sale.order, leave it to mercadolibre.shipment"),message_type=order_message_type)
             else:
                 #_logger.info("Adding new sale.order: " )
                 sorder = saleorder_obj.create((meli_order_fields))
                 if sorder:
                     sorder.meli_fix_team( meli=meli, config=config )
-                    order.message_post(body=str("Sale order created!"),message_type=order_message_type)
+                    if order:
+                        order.message_post(body=str("Sale order created!"),message_type=order_message_type)
 
 
         #check error
@@ -2400,7 +2417,7 @@ class mercadolibre_orders(models.Model):
                 order_item_id = '%s'
                 AND order_id = %i
                 """ % ( order_item_fields['order_item_id'], order and order.id)
-                cr = self._cr
+                cr = MeliCr( self )
                 respquery = cr.execute(query)
                 results = cr.fetchall()
                 order_item_ids = results
@@ -2435,6 +2452,9 @@ class mercadolibre_orders(models.Model):
 
                 #only when not a pack
                 if (sorder and product_related_obj):
+                    
+                    tax_field = SaleOrderLineTaxField( self )
+                    uom_field = SaleOrderLineUomField( self )
                     saleorderline_item_fields = {
                         'company_id': company.id,
                         'order_id': sorder.id,
@@ -2443,9 +2463,9 @@ class mercadolibre_orders(models.Model):
                         'meli_order_item_variation_id': Item['item']['variation_id'],
                         'product_id': product_related_obj.id,
                         'product_uom_qty': Item['quantity'],
-                        'product_uom': product_related_obj.uom_id.id,
                         'name': product_related_obj.display_name or Item['item']['title'],
                     }
+                    saleorderline_item_fields[uom_field] = product_related_obj.uom_id.id
                     saleorderline_item_fields.update( self._set_product_unit_price( product_related_obj=product_related_obj, Item=Item, config=config ) )
 
                     #TODO: agregar meli_order_id !!! (mismo item dos ordenes diferentes...puede pasar...)
@@ -2461,8 +2481,8 @@ class mercadolibre_orders(models.Model):
                         #_logger.info(saleorderline_item_ids:"+str(saleorderline_item_ids))
                         #_logger.info(product_related_obj taxes_id:"+str(product_related_obj.taxes_id))
                         #_logger.info(product_related_obj taxes_id:"+str(product_related_obj.taxes_id and product_related_obj.taxes_id.company_id))
-                        #_logger.info(saleorderline_item_ids tax_id:"+str(saleorderline_item_ids.tax_id))
-                        #_logger.info(saleorderline_item_ids tax_id company_id:"+str(saleorderline_item_ids.tax_id.company_id))
+                        #_logger.info(saleorderline_item_ids tax:"+str(saleorderline_item_ids[tax_field]))
+                        #_logger.info(saleorderline_item_ids tax company_id:"+str(saleorderline_item_ids[tax_field].company_id))
                         tax_iva_name = saleorderline_item_ids.meli_order_item_iva
                         tax_iva_name = tax_iva_name
                         tax_iva_id = None
@@ -2471,23 +2491,23 @@ class mercadolibre_orders(models.Model):
                                 if ( tax_names_equivalent(txid.name,tax_iva_name) ):
                                     tax_iva_id = txid
 
-                        for tid in saleorderline_item_ids.tax_id:
+                        for tid in saleorderline_item_ids[tax_field]:
 
                             if (tid.company_id.id!=sorder.company_id.id 
                                 or (tax_iva_id and tax_iva_id!=tid) ):
                                 #remove
-                                saleorderline_item_ids.tax_id = [(3, tid.id)]
+                                saleorderline_item_ids[tax_field] = [(3, tid.id)]
 
-                        if not saleorderline_item_ids.tax_id and product_related_obj.taxes_id:
+                        if not saleorderline_item_ids[tax_field] and product_related_obj.taxes_id:
                             for txid in product_related_obj.taxes_id:
                                 if (txid.company_id.id==sorder.company_id.id):
                                     if (tax_iva_id):
                                         if (tax_iva_id!=tid):
                                             #add
-                                            saleorderline_item_ids.tax_id = [(4, txid.id)]
+                                            saleorderline_item_ids[tax_field] = [(4, txid.id)]
                                     else:
                                         #add
-                                        saleorderline_item_ids.tax_id = [(4, txid.id)]
+                                        saleorderline_item_ids[tax_field] = [(4, txid.id)]
 
                         if (sorder.state and sorder.state in ['done','sale']) or ("locked" in sorder._fields and sorder.locked):
                             #_logger.warning("Orden bloqueada no se puede actualizar")
@@ -2525,7 +2545,15 @@ class mercadolibre_orders(models.Model):
 
                 headers = {'Accept': 'application/json', 'User-Agent': 'Odoo', 'Content-type':'application/json'}
                 params = { 'access_token': meli.access_token }
-                mp_response = requests.get( mp_payment_url, params=urlencode(params), headers=headers )
+
+                # Wrap API call in try/except to handle network errors gracefully
+                # Order processing should continue even if MP API is unreachable
+                mp_response = None
+                try:
+                    mp_response = requests.get( mp_payment_url, params=urlencode(params), headers=headers, timeout=10 )
+                except requests.exceptions.RequestException as e:
+                    _logger.warning("MELI: Could not fetch payment details from MercadoPago API (order will continue): %s", str(e))
+
                 if (mp_response):
                     payment_fields["full_payment"] = mp_response.json()
                     payment_fields["shipping_amount"] = payment_fields["full_payment"]["shipping_amount"]
@@ -2580,6 +2608,20 @@ class mercadolibre_orders(models.Model):
                                     payment_fields["shipping_seller_cost"]+= fee_detail["amounts"] and fee_detail["amounts"]["original"]
                                     if (order):
                                         order.shipping_seller_cost = payment_fields["shipping_seller_cost"]
+
+                                # Handle coupon as fee (seller absorbs the coupon cost)
+                                # When type is 'coupon' and accounts.from='ml' and accounts.to='payer'
+                                # it means ML gives discount to buyer, seller must absorb it as cost
+                                if ( fee_type=="coupon" ):
+                                    coupon_fee_amount = fee_detail["amounts"] and fee_detail["amounts"]["original"] or 0
+                                    if coupon_fee_amount > 0:
+                                        payment_fields["fee_amount"]+= coupon_fee_amount
+                                        _logger.info("MELI: Adding coupon as fee: %.2f (name: %s)", coupon_fee_amount, fee_name)
+                                        if (order):
+                                            order.fee_amount = payment_fields["fee_amount"]
+                                            # Also update coupon_amount if it wasn't set from order json
+                                            #if order.coupon_amount == 0:
+                                            #    order.coupon_amount = coupon_fee_amount
 
                                 #if (fee_payer and fee_payer == "collector" and fee_type == "application_fee"):
                                 #    payment_fields["fee_amount"] = fee_detail["amount"]
@@ -2782,13 +2824,13 @@ class mercadolibre_orders(models.Model):
                     order_json = None
 
                 ret = self.orders_update_order_json( {"id": order.id, "order_json": order_json }, meli=meli, config=config )
-                self._cr.commit()
+                MeliCommit( self )
                 if ret and "error" in ret:
                     rets.append(ret)
             except Exception as e:
                 _logger.info("orders_update_order > Error actualizando ORDEN")
                 _logger.error(e, exc_info=True)
-                self._cr.rollback()
+                MeliRollback( self )
 
                 #_logger.info(orders_update_order journal_id: "+str(order.name))
                 if order.sale_order and "mercadolibre_invoice_journal_id" in config._fields and config.mercadolibre_invoice_journal_id:
@@ -2898,11 +2940,11 @@ class mercadolibre_orders(models.Model):
                     else:
                         try:
                             ret = self.orders_update_order_json( data=pdata, config=config, meli=meli )
-                            self._cr.commit()
+                            MeliCommit( self )
                         except Exception as e:
                             _logger.info("orders_query_iterate > Error actualizando ORDEN")
                             _logger.error(e, exc_info=True)
-                            self._cr.rollback()
+                            MeliRollback( self )
                             pass;
 
         if (offset_next>0):
@@ -2927,7 +2969,7 @@ class mercadolibre_orders(models.Model):
         except Exception as e:
             _logger.info("orders_query_recent > Error iterando ordenes")
             _logger.error(e, exc_info=True)
-            self._cr.rollback()
+            MeliRollback( self )
 
         if __fetch_ids:
             #_logger.info( "__fetch_ids:"+str(__fetch_ids) )
@@ -3237,7 +3279,7 @@ class mercadolibre_orders_update(models.TransientModel):
         except Exception as e:
             _logger.info("order_update > Error actualizando ordenes")
             _logger.error(e, exc_info=True)
-            self._cr.rollback()
+            MeliRollback( self )
 
         #Add warning with all filters errors:
         if rets and len(rets)>0:
@@ -3271,7 +3313,7 @@ class mercadolibre_orders_update_invoice(models.TransientModel):
         except Exception as e:
             _logger.info("order_update > Error actualizando factura ordenes")
             _logger.error(e, exc_info=True)
-            self._cr.rollback()
+            MeliRollback( self )
 
         return {}
 
@@ -3307,6 +3349,6 @@ class sale_order_cancel_wiz_meli(models.TransientModel):
         except Exception as e:
             #_logger.info("order_update > Error cancelando ordenes")
             _logger.error(e, exc_info=True)
-            self._cr.rollback()
+            MeliRollback( self )
 
         return {}
