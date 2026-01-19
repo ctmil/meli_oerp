@@ -4177,12 +4177,12 @@ class product_product(models.Model):
     meli_max_purchase_quantity = fields.Integer(string='Max Compra', help='Cantidad maxima por compra en ML')
     meli_manufacturing_time = fields.Char(string='Manufacturing time', help='Tiempo de fabricacion (30 días)')
 
-    meli_imagen_logo = fields.Char(string='Imagen Logo', size=256)
+    meli_imagen_logo = fields.Char(string='Imagen Logo', default='None')
     meli_imagen_id = fields.Char(string='Imagen Id', size=256)
     meli_imagen_link = fields.Char(string='Imagen Link', size=256)
     meli_imagen_hash = fields.Char(string='Imagen Hash')
     meli_multi_imagen_id = fields.Char(string='Multi Imagen Ids', size=512)
-    meli_video = fields.Char( string='Video (id de youtube)', size=256)
+    meli_video = fields.Char(string='Video (id de youtube)', default='')
 
     meli_permalink = fields.Char( compute=product_get_meli_update, size=256, string='Link',help='PermaLink in MercadoLibre' )
     meli_permalink_edit = fields.Char( compute=product_get_meli_update, size=256, string='Link Edit',help='PermaLink Edit in MercadoLibre' )
@@ -4451,10 +4451,6 @@ class product_product(models.Model):
     meli_mercadolibre_banner = fields.Many2one("mercadolibre.banner",string="Plantilla Descriptiva")
 
 
-    _defaults = {
-        'meli_imagen_logo': 'None',
-        'meli_video': ''
-    }
 
     _sql_constraints = [
     #    ('unique_variant_meli_id_variation', 'unique(meli_id,meli_id_variation)', 'Meli Id, Meli Id Variation must be unique!'),
