@@ -692,7 +692,7 @@ class res_company(models.Model):
         #_logger.info('company.product_meli_get_products() context: '+str(context))
         company = self.env.user.company_id
         company_domain = ['|',('company_id','=',False),('company_id','=',company.id)]
-        product_obj = self.pool.get('product.product')
+        product_obj = self.env['product.product']
         warningobj = self.env['meli.warning']
 
         post_state = context and context.get("post_state")
@@ -1675,7 +1675,7 @@ class res_company(models.Model):
         #_logger.info('company.meli_pause_all() ')
         company = self.env.user.company_id
         company_domain = ['|',('company_id','=',False),('company_id','=',company.id)]
-        product_obj = self.pool.get('product.product')
+        product_obj = self.env['product.product']
 
         meli = self.env['meli.util'].get_new_instance(company)
         url_login_meli = meli.auth_url()

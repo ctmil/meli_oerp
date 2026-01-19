@@ -96,10 +96,24 @@ class MeliApi( meli.RestClientApi ):
             #   self.response = self.call_get( resource=path, access_token=atok, **params)
             self.rjson = self.response
         except ApiException as e:
-            _logger.warning(
-                "GET %s falló sin reintentos restantes: status=%s reason=%s body=%s",
-                path, getattr(e, "status", None), getattr(e, "reason", None), getattr(e, "body", None)
-            )
+            status_code = getattr(e, "status", None)
+            # Log level based on status code
+            if status_code == 404:
+                # Item not found - expected, use debug
+                _logger.debug(
+                    "GET %s: 404 Not Found (expected for deleted items)",
+                    path
+                )
+            elif status_code in (401, 403):
+                _logger.warning(
+                    "GET %s: Auth error status=%s reason=%s | Seller ID: %s",
+                    path, status_code, getattr(e, "reason", None), self.seller_id
+                )
+            else:
+                _logger.warning(
+                    "GET %s falló: status=%s reason=%s body=%s",
+                    path, status_code, getattr(e, "reason", None), getattr(e, "body", None)
+                )
             self.rjson = {
                 "error": "get error",
                 "status": getattr(e, "status", None),
