@@ -12,9 +12,30 @@ from odoo.tools import str2bool
 # Benchmark threshold in seconds - only log detailed benchmarks if total time exceeds this
 MELI_BENCHMARK_THRESHOLD = 0.5
 
+# Module-level cache for log setting
+_meli_log_cache = {}
+
 
 class StockMove(models.Model):
     _inherit = "stock.move"
+
+    def _meli_log_enabled(self):
+        """
+        Check if MELI debug logging is enabled via meli_cron_log_chatter.
+        Uses module-level cache to avoid repeated DB lookups within the same request.
+        """
+        global _meli_log_cache
+        company_id = self.env.company.id
+        cache_key = f"log_enabled_{company_id}"
+
+        if cache_key not in _meli_log_cache:
+            account = self.env['mercadolibre.account'].sudo().search([
+                ('company_id', '=', company_id),
+                ('meli_cron_log_chatter', '=', True)
+            ], limit=1)
+            _meli_log_cache[cache_key] = bool(account)
+
+        return _meli_log_cache[cache_key]
 
     def meli_update_boms( self, config=None ):
         """
@@ -104,11 +125,10 @@ class StockMove(models.Model):
                         _logger.debug("Skipping meli_stock_moves_update for %s: %s", product.display_name, e2)
         t3_end = time.time()
 
-        # Calculate total time and log benchmark if significant
+        # Calculate total time and log benchmark if enabled
         t_total = time.time() - t_start
 
-        # Always log summary for monitoring
-        if products_to_update:
+        if self._meli_log_enabled() and products_to_update:
             _logger.info(
                 "MELI_BENCHMARK meli_update_boms: moves=%d, products=%d (direct=%d, bom_parents=%d), "
                 "bomlines=%d, total_time=%.3fs",
@@ -120,18 +140,18 @@ class StockMove(models.Model):
                 t_total
             )
 
-        # Detailed timing breakdown if slow
-        if t_total > MELI_BENCHMARK_THRESHOLD:
-            _logger.warning(
-                "MELI_BENCHMARK_DETAIL meli_update_boms SLOW (%.3fs > %.1fs threshold): "
-                "step1_collect_moves=%.3fs, step2_bom_search=%.3fs, step3_update_products=%.3fs | "
-                "Data: %s",
-                t_total, MELI_BENCHMARK_THRESHOLD,
-                t1_end - t1,
-                t2_end - t2,
-                t3_end - t3,
-                benchmark_data
-            )
+            # Detailed timing breakdown if slow
+            if t_total > MELI_BENCHMARK_THRESHOLD:
+                _logger.warning(
+                    "MELI_BENCHMARK_DETAIL meli_update_boms SLOW (%.3fs > %.1fs threshold): "
+                    "step1_collect_moves=%.3fs, step2_bom_search=%.3fs, step3_update_products=%.3fs | "
+                    "Data: %s",
+                    t_total, MELI_BENCHMARK_THRESHOLD,
+                    t1_end - t1,
+                    t2_end - t2,
+                    t3_end - t3,
+                    benchmark_data
+                )
 
         return True
 
@@ -146,76 +166,68 @@ class StockMove(models.Model):
 
     def _action_assign(self):
         t_start = time.time()
-        t_super = time.time()
         res = super(StockMove, self)._action_assign()
         t_super_end = time.time()
 
-        t_meli = time.time()
         if not self._should_skip_meli_stock_update():
             self.meli_update_boms()
         t_meli_end = time.time()
 
         t_total = time.time() - t_start
-        if t_total > MELI_BENCHMARK_THRESHOLD:
+        if self._meli_log_enabled() and t_total > MELI_BENCHMARK_THRESHOLD:
             _logger.warning(
-                "MELI_BENCHMARK _action_assign: moves=%d, total=%.3fs (super=%.3fs, meli=%.3fs)",
-                len(self), t_total, t_super_end - t_super, t_meli_end - t_meli
+                "MELI_BENCHMARK _action_assign SLOW: moves=%d, total=%.3fs (super=%.3fs, meli=%.3fs)",
+                len(self), t_total, t_super_end - t_start, t_meli_end - t_super_end
             )
         return res
 
     def _action_done(self, cancel_backorder=False):
         t_start = time.time()
-        t_super = time.time()
         moves_todo = super(StockMove, self)._action_done(cancel_backorder=cancel_backorder)
         t_super_end = time.time()
 
-        t_meli = time.time()
         if not self._should_skip_meli_stock_update():
             self.meli_update_boms()
         t_meli_end = time.time()
 
         t_total = time.time() - t_start
-        if t_total > MELI_BENCHMARK_THRESHOLD:
+        if self._meli_log_enabled() and t_total > MELI_BENCHMARK_THRESHOLD:
             _logger.warning(
-                "MELI_BENCHMARK _action_done: moves=%d, total=%.3fs (super=%.3fs, meli=%.3fs)",
-                len(self), t_total, t_super_end - t_super, t_meli_end - t_meli
+                "MELI_BENCHMARK _action_done SLOW: moves=%d, total=%.3fs (super=%.3fs, meli=%.3fs)",
+                len(self), t_total, t_super_end - t_start, t_meli_end - t_super_end
             )
         return moves_todo
 
     def _action_cancel(self):
         t_start = time.time()
-        t_super = time.time()
         res = super(StockMove, self)._action_cancel()
         t_super_end = time.time()
 
-        t_meli = time.time()
         if not self._should_skip_meli_stock_update():
             self.meli_update_boms()
         t_meli_end = time.time()
 
         t_total = time.time() - t_start
-        if t_total > MELI_BENCHMARK_THRESHOLD:
+        if self._meli_log_enabled() and t_total > MELI_BENCHMARK_THRESHOLD:
             _logger.warning(
-                "MELI_BENCHMARK _action_cancel: moves=%d, total=%.3fs (super=%.3fs, meli=%.3fs)",
-                len(self), t_total, t_super_end - t_super, t_meli_end - t_meli
+                "MELI_BENCHMARK _action_cancel SLOW: moves=%d, total=%.3fs (super=%.3fs, meli=%.3fs)",
+                len(self), t_total, t_super_end - t_start, t_meli_end - t_super_end
             )
         return res
 
     def _do_unreserve(self):
         t_start = time.time()
-        t_super = time.time()
         res = super(StockMove, self)._do_unreserve()
         t_super_end = time.time()
 
-        t_meli = time.time()
         if not self._should_skip_meli_stock_update():
             self.meli_update_boms()
         t_meli_end = time.time()
 
         t_total = time.time() - t_start
-        if t_total > MELI_BENCHMARK_THRESHOLD:
+        if self._meli_log_enabled() and t_total > MELI_BENCHMARK_THRESHOLD:
             _logger.warning(
-                "MELI_BENCHMARK _do_unreserve: moves=%d, total=%.3fs (super=%.3fs, meli=%.3fs)",
-                len(self), t_total, t_super_end - t_super, t_meli_end - t_meli
+                "MELI_BENCHMARK _do_unreserve SLOW: moves=%d, total=%.3fs (super=%.3fs, meli=%.3fs)",
+                len(self), t_total, t_super_end - t_start, t_meli_end - t_super_end
             )
         return res
