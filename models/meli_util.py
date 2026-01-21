@@ -62,6 +62,84 @@ class MeliApi( meli.RestClientApi ):
 
     user = {}
 
+    # Benchmarking support - set to True to enable API timing logs
+    _benchmark_enabled = False
+    _benchmark_stats = {
+        'get': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
+        'get_mini': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
+        'post': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
+        'put': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
+        'put_mini': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
+    }
+    _benchmark_slow_threshold = 2.0  # seconds
+
+    @classmethod
+    def enable_benchmark(cls, enabled=True, slow_threshold=2.0):
+        """Enable or disable API benchmarking"""
+        cls._benchmark_enabled = enabled
+        cls._benchmark_slow_threshold = slow_threshold
+        if enabled:
+            cls.reset_benchmark_stats()
+            _logger.info("MELI API BENCHMARK: ENABLED (slow threshold: %.1fs)", slow_threshold)
+        else:
+            _logger.info("MELI API BENCHMARK: DISABLED")
+
+    @classmethod
+    def reset_benchmark_stats(cls):
+        """Reset benchmark statistics"""
+        cls._benchmark_stats = {
+            'get': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
+            'get_mini': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
+            'post': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
+            'put': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
+            'put_mini': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
+        }
+
+    @classmethod
+    def get_benchmark_stats(cls):
+        """Get benchmark statistics summary"""
+        stats = cls._benchmark_stats
+        total_calls = sum(s['count'] for s in stats.values())
+        total_time = sum(s['total_time'] for s in stats.values())
+        summary = {
+            'total_calls': total_calls,
+            'total_time': total_time,
+            'by_method': {}
+        }
+        for method, s in stats.items():
+            if s['count'] > 0:
+                summary['by_method'][method] = {
+                    'count': s['count'],
+                    'total_time': round(s['total_time'], 2),
+                    'avg_time': round(s['total_time'] / s['count'], 3),
+                    'slow_calls': len(s['slow_calls'])
+                }
+        return summary
+
+    @classmethod
+    def log_benchmark_stats(cls):
+        """Log benchmark statistics"""
+        if not cls._benchmark_enabled:
+            return
+        stats = cls.get_benchmark_stats()
+        _logger.info("MELI API BENCHMARK SUMMARY: total_calls=%d total_time=%.2fs",
+                    stats['total_calls'], stats['total_time'])
+        for method, s in stats['by_method'].items():
+            _logger.info("  %s: calls=%d time=%.2fs avg=%.3fs slow=%d",
+                        method, s['count'], s['total_time'], s['avg_time'], s['slow_calls'])
+
+    def _record_benchmark(self, method, path, elapsed):
+        """Record benchmark data for an API call"""
+        if not MeliApi._benchmark_enabled:
+            return
+        import time
+        stats = MeliApi._benchmark_stats[method]
+        stats['count'] += 1
+        stats['total_time'] += elapsed
+        if elapsed > MeliApi._benchmark_slow_threshold:
+            stats['slow_calls'].append({'path': path, 'time': elapsed})
+            _logger.warning("MELI API SLOW %s: %s took %.2fs", method.upper(), path, elapsed)
+
     def __init__(self, *args, **kwargs):
         super(MeliApi, self).__init__(*args, **kwargs)
         self.api_auth_client = meli.OAuth20Api(self.api_client)
@@ -76,6 +154,9 @@ class MeliApi( meli.RestClientApi ):
         return {}
 
     def get(self, path, params={}):
+        import time as _time_module
+        _t_start = _time_module.time() if MeliApi._benchmark_enabled else 0
+        _original_path = path
         try:
             atok = ("access_token" in params and params["access_token"]) or ""
             if (atok=="PASIVA"):
@@ -123,6 +204,9 @@ class MeliApi( meli.RestClientApi ):
             pass;
         except:
             pass;
+        finally:
+            if MeliApi._benchmark_enabled:
+                self._record_benchmark('get', _original_path, _time_module.time() - _t_start)
         return self
 
     def get_mini(self, path, params={}):
@@ -138,6 +222,9 @@ class MeliApi( meli.RestClientApi ):
         • timeout
         • query params (compat con estilo viejo)
         """
+        import time as _time_module
+        _t_start = _time_module.time() if MeliApi._benchmark_enabled else 0
+
         def _abs_url(p):
             if p.startswith("http://") or p.startswith("https://"):
                 return p
@@ -206,8 +293,13 @@ class MeliApi( meli.RestClientApi ):
             }
             self.response = self.rjson
             return self
+        finally:
+            if MeliApi._benchmark_enabled:
+                self._record_benchmark('get_mini', path, _time_module.time() - _t_start)
 
     def post(self, path, body=None, params={}):
+        import time as _time_module
+        _t_start = _time_module.time() if MeliApi._benchmark_enabled else 0
         try:
             atok = ("access_token" in params and params["access_token"]) or ""
             #_logger.info("MeliApi.post(%s,%s)  %s" % (path,str(atok),str(body)) )
@@ -228,6 +320,9 @@ class MeliApi( meli.RestClientApi ):
             pass;
         except:
             pass;
+        finally:
+            if MeliApi._benchmark_enabled:
+                self._record_benchmark('post', path, _time_module.time() - _t_start)
         return self
         
     def post_mini(self, path, body=None, params={}):
@@ -317,6 +412,8 @@ class MeliApi( meli.RestClientApi ):
             return self
 
     def put(self, path, body=None, params={}):
+        import time as _time_module
+        _t_start = _time_module.time() if MeliApi._benchmark_enabled else 0
         try:
             atok = params.get("access_token", "") or ""
             headers = params.get("headers", {}) or {}
@@ -330,6 +427,9 @@ class MeliApi( meli.RestClientApi ):
             self.rjson = {"error": "put error", "status": e.status, "cause": e.reason, "message": e.body}
         except Exception:
             pass
+        finally:
+            if MeliApi._benchmark_enabled:
+                self._record_benchmark('put', path, _time_module.time() - _t_start)
         return self
 
     def _safe_body(self, resp):
@@ -346,6 +446,10 @@ class MeliApi( meli.RestClientApi ):
         - Reads token and headers from params
         - Optional auto_x_version for Multi-Origen stock endpoints
         """
+        import time as _time_module
+        _t_start = _time_module.time() if MeliApi._benchmark_enabled else 0
+        _original_path = path
+
         def _abs_url(p):
             if not p:
                 return p
@@ -380,7 +484,7 @@ class MeliApi( meli.RestClientApi ):
         final_headers = {"Accept": "application/json"}
         if atok:
             final_headers["Authorization"] = f"Bearer {atok}"
-        # Only set Content-Type if body is JSON-like (dict/list) and caller didn’t specify it
+        # Only set Content-Type if body is JSON-like (dict/list) and caller didn't specify it
         if isinstance(body, (dict, list)) and "Content-Type" not in {k.title(): v for k, v in headers.items()}:
             final_headers["Content-Type"] = "application/json"
         final_headers.update(headers or {})
@@ -414,6 +518,9 @@ class MeliApi( meli.RestClientApi ):
             # Also store in self.response to keep parity
             self.response = self.rjson
             return self
+        finally:
+            if MeliApi._benchmark_enabled:
+                self._record_benchmark('put_mini', _original_path, _time_module.time() - _t_start)
 
 
     def delete(self, path, params={}):
