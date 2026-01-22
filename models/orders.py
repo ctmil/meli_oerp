@@ -611,7 +611,10 @@ class sale_order(models.Model):
 
         # 2) Fiscal position mapping
         if self.fiscal_position_id:
-            taxes = self.fiscal_position_id.map_tax(taxes, product, self.partner_id)
+            #taxes = self.fiscal_position_id.map_tax(taxes, product, self.partner_id)
+            taxes = map_tax_compat(
+                self.fiscal_position_id, taxes, product, self.partner_id
+            )
 
         if not taxes:
             #_logger.info(
@@ -1550,8 +1553,8 @@ class mercadolibre_orders(models.Model):
 
                     meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
 
-                #Arg 15.0 BlueOrange Blue Orange
-                if (1==2 and  ('doc_type' in Buyer['billing_info']) and ('partner_document_type_id' in self.env['res.partner']._fields) ):
+                #Arg 15.0/17.0 CER BlueOrange Blue Orange
+                if (('doc_type' in Buyer['billing_info']) and ('partner_document_type_id' in self.env['res.partner']._fields) ):
                     doc_type = Buyer['billing_info']['doc_type']
                     doc_type_id = self.env["partner.document.type"].search([('name','ilike',doc_type)],limit=1)
                     if (doc_type_id):
@@ -2868,7 +2871,12 @@ class mercadolibre_orders(models.Model):
             meli = self.env['meli.util'].get_new_instance(company)
 
         orders_query = "/orders/search?seller="+str(meli.seller_id)+"&sort=date_desc"
-        #TODO: "create parameter for": orders_query+= "&limit=10"
+
+        # Use orders limit from config if available (default API limit is 50)
+        orders_limit = None
+        if hasattr(config, 'mercadolibre_cron_orders_limit') and config.mercadolibre_cron_orders_limit:
+            orders_limit = config.mercadolibre_cron_orders_limit
+            orders_query += "&limit=" + str(orders_limit)
 
         if (offset):
             orders_query = orders_query + "&offset="+str(offset).strip()
@@ -2893,7 +2901,8 @@ class mercadolibre_orders(models.Model):
                     return {}
                 else:
                     if (orders_json["paging"]["total"]>=(offset+orders_json["paging"]["limit"])):
-                        if not order_date_filter:
+                        # Don't paginate if explicit limit is set or no date filter
+                        if orders_limit or not order_date_filter:
                             offset_next = 0
                         else:
                             offset_next = offset + orders_json["paging"]["limit"]
