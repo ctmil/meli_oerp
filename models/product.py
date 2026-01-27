@@ -179,7 +179,14 @@ class product_template(models.Model):
 
         return ret
 
-    def _variations(self, meli=None, config=None):
+    def _variations(self, meli=None, config=None, template_pic_ids=None):
+        """
+        Genera las variaciones del producto para publicar en MercadoLibre.
+
+        @param template_pic_ids: Lista de IDs de imagenes del template. Si se proporciona,
+                                 las variaciones usaran estas imagenes en lugar de subir propias.
+                                 Esto evita exceder el limite de 12 imagenes de MercadoLibre.
+        """
         variations = False
         for product_tmpl in self:
             for variant in product_tmpl.product_variant_ids:
@@ -196,20 +203,24 @@ class product_template(models.Model):
                         if (variations==False):
                             variations = []
 
-                        #IMAGENES POR VARIANTE
-                        variant.product_meli_upload_image(meli=meli,config=config)
-                        var_multi_images_ids = variant.product_meli_upload_multi_images(meli=meli,config=config)
+                        # Si se proporcionan imagenes del template, usarlas para evitar exceder limite de 12
+                        if template_pic_ids:
+                            var_pics = template_pic_ids[:10]  # Max 10 por variacion
+                        else:
+                            #IMAGENES POR VARIANTE (comportamiento original)
+                            variant.product_meli_upload_image(meli=meli,config=config)
+                            var_multi_images_ids = variant.product_meli_upload_multi_images(meli=meli,config=config)
 
-                        var_pics.append(variant.meli_imagen_id)
-                        var_pics_full.append({ 'id': variant.meli_imagen_id })
-                        if (var_multi_images_ids):
-                            for pic in var_multi_images_ids:
-                                if pic and 'id' in pic:
-                                    var_pics.append(pic['id'])
-                                    var_pics_full.append({ 'id': pic['id']})
-                        # Limit variation pictures to 10 (MercadoLibre API limit per variation)
-                        if var_pics and len(var_pics) > 10:
-                            var_pics = var_pics[:10]
+                            var_pics.append(variant.meli_imagen_id)
+                            var_pics_full.append({ 'id': variant.meli_imagen_id })
+                            if (var_multi_images_ids):
+                                for pic in var_multi_images_ids:
+                                    if pic and 'id' in pic:
+                                        var_pics.append(pic['id'])
+                                        var_pics_full.append({ 'id': pic['id']})
+                            # Limit variation pictures to 10 (MercadoLibre API limit per variation)
+                            if var_pics and len(var_pics) > 10:
+                                var_pics = var_pics[:10]
                         var_pics and var.update({"picture_ids": var_pics})
 
                         #ATRIBUTOS POR VARIANTE (SKU; GTIN, etc...)
@@ -3450,6 +3461,11 @@ class product_product(models.Model):
                     body["pictures"] = [ { 'source': product.meli_imagen_logo} ]
 
             _logger.info("Setted body pictures: "+str(body["pictures"]))
+            # MAX 12 imagenes en total (limite de MercadoLibre para la mayoria de categorias)
+            # Limitamos a 10 para dejar espacio a imagenes de variaciones
+            MAX_PICTURES = 10
+            if body["pictures"] and len(body["pictures"]) > MAX_PICTURES:
+                body["pictures"] = body["pictures"][:MAX_PICTURES]
         else:
             imagen_producto = ""
 
@@ -3487,6 +3503,9 @@ class product_product(models.Model):
 
                         _logger.info("Variations already posted, must update them only")
                         vars_updated = self.env["product.product"]
+                        # Usar las imagenes del template para las variaciones
+                        # Esto evita exceder el limite de 12 imagenes de MercadoLibre
+                        template_pic_ids = [pic['id'] for pic in body["pictures"] if 'id' in pic]
                         for ix in range(len(productjson["variations"]) ):
                             var_info = productjson["variations"][ix]
                             #_logger.info("Variation to update!!")
@@ -3499,19 +3518,9 @@ class product_product(models.Model):
                                     #upgrade variant stock
                                     var_product.meli_available_quantity = var_product._meli_available_quantity(meli=meli,config=config)
 
-                                    #adding variant images
-                                    var_product.product_meli_upload_image(meli=meli,config=config)
-                                    var_multi_images_ids = var_product.product_meli_upload_multi_images(meli=meli,config=config)
-                                    #_logger.info("Uploaded var_multi_images_ids: "+str(var_multi_images_ids))
-
-
-                                    var_pics.append(var_product.meli_imagen_id)
-                                    var_pics_full.append({ 'id': var_product.meli_imagen_id })
-                                    if (var_multi_images_ids):
-                                        for pic in var_multi_images_ids:
-                                            if pic and 'id' in pic:
-                                                var_pics.append(pic['id'])
-                                                var_pics_full.append({ 'id': pic['id']})
+                                    #adding variant images - usar imagenes del template para evitar exceder limite
+                                    var_pics = template_pic_ids[:10]  # Max 10 por variacion
+                                    var_pics_full = [{ 'id': pic_id } for pic_id in var_pics]
 
                                     #TODO: add SKU
                                     var_attributes = var_product._update_sku_attribute( attributes=("attributes" in var_info and var_info["attributes"]) or [],
@@ -3537,7 +3546,8 @@ class product_product(models.Model):
                             varias["variations"].append(var)
                             varias["pictures"] = var_pics_full
 
-                        _all_variations = product_tmpl._variations(meli=meli, config=config)
+                        # Pasar imagenes del template para nuevas variaciones
+                        _all_variations = product_tmpl._variations(meli=meli, config=config, template_pic_ids=template_pic_ids)
                         _updated_ids = vars_updated.mapped('id')
                         _logger.info(_updated_ids)
                         _new_candidates = product_tmpl.product_variant_ids.filtered(lambda pv: pv.id not in _updated_ids)
@@ -3590,7 +3600,10 @@ class product_product(models.Model):
 
                         return {}
                     else:
-                        variations = product_tmpl._variations(meli=meli, config=config)
+                        # Pasar las imagenes del template para que las variaciones las usen
+                        # Esto evita exceder el limite de 12 imagenes de MercadoLibre
+                        template_pic_ids = [pic['id'] for pic in body["pictures"] if 'id' in pic]
+                        variations = product_tmpl._variations(meli=meli, config=config, template_pic_ids=template_pic_ids)
                         _logger.info("Variations:")
                         _logger.info(variations)
                         if (variations):
