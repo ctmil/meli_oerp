@@ -39,7 +39,7 @@
         'wizard/meli_consult_category_wizard.xml'
     ],
     'price': '350.00',
-    'currency': 'USD',
+    'currency': 'EUR',
     "external_dependencies": {"python": ['pdf2image','meli']},
     'images': [ 'static/description/main_screenshot.png',
                 'static/description/meli_oerp_screenshot.png',
