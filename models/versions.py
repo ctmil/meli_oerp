@@ -192,7 +192,7 @@ def UpdateProductType( product ):
                 pass;
 
             query = """UPDATE product_template SET type='consu', is_storable=True WHERE id=%i""" % (prod.id)
-            cr = prod._cr
+            cr = prod.env.cr
             respquery = cr.execute(query)
 
 def ProductType():
