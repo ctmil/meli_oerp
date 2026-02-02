@@ -18,6 +18,7 @@ from . import posting
 from . import product_post
 from . import questions
 from . import orders
+from . import res_partner
 #from . import currency
 from . import shipment
 #from . import stock_inventory
@@ -26,3 +27,4 @@ from . import stock_warehouse
 from . import product_attribute
 from . import notification
 from . import product_template_attribute_line
+#from . import res_config_settings
