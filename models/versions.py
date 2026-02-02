@@ -98,6 +98,29 @@ def get_price_from_pl( pricelist, product, quantity ):
     return_val[pl.id] = pl._get_product_price(product=product,quantity=quantity)
     return return_val
 
+import inspect
+
+def map_tax_compat(fiscal_position, taxes, product=None, partner=None):
+    """Llama a map_tax con la firma correcta según la versión de Odoo."""
+    if not fiscal_position:
+        return taxes
+
+    method = fiscal_position.map_tax
+    try:
+        params = inspect.signature(method).parameters
+        # incluye self; si hay 2 parámetros => (self, taxes)
+        if len(params) == 2:
+            return method(taxes)
+        else:
+            return method(taxes, product, partner)
+    except TypeError:
+        # fallback defensivo
+        try:
+            return method(taxes, product, partner)
+        except TypeError:
+            return method(taxes)
+
+
 #Autocommit
 def Autocommit( self, act=False ):
     return False
