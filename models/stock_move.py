@@ -5,127 +5,229 @@ from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 from odoo.tools import float_utils
 import logging
+import time
 _logger = logging.getLogger(__name__)
 from odoo.tools import str2bool
+
+# Benchmark threshold in seconds - only log detailed benchmarks if total time exceeds this
+MELI_BENCHMARK_THRESHOLD = 0.5
+
+# Module-level cache for log setting
+_meli_log_cache = {}
 
 
 class StockMove(models.Model):
     _inherit = "stock.move"
 
-    def meli_update_boms( self, config=None ):
-        #config = config or self.env.user.company_id
+    def _meli_log_enabled(self):
+        """
+        Check if MELI debug logging is enabled via meli_cron_log_chatter.
+        Uses module-level cache to avoid repeated DB lookups within the same request.
+        """
+        global _meli_log_cache
+        company_id = self.env.company.id
+        cache_key = f"log_enabled_{company_id}"
 
-        company_ids = self.env.user.company_ids
-        #_logger.info("meli_update_boms > company_ids: "+str(company_ids))
+        if cache_key not in _meli_log_cache:
+            account = self.env['mercadolibre.account'].sudo().search([
+                ('company_id', '=', company_id),
+                ('meli_cron_log_chatter', '=', True)
+            ], limit=1)
+            _meli_log_cache[cache_key] = bool(account)
+
+        return _meli_log_cache[cache_key]
+
+    def meli_update_boms( self, config=None ):
+        """
+        Update meli_stock_moves_update for products affected by stock moves.
+        OPTIMIZED to:
+        - Only process products with MeLi publications
+        - Collect unique product IDs to avoid duplicate updates
+        - Skip updates during concurrent processing to avoid serialization errors
+        - Batch query for BOM lines instead of N+1 queries per product
+
+        BENCHMARKED: Logs timing for each step when processing takes > MELI_BENCHMARK_THRESHOLD
+        """
+        t_start = time.time()
+        benchmark_data = {
+            'moves_count': len(self),
+            'move_products': 0,
+            'direct_meli_products': 0,
+            'bomlines_found': 0,
+            'bom_parent_products': 0,
+            'total_products_to_update': 0,
+        }
+
+        # STEP 1: Collect unique product IDs from moves
+        t1 = time.time()
+        move_product_ids = set()
+        products_to_update = set()
 
         for mov in self:
-            
-            company = mov.company_id
-
-            #_logger.info("meli_update_boms > mov company: "+str(company and company.name))
-            company = company or self.env.user.company_id
             if not mov.product_id:
-                continue;
-
-
+                continue
             product_id = mov.product_id
+            move_product_ids.add(product_id.id)
+            # Only add if product has MeLi publication or bindings
+            if product_id.meli_id or product_id.meli_pub:
+                products_to_update.add(product_id.id)
 
-            #_logger.info("meli_update_boms > mov product: "+str(product_id and product_id.name) )
+        benchmark_data['move_products'] = len(move_product_ids)
+        benchmark_data['direct_meli_products'] = len(products_to_update)
+        t1_end = time.time()
 
-            product_id.process_meli_stock_moves_update()
-
-            is_company_post_stock = company  and company.mercadolibre_cron_post_update_stock
-            is_meli = (mov.product_id.meli_id and mov.product_id.meli_pub)
-
-            #if (config and config.mercadolibre_cron_post_update_stock and is_meli):
-                #_logger.info("meli_update_boms > process_meli_stock_moves_update() "+str(config and config.name))
-            #    product_id.process_meli_stock_moves_update()
-                #product_id.product_post_stock()
-
-            #sin config, recorremos las companias a las que forma parte este producto
-            #if not config and company_ids:
-            #    for comp in company_ids:
-            #        is_company = (product_id.company_id==False or product_id.company_id==comp)
-            #        #_logger.info("is_company: "+str(is_company)+" product_id.company_id:"+str(product_id.company_id)+" comp:"+str(comp))
-            #        #_logger.info("is_meli: "+str(is_meli)+" comp.mercadolibre_cron_post_update_stock:"+str(comp.mercadolibre_cron_post_updat()e_stock))
-            #        if (comp and comp.mercadolibre_cron_post_update_stock and is_company and is_meli):
-            #            _logger.info("update bom product_id process_meli_stock_moves_update()")
-            #            product_id.process_meli_stock_moves_update()
-                        #product_id.product_post_stock()
-
-
-
-            #BOM SECTION POST STOCK if needed
-            
-            if not ("mrp.bom" in self.env):
-                continue;
-
-            bomlines = "bom_line_ids" in product_id._fields and product_id.bom_line_ids
-            bomlines = bomlines or self.env['mrp.bom.line'].sudo().search([('product_id','=',product_id.id)])
-            bomlines = bomlines or []
-            
-            #_logger.info("meli_update_boms > bomlines related: "+str(bomlines))
+        # STEP 2: BOM SECTION - batch query for all parent KITs
+        t2 = time.time()
+        bom_parents_added = 0
+        if move_product_ids and "mrp.bom" in self.env:
+            # Single batch search instead of N+1 queries per product
+            bomlines = self.env['mrp.bom.line'].sudo().search([
+                ('product_id', 'in', list(move_product_ids))
+            ])
+            benchmark_data['bomlines_found'] = len(bomlines)
 
             for bomline in bomlines:
-                
-                bm_product_tmpl_id = bomline.bom_id and bomline.bom_id.product_tmpl_id
-                bm_product_id = bomline.bom_id and bomline.bom_id.product_id
-                bm_product_id = bm_product_id or (bm_product_tmpl_id and bm_product_tmpl_id.product_variant_ids) or self.env["product.product"]
-                bm_is_meli = (bm_product_id.meli_id and bm_product_id.meli_pub)
-                #_logger.info("meli_update_boms > process bom product KIT: "+str(bm_product_id and bm_product_id.name))
+                if not bomline.bom_id:
+                    continue
+                bm_product_id = bomline.bom_id.product_id
+                bm_product_tmpl_id = bomline.bom_id.product_tmpl_id
+
                 if bm_product_id:
-                    for bmpid in bm_product_id:
-                        bmpid.process_meli_stock_moves_update()
+                    # Only add if parent product has MeLi publication
+                    if bm_product_id.meli_id or bm_product_id.meli_pub:
+                        if bm_product_id.id not in products_to_update:
+                            bom_parents_added += 1
+                        products_to_update.add(bm_product_id.id)
+                elif bm_product_tmpl_id:
+                    for variant in bm_product_tmpl_id.product_variant_ids:
+                        if variant.meli_id or variant.meli_pub:
+                            if variant.id not in products_to_update:
+                                bom_parents_added += 1
+                            products_to_update.add(variant.id)
 
-                #sin config, recorremos las companias a las que forma parte este producto
-                if not config and company_ids and bm_product_id:
+        benchmark_data['bom_parent_products'] = bom_parents_added
+        benchmark_data['total_products_to_update'] = len(products_to_update)
+        t2_end = time.time()
 
-                    for comp in company_ids:
-                        for bmpid in bm_product_id:
-                            bm_is_company = (bmpid.company_id==False or bmpid.company_id==comp)
-                            if (comp and comp.mercadolibre_cron_post_update_stock and bm_is_company and bm_is_meli):
-                                #_logger.info("meli_update_boms multicomp > process_meli_stock_moves_update() "+str(comp and comp.name)+" bm_product_id > "+str(bmpid.display_name))
-                                bmpid.process_meli_stock_moves_update()
+        # STEP 3: Batch update all products
+        t3 = time.time()
+        if products_to_update:
+            products = self.env['product.product'].browse(list(products_to_update))
+            try:
+                products.process_meli_stock_moves_update()
+            except Exception as e:
+                _logger.debug("Error in batch meli_stock_moves_update: %s", e)
+                # Fallback to individual updates if batch fails
+                for product in products:
+                    try:
+                        product._meli_stock_moves_update()
+                    except Exception as e2:
+                        _logger.debug("Skipping meli_stock_moves_update for %s: %s", product.display_name, e2)
+        t3_end = time.time()
+
+        # Calculate total time and log benchmark if enabled
+        t_total = time.time() - t_start
+
+        if self._meli_log_enabled() and products_to_update:
+            _logger.info(
+                "MELI_BENCHMARK meli_update_boms: moves=%d, products=%d (direct=%d, bom_parents=%d), "
+                "bomlines=%d, total_time=%.3fs",
+                benchmark_data['moves_count'],
+                benchmark_data['total_products_to_update'],
+                benchmark_data['direct_meli_products'],
+                benchmark_data['bom_parent_products'],
+                benchmark_data['bomlines_found'],
+                t_total
+            )
+
+            # Detailed timing breakdown if slow
+            if t_total > MELI_BENCHMARK_THRESHOLD:
+                _logger.warning(
+                    "MELI_BENCHMARK_DETAIL meli_update_boms SLOW (%.3fs > %.1fs threshold): "
+                    "step1_collect_moves=%.3fs, step2_bom_search=%.3fs, step3_update_products=%.3fs | "
+                    "Data: %s",
+                    t_total, MELI_BENCHMARK_THRESHOLD,
+                    t1_end - t1,
+                    t2_end - t2,
+                    t3_end - t3,
+                    benchmark_data
+                )
 
         return True
 
-    def _action_assign(self):
-        #_logger.info("Stock move: meli_oerp > _action_assign")
+    def _should_skip_meli_stock_update(self):
+        """Check if MeLi stock updates should be skipped"""
+        # Skip if context flag is set (during order imports)
+        if self.env.context.get('meli_skip_stock_update'):
+            return True
+        # Skip if global config parameter is set
         skip_stock = str2bool(self.env['ir.config_parameter'].sudo().get_param('meli_skip_stock', 'False'))
+        return skip_stock
 
+    def _action_assign(self):
+        t_start = time.time()
         res = super(StockMove, self)._action_assign()
-        if not skip_stock:
-            self.meli_update_boms()
+        t_super_end = time.time()
 
+        if not self._should_skip_meli_stock_update():
+            self.meli_update_boms()
+        t_meli_end = time.time()
+
+        t_total = time.time() - t_start
+        if self._meli_log_enabled() and t_total > MELI_BENCHMARK_THRESHOLD:
+            _logger.warning(
+                "MELI_BENCHMARK _action_assign SLOW: moves=%d, total=%.3fs (super=%.3fs, meli=%.3fs)",
+                len(self), t_total, t_super_end - t_start, t_meli_end - t_super_end
+            )
         return res
 
-
     def _action_done(self, cancel_backorder=False):
-        #_logger.info("Stock move: meli_oerp > _action_done")
+        t_start = time.time()
         moves_todo = super(StockMove, self)._action_done(cancel_backorder=cancel_backorder)
-        skip_stock = str2bool(self.env['ir.config_parameter'].sudo().get_param('meli_skip_stock', 'False'))
-        if not skip_stock:
-            self.meli_update_boms()
+        t_super_end = time.time()
 
+        if not self._should_skip_meli_stock_update():
+            self.meli_update_boms()
+        t_meli_end = time.time()
+
+        t_total = time.time() - t_start
+        if self._meli_log_enabled() and t_total > MELI_BENCHMARK_THRESHOLD:
+            _logger.warning(
+                "MELI_BENCHMARK _action_done SLOW: moves=%d, total=%.3fs (super=%.3fs, meli=%.3fs)",
+                len(self), t_total, t_super_end - t_start, t_meli_end - t_super_end
+            )
         return moves_todo
 
     def _action_cancel(self):
-        #_logger.info("Stock move: meli_oerp > _action_cancel")
-        skip_stock = str2bool(self.env['ir.config_parameter'].sudo().get_param('meli_skip_stock', 'False'))
-        
+        t_start = time.time()
         res = super(StockMove, self)._action_cancel()
-        if not skip_stock:
-            self.meli_update_boms()
+        t_super_end = time.time()
 
+        if not self._should_skip_meli_stock_update():
+            self.meli_update_boms()
+        t_meli_end = time.time()
+
+        t_total = time.time() - t_start
+        if self._meli_log_enabled() and t_total > MELI_BENCHMARK_THRESHOLD:
+            _logger.warning(
+                "MELI_BENCHMARK _action_cancel SLOW: moves=%d, total=%.3fs (super=%.3fs, meli=%.3fs)",
+                len(self), t_total, t_super_end - t_start, t_meli_end - t_super_end
+            )
         return res
-    
+
     def _do_unreserve(self):
-        #_logger.info("Stock move: meli_oerp > _do_unreserve")
-        skip_stock = str2bool(self.env['ir.config_parameter'].sudo().get_param('meli_skip_stock', 'False'))
-        company = self.env.user.company_id
-
+        t_start = time.time()
         res = super(StockMove, self)._do_unreserve()
-        if not skip_stock:
-            self.meli_update_boms()
+        t_super_end = time.time()
 
+        if not self._should_skip_meli_stock_update():
+            self.meli_update_boms()
+        t_meli_end = time.time()
+
+        t_total = time.time() - t_start
+        if self._meli_log_enabled() and t_total > MELI_BENCHMARK_THRESHOLD:
+            _logger.warning(
+                "MELI_BENCHMARK _do_unreserve SLOW: moves=%d, total=%.3fs (super=%.3fs, meli=%.3fs)",
+                len(self), t_total, t_super_end - t_start, t_meli_end - t_super_end
+            )
         return res

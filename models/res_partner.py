@@ -75,7 +75,7 @@ class ResPartner(models.Model):
                 'zip': partner.zip,
                 'city': partner.city,
                 'phone': partner.phone,
-                'mobile': partner.mobile,
+                'mobile': getattr(partner, 'mobile', False) or False,
             }
             candidate_str = self._build_normalized_address_string(candidate_vals)
 
@@ -90,7 +90,7 @@ class ResPartner(models.Model):
 
             # Bonus points if phone matches (when provided)
             in_phone = self._normalize_phone(address_vals.get('phone') or address_vals.get('mobile') or '')
-            p_phone = self._normalize_phone(partner.phone or partner.mobile or '')
+            p_phone = self._normalize_phone(partner.phone or getattr(partner, 'mobile', '') or '')
             if in_phone and p_phone and in_phone == p_phone:
                 score += 0.1
 
@@ -121,7 +121,8 @@ class ResPartner(models.Model):
         raw = ' '.join(p for p in parts if p)
 
         # Lowercase, remove accents, remove non-alphanumeric except spaces
-        raw = tools.ustr(raw).lower()
+        # Note: ustr() is deprecated in Odoo 18, raw is already a string
+        raw = str(raw).lower()
         raw = tools.remove_accents(raw)
         raw = re.sub(r'[^a-z0-9\s]', ' ', raw)
         raw = re.sub(r'\s+', ' ', raw).strip()
