@@ -69,7 +69,9 @@ class warning(models.TransientModel):
             rmessage = "message" in rjson and rjson["message"]
             try:
                 rmessage = rmessage and json.loads(rmessage)
-            except:
+            except Exception as e:
+                _logger.info(e, exc_info=True)
+                _logger.error("rmessage not a json:"+str(rmessage))
                 pass;
                 
             rerror = "error" in rjson and rjson["error"]
