@@ -19,7 +19,7 @@
 #
 ##############################################################################
 
-from odoo import fields, osv, models, api
+from odoo import fields, models, api
 import logging
 from .meli_oerp_config import *
 
@@ -45,7 +45,15 @@ from . import product
 from . import product_post
 from . import posting
 from . import res_partner
-from pdf2image import convert_from_path, convert_from_bytes
+
+# pdf2image es opcional - solo se usa para generar preview JPG de etiquetas PDF
+PDF2IMAGE_AVAILABLE = False
+try:
+    from pdf2image import convert_from_bytes
+    PDF2IMAGE_AVAILABLE = True
+except ImportError:
+    convert_from_bytes = None
+    _logger.info("pdf2image no disponible - La preview de etiquetas PDF no estará habilitada")
 
 from dateutil.parser import *
 from datetime import *
@@ -60,9 +68,41 @@ from .versions import *
 
 #
 # https://api.mercadolibre.com/shipment_labels?shipment_ids=20178600648,20182100995&response_type=pdf&access_token=
+
+def _log_meli(title, payload):
+    try:
+        _logger.info(
+            "\n========== MELI DEBUG :: %s ==========\n%s\n=====================================",
+            title,
+            json.dumps(payload, indent=2, default=str),
+        )
+    except Exception:
+        _logger.info(
+            "\n========== MELI DEBUG :: %s ==========\n%s\n=====================================",
+            title,
+            payload,
+        )
+
+
+
 class mercadolibre_shipment_print(models.TransientModel):
     _name = "mercadolibre.shipment.print"
     _description = "Impresión de etiquetas"
+
+    from odoo import models, fields
+
+    include_ready_to_print = fields.Boolean(
+        string="Incluir etiquetas ya impresas",
+        default=False,
+        help="Permite reimprimir etiquetas ya impresas"
+    )
+
+    full_links = fields.Text(default='{}')
+
+    print_mode = fields.Selection(string="Modo",help="PDF o ZPL2",selection=[('pdf','PDF'),('zpl','ZPL')])
+
+    def shipment_stock_picking_print(self):
+        return self.shipment_print()
 
     def shipment_print(self, context=None, meli=None, config=None):
         context = context or self.env.context
@@ -154,6 +194,142 @@ class mercadolibre_shipment_print(models.TransientModel):
         return self.shipment_print_report(shipment_ids=shipment_ids,meli=meli,config=config,include_ready_to_print=self.include_ready_to_print)
 
 
+    def _get_labels_urls_auto_print(self, shipment_ids=[], meli=None, config=None, include_ready_to_print=None):
+        data = self._get_shipment_labels_data(
+            shipment_ids=shipment_ids,
+            meli=meli,
+            config=config,
+            include_ready_to_print=include_ready_to_print
+        )
+
+        urls = [token_data["url"] for token_data in data["by_token"].values()]
+
+        _log_meli(
+            "AUTO PRINT URL RESULT",
+            {
+                "shipment_ids": shipment_ids,
+                "urls": urls,
+                "print_mode": data.get("print_mode"),
+                "count": len(urls),
+            }
+        )
+
+        return {
+            "urls": urls,
+            "print_mode": data["print_mode"],
+            "count": len(urls),
+        }
+
+
+    def _get_shipment_labels_data(
+        self,
+        shipment_ids=[],
+        meli=None,
+        config=None,
+        include_ready_to_print=None
+    ):
+        shipment_obj = self.env["mercadolibre.shipment"]
+
+        # ------------------------------------------------------------
+        # 1) Decide print_mode ONCE (authoritative decision)
+        # ------------------------------------------------------------
+        if config and "mercadolibre_shipment_print_guide_mode" in config._fields:
+            resolved_print_mode = config.mercadolibre_shipment_print_guide_mode or "zpl"
+        else:
+            resolved_print_mode = "zpl"
+
+        result = {
+            "by_token": {},
+            "shipments_status": {
+                "ready": [],
+                "not_ready": []
+            },
+            "print_mode": resolved_print_mode,
+        }
+
+        _log_meli(
+            "GET SHIPMENT LABELS DATA :: INPUT",
+            {
+                "shipment_ids": shipment_ids,
+                "include_ready_to_print": include_ready_to_print,
+                "print_mode": resolved_print_mode,
+            }
+        )
+
+        # ------------------------------------------------------------
+        # 2) Iterate shipments (NO print_mode mutation here)
+        # ------------------------------------------------------------
+        for shipid in shipment_ids:
+            shipment = shipment_obj.browse(shipid)
+
+            ship_report = shipment.shipment_print(
+                meli=meli,
+                config=config,
+                include_ready_to_print=include_ready_to_print
+            )
+
+            _log_meli(
+                f"SHIPMENT PRINT RESULT [{shipment.shipping_id}]",
+                {
+                    "shipment_id": shipment.shipping_id,
+                    "status": shipment.status,
+                    "substatus": shipment.substatus,
+                    "date_first_printed": shipment.date_first_printed,
+                    "ship_report": ship_report,
+                }
+            )
+
+            is_already_printed = shipment.substatus == "printed"
+            should_include = (
+                shipment.status == "ready_to_ship"
+                and (not is_already_printed or include_ready_to_print)
+            )
+
+            if should_include:
+                atoken = ship_report.get("access_token")
+                if atoken:
+                    result["by_token"].setdefault(
+                        atoken,
+                        {"shipment_ids": [], "url": None}
+                    )
+                    result["by_token"][atoken]["shipment_ids"].append(
+                        shipment.shipping_id
+                    )
+                    result["shipments_status"]["ready"].append(
+                        {
+                            "shipment_id": shipment.shipping_id,
+                            "status": shipment.status,
+                            "substatus": shipment.substatus,
+                        }
+                    )
+            else:
+                result["shipments_status"]["not_ready"].append(
+                    {
+                        "shipment_id": shipment.shipping_id,
+                        "status": shipment.status,
+                        "substatus": shipment.substatus,
+                    }
+                )
+
+        # ------------------------------------------------------------
+        # 3) Build FINAL MELI URLs (single source of truth)
+        # ------------------------------------------------------------
+        response_type = "zpl2" if resolved_print_mode == "zpl" else "pdf"
+
+        for atoken, token_data in result["by_token"].items():
+            token_data["url"] = (
+                "https://api.mercadolibre.com/shipment_labels"
+                f"?shipment_ids={','.join(token_data['shipment_ids'])}"
+                f"&response_type={response_type}"
+                f"&access_token={atoken}"
+            )
+
+        _log_meli("FINAL LABEL AGGREGATION RESULT", result)
+
+        return result
+
+
+
     def shipment_stock_picking_print(self, context=None, meli=None, config=None):
         _logger.info("shipment_stock_picking_print")
         context = context or self.env.context
@@ -198,62 +374,36 @@ class mercadolibre_shipment_print(models.TransientModel):
         return self.shipment_print_report(shipment_ids=shipment_ids,meli=meli,config=config,include_ready_to_print=self.include_ready_to_print)
 
     def shipment_print_report(self, shipment_ids=[], meli=None, config=None, include_ready_to_print=None):
-        full_ids = ""
-        reporte = ""
-        sep = ""
-        full_url_link_pdf = {}
-        shipment_obj = self.env['mercadolibre.shipment']
-        warningobj = self.env['meli.warning']
+        data = self._get_shipment_labels_data(
+            shipment_ids=shipment_ids,
+            meli=meli,
+            config=config,
+            include_ready_to_print=include_ready_to_print
+        )
 
-        for shipid in shipment_ids:
-            shipment = shipment_obj.browse(shipid)
-            ship_report = shipment.shipment_print( meli=meli, config=config, include_ready_to_print=include_ready_to_print )
+        self.full_links = json.dumps(data["by_token"])
 
-            print_mode = mercadolibre_shipment_print_guide_mode
-            if (config and "mercadolibre_shipment_print_guide" in config._fields):
-                if (config["mercadolibre_shipment_print_guide_mode"]):
-                    print_mode = config["mercadolibre_shipment_print_guide_mode"]        
+        _log_meli("SHIPMENT PRINT REPORT", data)
 
-            reporte = reporte + sep + str( ship_report['message'] )
+        warningobj = self.env["meli.warning"]
 
-            if (shipment and shipment.status=="ready_to_ship"):
-                atoken = ship_report['access_token']
-                if atoken and not (atoken in full_url_link_pdf):
-                    full_url_link_pdf[atoken] = { 'full_ids': '', 'comma': '', 'full_link': '' }
+        if not data["by_token"]:
+            return warningobj.info(
+                title="Impresión de etiquetas",
+                message="No hay etiquetas listas para imprimir."
+            )
 
-                if atoken and atoken in full_url_link_pdf:
-                    full_url_link_pdf[atoken]['full_ids'] += full_url_link_pdf[atoken]['comma'] + shipment.shipping_id
-                    full_url_link_pdf[atoken]['comma']  = ","
+        urls = [token_data["url"] for token_data in data["by_token"].values()]
 
-                    full_url_link_pdf[atoken]['full_link'] = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_url_link_pdf[atoken]['full_ids']+"&response_type=pdf&access_token="+atoken
-                    if (print_mode=="zpl"):
-                        full_url_link_pdf[atoken]['full_link'] = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_url_link_pdf[atoken]['full_ids']+"&response_type=zpl2&access_token="+atoken
-
-            sep = "<br>"+"\n"
-
-        full_links = ''
-        for atoken in full_url_link_pdf:
-            #_logger.info('atoken:'+str(atoken))
-            full_ids+= full_url_link_pdf[atoken]['full_ids']
-            full_link = full_url_link_pdf[atoken]['full_link']
-            #_logger.info(full_link)
-            if full_link:
-                full_links+= '<a href="'+full_link+'" target="_blank"><strong><u>Descargar PDF/ZPL</u></strong></a>'
-
-        # full_url_link_pdf = {'otken': {'full_link': "https://api.mercadolibre.com/shipment_labels?shipment_ids=43272588025&amp;response_type=pdf&amp;access_token=APP_USR-6866649250908201-040908-e22cf17b7005c0ee37b953b972c7c53b-1682539048"}}
-        self.full_links= json.dumps(full_url_link_pdf)
-        if (full_links):
-            return warningobj.info( title='Impresión de etiquetas', message="Abrir links para descargar PDF/ZPL", message_html=""+full_ids+'<br><br>'+full_links+"<br><br>Reporte de no impresas:<br>"+reporte )
-        else:
-            return warningobj.info( title='Impresión de etiquetas: Estas etiquetas ya fueron todas impresas.', message=reporte )
-
-
-    include_ready_to_print = fields.Boolean(string="Include Ready To Print",default=False)
-    full_links = fields.Text(default='{}')
-
-    print_mode = fields.Selection(string="Modo",help="PDF o ZPL2",selection=[('pdf','PDF'),('zpl','ZPL')])
-    #&savePdf=Y
-    #&response_type=zpl2
+        return {
+            "type": "ir.actions.client",
+            "tag": "meli_shipment_auto_print",
+            "params": {
+                "urls": urls,
+                "print_mode": data["print_mode"],
+                "count": len(urls),
+            },
+        }
 
 
 
@@ -375,6 +525,29 @@ class mercadolibre_shipment(models.Model):
     sender_longitude = fields.Char('Sender Address Longitude')
 
     logistic_type = fields.Char('Logistic type',index=True)
+
+    # Lead time / Delivery estimates (from /shipments/{id} lead_time object)
+    shipping_method_id = fields.Char(string='Shipping Method ID')
+    shipping_method_type = fields.Char(string='Shipping Method Type')  # standard, express
+    shipping_method_name = fields.Char(string='Shipping Method Name')
+    shipping_method_deliver_to = fields.Char(string='Deliver To')  # address, agency
+    service_id = fields.Char(string='Service ID')
+    cost_type = fields.Char(string='Cost Type')  # free, charged, partially_free
+
+    estimated_delivery_date = fields.Datetime(string='Estimated Delivery Date')
+    estimated_delivery_type = fields.Char(string='Estimated Delivery Type')  # known, unknown, known_frame
+    estimated_delivery_shipping = fields.Integer(string='Estimated Shipping Time')
+    estimated_delivery_handling = fields.Integer(string='Estimated Handling Time')
+    estimated_delivery_unit = fields.Char(string='Estimated Delivery Unit')  # hour
+    estimated_delivery_offset_date = fields.Datetime(string='Estimated Delivery Offset Date')
+    estimated_handling_limit = fields.Datetime(string='Estimated Handling Limit')
+    estimated_delivery_extended = fields.Datetime(string='Estimated Delivery Extended')
+    estimated_delivery_limit = fields.Datetime(string='Estimated Delivery Limit')
+    estimated_delivery_final = fields.Datetime(string='Estimated Delivery Final')
+    delay = fields.Char(string='Delay')
+
+    # Status history (JSON text)
+    status_history_json = fields.Text(string='Status History JSON')
 
     pdf_link = fields.Char('Pdf link')
     pdf_file = fields.Binary(string='Pdf File',attachment=True)
@@ -621,15 +794,24 @@ class mercadolibre_shipment(models.Model):
                     set_delivery_line(sorder, delivery_price, delivery_message )
 
 
-                if shipment.shipping_list_cost or shipment.shipping_seller_cost:
+                # Set purchase_price (Coste) on the delivery line for margin calculation.
+                # Priority: shipping_seller_cost (what ML charges the seller) > shipping_list_cost (fallback)
+                # Also check sorder.meli_shipping_seller_cost as it may have been set from payment processing
+                # before the shipment object got the value (timing issue).
+                ship_cost_for_purchase_price = (
+                    shipment.shipping_seller_cost
+                    or (sorder and sorder.meli_shipping_seller_cost)
+                    or shipment.shipping_list_cost
+                    or 0.0
+                )
+                if ship_cost_for_purchase_price:
                     delivery_line = get_delivery_line( sorder )
                     if delivery_line and 'purchase_price' in delivery_line._fields:
-                        delivery_line.purchase_price = sorder._ml_get_purchase_price_from_amount( 
+                        delivery_line.purchase_price = sorder._ml_get_purchase_price_from_amount(
                             product=product_shipping_id,
-                            amount=shipment.shipping_seller_cost,
-                            amount_type="tax_included",  # or 'tax_excluded' depending on what fea_amount is
+                            amount=ship_cost_for_purchase_price,
+                            amount_type="tax_included",
                             quantity=1.0 )
-                        #float(shipment.shipping_seller_cost)
 
                 if 1==1 and delivery_price<=0.0:
                     #_logger.info("Procesar delivery_price == 0")
@@ -810,6 +992,7 @@ class mercadolibre_shipment(models.Model):
         if not meli:
             meli = self.env['meli.util'].get_new_instance(company)
             if meli.need_login():
+                _logger.info("Meli needs login")
                 return meli.redirect_login()
 
         ship_id = False
@@ -818,7 +1001,9 @@ class mercadolibre_shipment(models.Model):
         if (order and "shipping_id" in order._fields and order.shipping_id):
             ship_id = order.shipping_id
         else:
+            _logger.info("No hay orden o shipping_id")
             return None
+        
 
         ship_json = None
         if meli.access_token=="PASIVA":
@@ -866,6 +1051,11 @@ class mercadolibre_shipment(models.Model):
         if (response):
             ship_json = ship_json or response.json()
             #_logger.info( ship_json )
+            _log_meli(
+                f"SHIPMENT API RESPONSE /shipments/{ship_id}",
+                ship_json
+            )
+
 
             if "error" in ship_json:
                 _logger.error( ship_json["error"] )
@@ -920,6 +1110,61 @@ class mercadolibre_shipment(models.Model):
                     "sender_id": ship_json["sender_id"],
                     "logistic_type": ("logistic_type" in ship_json and ship_json["logistic_type"]) or ""
                 }
+
+                # Parse status_history
+                if "status_history" in ship_json and ship_json["status_history"]:
+                    import json
+                    try:
+                        ship_fields["status_history_json"] = json.dumps(ship_json["status_history"])
+                    except Exception:
+                        pass
+
+                # Parse lead_time data (delivery estimates, shipping method, etc.)
+                lead_time = ship_json.get("lead_time") or {}
+                if lead_time:
+                    sm = lead_time.get("shipping_method") or {}
+                    ship_fields.update({
+                        "shipping_method_id": sm.get("id", ""),
+                        "shipping_method_type": sm.get("type", ""),
+                        "shipping_method_name": sm.get("name", ""),
+                        "shipping_method_deliver_to": sm.get("deliver_to", ""),
+                        "service_id": lead_time.get("service_id", ""),
+                        "cost_type": lead_time.get("cost_type", ""),
+                    })
+
+                    edt = lead_time.get("estimated_delivery_time") or {}
+                    if edt:
+                        ship_fields.update({
+                            "estimated_delivery_type": edt.get("type", ""),
+                            "estimated_delivery_date": ml_datetime(edt.get("date")),
+                            "estimated_delivery_shipping": edt.get("shipping", 0),
+                            "estimated_delivery_handling": edt.get("handling", 0),
+                            "estimated_delivery_unit": edt.get("unit", ""),
+                        })
+                        offset = edt.get("offset") or {}
+                        if offset.get("date"):
+                            ship_fields["estimated_delivery_offset_date"] = ml_datetime(offset["date"])
+
+                    ehl = lead_time.get("estimated_handling_limit") or {}
+                    if ehl.get("date"):
+                        ship_fields["estimated_handling_limit"] = ml_datetime(ehl["date"])
+
+                    ede = lead_time.get("estimated_delivery_extended") or {}
+                    if ede.get("date"):
+                        ship_fields["estimated_delivery_extended"] = ml_datetime(ede["date"])
+
+                    edl = lead_time.get("estimated_delivery_limit") or {}
+                    if edl.get("date"):
+                        ship_fields["estimated_delivery_limit"] = ml_datetime(edl["date"])
+
+                    edf = lead_time.get("estimated_delivery_final") or {}
+                    if edf.get("date"):
+                        ship_fields["estimated_delivery_final"] = ml_datetime(edf["date"])
+
+                    delays = lead_time.get("delay") or []
+                    if delays:
+                        ship_fields["delay"] = ",".join(str(d) for d in delays)
+
                 if "receiver_address" in ship_json and ship_json["receiver_address"]:
                     ship_fields.update({
                         "receiver_address_id": ship_json["receiver_address"]["id"],
@@ -1055,34 +1300,22 @@ class mercadolibre_shipment(models.Model):
                     for item in items_json:
                         shipment.update_item(item)
 
-                    try:
-                        #_logger.info("ships.pdf_filename:")
-                        #_logger.info(shipment.pdf_filename)
-                        if (1==1 and shipment.pdf_filename):
-                            #_logger.info("We have a pdf file")
-                            if (shipment.pdfimage_filename==False):
-                                #_logger.info("Try create a pdf image file")
-                                data = base64.b64decode( shipment.pdf_file )
-                                images = convert_from_bytes(data, dpi=300,fmt='jpg')
+                    # Generar preview JPG de la etiqueta PDF (solo si pdf2image está disponible)
+                    if PDF2IMAGE_AVAILABLE:
+                        try:
+                            if shipment.pdf_filename and not shipment.pdfimage_filename:
+                                data = base64.b64decode(shipment.pdf_file)
+                                images = convert_from_bytes(data, dpi=300, fmt='jpg')
                                 for image in images:
-                                    image_filename = "/tmp/%s-page%d.jpg" % ("Shipment_"+shipment.shipping_id, images.index(image))
+                                    image_filename = "/tmp/%s-page%d.jpg" % ("Shipment_" + shipment.shipping_id, images.index(image))
                                     image.save(image_filename, "JPEG")
-                                    if (images.index(image)==0):
-                                        imgdata = urlopen("file://"+image_filename).read()
+                                    if images.index(image) == 0:
+                                        imgdata = urlopen("file://" + image_filename).read()
                                         shipment.pdfimage_file = base64encode(imgdata)
-                                        shipment.pdfimage_filename = "Shipment_"+shipment.shipping_id+".jpg"
-                                #if (len(images)):
-                                #    _logger.info(images)
-                                    #for image in images:
-                                    #base64.b64decode( pimage.image )
-                                #    image = images[1]
-                                #    ships.pdfimage_file = base64encodestring(image.tobytes())
-                                #    ships.pdfimage_filename = "Shipment_"+ships.shipping_id+".jpg"
-                    except Exception as e:
-                        _logger.info("Error converting pdf to jpg: try installing pdf2image and poppler-utils, like this:")
-                        _logger.info("sudo apt install poppler-utils && sudo pip install pdf2image")
-                        _logger.info(e, exc_info=True)
-                        pass;
+                                        shipment.pdfimage_filename = "Shipment_" + shipment.shipping_id + ".jpg"
+                        except Exception as e:
+                            _logger.debug("Error converting pdf to jpg: %s", str(e))
+                            pass
 
                 #associate order if it was non pack order created bir orders.py
                 if (ship_fields["pack_order"]==False):
@@ -1449,57 +1682,116 @@ class mercadolibre_shipment(models.Model):
             if (config and "mercadolibre_shipment_print_guide_mode" in config._fields):
                 print_mode = config["mercadolibre_shipment_print_guide_mode"]        
 
-        if (shipment and shipment.status=="ready_to_ship"):
+        _log_meli(
+            "SHIPMENT PRINT ENTRY",
+            {
+                "shipment_id": shipment.shipping_id,
+                "status": shipment.status,
+                "substatus": shipment.substatus,
+                "date_first_printed": shipment.date_first_printed,
+                "include_ready_to_print": include_ready_to_print,
+                "print_mode": print_mode,
+                "access_token": meli.access_token,
+            }
+        )
 
-            #full_str_ids = full_str_ids + comma + shipment
-            if (print_mode=='pdf'):
-                download_url = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+shipment.shipping_id+"&response_type=pdf&access_token="+meli.access_token
-            if (print_mode=='zpl'):
-                download_url = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+shipment.shipping_id+"&response_type=zpl2&access_token="+meli.access_token
-    
-            shipment.pdf_link = download_url
+        ship_report = {"message": "", "access_token": meli.access_token}
 
-            if (shipment.substatus=="printed" or include_ready_to_print):            
+        if shipment.status == "ready_to_ship":
+            response_type = "zpl2" if print_mode == "zpl" else "pdf"
+            download_url = (
+                "https://api.mercadolibre.com/shipment_labels"
+                f"?shipment_ids={shipment.shipping_id}"
+                f"&response_type={response_type}"
+                f"&access_token={meli.access_token}"
+            )
 
-                try:
-                    if (print_mode=='pdf'):
-                        data = urlopen(shipment.pdf_link).read()
-                        #_logger.info(data)
-                        shipment.pdf_filename = "Shipment_"+shipment.shipping_id+".pdf"
-                        shipment.pdf_file = base64.b64encode(data)
-                        images = convert_from_bytes(data, dpi=300,fmt='jpg')
-                        if (1==1 and len(images)>1):
-                            for image in images:
-                                image_filename = "/tmp/%s-page%d.jpg" % ("Shipment_"+shipment.shipping_id, images.index(image))
-                                image.save(image_filename, "JPEG")
-                                if (images.index(image)==0):
-                                    imgdata = urlopen("file://"+image_filename).read()
-                                    shipment.pdfimage_file = base64.b64encode(imgdata)
-                                    shipment.pdfimage_filename = "Shipment_"+shipment.shipping_id+".jpg"
-                    
-                    if (print_mode=='zpl'):
-                        data = urlopen(shipment.pdf_link).read()
-                        shipment.pdf_filename = "Shipment_"+shipment.shipping_id+".zpl"
-                        shipment.pdf_file = base64.b64encode(data)
-
-
-                except Exception as e:
-                    _logger.info("Exception!")
-                    _logger.info(e, exc_info=True)
-                    #return warningobj.info( title='Impresión de etiquetas: Error descargando guias', message=download_url )
-                    if (print_mode=='pdf'):
-                        ship_report['message'] = "Error descargando pdf:" + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)+'<a href="'+download_url+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'
-                    if (print_mode=='zpl'):
-                        ship_report['message'] = "Error descargando zpl:" + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)+'<a href="'+download_url+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'
-
-                    #sep = "<br>"+"\n"
+            _log_meli(
+                "LABEL URL GENERATED",
+                {
+                    "shipment_id": shipment.shipping_id,
+                    "url": download_url,
+                    "print_mode": print_mode,
+                }
+            )
 
         else:
-            ship_report['message'] = str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)
-            #sep = "<br>"+"\n"
+            ship_report["message"] = (
+                f"{shipment.shipping_id} - Status: {shipment.status} "
+                f"- SubStatus: {shipment.substatus}"
+            )
 
         return ship_report
 
+
+
+
+        ### HELPER FOR FETCHING STATUS AND SUBSTATUS IN MELI NOT FABRICIO! Imanol
+    
+    def fetch_shipment_status_only(self, meli=None, config=None):
+        """
+        SAFE helper:
+        - Fetches live shipment from MELI
+        - Updates ONLY logistics fields
+        - No sale.order logic
+        - No pricelist
+        - Barcode-safe
+        """
+        self.ensure_one()
+
+        company = (config and getattr(config, "company_id", None)) or self.env.user.company_id
+        config = config or company
+
+        if not meli:
+            meli = self.env["meli.util"].get_new_instance(company)
+
+        if meli.need_login():
+            _logger.warning(
+                "[MELI HELPER] MELI needs login (shipment %s)",
+                self.shipping_id,
+            )
+            return None
+
+        if not self.shipping_id:
+            _logger.warning("[MELI HELPER] Shipment has no shipping_id")
+            return None
+
+        response = meli.get(
+            f"/shipments/{self.shipping_id}",
+            {"access_token": meli.access_token},
+        )
+
+        if not response:
+            _logger.error(
+                "[MELI HELPER] No response from MELI for shipment %s",
+                self.shipping_id,
+            )
+            return None
+
+        ship_json = response.json()
+
+        if "error" in ship_json:
+            _logger.error(
+                "[MELI HELPER] MELI error for shipment %s: %s",
+                self.shipping_id,
+                ship_json,
+            )
+            return None
+
+        _logger.info(
+            "[MELI HELPER] Live shipment fetched %s → status=%s substatus=%s",
+            self.shipping_id,
+            ship_json.get("status"),
+            ship_json.get("substatus"),
+        )
+
+        vals = {
+            "status": ship_json.get("status"),
+            "substatus": ship_json.get("substatus"),
+        }
+
+        self.sudo().write(vals)
+        return self
 
 
 class AccountInvoice(models.Model):

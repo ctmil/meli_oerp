@@ -19,14 +19,13 @@
 #
 ##############################################################################
 
-from odoo import models, fields, api, osv
+from odoo import models, fields, api
 from odoo.tools.translate import _
 
 import pdb
 import logging
 _logger = logging.getLogger(__name__)
 
-import unidecode
 import hashlib
 import math
 import requests
@@ -179,7 +178,155 @@ class product_template(models.Model):
 
         return ret
 
-    def _variations(self, meli=None, config=None):
+    def _collect_and_upload_images_for_meli(self, meli=None, config=None):
+        """
+        Recolecta y sube todas las imagenes del template y sus variantes a MercadoLibre.
+
+        Prioridad de imagenes (garantiza que cada variante tenga su imagen principal):
+        1. Imagen principal de cada variante que sea propia (image_variant_1920)
+        2. Imagen principal del template (image_1920)
+        3. Imagenes adicionales del template (product_template_image_ids)
+        4. Imagenes adicionales de variantes (product_variant_image_ids)
+
+        El recorte a MAX_PICTURES se aplica al final, asi las imagenes principales
+        de cada variante siempre quedan incluidas.
+
+        Retorna un diccionario con:
+        - 'all_pic_ids': lista de todos los IDs de imagenes subidas
+        - 'template_pic_ids': lista de IDs de imagenes del template
+        - 'variant_pic_map': dict variant.id -> lista de IDs especificos de esa variante
+        - 'all_pictures': lista de dicts {'id': meli_id} para body["pictures"]
+        """
+        self.ensure_one()
+        product_tmpl = self
+        company = self.env.user.company_id
+        config = config or company
+
+        MAX_PICTURES = 10
+
+        all_pic_ids = []
+        all_pictures = []
+        template_pic_ids = []
+        variant_pic_map = {}  # variant.id -> [pic_ids]
+
+        # Recolectar imagenes en 4 listas separadas por prioridad
+        priority_1_variant_main = []   # Imagen principal propia de cada variante
+        priority_2_template_main = []  # Imagen principal del template
+        priority_3_template_extra = [] # Imagenes adicionales del template
+        priority_4_variant_extra = []  # Imagenes adicionales de variantes
+
+        # PRIORIDAD 1: Imagen principal de cada variante que sea propia
+        for variant in product_tmpl.product_variant_ids:
+            if hasattr(variant, 'image_variant_1920') and variant.image_variant_1920:
+                priority_1_variant_main.append((variant.image_variant_1920, 'variant_main', variant.id))
+
+        # PRIORIDAD 2: Imagen principal del template
+        if product_tmpl.image_1920:
+            priority_2_template_main.append((product_tmpl.image_1920, 'template_main', None))
+
+        # PRIORIDAD 3: Imagenes adicionales del template
+        tpl_image_ids = template_image_ids(product_tmpl)
+        if tpl_image_ids:
+            for img in tpl_image_ids:
+                img_data = get_image_full(img)
+                if img_data:
+                    priority_3_template_extra.append((img_data, 'template_extra', None))
+
+        # PRIORIDAD 4: Imagenes adicionales de variantes (product_variant_image_ids)
+        for variant in product_tmpl.product_variant_ids:
+            var_images = variant_image_ids(variant)
+            if var_images:
+                for img in var_images:
+                    img_data = get_image_full(img)
+                    if img_data:
+                        priority_4_variant_extra.append((img_data, 'variant_extra', variant.id))
+
+        # Concatenar en orden de prioridad
+        images_to_upload = (priority_1_variant_main
+                          + priority_2_template_main
+                          + priority_3_template_extra
+                          + priority_4_variant_extra)
+
+        _logger.info("MELI Images collected: %d variant_main, %d template_main, %d template_extra, %d variant_extra = %d total",
+                     len(priority_1_variant_main), len(priority_2_template_main),
+                     len(priority_3_template_extra), len(priority_4_variant_extra),
+                     len(images_to_upload))
+
+        # Limitar a MAX_PICTURES (las de menor prioridad se recortan primero)
+        if len(images_to_upload) > MAX_PICTURES:
+            _logger.warning("MELI Images: Limitando de %d a %d imagenes (se recortan las de menor prioridad)",
+                          len(images_to_upload), MAX_PICTURES)
+            images_to_upload = images_to_upload[:MAX_PICTURES]
+
+        # Subir todas las imagenes a MercadoLibre
+        for img_data, source_type, variant_id in images_to_upload:
+            try:
+                imagebin = base64.b64decode(img_data)
+                files = {'file': ('image.jpg', imagebin, "image/jpeg")}
+                response = meli.upload("/pictures", files, {'access_token': meli.access_token})
+                rjson = response and response.json()
+
+                if rjson and 'id' in rjson:
+                    meli_img_id = rjson['id']
+                    all_pic_ids.append(meli_img_id)
+                    all_pictures.append({'id': meli_img_id})
+
+                    if source_type in ('template_main', 'template_extra'):
+                        template_pic_ids.append(meli_img_id)
+                    elif source_type in ('variant_main', 'variant_extra') and variant_id:
+                        if variant_id not in variant_pic_map:
+                            variant_pic_map[variant_id] = []
+                        variant_pic_map[variant_id].append(meli_img_id)
+
+                    _logger.info("MELI Image uploaded: %s (source: %s, variant: %s)", meli_img_id, source_type, variant_id)
+                elif rjson and 'error' in rjson:
+                    _logger.error("MELI Image upload error: %s", rjson)
+            except Exception as e:
+                _logger.error("Error uploading image to MELI: %s", str(e))
+
+        return {
+            'all_pic_ids': all_pic_ids,
+            'all_pictures': all_pictures,
+            'template_pic_ids': template_pic_ids,
+            'variant_pic_map': variant_pic_map,
+        }
+
+    def _get_variation_picture_ids(self, variant, image_data):
+        """
+        Determina los picture_ids que debe usar una variante en MercadoLibre.
+
+        Logica:
+        - Si la variante tiene imagenes propias, usar esas primero + imagenes del template
+        - Si no tiene imagenes propias, usar solo imagenes del template
+
+        @param variant: product.product record
+        @param image_data: dict retornado por _collect_and_upload_images_for_meli
+        @return: lista de picture_ids para esta variante (max 10)
+        """
+        pic_ids = []
+
+        # Primero las imagenes especificas de la variante
+        variant_pics = image_data.get('variant_pic_map', {}).get(variant.id, [])
+        pic_ids.extend(variant_pics)
+
+        # Luego las imagenes del template
+        template_pics = image_data.get('template_pic_ids', [])
+        for tpl_pic in template_pics:
+            if tpl_pic not in pic_ids:
+                pic_ids.append(tpl_pic)
+
+        # Limitar a 10 por variante
+        return pic_ids[:10]
+
+    def _variations(self, meli=None, config=None, template_pic_ids=None, image_data=None):
+        """
+        Genera las variaciones del producto para publicar en MercadoLibre.
+
+        @param template_pic_ids: Lista de IDs de imagenes del template (modo legacy).
+        @param image_data: Dict retornado por _collect_and_upload_images_for_meli.
+                          Si se proporciona, se usara para asignar imagenes especificas
+                          a cada variante segun su color/atributo.
+        """
         variations = False
         for product_tmpl in self:
             for variant in product_tmpl.product_variant_ids:
@@ -196,20 +343,27 @@ class product_template(models.Model):
                         if (variations==False):
                             variations = []
 
-                        #IMAGENES POR VARIANTE
-                        variant.product_meli_upload_image(meli=meli,config=config)
-                        var_multi_images_ids = variant.product_meli_upload_multi_images(meli=meli,config=config)
+                        # Nuevo sistema: usar image_data para asignar imagenes especificas por variante
+                        if image_data:
+                            var_pics = product_tmpl._get_variation_picture_ids(variant, image_data)
+                        # Sistema legacy: usar template_pic_ids para todas las variantes
+                        elif template_pic_ids:
+                            var_pics = template_pic_ids[:10]  # Max 10 por variacion
+                        else:
+                            #IMAGENES POR VARIANTE (comportamiento original)
+                            variant.product_meli_upload_image(meli=meli,config=config)
+                            var_multi_images_ids = variant.product_meli_upload_multi_images(meli=meli,config=config)
 
-                        var_pics.append(variant.meli_imagen_id)
-                        var_pics_full.append({ 'id': variant.meli_imagen_id })
-                        if (var_multi_images_ids):
-                            for pic in var_multi_images_ids:
-                                if pic and 'id' in pic:
-                                    var_pics.append(pic['id'])
-                                    var_pics_full.append({ 'id': pic['id']})
-                        # Limit variation pictures to 10 (MercadoLibre API limit per variation)
-                        if var_pics and len(var_pics) > 10:
-                            var_pics = var_pics[:10]
+                            var_pics.append(variant.meli_imagen_id)
+                            var_pics_full.append({ 'id': variant.meli_imagen_id })
+                            if (var_multi_images_ids):
+                                for pic in var_multi_images_ids:
+                                    if pic and 'id' in pic:
+                                        var_pics.append(pic['id'])
+                                        var_pics_full.append({ 'id': pic['id']})
+                            # Limit variation pictures to 10 (MercadoLibre API limit per variation)
+                            if var_pics and len(var_pics) > 10:
+                                var_pics = var_pics[:10]
                         var_pics and var.update({"picture_ids": var_pics})
 
                         #ATRIBUTOS POR VARIANTE (SKU; GTIN, etc...)
@@ -3450,6 +3604,11 @@ class product_product(models.Model):
                     body["pictures"] = [ { 'source': product.meli_imagen_logo} ]
 
             _logger.info("Setted body pictures: "+str(body["pictures"]))
+            # MAX 12 imagenes en total (limite de MercadoLibre para la mayoria de categorias)
+            # Limitamos a 10 para dejar espacio a imagenes de variaciones
+            MAX_PICTURES = 10
+            if body["pictures"] and len(body["pictures"]) > MAX_PICTURES:
+                body["pictures"] = body["pictures"][:MAX_PICTURES]
         else:
             imagen_producto = ""
 
@@ -3487,6 +3646,9 @@ class product_product(models.Model):
 
                         _logger.info("Variations already posted, must update them only")
                         vars_updated = self.env["product.product"]
+                        # Usar las imagenes del template para las variaciones
+                        # Esto evita exceder el limite de 12 imagenes de MercadoLibre
+                        template_pic_ids = [pic['id'] for pic in body["pictures"] if 'id' in pic]
                         for ix in range(len(productjson["variations"]) ):
                             var_info = productjson["variations"][ix]
                             #_logger.info("Variation to update!!")
@@ -3499,19 +3661,9 @@ class product_product(models.Model):
                                     #upgrade variant stock
                                     var_product.meli_available_quantity = var_product._meli_available_quantity(meli=meli,config=config)
 
-                                    #adding variant images
-                                    var_product.product_meli_upload_image(meli=meli,config=config)
-                                    var_multi_images_ids = var_product.product_meli_upload_multi_images(meli=meli,config=config)
-                                    #_logger.info("Uploaded var_multi_images_ids: "+str(var_multi_images_ids))
-
-
-                                    var_pics.append(var_product.meli_imagen_id)
-                                    var_pics_full.append({ 'id': var_product.meli_imagen_id })
-                                    if (var_multi_images_ids):
-                                        for pic in var_multi_images_ids:
-                                            if pic and 'id' in pic:
-                                                var_pics.append(pic['id'])
-                                                var_pics_full.append({ 'id': pic['id']})
+                                    #adding variant images - usar imagenes del template para evitar exceder limite
+                                    var_pics = template_pic_ids[:10]  # Max 10 por variacion
+                                    var_pics_full = [{ 'id': pic_id } for pic_id in var_pics]
 
                                     #TODO: add SKU
                                     var_attributes = var_product._update_sku_attribute( attributes=("attributes" in var_info and var_info["attributes"]) or [],
@@ -3537,7 +3689,8 @@ class product_product(models.Model):
                             varias["variations"].append(var)
                             varias["pictures"] = var_pics_full
 
-                        _all_variations = product_tmpl._variations(meli=meli, config=config)
+                        # Pasar imagenes del template para nuevas variaciones
+                        _all_variations = product_tmpl._variations(meli=meli, config=config, template_pic_ids=template_pic_ids)
                         _updated_ids = vars_updated.mapped('id')
                         _logger.info(_updated_ids)
                         _new_candidates = product_tmpl.product_variant_ids.filtered(lambda pv: pv.id not in _updated_ids)
@@ -3590,7 +3743,10 @@ class product_product(models.Model):
 
                         return {}
                     else:
-                        variations = product_tmpl._variations(meli=meli, config=config)
+                        # Pasar las imagenes del template para que las variaciones las usen
+                        # Esto evita exceder el limite de 12 imagenes de MercadoLibre
+                        template_pic_ids = [pic['id'] for pic in body["pictures"] if 'id' in pic]
+                        variations = product_tmpl._variations(meli=meli, config=config, template_pic_ids=template_pic_ids)
                         _logger.info("Variations:")
                         _logger.info(variations)
                         if (variations):

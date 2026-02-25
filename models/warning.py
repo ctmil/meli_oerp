@@ -1,4 +1,4 @@
-from odoo import fields, osv, models
+from odoo import fields, models
 from odoo.tools.translate import _
 import pdb
 import json
