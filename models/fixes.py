@@ -1,5 +1,5 @@
 
-from odoo import fields, osv, models, api
+from odoo import fields, models, api
 from odoo.tools.translate import _
 import logging
 _logger = logging.getLogger(__name__)
@@ -26,7 +26,11 @@ import pytz
 from odoo import _, _lt, api, fields, models
 from odoo.fields import Command
 from odoo.models import BaseModel, NewId
-from odoo.osv.expression import AND, TRUE_DOMAIN, normalize_domain
+# Odoo 19: odoo.osv.expression moved to odoo.domain
+try:
+    from odoo.domain import AND, TRUE_DOMAIN, normalize_domain
+except ImportError:
+    from odoo.osv.expression import AND, TRUE_DOMAIN, normalize_domain
 from odoo.tools import date_utils, unique
 from odoo.tools.misc import OrderedSet, get_lang
 from odoo.exceptions import UserError

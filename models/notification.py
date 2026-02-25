@@ -20,13 +20,14 @@
 ##############################################################################
 
 import os
+import json
 import logging
 _logger = logging.getLogger(__name__)
 
 import requests
 from datetime import datetime
 
-from odoo import fields, osv, models, api
+from odoo import fields, models, api
 from odoo.tools.translate import _
 from odoo import tools
 
@@ -77,6 +78,7 @@ class MercadolibreNotification(models.Model):
     processing_ended = fields.Datetime( string="Processing ended" )
     processing_errors = fields.Text( string="Processing Errors log" )
     processing_logs = fields.Text( string="Processing Logs" )
+    last_json_response = fields.Text( string="Last JSON Response", help="Último JSON recibido de la API de MercadoLibre" )
     company_id = fields.Many2one("res.company",string="Company",index=True)
     seller_id = fields.Many2one("res.users",string="Seller")
 
@@ -257,6 +259,10 @@ class MercadolibreNotification(models.Model):
                 res = meli.get(""+str(noti.resource), {'access_token':meli.access_token} )
                 ojson =  res.json()
                 _logger.info(ojson)
+
+                # Guardar último JSON de respuesta
+                noti.last_json_response = json.dumps(ojson, indent=2, ensure_ascii=False, default=str) if ojson else None
+
                 if (ojson and 'error' in ojson):
                     noti.state = 'FAILED'
                     noti.processing_errors = str(ojson['error'])
@@ -311,9 +317,12 @@ class MercadolibreNotification(models.Model):
 
                 meli_id = resource.replace('/items/', '')
 
-                # Fetch item data from ML API
-                response = meli.get(resource, {'access_token': meli.access_token})
+                # Fetch item data from ML API with include_attributes=all
+                response = meli.get(resource, {'access_token': meli.access_token, 'include_attributes': 'all'})
                 item_json = response.json()
+
+                # Guardar último JSON de respuesta
+                noti.last_json_response = json.dumps(item_json, indent=2, ensure_ascii=False, default=str) if item_json else None
 
                 if 'error' in item_json:
                     noti.state = 'FAILED'
