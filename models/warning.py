@@ -1,4 +1,4 @@
-from odoo import fields, osv, models
+from odoo import fields, models
 from odoo.tools.translate import _
 import pdb
 import json
@@ -107,7 +107,7 @@ class warning(models.TransientModel):
                         #message_html+= "<br/>Estado: "+str(estatus)
                     if rmess == "cause":
                         ecause = rmessage[rmess]
-                        if len(ecause) and type(ecause)==list:
+                        if isinstance(ecause, list) and len(ecause):
                             for eca in ecause:
                                 if type(eca)==dict:
                                     ecatype = "type" in eca and eca["type"]

@@ -19,7 +19,7 @@
 #
 ##############################################################################
 
-from odoo import fields, osv, models
+from odoo import fields, models
 import logging
 from . import versions
 from .versions import *

@@ -19,7 +19,7 @@
 #
 ##############################################################################
 
-from odoo import fields, osv, models, api
+from odoo import fields, models, api
 import logging
 from .meli_oerp_config import *
 
@@ -45,7 +45,15 @@ from . import product
 from . import product_post
 from . import posting
 from . import res_partner
-from pdf2image import convert_from_path, convert_from_bytes
+
+# pdf2image es opcional - solo se usa para generar preview JPG de etiquetas PDF
+PDF2IMAGE_AVAILABLE = False
+try:
+    from pdf2image import convert_from_bytes
+    PDF2IMAGE_AVAILABLE = True
+except ImportError:
+    convert_from_bytes = None
+    _logger.info("pdf2image no disponible - La preview de etiquetas PDF no estará habilitada")
 
 from dateutil.parser import *
 from datetime import *
@@ -376,6 +384,29 @@ class mercadolibre_shipment(models.Model):
 
     logistic_type = fields.Char('Logistic type',index=True)
 
+    # Lead time / Delivery estimates (from /shipments/{id} lead_time object)
+    shipping_method_id = fields.Char(string='Shipping Method ID')
+    shipping_method_type = fields.Char(string='Shipping Method Type')  # standard, express
+    shipping_method_name = fields.Char(string='Shipping Method Name')
+    shipping_method_deliver_to = fields.Char(string='Deliver To')  # address, agency
+    service_id = fields.Char(string='Service ID')
+    cost_type = fields.Char(string='Cost Type')  # free, charged, partially_free
+
+    estimated_delivery_date = fields.Datetime(string='Estimated Delivery Date')
+    estimated_delivery_type = fields.Char(string='Estimated Delivery Type')  # known, unknown, known_frame
+    estimated_delivery_shipping = fields.Integer(string='Estimated Shipping Time')
+    estimated_delivery_handling = fields.Integer(string='Estimated Handling Time')
+    estimated_delivery_unit = fields.Char(string='Estimated Delivery Unit')  # hour
+    estimated_delivery_offset_date = fields.Datetime(string='Estimated Delivery Offset Date')
+    estimated_handling_limit = fields.Datetime(string='Estimated Handling Limit')
+    estimated_delivery_extended = fields.Datetime(string='Estimated Delivery Extended')
+    estimated_delivery_limit = fields.Datetime(string='Estimated Delivery Limit')
+    estimated_delivery_final = fields.Datetime(string='Estimated Delivery Final')
+    delay = fields.Char(string='Delay')
+
+    # Status history (JSON text)
+    status_history_json = fields.Text(string='Status History JSON')
+
     pdf_link = fields.Char('Pdf link')
     pdf_file = fields.Binary(string='Pdf File',attachment=True)
     pdf_filename = fields.Char(string='Pdf Filename')
@@ -408,6 +439,30 @@ class mercadolibre_shipment(models.Model):
             sorder = shipment.sale_order
 
             if (sorder.state in ['done']) or ("locked" in sorder._fields and sorder.locked):
+                # Order is locked/done: skip structural changes (carrier, delivery line
+                # creation, address sync) but still update purchase_price on the existing
+                # delivery line.  shipping_seller_cost often arrives after the order is
+                # already confirmed, and without this the margin stays at 0.
+                try:
+                    ship_cost_for_pp = (
+                        shipment.shipping_seller_cost
+                        or (sorder and sorder.meli_shipping_seller_cost)
+                        or shipment.shipping_list_cost
+                        or 0.0
+                    )
+                    if ship_cost_for_pp:
+                        delivery_line = get_delivery_line(sorder)
+                        if delivery_line and 'purchase_price' in delivery_line._fields:
+                            product = delivery_line.product_id
+                            new_pp = sorder._ml_get_purchase_price_from_amount(
+                                product=product,
+                                amount=ship_cost_for_pp,
+                                amount_type="tax_included",
+                                quantity=1.0)
+                            if not delivery_line.purchase_price or abs(delivery_line.purchase_price - new_pp) > 0.01:
+                                delivery_line.purchase_price = new_pp
+                except Exception as e:
+                    _logger.warning("purchase_price update on locked order %s failed: %s", sorder.name, e)
                 continue;
 
             if (not sorder or not order):
@@ -420,13 +475,17 @@ class mercadolibre_shipment(models.Model):
                 _logger.error("Forbidden to update sale order by meli_oerp" )
                 return {'error': 'Forbidden to update sale order by meli_oerp' }
 
+            # Sync shipment costs -> sale order and ml order.
+            # NOTE: shipping_seller_cost is NOT set here from shipment because it originates
+            # from payment charges_details, not from the shipment API JSON.
+            # The flow is: payment -> order.shipping_seller_cost -> shipment (in fetch_shipment)
+            #           -> sorder.meli_shipping_seller_cost (set in orders.py payment processing)
+            # shipping_cost and shipping_list_cost come from the shipment API (shipping_option.cost/list_cost).
             sorder.meli_shipping_cost = shipment.shipping_cost
-            #sorder.meli_shipping_seller_cost = shipment.shipping_seller_cost
             sorder.meli_shipping_list_cost = shipment.shipping_list_cost
             sorder.meli_shipment_logistic_type = shipment.logistic_type or shipment.mode
 
             order.shipping_cost = shipment.shipping_cost
-            #order.shipping_seller_cost = shipment.shipping_seller_cost
             order.shipping_list_cost = shipment.shipping_list_cost
             order.shipment_logistic_type = shipment.logistic_type or shipment.mode
 
@@ -621,15 +680,24 @@ class mercadolibre_shipment(models.Model):
                     set_delivery_line(sorder, delivery_price, delivery_message )
 
 
-                if shipment.shipping_list_cost or shipment.shipping_seller_cost:
+                # Set purchase_price (Coste) on the delivery line for margin calculation.
+                # Priority: shipping_seller_cost (what ML charges the seller) > shipping_list_cost (fallback)
+                # Also check sorder.meli_shipping_seller_cost as it may have been set from payment processing
+                # before the shipment object got the value (timing issue).
+                ship_cost_for_purchase_price = (
+                    shipment.shipping_seller_cost
+                    or (sorder and sorder.meli_shipping_seller_cost)
+                    or shipment.shipping_list_cost
+                    or 0.0
+                )
+                if ship_cost_for_purchase_price:
                     delivery_line = get_delivery_line( sorder )
                     if delivery_line and 'purchase_price' in delivery_line._fields:
-                        delivery_line.purchase_price = sorder._ml_get_purchase_price_from_amount( 
+                        delivery_line.purchase_price = sorder._ml_get_purchase_price_from_amount(
                             product=product_shipping_id,
-                            amount=shipment.shipping_seller_cost,
-                            amount_type="tax_included",  # or 'tax_excluded' depending on what fea_amount is
+                            amount=ship_cost_for_purchase_price,
+                            amount_type="tax_included",
                             quantity=1.0 )
-                        #float(shipment.shipping_seller_cost)
 
                 if 1==1 and delivery_price<=0.0:
                     #_logger.info("Procesar delivery_price == 0")
@@ -810,6 +878,7 @@ class mercadolibre_shipment(models.Model):
         if not meli:
             meli = self.env['meli.util'].get_new_instance(company)
             if meli.need_login():
+                _logger.info("Meli needs login")
                 return meli.redirect_login()
 
         ship_id = False
@@ -818,7 +887,9 @@ class mercadolibre_shipment(models.Model):
         if (order and "shipping_id" in order._fields and order.shipping_id):
             ship_id = order.shipping_id
         else:
+            _logger.info("No hay orden o shipping_id")
             return None
+        
 
         ship_json = None
         if meli.access_token=="PASIVA":
@@ -920,6 +991,61 @@ class mercadolibre_shipment(models.Model):
                     "sender_id": ship_json["sender_id"],
                     "logistic_type": ("logistic_type" in ship_json and ship_json["logistic_type"]) or ""
                 }
+
+                # Parse status_history
+                if "status_history" in ship_json and ship_json["status_history"]:
+                    import json
+                    try:
+                        ship_fields["status_history_json"] = json.dumps(ship_json["status_history"])
+                    except Exception:
+                        pass
+
+                # Parse lead_time data (delivery estimates, shipping method, etc.)
+                lead_time = ship_json.get("lead_time") or {}
+                if lead_time:
+                    sm = lead_time.get("shipping_method") or {}
+                    ship_fields.update({
+                        "shipping_method_id": sm.get("id", ""),
+                        "shipping_method_type": sm.get("type", ""),
+                        "shipping_method_name": sm.get("name", ""),
+                        "shipping_method_deliver_to": sm.get("deliver_to", ""),
+                        "service_id": lead_time.get("service_id", ""),
+                        "cost_type": lead_time.get("cost_type", ""),
+                    })
+
+                    edt = lead_time.get("estimated_delivery_time") or {}
+                    if edt:
+                        ship_fields.update({
+                            "estimated_delivery_type": edt.get("type", ""),
+                            "estimated_delivery_date": ml_datetime(edt.get("date")),
+                            "estimated_delivery_shipping": edt.get("shipping", 0),
+                            "estimated_delivery_handling": edt.get("handling", 0),
+                            "estimated_delivery_unit": edt.get("unit", ""),
+                        })
+                        offset = edt.get("offset") or {}
+                        if offset.get("date"):
+                            ship_fields["estimated_delivery_offset_date"] = ml_datetime(offset["date"])
+
+                    ehl = lead_time.get("estimated_handling_limit") or {}
+                    if ehl.get("date"):
+                        ship_fields["estimated_handling_limit"] = ml_datetime(ehl["date"])
+
+                    ede = lead_time.get("estimated_delivery_extended") or {}
+                    if ede.get("date"):
+                        ship_fields["estimated_delivery_extended"] = ml_datetime(ede["date"])
+
+                    edl = lead_time.get("estimated_delivery_limit") or {}
+                    if edl.get("date"):
+                        ship_fields["estimated_delivery_limit"] = ml_datetime(edl["date"])
+
+                    edf = lead_time.get("estimated_delivery_final") or {}
+                    if edf.get("date"):
+                        ship_fields["estimated_delivery_final"] = ml_datetime(edf["date"])
+
+                    delays = lead_time.get("delay") or []
+                    if delays:
+                        ship_fields["delay"] = ",".join(str(d) for d in delays)
+
                 if "receiver_address" in ship_json and ship_json["receiver_address"]:
                     ship_fields.update({
                         "receiver_address_id": ship_json["receiver_address"]["id"],
@@ -1055,34 +1181,22 @@ class mercadolibre_shipment(models.Model):
                     for item in items_json:
                         shipment.update_item(item)
 
-                    try:
-                        #_logger.info("ships.pdf_filename:")
-                        #_logger.info(shipment.pdf_filename)
-                        if (1==1 and shipment.pdf_filename):
-                            #_logger.info("We have a pdf file")
-                            if (shipment.pdfimage_filename==False):
-                                #_logger.info("Try create a pdf image file")
-                                data = base64.b64decode( shipment.pdf_file )
-                                images = convert_from_bytes(data, dpi=300,fmt='jpg')
+                    # Generar preview JPG de la etiqueta PDF (solo si pdf2image está disponible)
+                    if PDF2IMAGE_AVAILABLE:
+                        try:
+                            if shipment.pdf_filename and not shipment.pdfimage_filename:
+                                data = base64.b64decode(shipment.pdf_file)
+                                images = convert_from_bytes(data, dpi=300, fmt='jpg')
                                 for image in images:
-                                    image_filename = "/tmp/%s-page%d.jpg" % ("Shipment_"+shipment.shipping_id, images.index(image))
+                                    image_filename = "/tmp/%s-page%d.jpg" % ("Shipment_" + shipment.shipping_id, images.index(image))
                                     image.save(image_filename, "JPEG")
-                                    if (images.index(image)==0):
-                                        imgdata = urlopen("file://"+image_filename).read()
+                                    if images.index(image) == 0:
+                                        imgdata = urlopen("file://" + image_filename).read()
                                         shipment.pdfimage_file = base64encode(imgdata)
-                                        shipment.pdfimage_filename = "Shipment_"+shipment.shipping_id+".jpg"
-                                #if (len(images)):
-                                #    _logger.info(images)
-                                    #for image in images:
-                                    #base64.b64decode( pimage.image )
-                                #    image = images[1]
-                                #    ships.pdfimage_file = base64encodestring(image.tobytes())
-                                #    ships.pdfimage_filename = "Shipment_"+ships.shipping_id+".jpg"
-                    except Exception as e:
-                        _logger.info("Error converting pdf to jpg: try installing pdf2image and poppler-utils, like this:")
-                        _logger.info("sudo apt install poppler-utils && sudo pip install pdf2image")
-                        _logger.info(e, exc_info=True)
-                        pass;
+                                        shipment.pdfimage_filename = "Shipment_" + shipment.shipping_id + ".jpg"
+                        except Exception as e:
+                            _logger.debug("Error converting pdf to jpg: %s", str(e))
+                            pass
 
                 #associate order if it was non pack order created bir orders.py
                 if (ship_fields["pack_order"]==False):
@@ -1371,6 +1485,15 @@ class mercadolibre_shipment(models.Model):
                         pass;
 
         if (shipment):
+            # FIX: Copy order.shipping_seller_cost to shipment BEFORE _update_sale_order_shipping_info
+            # so that purchase_price on the delivery line is calculated with the actual seller cost.
+            # shipping_seller_cost comes from payment charges_details (type="shipping" / name="shp_fulfillment")
+            # and is set on the order during payment processing, which runs before fetch_shipment.
+            # Previously this copy happened in orders.py AFTER fetch_shipment returned,
+            # causing _update_sale_order_shipping_info to use shipping_seller_cost=0.
+            if order and order.shipping_seller_cost:
+                shipment.shipping_seller_cost = order.shipping_seller_cost
+
             shipment._update_sale_order_shipping_info( order, meli=meli, config=config )
 
         return shipment
@@ -1462,22 +1585,26 @@ class mercadolibre_shipment(models.Model):
             if (shipment.substatus=="printed" or include_ready_to_print):            
 
                 try:
-                    if (print_mode=='pdf'):
+                    if print_mode == 'pdf':
                         data = urlopen(shipment.pdf_link).read()
-                        #_logger.info(data)
-                        shipment.pdf_filename = "Shipment_"+shipment.shipping_id+".pdf"
+                        shipment.pdf_filename = "Shipment_" + shipment.shipping_id + ".pdf"
                         shipment.pdf_file = base64.b64encode(data)
-                        images = convert_from_bytes(data, dpi=300,fmt='jpg')
-                        if (1==1 and len(images)>1):
-                            for image in images:
-                                image_filename = "/tmp/%s-page%d.jpg" % ("Shipment_"+shipment.shipping_id, images.index(image))
-                                image.save(image_filename, "JPEG")
-                                if (images.index(image)==0):
-                                    imgdata = urlopen("file://"+image_filename).read()
-                                    shipment.pdfimage_file = base64.b64encode(imgdata)
-                                    shipment.pdfimage_filename = "Shipment_"+shipment.shipping_id+".jpg"
-                    
-                    if (print_mode=='zpl'):
+                        # Generar preview JPG (solo si pdf2image está disponible)
+                        if PDF2IMAGE_AVAILABLE:
+                            try:
+                                images = convert_from_bytes(data, dpi=300, fmt='jpg')
+                                if len(images) > 0:
+                                    for image in images:
+                                        image_filename = "/tmp/%s-page%d.jpg" % ("Shipment_" + shipment.shipping_id, images.index(image))
+                                        image.save(image_filename, "JPEG")
+                                        if images.index(image) == 0:
+                                            imgdata = urlopen("file://" + image_filename).read()
+                                            shipment.pdfimage_file = base64.b64encode(imgdata)
+                                            shipment.pdfimage_filename = "Shipment_" + shipment.shipping_id + ".jpg"
+                            except Exception as img_e:
+                                _logger.debug("Error generating PDF preview: %s", str(img_e))
+
+                    if print_mode == 'zpl':
                         data = urlopen(shipment.pdf_link).read()
                         shipment.pdf_filename = "Shipment_"+shipment.shipping_id+".zpl"
                         shipment.pdf_file = base64.b64encode(data)

@@ -7,7 +7,13 @@ import logging
 _logger = logging.getLogger(__name__)
 import json
 import re
-# Odoo version 16.0
+# Odoo version 17.0
+
+# Odoo 18.0 -> type='json', Odoo 19.0 -> type='jsonrpc'
+route_typejson = "json"
+
+# Odoo < 17.0 -> 'tree', Odoo 17.0+ -> 'list'
+view_mode_tree = 'tree'
 
 # Odoo 12.0 -> Odoo 13.0
 uom_model = "uom.uom"
@@ -20,6 +26,31 @@ disable_cancel_warning_enabled = False
 price_list_apply_tax = True
 search_partner_vat_match = False
 mercadolibre_shipment_print_guide_mode = "pdf"
+
+# ---------------------------------------------------------------------------
+# Detectar si el SDK de MercadoLibre (paquete "meli") está disponible
+# USE_MELI_SDK controla qué backend usa MeliApi:
+#   True  → usa meli.RestClientApi + meli.OAuth20Api  (SDK oficial)
+#   False → usa requests directo (sin dependencias externas)
+#
+# Se puede forzar manualmente:
+#   from odoo.addons.meli_oerp.models import versions
+#   versions.USE_MELI_SDK = True   # forzar SDK
+#   versions.USE_MELI_SDK = False  # forzar requests
+# ---------------------------------------------------------------------------
+MELI_SDK_AVAILABLE = False
+try:
+    import meli as _meli_sdk_probe
+    MELI_SDK_AVAILABLE = True
+    _logger.info("meli SDK disponible")
+except ImportError:
+    _logger.info("meli SDK no disponible - Usando requests directo")
+
+# Por defecto: usar SDK solo si está instalado
+USE_MELI_SDK = MELI_SDK_AVAILABLE
+
+#forzar NO SDK: comentar siguiente linea
+#USE_MELI_SDK = False
 
 # Detectar si unidecode está disponible
 UNIDECODE_AVAILABLE = False
@@ -181,9 +212,12 @@ def UpdateProductType( product ):
                 failed = True
                 pass;
 
-            query = """UPDATE product_template SET type='product', detailed_type='product' WHERE id=%i""" % (prod.id)
-            cr = prod._cr
-            respquery = cr.execute(query)
+            try:
+                query = """UPDATE product_template SET type='product', detailed_type='product' WHERE id=%i""" % (prod.id)
+                cr = prod.env.cr
+                respquery = cr.execute(query)
+            except Exception as e:
+                _logger.debug("UpdateProductType raw SQL fallback failed (non-critical): %s", str(e))
 
 def ProductType():
     return {

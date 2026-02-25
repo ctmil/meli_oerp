@@ -67,6 +67,9 @@
 								<field name="processing_logs" />
 							</group>
 						</group>
+						<group string="Último JSON de MercadoLibre">
+							<field name="last_json_response" nolabel="1" readonly="1"/>
+						</group>
 					</sheet>
 				</form>
 			</field>
@@ -91,7 +94,7 @@
 					<filter string="Today"
 						domain="[('sent', '=', context_today().strftime('%Y-%m-%d'))]"
 						name="today_filter" />
-					<filter string='State' icon="terp-mrp" domain="[]"
+					<filter string='State' domain="[]"
 							context="{'group_by' : 'state'}" name="state_filter"/>
 					<filter string='Topic' domain="[]"
 								context="{'group_by' : 'topic'}" name="topic_filter"/>
