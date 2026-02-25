@@ -2484,6 +2484,11 @@ class mercadolibre_orders(models.Model):
             if not partner_invoice_already_set:
                 meli_order_fields.update({'partner_invoice_id': (partner_invoice_id and partner_invoice_id.id)})
 
+            # Blue Orange / CER: set fiscal_position_id from billing partner's property_account_position_id
+            # This ensures the sale order has the correct fiscal position for invoice document type selection
+            if 'property_account_position_id' in partner_invoice_id._fields and partner_invoice_id.property_account_position_id:
+                meli_order_fields['fiscal_position_id'] = partner_invoice_id.property_account_position_id.id
+
         if partner_shipping_id:
             shipping_partner_already_set = (sorder and sorder.partner_shipping_id and sorder.partner_shipping_id.id == partner_shipping_id.id)
             update_shipping = not sorder or (sorder and not sorder.partner_shipping_id)
