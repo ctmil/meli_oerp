@@ -9,7 +9,7 @@
 {
     'name': 'MercadoLibre Publisher / Mercado Libre Odoo Connector',
     'summary': 'MercadoLibre Publisher / Mercado Libre Odoo Connector',
-    'version': '19.0.26.10',
+    'version': '19.0.26.15',
     'author': 'Moldeo Interactive',
     'website': 'https://www.moldeointeractive.com',
     "category": "Sales",
@@ -40,7 +40,6 @@
     ],
     'price': '350.00',
     'currency': 'EUR',
-    "external_dependencies": {"python": ['pdf2image','meli']},
     'images': [ 'static/description/main_screenshot.png',
                 'static/description/meli_oerp_screenshot.png',
                 'static/description/meli_oerp_configuration_1.png',

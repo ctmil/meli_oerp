@@ -19,7 +19,7 @@
 #
 ##############################################################################
 
-from odoo import fields, osv, models, _
+from odoo import fields, models, _
 from odoo.tools.translate import _
 import pdb
 import logging
@@ -293,36 +293,13 @@ class product_template_import(models.TransientModel):
 
     _req_name = 'title'
 
-    def _calculate_sync_status( self ):
-        sync_status = self.check_sync_status()
-        _logger.info('self: ' + str(self.report_import))
-        _logger.info('self._origin: ' + str(self._origin))
-        _logger.info('self._origin.report_import: ' + str(self._origin.report_import))
-        for imp in self:
-            report_import_link = str('report_import_link' in sync_status and str(sync_status['report_import_link']))
-            _logger.info('_calculate_sync_status: ' + str(imp)+" sync_status:"+report_import_link)
-            imp.import_status = "Idle "+str(report_import_link)
-            imp.actives_to_sync = str(0)
-            imp.paused_to_sync = str(0)
-            imp.closed_to_sync = str(0)
-            #imp.report_import = None
-            imp.report_import_link =  ""
-            if "actives_to_sync" in sync_status:
-                imp.actives_to_sync = str(sync_status['actives_to_sync'])
-                imp.paused_to_sync = str(sync_status['paused_to_sync'])
-                imp.closed_to_sync = str(sync_status['closed_to_sync'])
-                #imp.report_import = 'report_import' in sync_status and sync_status['report_import'] and sync_status['report_import'].id
-                _logger.info('_calculate_sync_status: imp.report_import > ' + str(imp.report_import))
-                if imp.report_import:
-                    imp.report_import_link = 'report_import_link' in sync_status and str(sync_status['report_import_link'])
-                    _logger.info('_calculate_sync_status: imp.report_import_link > ' + str(imp.report_import_link))
+    import_lines = fields.One2many('mercadolibre.products.import.line', 'import_id', string="Import lines")
 
-
-    actives_to_sync = fields.Char(string="Products actives to sync",compute=_calculate_sync_status)
-    paused_to_sync = fields.Char(string="Products paused to sync",compute=_calculate_sync_status)
-    closed_to_sync = fields.Char(string="Products closed to sync",compute=_calculate_sync_status)
-    import_status = fields.Char(string="Import Status",compute=_calculate_sync_status)
-    report_import_link = fields.Char(string="Report Link", compute=_calculate_sync_status)
+    actives_to_sync = fields.Char(string="Publicaciones activas a sincronizar")
+    paused_to_sync = fields.Char(string="Publicaciones pausadas a sincronizar")
+    closed_to_sync = fields.Char(string="Publicaciones cerradas a sincronizar")
+    import_status = fields.Char(string="Estado de importación")
+    report_import_link = fields.Char(string="Report Link")
 
     force_meli_website_published = fields.Boolean(string="Force Website Published", default=False)
     force_meli_website_category_create_and_assign = fields.Boolean(string="Force Website Categories", default=False)
@@ -594,3 +571,27 @@ class product_template_import(models.TransientModel):
             'domain': [],
             'context': context
         }
+
+
+class mercadolibre_products_import_line(models.TransientModel):
+
+    _name = "mercadolibre.products.import.line"
+    _description = "Products Import ML LINE"
+
+    name = fields.Char(string="Publicación", index=True)
+    import_id = fields.Many2one('mercadolibre.product.template.import', string="Wizard Import", index=True)
+    meli_id = fields.Char(string="ML Id", index=True)
+    meli_status = fields.Char(string="Estado ML", index=True)
+    sku = fields.Char(string="SKU")
+    meli_price = fields.Float(string="Precio ML")
+    meli_qty = fields.Float(string="Stock ML")
+    variations_count = fields.Integer(string="Variaciones")
+    import_status = fields.Selection([
+        ('pending', 'Pendiente'),
+        ('synced', 'Sincronizado'),
+        ('missing', 'Sin vincular'),
+        ('duplicate', 'Duplicado'),
+        ('imported', 'Importado'),
+        ('error', 'Error'),
+    ], string="Estado", default='pending', index=True)
+    error = fields.Char(string="Error")

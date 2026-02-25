@@ -2,7 +2,10 @@
 from odoo import api, fields, models, tools
 from odoo.tools.translate import _
 from difflib import SequenceMatcher
+import logging
 import re
+
+_logger = logging.getLogger(__name__)
 
 class ResPartner(models.Model):
 
@@ -13,9 +16,66 @@ class ResPartner(models.Model):
     meli_update_forbidden = fields.Boolean(string='Meli Update Forbiden')
     meli_order_id = fields.Char('Meli Order Id',index=True)
 
+    # Modo 3: contacto de facturación independiente (sin parent_id).
+    # meli_buyer_partner_id vincula al buyer que creó/usó este contacto fiscal.
+    # Un mismo contacto fiscal (CUIT) puede ser usado por varios buyers.
+    meli_buyer_partner_id = fields.Many2one(
+        'res.partner', string='MeLi Buyer (Origin)',
+        index=True, ondelete='set null',
+        help='Buyer de MercadoLibre que originó este contacto de facturación')
+    meli_billing_partner_ids = fields.One2many(
+        'res.partner', 'meli_buyer_partner_id',
+        string='MeLi Billing Contacts',
+        help='Contactos de facturación creados desde este buyer de MeLi')
+
     _sql_constraints = [
         ('unique_partner_meli_buyer_id', 'unique(meli_buyer_id,active,company_id)', 'Meli Partner Buyer id already exists in this company!')
     ]
+
+    # --- Protección de datos fiscales en billing children de MeLi ---
+    # En MeLi, un mismo buyer puede facturar con diferentes entidades fiscales
+    # por compra (DNI personal, CUIT empresa A, CUIT empresa B, etc.).
+    # Cada billing child (type=invoice, meli_order_id) tiene datos fiscales propios.
+    # El mecanismo commercial_fields de Odoo sincroniza datos fiscales del parent
+    # a todos los children, lo que BORRA los datos del billing child cuando se
+    # toca cualquier commercial_field en el parent (ej: country_id).
+    # Este override protege los billing children de MeLi: deja que el sync
+    # normal corra, pero restaura los datos fiscales que tenía el child.
+
+    _MELI_FISCAL_FIELDS = ['vat', 'partner_document_type_id',
+                           'l10n_latam_identification_type_id',
+                           'property_account_position_id',
+                           'l10n_ar_afip_responsibility_type_id']
+
+    def _commercial_sync_from_company(self):
+        # Solo proteger billing children de MeLi (type=invoice con meli_order_id)
+        if self.type == 'invoice' and self.meli_order_id:
+            # Guardar datos fiscales antes del sync
+            fiscal_backup = {}
+            for fname in self._MELI_FISCAL_FIELDS:
+                if fname in self._fields:
+                    val = getattr(self, fname)
+                    if val:
+                        fiscal_backup[fname] = val.id if hasattr(val, 'id') else val
+
+            # Ejecutar sync normal (puede pisar datos fiscales con los del parent)
+            super()._commercial_sync_from_company()
+
+            # Restaurar datos fiscales si el sync los borró
+            if fiscal_backup:
+                restore = {}
+                for fname, backed_val in fiscal_backup.items():
+                    current = getattr(self, fname)
+                    current_val = current.id if hasattr(current, 'id') else current
+                    if not current_val and backed_val:
+                        restore[fname] = backed_val
+                if restore:
+                    # Usar super().write() para evitar re-triggear commercial_fields
+                    super(ResPartner, self).write(restore)
+                    _logger.info("MELI_FISCAL_PROTECT: restaurados datos fiscales en billing child id:%s (%s)",
+                                 self.id, list(restore.keys()))
+        else:
+            super()._commercial_sync_from_company()
 
     @api.model
     def find_similar_delivery_address(

@@ -5,7 +5,7 @@ import base64
 from odoo import http, api
 
 
-from odoo import fields, osv, http
+from odoo import fields, http
 from odoo.http import Controller, Response, request, route
 try:
     from odoo.http import content_disposition
@@ -43,7 +43,7 @@ class MercadoLibre(http.Controller):
 
         return "MercadoLibre Publisher for Odoo - Copyright Moldeo Interactive 2021"
 
-    @http.route(['/meli_notify'], type='json', auth='public', methods=["POST"])
+    @http.route(['/meli_notify'], type=route_typejson, auth='public', methods=["POST"])
     def meli_notify(self,**kw):
         _logger.info("meli_notify")
         #_logger.info(kw)

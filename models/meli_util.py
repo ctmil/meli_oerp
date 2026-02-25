@@ -6,6 +6,7 @@ from odoo import models, api, fields
 from odoo.tools.translate import _
 
 import requests
+from requests.adapters import HTTPAdapter
 import json
 try:
     from urllib import urlencode
@@ -15,16 +16,13 @@ import logging
 _logger = logging.getLogger(__name__)
 
 from .meli_oerp_config import REDIRECT_URI
-#from ..melisdk.meli import Meli
 
-#from ..melisdk.sdk3 import meli
 from urllib3.util.retry import Retry
-import meli
-from meli.rest import ApiException
-from meli.api_client import ApiClient
 
 from datetime import datetime
 from .versions import *
+from . import versions as _versions
+
 
 class LoggingRetry(Retry):
     def increment(self, *args, **kwargs):
@@ -34,18 +32,65 @@ class LoggingRetry(Retry):
         return super().increment(*args, **kwargs)
 
 
-configuration = meli.Configuration(host = "https://api.mercadolibre.com")
-configuration.retries=LoggingRetry(
-    total=3,
-    backoff_factor=0.5,
-    status_forcelist=[413, 429, 503],
-    raise_on_status=False
-)
+# ---------------------------------------------------------------------------
+#  Configuraciones (siempre se crean ambas; se elige al final del módulo)
+# ---------------------------------------------------------------------------
+
+# NoSDK: requests Session con retry
+class MeliConfiguration:
+    def __init__(self, host="https://api.mercadolibre.com"):
+        self.host = host
+        self.retries = LoggingRetry(
+            total=3,
+            backoff_factor=0.5,
+            status_forcelist=[413, 429, 503],
+            raise_on_status=False
+        )
+
+    def get_session(self):
+        session = requests.Session()
+        adapter = HTTPAdapter(max_retries=self.retries)
+        session.mount("https://", adapter)
+        session.mount("http://", adapter)
+        return session
 
 
-class MeliApi( meli.RestClientApi ):
+configuration_nosdk = MeliConfiguration(host="https://api.mercadolibre.com")
+
+# SDK: meli.Configuration (solo si el SDK está instalado)
+configuration_sdk = None
+_meli_sdk = None
+_ApiClient = None
+_ApiException = None
+if _versions.MELI_SDK_AVAILABLE:
+    try:
+        import meli as _meli_sdk
+        from meli.rest import ApiException as _ApiException
+        from meli.api_client import ApiClient as _ApiClient
+        configuration_sdk = _meli_sdk.Configuration(host="https://api.mercadolibre.com")
+        configuration_sdk.retries = LoggingRetry(
+            total=3,
+            backoff_factor=0.5,
+            status_forcelist=[413, 429, 503],
+            raise_on_status=False
+        )
+    except Exception as e:
+        _logger.warning("meli SDK import falló: %s", str(e))
+        _versions.MELI_SDK_AVAILABLE = False
+        _versions.USE_MELI_SDK = False
+
+
+# ---------------------------------------------------------------------------
+#  MeliApiNoSDK — implementación con requests puro
+# ---------------------------------------------------------------------------
+class MeliApiNoSDK:
+    """
+    Cliente API de MercadoLibre sin dependencia del SDK oficial.
+    Usa requests directamente para todas las operaciones HTTP y OAuth.
+    """
 
     AUTH_URL = "https://auth.mercadolibre.com.ar/authorization"
+    TOKEN_URL = "https://api.mercadolibre.com/oauth/token"
 
     needlogin_state = True
 
@@ -68,8 +113,10 @@ class MeliApi( meli.RestClientApi ):
         'get': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
         'get_mini': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
         'post': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
+        'post_mini': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
         'put': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
         'put_mini': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
+        'delete': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
     }
     _benchmark_slow_threshold = 2.0  # seconds
 
@@ -91,8 +138,10 @@ class MeliApi( meli.RestClientApi ):
             'get': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
             'get_mini': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
             'post': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
+            'post_mini': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
             'put': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
             'put_mini': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
+            'delete': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
         }
 
     @classmethod
@@ -130,19 +179,41 @@ class MeliApi( meli.RestClientApi ):
 
     def _record_benchmark(self, method, path, elapsed):
         """Record benchmark data for an API call"""
-        if not MeliApi._benchmark_enabled:
+        if not MeliApiNoSDK._benchmark_enabled:
             return
-        import time
-        stats = MeliApi._benchmark_stats[method]
-        stats['count'] += 1
-        stats['total_time'] += elapsed
-        if elapsed > MeliApi._benchmark_slow_threshold:
-            stats['slow_calls'].append({'path': path, 'time': elapsed})
-            _logger.warning("MELI API SLOW %s: %s took %.2fs", method.upper(), path, elapsed)
+        stats = MeliApiNoSDK._benchmark_stats.get(method)
+        if stats:
+            stats['count'] += 1
+            stats['total_time'] += elapsed
+            if elapsed > MeliApiNoSDK._benchmark_slow_threshold:
+                stats['slow_calls'].append({'path': path, 'time': elapsed})
+                _logger.warning("MELI API SLOW %s: %s took %.2fs", method.upper(), path, elapsed)
 
-    def __init__(self, *args, **kwargs):
-        super(MeliApi, self).__init__(*args, **kwargs)
-        self.api_auth_client = meli.OAuth20Api(self.api_client)
+    def __init__(self, config=None):
+        """
+        Inicializa el cliente API.
+
+        Args:
+            config: MeliConfiguration opcional. Si no se pasa, usa la configuración global.
+        """
+        self.config = config or configuration
+        self.base_url = self.config.host
+        self._session = self.config.get_session()
+
+    def _abs_url(self, path):
+        """Convierte un path relativo a URL absoluta"""
+        if not path:
+            return path
+        if path.startswith("http://") or path.startswith("https://"):
+            return path
+        return self.base_url.rstrip("/") + "/" + path.lstrip("/")
+
+    def _parse_response(self, resp):
+        """Parsea la respuesta HTTP a JSON o texto"""
+        try:
+            return resp.json()
+        except Exception:
+            return resp.text
 
     def need_login(self):
         return self.needlogin_state
@@ -150,112 +221,36 @@ class MeliApi( meli.RestClientApi ):
     def json(self):
         return self.rjson
 
-    def call_get(self, resource=None, access_token=None, **params ):
-        return {}
-
     def get(self, path, params={}):
-        import time as _time_module
-        _t_start = _time_module.time() if MeliApi._benchmark_enabled else 0
-        _original_path = path
-        try:
-            atok = ("access_token" in params and params["access_token"]) or ""
-            if (atok=="PASIVA"):
-                atok = ""
-                del params["access_token"]
-            scroll_id = ("scroll_id" in params and params["scroll_id"]) or None
-            if atok:
-                del params["access_token"]
-            if scroll_id:
-                del params["scroll_id"]
-            if params:
-                path+="?"+urlencode(params)
-                if scroll_id:
-                    path+="&scroll_id="+scroll_id
-            #_logger.info("MeliApi.get(%s,%s)" % (path,str(atok)) )
-            self.response = self.resource_get(resource=path, access_token=atok)
-            #if params:
-            #   self.response = self.call_get( resource=path, access_token=atok, **params)
-            self.rjson = self.response
-        except ApiException as e:
-            status_code = getattr(e, "status", None)
-            # Log level based on status code
-            if status_code == 404:
-                # Item not found - expected, use debug
-                _logger.debug(
-                    "GET %s: 404 Not Found (expected for deleted items)",
-                    path
-                )
-            elif status_code in (401, 403):
-                _logger.warning(
-                    "GET %s: Auth error status=%s reason=%s | Seller ID: %s",
-                    path, status_code, getattr(e, "reason", None), self.seller_id
-                )
-            else:
-                _logger.warning(
-                    "GET %s falló: status=%s reason=%s body=%s",
-                    path, status_code, getattr(e, "reason", None), getattr(e, "body", None)
-                )
-            self.rjson = {
-                "error": "get error",
-                "status": getattr(e, "status", None),
-                "cause": getattr(e, "reason", None),
-                "message": getattr(e, "body", None),
-            }
-            pass;
-        except:
-            pass;
-        finally:
-            if MeliApi._benchmark_enabled:
-                self._record_benchmark('get', _original_path, _time_module.time() - _t_start)
-        return self
-
-    def get_mini(self, path, params={}):
         """
-        GET genérico (sin SDK)
-        - Firma idéntica: get(self, path, params={})
+        GET genérico sin SDK.
+        - Firma: get(self, path, params={})
         - Mantiene self.response y self.rjson
         - Retorna self
-        Soporta:
-        • access_token → Authorization: Bearer
-        • headers personalizados
-        • scroll_id (como en tu versión)
-        • timeout
-        • query params (compat con estilo viejo)
         """
         import time as _time_module
-        _t_start = _time_module.time() if MeliApi._benchmark_enabled else 0
+        _t_start = _time_module.time() if MeliApiNoSDK._benchmark_enabled else 0
+        _original_path = path
 
-        def _abs_url(p):
-            if p.startswith("http://") or p.startswith("https://"):
-                return p
-            base = getattr(self, "base_url", "https://api.mercadolibre.com").rstrip("/")
-            return base + "/" + p.lstrip("/")
-
-        def _parse(resp):
-            try:
-                return resp.json()
-            except Exception:
-                return resp.text
-
-        # --- Extrae datos de params sin mutar el original ---
+        # Extrae datos de params sin mutar el original
         atok = params.get("access_token", "") or ""
-        if atok == "PASIVA":  # compat con tu versión
+        if atok == "PASIVA":
             atok = ""
 
-        headers  = (params.get("headers") or {}).copy()
-        timeout  = params.get("timeout", 20)
+        headers = (params.get("headers") or {}).copy()
+        timeout = params.get("timeout", 20)
         scroll_id = params.get("scroll_id", None)
         qparams = params.get("query", None)
 
-        # compatibilidad con viejo estilo de query
+        # Compatibilidad con viejo estilo de query
         if qparams is None:
             reserved = {"access_token", "headers", "timeout", "scroll_id", "query"}
             qparams = {k: v for k, v in params.items() if k not in reserved}
             if not qparams:
                 qparams = None
 
-        # construye query string
-        url = _abs_url(path)
+        # Construye query string
+        url = self._abs_url(path)
         query_parts = []
         if qparams:
             query_parts.append(urlencode(qparams))
@@ -265,25 +260,38 @@ class MeliApi( meli.RestClientApi ):
             sep = "&" if ("?" in url) else "?"
             url = f"{url}{sep}{'&'.join(query_parts)}"
 
-        # headers finales
+        # Headers finales
         final_headers = {"Accept": "application/json"}
         if atok:
             final_headers["Authorization"] = f"Bearer {atok}"
         final_headers.update(headers)
 
-        # Ejecuta GET
         try:
-            resp = requests.get(
+            resp = self._session.get(
                 url,
                 headers=final_headers,
                 timeout=timeout,
                 allow_redirects=True
             )
-            self.response = _parse(resp)
+            self.response = self._parse_response(resp)
             self.rjson = self.response
-            return self
+
+            # Log según status code
+            if resp.status_code == 404:
+                _logger.debug("GET %s: 404 Not Found", path)
+            elif resp.status_code in (401, 403):
+                _logger.warning(
+                    "GET %s: Auth error status=%s | Seller ID: %s",
+                    path, resp.status_code, self.seller_id
+                )
+            elif resp.status_code >= 400:
+                _logger.warning(
+                    "GET %s falló: status=%s body=%s",
+                    path, resp.status_code, str(self.rjson)[:200]
+                )
 
         except requests.RequestException as e:
+            _logger.warning("GET %s error: %s", path, str(e))
             self.rjson = {
                 "error": "get error",
                 "status": 0,
@@ -292,83 +300,48 @@ class MeliApi( meli.RestClientApi ):
                 "get_url": path
             }
             self.response = self.rjson
-            return self
         finally:
-            if MeliApi._benchmark_enabled:
-                self._record_benchmark('get_mini', path, _time_module.time() - _t_start)
+            if MeliApiNoSDK._benchmark_enabled:
+                self._record_benchmark('get', _original_path, _time_module.time() - _t_start)
+
+        return self
+
+    def get_mini(self, path, params={}):
+        """GET via requests — alias de get() para compatibilidad"""
+        import time as _time_module
+        _t_start = _time_module.time() if MeliApiNoSDK._benchmark_enabled else 0
+        result = self.get(path, params)
+        if MeliApiNoSDK._benchmark_enabled:
+            self._record_benchmark('get_mini', path, _time_module.time() - _t_start)
+        return result
 
     def post(self, path, body=None, params={}):
+        """
+        POST genérico sin SDK.
+        - Firma: post(self, path, body=None, params={})
+        - Mantiene self.response y self.rjson
+        - Retorna self
+        """
         import time as _time_module
-        _t_start = _time_module.time() if MeliApi._benchmark_enabled else 0
-        try:
-            atok = ("access_token" in params and params["access_token"]) or ""
-            #_logger.info("MeliApi.post(%s,%s)  %s" % (path,str(atok),str(body)) )
-            if atok:
-                del params["access_token"]
-            if params:
-                path+="?"+urlencode(params)
-            _logger.info("MeliApi.post(%s,%s)" % (path,str(atok)) )
-            self.response = self.resource_post(resource=path, access_token=atok, body=body )
-            self.rjson = self.response
-        except ApiException as e:
-            self.rjson = {
-                "error": "%s" % str("post error"),
-                "status": e.status,
-                "cause": e.reason,
-                "message": e.body
-            }
-            pass;
-        except:
-            pass;
-        finally:
-            if MeliApi._benchmark_enabled:
-                self._record_benchmark('post', path, _time_module.time() - _t_start)
-        return self
-        
-    def post_mini(self, path, body=None, params={}):
-        """
-        POST genérico (sin SDK), mantiene el contrato:
-        - firma: post(self, path, body=None, params={})
-        - setea self.response y self.rjson
-        - retorna self
+        _t_start = _time_module.time() if MeliApiNoSDK._benchmark_enabled else 0
+        _original_path = path
 
-        Extras:
-        - Bearer desde params['access_token']
-        - headers adicionales desde params['headers']
-        - query string via params['query'] o el resto de params (para compat)
-        - autodetección JSON vs raw body
-        - soporte multipart via params['files']
-        - timeout via params['timeout']
-        """
-        def _abs_url(p):
-            if p.startswith("http://") or p.startswith("https://"):
-                return p
-            base = getattr(self, "base_url", "https://api.mercadolibre.com").rstrip("/")
-            return base + "/" + p.lstrip("/")
-
-        def _parse(resp):
-            try:
-                return resp.json()
-            except Exception:
-                return resp.text
-
-        # --- Extrae y NO muta el dict original ---
-        atok    = params.get("access_token", "") or ""
+        # Extrae y NO muta el dict original
+        atok = params.get("access_token", "") or ""
         headers = (params.get("headers") or {}).copy()
         timeout = params.get("timeout", 20)
-        files   = params.get("files", None)  # e.g., {"file": open("x.png","rb")}
+        files = params.get("files", None)
         qparams = params.get("query", None)
 
-        # Compat: si no se pasó 'query', construyo con el resto (igual que tu versión antigua)
+        # Compatibilidad: si no se pasó 'query', construyo con el resto
         if qparams is None:
-            # copiamos params pero sin keys reservadas
             reserved = {"access_token", "headers", "timeout", "files", "query"}
             qparams = {k: v for k, v in params.items() if k not in reserved}
             if not qparams:
                 qparams = None
 
-        # Construcción de URL (con query si corresponde)
-        url = _abs_url(path)
+        # Construcción de URL
+        url = self._abs_url(path)
         if qparams:
             sep = "&" if ("?" in url) else "?"
             url = f"{url}{sep}{urlencode(qparams)}"
@@ -377,30 +350,32 @@ class MeliApi( meli.RestClientApi ):
         final_headers = {"Accept": "application/json"}
         if atok:
             final_headers["Authorization"] = f"Bearer {atok}"
-        # Si es JSON y no hay files, fijamos Content-Type si no fue provisto
         if isinstance(body, (dict, list)) and not files:
-            # respetar Content-Type custom si vino en headers
             if "Content-Type" not in {k.title(): v for k, v in headers.items()}:
                 final_headers["Content-Type"] = "application/json"
-        # merge caller headers (caller override)
         final_headers.update(headers)
 
-        # Ejecuta POST
         try:
-            resp = requests.post(
+            resp = self._session.post(
                 url,
                 headers=final_headers,
                 json=body if (isinstance(body, (dict, list)) and not files) else None,
                 data=None if (isinstance(body, (dict, list)) and not files) else body,
-                files=files,            # si hay files, requests arma multipart/form-data
+                files=files,
                 timeout=timeout,
                 allow_redirects=True,
             )
-            self.response = _parse(resp)
-            self.rjson    = self.response
-            return self
+            self.response = self._parse_response(resp)
+            self.rjson = self.response
+
+            if resp.status_code >= 400:
+                _logger.warning(
+                    "POST %s falló: status=%s body=%s",
+                    path, resp.status_code, str(self.rjson)[:200]
+                )
 
         except requests.RequestException as e:
+            _logger.warning("POST %s error: %s", path, str(e))
             self.rjson = {
                 "error": "post error",
                 "status": 0,
@@ -409,90 +384,56 @@ class MeliApi( meli.RestClientApi ):
                 "post_url": path
             }
             self.response = self.rjson
-            return self
-
-    def put(self, path, body=None, params={}):
-        import time as _time_module
-        _t_start = _time_module.time() if MeliApi._benchmark_enabled else 0
-        try:
-            atok = params.get("access_token", "") or ""
-            headers = params.get("headers", {}) or {}
-
-            self.response = self.resource_put(resource=path,
-                                            access_token=atok,
-                                            body=body,
-                                            headers=headers)
-            self.rjson = self.response
-        except ApiException as e:
-            self.rjson = {"error": "put error", "status": e.status, "cause": e.reason, "message": e.body}
-        except Exception:
-            pass
         finally:
-            if MeliApi._benchmark_enabled:
-                self._record_benchmark('put', path, _time_module.time() - _t_start)
+            if MeliApiNoSDK._benchmark_enabled:
+                self._record_benchmark('post', _original_path, _time_module.time() - _t_start)
+
         return self
 
-    def _safe_body(self, resp):
-        try:
-            return resp.json()
-        except Exception:
-            return resp.text
+    def post_mini(self, path, body=None, params={}):
+        """POST via requests — alias de post() para compatibilidad"""
+        import time as _time_module
+        _t_start = _time_module.time() if MeliApiNoSDK._benchmark_enabled else 0
+        result = self.post(path, body, params)
+        if MeliApiNoSDK._benchmark_enabled:
+            self._record_benchmark('post_mini', path, _time_module.time() - _t_start)
+        return result
 
-    def put_mini(self, path, body=None, params={}):
+    def put(self, path, body=None, params={}):
         """
-        Minimal, generic PUT that mimics the old SDK return style.
-        - Sets self.response to parsed JSON (or raw text if not JSON)
-        - Sets self.rjson to the same value (for backward compatibility)
-        - Reads token and headers from params
-        - Optional auto_x_version for Multi-Origen stock endpoints
+        PUT genérico sin SDK.
+        - Firma: put(self, path, body=None, params={})
+        - Mantiene self.response y self.rjson
+        - Retorna self
         """
         import time as _time_module
-        _t_start = _time_module.time() if MeliApi._benchmark_enabled else 0
+        _t_start = _time_module.time() if MeliApiNoSDK._benchmark_enabled else 0
         _original_path = path
 
-        def _abs_url(p):
-            if not p:
-                return p
-            if p.startswith("http://") or p.startswith("https://"):
-                return p
-            base = getattr(self, "base_url", "https://api.mercadolibre.com").rstrip("/")
-            return base + "/" + p.lstrip("/")
-
         def _clean_stock_path(p):
-            # normalize stock endpoint (remove wrong /type/... trail)
             if not p:
                 return p
             return p.replace("/stock/type/seller_warehouse", "/stock")
 
-        def _parse(resp):
-            try:
-                return resp.json()
-            except Exception:
-                return resp.text
-
-        atok    = params.get("access_token", "") or ""
-        headers = params.get("headers", {}) or {}
+        atok = params.get("access_token", "") or ""
+        headers = (params.get("headers") or {}).copy()
         timeout = params.get("timeout", 20)
         qparams = params.get("query", None)
-        auto_xv = params.get("auto_x_version", False)  # opt-in
 
-        # Normalize path
+        # Normalize path para stock endpoints
         path = _clean_stock_path(path)
-        url  = _abs_url(path)
+        url = self._abs_url(path)
 
-        # Compose final headers
+        # Headers finales
         final_headers = {"Accept": "application/json"}
         if atok:
             final_headers["Authorization"] = f"Bearer {atok}"
-        # Only set Content-Type if body is JSON-like (dict/list) and caller didn't specify it
         if isinstance(body, (dict, list)) and "Content-Type" not in {k.title(): v for k, v in headers.items()}:
             final_headers["Content-Type"] = "application/json"
-        final_headers.update(headers or {})
+        final_headers.update(headers)
 
-        # Execute PUT
         try:
-            #_logger.info("put_mini > url:"+str(url)+" final_headers:"+str(final_headers)+" body:"+str(body)+" params:"+str(qparams)+" atok:"+str(atok))
-            r = requests.put(
+            resp = self._session.put(
                 url,
                 headers=final_headers,
                 json=body if isinstance(body, (dict, list)) else None,
@@ -501,94 +442,170 @@ class MeliApi( meli.RestClientApi ):
                 timeout=timeout,
                 allow_redirects=True,
             )
+            self.response = self._parse_response(resp)
+            self.rjson = self.response
 
-            # Mimic old return: self.response + self.rjson set to parsed payload
-            self.response = _parse(r)
-            self.rjson    = self.response
-            return self
+            if resp.status_code >= 400:
+                _logger.warning(
+                    "PUT %s falló: status=%s body=%s",
+                    path, resp.status_code, str(self.rjson)[:200]
+                )
 
         except requests.RequestException as e:
-            # Keep your old error object style on hard transport errors
+            _logger.warning("PUT %s error: %s", path, str(e))
             self.rjson = {
                 "error": "put error",
                 "status": 0,
                 "cause": "request_exception",
                 "message": str(e)
             }
-            # Also store in self.response to keep parity
             self.response = self.rjson
-            return self
         finally:
-            if MeliApi._benchmark_enabled:
-                self._record_benchmark('put_mini', _original_path, _time_module.time() - _t_start)
+            if MeliApiNoSDK._benchmark_enabled:
+                self._record_benchmark('put', _original_path, _time_module.time() - _t_start)
 
+        return self
+
+    def put_mini(self, path, body=None, params={}):
+        """PUT via requests — alias de put() para compatibilidad"""
+        import time as _time_module
+        _t_start = _time_module.time() if MeliApiNoSDK._benchmark_enabled else 0
+        result = self.put(path, body, params)
+        if MeliApiNoSDK._benchmark_enabled:
+            self._record_benchmark('put_mini', path, _time_module.time() - _t_start)
+        return result
 
     def delete(self, path, params={}):
+        """
+        DELETE genérico sin SDK.
+        - Firma: delete(self, path, params={})
+        - Mantiene self.response y self.rjson
+        - Retorna self
+        """
+        import time as _time_module
+        _t_start = _time_module.time() if MeliApiNoSDK._benchmark_enabled else 0
+        _original_path = path
+
+        atok = params.get("access_token", "") or ""
+        headers = (params.get("headers") or {}).copy()
+        timeout = params.get("timeout", 20)
+
+        url = self._abs_url(path)
+
+        final_headers = {"Accept": "application/json"}
+        if atok:
+            final_headers["Authorization"] = f"Bearer {atok}"
+        final_headers.update(headers)
+
         try:
-            atok = ("access_token" in params and params["access_token"]) or ""
-            #_logger.info("MeliApi.delete(%s,%s)  %s" % (path,str(atok),str(body)) )
-            self.response = self.resource_delete(resource=path, access_token=atok )
+            resp = self._session.delete(
+                url,
+                headers=final_headers,
+                timeout=timeout,
+                allow_redirects=True
+            )
+            self.response = self._parse_response(resp)
             self.rjson = self.response
-        except ApiException as e:
+
+            if resp.status_code >= 400:
+                _logger.warning(
+                    "DELETE %s falló: status=%s body=%s",
+                    path, resp.status_code, str(self.rjson)[:200]
+                )
+
+        except requests.RequestException as e:
+            _logger.warning("DELETE %s error: %s", path, str(e))
             self.rjson = {
-                "error": "%s" % e,
-                "status": e.status,
-                "cause": e.reason,
-                "message": e.body
+                "error": "delete error",
+                "status": 0,
+                "cause": "request_exception",
+                "message": str(e)
             }
-        except:
-            pass;
+            self.response = self.rjson
+        finally:
+            if MeliApiNoSDK._benchmark_enabled:
+                self._record_benchmark('delete', _original_path, _time_module.time() - _t_start)
+
         return self
 
     def upload(self, path, files, params={}):
+        """
+        Upload de archivos usando multipart/form-data (sin SDK).
+        Los archivos se pasan en el parámetro files.
+        """
+        atok = params.get("access_token", "") or ""
+        timeout = params.get("timeout", 60)
+
+        url = self._abs_url(path)
+
+        # Para upload legacy, usamos query param access_token
+        if atok:
+            sep = "&" if ("?" in url) else "?"
+            url = f"{url}{sep}access_token={atok}"
+
         try:
-            atok = ("access_token" in params and params["access_token"]) or ""
-            headers = {'Accept': 'application/json', 'Content-type':'multipart/form-data'}
-            params = {"access_token":atok}
-            #headers = {'Authorization': 'Bearer '+atok}
-            headers = {}
-            uri = configuration.host+str(path)
-            _logger.info(headers)
-            self.response = requests.post(uri, files=files, params=urlencode(params), headers=headers)
-            self.rjson = self.response.json()
-        except Exception as e:
-            self.rjson = {
-                "error": "%s" % e
-            }
-        except:
-            pass;
+            resp = self._session.post(
+                url,
+                files=files,
+                timeout=timeout
+            )
+            self.response = self._parse_response(resp)
+            self.rjson = self.response
+
+        except requests.RequestException as e:
+            _logger.warning("UPLOAD %s error: %s", path, str(e))
+            self.rjson = {"error": str(e)}
+            self.response = self.rjson
+
         return self
 
-    def uploadfiles( self, path, files, params={}):
+    def uploadfiles(self, path, files, params={}):
+        """
+        Upload de archivos usando Authorization Bearer (sin SDK).
+        """
+        atok = params.get("access_token", "") or ""
+        timeout = params.get("timeout", 60)
+
+        url = self._abs_url(path)
+
+        headers = {"Accept": "application/json"}
+        if atok:
+            headers["Authorization"] = f"Bearer {atok}"
+
         try:
-            atok = ("access_token" in params and params["access_token"]) or ""
-            headers = {'Accept': 'application/json', 'Content-type':'multipart/form-data'}
-            params = {}
-            headers = {'Authorization': 'Bearer '+atok}
-            uri = configuration.host+str(path)
-            _logger.info(headers)
-            self.response = requests.post(uri, files=files, params=urlencode(params), headers=headers)
-            self.rjson = self.response.json()
-        except Exception as e:
-            self.rjson = {
-                "error": "%s" % e
-            }
-        except:
-            pass;
+            resp = self._session.post(
+                url,
+                files=files,
+                headers=headers,
+                timeout=timeout
+            )
+            self.response = self._parse_response(resp)
+            self.rjson = self.response
+
+        except requests.RequestException as e:
+            _logger.warning("UPLOADFILES %s error: %s", path, str(e))
+            self.rjson = {"error": str(e)}
+            self.response = self.rjson
+
         return self
 
     def auth_url(self, redirect_URI=None):
+        """Genera la URL de autorización OAuth para login"""
         now = datetime.now()
-        url = ""
         if redirect_URI:
             self.redirect_uri = redirect_URI
         random_id = str(now)
-        params = { 'client_id': self.client_id, 'response_type':'code', 'redirect_uri':self.redirect_uri, 'state': random_id}
-        url = self.AUTH_URL  + '?' + urlencode(params)
-        #_logger.info("Authorize Login here: "+str(url))
+        params = {
+            'client_id': self.client_id,
+            'response_type': 'code',
+            'redirect_uri': self.redirect_uri,
+            'state': random_id
+        }
+        url = self.AUTH_URL + '?' + urlencode(params)
         return url
 
     def redirect_login(self):
+        """Retorna acción de redirección para login en Odoo"""
         url_login_meli = str(self.auth_url())
         return {
             "type": "ir.actions.act_url",
@@ -597,90 +614,368 @@ class MeliApi( meli.RestClientApi ):
         }
 
     def authorize(self, code, redirect_uri=None):
-        api_client = ApiClient()
-        api_auth_client = meli.OAuth20Api(api_client)
+        """
+        Obtiene access_token usando authorization_code (sin SDK).
+        POST a https://api.mercadolibre.com/oauth/token
+        """
         if redirect_uri:
             self.redirect_uri = redirect_uri
-        grant_type = 'authorization_code'
-        response_info = api_auth_client.get_token(grant_type=grant_type,
-                                            client_id=self.client_id,
-                                            client_secret=self.client_secret,
-                                            redirect_uri=self.redirect_uri,
-                                            code=code,
-                                            refresh_token=self.refresh_token)
-        #_logger.info("MeliApi authorize:"+str(response_info))
-        if 'access_token' in response_info:
-            self.access_token = response_info['access_token']
-            if 'refresh_token' in response_info:
-                self.refresh_token = response_info['refresh_token']
+
+        data = {
+            'grant_type': 'authorization_code',
+            'client_id': self.client_id,
+            'client_secret': self.client_secret,
+            'code': code,
+            'redirect_uri': self.redirect_uri
+        }
+
+        headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+
+        try:
+            resp = self._session.post(
+                self.TOKEN_URL,
+                data=data,
+                headers=headers,
+                timeout=30
+            )
+            response_info = self._parse_response(resp)
+
+            if isinstance(response_info, dict) and 'access_token' in response_info:
+                self.access_token = response_info['access_token']
+                self.refresh_token = response_info.get('refresh_token', '')
             else:
-                self.refresh_token = ''
-        return response_info
+                _logger.warning("authorize falló: %s", str(response_info)[:200])
+
+            return response_info
+
+        except requests.RequestException as e:
+            _logger.error("authorize error: %s", str(e))
+            return {"error": "authorize_error", "message": str(e)}
 
     def get_refresh_token(self, code=None, redirect_uri=None):
-        api_client = ApiClient()
-        api_auth_client = meli.OAuth20Api(api_client)
-        grant_type = 'refresh_token'
-        response_info = api_auth_client.get_token(grant_type=grant_type,
-                                            client_id=self.client_id,
-                                            client_secret=self.client_secret,
-                                            #redirect_uri=self.redirect_uri,
-                                            #code=code,
-                                            refresh_token=self.refresh_token)
-        if 'access_token' in response_info:
-            self.access_token = response_info['access_token']
-            if 'refresh_token' in response_info:
-                self.refresh_token = response_info['refresh_token']
+        """
+        Renueva access_token usando refresh_token (sin SDK).
+        POST a https://api.mercadolibre.com/oauth/token
+        """
+        data = {
+            'grant_type': 'refresh_token',
+            'client_id': self.client_id,
+            'client_secret': self.client_secret,
+            'refresh_token': self.refresh_token
+        }
+
+        headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+
+        try:
+            resp = self._session.post(
+                self.TOKEN_URL,
+                data=data,
+                headers=headers,
+                timeout=30
+            )
+            response_info = self._parse_response(resp)
+
+            if isinstance(response_info, dict) and 'access_token' in response_info:
+                self.access_token = response_info['access_token']
+                self.refresh_token = response_info.get('refresh_token', '')
             else:
-                self.refresh_token = ''
-        return response_info
+                _logger.warning("get_refresh_token falló: %s", str(response_info)[:200])
 
+            return response_info
 
-    def get_sale_terms( self, category_id=None, sale_term_id=None, productjson=None ):
-        #https://api.mercadolibre.com/categories/MLA1642/sale_terms#options
-        meli_api = self
+        except requests.RequestException as e:
+            _logger.error("get_refresh_token error: %s", str(e))
+            return {"error": "refresh_token_error", "message": str(e)}
 
+    def get_sale_terms(self, category_id=None, sale_term_id=None, productjson=None):
+        """Obtiene los términos de venta para una categoría"""
         sale_terms_by_id = {}
 
-        if meli_api and category_id:
+        if category_id:
+            url = f"/categories/{category_id}/sale_terms"
+            res = self.get(url)
 
-            url = "/categories/"+str(category_id)+"/sale_terms"
-            res = meli_api.get(url)
-
-            if res and res.rjson:
-
+            if res and res.rjson and isinstance(res.rjson, list):
                 for rj in res.rjson:
-                    stid = "id" in rj and rj["id"]
+                    stid = rj.get("id")
                     if stid:
-                        sale_terms_by_id[ stid ] = rj
+                        sale_terms_by_id[stid] = rj
 
         if sale_term_id:
-
-            #return sale term from product json
+            # Buscar en el JSON del producto si se proporcionó
             if productjson and "sale_terms" in productjson:
                 for st in productjson["sale_terms"]:
-                    if "id" in st and st["id"]==sale_term_id:
+                    if st.get("id") == sale_term_id:
                         return st
                 return False
 
-            #return from category
-            if sale_terms_by_id and sale_term_id in sale_terms_by_id:
-
-                return sale_terms_by_id[ sale_terms_by_id ]
+            # Buscar en los términos de la categoría
+            if sale_term_id in sale_terms_by_id:
+                return sale_terms_by_id[sale_term_id]
 
         return sale_terms_by_id
 
     def get_user_product_stock_with_version(self, up_id, access_token):
-        # devuelve (json, x_version)
-        data, status, headers = self.resource_get_with_http_info(
-            resource="user-products/{}/stock".format(up_id),
-            access_token=access_token,
-            _return_http_data_only=False  # queremos headers
-        )
-        xver = None
-        if headers:
-            xver = headers.get('x-version') or headers.get('X-Version')
-        return data, xver
+        """
+        Obtiene stock de user-product con x-version header (sin SDK).
+        Retorna (data, x_version)
+        """
+        url = self._abs_url(f"user-products/{up_id}/stock")
+
+        headers = {
+            "Accept": "application/json",
+            "Authorization": f"Bearer {access_token}"
+        }
+
+        try:
+            resp = self._session.get(url, headers=headers, timeout=20)
+            data = self._parse_response(resp)
+            xver = resp.headers.get('x-version') or resp.headers.get('X-Version')
+            return data, xver
+
+        except requests.RequestException as e:
+            _logger.warning("get_user_product_stock_with_version error: %s", str(e))
+            return {"error": str(e)}, None
+
+
+# ---------------------------------------------------------------------------
+#  MeliApiSDK — implementación con el SDK oficial de MercadoLibre
+#  Solo se define si el SDK está disponible.
+# ---------------------------------------------------------------------------
+if _versions.MELI_SDK_AVAILABLE and _meli_sdk and _ApiClient:
+    class MeliApiSDK(_meli_sdk.RestClientApi):
+        """Cliente API de MercadoLibre usando el SDK oficial (meli)."""
+
+        AUTH_URL = "https://auth.mercadolibre.com.ar/authorization"
+        needlogin_state = True
+        client_id = ""
+        client_secret = ""
+        access_token = ""
+        refresh_token = ""
+        redirect_uri = ""
+        seller_id = ""
+        response = ""
+        code = ""
+        rjson = {}
+        user = {}
+
+        def __init__(self, *args, **kwargs):
+            super(MeliApiSDK, self).__init__(*args, **kwargs)
+            self.api_auth_client = _meli_sdk.OAuth20Api(self.api_client)
+
+        def need_login(self):
+            return self.needlogin_state
+
+        def json(self):
+            return self.rjson
+
+        def get(self, path, params={}):
+            try:
+                atok = ("access_token" in params and params["access_token"]) or ""
+                if atok == "PASIVA":
+                    atok = ""
+                    del params["access_token"]
+                scroll_id = ("scroll_id" in params and params["scroll_id"]) or None
+                if atok:
+                    del params["access_token"]
+                if scroll_id:
+                    del params["scroll_id"]
+                if params:
+                    path += "?" + urlencode(params)
+                    if scroll_id:
+                        path += "&scroll_id=" + scroll_id
+                self.response = self.resource_get(resource=path, access_token=atok)
+                self.rjson = self.response
+            except _ApiException as e:
+                self.rjson = {
+                    "error": "get error",
+                    "status": getattr(e, "status", None),
+                    "cause": getattr(e, "reason", None),
+                    "message": getattr(e, "body", None),
+                }
+            except:
+                pass
+            return self
+
+        # get_mini y post_mini usan requests directo (como en la versión original)
+        def get_mini(self, path, params={}):
+            """GET sin SDK (requests directo) - para compatibilidad"""
+            _nosdk = MeliApiNoSDK(config=configuration_nosdk)
+            _nosdk.__dict__.update({k: v for k, v in self.__dict__.items()
+                                     if k in ('client_id', 'client_secret', 'access_token',
+                                              'refresh_token', 'redirect_uri', 'seller_id')})
+            _nosdk.get(path, params)
+            self.response = _nosdk.response
+            self.rjson = _nosdk.rjson
+            return self
+
+        def post(self, path, body=None, params={}):
+            try:
+                atok = ("access_token" in params and params["access_token"]) or ""
+                if atok:
+                    del params["access_token"]
+                if params:
+                    path += "?" + urlencode(params)
+                self.response = self.resource_post(resource=path, access_token=atok, body=body)
+                self.rjson = self.response
+            except _ApiException as e:
+                self.rjson = {"error": "post error", "status": e.status, "cause": e.reason, "message": e.body}
+            except:
+                pass
+            return self
+
+        def post_mini(self, path, body=None, params={}):
+            """POST sin SDK (requests directo) - para compatibilidad"""
+            _nosdk = MeliApiNoSDK(config=configuration_nosdk)
+            _nosdk.__dict__.update({k: v for k, v in self.__dict__.items()
+                                     if k in ('client_id', 'client_secret', 'access_token',
+                                              'refresh_token', 'redirect_uri', 'seller_id')})
+            _nosdk.post(path, body, params)
+            self.response = _nosdk.response
+            self.rjson = _nosdk.rjson
+            return self
+
+        def put(self, path, body=None, params={}):
+            try:
+                atok = params.get("access_token", "") or ""
+                headers = params.get("headers", {}) or {}
+                self.response = self.resource_put(resource=path, access_token=atok, body=body, headers=headers)
+                self.rjson = self.response
+            except _ApiException as e:
+                self.rjson = {"error": "put error", "status": e.status, "cause": e.reason, "message": e.body}
+            except:
+                pass
+            return self
+
+        def put_mini(self, path, body=None, params={}):
+            """PUT sin SDK (requests directo) - para compatibilidad"""
+            _nosdk = MeliApiNoSDK(config=configuration_nosdk)
+            _nosdk.__dict__.update({k: v for k, v in self.__dict__.items()
+                                     if k in ('client_id', 'client_secret', 'access_token',
+                                              'refresh_token', 'redirect_uri', 'seller_id')})
+            _nosdk.put(path, body, params)
+            self.response = _nosdk.response
+            self.rjson = _nosdk.rjson
+            return self
+
+        def delete(self, path, params={}):
+            try:
+                atok = ("access_token" in params and params["access_token"]) or ""
+                self.response = self.resource_delete(resource=path, access_token=atok)
+                self.rjson = self.response
+            except _ApiException as e:
+                self.rjson = {"error": str(e), "status": e.status, "cause": e.reason, "message": e.body}
+            except:
+                pass
+            return self
+
+        def upload(self, path, files, params={}):
+            try:
+                atok = ("access_token" in params and params["access_token"]) or ""
+                uri = configuration_sdk.host + str(path)
+                self.response = requests.post(uri, files=files, params=urlencode({"access_token": atok}), headers={})
+                self.rjson = self.response.json()
+            except Exception as e:
+                self.rjson = {"error": str(e)}
+            return self
+
+        def uploadfiles(self, path, files, params={}):
+            try:
+                atok = ("access_token" in params and params["access_token"]) or ""
+                uri = configuration_sdk.host + str(path)
+                headers = {'Authorization': 'Bearer ' + atok}
+                self.response = requests.post(uri, files=files, params={}, headers=headers)
+                self.rjson = self.response.json()
+            except Exception as e:
+                self.rjson = {"error": str(e)}
+            return self
+
+        def auth_url(self, redirect_URI=None):
+            now = datetime.now()
+            if redirect_URI:
+                self.redirect_uri = redirect_URI
+            random_id = str(now)
+            params = {'client_id': self.client_id, 'response_type': 'code', 'redirect_uri': self.redirect_uri, 'state': random_id}
+            return self.AUTH_URL + '?' + urlencode(params)
+
+        def redirect_login(self):
+            return {"type": "ir.actions.act_url", "url": str(self.auth_url()), "target": "self"}
+
+        def authorize(self, code, redirect_uri=None):
+            api_client = _ApiClient()
+            api_auth_client = _meli_sdk.OAuth20Api(api_client)
+            if redirect_uri:
+                self.redirect_uri = redirect_uri
+            response_info = api_auth_client.get_token(
+                grant_type='authorization_code', client_id=self.client_id,
+                client_secret=self.client_secret, redirect_uri=self.redirect_uri,
+                code=code, refresh_token=self.refresh_token)
+            if 'access_token' in response_info:
+                self.access_token = response_info['access_token']
+                self.refresh_token = response_info.get('refresh_token', '')
+            return response_info
+
+        def get_refresh_token(self, code=None, redirect_uri=None):
+            api_client = _ApiClient()
+            api_auth_client = _meli_sdk.OAuth20Api(api_client)
+            response_info = api_auth_client.get_token(
+                grant_type='refresh_token', client_id=self.client_id,
+                client_secret=self.client_secret, refresh_token=self.refresh_token)
+            if 'access_token' in response_info:
+                self.access_token = response_info['access_token']
+                self.refresh_token = response_info.get('refresh_token', '')
+            return response_info
+
+        def get_sale_terms(self, category_id=None, sale_term_id=None, productjson=None):
+            sale_terms_by_id = {}
+            if category_id:
+                res = self.get("/categories/" + str(category_id) + "/sale_terms")
+                if res and res.rjson:
+                    for rj in res.rjson:
+                        stid = "id" in rj and rj["id"]
+                        if stid:
+                            sale_terms_by_id[stid] = rj
+            if sale_term_id:
+                if productjson and "sale_terms" in productjson:
+                    for st in productjson["sale_terms"]:
+                        if "id" in st and st["id"] == sale_term_id:
+                            return st
+                    return False
+                if sale_term_id in sale_terms_by_id:
+                    return sale_terms_by_id[sale_term_id]
+            return sale_terms_by_id
+
+        def get_user_product_stock_with_version(self, up_id, access_token):
+            data, status, headers = self.resource_get_with_http_info(
+                resource="user-products/{}/stock".format(up_id),
+                access_token=access_token, _return_http_data_only=False)
+            xver = None
+            if headers:
+                xver = headers.get('x-version') or headers.get('X-Version')
+            return data, xver
+
+else:
+    # SDK no disponible: MeliApiSDK es None
+    MeliApiSDK = None
+
+
+# ---------------------------------------------------------------------------
+#  Selección de implementación según USE_MELI_SDK
+# ---------------------------------------------------------------------------
+if _versions.USE_MELI_SDK and MeliApiSDK is not None:
+    MeliApi = MeliApiSDK
+    configuration = configuration_sdk
+    _logger.info("MeliApi: usando SDK (meli.RestClientApi)")
+else:
+    MeliApi = MeliApiNoSDK
+    configuration = configuration_nosdk
+    _logger.info("MeliApi: usando requests directo (sin SDK)")
 
 
 class MeliUtil(models.AbstractModel):
@@ -688,7 +983,7 @@ class MeliUtil(models.AbstractModel):
     _name = 'meli.util'
     _description = 'Utilidades para Mercado Libre'
 
-    def get_meli_state( self ):
+    def get_meli_state(self):
         return self.get_new_instance()
 
     @api.model
@@ -697,8 +992,12 @@ class MeliUtil(models.AbstractModel):
         if not company:
             company = self.env.user.company_id
 
-        api_client = ApiClient(configuration=configuration)
-        api_rest_client = MeliApi(api_client)
+        # Crear instancia de MeliApi según modo activo (SDK o requests)
+        if _versions.USE_MELI_SDK and MeliApiSDK is not None:
+            api_client = _ApiClient(configuration=configuration_sdk)
+            api_rest_client = MeliApi(api_client)
+        else:
+            api_rest_client = MeliApi(config=configuration_nosdk)
         api_rest_client.client_id = company.mercadolibre_client_id
         api_rest_client.client_secret = company.mercadolibre_secret_key
         api_rest_client.access_token = company.mercadolibre_access_token or ''
@@ -706,8 +1005,6 @@ class MeliUtil(models.AbstractModel):
         api_rest_client.redirect_uri = company.mercadolibre_redirect_uri
         api_rest_client.seller_id = company.mercadolibre_seller_id
         api_rest_client.AUTH_URL = company.get_ML_AUTH_URL(meli=api_rest_client)
-        api_auth_client = meli.OAuth20Api(api_client)
-        grant_type = 'authorization_code' # or 'refresh_token' if you need get one new token
         last_token = api_rest_client.access_token
 
         #api_response = api_instance.get_token(grant_type=grant_type, client_id=CLIENT_ID, client_secret=CLIENT_SECRET, redirect_uri=REDIRECT_URI, code=CODE, refresh_token=REFRESH_TOKEN)
@@ -818,6 +1115,10 @@ class MeliUtil(models.AbstractModel):
                         if (company.mercadolibre_user_product_seller!=mercadolibre_user_product_seller):
                             company.mercadolibre_user_product_seller = mercadolibre_user_product_seller
 
+                    if "mercadolibre_multiwarehouse" in company._fields:
+                        mercadolibre_multiwarehouse = ("tags" in rjson and "multiwarehouse" in rjson["tags"])
+                        if (company.mercadolibre_multiwarehouse != mercadolibre_multiwarehouse):
+                            company.mercadolibre_multiwarehouse = mercadolibre_multiwarehouse
 
 
             else:

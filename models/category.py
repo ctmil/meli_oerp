@@ -19,7 +19,7 @@
 #
 ##############################################################################
 
-from odoo import fields, osv, models, api, Command, _
+from odoo import fields, models, api, Command, _
 import logging
 _logger = logging.getLogger(__name__)
 
@@ -791,9 +791,7 @@ class mercadolibre_category(models.Model):
 
     data_json = fields.Text(string="Data json")
 
-    _sql_constraints = [
-    	('unique_meli_category_id','unique(meli_category_id)','Meli Category id already exists!'),
-    ]
+    _unique_meli_category_id = models.UniqueIndex('(meli_category_id)', message='Meli Category id already exists!')
 
 
 class mercadolibre_grid_value(models.Model):

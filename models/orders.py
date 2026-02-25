@@ -19,7 +19,7 @@
 #
 ##############################################################################
 
-from odoo import fields, osv, models, api
+from odoo import fields, models, api
 import logging
 from .meli_oerp_config import *
 
@@ -447,6 +447,90 @@ class sale_order(models.Model):
                     res = {'error': str(e)}
         return res
 
+    def meli_cancel_with_detail(self, cancel_msg):
+        """
+        Cancela la orden forzando la cancelacion cuando Meli informa un cancel_detail.
+        - Si hay albaranes entregados (done), crea devoluciones automaticamente.
+        - Si hay facturas publicadas (posted), intenta resetearlas a borrador o
+          notifica que se requiere una nota de credito manual.
+        - Cancela la orden de venta (desbloqueandola si hace falta) y postea
+          el motivo en el chatter de la orden y de cada factura involucrada.
+        """
+        # 1. Devolver albaranes ya entregados
+        for picking in self.picking_ids.filtered(lambda p: p.state == 'done'):
+            try:
+                return_wizard = self.env['stock.return.picking'].with_context(
+                    active_id=picking.id, active_ids=[picking.id]
+                ).create({'picking_id': picking.id})
+                return_dict = return_wizard.create_returns()
+                return_picking_name = ''
+                if return_dict and return_dict.get('res_id'):
+                    return_picking = self.env['stock.picking'].browse(return_dict['res_id'])
+                    return_picking_name = return_picking.name
+                self.message_post(
+                    body="Devolución de albarán %s creada automáticamente (%s) por cancelación en MercadoLibre." % (picking.name, return_picking_name),
+                    message_type=order_message_type
+                )
+            except Exception as e:
+                _logger.error("meli_cancel_with_detail: error devolviendo picking %s: %s", picking.name, e, exc_info=True)
+                self.message_post(
+                    body="No se pudo devolver el albarán %s automáticamente. Error: %s. Gestionar manualmente." % (picking.name, str(e)),
+                    message_type=order_message_type
+                )
+
+        # 2. Gestionar facturas existentes
+        for invoice in self.invoice_ids:
+            if invoice.state == 'posted':
+                # Intentar resetear a borrador para poder cancelar
+                reverted = False
+                try:
+                    invoice.button_draft()
+                    reverted = True
+                    invoice.message_post(
+                        body=cancel_msg + " — Factura revertida a borrador por cancelación de orden en MercadoLibre.",
+                        message_type=order_message_type
+                    )
+                except Exception as e:
+                    _logger.warning("meli_cancel_with_detail: no se pudo revertir factura %s a borrador: %s", invoice.name, e)
+                if not reverted:
+                    # No se pudo revertir: informar que se requiere nota de crédito
+                    invoice.message_post(
+                        body=cancel_msg + " — Se requiere NOTA DE CRÉDITO para reversar esta factura.",
+                        message_type=order_message_type
+                    )
+                    self.message_post(
+                        body="Factura %s publicada no se pudo revertir — crear nota de crédito manualmente." % invoice.name,
+                        message_type=order_message_type
+                    )
+            elif invoice.state == 'draft':
+                try:
+                    if hasattr(invoice, 'button_cancel'):
+                        invoice.button_cancel()
+                except Exception as e:
+                    _logger.warning("meli_cancel_with_detail: no se pudo cancelar borrador de factura %s: %s", invoice.name, e)
+
+        # 3. Desbloquear si la orden esta bloqueada o en estado done
+        is_locked = self.state == 'done' or ('locked' in self._fields and self.locked)
+        if is_locked:
+            try:
+                self.action_unlock()
+            except Exception as e:
+                _logger.warning("meli_cancel_with_detail: no se pudo desbloquear la orden %s: %s", self.name, e)
+
+        # 4. Cancelar la orden de venta
+        if self.state in ['draft', 'sale', 'sent', 'done']:
+            try:
+                self.with_context(disable_cancel_warning=disable_cancel_warning_enabled).action_cancel()
+            except Exception as e:
+                _logger.error("meli_cancel_with_detail: no se pudo cancelar la orden %s: %s", self.name, e, exc_info=True)
+                self.message_post(
+                    body="No se pudo cancelar la orden automáticamente: %s. Gestionar manualmente." % str(e),
+                    message_type=order_message_type
+                )
+
+        # 5. Postear el motivo de cancelacion en el chatter de la orden
+        self.message_post(body=cancel_msg, message_type=order_message_type)
+
     def is_meli_order_fulfillment( self ):
         res = False
         res = self.meli_shipment_logistic_type and "fulfillment" in self.meli_shipment_logistic_type
@@ -471,10 +555,10 @@ class sale_order(models.Model):
 
             #cancelling with no conditions, here because paid_amount is 0, dont use confirm_cond
             if (self.meli_status=="cancelled"):
-                if (self.state in ["draft","sale","sent"]):
-                    #_logger.info("Confirm Order Cancelling")
-                    self.with_context(disable_cancel_warning=disable_cancel_warning_enabled).action_cancel()
-                    #_logger.info("Confirm Order Cancelled")
+                cancel_msg = "Orden cancelada por MercadoLibre."
+                if self.meli_status_detail:
+                    cancel_msg += " Motivo: %s" % self.meli_status_detail
+                self.meli_cancel_with_detail(cancel_msg)
                 return res
 
             amount_to_invoice = self.meli_amount_to_invoice( meli=meli, config=config )
@@ -687,9 +771,7 @@ class sale_order(models.Model):
         base_unit = base / (quantity or 1.0)
         return self.currency_id.round(base_unit)
 
-    _sql_constraints = [
-        ('unique_meli_order_id', 'unique(meli_order_id)', 'Meli Order id already exists!')
-    ]
+    _unique_meli_order_id = models.UniqueIndex('(meli_order_id)', message='Meli Order id already exists!')
 
 class mercadolibre_orders(models.Model):
     _name = "mercadolibre.orders"
@@ -875,11 +957,17 @@ class mercadolibre_orders(models.Model):
             if response:
                 biljson = response.json()
                 #_logger.info("get_billing_info: "+str(biljson))
-                _billing_info = (biljson and 'billing_info' in biljson and biljson['billing_info']) or {}
-                if "additional_info" in _billing_info:
-                    adds = _billing_info["additional_info"]
-                    for add in adds:
-                        _billing_info[add["type"]] = add["value"]
+                api_billing_info = (biljson and 'billing_info' in biljson and biljson['billing_info']) or None
+                if api_billing_info:
+                    _billing_info = api_billing_info
+                    if "additional_info" in _billing_info:
+                        adds = _billing_info["additional_info"]
+                        for add in adds:
+                            _billing_info[add["type"]] = add["value"]
+                            # Also add lowercase version for compatibility
+                            _billing_info[add["type"].lower()] = add["value"]
+                else:
+                    _logger.debug("get_billing_info: API response sin billing_info, usando fallback de la orden. order_id: %s biljson keys: %s", order_id, str(biljson and biljson.keys()))
         return _billing_info
 
     def billing_info( self, billing_json, context=None ):
@@ -1014,13 +1102,23 @@ class mercadolibre_orders(models.Model):
 
         financing_fee_amount = 0
 
+        cancel_detail = order_json.get("cancel_detail") or {}
+        cancel_detail_text = ""
+        if cancel_detail:
+            cancel_detail_text = " | %s: %s (solicitado por: %s, fecha: %s)" % (
+                cancel_detail.get("code", ""),
+                cancel_detail.get("description", ""),
+                cancel_detail.get("requested_by", ""),
+                cancel_detail.get("date", ""),
+            )
+
         order_fields = {
             'name': "MO [%s]" % ( str(order_json["id"]) ),
             'company_id': company.id,
             'seller_id': seller_id,
             'order_id': '%s' % (str(order_json["id"])),
             'status': order_json["status"],
-            'status_detail': order_json["status_detail"] or '' ,
+            'status_detail': (order_json.get("status_detail") or '') + cancel_detail_text,
             'fee_amount': 0.0,
             'total_amount': order_json["total_amount"],
             'paid_amount': order_json["paid_amount"],
@@ -1058,6 +1156,15 @@ class mercadolibre_orders(models.Model):
         if not order_json:
             return {}
         financing_fee_amount = ("financing_fee_amount" in order_json and order_json["financing_fee_amount"]) or 0
+        cancel_detail = order_json.get("cancel_detail") or {}
+        cancel_detail_text = ""
+        if cancel_detail:
+            cancel_detail_text = " | %s: %s (solicitado por: %s, fecha: %s)" % (
+                cancel_detail.get("code", ""),
+                cancel_detail.get("description", ""),
+                cancel_detail.get("requested_by", ""),
+                cancel_detail.get("date", ""),
+            )
         meli_order_fields = {
             #TODO: "add parameter for":
             'name': "ML %s" % ( str(order_json["id"]) ),
@@ -1065,7 +1172,7 @@ class mercadolibre_orders(models.Model):
             #'pricelist_id': plistid.id,
             'meli_order_id': '%s' % (str(order_json["id"])),
             'meli_status': ("status" in order_json and order_json["status"]) or '',
-            'meli_status_detail': ("status_detail" in order_json and order_json["status_detail"]) or '' ,
+            'meli_status_detail': (order_json.get("status_detail") or '') + cancel_detail_text,
             'meli_total_amount': ("total_amount" in order_json and order_json["total_amount"]),
             'meli_paid_amount': ("paid_amount" in order_json and order_json["paid_amount"]),
             'meli_coupon_amount': ("coupon" in order_json and order_json["coupon"] and "amount" in order_json["coupon"] and order_json["coupon"]["amount"]) or 0.0,
@@ -1401,13 +1508,26 @@ class mercadolibre_orders(models.Model):
         if 'buyer' in order_json:
             Buyer = order_json['buyer']
             Buyer['billing_info'] = self.get_billing_info(order_id=order_json['id'],meli=meli,data=order_json)
-            #Buyer['first_name'] = ('first_name' in Buyer and Buyer['first_name']) or ('FIRST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['FIRST_NAME']) or ''
-            #Buyer['last_name'] = ('last_name' in Buyer and Buyer['last_name']) or ('LAST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['LAST_NAME']) or ''
-            Buyer['first_name'] = ('first_name' in Buyer and Buyer['first_name']) or ('FIRST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['FIRST_NAME']) or ''
-            Buyer['first_name'] = Buyer['first_name'] and Buyer['first_name'].capitalize()
-            Buyer['last_name'] = ('last_name' in Buyer and Buyer['last_name']) or ('LAST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['LAST_NAME']) or ''
-            Buyer['last_name'] = Buyer['last_name'] and Buyer['last_name'].capitalize()
-            Buyer['business_name'] = ('business_name' in Buyer and Buyer['business_name']) or ('BUSINESS_NAME' in Buyer['billing_info'] and Buyer['billing_info']['BUSINESS_NAME']) or ''
+            # Nombre para contacto principal: usar nombre del buyer de MeLi (de la orden)
+            Buyer['first_name'] = ('first_name' in Buyer and Buyer['first_name']) or ''
+            Buyer['last_name'] = ('last_name' in Buyer and Buyer['last_name']) or ''
+            # Fallback a nickname si el buyer no tiene first/last name
+            if not Buyer['first_name'] and not Buyer['last_name']:
+                Buyer['first_name'] = ('nickname' in Buyer and Buyer['nickname']) or ''
+            Buyer['first_name'] = Buyer['first_name'] and Buyer['first_name'].strip().title()
+            Buyer['last_name'] = Buyer['last_name'] and Buyer['last_name'].strip().title()
+            Buyer['business_name'] = ('business_name' in Buyer and Buyer['business_name']) or ''
+
+            # Nombre para facturación: priorizar billing_info (nombre legal/fiscal)
+            _billing_fn = ('FIRST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['FIRST_NAME']) or ''
+            _billing_ln = ('LAST_NAME' in Buyer['billing_info'] and Buyer['billing_info']['LAST_NAME']) or ''
+            _billing_bn = ('BUSINESS_NAME' in Buyer['billing_info'] and Buyer['billing_info']['BUSINESS_NAME']) or ''
+            billing_full_name = ''
+            if _billing_fn:
+                billing_full_name = _billing_fn.strip().title()
+                if _billing_ln:
+                    billing_full_name += ' ' + _billing_ln.strip().title()
+            billing_full_name = billing_full_name or _billing_bn or self.buyer_full_name(Buyer)
             Receiver = False
             if ('shipping' in order_json and order_json['shipping']):
                 if ('receiver_address' in order_json['shipping']):
@@ -1530,15 +1650,40 @@ class mercadolibre_orders(models.Model):
 
                 #Chile/Arg/Latam
                 if ( ('doc_type' in Buyer['billing_info']) and ('l10n_latam_identification_type_id' in self.env['res.partner']._fields) ):
-                    doc_type_id = self.env["l10n_latam.identification.type"].search([('country_id','=',company.country_id.id),('name','ilike',Buyer['billing_info']['doc_type'])],limit=1)
-                    if (Buyer['billing_info']['doc_type']=="RUT"):
+                    _doc_type = Buyer['billing_info']['doc_type']
+                    doc_type_id = self.env["l10n_latam.identification.type"].search([('country_id','=',company.country_id.id),('name','ilike',_doc_type)],limit=1)
+
+                    # Fallback para Argentina: buscar por código AFIP si no se encontró por nombre
+                    if not doc_type_id and company.country_id.code == "AR" and 'l10n_ar_afip_code' in self.env["l10n_latam.identification.type"]._fields:
+                        afip_code_map = {'DNI': '96', 'CUIT': '80', 'CUIL': '86', 'CDI': '87', 'LE': '89', 'LC': '90', 'CI': '91', 'PASAPORTE': '94'}
+                        afip_code = afip_code_map.get(_doc_type.upper())
+                        if afip_code:
+                            doc_type_id = self.env["l10n_latam.identification.type"].search([
+                                ('country_id','=',company.country_id.id),
+                                ('l10n_ar_afip_code','=',afip_code)
+                            ],limit=1)
+                            # Fallback: buscar por código AFIP sin filtro de país
+                            if not doc_type_id:
+                                doc_type_id = self.env["l10n_latam.identification.type"].search([
+                                    ('l10n_ar_afip_code','=',afip_code)
+                                ],limit=1)
+
+                    # Fallback: buscar por nombre sin filtro de país
+                    if not doc_type_id:
+                        doc_type_id = self.env["l10n_latam.identification.type"].search([('name','ilike',_doc_type)],limit=1)
+
+                    if not doc_type_id:
+                        _logger.warning("l10n_latam.identification.type no encontrado para doc_type=%s country=%s", _doc_type, company.country_id.code)
+
+                    if (_doc_type=="RUT"):
                         meli_buyer_fields['l10n_latam_identification_type_id'] = (doc_type_id and doc_type_id.id) or 4
-                    if (Buyer['billing_info']['doc_type']=="RUN"):
+                    if (_doc_type=="RUN"):
                         meli_buyer_fields['l10n_latam_identification_type_id'] = (doc_type_id and doc_type_id.id) or 5
                     if (doc_type_id):
                         meli_buyer_fields['l10n_latam_identification_type_id'] = (doc_type_id and doc_type_id.id)
 
-                    if (company.country_id.code == "AR" and 'l10n_ar.afip.responsibility.type' in self.env):
+                    if (company.country_id.code == "AR" and 'l10n_ar.afip.responsibility.type' in self.env
+                        and 'l10n_ar_afip_responsibility_type_id' in self.env['res.partner']._fields):
                         afipid = self.env['l10n_ar.afip.responsibility.type'].search([('code','=',5)]).id
                         meli_buyer_fields["l10n_ar_afip_responsibility_type_id"] = afipid
                         if ('TAXPAYER_TYPE_ID' in Buyer['billing_info'] and Buyer['billing_info']['TAXPAYER_TYPE_ID'] and Buyer['billing_info']['TAXPAYER_TYPE_ID']=="IVA Responsable Inscripto"):
@@ -1559,6 +1704,7 @@ class mercadolibre_orders(models.Model):
                     doc_type_id = self.env["partner.document.type"].search([('name','ilike',doc_type)],limit=1)
                     if (doc_type_id):
                         meli_buyer_fields['partner_document_type_id'] = (doc_type_id and doc_type_id.id)
+                    _logger.info("CER_BLOCK: doc_type=%s doc_type_id=%s", doc_type, doc_type_id.id if doc_type_id else None)
 
                     tax_type = 'TAXPAYER_TYPE_ID' in Buyer['billing_info'] and Buyer['billing_info']['TAXPAYER_TYPE_ID']
                     if (tax_type):
@@ -1570,9 +1716,43 @@ class mercadolibre_orders(models.Model):
                         if (doc_type=="DNI"):
                             tax_type = "Consumidor Final"
 
-                    tax_type_id = self.env["account.fiscal.position"].search([('name','ilike',tax_type)],limit=1)
+                    tax_type_id = self.env["account.fiscal.position"].search([('name','ilike',tax_type),('company_id','=',company.id)],limit=1)
                     if (tax_type_id and 'property_account_position_id' in self.env['res.partner']._fields):
                         meli_buyer_fields['property_account_position_id'] = (tax_type_id and tax_type_id.id)
+
+                    # CER/Blue Orange: también setear l10n_ar_afip_responsibility_type_id
+                    # si el campo existe (requerido por AFIP WSFE para validar facturas)
+                    _has_afip_model = 'l10n_ar.afip.responsibility.type' in self.env
+                    _has_afip_field = 'l10n_ar_afip_responsibility_type_id' in self.env['res.partner']._fields
+                    _already_set = 'l10n_ar_afip_responsibility_type_id' in meli_buyer_fields
+                    _logger.info("CER_BLOCK AFIP: country=%s has_model=%s has_field=%s already_set=%s tax_type=%s",
+                                 company.country_id.code, _has_afip_model, _has_afip_field, _already_set, tax_type)
+                    if (company.country_id.code == "AR"
+                        and _has_afip_model and _has_afip_field and not _already_set):
+                        # Default: Consumidor Final (code=5)
+                        afip_resp = self.env['l10n_ar.afip.responsibility.type'].search([('code','=',5)], limit=1)
+                        if tax_type and afip_resp:
+                            afip_map = {
+                                'IVA Responsable Inscripto': 1,
+                                'Responsable Inscripto': 1,
+                                'Responsable Monotributo': 6,
+                                'Monotributo': 6,
+                                'IVA Sujeto Exento': 4,
+                                'Exento': 4,
+                                'Consumidor Final': 5,
+                            }
+                            afip_code = afip_map.get(tax_type, 5)
+                            afip_resp = self.env['l10n_ar.afip.responsibility.type'].search([('code','=',afip_code)], limit=1)
+                        if afip_resp:
+                            meli_buyer_fields['l10n_ar_afip_responsibility_type_id'] = afip_resp.id
+                            _logger.info("CER_BLOCK AFIP: SET l10n_ar_afip_responsibility_type_id=%s (code=%s, tax_type=%s)",
+                                         afip_resp.id, afip_resp.code, tax_type)
+                        else:
+                            _logger.warning("CER_BLOCK AFIP: no se encontró l10n_ar.afip.responsibility.type para tax_type=%s", tax_type)
+                    elif company.country_id.code == "AR" and _already_set:
+                        _logger.info("CER_BLOCK AFIP: SKIP (ya seteado por bloque l10n_latam)")
+                    elif company.country_id.code == "AR":
+                        _logger.warning("CER_BLOCK AFIP: SKIP (has_model=%s has_field=%s)", _has_afip_model, _has_afip_field)
 
                     meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
 
@@ -1919,152 +2099,338 @@ class mercadolibre_orders(models.Model):
                     if ("property_payment_term_id" in self.env['res.partner']._fields):
                         meli_buyer_fields['property_payment_term_id'] = config.mercadolibre_payment_term and config.mercadolibre_payment_term.id
 
-            partner_invoice_id = None
-            partner_invoice_meli_order_id = str(order_json['pack_id'] or order_json['id'])
-            partner_id = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ]+company_only_domain, limit=1 )
-            if not partner_id:
-                partner_id = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ]+company_none_domain, limit=1 )
+            # ================================================================
+            # ARQUITECTURA DE CONTACTOS:
+            # - Contacto PADRE: identidad del buyer MeLi (nombre MeLi, phone, meli_buyer_id)
+            #   No se modifican nombre ni datos fiscales una vez creado.
+            # - Contacto HIJO (type=invoice): datos de facturación (nombre legal,
+            #   VAT, tipo doc, posición fiscal, dirección fiscal).
+            #   Uno por cada VAT único bajo el mismo padre. Se crea desde la primera compra.
+            # ================================================================
 
-            
-            if (search_partner_vat_match and (not partner_id and 'billing_info_doc_number' in buyer_fields and buyer_fields['billing_info_doc_number'])):
-                partner_id = respartner_obj.search([  ('vat','=',buyer_fields['billing_info_doc_number'] ) ]+company_only_domain, limit=1 )
-                if (partner_id):
-                    partner_id.meli_buyer_id = buyer_fields['buyer_id']
-                else:
-                    partner_id = respartner_obj.search([  ('vat','=',buyer_fields['billing_info_doc_number'] ) ]+company_none_domain, limit=1 )
+            # --- Separar datos fiscales/facturación del contacto principal ---
+            BILLING_ONLY_FIELDS = {
+                'vat', 'main_id_category_id', 'main_id_number',
+                'afip_responsability_type_id',
+                'l10n_latam_identification_type_id', 'l10n_ar_afip_responsibility_type_id',
+                'partner_document_type_id', 'property_account_position_id',
+                'l10n_cl_sii_taxpayer_type', 'document_type_id', 'document_number',
+                'es_mipyme', 'activity_description', 'city_id', 'dte_email', 'giro',
+                'l10n_co_document_type', 'l10n_co_document_typee',
+                'fiscal_responsibility_ids', 'fiscal_responsability_ids',
+                'responsabilidad_fiscal_fe',
+                'tribute_id', 'tipodocumento_ids', 'documento',
+                'property_payment_term_id', 'company_type',
+                'xidentification',
+                'x_name1', 'x_name2', 'x_lastname1', 'x_lastname2', 'x_pn_retri',
+            }
 
-            partner_invoice_id = partner_id
-            #_logger.info("partner_id>buyer_fields:"+str(buyer_fields)+" > partner_id: "+str(partner_id))
-            #_logger.info("meli_buyer_fields:"+str(meli_buyer_fields))
+            billing_child_fields = {}
+            for _bf in list(meli_buyer_fields.keys()):
+                # fe_* = todos los campos de facturación electrónica (Colombia)
+                if _bf in BILLING_ONLY_FIELDS or _bf.startswith('fe_'):
+                    billing_child_fields[_bf] = meli_buyer_fields.pop(_bf)
+            billing_child_fields['name'] = billing_full_name
+            _logger.info("BILLING_SPLIT: billing_child_fields=%s | buyer_fields_remaining=%s",
+                         list(billing_child_fields.keys()), list(meli_buyer_fields.keys()))
 
-            #encapsulamos dire de facturacion
-            billing_partner_update = {}
+            # Dirección de facturación (va al contacto hijo)
             if ("billing_info_street_name" in buyer_fields and buyer_fields["billing_info_street_name"]):
-                billing_partner_update.update({
-                    'street': self.street(Receiver,Buyer),
-                    'city': self.city(Receiver,Buyer),
-                    'country_id': self.country(Receiver,Buyer),
-                    'state_id': self.state(self.country(Receiver,Buyer),Receiver,Buyer),
-                    "zip": self.zip_code(Receiver, Buyer),
-                    "name": self.buyer_full_name(Buyer),
+                billing_child_fields.update({
+                    'street': self.street(Receiver, Buyer),
+                    'city': self.city(Receiver, Buyer),
+                    'country_id': self.country(Receiver, Buyer),
+                    'state_id': self.state(self.country(Receiver, Buyer), Receiver, Buyer),
+                    'zip': self.zip_code(Receiver, Buyer),
                 })
-                #_logger.info("billing_partner_update: "+str(billing_partner_update))
-                #_logger.info("Buyer: "+str(Buyer))
-                #_logger.info("Receiver: "+str(Receiver))
 
             if ("fe_regimen_fiscal" in self.env['res.partner']._fields):
-                if (partner_id and not partner_id.fe_regimen_fiscal):
-                    meli_buyer_fields['fe_regimen_fiscal'] = '49';
-                else:
-                    meli_buyer_fields['fe_regimen_fiscal'] = '49';
+                billing_child_fields['fe_regimen_fiscal'] = '49'
 
-            #SI VAT DIFERENTE SE CREA NUEVO INVOICE PARTNER: TODO: cambiar esto por una funcion de condicion para crear un nuevo contacto de facturacion
-            if (partner_id and "vat" in meli_buyer_fields and meli_buyer_fields["vat"]!=str(partner_id.vat)):
-                #CREAR INVOICE CONTACT
-                #_logger.info(Partner Invoice is NEW: "+str(partner_invoice_meli_order_id)+" VAT:"+str(meli_buyer_fields["vat"])+ " vs "+str(partner_id.vat))
-                partner_invoice_id = respartner_obj.search([  ('meli_order_id','=',partner_invoice_meli_order_id ) ]+company_only_domain, limit=1 )
-                if not partner_invoice_id:
-                    partner_invoice_id = respartner_obj.search([  ('meli_order_id','=',partner_invoice_meli_order_id ) ]+company_none_domain, limit=1 )
+            # --- Parsear lista de VATs genéricos (ej: XAXX010101000 en MX) ---
+            # Defaults por país cuando el campo está vacío
+            _GENERIC_VATS_DEFAULTS = {
+                'MX': 'XAXX010101000,XEXX010101000',  # Público en general / Extranjeros
+            }
+            _generic_vats_raw = (
+                config.mercadolibre_generic_vats
+                if 'mercadolibre_generic_vats' in config._fields and config.mercadolibre_generic_vats
+                else ''
+            )
+            if not _generic_vats_raw and company and company.country_id:
+                _generic_vats_raw = _GENERIC_VATS_DEFAULTS.get(company.country_id.code, '')
+            _generic_vats = [v.strip().upper() for v in _generic_vats_raw.split(',') if v.strip()]
 
-                partner_update = {}
-                partner_update.update( meli_buyer_fields )
-                partner_update.update({
-                    'meli_order_id': partner_invoice_meli_order_id,
-                    'type': 'invoice',
-                    "parent_id": partner_id.id,
-                    "meli_buyer_id": None,#solo puede haber un res.partner asociado al buyer id de ML
-                })
-                partner_update.update(billing_partner_update)
-
-                if partner_invoice_id:
-                    partner_update = self.update_partner_billing_info( partner_id=partner_invoice_id, meli_buyer_fields=partner_update, Receiver=Receiver )
-                    
-                    if (Buyer['billing_info'] and buyer_fields and "billing_info_business_name" in buyer_fields and buyer_fields["billing_info_business_name"]):
-                        partner_update['name'] = buyer_fields["billing_info_business_name"]
-                        
-
-                    if partner_update:
-                        try:
-                            #_logger.info("Partner Invoice Updating: "+str(partner_update)+ str(" partner_invoice_id:")+str(partner_invoice_id))
-                            partner_invoice_id.write(partner_update)
-                        except Exception as e:
-                            #_logger.info("orders_update_order > Error actualizando Partner Invoice Id:"+str(e))
-                            _logger.error(e, exc_info=True)
-                            pass;
-                else:
-                    try:
-                        if config.mercadolibre_cron_get_orders_shipment_client:
-                            partner_invoice_id = respartner_obj.create(( partner_update ))
-                        if partner_invoice_id:
-                            #partner_update = self.update_partner_billing_info( partner_id=partner_invoice_id, meli_buyer_fields=partner_update )
-                            #partner_invoice_id.write(partner_update)
-                            #_logger.info(Partner Invoice created: "+str(partner_update))
-                            pass;
-
-                    except Exception as e:
-                        _logger.info("orders_update_order > Error creando Partner Invoice Id:"+str(e))
-                        _logger.error(e, exc_info=True)
-                        pass;
-
+            # --- Buscar contacto principal (padre) por meli_buyer_id ---
+            partner_invoice_id = None
+            partner_invoice_meli_order_id = str(order_json['pack_id'] or order_json['id'])
+            partner_id = respartner_obj.search([('meli_buyer_id', '=', buyer_fields['buyer_id'])] + company_only_domain, limit=1)
             if not partner_id:
-                #_logger.info( "creating new partner:" + str(meli_buyer_fields) )
-                try:
-                    meli_buyer_fields.update(billing_partner_update)
-                    if config.mercadolibre_cron_get_orders_shipment_client:
-                        partner_id = respartner_obj.create(( meli_buyer_fields ))
-                    partner_invoice_id = partner_id
-                except Exception as e:
-                    _logger.info("orders_update_order > Error creando Partner:"+str(e))
-                    _logger.error(e, exc_info=True)
-                    pass;
-            elif (partner_id and "meli_update_forbidden" in partner_id._fields and not partner_id.meli_update_forbidden):
-                #_logger.info("Updating old partner")
-                #TODO: _logger.info("Updating partner (do not update principal, always create new one)")
-                #_logger.info(meli_buyer_fields)
-                #complete country at most:
-                partner_update = {}
-                #_logger.info("update_partner_billing_info partner_id: " + str(partner_id))
-                #_logger.info("update_partner_billing_info meli_buyer_fields: " + str(meli_buyer_fields))
-                #_logger.info("update_partner_billing_info Receiver: " + str(Receiver))
-                partner_update.update(self.update_partner_billing_info( partner_id=partner_id, meli_buyer_fields=meli_buyer_fields, Receiver=Receiver ))
-                #_logger.info("partner_update: " + str(partner_update))
-                #UPDATE SINGLE PARTNER ID BILLING INFO
-                if (str(partner_id.vat)==str("vat" in meli_buyer_fields and meli_buyer_fields["vat"]) ):
-                    partner_update.update(billing_partner_update)
-                    #_logger.info("partner_update BILLING INFO: " + str(billing_partner_update) )
+                partner_id = respartner_obj.search([('meli_buyer_id', '=', buyer_fields['buyer_id'])] + company_none_domain, limit=1)
 
-                if partner_update:
-                    #_logger.info("Updating partner: "+str(partner_update))
+            # Fallback: buscar por VAT si no se encontró por meli_buyer_id
+            # (no buscar por VATs genéricos — matchearían miles de contactos)
+            _fallback_vat = buyer_fields.get('billing_info_doc_number', '')
+            _is_generic_vat = _generic_vats and _fallback_vat and _fallback_vat.strip().upper() in _generic_vats
+            if (search_partner_vat_match and (not partner_id and _fallback_vat and not _is_generic_vat)):
+                partner_id = respartner_obj.search([('vat', '=', _fallback_vat)] + company_only_domain, limit=1)
+                if partner_id:
+                    partner_id.meli_buyer_id = buyer_fields['buyer_id']
+                else:
+                    partner_id = respartner_obj.search([('vat', '=', _fallback_vat)] + company_none_domain, limit=1)
+
+            # --- Crear contacto principal si no existe (solo datos de identidad MeLi) ---
+            if not partner_id:
+                try:
+                    if config.mercadolibre_cron_get_orders_shipment_client:
+                        partner_id = respartner_obj.create(meli_buyer_fields)
+                        _logger.info("Contacto principal creado: %s (meli_buyer_id: %s)", partner_id.name, buyer_fields['buyer_id'])
+                except Exception as e:
+                    _logger.info("orders_update_order > Error creando Partner: " + str(e))
+                    _logger.error(e, exc_info=True)
+            elif ("meli_update_forbidden" in partner_id._fields and not partner_id.meli_update_forbidden):
+                # Actualizar contacto principal: solo campos de identidad, NO nombre ni datos fiscales
+                parent_update = {}
+                if not partner_id.country_id:
+                    parent_update['country_id'] = self.country(Receiver, Buyer)
+                if not partner_id.state_id:
+                    parent_update['state_id'] = self.state(self.country(Receiver, Buyer), Receiver, Buyer)
+                if not partner_id.street or partner_id.street == "no street":
+                    parent_update['street'] = self.street(Receiver, Buyer)
+                if not partner_id.city or partner_id.city == "":
+                    parent_update['city'] = self.city(Receiver, Buyer)
+                if not partner_id.phone and 'phone' in meli_buyer_fields and meli_buyer_fields['phone']:
+                    parent_update['phone'] = meli_buyer_fields['phone']
+                if partner_id.email and (partner_id.email == buyer_fields.get("email", "") or "mercadolibre.com" in str(partner_id.email)):
+                    parent_update['email'] = ''
+
+                if parent_update:
+                    _logger.info("Actualizando contacto principal (sin datos fiscales): %s", str(parent_update))
                     try:
-                        partner_id.write(partner_update)
-                        MeliCommit( self )
-                    except ValidationError as ve:
-                        # If RFC still rejected by Odoo's deeper checks, keep raw & retry without VAT
-                        bad_vat = partner_update.pop("vat", None)
-                        if bad_vat:
-                            partner_id.write(partner_update)
+                        partner_id.write(parent_update)
+                        MeliCommit(self)
                     except builtins.Exception as e:
-                        _logger.info("orders_update_order > Error actualizando Partner:"+str(e))
+                        _logger.info("orders_update_order > Error actualizando Partner: " + str(e))
                         _logger.error(e, exc_info=True)
                         if order:
-                            order.message_post(body=str("Error actualizando Partner: "+str(e)),message_type=order_message_type)
-                        pass;
+                            order.message_post(body=str("Error actualizando Partner: " + str(e)), message_type=order_message_type)
 
-                if (partner_id.email and (partner_id.email==buyer_fields["email"] or "mercadolibre.com" in partner_id.email)):
-                    #eliminar email de ML que no es valido
-                    meli_buyer_fields["email"] = ''
-                #crear nueva direccion de entrega
-                #partner_id.write( meli_buyer_fields )
+            # --- Buscar/crear contacto de facturación (entidad fiscal) ---
+            # Modo 3: contacto independiente (sin parent_id), un CUIT = un contacto.
+            # Varios buyers pueden compartir la misma entidad fiscal.
+            #
+            # Excepción: VATs genéricos (ej: XAXX010101000 en MX) se asignan
+            # al buyer directamente — no generan entidad fiscal independiente.
+            _logger.debug("Billing fields: vat=%s keys=%s billing_info_keys=%s",
+                         billing_child_fields.get('vat', 'NO_VAT'),
+                         list(billing_child_fields.keys()),
+                         list(Buyer.get('billing_info', {}).keys()) if Buyer else 'NO_BUYER')
 
-            if (partner_id):
+            if partner_id and billing_child_fields.get('vat'):
+                billing_vat = billing_child_fields['vat']
+
+                # VAT genérico: asignar al buyer, no crear entidad fiscal
+                if _generic_vats and billing_vat.strip().upper() in _generic_vats:
+                    _logger.info(
+                        "VAT genérico detectado: %s — se asigna al buyer %s, "
+                        "sin crear entidad fiscal independiente",
+                        billing_vat, partner_id.name,
+                    )
+                    if not partner_id.vat:
+                        try:
+                            partner_id.write({'vat': billing_vat})
+                        except Exception as e:
+                            _logger.warning("Error asignando VAT genérico al buyer: %s", e)
+                    partner_invoice_id = None
+                    billing_vat = None  # Impedir que el bloque posterior cree entidad fiscal
+
+                # 1) Buscar entidad fiscal por VAT global (un CUIT = un contacto fiscal)
+                if billing_vat:
+                    partner_invoice_id = respartner_obj.search([
+                        ('vat', '=', billing_vat),
+                        ('type', '=', 'invoice'),
+                        ('company_id', 'in', [company.id, False] if company else [False]),
+                    ], limit=1)
+
+                # 2) Fallback legacy: buscar por parent_id + VAT (contactos existentes pre-Modo 3)
+                if billing_vat and not partner_invoice_id:
+                    partner_invoice_id = respartner_obj.search([
+                        ('parent_id', '=', partner_id.id),
+                        ('type', '=', 'invoice'),
+                        ('vat', '=', billing_vat),
+                    ], limit=1)
+
+                # 3) Fallback legacy: buscar por meli_order_id + parent_id
+                if billing_vat and not partner_invoice_id:
+                    partner_invoice_id = respartner_obj.search([
+                        ('meli_order_id', '=', partner_invoice_meli_order_id),
+                        ('parent_id', '=', partner_id.id),
+                        ('type', '=', 'invoice'),
+                    ], limit=1)
+
+                if billing_vat and partner_invoice_id:
+                    # Actualizar contacto de facturación existente
+                    invoice_update = dict(billing_child_fields)
+                    invoice_update.pop('name', None)
+                    if ("billing_info_business_name" in buyer_fields and buyer_fields["billing_info_business_name"]):
+                        invoice_update['name'] = buyer_fields["billing_info_business_name"]
+                    # Vincular al buyer actual si no tiene vínculo
+                    if 'meli_buyer_partner_id' in partner_invoice_id._fields and not partner_invoice_id.meli_buyer_partner_id:
+                        invoice_update['meli_buyer_partner_id'] = partner_id.id
+
+                    if invoice_update:
+                        _logger.info("Actualizando contacto facturación id:%s vat:%s campos:%s",
+                                     partner_invoice_id.id, invoice_update.get('vat', '-'), list(invoice_update.keys()))
+                        try:
+                            partner_invoice_id.write(invoice_update)
+                        except ValidationError as ve:
+                            bad_vat = invoice_update.pop("vat", None)
+                            if bad_vat:
+                                try:
+                                    partner_invoice_id.write(invoice_update)
+                                except Exception as e2:
+                                    _logger.error("Error actualizando contacto facturación (sin VAT): %s", str(e2))
+                        except Exception as e:
+                            _logger.error("Error actualizando contacto de facturación: %s", str(e))
+                            _logger.error(e, exc_info=True)
+                elif billing_vat:
+                    # Crear nueva entidad fiscal (sin parent_id — contacto independiente)
+                    try:
+                        if config.mercadolibre_cron_get_orders_shipment_client:
+                            billing_child_fields.update({
+                                'type': 'invoice',
+                                'meli_buyer_partner_id': partner_id.id,
+                                'meli_buyer_id': None,
+                                'meli_order_id': partner_invoice_meli_order_id,
+                            })
+                            if company and company.id:
+                                billing_child_fields['company_id'] = company.id
+                            partner_invoice_id = respartner_obj.create(billing_child_fields)
+                            _logger.info("Entidad fiscal creada: %s (VAT: %s) vinculada a buyer: %s",
+                                         partner_invoice_id.name, billing_vat, partner_id.name)
+                    except ValidationError as ve:
+                        bad_vat = billing_child_fields.pop("vat", None)
+                        if bad_vat:
+                            try:
+                                partner_invoice_id = respartner_obj.create(billing_child_fields)
+                            except Exception as e2:
+                                _logger.error("Error creando entidad fiscal (sin VAT): %s", str(e2))
+                    except Exception as e:
+                        _logger.info("orders_update_order > Error creando entidad fiscal: " + str(e))
+                        _logger.error(e, exc_info=True)
+
+            # Verificación post-update: confirmar que vat y tipo de documento se guardaron
+            if partner_invoice_id and partner_invoice_id != partner_id:
+                partner_invoice_id.invalidate_recordset()
+                _saved_vat = partner_invoice_id.vat
+                _saved_doc_type = None
+                _doc_type_field = None
+                _saved_afip_resp = None
+                if 'partner_document_type_id' in partner_invoice_id._fields:
+                    _saved_doc_type = partner_invoice_id.partner_document_type_id
+                    _doc_type_field = 'partner_document_type_id'
+                elif 'l10n_latam_identification_type_id' in partner_invoice_id._fields:
+                    _saved_doc_type = partner_invoice_id.l10n_latam_identification_type_id
+                    _doc_type_field = 'l10n_latam_identification_type_id'
+                if 'l10n_ar_afip_responsibility_type_id' in partner_invoice_id._fields:
+                    _saved_afip_resp = partner_invoice_id.l10n_ar_afip_responsibility_type_id
+                if not _saved_vat or not _saved_doc_type:
+                    _logger.warning("POST-CHECK contacto facturación id:%s - vat:%s %s:%s afip_resp:%s - DATOS FISCALES INCOMPLETOS",
+                                    partner_invoice_id.id,
+                                    _saved_vat or 'FALTA',
+                                    _doc_type_field or 'doc_type_field',
+                                    (_saved_doc_type.name if _saved_doc_type else 'FALTA'),
+                                    (_saved_afip_resp.name if _saved_afip_resp else 'FALTA'))
+                else:
+                    _logger.info("POST-CHECK contacto facturación id:%s - vat:%s %s:%s afip_resp:%s - OK",
+                                 partner_invoice_id.id, _saved_vat,
+                                 _doc_type_field, _saved_doc_type.name,
+                                 (_saved_afip_resp.name if _saved_afip_resp else 'NO_FIELD'))
+
+            # Safety net SQL: forzar datos fiscales en columnas del billing child
+            # vía SQL directo. El override de _commercial_sync_from_company en
+            # res_partner.py es el fix de raíz, pero este SQL actúa como red de
+            # seguridad para asegurar que los valores persistan tras cr.commit().
+            # NOTA: solo se escribe al CHILD, no al parent. Cada billing child
+            # tiene datos fiscales propios (un mismo buyer puede facturar con
+            # diferentes entidades fiscales por compra).
+            if partner_invoice_id and partner_invoice_id != partner_id:
+                _fix_fields = []
+                _fix_vals = []
+                if 'partner_document_type_id' in partner_invoice_id._fields and partner_invoice_id.partner_document_type_id:
+                    _fix_fields.append("partner_document_type_id = %s")
+                    _fix_vals.append(partner_invoice_id.partner_document_type_id.id)
+                elif 'l10n_latam_identification_type_id' in partner_invoice_id._fields and partner_invoice_id.l10n_latam_identification_type_id:
+                    _fix_fields.append("l10n_latam_identification_type_id = %s")
+                    _fix_vals.append(partner_invoice_id.l10n_latam_identification_type_id.id)
+                if partner_invoice_id.vat:
+                    _fix_fields.append("vat = %s")
+                    _fix_vals.append(partner_invoice_id.vat)
+                if 'l10n_ar_afip_responsibility_type_id' in partner_invoice_id._fields and partner_invoice_id.l10n_ar_afip_responsibility_type_id:
+                    _fix_fields.append("l10n_ar_afip_responsibility_type_id = %s")
+                    _fix_vals.append(partner_invoice_id.l10n_ar_afip_responsibility_type_id.id)
+                if _fix_fields:
+                    self.env.cr.execute(
+                        "UPDATE res_partner SET " + ", ".join(_fix_fields) + " WHERE id = %s",
+                        tuple(_fix_vals + [partner_invoice_id.id])
+                    )
+                    _logger.info("COMMERCIAL_FIELDS_FIX SQL: datos fiscales en billing child id:%s (%s)",
+                                 partner_invoice_id.id, ", ".join(_fix_fields))
+
+            # Modo 3: detectar VAT duplicado en buyer y limpiar / avisar
+            if partner_invoice_id and partner_invoice_id != partner_id and partner_id.vat:
+                billing_vat = partner_invoice_id.vat
+                if billing_vat and partner_id.vat == billing_vat:
+                    # El buyer tiene el mismo VAT que la entidad fiscal.
+                    # En Modo 3 el VAT solo debe estar en la entidad fiscal.
+                    # Buscar si hay otros contactos (excluyendo la entidad fiscal
+                    # y el buyer) con el mismo VAT que podrían fusionarse.
+                    _dup_contacts = respartner_obj.search([
+                        ('vat', '=', billing_vat),
+                        ('id', 'not in', [partner_invoice_id.id, partner_id.id]),
+                    ])
+
+                    if _dup_contacts:
+                        _dup_names = ", ".join(["%s (id:%s, type:%s)" % (c.name, c.id, c.type) for c in _dup_contacts[:5]])
+                        _logger.warning(
+                            "MELI_DUPLICATE_VAT: VAT %s existe en buyer id:%s y en %d contacto(s) adicional(es): %s. "
+                            "Considerar fusionar con entidad fiscal id:%s",
+                            billing_vat, partner_id.id, len(_dup_contacts), _dup_names, partner_invoice_id.id)
+                        if order:
+                            order.message_post(
+                                body=(
+                                    "Contacto fiscal duplicado detectado: VAT %s existe en %d contacto(s) "
+                                    "además de la entidad fiscal [%s] (id:%s). "
+                                    "Contactos duplicados: %s. "
+                                    "Considerar fusionar desde Contactos > Acción > Fusionar contactos."
+                                ) % (billing_vat, len(_dup_contacts),
+                                     partner_invoice_id.name, partner_invoice_id.id, _dup_names),
+                                message_type=order_message_type)
+
+                    # Limpiar VAT del buyer para evitar la advertencia de NIF duplicado.
+                    # El VAT pertenece a la entidad fiscal, no al buyer.
+                    try:
+                        partner_id.write({'vat': False})
+                        _logger.info("MELI_DUPLICATE_VAT: limpiado VAT %s del buyer id:%s (ahora solo en entidad fiscal id:%s)",
+                                     billing_vat, partner_id.id, partner_invoice_id.id)
+                    except Exception as e:
+                        _logger.warning("MELI_DUPLICATE_VAT: no se pudo limpiar VAT del buyer id:%s: %s",
+                                        partner_id.id, str(e))
+
+            # Si no hay VAT en billing_info, usar contacto principal para facturación
+            if not partner_invoice_id:
+                partner_invoice_id = partner_id
+
+            # fe_habilitada va al contacto que se usa para facturación
+            if partner_invoice_id:
                 if ("fe_habilitada" in self.env['res.partner']._fields):
                     try:
-                        partner_id.write( { "fe_habilitada": True } )
+                        partner_invoice_id.write({"fe_habilitada": True})
                     except:
                         _logger.error("No se pudo habilitar la Facturacion Electronica para este usuario")
 
             if order and buyer_id:
-                return_id = order.write({'buyer':buyer_id.id})
+                return_id = order.write({'buyer': buyer_id.id})
         else:
             _logger.error("Buyer not fetched!")
 
@@ -2563,6 +2929,26 @@ class mercadolibre_orders(models.Model):
                     payment_fields["shipping_seller_cost"] = 0
                     payment_fields["total_paid_amount"] = payment_fields["full_payment"]["transaction_details"]["total_paid_amount"]
 
+                    # Extract payment method and card details from MercadoPago response
+                    fp = payment_fields["full_payment"]
+                    payment_fields["payment_method_id"] = fp.get("payment_method_id", "")
+                    payment_fields["payment_type"] = fp.get("payment_type_id", "")
+                    payment_fields["installments"] = fp.get("installments", 0)
+                    payment_fields["installment_amount"] = fp.get("installment_amount", 0)
+                    payment_fields["operation_type"] = fp.get("operation_type", "")
+                    payment_fields["date_approved"] = ml_datetime(fp.get("date_approved"))
+                    payment_fields["authorization_code"] = fp.get("authorization_code", "")
+                    payment_fields["statement_descriptor"] = fp.get("statement_descriptor", "")
+                    payment_fields["coupon_amount"] = fp.get("coupon_amount", 0)
+                    payment_fields["overpaid_amount"] = fp.get("overpaid_amount", 0)
+                    payment_fields["payer_id"] = str(fp.get("payer", {}).get("id", "")) if fp.get("payer") else ""
+                    payment_fields["issuer_id"] = str(fp.get("issuer_id", ""))
+                    payment_fields["marketplace_fee"] = fp.get("marketplace_fee", 0)
+                    card = fp.get("card") or {}
+                    if card:
+                        payment_fields["card_first_six_digits"] = card.get("first_six_digits", "")
+                        payment_fields["card_last_four_digits"] = card.get("last_four_digits", "")
+
                     if ("fee_details" in payment_fields["full_payment"] and len(payment_fields["full_payment"]["fee_details"])>0):
                         fee_details = payment_fields["full_payment"]["fee_details"]
                         for fee_detail in fee_details:
@@ -2662,6 +3048,9 @@ class mercadolibre_orders(models.Model):
                 shipment = shipment_obj.fetch_shipment( order, meli=meli, config=config )
                 if (shipment):
                     order.shipment = shipment
+                    # NOTE: shipping_seller_cost copy is now also done inside fetch_shipment
+                    # (before _update_sale_order_shipping_info) so purchase_price gets the correct value.
+                    # We keep this as a safety net for edge cases where order is updated after fetch.
                     if (order.shipping_seller_cost):
                         shipment.shipping_seller_cost = order.shipping_seller_cost
                     #TODO: enhance with _order_update_pack()...
@@ -2686,8 +3075,11 @@ class mercadolibre_orders(models.Model):
             #if (config.mercadolibre_order_confirmation!="manual"):
             sorder.confirm_ml( meli=meli, config=config )
 
-            if (sorder.meli_status=="cancelled" and sorder.state in ["draft","sale","sent"]):
-                sorder.with_context(disable_cancel_warning=disable_cancel_warning_enabled).action_cancel()
+            if (sorder.meli_status=="cancelled" and sorder.state in ["draft","sale","sent","done"]):
+                cancel_msg = "Orden cancelada por MercadoLibre."
+                if sorder.meli_status_detail:
+                    cancel_msg += " Motivo: %s" % sorder.meli_status_detail
+                sorder.meli_cancel_with_detail(cancel_msg)
 
             #if "confirm_ml_financial" in self.env["mercadolibre.orders"]:
             #sorder.confirm_ml_financial( meli=meli, config=config )
@@ -3002,8 +3394,18 @@ class mercadolibre_orders(models.Model):
                     #full update if status changed!
                     order.orders_update_order(meli=meli,config=config)
                 order.status = order_json["status"] or ''
-                order.status_detail = order_json["status_detail"] or ''
+                cancel_detail = order_json.get("cancel_detail") or {}
+                cancel_detail_text = ""
+                if cancel_detail:
+                    cancel_detail_text = " | %s: %s (solicitado por: %s, fecha: %s)" % (
+                        cancel_detail.get("code", ""),
+                        cancel_detail.get("description", ""),
+                        cancel_detail.get("requested_by", ""),
+                        cancel_detail.get("date", ""),
+                    )
+                order.status_detail = (order_json.get("status_detail") or '') + cancel_detail_text
                 if order.sale_order:
+                    order.sale_order.meli_status_detail = order.status_detail
                     order.sale_order.confirm_ml(meli=meli,config=config)
 
     def _get_config( self, config=None ):
@@ -3161,9 +3563,7 @@ class mercadolibre_orders(models.Model):
     shipment_status = fields.Char(string="Shipment Status",related="shipment.status",index=True)
     shipment_substatus = fields.Char(string="Shipment SubStatus",related="shipment.substatus",index=True)
 
-    _sql_constraints = [
-        ('unique_order_id', 'unique(order_id)', 'Meli Order id already exists!')
-    ]
+    _unique_order_id = models.UniqueIndex('(order_id)', message='Meli Order id already exists!')
 
 
 class mercadolibre_order_items(models.Model):
@@ -3209,6 +3609,23 @@ class mercadolibre_payments(models.Model):
 
     financing_fee_amount = fields.Float('Financing fee amount')
 
+    # Payment method details (from MercadoPago API response)
+    payment_method_id = fields.Char(string='Payment Method ID')  # visa, master, amex, account_money, etc.
+    payment_type = fields.Char(string='Payment Type')  # credit_card, debit_card, account_money, ticket, etc.
+    installments = fields.Integer(string='Installments')
+    installment_amount = fields.Float(string='Installment Amount')
+    operation_type = fields.Char(string='Operation Type')  # regular_payment
+    date_approved = fields.Datetime(string='Date Approved')
+    authorization_code = fields.Char(string='Authorization Code')
+    card_first_six_digits = fields.Char(string='Card First Six Digits')
+    card_last_four_digits = fields.Char(string='Card Last Four Digits')
+    statement_descriptor = fields.Char(string='Statement Descriptor')
+    coupon_amount = fields.Float(string='Coupon Amount')
+    overpaid_amount = fields.Float(string='Overpaid Amount')
+    payer_id = fields.Char(string='Payer ID')
+    issuer_id = fields.Char(string='Issuer ID')
+    marketplace_fee = fields.Float(string='Marketplace Fee')
+
     def _get_config( self, config=None ):
         config = config or (self and self.order_id and self.order_id._get_config(config=config))
         return config
@@ -3243,9 +3660,7 @@ class mercadolibre_buyers(models.Model):
     billing_info_vat_discriminating_billing = fields.Char(string='Billing Info Vat Discriminating Billing')
     billing_info_invoice_type = fields.Char(string='Billing Info Invoice Type')
 
-    _sql_constraints = [
-        ('unique_buyer_id', 'unique(buyer_id)', 'Meli Buyer id already exists!')
-    ]
+    _unique_buyer_id = models.UniqueIndex('(buyer_id)', message='Meli Buyer id already exists!')
 
 class mercadolibre_orders_update(models.TransientModel):
     _name = "mercadolibre.orders.update"

@@ -108,7 +108,7 @@
                         <t t-if="record.image_1920.raw_value">
                             <img
                             class="card-img-top object-fit-cover"
-                            t-att-src="kanban_image('mercadolibre.image', 'image_1920', record.id.raw_value)"
+                            t-att-src="record.image_1920.value"
                             t-att-alt="record.name.value || ''"
                             />
                         </t>

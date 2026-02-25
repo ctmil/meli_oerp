@@ -19,7 +19,7 @@
 #
 ##############################################################################
 
-from odoo import fields, osv, models, api
+from odoo import fields, models, api
 from odoo.tools.translate import _
 import logging
 _logger = logging.getLogger(__name__)
@@ -319,6 +319,8 @@ class res_company(models.Model):
     mercadolibre_code = fields.Char( string='Code', help='Code', size=256)
     mercadolibre_seller_id = fields.Char( string='Vendedor Id', size=256)
     mercadolibre_user_product_seller = fields.Boolean( string='User Product Seller',index=True)
+    mercadolibre_multiwarehouse = fields.Boolean( string='Multi Warehouse Seller', index=True,
+        help='Seller uses multiple warehouses in MercadoLibre. Stock updates require warehouse-specific API.')
     mercadolibre_state = fields.Boolean( compute=get_meli_state, string='Desconectado', help="Se requiere Iniciar Sesión con MLA", store=False )
     mercadolibre_category_import = fields.Char( string='Category to import', help='Category Code to Import, check Recursive Import to import the full tree', size=256)
     mercadolibre_recursive_import = fields.Boolean( string='Recursive import', help='Import all the category tree from Category Code')
@@ -454,6 +456,14 @@ class res_company(models.Model):
     mercadolibre_contact_partner = fields.Many2one("res.partner",string="Contacto Predeterminado")
     mercadolibre_shipping_partner = fields.Many2one("res.partner",string="Contacto de Envio Predeterminado")
     mercadolibre_invoice_partner = fields.Many2one("res.partner",string="Contacto de Facturación Predeterminado")
+
+    mercadolibre_generic_vats = fields.Char(
+        string="VATs genéricos (no fiscales)",
+        help="Lista separada por comas de números de documento considerados genéricos "
+             "(ej: XAXX010101000,XEXX010101000 en México). Estos VATs no generan "
+             "entidad fiscal independiente: se asignan al buyer directamente y "
+             "no se usan para buscar/crear contactos de facturación en Modo 3.",
+    )
 
     #mercadolibre_use_buyer_name = fields.Boolean(string="Use buyer name",default=True)
 
