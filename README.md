@@ -27,16 +27,21 @@ Para Brasil: https://api.mercadolibre.com/sites/MLB/search?nickname=ESCRIBE_AQUI
 
 Ver http://developers.mercadolibre.com.ar para ver la API.
 
-Ver los códigos de categoría aquí (MLA: Argentina, MLB: Brasil) :  https://api.mercadolibre.com/sites/MLA/categories .
-Para Costa Rica: https://api.mercadolibre.com/sites/MCR/categories
+Ver los códigos de categoría aquí:
+- MLA (Argentina): https://api.mercadolibre.com/sites/MLA/categories
+- MLB (Brasil): https://api.mercadolibre.com/sites/MLB/categories
+- MLC (Chile): https://api.mercadolibre.com/sites/MLC/categories
+- MLM (México): https://api.mercadolibre.com/sites/MLM/categories
+- MCR (Costa Rica): https://api.mercadolibre.com/sites/MCR/categories
+- MLU (Uruguay): https://api.mercadolibre.com/sites/MLU/categories
 
 <h2>Instrucciones básicas de configuración:</h2>
 
 <h4>1. Instalar el módulo</h4>
 Descargar desde github utilizando siempre el branch correspondiente:
-git clone https://github.com/ctmil/meli_oerp -b 12.0
-git clone https://github.com/ctmil/meli_oerp -b 11.0
-git clone https://github.com/ctmil/meli_oerp -b 10.0
+git clone https://github.com/ctmil/meli_oerp -b 18.0
+git clone https://github.com/ctmil/meli_oerp -b 17.0
+git clone https://github.com/ctmil/meli_oerp -b 16.0
 Siempre mantener el nombre del módulo como "meli_oerp" en su carpeta de addons.
 
 <h4>2. Habilitar la opción de variantes.</h4>
@@ -52,8 +57,8 @@ Utilizar como <b>redirect_uri</b> el valor de: https://[dominio del server]/meli
 
 <h4>4. Loguearse una vez completados los pasos de configuración,</h4> Utilizando el botón: "Iniciar Sesión"
 
-<h4>4. Pueden ver el video en el link siguiente</h4>
-<a href="https://www.moldeointeractive.com.ar/shop/product/instalacion-modulo-odoo-mercadolibre-15">Video + Info</a>
+<h4>5. Pueden ver el video en el link siguiente</h4>
+<a href="https://www.moldeointeractive.com.ar/shop/product/instalacion-modulo-odoo-mercadolibre-18">Video + Info</a>
 
 
 <h2>Authors</h2>

@@ -48,10 +48,13 @@ class ProductImage(models.Model):
     meli_force_pub = fields.Boolean(string='Publicar en ML y conservar en Odoo',index=True)
     meli_published = fields.Boolean(string='Publicado en ML',index=True)
 
-    _unique_meli_imagen_id = models.UniqueIndex(
-        '(product_tmpl_id, product_variant_id, meli_imagen_id)',
+    _unique_meli_imagen_id = versions.UniqueIndex(
+        'product_tmpl_id, product_variant_id, meli_imagen_id',
         message='Meli Imagen Id already exists!',
     )
+    _sql_constraints = versions.sql_constraints_if_no_unique_index([
+        ('unique_meli_imagen_id', 'product_tmpl_id, product_variant_id, meli_imagen_id', 'Meli Imagen Id already exists!'),
+    ])
 
     def calculate_hash(self):
         hexhash = ''

@@ -29,11 +29,14 @@ class StockMove(models.Model):
         cache_key = f"log_enabled_{company_id}"
 
         if cache_key not in _meli_log_cache:
-            account = self.env['mercadolibre.account'].sudo().search([
-                ('company_id', '=', company_id),
-                ('meli_cron_log_chatter', '=', True)
-            ], limit=1)
-            _meli_log_cache[cache_key] = bool(account)
+            if 'mercadolibre.account' not in self.env:
+                _meli_log_cache[cache_key] = False
+            else:
+                account = self.env['mercadolibre.account'].sudo().search([
+                    ('company_id', '=', company_id),
+                    ('meli_cron_log_chatter', '=', True)
+                ], limit=1)
+                _meli_log_cache[cache_key] = bool(account)
 
         return _meli_log_cache[cache_key]
 

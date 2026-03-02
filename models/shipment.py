@@ -417,7 +417,10 @@ class mercadolibre_shipment(models.Model):
 
     pack_order = fields.Boolean(string="Carrito de compra")
 
-    _unique_shipping_id = models.UniqueIndex('(shipping_id)', message='Meli Shipping id already exists!')
+    _unique_shipping_id = versions.UniqueIndex('shipping_id', message='Meli Shipping id already exists!')
+    _sql_constraints = versions.sql_constraints_if_no_unique_index([
+        ('unique_shipping_id', 'shipping_id', 'Meli Shipping id already exists!'),
+    ])
 
     def create_shipment( self ):
         return {}
