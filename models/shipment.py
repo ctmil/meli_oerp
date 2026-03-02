@@ -162,6 +162,142 @@ class mercadolibre_shipment_print(models.TransientModel):
         return self.shipment_print_report(shipment_ids=shipment_ids,meli=meli,config=config,include_ready_to_print=self.include_ready_to_print)
 
 
+    def _get_labels_urls_auto_print(self, shipment_ids=[], meli=None, config=None, include_ready_to_print=None):
+        data = self._get_shipment_labels_data(
+            shipment_ids=shipment_ids,
+            meli=meli,
+            config=config,
+            include_ready_to_print=include_ready_to_print
+        )
+
+        urls = [token_data["url"] for token_data in data["by_token"].values()]
+
+        _log_meli(
+            "AUTO PRINT URL RESULT",
+            {
+                "shipment_ids": shipment_ids,
+                "urls": urls,
+                "print_mode": data.get("print_mode"),
+                "count": len(urls),
+            }
+        )
+
+        return {
+            "urls": urls,
+            "print_mode": data["print_mode"],
+            "count": len(urls),
+        }
+
+
+    def _get_shipment_labels_data(
+        self,
+        shipment_ids=[],
+        meli=None,
+        config=None,
+        include_ready_to_print=None
+    ):
+        shipment_obj = self.env["mercadolibre.shipment"]
+
+        # ------------------------------------------------------------
+        # 1) Decide print_mode ONCE (authoritative decision)
+        # ------------------------------------------------------------
+        if config and "mercadolibre_shipment_print_guide_mode" in config._fields:
+            resolved_print_mode = config.mercadolibre_shipment_print_guide_mode or "zpl"
+        else:
+            resolved_print_mode = "zpl"
+
+        result = {
+            "by_token": {},
+            "shipments_status": {
+                "ready": [],
+                "not_ready": []
+            },
+            "print_mode": resolved_print_mode,
+        }
+
+        _log_meli(
+            "GET SHIPMENT LABELS DATA :: INPUT",
+            {
+                "shipment_ids": shipment_ids,
+                "include_ready_to_print": include_ready_to_print,
+                "print_mode": resolved_print_mode,
+            }
+        )
+
+        # ------------------------------------------------------------
+        # 2) Iterate shipments (NO print_mode mutation here)
+        # ------------------------------------------------------------
+        for shipid in shipment_ids:
+            shipment = shipment_obj.browse(shipid)
+
+            ship_report = shipment.shipment_print(
+                meli=meli,
+                config=config,
+                include_ready_to_print=include_ready_to_print
+            )
+
+            _log_meli(
+                f"SHIPMENT PRINT RESULT [{shipment.shipping_id}]",
+                {
+                    "shipment_id": shipment.shipping_id,
+                    "status": shipment.status,
+                    "substatus": shipment.substatus,
+                    "date_first_printed": shipment.date_first_printed,
+                    "ship_report": ship_report,
+                }
+            )
+
+            is_already_printed = shipment.substatus == "printed"
+            should_include = (
+                shipment.status == "ready_to_ship"
+                and (not is_already_printed or include_ready_to_print)
+            )
+
+            if should_include:
+                atoken = ship_report.get("access_token")
+                if atoken:
+                    result["by_token"].setdefault(
+                        atoken,
+                        {"shipment_ids": [], "url": None}
+                    )
+                    result["by_token"][atoken]["shipment_ids"].append(
+                        shipment.shipping_id
+                    )
+                    result["shipments_status"]["ready"].append(
+                        {
+                            "shipment_id": shipment.shipping_id,
+                            "status": shipment.status,
+                            "substatus": shipment.substatus,
+                        }
+                    )
+            else:
+                result["shipments_status"]["not_ready"].append(
+                    {
+                        "shipment_id": shipment.shipping_id,
+                        "status": shipment.status,
+                        "substatus": shipment.substatus,
+                    }
+                )
+
+        # ------------------------------------------------------------
+        # 3) Build FINAL MELI URLs (single source of truth)
+        # ------------------------------------------------------------
+        response_type = "zpl2" if resolved_print_mode == "zpl" else "pdf"
+
+        for atoken, token_data in result["by_token"].items():
+            token_data["url"] = (
+                "https://api.mercadolibre.com/shipment_labels"
+                f"?shipment_ids={','.join(token_data['shipment_ids'])}"
+                f"&response_type={response_type}"
+                f"&access_token={atoken}"
+            )
+
+        _log_meli("FINAL LABEL AGGREGATION RESULT", result)
+
+        return result
+
+
+
     def shipment_stock_picking_print(self, context=None, meli=None, config=None):
         _logger.info("shipment_stock_picking_print")
         context = context or self.env.context
@@ -417,9 +553,10 @@ class mercadolibre_shipment(models.Model):
 
     pack_order = fields.Boolean(string="Carrito de compra")
 
-    _sql_constraints = [
-        ('unique_shipping_id','unique(shipping_id)','Meli Shipping id already exists!'),
-    ]
+    _unique_shipping_id = versions.UniqueIndex('shipping_id', message='Meli Shipping id already exists!')
+    _sql_constraints = versions.sql_constraints_if_no_unique_index([
+        ('unique_shipping_id', 'shipping_id', 'Meli Shipping id already exists!'),
+    ])
 
     def create_shipment( self ):
         return {}
@@ -475,17 +612,13 @@ class mercadolibre_shipment(models.Model):
                 _logger.error("Forbidden to update sale order by meli_oerp" )
                 return {'error': 'Forbidden to update sale order by meli_oerp' }
 
-            # Sync shipment costs -> sale order and ml order.
-            # NOTE: shipping_seller_cost is NOT set here from shipment because it originates
-            # from payment charges_details, not from the shipment API JSON.
-            # The flow is: payment -> order.shipping_seller_cost -> shipment (in fetch_shipment)
-            #           -> sorder.meli_shipping_seller_cost (set in orders.py payment processing)
-            # shipping_cost and shipping_list_cost come from the shipment API (shipping_option.cost/list_cost).
             sorder.meli_shipping_cost = shipment.shipping_cost
+            #sorder.meli_shipping_seller_cost = shipment.shipping_seller_cost
             sorder.meli_shipping_list_cost = shipment.shipping_list_cost
             sorder.meli_shipment_logistic_type = shipment.logistic_type or shipment.mode
 
             order.shipping_cost = shipment.shipping_cost
+            #order.shipping_seller_cost = shipment.shipping_seller_cost
             order.shipping_list_cost = shipment.shipping_list_cost
             order.shipment_logistic_type = shipment.logistic_type or shipment.mode
 

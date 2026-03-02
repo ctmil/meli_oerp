@@ -69,6 +69,20 @@ class product_template(models.Model):
 
     #product_origin_id = fields.Many2one('product.template', string='Producto')
 
+    def action_debug_supplierinfo(self):
+        """Debug: logs all product.supplierinfo records for this template.
+        Kept as a no-op so cached ir.ui.view records referencing this method
+        do not break Odoo 19 view validation."""
+        for tpl in self:
+            suppliers = self.env['product.supplierinfo'].search([
+                ('product_tmpl_id', '=', tpl.id)
+            ])
+            _logger.info("DEBUG supplierinfo for template %s [%s]: %s records",
+                         tpl.name, tpl.id, len(suppliers))
+            for s in suppliers:
+                _logger.info("  supplier id=%s partner=%s price=%.2f",
+                             s.id, s.partner_id.name, s.price)
+
     def delete_image_product_now(self):
         for record in self:
             if record.product_template_image_ids:
@@ -719,6 +733,11 @@ class product_template(models.Model):
 class product_product(models.Model):
 
     _inherit = "product.product"
+
+    def action_debug_supplierinfo(self):
+        """Delegates to template. Kept so cached views don't break Odoo 19 validation."""
+        for p in self:
+            p.product_tmpl_id.action_debug_supplierinfo()
 
     def _meli_price_converted( self, meli_price=None, config=None ):
         company = (config and 'company_id' in config._fields and config.company_id) or self.env.user.company_id
