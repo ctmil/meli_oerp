@@ -15,6 +15,99 @@ route_typejson = "json"
 # Odoo < 17.0 -> 'tree', Odoo 17.0+ -> 'list'
 view_mode_tree = 'list'
 
+# ---------------------------------------------------------------------------
+# UniqueIndex vs _sql_constraints  (Odoo < 17  vs  Odoo 17+)
+# ---------------------------------------------------------------------------
+# Odoo 17+ introduced models.UniqueIndex as the new way to declare unique
+# constraints. _sql_constraints still works in all versions but UniqueIndex
+# is preferred in newer ones.
+#
+# Usage in models (retrocompatible, write once):
+#
+#   from . import versions
+#
+#   class MyModel(models.Model):
+#       _unique_buyer_id = versions.UniqueIndex('buyer_id')
+#       _sql_constraints = versions.sql_constraints_if_no_unique_index([
+#           ('unique_buyer_id', 'buyer_id', 'Buyer ID must be unique'),
+#       ])
+#
+# ---------------------------------------------------------------------------
+HAS_UNIQUE_INDEX = False
+_OdooUniqueIndex = None
+try:
+    from odoo.models import UniqueIndex as _OdooUniqueIndex
+    HAS_UNIQUE_INDEX = True
+    _logger.info("versions: models.UniqueIndex disponible (Odoo 17+)")
+except (ImportError, AttributeError):
+    _logger.info("versions: models.UniqueIndex no disponible - usando _sql_constraints")
+
+
+def UniqueIndex(fields_expr, message=None):
+    """
+    Retrocompatible unique index declaration.
+    - Odoo 17+  : returns models.UniqueIndex(fields_expr, message=message)
+    - Odoo < 17 : returns None (silently ignored by Odoo ORM)
+    Pair with sql_constraints_if_no_unique_index() for full coverage.
+    """
+    if _OdooUniqueIndex is not None:
+        if message is not None:
+            return _OdooUniqueIndex('(%s)' % fields_expr, message=message)
+        return _OdooUniqueIndex('(%s)' % fields_expr)
+    return None
+
+def sql_constraints_if_no_unique_index(constraints):
+    """
+    Returns _sql_constraints list only when UniqueIndex is NOT available.
+    constraints: list of (name, fields_expr, message)
+    - Odoo 17+  : returns []          (UniqueIndex handles the constraint)
+    - Odoo < 17 : returns the list    (classic _sql_constraints fallback)
+    """
+    if HAS_UNIQUE_INDEX:
+        return []
+    return [
+        (name, 'unique(%s)' % fields, msg)
+        for name, fields, msg in constraints
+    ]
+
+# ---------------------------------------------------------------------------
+# Constraint (arbitrary SQL CHECK constraints)  —  Odoo 19+
+# ---------------------------------------------------------------------------
+_OdooConstraint = None
+try:
+    from odoo.models import Constraint as _OdooConstraint
+except (ImportError, AttributeError):
+    pass
+
+def Constraint(sql_expr, message=None):
+    """
+    Retrocompatible arbitrary SQL constraint declaration.
+    - Odoo 19+  : returns models.Constraint(sql_expr, message=message)
+    - Odoo < 19 : returns None (silently ignored by Odoo ORM)
+    Pair with sql_constraints_if_no_constraint() for full coverage.
+    """
+    if _OdooConstraint is not None:
+        if message is not None:
+            return _OdooConstraint(sql_expr, message=message)
+        return _OdooConstraint(sql_expr)
+    return None
+
+def sql_constraints_if_no_constraint(constraints):
+    """
+    Returns _sql_constraints list only when Constraint is NOT available.
+    constraints: list of (name, sql_expr, message)
+    - Odoo 19+  : returns []     (Constraint handles it)
+    - Odoo < 19 : returns the list (classic _sql_constraints fallback)
+    """
+    if _OdooConstraint is not None:
+        return []
+    return [
+        (name, sql_expr, msg)
+        for name, sql_expr, msg in constraints
+    ]
+
+# ---------------------------------------------------------------------------
+
 # Odoo 12.0 -> Odoo 13.0
 uom_model = "uom.uom"
 cl_vat_sep_million = "."
@@ -223,7 +316,7 @@ def UpdateProductType( product ):
                 pass;
 
             query = """UPDATE product_template SET type='consu', is_storable=True WHERE id=%i""" % (prod.id)
-            cr = prod._cr
+            cr = prod.env.cr
             respquery = cr.execute(query)
 
 def ProductType():
