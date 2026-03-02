@@ -771,9 +771,10 @@ class sale_order(models.Model):
         base_unit = base / (quantity or 1.0)
         return self.currency_id.round(base_unit)
 
-    _sql_constraints = [
-        ('unique_meli_order_id', 'unique(meli_order_id)', 'Meli Order id already exists!')
-    ]
+    _unique_meli_order_id = versions.UniqueIndex('meli_order_id', message='Meli Order id already exists!')
+    _sql_constraints = versions.sql_constraints_if_no_unique_index([
+        ('unique_meli_order_id', 'meli_order_id', 'Meli Order id already exists!'),
+    ])
 
 class mercadolibre_orders(models.Model):
     _name = "mercadolibre.orders"
@@ -2228,7 +2229,50 @@ class mercadolibre_orders(models.Model):
                          list(billing_child_fields.keys()),
                          list(Buyer.get('billing_info', {}).keys()) if Buyer else 'NO_BUYER')
 
+            # --- Deduplicación: si el nombre de facturación es igual al del buyer
+            # (difieren solo en mayúsculas/acentos), poner los datos fiscales
+            # directamente en el contacto principal y evitar crear un hijo duplicado.
+            _skip_billing_child = False
             if partner_id and billing_child_fields.get('vat'):
+                _skip_same_name = (
+                    'mercadolibre_skip_same_name_billing_contact' in config._fields
+                    and config.mercadolibre_skip_same_name_billing_contact
+                )
+                if _skip_same_name:
+                    import unicodedata, re as _re
+                    def _norm(s):
+                        s = (s or '').lower().strip()
+                        s = unicodedata.normalize('NFD', s)
+                        s = ''.join(c for c in s if unicodedata.category(c) != 'Mn')
+                        return _re.sub(r'\s+', ' ', s)
+                    _buyer_norm = _norm(partner_id.name)
+                    _billing_norm = _norm(billing_full_name)
+                    if _buyer_norm and _buyer_norm == _billing_norm:
+                        _logger.info(
+                            "BILLING_DEDUP: nombre buyer '%s' == billing '%s' — "
+                            "datos fiscales al contacto principal, sin crear hijo.",
+                            partner_id.name, billing_full_name
+                        )
+                        _skip_billing_child = True
+                        # Actualizar nombre del buyer al nombre legal (title-cased)
+                        if partner_id.name != billing_full_name:
+                            try:
+                                partner_id.write({'name': billing_full_name})
+                            except Exception as _e:
+                                _logger.warning("BILLING_DEDUP: no se pudo actualizar nombre del buyer: %s", _e)
+                        # Poner datos fiscales directamente en el contacto principal
+                        _fiscal_update = {
+                            k: v for k, v in billing_child_fields.items()
+                            if k not in ('name', 'type', 'meli_buyer_id', 'meli_order_id', 'meli_buyer_partner_id')
+                        }
+                        if _fiscal_update:
+                            try:
+                                partner_id.write(_fiscal_update)
+                            except Exception as _e:
+                                _logger.warning("BILLING_DEDUP: no se pudo escribir datos fiscales en buyer: %s", _e)
+                        partner_invoice_id = partner_id
+
+            if not _skip_billing_child and partner_id and billing_child_fields.get('vat'):
                 billing_vat = billing_child_fields['vat']
 
                 # VAT genérico: asignar al buyer, no crear entidad fiscal
@@ -3570,9 +3614,10 @@ class mercadolibre_orders(models.Model):
     shipment_status = fields.Char(string="Shipment Status",related="shipment.status",index=True)
     shipment_substatus = fields.Char(string="Shipment SubStatus",related="shipment.substatus",index=True)
 
-    _sql_constraints = [
-        ('unique_order_id', 'unique(order_id)', 'Meli Order id already exists!')
-    ]
+    _unique_order_id = versions.UniqueIndex('order_id', message='Meli Order id already exists!')
+    _sql_constraints = versions.sql_constraints_if_no_unique_index([
+        ('unique_order_id', 'order_id', 'Meli Order id already exists!'),
+    ])
 
 
 class mercadolibre_order_items(models.Model):
@@ -3669,9 +3714,10 @@ class mercadolibre_buyers(models.Model):
     billing_info_vat_discriminating_billing = fields.Char(string='Billing Info Vat Discriminating Billing')
     billing_info_invoice_type = fields.Char(string='Billing Info Invoice Type')
 
-    _sql_constraints = [
-        ('unique_buyer_id', 'unique(buyer_id)', 'Meli Buyer id already exists!')
-    ]
+    _unique_buyer_id = versions.UniqueIndex('buyer_id', message='Meli Buyer id already exists!')
+    _sql_constraints = versions.sql_constraints_if_no_unique_index([
+        ('unique_buyer_id', 'buyer_id', 'Meli Buyer id already exists!'),
+    ])
 
 class mercadolibre_orders_update(models.TransientModel):
     _name = "mercadolibre.orders.update"

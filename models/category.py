@@ -791,9 +791,10 @@ class mercadolibre_category(models.Model):
 
     data_json = fields.Text(string="Data json")
 
-    _sql_constraints = [
-    	('unique_meli_category_id','unique(meli_category_id)','Meli Category id already exists!'),
-    ]
+    _unique_meli_category_id = UniqueIndex('meli_category_id', message='Meli Category id already exists!')
+    _sql_constraints = sql_constraints_if_no_unique_index([
+        ('unique_meli_category_id', 'meli_category_id', 'Meli Category id already exists!'),
+    ])
 
 
 class mercadolibre_grid_value(models.Model):
