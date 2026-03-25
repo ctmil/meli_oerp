@@ -115,6 +115,41 @@ cl_vat_sep_million = "."
 #message types
 order_message_type = "notification"
 product_message_type = "notification"
+
+def meli_message_post(record, body, config=None):
+    """Post a message respecting the MeLi notification mode setting.
+
+    config: res.company or connection_account record with mercadolibre_notification_mode field.
+           If None, falls back to the record's company.
+
+    Modes:
+      - 'notification': standard notification (appears in user inbox)
+      - 'internal_note': logged in chatter as internal note (no inbox notification)
+      - 'none': only server log, no chatter message at all
+    """
+    if not record:
+        return
+    if not config:
+        config = getattr(record, 'company_id', None) or record.env.user.company_id
+    mode = 'notification'
+    if config and 'mercadolibre_notification_mode' in config._fields:
+        mode = config.mercadolibre_notification_mode or 'notification'
+
+    if mode == 'none':
+        _logger.info("MELI [%s] %s: %s", record._name, getattr(record, 'name', record.id), body)
+        return
+
+    kwargs = {'body': str(body)}
+    if mode == 'internal_note':
+        kwargs['message_type'] = 'comment'
+        kwargs['subtype_xmlid'] = 'mail.mt_note'
+    else:
+        kwargs['message_type'] = order_message_type
+
+    try:
+        record.message_post(**kwargs)
+    except Exception as e:
+        _logger.warning("meli_message_post failed on %s(%s): %s", record._name, record.id, e)
 disable_cancel_warning_enabled = False
 price_list_apply_tax = True
 search_partner_vat_match = False

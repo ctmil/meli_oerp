@@ -139,13 +139,14 @@
                           <field string="ML Pub" name="meli_pub"/>
                           <field string="Variant" name="name"/>
                           <field string="Id Pub" name="meli_id"/>
-                          <field string="Id Var" name="meli_id_variation"/>
+                          <field string="Id Var" name="meli_id_variation" optional="hide"/>
                           <field string="Sku" name="default_code"/>
-                          <field string="Barcode" name="barcode"/>
+                          <field string="Barcode" name="barcode" optional="hide"/>
                           <field string="Status" name="meli_status"/>
-                          <field string="Sub Status" name="meli_sub_status"/>
+                          <field string="Sub Status" name="meli_sub_status" optional="hide"/>
                           <field string="ML Title" name="meli_title"/>
-                          <field string="ML Family Name" name="meli_family_name" />
+                          <field string="ML Family Name" name="meli_family_name" optional="hide"/>
+                          <field string="Family Id" name="meli_family_id" optional="show"/>
                           <field string="ML Price" name="meli_price"/>
                           <field string="ML Qty" name="meli_available_quantity"/>
                           <field string="Link" name="meli_permalink" widget="url"/>
@@ -157,12 +158,22 @@
                       <group name="Basic description">
                         <field name="meli_title" />
                         <field name="meli_family_name" />
+                        <field name="meli_family_id" string="Family Id (ML)" readonly="1"/>
                         <field name="meli_description" />
                         <field name="meli_category" />
                         <field name="meli_price" />
                         <field name="meli_dimensions" />
                         <!--<field name="meli_attributes" />-->
                         <field name="meli_brand"/>
+                      </group>
+                      <separator string="Dimensiones del paquete (Vendedor - Mercado Envíos)" colspan="1"/>
+                      <group name="seller_package_dims">
+                        <field name="meli_seller_package_height" />
+                        <field name="meli_seller_package_width" />
+                        <field name="meli_seller_package_length" />
+                        <field name="meli_seller_package_weight" />
+                      </group>
+                      <group name="Basic description2">
                         <field name="meli_model"/>
                         <field name="meli_gender"/>
                         <field name="meli_catalog_domain"/>
@@ -464,6 +475,10 @@
                               <field name="meli_max_purchase_quantity" />
                               <field name="meli_manufacturing_time" />
                               <field name="meli_warranty" />
+                              <field name="meli_seller_package_height" />
+                              <field name="meli_seller_package_width" />
+                              <field name="meli_seller_package_length" />
+                              <field name="meli_seller_package_weight" />
                               <field name="meli_imagen_logo" />
                               <field name="meli_imagen_id" />
                               <field name="meli_imagen_link" />

@@ -6,7 +6,7 @@
             <field name="name">mercadolibre.category.search</field>
             <field name="model">mercadolibre.category</field>
             <field name="arch" type="xml">
-               <search string="Search MercadoLibre Categories Information">
+               <search>
                  <field name="name" string="Name"/>
                  <field name="meli_category_id" string="Mercadolibre ID"/>
                  <field name="public_category" string="Ecommerce Category"/>
