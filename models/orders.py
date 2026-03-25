@@ -62,13 +62,16 @@ class sale_order(models.Model):
     meli_orders = fields.Many2many('mercadolibre.orders',string="ML Orders")
 
     def _meli_status_brief(self):
+        # WARNING: This is a computed field - it must NEVER modify data or call APIs
+        # Calling update_order_status() here was causing multiple pickings to be created
+        # every time someone viewed the order in the UI
         for order in self:
             morder = order.meli_orders and order.meli_orders[0]
             if morder:
-                morder.update_order_status()
+                # Only read existing values, do NOT call update_order_status()
                 order.meli_status = morder.status
                 order.meli_status_detail = morder.status_detail
-                order.meli_status_brief = str(morder.status)+" ship-"+( (morder.shipment_status and str(morder.shipment_status)) or "" ) + ( (morder.shipment_substatus and str(morder.shipment_substatus)) or "")
+                order.meli_status_brief = str(morder.status or '')+" ship-"+( (morder.shipment_status and str(morder.shipment_status)) or "" ) + ( (morder.shipment_substatus and str(morder.shipment_substatus)) or "")
             else:
                 order.meli_status_brief = "-"
                 order.meli_status =  order.meli_status
@@ -544,6 +547,30 @@ class sale_order(models.Model):
         res = res and ( config.mercadolibre_pricelist.id == self.pricelist_id.id )
         return res
 
+    def _meli_return_done_pickings(self):
+        """Create return pickings for done outgoing pickings when MeLi cancels the order."""
+        ReturnWiz = self.env["stock.return.picking"]
+        for picking in self.picking_ids.filtered(
+            lambda p: p.state == "done" and p.picking_type_code == "outgoing"
+        ):
+            # skip if already has a return
+            if any(picking.move_ids.mapped("origin_returned_move_id")):
+                continue
+            try:
+                wiz = ReturnWiz.with_context(active_id=picking.id, active_ids=[picking.id], active_model="stock.picking").create({})
+                if hasattr(wiz, "action_create_returns"):
+                    wiz.action_create_returns()
+                elif hasattr(wiz, "create_returns"):
+                    wiz.create_returns()
+                else:
+                    _logger.warning("stock.return.picking: no create_returns method found")
+                    meli_message_post(self, "No se pudo devolver el albarán %s automáticamente: método no encontrado. Gestionar manualmente." % picking.name)
+                    continue
+                meli_message_post(self, "Devolución creada automáticamente para albarán %s (orden cancelada por MeLi)." % picking.name)
+            except Exception as e:
+                _logger.error("Error creating return for picking %s: %s", picking.name, e, exc_info=True)
+                meli_message_post(self, "No se pudo devolver el albarán %s automáticamente. Error: %s. Gestionar manualmente." % (picking.name, str(e)))
+
     def confirm_ml( self, meli=None, config=None ):
         try:
             #_logger.info("meli_oerp confirm_ml")
@@ -557,6 +584,7 @@ class sale_order(models.Model):
             if (self.meli_status=="cancelled"):
                 cancel_msg = "Orden cancelada por MercadoLibre."
                 if self.meli_status_detail:
+                    self._meli_return_done_pickings()
                     cancel_msg += " Motivo: %s" % self.meli_status_detail
                 self.meli_cancel_with_detail(cancel_msg)
                 return res
@@ -565,18 +593,18 @@ class sale_order(models.Model):
             confirm_cond = (amount_to_invoice > 0) and abs( float(amount_to_invoice) - self.amount_total ) < 1.1
             if not confirm_cond:
                 serror = "MELI: Condition not met: meli_paid_amount and amount_total doesn't match, check products missings, taxes and discounts."
-                self.message_post(body=str(serror), message_type=order_message_type )
+                meli_message_post(self, serror, config=config)
                 return {'error': serror}
 
             if (self.state in ['draft']):
-                self.message_post(body=str("Monto correcto, listo para confirmar venta."), message_type=order_message_type )
+                meli_message_post(self, "Monto correcto, listo para confirmar venta.", config=config)
 
             #check currency
             pricelist_is_meli = self.is_pricelist_meli(meli=meli, config=config)
             confirm_cond = confirm_cond and pricelist_is_meli
             if not confirm_cond:
                 serror = "MELI: Condition not met: pricelist is not correct, check partners property_product_pricelist."
-                self.message_post(body=str(serror), message_type=order_message_type )
+                meli_message_post(self, serror, config=config)
                 return {'error': serror}
 
             if (self.is_meli_order_fulfillment()):
@@ -788,6 +816,26 @@ class mercadolibre_orders(models.Model):
         country_id = self.country( Receiver=Receiver, Buyer=Buyer )
         state_id = self.state( country_id, Receiver=Receiver, Buyer=Buyer )
         city_name = self.city( Receiver=Receiver, Buyer=Buyer )
+
+        # Brasil: mapear ciudad a res.city (usado por l10n_br y Odoo base)
+        company = self.env.user.company_id
+        if company.country_id.code == "BR" and city_name and "res.city" in self.env:
+            res_city = self.env["res.city"].search([
+                ('name', 'ilike', city_name),
+                ('country_id', '=', country_id),
+            ], limit=1)
+            if not res_city and state_id:
+                res_city = self.env["res.city"].search([
+                    ('name', 'ilike', city_name),
+                    ('state_id', '=', state_id),
+                ], limit=1)
+            if res_city:
+                updated['city_id'] = res_city.id
+                updated['city'] = res_city.name
+                _logger.info("BR_CITY: city_id=%s (%s)", res_city.id, res_city.name)
+            else:
+                updated['city'] = city_name
+                _logger.warning("BR_CITY: res.city nao encontrada para '%s' (country=%s state=%s)", city_name, country_id, state_id)
 
         if "l10n_co_cities.city" in self.env:
             city = self.env["l10n_co_cities.city"].search([('city_name','ilike',city_name)])
@@ -1434,6 +1482,7 @@ class mercadolibre_orders(models.Model):
 
         if (    "mercadolibre_filter_order_datetime_start" in config._fields
                 and "date_closed" in order_fields
+                and order_fields["date_closed"]
                 and config.mercadolibre_filter_order_datetime_start
                 and config.mercadolibre_filter_order_datetime_start>parse(order_fields["date_closed"]) ):
             error = { "error": "orden filtrada por fecha START > " + str(order_fields["date_closed"]) + " inferior a "+str(ml_datetime(config.mercadolibre_filter_order_datetime_start)) }
@@ -1443,6 +1492,7 @@ class mercadolibre_orders(models.Model):
 
         if (    "mercadolibre_filter_order_datetime" in config._fields
                 and "date_closed" in order_fields
+                and order_fields["date_closed"]
                 and config.mercadolibre_filter_order_datetime
                 and config.mercadolibre_filter_order_datetime>parse(order_fields["date_closed"]) ):
             error = { "error": "orden filtrada por FROM > " + str(order_fields["date_closed"]) + " inferior a "+str(ml_datetime(config.mercadolibre_filter_order_datetime)) }
@@ -1451,6 +1501,7 @@ class mercadolibre_orders(models.Model):
 
         if (    "mercadolibre_filter_order_datetime_to" in config._fields
                 and "date_closed" in order_fields
+                and order_fields["date_closed"]
                 and config.mercadolibre_filter_order_datetime_to
                 and config.mercadolibre_filter_order_datetime_to<parse(order_fields["date_closed"]) ):
             error = { "error": "orden filtrada por fecha TO > " + str(order_fields["date_closed"]) + " superior a "+str(ml_datetime(config.mercadolibre_filter_order_datetime_to)) }
@@ -1510,7 +1561,38 @@ class mercadolibre_orders(models.Model):
 
         if 'buyer' in order_json:
             Buyer = order_json['buyer']
+
+            # --- ALERTA: comprador genérico (GLOBALCOMPRADOR) ---
+            # Este comprador ficticio se usa en órdenes internas/fulfillment sin datos reales.
+            # En Brasil y otros países con facturación electrónica, esto impide emitir NFe/XML
+            # porque el contacto no tiene CPF/CNPJ ni nombre fiscal real.
+            # Los errores de NCM que aparecen suelen ser consecuencia de este mismo problema.
+            _buyer_id_raw = str(Buyer.get('id', '') or '')
+            if _buyer_id_raw.upper() in ('GLOBALCOMPRADOR', 'CLIENTEML'):
+                _logger.warning(
+                    "BUYER_GENERICO: order %s usa comprador ficticio id='%s'. "
+                    "No habra CPF/CNPJ ni nombre fiscal real. "
+                    "En Brasil esto bloquea la emision de NFe. "
+                    "Revisar manualmente el contacto de facturacion del pedido.",
+                    order_json.get('id', '?'), _buyer_id_raw
+                )
+                if order:
+                    order.message_post(
+                        body=(
+                            "⚠️ COMPRADOR GENÉRICO detectado (id: %s). "
+                            "Este pedido no tiene datos fiscales reales del comprador. "
+                            "Para emitir NFe/Nota Fiscal es necesario corregir manualmente "
+                            "el contacto de facturación (CPF/CNPJ, nombre legal)."
+                        ) % _buyer_id_raw,
+                        message_type='comment'
+                    )
+
             Buyer['billing_info'] = self.get_billing_info(order_id=order_json['id'],meli=meli,data=order_json)
+            _logger.info("BUYER_DATA: order=%s buyer_id=%s billing_info_keys=%s doc_type=%s doc_number=%s",
+                         order_json.get('id','?'), _buyer_id_raw,
+                         list(Buyer.get('billing_info', {}).keys()),
+                         Buyer.get('billing_info', {}).get('doc_type', 'N/A'),
+                         Buyer.get('billing_info', {}).get('doc_number', 'N/A'))
             # Nombre para contacto principal: usar nombre del buyer de MeLi (de la orden)
             Buyer['first_name'] = ('first_name' in Buyer and Buyer['first_name']) or ''
             Buyer['last_name'] = ('last_name' in Buyer and Buyer['last_name']) or ''
@@ -1614,7 +1696,23 @@ class mercadolibre_orders(models.Model):
             if ( not buyer_ids ):
                 #_logger.info( "creating buyer "+str(buyer_fields['buyer_id'])+" order id:" + str(order and order.name))
                 #_logger.info(buyer_fields)
-                buyer_id = buyers_obj.sudo().create(( buyer_fields ))
+                # Use savepoint to handle race condition gracefully
+                # If another transaction creates the buyer, we can rollback to savepoint and search
+                try:
+                    self.env.cr.execute("SAVEPOINT buyer_create")
+                    buyer_id = buyers_obj.sudo().create(( buyer_fields ))
+                    self.env.cr.execute("RELEASE SAVEPOINT buyer_create")
+                except Exception as e:
+                    # Handle race condition: another transaction may have created the buyer
+                    if 'unique' in str(e).lower() or 'duplicate' in str(e).lower():
+                        self.env.cr.execute("ROLLBACK TO SAVEPOINT buyer_create")
+                        _logger.info("Buyer %s created by concurrent transaction, fetching...", buyer_fields['buyer_id'])
+                        buyer_id = buyers_obj.sudo().search([('buyer_id', '=', buyer_fields['buyer_id'])], limit=1)
+                        if buyer_id:
+                            buyer_id.sudo().write(buyer_fields)
+                    else:
+                        self.env.cr.execute("ROLLBACK TO SAVEPOINT buyer_create")
+                        raise
             else:
                 buyer_id = buyers_obj.sudo().browse(buyer_ids and buyer_ids[0])
                 #buyer_id = buyer_ids[0]
@@ -2102,6 +2200,53 @@ class mercadolibre_orders(models.Model):
                     if ("property_payment_term_id" in self.env['res.partner']._fields):
                         meli_buyer_fields['property_payment_term_id'] = config.mercadolibre_payment_term and config.mercadolibre_payment_term.id
 
+                # ============================================================
+                # BRASIL - CPF / CNPJ
+                # MercadoLibre envia doc_type = "CPF" ou "CNPJ" en billing_info.
+                # Odoo localizacion Brasil (l10n_br) usa:
+                #   - cnpj_cpf  (campo propio del modulo l10n_br)
+                #   - l10n_latam_identification_type_id (l10n_latam standard)
+                #   - vat (fallback generico)
+                # ============================================================
+                if company.country_id.code == "BR" and 'doc_type' in Buyer['billing_info']:
+                    _br_doc_type   = Buyer['billing_info'].get('doc_type', '') or ''
+                    _br_doc_number = Buyer['billing_info'].get('doc_number', '') or ''
+                    _logger.info("BR_BLOCK: doc_type=%s doc_number=%s", _br_doc_type, _br_doc_number)
+
+                    if _br_doc_number:
+                        # 1) Campo cnpj_cpf propio de l10n_br
+                        if 'cnpj_cpf' in self.env['res.partner']._fields:
+                            meli_buyer_fields['cnpj_cpf'] = _br_doc_number
+                            _logger.info("BR_BLOCK: cnpj_cpf=%s", _br_doc_number)
+                        else:
+                            # Fallback: campo vat generico
+                            meli_buyer_fields['vat'] = _br_doc_number
+                            _logger.info("BR_BLOCK: vat (fallback)=%s", _br_doc_number)
+
+                        # 2) Tipo de identificacion l10n_latam (Odoo 17+/19)
+                        if 'l10n_latam_identification_type_id' in self.env['res.partner']._fields:
+                            _br_latam_type = self.env['l10n_latam.identification.type'].search([
+                                ('country_id', '=', company.country_id.id),
+                                ('name', 'ilike', _br_doc_type),
+                            ], limit=1)
+                            if not _br_latam_type:
+                                _br_latam_type = self.env['l10n_latam.identification.type'].search([
+                                    ('name', 'ilike', _br_doc_type),
+                                ], limit=1)
+                            if _br_latam_type:
+                                meli_buyer_fields['l10n_latam_identification_type_id'] = _br_latam_type.id
+                                _logger.info("BR_BLOCK: l10n_latam_identification_type_id=%s (%s)", _br_latam_type.id, _br_latam_type.name)
+                            else:
+                                _logger.warning("BR_BLOCK: l10n_latam.identification.type nao encontrado para doc_type=%s", _br_doc_type)
+
+                    # 3) Tipo de empresa: CNPJ = empresa, CPF = pessoa fisica
+                    if _br_doc_type.upper() == 'CNPJ':
+                        meli_buyer_fields['company_type'] = 'company'
+                        _logger.info("BR_BLOCK: company_type=company (CNPJ)")
+                    elif _br_doc_type.upper() == 'CPF':
+                        meli_buyer_fields['company_type'] = 'person'
+                        _logger.info("BR_BLOCK: company_type=person (CPF)")
+
             # ================================================================
             # ARQUITECTURA DE CONTACTOS:
             # - Contacto PADRE: identidad del buyer MeLi (nombre MeLi, phone, meli_buyer_id)
@@ -2126,6 +2271,8 @@ class mercadolibre_orders(models.Model):
                 'property_payment_term_id', 'company_type',
                 'xidentification',
                 'x_name1', 'x_name2', 'x_lastname1', 'x_lastname2', 'x_pn_retri',
+                # Brasil
+                'cnpj_cpf',
             }
 
             billing_child_fields = {}
@@ -2216,7 +2363,7 @@ class mercadolibre_orders(models.Model):
                         _logger.info("orders_update_order > Error actualizando Partner: " + str(e))
                         _logger.error(e, exc_info=True)
                         if order:
-                            order.message_post(body=str("Error actualizando Partner: " + str(e)), message_type=order_message_type)
+                            meli_message_post(order, "Error actualizando Partner: " + str(e), config=config)
 
             # --- Buscar/crear contacto de facturación (entidad fiscal) ---
             # Modo 3: contacto independiente (sin parent_id), un CUIT = un contacto.
@@ -2593,14 +2740,14 @@ class mercadolibre_orders(models.Model):
             if 'pack_order' in order_json["tags"] and order and order.shipping_id:
                 #_logger.info("Pack Order, dont create sale.order, leave it to mercadolibre.shipment")
                 if not order.sale_order:
-                    order.message_post(body=str("Pack Order, dont create sale.order, leave it to mercadolibre.shipment"),message_type=order_message_type)
+                    meli_message_post(order, "Pack Order, dont create sale.order, leave it to mercadolibre.shipment", config=config)
             else:
                 #_logger.info("Adding new sale.order: " )
                 sorder = saleorder_obj.create((meli_order_fields))
                 if sorder:
                     sorder.meli_fix_team( meli=meli, config=config )
                     if order:
-                        order.message_post(body=str("Sale order created!"),message_type=order_message_type)
+                        meli_message_post(order, "Sale order created!", config=config)
 
 
         #check error
@@ -2823,7 +2970,7 @@ class mercadolibre_orders(models.Model):
                     if (len(product_related)>1):
                         error = { 'error': "Error products duplicated for item:"+str(Item and 'item' in Item and Item['item']) }
                         _logger.error(error)
-                        order and order.message_post(body=str(error["error"]),message_type=order_message_type)
+                        order and meli_message_post(order, error["error"], config=config)
                         #return error
                     else:
                         order_item_fields['product_id'] = product_related.id
@@ -2859,7 +3006,7 @@ class mercadolibre_orders(models.Model):
                 if (product_related_obj == False or len(product_related_obj)==0):
                     error = { 'error': 'No product related to meli_id '+str(Item['item']['id']), 'item': str(Item['item']), 'product_related_obj': str(product_related_obj) }
                     _logger.error(error)
-                    order and order.message_post(body=str(error["error"])+"\n"+str(error["item"]),message_type=order_message_type)
+                    order and meli_message_post(order, str(error["error"])+"\n"+str(error["item"]), config=config)
 
                 #Short cut to meli id and sku
                 order._order_product_sku()
@@ -3187,7 +3334,7 @@ class mercadolibre_orders(models.Model):
         else:
             _logger.error("Warning: sale order not created!")
             if order:
-                order.message_post(body=str("Warning: sale order not created!"),message_type=order_message_type)
+                meli_message_post(order, "Warning: sale order not created!", config=config)
 
         try:
             self.orders_get_invoice( meli=meli, config=config )
@@ -3363,6 +3510,7 @@ class mercadolibre_orders(models.Model):
                         in_range = True
                         if (    "mercadolibre_filter_order_datetime_start" in config._fields
                                 and "date_closed" in order_fields
+                                and order_fields["date_closed"]
                                 and config.mercadolibre_filter_order_datetime_start
                                 and config.mercadolibre_filter_order_datetime_start>parse(order_fields["date_closed"]) ):
                             #error = { "error": "orden filtrada por fecha START > " + str(order_fields["date_closed"]) + " inferior a "+str(ml_datetime(config.mercadolibre_filter_order_datetime_start)) }
@@ -3373,6 +3521,7 @@ class mercadolibre_orders(models.Model):
 
                         if (    "mercadolibre_filter_order_datetime" in config._fields
                                 and "date_closed" in order_fields
+                                and order_fields["date_closed"]
                                 and config.mercadolibre_filter_order_datetime
                                 and config.mercadolibre_filter_order_datetime>parse(order_fields["date_closed"]) ):
                             #error = { "error": "orden filtrada por FROM > " + str(order_fields["date_closed"]) + " inferior a "+str(ml_datetime(config.mercadolibre_filter_order_datetime)) }
@@ -3381,6 +3530,7 @@ class mercadolibre_orders(models.Model):
 
                         if (    "mercadolibre_filter_order_datetime_to" in config._fields
                                 and "date_closed" in order_fields
+                                and order_fields["date_closed"]
                                 and config.mercadolibre_filter_order_datetime_to
                                 and config.mercadolibre_filter_order_datetime_to<parse(order_fields["date_closed"]) ):
                             #error = { "error": "orden filtrada por fecha TO > " + str(order_fields["date_closed"]) + " superior a "+str(ml_datetime(config.mercadolibre_filter_order_datetime_to)) }

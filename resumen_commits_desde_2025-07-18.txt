@@ -1,0 +1,930 @@
+=========================
+Commits desde 2025-07-18:
+=========================
+>> Commit: 60587ef
+-------------------------
+commit 60587efde6f78a206457dbd0b5f695c4dc66a3f2
+Author: Fabricio Costa Alisedo <fabricio.costa@moldeointeractive.com.ar>
+Date:   Sun Aug 24 13:24:18 2025 +0200
+
+    25.17 ok
+
+diff --git a/__manifest__.py b/__manifest__.py
+index 47fcd62..0eb5ac7 100644
+--- a/__manifest__.py
++++ b/__manifest__.py
+@@ -9,7 +9,7 @@
+ {
+     'name': 'MercadoLibre Publisher / Mercado Libre Odoo Connector',
+     'summary': 'MercadoLibre Publisher / Mercado Libre Odoo Connector',
+-    'version': '18.0.25.15',
++    'version': '18.0.25.17',
+     'author': 'Moldeo Interactive',
+     'website': 'https://www.moldeointeractive.com',
+     "category": "Sales",
+diff --git a/controllers/main.py b/controllers/main.py
+index 7088f0d..61773ae 100644
+--- a/controllers/main.py
++++ b/controllers/main.py
+@@ -8,9 +8,9 @@ from odoo import http, api
+ from odoo import fields, osv, http
+ from odoo.http import Controller, Response, request, route
+ try:
+-    from odoo.addons.web.controllers.main import content_disposition
+-except ImportError:
+     from odoo.http import content_disposition
++except ImportError:
++    from odoo.addons.web.controllers.main import content_disposition
+     pass;
+ import json
+ import sys
+diff --git a/data/cron_jobs.xml b/data/cron_jobs.xml
+index 6dd6084..9fb51c6 100644
+--- a/data/cron_jobs.xml
++++ b/data/cron_jobs.xml
+@@ -6,7 +6,7 @@
+ 		<field name="name">Get Meli State</field>
+ 		<field name="active">True</field>
+ 		<field name="user_id" ref="base.user_root" />
+-		<field name="interval_number">1</field>
++		<field name="interval_number">10</field>
+ 		<field name="interval_type">minutes</field>
+ 		<field ref="model_res_company" name="model_id" />
+ 		<field name="state">code</field>
+diff --git a/models/orders.py b/models/orders.py
+index 1b3c699..fb86a51 100644
+--- a/models/orders.py
++++ b/models/orders.py
+@@ -1114,6 +1114,20 @@ class mercadolibre_orders(models.Model):
+ 
+         order_fields = self.prepare_ml_order_vals( order_json=order_json, meli=meli, config=config )
+ 
++        if ( "mercadolibre_channel_mkt" in config._fields and config.mercadolibre_channel_mkt and order_fields["context"] ):
++            
++            channel_block = True
++
++            for channel in config.mercadolibre_channel_mkt:
++                if channel.code == order_fields["context"]:
++                    channel_block = False
++
++            if channel_block:
++                error = { "error": "orden filtrada por canal "+str(order_fields["context"]) }
++                #_logger.info( "orders_update_order_json > filter:" + str(error) )
++                return error
++
++
+         if (    "mercadolibre_filter_order_datetime_start" in config._fields
+                 and "date_closed" in order_fields
+                 and config.mercadolibre_filter_order_datetime_start
+@@ -1264,7 +1278,7 @@ class mercadolibre_orders(models.Model):
+             buyer_fields.update(self.buyer_additional_info(Buyer['billing_info']))
+             buyer_fields.update({'name': self.buyer_full_name(Buyer) })
+ 
+-            #buyer_ids = buyers_obj.sudo().search([  ('buyer_id','=',buyer_fields['buyer_id'] ) ] )
++            #buyer_ids = buyers_obj.sudo().search([  ('buyer_id','=',buyer_fields['buyer_id'] ) ] + company_domain, limit=1 )
+ 
+             query = """SELECT id
+             FROM   mercadolibre_buyers
+@@ -1283,6 +1297,7 @@ class mercadolibre_orders(models.Model):
+                 buyer_id = buyers_obj.sudo().create(( buyer_fields ))
+             else:
+                 buyer_id = buyers_obj.sudo().browse(buyer_ids and buyer_ids[0])
++                #buyer_id = buyer_ids[0]
+                 if buyer_id:
+                     buyer_id.sudo().write( ( buyer_fields ) )
+                 #if (len(buyer_ids)>0):
+@@ -1420,6 +1435,7 @@ class mercadolibre_orders(models.Model):
+                     elif (Buyer['billing_info']['doc_type']):
+                         meli_buyer_fields['document_type_id'] = self.env['sii.document_type'].search([('code','=',Buyer['billing_info']['doc_type'])],limit=1).id
+ 
++                    meli_buyer_fields['es_mipyme'] = True
+                     vatn = Buyer['billing_info']['doc_number']
+                     is_business = False
+                     sep_millon = cl_vat_sep_million
+@@ -1698,7 +1714,7 @@ class mercadolibre_orders(models.Model):
+ 
+             partner_invoice_id = None
+             partner_invoice_meli_order_id = str(order_json['pack_id'] or order_json['id'])
+-            partner_id = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ], limit=1 )
++            partner_id = respartner_obj.search([  ('meli_buyer_id','=',buyer_fields['buyer_id'] ) ]+company_domain, limit=1 )
+             partner_invoice_id = partner_id
+             #_logger.info("partner_id>buyer_fields:"+str(buyer_fields)+" > partner_id: "+str(partner_id))
+             #_logger.info("meli_buyer_fields:"+str(meli_buyer_fields))
+@@ -2684,6 +2700,13 @@ class mercadolibre_orders(models.Model):
+                     order.sale_order.confirm_ml(meli=meli,config=config)
+ 
+     def _get_config( self, config=None ):
++        
++        _logger.info("_get_config from meli_oerp")
++
++        if ("connection_account" in self._fields):
++            config = config or (self and self.connection_account and self.connection_account.configuration) or (self and self.company_id)
++            return config
++
+         config = config or (self and self.company_id)
+         return config
+ 
+@@ -2913,7 +2936,7 @@ class res_partner(models.Model):
+     meli_order_id = fields.Char('Meli Order Id',index=True)
+ 
+     _sql_constraints = [
+-        ('unique_partner_meli_buyer_id', 'unique(meli_buyer_id,active)', 'Meli Partner Buyer id already exists!')
++        ('unique_partner_meli_buyer_id', 'unique(meli_buyer_id,active,company_id)', 'Meli Partner Buyer id already exists in this company!')
+     ]
+ 
+ 
+diff --git a/models/sale_order.py b/models/sale_order.py
+index 4200cc9..5be6af3 100644
+--- a/models/sale_order.py
++++ b/models/sale_order.py
+@@ -51,7 +51,7 @@ class SaleOrder(models.Model):
+     ], string=u'Estado de Entrega', index=True, readonly=True, related='meli_order_id.shipping_status', store=True)
+     shipping_substatus = fields.Selection([
+         #subestados de pending
+-        ('cost_exceeded','Costo Exedido'),
++        ('cost_exceeded','Costo Excedido'),
+         ('under_review','Bajo Revision'),
+         ('reviewed','Revisado'),
+         ('fraudulent','Fraudulento'),
+diff --git a/models/shipment.py b/models/shipment.py
+index b868fea..4c4cb87 100644
+--- a/models/shipment.py
++++ b/models/shipment.py
+@@ -965,9 +965,20 @@ class mercadolibre_shipment(models.Model):
+                             #We can create order with all items now
+                             ship_fields["orders"] = [(6, 0, all_orders_ids)]
+ 
+-                shipment = shipment_obj.search([('shipping_id','=', ship_id)],limit=1)
+-                #_logger.info("shipment:"+str(shipment)+" ship_id:"+str(ship_id)+" ship_fields:"+str(ship_fields) )
+-                if (len(shipment)==0):
++                #shipment = shipment_obj.search([('shipping_id','=', ship_id)],limit=1)
++                query = """SELECT id
++                FROM   mercadolibre_shipment
++                WHERE
++                shipping_id = '%s'
++                """ % (ship_id)
++                cr = self._cr
++                respquery = cr.execute(query)
++                results = cr.fetchall()
++                shipment_ids = results
++                shipment = False
++                _logger.info("shipment_ids:"+str(shipment_ids)+" ship_id:"+str(ship_id))
++                if (not shipment_ids):
++                #if ( or len(shipment)==0):
+                     #_logger.info("Importing shipment: " + str(ship_id))
+                     #_logger.info(str(ship_fields))
+                     shipment = shipment_obj.create((ship_fields))
+@@ -976,7 +987,9 @@ class mercadolibre_shipment(models.Model):
+                         pass;
+                 else:
+                     #_logger.info("Updating shipment: " + str(ship_id))
+-                    shipment.write((ship_fields))
++                    shipment = shipment_obj.sudo().browse(shipment_ids and shipment_ids[0])
++                    if (shipment):
++                        shipment.write((ship_fields))
+ 
+                 if shipment and items_json:
+                     #mercadolibre.shipment.item
+@@ -1232,7 +1245,9 @@ class mercadolibre_shipment(models.Model):
+                                     #_logger.info("saleorderline_item_ids:"+str(saleorderline_item_ids))
+                                     #_logger.info("saleorderline_item_ids tax_id:"+str(saleorderline_item_ids.tax_id))
+                                     #_logger.info("saleorderline_item_ids tax_id company_id:"+str(saleorderline_item_ids.tax_id.company_id))
+-                                    saleorderline_item_ids.write( ( saleorderline_item_fields ) )
++                                    is_locked = (sorder_pack and sorder_pack.state in ["done"]) or ("locked" in sorder_pack._fields and sorder_pack.locked)
++                                    if (not sorder_pack.state in ['sale','done']) and not is_locked:
++                                        saleorderline_item_ids.write( ( saleorderline_item_fields ) )
+                     else:
+                         #_logger.info("partner receiver id not founded:"+str(ship_fields['receiver_id']))
+                         pass;
+diff --git a/views/orders_view.xml b/views/orders_view.xml
+index 47b2759..06c14b6 100644
+--- a/views/orders_view.xml
++++ b/views/orders_view.xml
+@@ -104,6 +104,7 @@
+                               <field name="meli_shipment_logistic_type" invisible="0"/>
+                               <field name="meli_status_detail" invisible="0"/>
+                               <field name="meli_total_amount" invisible="0"/>
++                              <field name="meli_shipping_amount" invisible="0"/>
+                               <field name="meli_shipping_cost" invisible="0"/>
+                               <field name="meli_shipping_list_cost" invisible="0"/>
+                               <field name="meli_fee_amount" invisible="0"/>
+@@ -189,6 +190,7 @@
+                     </group>
+                     <group>
+                         <field name="total_amount" widget="monetary"/>
++                        <field name="payments_shipment_amount"  widget="monetary"/>
+                         <field name="shipping_cost"  widget="monetary"/>
+                         <field name="shipping_list_cost"  widget="monetary"/>
+                         <field name="shipment_logistic_type" />
+diff --git a/views/product_post.xml b/views/product_post.xml
+index 08a46a9..f7e1f54 100644
+--- a/views/product_post.xml
++++ b/views/product_post.xml
+@@ -110,7 +110,7 @@
+                         <field name="batch_processing_unit" string="Cantidad a procesar"/>
+                         <field name="batch_processing_unit_offset" string="Indice"/>
+                       </group>
+-                    <group string="Batch To sync">
++                      <group string="Batch To sync">
+                         <field name="batch_actives_to_sync" readonly="0"/>
+                         <field name="batch_paused_to_sync" readonly="0"/>
+                         <field name="batch_left_to_sync" readonly="0"/>
+@@ -121,11 +121,11 @@
+                         <field name="closed_to_sync" readonly="1"/>
+                       </group>
+ 
+-                        <group string="Processing Status" colspan="2">
++                      <group string="Processing Status" colspan="2">
+ 
+                               <field name="batch_processing_status" readonly="1"/>
+                               <field name="batch_processing" readonly="1"/>
+-                        </group>
++                      </group>
+                     </group>
+                   </group>
+ 
+
+
+>> Commit: 42ebc82
+-------------------------
+commit 42ebc828a89c8ac4fc90a920c1f58813fcd7a9c6
+Author: Fabricio Costa Alisedo <fabricio.costa@moldeointeractive.com.ar>
+Date:   Fri Aug 8 15:03:36 2025 +0200
+
+    Upgraded 25.15 all fixes for user product seller mode and shipment payment amount compatibility
+
+diff --git a/__manifest__.py b/__manifest__.py
+index cf4990d..47fcd62 100644
+--- a/__manifest__.py
++++ b/__manifest__.py
+@@ -9,7 +9,7 @@
+ {
+     'name': 'MercadoLibre Publisher / Mercado Libre Odoo Connector',
+     'summary': 'MercadoLibre Publisher / Mercado Libre Odoo Connector',
+-    'version': '18.0.25.13',
++    'version': '18.0.25.15',
+     'author': 'Moldeo Interactive',
+     'website': 'https://www.moldeointeractive.com',
+     "category": "Sales",
+diff --git a/models/orders.py b/models/orders.py
+index 60ede5f..1b3c699 100644
+--- a/models/orders.py
++++ b/models/orders.py
+@@ -179,6 +179,7 @@ class sale_order(models.Model):
+     meli_shipping = fields.Text(string="Shipping")
+ 
+     meli_total_amount = fields.Float(string='Total amount')
++    meli_shipping_amount = fields.Float(string='Shipping Amount',help='Pago envío')
+     meli_shipping_cost = fields.Float(string='Shipping Cost',help='Gastos de envío')
+     meli_shipping_list_cost = fields.Float(string='Shipping List Cost',help='Gastos de envío, costo de lista/interno')
+     meli_paid_amount = fields.Float(string='Paid amount',help='Paid amount (include shipping cost)')
+@@ -364,7 +365,7 @@ class sale_order(models.Model):
+ 
+             if (including_shipping_cost=="never"):
+                 #sacamos le precio del envio
+-                return (self.meli_paid_amount - self.meli_coupon_amount - self.meli_shipping_cost)
++                return (self.meli_paid_amount - self.meli_coupon_amount - self.meli_shipping_amount)
+ 
+             return (self.meli_paid_amount - self.meli_coupon_amount)
+ 
+@@ -452,6 +453,9 @@ class sale_order(models.Model):
+                 self.message_post(body=str(serror), message_type=order_message_type )
+                 return {'error': serror}
+ 
++            if (self.state in ['draft']):
++                self.message_post(body=str("Monto correcto, listo para confirmar venta."), message_type=order_message_type )
++
+             #check currency
+             pricelist_is_meli = self.is_pricelist_meli(meli=meli, config=config)
+             confirm_cond = confirm_cond and pricelist_is_meli
+@@ -2334,7 +2338,7 @@ class mercadolibre_orders(models.Model):
+         #if order:
+         #    return_id = self.env['mercadolibre.orders'].update
+ 
+-        if config.mercadolibre_cron_get_orders_shipment:
++        if (1==1 or config.mercadolibre_cron_get_orders_shipment):
+             #_logger.info("Updating order: Shipment: "+str(order.shipping_id))
+             if (order and order.shipping_id):
+                 shipment = shipment_obj.fetch_shipment( order, meli=meli, config=config )
+diff --git a/models/shipment.py b/models/shipment.py
+index 05a27a4..b868fea 100644
+--- a/models/shipment.py
++++ b/models/shipment.py
+@@ -315,6 +315,7 @@ class mercadolibre_shipment(models.Model):
+ 
+     order_cost = fields.Float(string='Order Cost')
+     base_cost = fields.Float(string='Base Cost')
++    shipping_amount = fields.Float(string='Shipping Amount')
+     shipping_cost = fields.Float(string='Shipping Cost')
+     shipping_list_cost = fields.Float(string='Shipping List Cost')
+     promoted_amount = fields.Float(string='Promoted amount')
+@@ -531,7 +532,8 @@ class mercadolibre_shipment(models.Model):
+                 pass;
+                 #continue
+ 
+-            del_price = shipment.shipping_cost
++            #del_price = shipment.shipping_cost
++            del_price = order.payments_shipment_amount;
+             delivery_price = ml_product_price_conversion( self, product_related_obj=product_shipping_id, price=del_price, config=config ),
+             if type(delivery_price)==tuple and len(delivery_price):
+                 delivery_price = delivery_price[0]
+@@ -918,6 +920,9 @@ class mercadolibre_shipment(models.Model):
+                 else:
+                     response2 = meli.get("/shipments/"+ str(ship_id)+"/items",  {'access_token':meli.access_token})
+ 
++                all_orders = []
++                all_orders_ids = []
++
+                 if (response2):
+                     items_json = items_json or response2.json()
+                     if "error" in items_json:
+@@ -931,8 +936,7 @@ class mercadolibre_shipment(models.Model):
+                             ship_fields["pack_order"] = False
+ 
+                         full_orders = False
+-                        all_orders = []
+-                        all_orders_ids = []
++                        
+                         coma = ""
+                         packed_order_ids =""
+                         items_json_sorted = sorted(items_json, key=lambda x: x["order_id"], reverse=False)
+@@ -961,7 +965,7 @@ class mercadolibre_shipment(models.Model):
+                             #We can create order with all items now
+                             ship_fields["orders"] = [(6, 0, all_orders_ids)]
+ 
+-                shipment = shipment_obj.search([('shipping_id','=', ship_id)])
++                shipment = shipment_obj.search([('shipping_id','=', ship_id)],limit=1)
+                 #_logger.info("shipment:"+str(shipment)+" ship_id:"+str(ship_id)+" ship_fields:"+str(ship_fields) )
+                 if (len(shipment)==0):
+                     #_logger.info("Importing shipment: " + str(ship_id))
+@@ -1011,10 +1015,13 @@ class mercadolibre_shipment(models.Model):
+ 
+                 #associate order if it was non pack order created bir orders.py
+                 if (ship_fields["pack_order"]==False):
+-                    sorder = self.env["sale.order"].search( [ ('meli_order_id','=',ship_fields["order_id"]) ] )
+-                    if len(sorder):
++                    sorder = self.env["sale.order"].search( [ ('meli_order_id','=',ship_fields["order_id"]) ], limit=1 )
++                    if sorder:
+                         shipment.sale_order = sorder[0]
+                         sorder.meli_shipment = shipment
++                        _logger.info("setting meli_shipping_amount:"+str(sorder)+" all_orders: " +str(all_orders))
++                        if all_orders:
++                            sorder.meli_shipping_amount = all_orders and all_orders[0] and all_orders[0].payments_shipment_amount
+ 
+                 #if its a pack order, create it, oif full_orders were fetched (we can force this now)
+                 #_logger.info("full_orders:"+str(full_orders))
+@@ -1073,15 +1080,17 @@ class mercadolibre_shipment(models.Model):
+                         totales['paid_amount'] = 0
+                         totales['coupon_amount'] = 0
+                         totales['financing_fee_amount'] = 0
++                        totales['shipping_amount'] = 0
+                         for oi in all_orders:
+                             ord = oi
+                             totales['total_amount']+= ord["total_amount"]
+                             totales['paid_amount']+= ord["paid_amount"]
+                             totales['coupon_amount']+= ord["coupon_amount"]
+                             totales['financing_fee_amount']+= ord["financing_fee_amount"]
++                            totales['shipping_amount']+= ord.payments_shipment_amount
+ 
+                         #fix ML order_json... for pack_order "shipping_cost" added
+-                        if shipment.shipping_cost:
++                        if 1==2 and shipment.shipping_cost:
+                             totales['paid_amount']+= shipment.shipping_cost
+ 
+                         order_json = {
+@@ -1116,6 +1125,7 @@ class mercadolibre_shipment(models.Model):
+                             #'meli_status': all_orders[0]["status"],
+                             #'meli_status_detail': all_orders[0]["status_detail"] or '' ,
+                             #'meli_total_amount': shipment.order_cost,
++                            'meli_shipping_amount': totales["shipping_amount"],
+                             'meli_shipping_cost': shipment.shipping_cost,
+                             'meli_shipping_list_cost': shipment.shipping_list_cost,
+                             #'meli_paid_amount': shipment.order_cost,
+
+
+>> Commit: 341c53c
+-------------------------
+commit 341c53c78de9ae49d0dec57f7229a9d6c25ac147
+Author: Fabricio Costa Alisedo <fabricio.costa@moldeointeractive.com.ar>
+Date:   Tue Aug 5 13:18:36 2025 +0200
+
+    Upgraded 25.15 print modes for PDF/ZPL
+
+diff --git a/__manifest__.py b/__manifest__.py
+index 19daa72..cf4990d 100644
+--- a/__manifest__.py
++++ b/__manifest__.py
+@@ -9,7 +9,7 @@
+ {
+     'name': 'MercadoLibre Publisher / Mercado Libre Odoo Connector',
+     'summary': 'MercadoLibre Publisher / Mercado Libre Odoo Connector',
+-    'version': '18.0.25.12',
++    'version': '18.0.25.13',
+     'author': 'Moldeo Interactive',
+     'website': 'https://www.moldeointeractive.com',
+     "category": "Sales",
+diff --git a/models/company.py b/models/company.py
+index a3cff53..6800540 100644
+--- a/models/company.py
++++ b/models/company.py
+@@ -414,9 +414,9 @@ class res_company(models.Model):
+     mercadolibre_cron_get_new_products = fields.Boolean(string='Importar nuevos productos',help='Cron Import New Products, Product Templates or Variants')
+ 
+     mercadolibre_process_offset = fields.Char('Offset for pause all')
+-    mercadolibre_post_default_code = fields.Boolean(string='Post SKU',help='Post Odoo default_code field for templates or variants to seller_custom_field in ML')
+-    mercadolibre_post_barcode = fields.Boolean(string='Post Barcode',help='Post Odoo barcode as GTIN')
+-    mercadolibre_import_search_sku = fields.Boolean(string='Search SKU',help='Search product by default_code')
++    mercadolibre_post_default_code = fields.Boolean(string='Post SKU',default=True,help='Post Odoo default_code field for templates or variants to seller_custom_field in ML')
++    mercadolibre_post_barcode = fields.Boolean(string='Post Barcode',default=True,help='Post Odoo barcode as GTIN')
++    mercadolibre_import_search_sku = fields.Boolean(string='Search SKU',default=True,help='Search product by default_code')
+ 
+     mercadolibre_seller_user = fields.Many2one("res.users", string="Vendedor", help="Usuario con el que se registrarán las órdenes automáticamente")
+     mercadolibre_seller_team = fields.Many2one("crm.team", string="Equipo de ventas", help="Equipo de ventas asociado a las ventas de ML")
+diff --git a/models/orders.py b/models/orders.py
+index dd8d8a8..60ede5f 100644
+--- a/models/orders.py
++++ b/models/orders.py
+@@ -1333,7 +1333,7 @@ class mercadolibre_orders(models.Model):
+                     meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
+ 
+                 #Arg 15.0 BlueOrange Blue Orange
+-                if ( ('doc_type' in Buyer['billing_info']) and ('partner_document_type_id' in self.env['res.partner']._fields) ):
++                if (1==2 and  ('doc_type' in Buyer['billing_info']) and ('partner_document_type_id' in self.env['res.partner']._fields) ):
+                     doc_type = Buyer['billing_info']['doc_type']
+                     doc_type_id = self.env["partner.document.type"].search([('name','ilike',doc_type)],limit=1)
+                     if (doc_type_id):
+@@ -1356,13 +1356,13 @@ class mercadolibre_orders(models.Model):
+                     meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
+ 
+                 #Chile YNext
+-                if ( ('doc_type' in Buyer['billing_info']) and ('dte_email' in self.env['res.partner']._fields)):
++                if (1==2 and  ('doc_type' in Buyer['billing_info']) and ('dte_email' in self.env['res.partner']._fields)):
+ 
+                     meli_buyer_fields['dte_email'] = 'nomail@fake.com'
+                     
+                     if ('giro' in self.env['res.partner']._fields):
+                         meli_buyer_fields['giro'] = 'SIN GIRO'
+-                        
++
+                     vatn = Buyer['billing_info']['doc_number']
+                     if (len(vatn)==9):
+                         vatn = vatn[:2]+"."+vatn[2:5]+"."+vatn[5:8]+"-"+vatn[8:9]
+diff --git a/models/shipment.py b/models/shipment.py
+index 30fae61..05a27a4 100644
+--- a/models/shipment.py
++++ b/models/shipment.py
+@@ -220,6 +220,7 @@ class mercadolibre_shipment_print(models.TransientModel):
+                     full_url_link_pdf[atoken]['comma']  = ","
+ 
+                     full_url_link_pdf[atoken]['full_link'] = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_url_link_pdf[atoken]['full_ids']+"&response_type=pdf&access_token="+atoken
++                    #full_url_link_pdf[atoken]['full_link'] = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_url_link_pdf[atoken]['full_ids']+"&response_type=zpl2&access_token="+atoken
+ 
+             sep = "<br>"+"\n"
+ 
+@@ -230,12 +231,12 @@ class mercadolibre_shipment_print(models.TransientModel):
+             full_link = full_url_link_pdf[atoken]['full_link']
+             #_logger.info(full_link)
+             if full_link:
+-                full_links+= '<a href="'+full_link+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'
++                full_links+= '<a href="'+full_link+'" target="_blank"><strong><u>Descargar PDF/ZPL</u></strong></a>'
+ 
+         # full_url_link_pdf = {'otken': {'full_link': "https://api.mercadolibre.com/shipment_labels?shipment_ids=43272588025&amp;response_type=pdf&amp;access_token=APP_USR-6866649250908201-040908-e22cf17b7005c0ee37b953b972c7c53b-1682539048"}}
+         self.full_links= json.dumps(full_url_link_pdf)
+         if (full_links):
+-            return warningobj.info( title='Impresión de etiquetas', message="Abrir links para descargar PDF", message_html=""+full_ids+'<br><br>'+full_links+"<br><br>Reporte de no impresas:<br>"+reporte )
++            return warningobj.info( title='Impresión de etiquetas', message="Abrir links para descargar PDF/ZPL", message_html=""+full_ids+'<br><br>'+full_links+"<br><br>Reporte de no impresas:<br>"+reporte )
+         else:
+             return warningobj.info( title='Impresión de etiquetas: Estas etiquetas ya fueron todas impresas.', message=reporte )
+ 
+@@ -243,6 +244,10 @@ class mercadolibre_shipment_print(models.TransientModel):
+     include_ready_to_print = fields.Boolean(string="Include Ready To Print",default=False)
+     full_links = fields.Text(default='{}')
+ 
++    print_mode = fields.Selection(string="Modo",help="PDF o ZPL2",selection=[('pdf','PDF'),('zpl','ZPL')])
++    #&savePdf=Y
++    #&response_type=zpl2
++
+ 
+ 
+ class mercadolibre_shipment_update(models.TransientModel):
+@@ -1296,34 +1301,54 @@ class mercadolibre_shipment(models.Model):
+             meli = self.env['meli.util'].get_new_instance( company )
+ 
+         ship_report = { 'message': '', 'access_token': meli.access_token }
++        print_mode = "pdf"
++        if (config and "mercadolibre_shipment_print_guide" in config._fields):
++            if (config and "mercadolibre_shipment_print_guide_mode" in config._fields):
++                print_mode = config["mercadolibre_shipment_print_guide_mode"]        
+ 
+         if (shipment and shipment.status=="ready_to_ship"):
+ 
+             #full_str_ids = full_str_ids + comma + shipment
+-            download_url = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+shipment.shipping_id+"&response_type=pdf&access_token="+meli.access_token
++            if (print_mode=='pdf'):
++                download_url = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+shipment.shipping_id+"&response_type=pdf&access_token="+meli.access_token
++            if (print_mode=='zpl'):
++                download_url = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+shipment.shipping_id+"&response_type=zpl2&access_token="+meli.access_token
++    
+             shipment.pdf_link = download_url
+ 
+-            if (shipment.substatus=="printed" or include_ready_to_print):
++            if (shipment.substatus=="printed" or include_ready_to_print):            
++
+                 try:
+-                    data = urlopen(shipment.pdf_link).read()
+-                    #_logger.info(data)
+-                    shipment.pdf_filename = "Shipment_"+shipment.shipping_id+".pdf"
+-                    shipment.pdf_file = base64.b64encode(data)
+-                    images = convert_from_bytes(data, dpi=300,fmt='jpg')
+-                    if (1==1 and len(images)>1):
+-                        for image in images:
+-                            image_filename = "/tmp/%s-page%d.jpg" % ("Shipment_"+shipment.shipping_id, images.index(image))
+-                            image.save(image_filename, "JPEG")
+-                            if (images.index(image)==0):
+-                                imgdata = urlopen("file://"+image_filename).read()
+-                                shipment.pdfimage_file = base64.b64encode(imgdata)
+-                                shipment.pdfimage_filename = "Shipment_"+shipment.shipping_id+".jpg"
++                    if (print_mode=='pdf'):
++                        data = urlopen(shipment.pdf_link).read()
++                        #_logger.info(data)
++                        shipment.pdf_filename = "Shipment_"+shipment.shipping_id+".pdf"
++                        shipment.pdf_file = base64.b64encode(data)
++                        images = convert_from_bytes(data, dpi=300,fmt='jpg')
++                        if (1==1 and len(images)>1):
++                            for image in images:
++                                image_filename = "/tmp/%s-page%d.jpg" % ("Shipment_"+shipment.shipping_id, images.index(image))
++                                image.save(image_filename, "JPEG")
++                                if (images.index(image)==0):
++                                    imgdata = urlopen("file://"+image_filename).read()
++                                    shipment.pdfimage_file = base64.b64encode(imgdata)
++                                    shipment.pdfimage_filename = "Shipment_"+shipment.shipping_id+".jpg"
++                    
++                    if (print_mode=='zpl'):
++                        data = urlopen(shipment.pdf_link).read()
++                        shipment.pdf_filename = "Shipment_"+shipment.shipping_id+".zpl"
++                        shipment.pdf_file = base64.b64encode(data)
++
+ 
+                 except Exception as e:
+                     _logger.info("Exception!")
+                     _logger.info(e, exc_info=True)
+                     #return warningobj.info( title='Impresión de etiquetas: Error descargando guias', message=download_url )
+-                    ship_report['message'] = "Error descargando pdf:" + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)+'<a href="'+download_url+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'
++                    if (print_mode=='pdf'):
++                        ship_report['message'] = "Error descargando pdf:" + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)+'<a href="'+download_url+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'
++                    if (print_mode=='zpl'):
++                        ship_report['message'] = "Error descargando zpl:" + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)+'<a href="'+download_url+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'
++
+                     #sep = "<br>"+"\n"
+ 
+         else:
+diff --git a/models/versions.py b/models/versions.py
+index 256c680..7f3ac7a 100644
+--- a/models/versions.py
++++ b/models/versions.py
+@@ -314,3 +314,4 @@ def set_delivery_line( sorder, delivery_price, delivery_message ):
+ def remove_delivery_line( sorder, delivery_price=0):
+     sorder._remove_delivery_line()
+     return
++    
+diff --git a/views/company_view.xml b/views/company_view.xml
+index 943fea8..d36bc76 100644
+--- a/views/company_view.xml
++++ b/views/company_view.xml
+@@ -40,7 +40,7 @@
+                                 invisible="mercadolibre_state == True"
+                                 class="btn btn-primary oe_stat_button"/>
+ 
+-            								<!--button name='meli_query_products' type="object"
++            		<!--button name='meli_query_products' type="object"
+                                 string="Importar todos los productos"
+                                 title="Iniciar importación de todos los productos desde ML a Odoo"
+                                 invisible="mercadolibre_state == True"
+
+
+>> Commit: 8613499
+-------------------------
+commit 8613499f24e8ea564bd8232a8079034ae5901b60
+Merge: 102defd 3a2cc03
+Author: Fabricio Costa Alisedo <fabricio.costa@moldeointeractive.com.ar>
+Date:   Wed Jul 30 15:17:54 2025 +0200
+
+    up 25.12
+
+diff --cc models/orders.py
+index fab3b87,02a86b6..dd8d8a8
+--- a/models/orders.py
++++ b/models/orders.py
+@@@ -1386,7 -1396,7 +1396,7 @@@ class mercadolibre_orders(models.Model)
+                          is_business = (isb >= 50)
+                          #_logger.info(Chile VAT: is business? "+str(is_business))
+                      if (len(vatn)==8):
+--                        vatn = vatn[:1]+str(sep_millon)+vatn[1:4]+""+vatn[4:7]+"-"+vatn[7:8]
+++                        vatn = str("0")+vatn[:1]+str(sep_millon)+vatn[1:4]+""+vatn[4:7]+"-"+vatn[7:8]
+                      meli_buyer_fields['vat'] = vatn
+  
+                      if "l10n_cl_sii_taxpayer_type" in self.env['res.partner']._fields:
+@@@ -1398,7 -1408,7 +1408,7 @@@
+                              meli_buyer_fields['company_type'] = "person"
+  
+  
+--
+++                #CHILE, Daniel Santibañez localization
+                  if ( ('doc_type' in Buyer['billing_info']) and ('document_type_id' in self.env['res.partner']._fields) and ('document_number' in self.env['res.partner']._fields) ):
+  
+                      if (Buyer['billing_info']['doc_type']=="RUT"):
+@@@ -1406,12 -1416,12 +1416,47 @@@
+                      elif (Buyer['billing_info']['doc_type']):
+                          meli_buyer_fields['document_type_id'] = self.env['sii.document_type'].search([('code','=',Buyer['billing_info']['doc_type'])],limit=1).id
+  
+--                    meli_buyer_fields['document_number'] = Buyer['billing_info']['doc_number']
+ -
+ -                    meli_buyer_fields['vat'] = 'CL'+str(Buyer['billing_info']['doc_number'])
+ -                    #meli_buyer_fields['email'] = str(Buyer['email'])
+++                    vatn = Buyer['billing_info']['doc_number']
+++                    is_business = False
+++                    sep_millon = cl_vat_sep_million
+++                    if (len(vatn)==9):
+++                        vatn = vatn[:2]+"."+vatn[2:5]+"."+vatn[5:8]+"-"+vatn[8:9]
+++                        isb = float(vatn[:2])
+++                        #_logger.info(Chile VAT: is business:"+str(isb))
+++                        is_business = (isb >= 50)
+++                        #_logger.info(Chile VAT: is business? "+str(is_business))
+++                    if (len(vatn)==8):
+++                        vatn = str("0")+vatn[:1]+"."+vatn[1:4]+"."+vatn[4:7]+"-"+vatn[7:8]
+++                    #meli_buyer_fields['vat'] = vatn
+++                    meli_buyer_fields['document_number'] = vatn
+++                    meli_buyer_fields['vat'] = ""
+++                    del meli_buyer_fields['vat']
+++                    try:
+++                        #('activity_description' in self.env['res.partner']._fields) and meli_buyer_fields.update({"activity_description": self.env["sii.activity.description"].search([('name','=','NCP')],limit=1).id })
+++
+++                        if ("billing_info_economic_activity" in buyer_fields and 'activity_description' in self.env['res.partner']._fields):
+++                            acti_desc = buyer_fields["billing_info_economic_activity"]
+++                            sii_giro = self.env["sii.activity.description"].search([('name','=',acti_desc)], limit=1 )
+++                            _logger.error("sii_giro: "+str(sii_giro))
+++                            if (not sii_giro):
+++                                sii_giro = self.env["sii.activity.description"].create(({
+++                                    "name": acti_desc
+++                                }))
+++                                _logger.error("creando sii_giro: "+str(sii_giro))
+++
+++                            meli_buyer_fields['activity_description'] = (sii_giro and sii_giro.id) or None
+++                    except E as Exception:
+++                        _logger.error("billing_info_economic_activity"+str(E))
+++                        pass;
+ +
+-                     meli_buyer_fields['vat'] = 'CL'+str(Buyer['billing_info']['doc_number'])
+-                     #meli_buyer_fields['email'] = str(Buyer['email'])
+++                    if ("billing_info_neighborhood" in buyer_fields or "billing_info_city_name" in buyer_fields):
+++                        #meli_buyer_fields['city_id'] = ""
+++                        comuna = buyer_fields["billing_info_neighborhood"] or buyer_fields["billing_info_city_name"]
+++                        res_city = self.env["res.city"].search([('name','ilike',comuna)], limit=1 )
+++                        if (res_city):
+++                            meli_buyer_fields['city_id'] = (res_city and res_city.id) or None
+++                        pass;
+  
+--                    ('activity_description' in self.env['res.partner']._fields) and meli_buyer_fields.update({"activity_description": self.env["sii.activity.description"].search([('name','=','NCP')],limit=1).id })
+  
+                  #Colombia
+                  if ( ('doc_type' in Buyer['billing_info']) and ('l10n_co_document_type' in self.env['res.partner']._fields) ):
+
+
+>> Commit: 102defd
+-------------------------
+commit 102defd42a5c5e1158db1c22d551c7d8beffa666
+Author: Fabricio Costa Alisedo <fabricio.costa@moldeointeractive.com.ar>
+Date:   Mon Jul 28 13:52:38 2025 +0200
+
+    stash
+
+diff --git a/__manifest__.py b/__manifest__.py
+index f0eaeef..c8543bd 100644
+--- a/__manifest__.py
++++ b/__manifest__.py
+@@ -9,7 +9,7 @@
+ {
+     'name': 'MercadoLibre Publisher / Mercado Libre Odoo Connector',
+     'summary': 'MercadoLibre Publisher / Mercado Libre Odoo Connector',
+-    'version': '18.0.25.10',
++    'version': '18.0.25.11',
+     'author': 'Moldeo Interactive',
+     'website': 'https://www.moldeointeractive.com',
+     "category": "Sales",
+diff --git a/models/orders.py b/models/orders.py
+index b11882a..fab3b87 100644
+--- a/models/orders.py
++++ b/models/orders.py
+@@ -111,7 +111,7 @@ class sale_order(models.Model):
+                     for buyer in buyers:
+                         buyer_ids.append(buyer.id)
+                     if buyer_ids:
+-                        meli_orders = self.env['mercadolibre.orders'].search([('buyer','in',buyers_ids)], limit=10000 )
++                        meli_orders = self.env['mercadolibre.orders'].search([('buyer','in',buyer_ids)], limit=10000 )
+             #sale_orders = self.env['sale.order'].search([], limit=10000,order='id desc')
+             #if (value):
+                 #for so in sale_orders:
+@@ -389,7 +389,8 @@ class sale_order(models.Model):
+             self.action_invoice_create()
+         return res
+ 
+-    def meli_deliver(self, meli=None, config=None, data=None):
++    def meli_deliver( self, meli=None, config=None, data=None ):
++        #_logger.info(meli_deliver base")
+         res = {}
+         # Sólo operamos si la orden de venta ya está confirmada o hecha
+         if self.state in ('sale', 'done') and self.picking_ids:
+@@ -2211,34 +2212,48 @@ class mercadolibre_orders(models.Model):
+                     payment_fields["full_payment"] = mp_response.json()
+                     payment_fields["shipping_amount"] = payment_fields["full_payment"]["shipping_amount"]
+                     payment_fields["total_paid_amount"] = payment_fields["full_payment"]["transaction_details"]["total_paid_amount"]
+-                    if ("fee_details" in payment_fields["full_payment"] and len(payment_fields["full_payment"]["fee_details"])>0):
+-                        fee_details = payment_fields["full_payment"]["fee_details"]
++                    if ("charges_details" in payment_fields["full_payment"] and len(payment_fields["full_payment"]["charges_details"])>0):
++                        fee_details = payment_fields["full_payment"]["charges_details"]
+                         for fee_detail in fee_details:
++                            
+                             #fee_detail = fee_details[index]
+-                            if fee_detail and "amount" in fee_detail:
++
++                            if fee_detail and "amounts" in fee_detail:
++                                _logger.info("fee_detail:"+str(fee_detail))
+                                 fee_type = fee_detail["type"]
+-                                fee_payer = fee_detail["fee_payer"]
+-                                if (fee_payer and fee_payer == "collector" and fee_type == "application_fee"):
+-                                    payment_fields["fee_amount"] = fee_detail["amount"]
++                                #fee_payer = fee_detail["fee_payer"]
++                                fee_name = fee_detail["name"]
++                                _logger.info( "fee_type:" + str(fee_type) + " fee_name:" + str(fee_name) )
++                                if ( fee_type=="fee" and fee_name == "meli_percentage_fee"):
++                                    payment_fields["fee_amount"] = fee_detail["amounts"] and fee_detail["amounts"]["original"]
++                                    _logger.info("fee_amount:"+str(payment_fields["fee_amount"]))
+                                     if (order):
+                                         order.fee_amount = payment_fields["fee_amount"]
+-                                if (fee_payer and fee_payer == "payer" and fee_type == "financing_fee"):
+-                                    payment_fields["financing_fee_amount"] = fee_detail["amount"]
+-                                    if ('status' in Payment and Payment['status'] == "approved"):
+-                                        financing_fee_amount+= payment_fields["financing_fee_amount"]
++                                
++                                #if (fee_payer and fee_payer == "collector" and fee_type == "application_fee"):
++                                #    payment_fields["fee_amount"] = fee_detail["amount"]
++                                #    if (order):
++                                #        order.fee_amount = payment_fields["fee_amount"]
++                                #if (fee_payer and fee_payer == "payer" and fee_type == "financing_fee"):
++                                #    payment_fields["financing_fee_amount"] = fee_detail["amount"]
++                                #    if ('status' in Payment and Payment['status'] == "approved"):
++                                #        financing_fee_amount+= payment_fields["financing_fee_amount"]
++
+                         if (order):
+                             order.financing_fee_amount = financing_fee_amount
+                             if (sorder):
+                                 sorder.meli_fee_amount = order.fee_amount
+                                 sorder.meli_financing_fee_amount = order.financing_fee_amount
++
+                     payment_fields["taxes_amount"] = payment_fields["full_payment"]["taxes_amount"]
+ 
+                 payment_ids = payments_obj.search( [  ('payment_id','=',payment_fields['payment_id']),
+                                                             ('order_id','=',order.id ) ] )
+-
+                 if not payment_ids:
+-	                payment_ids = payments_obj.create( ( payment_fields ))
++                    _logger.info("Creating payment fields:"+str(payment_fields) )
++                    payment_ids = payments_obj.create( ( payment_fields ) )
+                 else:
++                    _logger.info("Upading payment fields:"+str(payment_fields))
+                     payment_ids.write( ( payment_fields ) )
+ 
+         #if order:
+@@ -2308,6 +2323,7 @@ class mercadolibre_orders(models.Model):
+ 
+                                 if not payment.account_payment_id:
+                                     payment.create_payment( meli=meli, config=config )
++
+                         except Exception as e:
+                             _logger.info("Error creating customer payment")
+                             _logger.info(e, exc_info=True)
+@@ -2915,7 +2931,7 @@ class sale_order_cancel_wiz_meli(models.TransientModel):
+                 #_logger.info("cancel_order: %s " % (order_id) )
+ 
+                 order = orders_obj.browse(order_id)
+-                is_locked = (order and order.state in ["done"]) or ("locked" in sorder._fields and order.locked)
++                is_locked = (order and order.state in ["done"]) or ("locked" in order._fields and order.locked)
+                 if (is_locked and self.cancel_blocked):
+                     #asd
+                     #_logger.info("cancel_order: unblock")
+diff --git a/views/product_view.xml b/views/product_view.xml
+index 84926d9..a0f17a7 100644
+--- a/views/product_view.xml
++++ b/views/product_view.xml
+@@ -95,7 +95,7 @@
+               </label>
+             <data>
+                 <notebook>
+-                    <page string="MercadoLibre Plantilla">
++                    <page string="MercadoLibre Plantilla" groups="meli_oerp.group_mercadolibre_manager">
+ 
+                         <div class="oe_button_box" name="button_box_mel" style="width: auto;">
+                           <button type="object"
+@@ -336,10 +336,10 @@
+             <field name="inherit_id" ref="product.product_normal_form_view" />
+             <field name="arch" type="xml">
+               <label for="sale_ok" position="after">
+-                    <field name="meli_pub" />
+-                    <label for="meli_pub" />
+-                    <field name="meli_update_stock_blocked"/>
+-                    <label for="meli_update_stock_blocked" />
++                    <field name="meli_pub" groups="meli_oerp.group_mercadolibre_manager"/>
++                    <label for="meli_pub" groups="meli_oerp.group_mercadolibre_manager"/>
++                    <field name="meli_update_stock_blocked" groups="meli_oerp.group_mercadolibre_manager"/>
++                    <label for="meli_update_stock_blocked" groups="meli_oerp.group_mercadolibre_manager"/>
+                     <!--field name="meli_master" />
+                     <label for="meli_master" /-->
+ 
+@@ -347,7 +347,7 @@
+ 
+                 <data>
+                     <notebook>
+-                        <page string="MercadoLibre">
++                        <page string="MercadoLibre" groups="meli_oerp.group_mercadolibre_manager">
+                           <div class="oe_button_box" name="button_box_mel" style="width: auto;">
+                             <button name='product_meli_get_product' type="object"
+                               string="Importar"
+
+
+>> Commit: 3a2cc03
+-------------------------
+commit 3a2cc0355155a42a746072bbd166b50eb87fbeec
+Author: Fabricio Costa Alisedo <fabricio.costa@moldeointeractive.com.ar>
+Date:   Wed Jul 23 18:31:43 2025 +0200
+
+    Up 25.11
+
+diff --git a/__manifest__.py b/__manifest__.py
+index c8543bd..19daa72 100644
+--- a/__manifest__.py
++++ b/__manifest__.py
+@@ -9,7 +9,7 @@
+ {
+     'name': 'MercadoLibre Publisher / Mercado Libre Odoo Connector',
+     'summary': 'MercadoLibre Publisher / Mercado Libre Odoo Connector',
+-    'version': '18.0.25.11',
++    'version': '18.0.25.12',
+     'author': 'Moldeo Interactive',
+     'website': 'https://www.moldeointeractive.com',
+     "category": "Sales",
+diff --git a/models/orders.py b/models/orders.py
+index 5e5b13f..02a86b6 100644
+--- a/models/orders.py
++++ b/models/orders.py
+@@ -690,6 +690,11 @@ class mercadolibre_orders(models.Model):
+         ret['billing_info_doc_type'] = ret['billing_info_doc_type'] or ('doc_type' in billing_info and billing_info['doc_type']) or ''
+         ret['billing_info_doc_number'] = ret['billing_info_doc_number'] or ('doc_number' in billing_info and billing_info['doc_number']) or ''
+ 
++        ret["billing_info_economic_activity"] = ("ECONOMIC_ACTIVITY" in billing_info and billing_info["ECONOMIC_ACTIVITY"]) or ""
++        ret["billing_info_neighborhood"] = ("NEIGHBORHOOD" in billing_info and billing_info["NEIGHBORHOOD"]) or ""
++        ret["billing_info_vat_discriminating_billing"] = ("VAT_DISCRIMINATED_BILLING" in billing_info and billing_info["VAT_DISCRIMINATED_BILLING"]) or ""
++        ret["billing_info_invoice_type"] = ("INVOICE_TYPE" in billing_info and billing_info["INVOICE_TYPE"]) or ""
++
+         return ret
+ 
+     def buyer_full_name( self, Buyer={}):
+@@ -973,6 +978,12 @@ class mercadolibre_orders(models.Model):
+             #_logger.info(update_partner_billing_info: no partner id or no meli_buyer_fields")
+             return partner_update
+ 
++        if "activity_description" in meli_buyer_fields:
++            partner_update.update(meli_buyer_fields)
++
++        if "city_id" in meli_buyer_fields:
++            partner_update.update(meli_buyer_fields)            
++
+         if "documento" in meli_buyer_fields:
+             partner_update.update(meli_buyer_fields)
+ 
+@@ -2845,6 +2856,11 @@ class mercadolibre_buyers(models.Model):
+     billing_info_state_name = fields.Char( string='Billing Info State Name')
+     billing_info_zip_code = fields.Char( string='Billing Info Zip Code')
+ 
++    billing_info_economic_activity = fields.Char(string='Billing Info Economic Activity')
++    billing_info_neighborhood = fields.Char(string='Billing Info Neighborhood')
++    billing_info_vat_discriminating_billing = fields.Char(string='Billing Info Vat Discriminating Billing')
++    billing_info_invoice_type = fields.Char(string='Billing Info Invoice Type')
++
+     _sql_constraints = [
+         ('unique_buyer_id', 'unique(buyer_id)', 'Meli Buyer id already exists!')
+     ]
+diff --git a/models/shipment.py b/models/shipment.py
+index 8f251da..30fae61 100644
+--- a/models/shipment.py
++++ b/models/shipment.py
+@@ -1034,7 +1034,7 @@ class mercadolibre_shipment(models.Model):
+                     partner_shipping_id = None
+                     if "receiver_address" in ship_json:
+                         if config.mercadolibre_cron_get_orders_shipment_client:
+-                            partner_shipping_id = self.partner_delivery_id( partner_id=partner_id, Receiver=ship_json["receiver_address"], config=config )
++                            partner_shipping_id = self.partner_delivery_id( partner_id=original_contact_partner_id, Receiver=ship_json["receiver_address"], config=config )
+ 
+ 
+                     mercadolibre_contact_partner_id = ("mercadolibre_contact_partner" in config._fields and config.mercadolibre_contact_partner)
+
+

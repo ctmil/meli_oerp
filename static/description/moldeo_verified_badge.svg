@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 300 130"
+   width="300"
+   height="130"
+   version="1.1"
+   id="svg6"
+   sodipodi:docname="moldeo_verified_badge.svg"
+   inkscape:version="1.4.3 (fcd0343856, 2026-01-01)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview6"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="1.3525"
+     inkscape:cx="74.676525"
+     inkscape:cy="105.36044"
+     inkscape:window-width="1874"
+     inkscape:window-height="1131"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg6" />
+  <defs
+     id="defs1">
+    <linearGradient
+       id="linearGradient9">
+      <stop
+         style="stop-color:#f5f5f5;stop-opacity:1;"
+         offset="0"
+         id="stop7" />
+      <stop
+         id="stop8"
+         offset="0.49046454"
+         style="stop-color:#ffffff;stop-opacity:1;" />
+      <stop
+         id="stop9"
+         offset="1"
+         style="stop-color:#2c50e5;stop-opacity:1;" />
+    </linearGradient>
+    <clipPath
+       id="pill-clip">
+      <rect
+         x="45"
+         y="18"
+         width="245"
+         height="94"
+         rx="47"
+         ry="47"
+         id="rect1" />
+    </clipPath>
+    <linearGradient
+       id="linearGradient3846">
+      <stop
+         style="stop-color:#0f1b4d;stop-opacity:1;"
+         offset="0"
+         id="stop3848" />
+      <stop
+         id="stop3850"
+         offset="0.49046454"
+         style="stop-color:#1f38a0;stop-opacity:1;" />
+      <stop
+         id="stop3852"
+         offset="1"
+         style="stop-color:#2c50e5;stop-opacity:1;" />
+    </linearGradient>
+  </defs>
+  <!-- Pill body white border -->
+  <rect
+     x="41"
+     y="14"
+     width="253"
+     height="102"
+     rx="51"
+     ry="51"
+     fill="#ffffff"
+     id="rect2" />
+  <!-- Pill body blue -->
+  <rect
+     x="45"
+     y="18"
+     width="245"
+     height="94"
+     rx="47"
+     ry="47"
+     fill="#3264D2"
+     id="rect3" />
+  <!-- Check circle (right side) -->
+  <circle
+     cx="240"
+     cy="65"
+     r="28"
+     fill="#ffffff"
+     id="circle3" />
+  <!-- Green checkmark -->
+  <polyline
+     points="226,65 236,76 256,55"
+     fill="none"
+     stroke="#2DA050"
+     stroke-width="7"
+     stroke-linecap="round"
+     stroke-linejoin="round"
+     id="polyline3" />
+  <!-- Logo circle white border -->
+  <circle
+     cx="62"
+     cy="65"
+     r="58"
+     fill="#ffffff"
+     id="circle4" />
+  <!-- Logo circle blue -->
+  <circle
+     cx="62"
+     cy="65"
+     r="54"
+     fill="#2346AA"
+     id="circle5" />
+  <!-- "vi" letterform (Moldeo Interactive) -->
+  <g
+     style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-opacity:1"
+     id="g3197"
+     transform="matrix(0.3416652,0,0,0.3416652,-33.292981,-5.2710499)">
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-opacity:1"
+       d="m 366.73441,271.11692 c -10.15586,-3.59612 -19.39766,-16.46278 -23.36001,-32.52239 -3.4071,-13.8091 -5.71504,-13.89826 -13.78822,-0.5327 -11.0764,18.33755 -27.10454,27.46882 -35.26034,20.08792 -4.84474,-4.38443 -5.98928,-17.86539 -3.33619,-39.29544 0.84141,-6.79634 2.07557,-14.51583 1.79814,-14.79327 -0.27744,-0.27743 -3.2011,2.99059 -5.55256,4.90113 -6.69225,5.43736 -18.5314,13.23139 -27.15865,17.87926 -6.64915,3.5822 -9.01029,4.31938 -15.08275,4.70909 -8.69423,0.55796 -14.01963,-1.42066 -20.90454,-7.76695 -5.92124,-5.458 -8.15807,-9.37119 -16.65669,-28.79517 -10.41223,-23.79764 -18.08514,-23.22698 -22.32973,-23.29297 -4.24459,-0.066 -8.02849,-0.48088 -19.38576,4.89039 -8.89457,4.20658 -14.00486,6.2815 -17.78265,6.36476 -3.7778,0.0832 -8.41995,-5.28524 -10.06834,-7.20014 -4.3478,-5.05079 -18.17207,-14.27048 -17.64556,-14.82945 0.52651,-0.55897 7.60594,3.46269 11.67393,7.25814 4.06799,3.79546 11.95247,11.98738 15.71794,12.00022 3.76547,0.0128 9.08851,-3.29108 12.56643,-5.65575 10.5009,-7.19159 17.80892,-9.95277 26.78097,-10.1186 14.22924,-0.26302 22.38741,7.30146 38.51124,35.70866 7.71108,13.5855 15.01351,18.04228 25.89933,15.80672 8.18056,-1.67999 16.01476,-5.78732 33.37791,-17.49943 16.49017,-11.12326 19.82021,-12.3973 23.05653,-8.8212 2.30926,2.5517 2.10303,9.48588 -0.8527,28.67126 -2.70123,17.53337 -2.97905,22.23449 -1.4479,24.5 1.27855,1.89176 3.75262,-0.84613 15.61535,-17.28041 9.1268,-12.644 11.78772,-15.06809 16.39638,-14.93706 6.49279,0.18461 12.05281,6.85544 26.43592,31.71747 13.015,22.49715 16.81924,25.47546 28.03435,21.94788 5.55404,-1.74697 14.97298,-7.88122 18.87858,-12.29501 2.3781,-2.68755 4.59501,-2.77809 4.59501,-0.18767 0,5.1139 -13.6607,15.61417 -24.78321,19.04956 -7.60086,2.34767 -17.84711,2.48939 -23.94221,0.33115 z"
+       id="path3195"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="ssssscssssszszszszcsssssssssssssss" />
+  </g>
+  <circle
+     style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:0.341665;stroke-opacity:1"
+     id="path2998"
+     cx="72.545311"
+     cy="52.609688"
+     r="3.0626183" />
+</svg>

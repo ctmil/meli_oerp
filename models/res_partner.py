@@ -112,6 +112,7 @@ class ResPartner(models.Model):
         domain = [
             ('commercial_partner_id', '=', parent_partner.id),
             '|', ('type', '=', 'delivery'), ('is_company', '=', False),
+            ('id', '!=', parent_partner.id),  # never match the buyer/parent itself
         ]
 
         if country_id:
