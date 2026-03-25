@@ -51,7 +51,7 @@
         <field name="name">MercadoLibre Posting - Search</field>
         <field name="model">mercadolibre.posting</field>
         <field name="arch" type="xml">
-          <search string="Search MercadoLibre Posting Information">
+          <search>
             <field name="name" string="Nombre publicación"/>
             <field name="meli_id" string="Meli ID"/>
             <field name="meli_status" string="Status"/>

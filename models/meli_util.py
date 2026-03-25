@@ -765,6 +765,48 @@ if _versions.MELI_SDK_AVAILABLE and _meli_sdk and _ApiClient:
         rjson = {}
         user = {}
 
+        # Benchmarking support - class-level attributes (for compatibility with MeliApiNoSDK)
+        _benchmark_enabled = False
+        _benchmark_stats = {
+            'get': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
+            'get_mini': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
+            'post': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
+            'post_mini': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
+            'put': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
+            'put_mini': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
+            'delete': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
+        }
+        _benchmark_slow_threshold = 2.0
+
+        @classmethod
+        def enable_benchmark(cls, enabled=True, slow_threshold=2.0):
+            """Enable or disable API benchmarking"""
+            cls._benchmark_enabled = enabled
+            cls._benchmark_slow_threshold = slow_threshold
+            if enabled:
+                cls.reset_benchmark_stats()
+                _logger.info("MELI API BENCHMARK (SDK): ENABLED (slow threshold: %.1fs)", slow_threshold)
+            else:
+                _logger.info("MELI API BENCHMARK (SDK): DISABLED")
+
+        @classmethod
+        def reset_benchmark_stats(cls):
+            """Reset benchmark statistics"""
+            cls._benchmark_stats = {
+                'get': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
+                'get_mini': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
+                'post': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
+                'post_mini': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
+                'put': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
+                'put_mini': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
+                'delete': {'count': 0, 'total_time': 0.0, 'slow_calls': []},
+            }
+
+        @classmethod
+        def get_benchmark_stats(cls):
+            """Get benchmark statistics summary"""
+            return cls._benchmark_stats
+
         def __init__(self, *args, **kwargs):
             super(MeliApiSDK, self).__init__(*args, **kwargs)
             self.api_auth_client = _meli_sdk.OAuth20Api(self.api_client)

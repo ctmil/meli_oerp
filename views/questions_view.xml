@@ -63,7 +63,7 @@
         <field name="name">MercadoLibre Questions - Search</field>
         <field name="model">mercadolibre.questions</field>
         <field name="arch" type="xml">
-	    <search string="Search MercadoLibre Questions Information">
+	    <search>
                 <filter string='Status' icon="terp-mrp" domain="[]" context="{'group_by' : 'status'}"/>
 	    </search>
         </field>
