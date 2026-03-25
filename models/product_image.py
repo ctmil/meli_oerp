@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo import models, fields, tools, api, osv
+from odoo import models, fields, tools, api
 from odoo.tools.translate import _
 
 import pdb

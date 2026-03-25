@@ -72,6 +72,9 @@ class mercadolibre_shipment_print(models.TransientModel):
     _name = "mercadolibre.shipment.print"
     _description = "Impresión de etiquetas"
 
+    def __shipment_stock_picking_print(self):
+        return self.shipment_print()
+
     def shipment_print(self, context=None, meli=None, config=None):
         context = context or self.env.context
         company = self.env.user.company_id
@@ -172,16 +175,6 @@ class mercadolibre_shipment_print(models.TransientModel):
 
         urls = [token_data["url"] for token_data in data["by_token"].values()]
 
-        _log_meli(
-            "AUTO PRINT URL RESULT",
-            {
-                "shipment_ids": shipment_ids,
-                "urls": urls,
-                "print_mode": data.get("print_mode"),
-                "count": len(urls),
-            }
-        )
-
         return {
             "urls": urls,
             "print_mode": data["print_mode"],
@@ -215,15 +208,6 @@ class mercadolibre_shipment_print(models.TransientModel):
             "print_mode": resolved_print_mode,
         }
 
-        _log_meli(
-            "GET SHIPMENT LABELS DATA :: INPUT",
-            {
-                "shipment_ids": shipment_ids,
-                "include_ready_to_print": include_ready_to_print,
-                "print_mode": resolved_print_mode,
-            }
-        )
-
         # ------------------------------------------------------------
         # 2) Iterate shipments (NO print_mode mutation here)
         # ------------------------------------------------------------
@@ -236,20 +220,10 @@ class mercadolibre_shipment_print(models.TransientModel):
                 include_ready_to_print=include_ready_to_print
             )
 
-            _log_meli(
-                f"SHIPMENT PRINT RESULT [{shipment.shipping_id}]",
-                {
-                    "shipment_id": shipment.shipping_id,
-                    "status": shipment.status,
-                    "substatus": shipment.substatus,
-                    "date_first_printed": shipment.date_first_printed,
-                    "ship_report": ship_report,
-                }
-            )
-
             is_already_printed = shipment.substatus == "printed"
+            has_printable_status = shipment.status in ("ready_to_ship", "shipped")
             should_include = (
-                shipment.status == "ready_to_ship"
+                has_printable_status
                 and (not is_already_printed or include_ready_to_print)
             )
 
@@ -292,8 +266,6 @@ class mercadolibre_shipment_print(models.TransientModel):
                 f"&access_token={atoken}"
             )
 
-        _log_meli("FINAL LABEL AGGREGATION RESULT", result)
-
         return result
 
 
@@ -329,7 +301,7 @@ class mercadolibre_shipment_print(models.TransientModel):
                     shipid = pick.sale_id.meli_shipment.id
                 if ( (not shipid) and len(pick.sale_id.meli_orders) ):
                     shipment = shipment_obj.search([('shipping_id','=',pick.sale_id.meli_orders[0].shipping_id)])
-                    if (shipment and shipment.status=="ready_to_ship"):
+                    if (shipment and shipment.status in ("ready_to_ship", "shipped")):
                         shipid = shipment.id
             else:
                 continue;
@@ -576,6 +548,30 @@ class mercadolibre_shipment(models.Model):
             sorder = shipment.sale_order
 
             if (sorder.state in ['done']) or ("locked" in sorder._fields and sorder.locked):
+                # Order is locked/done: skip structural changes (carrier, delivery line
+                # creation, address sync) but still update purchase_price on the existing
+                # delivery line.  shipping_seller_cost often arrives after the order is
+                # already confirmed, and without this the margin stays at 0.
+                try:
+                    ship_cost_for_pp = (
+                        shipment.shipping_seller_cost
+                        or (sorder and sorder.meli_shipping_seller_cost)
+                        or shipment.shipping_list_cost
+                        or 0.0
+                    )
+                    if ship_cost_for_pp:
+                        delivery_line = get_delivery_line(sorder)
+                        if delivery_line and 'purchase_price' in delivery_line._fields:
+                            product = delivery_line.product_id
+                            new_pp = sorder._ml_get_purchase_price_from_amount(
+                                product=product,
+                                amount=ship_cost_for_pp,
+                                amount_type="tax_included",
+                                quantity=1.0)
+                            if not delivery_line.purchase_price or abs(delivery_line.purchase_price - new_pp) > 0.01:
+                                delivery_line.purchase_price = new_pp
+                except Exception as e:
+                    _logger.warning("purchase_price update on locked order %s failed: %s", sorder.name, e)
                 continue;
 
             if (not sorder or not order):
@@ -802,19 +798,25 @@ class mercadolibre_shipment(models.Model):
                 if ship_cost_for_purchase_price:
                     delivery_line = get_delivery_line( sorder )
                     if delivery_line and 'purchase_price' in delivery_line._fields:
-                        delivery_line.purchase_price = sorder._ml_get_purchase_price_from_amount(
+                        new_purchase_price = sorder._ml_get_purchase_price_from_amount(
                             product=product_shipping_id,
                             amount=ship_cost_for_purchase_price,
                             amount_type="tax_included",
                             quantity=1.0 )
+                        # Only write if value actually changed (avoid unnecessary triggers)
+                        if delivery_line.purchase_price != new_purchase_price:
+                            delivery_line.purchase_price = new_purchase_price
 
                 if 1==1 and delivery_price<=0.0:
                     #_logger.info("Procesar delivery_price == 0")
                     delivery_line = get_delivery_line(sorder)
                     if delivery_line:
                         #_logger.info("Procesar delivery_price == 0 setear qty_to_invoice en 0")
-                        delivery_line.price_unit = 0.0
-                        delivery_line.qty_to_invoice = 0
+                        # Only write if value actually changed (avoid unnecessary triggers)
+                        if delivery_line.price_unit != 0.0:
+                            delivery_line.price_unit = 0.0
+                        if delivery_line.qty_to_invoice != 0:
+                            delivery_line.qty_to_invoice = 0
                     #_logger.info("Procesar delivery_price == 0 remover linea")
                     #sorder._remove_delivery_line()
                 #_logger.info("Finished _update_sale_order_shipping_info")
@@ -947,6 +949,10 @@ class mercadolibre_shipment(models.Model):
                 _logger.info(e, exc_info=True)
                 pass;
         else:
+            # Safety: never overwrite the buyer/parent partner with shipping data
+            if deliv_id.id == partner_id.id:
+                _logger.warning("partner_delivery_id: deliv_id matched buyer partner %s, skipping write to avoid name overwrite", partner_id.name)
+                return None
             try:
                 hchanges = False
                 del pdelivery_fields["parent_id"]
@@ -987,7 +993,6 @@ class mercadolibre_shipment(models.Model):
         if not meli:
             meli = self.env['meli.util'].get_new_instance(company)
             if meli.need_login():
-                _logger.info("Meli needs login")
                 return meli.redirect_login()
 
         ship_id = False
@@ -998,7 +1003,6 @@ class mercadolibre_shipment(models.Model):
         else:
             _logger.info("No hay orden o shipping_id")
             return None
-        
 
         ship_json = None
         if meli.access_token=="PASIVA":
@@ -1496,7 +1500,7 @@ class mercadolibre_shipment(models.Model):
                             #_logger.info("Create sale.order pack: ALL PASS OK")
                             if sorder_pack:
                                 sorder_pack.meli_fix_team( meli=meli, config=config )
-                                order.message_post(body=str("Sale order created (pack)!"),message_type=order_message_type)
+                                meli_message_post(order, "Sale order created (pack)!", config=config)
                     
                         if (sorder_pack.id):
                             shipment.sale_order = sorder_pack
@@ -1594,6 +1598,15 @@ class mercadolibre_shipment(models.Model):
                         pass;
 
         if (shipment):
+            # FIX: Copy order.shipping_seller_cost to shipment BEFORE _update_sale_order_shipping_info
+            # so that purchase_price on the delivery line is calculated with the actual seller cost.
+            # shipping_seller_cost comes from payment charges_details (type="shipping" / name="shp_fulfillment")
+            # and is set on the order during payment processing, which runs before fetch_shipment.
+            # Previously this copy happened in orders.py AFTER fetch_shipment returned,
+            # causing _update_sale_order_shipping_info to use shipping_seller_cost=0.
+            if order and order.shipping_seller_cost:
+                shipment.shipping_seller_cost = order.shipping_seller_cost
+
             shipment._update_sale_order_shipping_info( order, meli=meli, config=config )
 
         return shipment

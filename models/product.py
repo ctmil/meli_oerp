@@ -83,6 +83,33 @@ class product_template(models.Model):
                 _logger.info("  supplier id=%s partner=%s price=%.2f",
                              s.id, s.partner_id.name, s.price)
 
+    def write(self, vals):
+        """Protect variant_seller_ids from unintended destructive writes.
+
+        When editing a product variant (e.g. setting meli_id), the web client
+        may send variant_seller_ids with only destructive commands (delete/replace
+        with empty), causing all supplierinfo records to be deleted.
+        This override strips those purely destructive commands.
+        See: seller_ids and variant_seller_ids are both One2many to the same
+        records (product.supplierinfo via product_tmpl_id).
+        """
+        for field_name in ('variant_seller_ids', 'seller_ids'):
+            if field_name in vals:
+                cmds = vals[field_name]
+                if cmds and not any(
+                    isinstance(c, (list, tuple)) and c[0] in (0, 1, 4)
+                    for c in cmds
+                ):
+                    # Only destructive commands (2=delete, 3=unlink, 5=delete all, 6=replace)
+                    # with no constructive ones (0=create, 1=update, 4=link).
+                    # This is likely an unintended side-effect of the form save.
+                    _logger.warning(
+                        "Stripping destructive %s commands on template ids=%s: %s",
+                        field_name, self.ids, cmds,
+                    )
+                    del vals[field_name]
+        return super().write(vals)
+
     def delete_image_product_now(self):
         for record in self:
             if record.product_template_image_ids:
@@ -634,6 +661,7 @@ class product_template(models.Model):
     #name = fields.Char('Name', size=128, required=True, translate=False, index=True)
     meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
     meli_family_name = fields.Char(string='Nombre de la familia del user product en Mercado Libre',size=256)
+    meli_family_id = fields.Char(string='ID de familia ML (user_product_seller)',size=128,index=True)
     meli_description = fields.Text(string='Descripción')
     meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre")
     meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
@@ -729,6 +757,12 @@ class product_template(models.Model):
     meli_catalog_domain = fields.Char(string="Meli Domain",related="meli_category.catalog_domain")
 
     meli_channel_mkt = fields.Many2many( "meli.channel.mkt", string="Channels", index=True )
+
+    # Seller package dimensions - required by ML (SELLER_PACKAGE_* attributes)
+    meli_seller_package_height = fields.Char(string="Alto del paquete [vendedor]", help="SELLER_PACKAGE_HEIGHT: Alto del paquete a enviar. Ej: '30 cm'")
+    meli_seller_package_width  = fields.Char(string="Ancho del paquete [vendedor]", help="SELLER_PACKAGE_WIDTH: Ancho del paquete a enviar. Ej: '20 cm'")
+    meli_seller_package_length = fields.Char(string="Largo del paquete [vendedor]", help="SELLER_PACKAGE_LENGTH: Largo del paquete a enviar. Ej: '40 cm'")
+    meli_seller_package_weight = fields.Char(string="Peso del paquete [vendedor]", help="SELLER_PACKAGE_WEIGHT: Peso del paquete a enviar. Ej: '500 g'")
 
 class product_product(models.Model):
 
@@ -2270,12 +2304,24 @@ class product_product(models.Model):
             seller_sku = None
             barcode = None
 
+            _seller_pkg_attr_map = {
+                "SELLER_PACKAGE_HEIGHT": "meli_seller_package_height",
+                "SELLER_PACKAGE_WIDTH":  "meli_seller_package_width",
+                "SELLER_PACKAGE_LENGTH": "meli_seller_package_length",
+                "SELLER_PACKAGE_WEIGHT": "meli_seller_package_weight",
+            }
             if not seller_sku and "attributes" in rjson:
                 for att in rjson['attributes']:
                     if att["id"] == "SELLER_SKU":
                         seller_sku = att["values"][0]["name"]
                     if att["id"] == "GTIN":
                         barcode = att["values"][0]["name"]
+                    if att["id"] in _seller_pkg_attr_map:
+                        _val = att.get("value_name") or (att.get("values") and att["values"][0].get("name"))
+                        if _val:
+                            _fld = _seller_pkg_attr_map[att["id"]]
+                            product[_fld] = _val
+                            product_template[_fld] = _val
 
             if (not seller_sku and "seller_custom_field" in rjson):
                 seller_sku = rjson["seller_custom_field"]
@@ -2662,7 +2708,11 @@ class product_product(models.Model):
                     continue;
                 _logger.info("Upload multi image var: "+str(imix))
                 product_image = var_image_ids[imix]
-                image_ids+= product._meli_upload_image( product_image, meli=meli, config=config )
+                result = product._meli_upload_image( product_image, meli=meli, config=config )
+                if isinstance(result, dict):
+                    _logger.error("product_meli_upload_multi_images > image upload failed: " + str(result))
+                    return result
+                image_ids+= result
 
         product.write( { "meli_multi_imagen_id": "%s" % (image_ids) } )
 
@@ -2675,14 +2725,22 @@ class product_product(models.Model):
                     continue;
                 _logger.info("Upload multi image tpl: "+str(imix))
                 product_image = tpl_image_ids[imix]
-                image_ids+= product._meli_upload_image( product_image, meli=meli, config=config )
+                result = product._meli_upload_image( product_image, meli=meli, config=config )
+                if isinstance(result, dict):
+                    _logger.error("product_meli_upload_multi_images > image upload failed: " + str(result))
+                    return result
+                image_ids+= result
 
         product.write( { "meli_multi_imagen_id": "%s" % (image_ids) } )
 
         if banner_images:
             for img in config.mercadolibre_banner.images_id:
                 _logger.info("img: " + str(img))
-                image_ids+= product._meli_upload_image( img, meli=meli, config=config )
+                result = product._meli_upload_image( img, meli=meli, config=config )
+                if isinstance(result, dict):
+                    _logger.error("product_meli_upload_multi_images > image upload failed: " + str(result))
+                    return result
+                image_ids+= result
 
         product.write( { "meli_multi_imagen_id": "%s" % (image_ids) } )
 
@@ -2712,6 +2770,9 @@ class product_product(models.Model):
                     rjson = { "error": "Error subiendo imagen" }
                 #raise osv.except_osv( _('MELI WARNING'), _('No se pudo cargar la imagen en MELI! Error: %s , Mensaje: %s, Status: %s') % ( rjson["error"], rjson["message"],rjson["status"],))
                 return rjson
+            elif 'id' not in rjson:
+                _logger.error("_meli_upload_image: ML response missing 'id': " + str(rjson))
+                return {"status": "error", "message": "ML image upload response missing 'id': " + str(rjson)}
             else:
                 image_ids+= [ { 'id': rjson['id'] }]
                 #c = c + 1
@@ -3104,14 +3165,14 @@ class product_product(models.Model):
                     updated_row_size_attribute = { "id": "SIZE_GRID_ROW_ID", "value_name": str(GRID_ROW_SIZE_id) }
 
                 str_message = "GRID_ROW_SIZE_id FOUNDED for value ["+str(SIZE_value)+"] equivalent to ["+str(GRID_ROW_SIZE_id_value)+"] in "+str(self.meli_grid_chart_id.name)
-                variant.product_tmpl_id.message_post(body=str_message,message_type=order_message_type)
-                variant.message_post(body=str_message,message_type=order_message_type)
+                meli_message_post(variant.product_tmpl_id, str_message)
+                meli_message_post(variant, str_message)
                 MeliCommit( self )
             else:
                 str_error = "ERROR! GRID_ROW_SIZE_id not FOUNDED for value ["+str(SIZE_value)+"] in "+str(self.meli_grid_chart_id.name)
                 _logger.error(str_error)
-                variant.product_tmpl_id.message_post(body=str_error)
-                variant.message_post(body=str_error,message_type=order_message_type)
+                meli_message_post(variant.product_tmpl_id, str_error)
+                meli_message_post(variant, str_error)
                 MeliCommit( self )
 
 
@@ -3375,8 +3436,17 @@ class product_product(models.Model):
 
                     if (at_line_id.attribute_id.meli_default_id_attribute.id and
                         at_line_id.attribute_id.meli_default_id_attribute.variation_attribute==False):
+                        _att_id = at_line_id.attribute_id.meli_default_id_attribute.att_id
+                        # PACKAGE_* are catalog attrs (not modifiable); remap to SELLER_PACKAGE_*
+                        _PACKAGE_REMAP = {
+                            "PACKAGE_HEIGHT": "SELLER_PACKAGE_HEIGHT",
+                            "PACKAGE_WIDTH":  "SELLER_PACKAGE_WIDTH",
+                            "PACKAGE_LENGTH": "SELLER_PACKAGE_LENGTH",
+                            "PACKAGE_WEIGHT": "SELLER_PACKAGE_WEIGHT",
+                        }
+                        _att_id = _PACKAGE_REMAP.get(_att_id, _att_id)
                         attribute = {
-                            "id": at_line_id.attribute_id.meli_default_id_attribute.att_id,
+                            "id": _att_id,
                             "value_name": atval
                         }
                         attributes_ids[attribute["id"]] = attribute["value_name"]
@@ -3442,6 +3512,22 @@ class product_product(models.Model):
             attributes.append(attribute)
             _logger.info("attributes:"+str(attributes))
             product.meli_attributes = str(attributes)
+
+        # Seller package dimensions - required for Mercado Envíos (SELLER_PACKAGE_* attributes)
+        _seller_pkg_fields = [
+            ("meli_seller_package_height", "SELLER_PACKAGE_HEIGHT"),
+            ("meli_seller_package_width",  "SELLER_PACKAGE_WIDTH"),
+            ("meli_seller_package_length", "SELLER_PACKAGE_LENGTH"),
+            ("meli_seller_package_weight", "SELLER_PACKAGE_WEIGHT"),
+        ]
+        for _field, _att_id in _seller_pkg_fields:
+            if _att_id not in attributes_ids:
+                _val = getattr(product, _field, None) or getattr(product_tmpl, _field, None)
+                if _val:
+                    attribute = {"id": _att_id, "value_name": str(_val)}
+                    attributes_ids[_att_id] = _val
+                    attributes.append(attribute)
+                    _logger.info("seller_package attribute added: "+str(attribute))
 
         #_product_post_set_category
         if www_cats:
@@ -3542,7 +3628,7 @@ class product_product(models.Model):
             }
             if (config and "mercadolibre_user_product_seller" in config._fields ):
                 if (config.mercadolibre_user_product_seller):
-                    body["family_name"] =product.meli_family_name or product.meli_title or ''
+                    body["family_name"] = product.meli_family_name or product.meli_title or ''
                 else:
                     body["title"] = product.meli_family_name or product.meli_title or ''
 
@@ -3576,9 +3662,11 @@ class product_product(models.Model):
                             else:
                                 if ((att["id"]=="GTIN" or att["id"]=="SELLER_SKU") and product_tmpl.meli_pub_as_variant):
                                     attributes.append({"id": att["id"], "value_id": None, "value_name": None })
-                                else:
+                                elif att.get("value_id") is not None:
                                     attributes.append(att)
                                     _logger.info("attributes ADDING from ML:"+str(att["id"]))
+                                else:
+                                    _logger.info("attributes SKIPPING from ML (null value_id, catalog attr):"+str(att["id"]))
                             x = x + 1
 
                         body["attributes"] =  attributes
@@ -3977,16 +4065,16 @@ class product_product(models.Model):
             error = { "error": "Blocked by product template configuration." }
             product.meli_stock_error = str(error)
             product_tmpl.meli_stock_error = product.meli_stock_error
-            product.message_post(body=str(error["error"]),message_type=product_message_type)
-            product_tmpl.message_post(body=str(error["error"]),message_type=product_message_type)
+            meli_message_post(product, error["error"])
+            meli_message_post(product_tmpl, error["error"])
             return error
 
         if "meli_update_stock_blocked" in product._fields and product.meli_update_stock_blocked:
             error = { "error": "Blocked by product configuration." }
             product.meli_stock_error = str(error)
             product_tmpl.meli_stock_error = product.meli_stock_error
-            product.message_post(body=str(error["error"]),message_type=product_message_type)
-            product_tmpl.message_post(body=str(error["error"]),message_type=product_message_type)
+            meli_message_post(product, error["error"])
+            meli_message_post(product_tmpl, error["error"])
             return error
 
         try:
@@ -4318,6 +4406,7 @@ class product_product(models.Model):
     #typical values
     meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
     meli_family_name = fields.Char(string='Nombre de la familia en el user product en Mercado Libre',size=256)
+    meli_family_id = fields.Char(string='ID de familia ML (user_product_seller)',size=128,index=True)
     meli_description = fields.Text(string='Descripción')
     meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre")
     meli_price = fields.Char( string='Precio',help='Precio de venta en ML', size=128)
@@ -4387,6 +4476,12 @@ class product_product(models.Model):
 
     meli_shipping_mode = fields.Char(string="Shipping Mode",help="Shipping modes (por usuario): custom, not_specified, me2. https://api.mercadolibre.com/users/USERID/shipping_preferences",index=True)
     meli_shipping_method = fields.Char(string="Shipping Method",help="Shipping methods: https://api.mercadolibre.com/sites/SITEID/shipping_methods",index=True)
+
+    # Seller package dimensions - required by ML (SELLER_PACKAGE_* attributes)
+    meli_seller_package_height = fields.Char(string="Alto del paquete [vendedor]", help="SELLER_PACKAGE_HEIGHT: Alto del paquete a enviar. Ej: '30 cm'")
+    meli_seller_package_width  = fields.Char(string="Ancho del paquete [vendedor]", help="SELLER_PACKAGE_WIDTH: Ancho del paquete a enviar. Ej: '20 cm'")
+    meli_seller_package_length = fields.Char(string="Largo del paquete [vendedor]", help="SELLER_PACKAGE_LENGTH: Largo del paquete a enviar. Ej: '40 cm'")
+    meli_seller_package_weight = fields.Char(string="Peso del paquete [vendedor]", help="SELLER_PACKAGE_WEIGHT: Peso del paquete a enviar. Ej: '500 g'")
 
     meli_full_update = fields.Datetime(string="Product update",index=True)
     meli_image_update = fields.Datetime(string="Image update",index=True)
@@ -4627,10 +4722,11 @@ class product_product(models.Model):
 
 
 
-    _sql_constraints = [
-    #    ('unique_variant_meli_id_variation', 'unique(meli_id,meli_id_variation)', 'Meli Id, Meli Id Variation must be unique!'),
-        ('unique_variant_meli_id_variation','check(1=1)','Meli Id, Meli Id Variation duplication possible!')
-    ]
+    # Original UNIQUE constraint was relaxed to a no-op CHECK(1=1) to allow duplicates
+    _unique_variant_meli_id_variation = versions.Constraint('CHECK(1=1)', message='Meli Id, Meli Id Variation duplication possible!')
+    _sql_constraints = versions.sql_constraints_if_no_constraint([
+        ('unique_variant_meli_id_variation', 'CHECK(1=1)', 'Meli Id, Meli Id Variation duplication possible!'),
+    ])
 
 
 
@@ -4652,3 +4748,20 @@ class PricelistItem(models.Model):
                 pli.product_id.product_tmpl_id.meli_price_update = False
                 #for bind in pli.product_id.mercadolibre_bindings:
                 #    bind.meli_price_update = False
+
+
+class product_supplierinfo_debug(models.Model):
+    _inherit = "product.supplierinfo"
+
+    def unlink(self):
+        for si in self:
+            _logger.info(
+                "SUPPLIERINFO UNLINK id=%s | partner=%s | tmpl=%s | variant=%s (%s) | price=%s",
+                si.id,
+                si.partner_id.name if si.partner_id else 'NONE',
+                si.product_tmpl_id.id if si.product_tmpl_id else 'NONE',
+                si.product_id.id if si.product_id else 'NONE',
+                si.product_id.default_code if si.product_id else 'N/A',
+                si.price,
+            )
+        return super().unlink()

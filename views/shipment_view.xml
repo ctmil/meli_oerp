@@ -157,7 +157,7 @@
             <field name="name">MercadoLibre Shipment - Search</field>
             <field name="model">mercadolibre.shipment</field>
             <field name="arch" type="xml">
-        	    <search string="Search MercadoLibre Shipments Information">
+        	    <search>
                     <field name="shipping_id" />
                     <field name="status"/>
                     <field name="substatus"/>

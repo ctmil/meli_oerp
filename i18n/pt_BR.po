@@ -1,0 +1,2070 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* meli_oerp
+# 
+# Tradução para Português Brasileiro
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 18.0+e\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-11-27 23:11+0000\n"
+"PO-Revision-Date: 2026-03-04 00:00+0000\n"
+"Last-Translator: \n"
+"Language-Team: Portuguese (Brazil) <pt_BR@li.org>\n"
+"Language: pt_BR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.report_shipment_document
+msgid "/ NIT:"
+msgstr "/ CNPJ:"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.mercadolibre_image_view_kanban
+msgid "<small>No image</small>"
+msgstr "<small>Sem imagem</small>"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_mercadolibre_image_form
+msgid "<span>Video Preview</span>"
+msgstr "<span>Pré-visualização de Vídeo</span>"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_res_company__mercadolibre_access_token
+#: model:ir.model.fields,help:meli_oerp.field_res_company__mercadolibre_access_token
+msgid "Access Token"
+msgstr "Token de Acesso"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__access_warning
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__access_warning
+msgid "Access warning"
+msgstr "Aviso de acesso"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__message_needaction
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__message_needaction
+msgid "Action Needed"
+msgstr "Ação Necessária"
+
+#. module: meli_oerp
+#: model:ir.model.fields.selection,name:meli_oerp.selection__mercadolibre_questions__answer_status__active
+msgid "Active"
+msgstr "Ativo"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_posting__product_id_active
+msgid "Active product"
+msgstr "Produto ativo"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__activity_ids
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__activity_ids
+msgid "Activities"
+msgstr "Atividades"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__activity_exception_decoration
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__activity_exception_decoration
+msgid "Activity Exception Decoration"
+msgstr "Decoração de Exceção de Atividade"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__activity_state
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__activity_state
+msgid "Activity State"
+msgstr "Estado da Atividade"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__activity_type_icon
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__activity_type_icon
+msgid "Activity Type Icon"
+msgstr "Ícone do Tipo de Atividade"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_meli_banner_form
+msgid "Add a Media"
+msgstr "Adicionar uma Mídia"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_buyers__alternative_phone
+msgid "Alternative Phone"
+msgstr "Telefone Alternativo"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.meli_buyers_search_view
+msgid "Alternative Phone ML"
+msgstr "Telefone Alternativo ML"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_questions__answer_link
+msgid "Answer Link"
+msgstr "Link de Resposta"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_questions__answer_status
+msgid "Answer Status"
+msgstr "Status da Resposta"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_questions__answer_text
+msgid "Answer Text"
+msgstr "Texto de Resposta"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_questions__answer_date_created
+msgid "Answer creation date"
+msgstr "Data de criação da resposta"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_res_company__mercadolibre_client_id
+msgid "App Id"
+msgstr "Id do Aplicativo"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_meli_notification_form
+msgid "Application"
+msgstr "Aplicativo"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_notification__application_id
+msgid "Application Id"
+msgstr "Id do Aplicativo"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_res_company__mercadolibre_attributes
+msgid "Apply product attributes"
+msgstr "Aplicar atributos de produto"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__message_attachment_count
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__message_attachment_count
+msgid "Attachment Count"
+msgstr "Quantidade de Anexos"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_notification__attempts
+msgid "Attempts"
+msgstr "Tentativas"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_attribute_line__att_id
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_value__att_id
+msgid "Attribute"
+msgstr "Atributo"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.meli_attribute_search_view
+msgid "Attribute ID"
+msgstr "ID do Atributo"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category_attribute__att_id
+msgid "Attribute Id (ML)"
+msgstr "Id do Atributo (ML)"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category_attribute__name
+msgid "Attribute Name (ML)"
+msgstr "Nome do Atributo (ML)"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category__meli_category_attribute_ids
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_chart__attributes
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_meli_category_form
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_mercadolibre_category_attribute_form
+msgid "Attributes"
+msgstr "Atributos"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_row__attribute_values
+msgid "Attributes Values"
+msgstr "Valores de Atributos"
+
+#. module: meli_oerp
+#: model:ir.model.fields.selection,name:meli_oerp.selection__mercadolibre_questions__answer_status__banned
+msgid "Banned"
+msgstr "Banido"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.product_tpl_ml_form_view
+msgid "Barcode"
+msgstr "Código de Barras"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__base_cost
+msgid "Base Cost"
+msgstr "Custo Base"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_product_template_import
+msgid "Batch Processing"
+msgstr "Processamento em Lote"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_template_import__batch_processing
+msgid "Batch Processing Active"
+msgstr "Processamento em Lote Ativo"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_product_template_import
+msgid "Batch To sync"
+msgstr "Lote a sincronizar"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_buyers__billing_info
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__buyer_billing_info
+msgid "Billing Info"
+msgstr "Informações de Faturamento"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_buyers__billing_info_business_name
+msgid "Billing Info Business Name"
+msgstr "Razão Social"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_buyers__billing_info_city_name
+msgid "Billing Info City Name"
+msgstr "Cidade de Faturamento"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_buyers__billing_info_doc_number
+msgid "Billing Info Doc Number"
+msgstr "Número de Documento"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_buyers__billing_info_doc_type
+msgid "Billing Info Doc Type"
+msgstr "Tipo de Documento"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_buyers__billing_info_economic_activity
+msgid "Billing Info Economic Activity"
+msgstr "Atividade Econômica"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_buyers__billing_info_invoice_type
+msgid "Billing Info Invoice Type"
+msgstr "Tipo de Nota Fiscal"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_buyers__billing_info_neighborhood
+msgid "Billing Info Neighborhood"
+msgstr "Bairro"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_buyers__billing_info_state_name
+msgid "Billing Info State Name"
+msgstr "Estado"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_buyers__billing_info_street_name
+msgid "Billing Info Street Name"
+msgstr "Logradouro"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_buyers__billing_info_street_number
+msgid "Billing Info Street Number"
+msgstr "Número"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_buyers__billing_info_tax_type
+msgid "Billing Info Tax Type"
+msgstr "Tipo de Imposto"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_buyers__billing_info_vat_discriminating_billing
+msgid "Billing Info Vat Discriminating Billing"
+msgstr "Nota Fiscal com ICMS Discriminado"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_buyers__billing_info_zip_code
+msgid "Billing Info Zip Code"
+msgstr "CEP"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_update_stock_blocked
+#: model:ir.model.fields,field_description:meli_oerp.field_product_template__meli_update_stock_blocked
+msgid "Block Update stock"
+msgstr "Bloquear atualização de estoque"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__buyer
+msgid "Buyer"
+msgstr "Comprador"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_buyers__buyer_id
+msgid "Buyer ID"
+msgstr "ID do Comprador"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_image__can_image_1024_be_zoomed
+msgid "Can Image 1024 be zoomed"
+msgstr "A imagem 1024 pode ser ampliada?"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_meli_category_import
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_mercadolibre_shipment_print
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_mercadolibre_shipment_update
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_mercadolibre_stock_picking_print
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_orders_cancel_meli
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_orders_update
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_orders_update_invoice
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_posting_update
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_product_post
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_product_product_update
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_product_template_import
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_product_template_post
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_product_template_update
+msgid "Cancel"
+msgstr "Cancelar"
+
+#. module: meli_oerp
+#: model:ir.model,name:meli_oerp.model_sale_order_cancel_wiz_meli
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_orders_cancel_meli
+msgid "Cancel Order"
+msgstr "Cancelar Pedido"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_orders_cancel_meli
+msgid "Cancel Orders"
+msgstr "Cancelar Pedidos"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_catalog_automatic_relist
+#: model:ir.model.fields,field_description:meli_oerp.field_product_template__meli_catalog_automatic_relist
+msgid "Catalog Auto Relist"
+msgstr "Re-publicação automática de catálogo"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category__catalog_domain_chart_ids
+msgid "Catalog Domain Chart"
+msgstr "Gráfico de Domínio de Catálogo"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_catalog_item_relations
+#: model:ir.model.fields,field_description:meli_oerp.field_product_template__meli_catalog_item_relations
+msgid "Catalog Item Relations"
+msgstr "Relações de Item de Catálogo"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_catalog_listing
+#: model:ir.model.fields,field_description:meli_oerp.field_product_template__meli_catalog_listing
+msgid "Catalog Listing"
+msgstr "Listagem de Catálogo"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_catalog_product_id
+#: model:ir.model.fields,field_description:meli_oerp.field_product_template__meli_catalog_product_id
+msgid "Catalog Product Id"
+msgstr "Id do Produto do Catálogo"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_meli_consult_category_wizard__categories_meli
+msgid "Categories Meli"
+msgstr "Categorias Meli"
+
+#. module: meli_oerp
+#: model:ir.model,name:meli_oerp.model_mercadolibre_category
+msgid "Categories of MercadoLibre"
+msgstr "Categorias do MercadoLibre"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_meli_category_form
+msgid "Category"
+msgstr "Categoria"
+
+#. module: meli_oerp
+#: model:ir.model.fields,help:meli_oerp.field_res_company__mercadolibre_category_import
+msgid "Category Code to Import, check Recursive Import to import the full tree"
+msgstr "Código de categoria a importar, marque Importação Recursiva para importar a árvore completa"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category__meli_category_id
+msgid "Category Id"
+msgstr "Id da Categoria"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category_attribute__cat_id
+msgid "Category Id (ML)"
+msgstr "Id da Categoria (ML)"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_res_company__mercadolibre_category_import
+msgid "Category to import"
+msgstr "Categoria a importar"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_channel_mkt
+#: model:ir.model.fields,field_description:meli_oerp.field_product_template__meli_channel_mkt
+#: model:ir.model.fields,field_description:meli_oerp.field_res_company__mercadolibre_channel_mkt
+msgid "Channels"
+msgstr "Canais"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_row__grid_chart_id
+msgid "Chart id"
+msgstr "Id do Guia"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_product_template_import
+msgid "Check Import Status"
+msgstr "Verificar Status de Importação"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__date_closed
+msgid "Closing date"
+msgstr "Data de fechamento"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_meli_channel_mkt__code
+#: model:ir.model.fields,field_description:meli_oerp.field_res_company__mercadolibre_code
+#: model:ir.model.fields,help:meli_oerp.field_res_company__mercadolibre_code
+msgid "Code"
+msgstr "Código"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__receiver_address_comment
+msgid "Comment"
+msgstr "Comentário"
+
+#. module: meli_oerp
+#: model:ir.model,name:meli_oerp.model_res_company
+msgid "Companies"
+msgstr "Empresas"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_notification__company_id
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__company_id
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__company_id
+msgid "Company"
+msgstr "Empresa"
+
+#. module: meli_oerp
+#: model:ir.model,name:meli_oerp.model_res_partner
+msgid "Contact"
+msgstr "Contato"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__context
+msgid "Context"
+msgstr "Contexto"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_meli_warning__copy_error
+msgid "Copy Error"
+msgstr "Copiar Erro"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__receiver_country_id
+msgid "Country"
+msgstr "País"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__coupon_amount
+msgid "Coupon amount"
+msgstr "Valor do cupom"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_product_template_import
+msgid "Create Full Report"
+msgstr "Criar Relatório Completo"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_res_company__mercadolibre_product_attribute_creation
+msgid "Create Product Attributes"
+msgstr "Criar Atributos de Produto"
+
+#. module: meli_oerp
+#: model:ir.model.fields,help:meli_oerp.field_res_company__mercadolibre_create_website_categories
+msgid "Create Website eCommerce Categories from imported products ML categories"
+msgstr "Criar categorias de eCommerce do site a partir das categorias ML dos produtos importados"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_meli_channel_mkt__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_meli_consult_category_wizard__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_meli_warning__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_banner__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_buyers__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category_attribute__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category_import__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_attribute__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_attribute_line__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_chart__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_row__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_row_col__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_value__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_image__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_notification__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_order_items__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders_update__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders_update_invoice__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_payments__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_posting__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_posting_update__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_post__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_product_update__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_template_import__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_template_post__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_template_update__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_questions__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment_item__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment_print__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment_update__create_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_sale_order_cancel_wiz_meli__create_uid
+msgid "Created by"
+msgstr "Criado por"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_meli_channel_mkt__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_meli_consult_category_wizard__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_meli_warning__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_banner__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_buyers__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category_attribute__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category_import__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_attribute__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_attribute_line__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_chart__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_row__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_row_col__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_value__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_image__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_notification__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_order_items__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders_update__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders_update_invoice__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_payments__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_posting__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_posting_update__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_post__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_product_update__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_template_import__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_template_post__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_template_update__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_questions__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment_item__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment_print__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment_update__create_date
+#: model:ir.model.fields,field_description:meli_oerp.field_sale_order_cancel_wiz_meli__create_date
+msgid "Created on"
+msgstr "Criado em"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__date_created
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_payments__date_created
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_questions__date_created
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__date_created
+msgid "Creation date"
+msgstr "Data de criação"
+
+#. module: meli_oerp
+#: model:ir.model.fields,help:meli_oerp.field_res_company__mercadolibre_cron_get_new_products
+msgid "Cron Import New Products, Product Templates or Variants"
+msgstr "Cron Importar Novos Produtos, Modelos ou Variantes"
+
+#. module: meli_oerp
+#: model:ir.actions.server,name:meli_oerp.ir_cron_module_cron_meli_orders_ir_actions_server
+msgid "Cron Meli Orders"
+msgstr "Cron Pedidos Meli"
+
+#. module: meli_oerp
+#: model:ir.actions.server,name:meli_oerp.ir_cron_module_cron_meli_process_ir_actions_server
+msgid "Cron Meli Process"
+msgstr "Cron Processo Meli"
+
+#. module: meli_oerp
+#: model:ir.actions.server,name:meli_oerp.ir_cron_module_cron_meli_process_get_products_ir_actions_server
+msgid "Cron Meli Process Get Products"
+msgstr "Cron Obter Produtos"
+
+#. module: meli_oerp
+#: model:ir.actions.server,name:meli_oerp.ir_cron_module_cron_meli_process_post_price_ir_actions_server
+msgid "Cron Meli Process Post Price"
+msgstr "Cron Publicar Preço"
+
+#. module: meli_oerp
+#: model:ir.actions.server,name:meli_oerp.ir_cron_module_cron_meli_process_post_products_ir_actions_server
+msgid "Cron Meli Process Post Products"
+msgstr "Cron Publicar Produtos"
+
+#. module: meli_oerp
+#: model:ir.actions.server,name:meli_oerp.ir_cron_module_cron_meli_process_post_stock_ir_actions_server
+msgid "Cron Meli Process Post Stock"
+msgstr "Cron Publicar Estoque"
+
+#. module: meli_oerp
+#: model:ir.actions.server,name:meli_oerp.ir_cron_module_cron_meli_questions_ir_actions_server
+msgid "Cron Meli Questions"
+msgstr "Cron Perguntas Meli"
+
+#. module: meli_oerp
+#: model:ir.model.fields,help:meli_oerp.field_res_company__mercadolibre_cron_post_update_price
+msgid "Cron Post Updated Price"
+msgstr "Cron Publicar Preço Atualizado"
+
+#. module: meli_oerp
+#: model:ir.model.fields,help:meli_oerp.field_res_company__mercadolibre_cron_post_update_stock
+msgid "Cron Post Updated Stock"
+msgstr "Cron Publicar Estoque Atualizado"
+
+#. module: meli_oerp
+#: model:ir.model.fields,help:meli_oerp.field_res_company__mercadolibre_cron_get_update_products
+msgid "Cron Update Products already imported"
+msgstr "Cron Atualizar Produtos já importados"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_order_items__currency_id
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__currency_id
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_payments__currency_id
+msgid "Currency"
+msgstr "Moeda"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_currency_id
+msgid "Currency ML"
+msgstr "Moeda ML"
+
+#. module: meli_oerp
+#: model:ir.model.fields,help:meli_oerp.field_mercadolibre_orders__access_url
+#: model:ir.model.fields,help:meli_oerp.field_mercadolibre_shipment__access_url
+msgid "Customer Portal URL"
+msgstr "URL do Portal do Cliente"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category__data_json
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_chart__data_json
+msgid "Data json"
+msgstr "Dados JSON"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment_item__description
+msgid "Description"
+msgstr "Descrição"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_meli_shipment_form
+msgid "Details"
+msgstr "Detalhes"
+
+#. module: meli_oerp
+#: model:ir.model.fields.selection,name:meli_oerp.selection__mercadolibre_questions__answer_status__disabled
+msgid "Disabled"
+msgstr "Desabilitado"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_meli_channel_mkt__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_meli_consult_category_wizard__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_meli_warning__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_banner__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_buyers__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category_attribute__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category_import__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_attribute__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_attribute_line__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_chart__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_row__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_row_col__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_value__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_image__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_notification__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_order_items__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders_update__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders_update_invoice__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_payments__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_posting__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_posting_update__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_post__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_product_update__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_template_import__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_template_post__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_template_update__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_questions__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment_item__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment_print__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment_update__display_name
+#: model:ir.model.fields,field_description:meli_oerp.field_sale_order_cancel_wiz_meli__display_name
+msgid "Display Name"
+msgstr "Nome de Exibição"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_res_company__mercadolibre_do_not_use_first_image
+msgid "Do not use first image"
+msgstr "Não usar primeira imagem"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category__catalog_domain_chart_active
+msgid "Domain Charts active"
+msgstr "Gráficos de Domínio ativos"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category__catalog_domain_chart_result
+msgid "Domain Charts result"
+msgstr "Resultado de Gráficos de Domínio"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category__catalog_domain
+msgid "Domain Id"
+msgstr "Id do Domínio"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category__catalog_domain_link
+msgid "Domain Id Link"
+msgstr "Link do Id do Domínio"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_meli_category_form
+msgid "Ecommerce Categories"
+msgstr "Categorias de eCommerce"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.meli_category_search_view
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_meli_category_form
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_meli_category_tree
+msgid "Ecommerce Category"
+msgstr "Categoria de eCommerce"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_buyers__email
+msgid "Email"
+msgstr "E-mail"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.meli_buyers_search_view
+msgid "Email ML"
+msgstr "E-mail ML"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_image__embed_code
+msgid "Embed Code"
+msgstr "Código de Incorporação"
+
+#. module: meli_oerp
+#: model:ir.model.fields.selection,name:meli_oerp.selection__meli_warning__type__error
+msgid "Error"
+msgstr "Erro"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_res_company__mercadolibre_cron_mail
+msgid "Error E-mail Template"
+msgstr "Modelo de E-mail de Erro"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category__meli_father_category_id
+msgid "Father ML Id"
+msgstr "Id ML Pai"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_payments__fee_amount
+msgid "Fee Amount"
+msgstr "Valor da Comissão"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_fee_amount
+msgid "Fee amount"
+msgstr "Valor da comissão"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__fee_amount
+msgid "Fee total amount"
+msgstr "Valor total da comissão"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_product_image_form_meli
+msgid "File Hash"
+msgstr "Hash do Arquivo"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_image__meli_imagen_hash
+#: model:ir.model.fields,field_description:meli_oerp.field_product_image__meli_imagen_hash
+msgid "File Hash Id"
+msgstr "Id do Hash do Arquivo"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__financing_fee_amount
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_payments__financing_fee_amount
+#: model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_financing_fee_amount
+msgid "Financing fee amount"
+msgstr "Valor do financiamento"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_buyers__first_name
+msgid "First Name"
+msgstr "Nome"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__date_first_printed
+msgid "First Printed date"
+msgstr "Data da primeira impressão"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_mercadolibre_category_attribute_form
+msgid "Fix attribute"
+msgstr "Corrigir atributo"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_mercadolibre_category_attribute_form
+msgid "Fix products reimport"
+msgstr "Corrigir reimportação de produtos"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__message_follower_ids
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__message_follower_ids
+msgid "Followers"
+msgstr "Seguidores"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__message_partner_ids
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__message_partner_ids
+msgid "Followers (Partners)"
+msgstr "Seguidores (Contatos)"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_meli_banner_form
+msgid "Footer"
+msgstr "Rodapé"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_product_image_form_meli
+msgid "Force ML Pub"
+msgstr "Forçar Pub. ML"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_template_import__force_meli_pub
+msgid "Force Meli Pub"
+msgstr "Forçar Publicação Meli"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_template_import__force_meli_website_category_create_and_assign
+msgid "Force Website Categories"
+msgstr "Forçar Categorias do Site"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_template_import__force_meli_website_published
+msgid "Force Website Published"
+msgstr "Forçar Publicado no Site"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment_item__data
+msgid "Full Item Data"
+msgstr "Dados Completos do Item"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment_print__full_links
+msgid "Full Links"
+msgstr "Links Completos"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_order_items__full_unit_price
+msgid "Full Unit price"
+msgstr "Preço unitário completo"
+
+#. module: meli_oerp
+#: model:ir.actions.server,name:meli_oerp.ir_cron_module_get_meli_state_ir_actions_server
+msgid "Get Meli State"
+msgstr "Obter Status do Meli"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_meli_grid_chart_form
+msgid "Grid Size Chart"
+msgstr "Guia de Tamanhos"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__has_message
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__has_message
+msgid "Has Message"
+msgstr "Tem Mensagem"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_meli_banner_form
+msgid "Header"
+msgstr "Cabeçalho"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category_attribute__hidden
+#: model:ir.model.fields,field_description:meli_oerp.field_product_attribute__meli_default_id_attribute_hidden
+msgid "Hidden"
+msgstr "Oculto"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__activity_exception_icon
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__activity_exception_icon
+msgid "Icon"
+msgstr "Ícone"
+
+#. module: meli_oerp
+#: model:ir.model.fields,help:meli_oerp.field_mercadolibre_orders__activity_exception_icon
+#: model:ir.model.fields,help:meli_oerp.field_mercadolibre_shipment__activity_exception_icon
+msgid "Icon to indicate an exception activity."
+msgstr "Ícone para indicar uma atividade de exceção."
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_product_attribute__meli_att_id
+#: model:ir.model.fields,field_description:meli_oerp.field_product_template_attribute_line__meli_att_id
+msgid "Id Attribute ML"
+msgstr "Id do Atributo ML"
+
+#. module: meli_oerp
+#: model:ir.model.fields,help:meli_oerp.field_mercadolibre_orders__message_needaction
+#: model:ir.model.fields,help:meli_oerp.field_mercadolibre_shipment__message_needaction
+msgid "If checked, new messages require your attention."
+msgstr "Se marcado, novas mensagens requerem sua atenção."
+
+#. module: meli_oerp
+#: model:ir.model.fields,help:meli_oerp.field_mercadolibre_orders__message_has_error
+#: model:ir.model.fields,help:meli_oerp.field_mercadolibre_orders__message_has_sms_error
+#: model:ir.model.fields,help:meli_oerp.field_mercadolibre_shipment__message_has_error
+#: model:ir.model.fields,help:meli_oerp.field_mercadolibre_shipment__message_has_sms_error
+msgid "If checked, some messages have a delivery error."
+msgstr "Se marcado, algumas mensagens têm um erro de entrega."
+
+#. module: meli_oerp
+#: model:ir.model.fields,help:meli_oerp.field_mercadolibre_posting__product_id_active
+msgid "If unchecked, it will allow you to hide the product without removing it."
+msgstr "Se desmarcado, permitirá ocultar o produto sem removê-lo."
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_image__image_1920
+msgid "Image"
+msgstr "Imagem"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_mercadolibre_image_form
+msgid "Image Name"
+msgstr "Nome da Imagem"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_image_update
+#: model:ir.model.fields,field_description:meli_oerp.field_product_template__meli_image_update
+msgid "Image update"
+msgstr "Atualização de imagem"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_meli_banner_form
+msgid "Images"
+msgstr "Imagens"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_product_template_import
+msgid "Import"
+msgstr "Importar"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_template_import__import_status
+msgid "Import Status"
+msgstr "Status de Importação"
+
+#. module: meli_oerp
+#: model:ir.model.fields,help:meli_oerp.field_res_company__mercadolibre_recursive_import
+msgid "Import all the category tree from Category Code"
+msgstr "Importar toda a árvore de categorias a partir do Código de Categoria"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_product_template_import
+msgid "Import from MELI"
+msgstr "Importar do MELI"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_product_template_import
+msgid "Import from MercadoLibre"
+msgstr "Importar do MercadoLibre"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_product_product_update
+msgid "Import/Update from MELI"
+msgstr "Importar/Atualizar do MELI"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_product_product_update
+msgid "Import/Update from MercadoLibre"
+msgstr "Importar/Atualizar do MercadoLibre"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment_print__include_ready_to_print
+msgid "Include Ready To Print"
+msgstr "Incluir Prontos para Imprimir"
+
+#. module: meli_oerp
+#: model:ir.model.fields,help:meli_oerp.field_mercadolibre_orders__paid_amount
+msgid "Includes shipping cost"
+msgstr "Inclui custo de envio"
+
+#. module: meli_oerp
+#: model:ir.model.fields.selection,name:meli_oerp.selection__meli_warning__type__info
+msgid "Information"
+msgstr "Informação"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_inventory_id
+msgid "Inventory Id"
+msgstr "Id do Inventário"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__message_is_follower
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__message_is_follower
+msgid "Is Follower"
+msgstr "É Seguidor"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_order_items__order_item_category_id
+msgid "Item Category Id"
+msgstr "Id da Categoria do Item"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_questions__item_id
+msgid "Item ID"
+msgstr "ID do Item"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_order_items__order_item_iva
+msgid "Item IVA"
+msgstr "IVA do Item"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_order_items__order_item_id
+msgid "Item Id"
+msgstr "Id do Item"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment_item__item_id
+msgid "Item Id (meli id)"
+msgstr "Id do Item (id meli)"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_order_items__order_item_title
+msgid "Item Title"
+msgstr "Título do Item"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_order_items__order_item_variation_id
+msgid "Item Variation Id"
+msgstr "Id de Variação do Item"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__shipment_items
+msgid "Items"
+msgstr "Itens"
+
+#. module: meli_oerp
+#: model:ir.model,name:meli_oerp.model_account_move
+msgid "Journal Entry"
+msgstr "Lançamento Contábil"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_res_company__mercadolibre_cron_refresh
+msgid "Keep alive"
+msgstr "Manter conexão ativa"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_buyers__last_name
+msgid "Last Name"
+msgstr "Sobrenome"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_meli_channel_mkt__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_meli_consult_category_wizard__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_meli_warning__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_banner__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_buyers__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category_attribute__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category_import__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_attribute__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_attribute_line__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_chart__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_row__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_row_col__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_value__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_image__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_notification__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_order_items__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders_update__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders_update_invoice__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_payments__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_posting__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_posting_update__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_post__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_product_update__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_template_import__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_template_post__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_template_update__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_questions__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment_item__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment_print__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment_update__write_uid
+#: model:ir.model.fields,field_description:meli_oerp.field_sale_order_cancel_wiz_meli__write_uid
+msgid "Last Updated by"
+msgstr "Última atualização por"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_meli_channel_mkt__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_meli_consult_category_wizard__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_meli_warning__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_banner__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_buyers__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category_attribute__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category_import__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_attribute__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_attribute_line__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_chart__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_row__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_row_col__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_value__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_image__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_notification__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_order_items__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders_update__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders_update_invoice__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_payments__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_posting__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_posting_update__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_post__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_product_update__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_template_import__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_template_post__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_template_update__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_questions__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment_item__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment_print__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment_update__write_date
+#: model:ir.model.fields,field_description:meli_oerp.field_sale_order_cancel_wiz_meli__write_date
+msgid "Last Updated on"
+msgstr "Última atualização em"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__last_updated
+msgid "Last updated"
+msgstr "Última atualização"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_permalink
+#: model_terms:ir.ui.view,arch_db:meli_oerp.product_tpl_ml_form_view
+msgid "Link"
+msgstr "Link"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_permalink_api
+#: model_terms:ir.ui.view,arch_db:meli_oerp.product_normal_ml_form_view
+#: model_terms:ir.ui.view,arch_db:meli_oerp.product_tpl_ml_form_view
+msgid "Link Api"
+msgstr "Link API"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_permalink_edit
+#: model:ir.model.fields,field_description:meli_oerp.field_product_template__meli_permalink_edit
+#: model_terms:ir.ui.view,arch_db:meli_oerp.product_normal_ml_form_view
+#: model_terms:ir.ui.view,arch_db:meli_oerp.product_tpl_ml_form_view
+msgid "Link Edit"
+msgstr "Link de Edição"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_state
+msgid "Login"
+msgstr "Login"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__shipment_logistic_type
+#: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_shipping_logistic_type
+#: model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_shipment_logistic_type
+msgid "Logistic Type"
+msgstr "Tipo de Logística"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__logistic_type
+msgid "Logistic type"
+msgstr "Tipo de logística"
+
+#. module: meli_oerp
+#: model:ir.model.fields,help:meli_oerp.field_product_product__meli_pub
+#: model:ir.model.fields,help:meli_oerp.field_product_template__meli_pub
+msgid "MELI Product"
+msgstr "Produto MELI"
+
+#. module: meli_oerp
+#: model:ir.model.fields,help:meli_oerp.field_product_product__meli_master
+#: model:ir.model.fields,help:meli_oerp.field_product_template__meli_master
+msgid "MELI Product Maestro"
+msgstr "Produto Mestre MELI"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_product_attribute__meli_default_id_attribute
+msgid "ML Attribute default"
+msgstr "Atributo ML padrão"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_product_attribute__meli_id_attributes
+msgid "ML Attributes"
+msgstr "Atributos ML"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.product_tpl_ml_form_view
+msgid "ML Family Name"
+msgstr "Nome da Família ML"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.product_image_view_kanban_meli
+msgid "ML Force Pub"
+msgstr "Forçar Pub. ML"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_id
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_product_image_form_meli
+msgid "ML Id"
+msgstr "Id ML"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_product_image_form_meli
+msgid "ML Link"
+msgstr "Link ML"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_orders
+msgid "ML Orders"
+msgstr "Pedidos ML"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.product_tpl_ml_form_view
+msgid "ML Price"
+msgstr "Preço ML"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.product_tpl_ml_form_view
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_product_image_form_meli
+msgid "ML Pub"
+msgstr "Pub. ML"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_product_image_form_meli
+msgid "ML Published"
+msgstr "Publicado ML"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.product_tpl_ml_form_view
+msgid "ML Qty"
+msgstr "Qtd. ML"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_chart__site_id
+msgid "ML Site Id"
+msgstr "Id do Site ML"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.product_tpl_ml_form_view
+msgid "ML Title"
+msgstr "Título ML"
+
+#. module: meli_oerp
+#: model:ir.model.fields.selection,name:meli_oerp.selection__res_company__mercadolibre_order_confirmation__manual
+#: model:ir.model.fields.selection,name:meli_oerp.selection__res_company__mercadolibre_order_confirmation_full__manual
+#: model:ir.model.fields.selection,name:meli_oerp.selection__res_company__mercadolibre_order_total_config__manual
+#: model:ir.model.fields.selection,name:meli_oerp.selection__res_company__mercadolibre_product_attribute_creation__manual
+msgid "Manual"
+msgstr "Manual"
+
+#. module: meli_oerp
+#: model:ir.model.fields.selection,name:meli_oerp.selection__res_company__mercadolibre_order_total_config__manual_conflict
+msgid "Manual conflict"
+msgstr "Conflito manual"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_manufacturing_time
+msgid "Manufacturing time"
+msgstr "Tempo de fabricação"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_image__meli_imagen_max_size
+#: model:ir.model.fields,field_description:meli_oerp.field_product_image__meli_imagen_max_size
+msgid "Max Size"
+msgstr "Tamanho Máximo"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category__meli_setting_maximum_price
+msgid "Maximum price"
+msgstr "Preço máximo"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category__meli_setting_maximum_qty
+msgid "Maximum qty"
+msgstr "Quantidade máxima"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_res_partner__meli_buyer
+#: model:ir.model.fields,field_description:meli_oerp.field_res_users__meli_buyer
+msgid "Meli Buyer"
+msgstr "Comprador Meli"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_res_partner__meli_buyer_id
+#: model:ir.model.fields,field_description:meli_oerp.field_res_users__meli_buyer_id
+msgid "Meli Buyer Id"
+msgstr "Id do Comprador Meli"
+
+#. module: meli_oerp
+#: model:ir.model.constraint,message:meli_oerp.constraint_mercadolibre_buyers_unique_buyer_id
+#: model:ir.model.constraint,message:meli_oerp.constraint_mercadolibre_client_unique_buyer_id
+msgid "Meli Buyer id already exists!"
+msgstr "O Id do Comprador Meli já existe!"
+
+#. module: meli_oerp
+#: model:ir.model.constraint,message:meli_oerp.constraint_mercadolibre_category_unique_meli_category_id
+msgid "Meli Category id already exists!"
+msgstr "O Id da Categoria Meli já existe!"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_date_closed
+msgid "Meli Closing date"
+msgstr "Data de fechamento Meli"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_date_created
+msgid "Meli Creation date"
+msgstr "Data de criação Meli"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_catalog_domain
+#: model:ir.model.fields,field_description:meli_oerp.field_product_template__meli_catalog_domain
+msgid "Meli Domain"
+msgstr "Domínio Meli"
+
+#. module: meli_oerp
+#: model:mail.template,name:meli_oerp.meli_cron_error_mailer
+msgid "Meli Error"
+msgstr "Erro Meli"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.meli_posting_search_view
+msgid "Meli ID"
+msgstr "ID Meli"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_posting__meli_id
+msgid "Meli Id"
+msgstr "Id Meli"
+
+#. module: meli_oerp
+#: model:ir.model.constraint,message:meli_oerp.constraint_product_image_unique_meli_imagen_id
+msgid "Meli Imagen Id already exists!"
+msgstr "O Id de Imagem Meli já existe!"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_res_partner__meli_order_id
+#: model:ir.model.fields,field_description:meli_oerp.field_res_users__meli_order_id
+#: model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_order_id
+msgid "Meli Order Id"
+msgstr "Id do Pedido Meli"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_sale_order_line__meli_order_item_iva
+msgid "Meli Order Item IVA"
+msgstr "IVA do Item do Pedido Meli"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_sale_order_line__meli_order_item_id
+msgid "Meli Order Item Id"
+msgstr "Id do Item do Pedido Meli"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_sale_order_line__meli_order_item_variation_id
+msgid "Meli Order Item Variation Id"
+msgstr "Id de Variação do Item"
+
+#. module: meli_oerp
+#: model:ir.model.constraint,message:meli_oerp.constraint_mercadolibre_orders_unique_order_id
+#: model:ir.model.constraint,message:meli_oerp.constraint_mercadolibre_sale_order_unique_order_id
+#: model:ir.model.constraint,message:meli_oerp.constraint_sale_order_unique_meli_order_id
+msgid "Meli Order id already exists!"
+msgstr "O Id do Pedido Meli já existe!"
+
+#. module: meli_oerp
+#: model:ir.model.constraint,message:meli_oerp.constraint_res_partner_unique_partner_meli_buyer_id
+msgid "Meli Partner Buyer id already exists in this company!"
+msgstr "O Id do Comprador já existe nesta empresa!"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_pub
+#: model:ir.model.fields,field_description:meli_oerp.field_product_template__meli_pub
+msgid "Meli Publication"
+msgstr "Publicação Meli"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_shipment
+msgid "Meli Shipment Obj"
+msgstr "Objeto de Envio Meli"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_shipping_id
+msgid "Meli Shipping Id"
+msgstr "Id do Envio Meli"
+
+#. module: meli_oerp
+#: model:ir.model.constraint,message:meli_oerp.constraint_mercadolibre_bind_shipment_unique_shipping_id
+#: model:ir.model.constraint,message:meli_oerp.constraint_mercadolibre_shipment_unique_shipping_id
+msgid "Meli Shipping id already exists!"
+msgstr "O Id do Envio Meli já existe!"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_status_brief
+msgid "Meli Status Brief"
+msgstr "Resumo de Status Meli"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_res_partner__meli_update_forbidden
+#: model:ir.model.fields,field_description:meli_oerp.field_res_users__meli_update_forbidden
+msgid "Meli Update Forbiden"
+msgstr "Atualização Meli Proibida"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_variants_status
+#: model:ir.model.fields,field_description:meli_oerp.field_product_template__meli_variants_status
+msgid "Meli Variant Status"
+msgstr "Status de Variante Meli"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_product_public_category__mercadolibre_category
+msgid "Mercado Libre Category"
+msgstr "Categoria do Mercado Livre"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category__meli_category_attributes
+msgid "Mercado Libre Category Attributes"
+msgstr "Atributos da Categoria ML"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category__meli_category_url
+msgid "Mercado Libre Category Url"
+msgstr "URL da Categoria ML"
+
+#. module: meli_oerp
+#: model:ir.model,name:meli_oerp.model_mercadolibre_category_attribute
+#: model:ir.model.fields,field_description:meli_oerp.field_product_attribute__mercadolibre_attribute_id
+msgid "MercadoLibre Attribute"
+msgstr "Atributo do MercadoLibre"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_meli_banner_form
+msgid "MercadoLibre Banner"
+msgstr "Banner do MercadoLibre"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category_import__meli_category_id_sel
+#: model:ir.model.fields,help:meli_oerp.field_mercadolibre_category_import__meli_category_id_sel
+msgid "MercadoLibre Category"
+msgstr "Categoria do MercadoLibre"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category_import__meli_category_id
+msgid "MercadoLibre Category ID"
+msgstr "ID da Categoria MercadoLibre"
+
+#. module: meli_oerp
+#: model:ir.model,name:meli_oerp.model_meli_channel_mkt
+msgid "MercadoLibre Channel Marketplace"
+msgstr "Canal de Marketplace ML"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.product_search_form_view
+msgid "MercadoLibre Id (ML Id)"
+msgstr "Id do MercadoLibre (Id ML)"
+
+#. module: meli_oerp
+#: model:ir.model,name:meli_oerp.model_mercadolibre_image
+msgid "MercadoLibre Image"
+msgstr "Imagem do MercadoLibre"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.mercadolibre_image_view_kanban
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_mercadolibre_image_form
+msgid "MercadoLibre Images"
+msgstr "Imagens do MercadoLibre"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.sale_order_view_search_inherit_quotation_meli
+msgid "MercadoLibre Logistic Type"
+msgstr "Tipo de Logística ML"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.sale_order_view_search_inherit_meli
+#: model_terms:ir.ui.view,arch_db:meli_oerp.sale_order_view_search_inherit_quotation_meli
+msgid "MercadoLibre Order Id"
+msgstr "Id do Pedido MercadoLibre"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.sale_order_view_search_inherit_meli
+msgid "MercadoLibre Orders"
+msgstr "Pedidos do MercadoLibre"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.sale_order_view_search_inherit_quotation_meli
+msgid "MercadoLibre Status"
+msgstr "Status do MercadoLibre"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_meli_warning__message
+msgid "Message"
+msgstr "Mensagem"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__message_has_error
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__message_has_error
+msgid "Message Delivery error"
+msgstr "Erro de Entrega de Mensagem"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__message_ids
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__message_ids
+msgid "Messages"
+msgstr "Mensagens"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category__meli_setting_minimum_price
+msgid "Minimum price"
+msgstr "Preço mínimo"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category__meli_setting_minimum_qty
+msgid "Minimum qty"
+msgstr "Quantidade mínima"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_payments__date_last_modified
+msgid "Modification date"
+msgstr "Data de modificação"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_meli_channel_mkt__name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_buyers__name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category__name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_row_col__name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_image__name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_posting__name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_questions__name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__name
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment_item__name
+#: model_terms:ir.ui.view,arch_db:meli_oerp.meli_category_search_view
+msgid "Name"
+msgstr "Nome"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__activity_date_deadline
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__activity_date_deadline
+msgid "Next Activity Deadline"
+msgstr "Prazo da Próxima Atividade"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__activity_summary
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__activity_summary
+msgid "Next Activity Summary"
+msgstr "Resumo da Próxima Atividade"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__activity_type_id
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__activity_type_id
+msgid "Next Activity Type"
+msgstr "Tipo da Próxima Atividade"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_buyers__nickname
+msgid "Nickname"
+msgstr "Apelido"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_notification__notification_id
+msgid "Notification Id"
+msgstr "Id da Notificação"
+
+#. module: meli_oerp
+#: model:ir.actions.act_window,name:meli_oerp.action_meli_notifications_tree
+#: model:ir.ui.menu,name:meli_oerp.menu_meli_notifications
+msgid "Notifications"
+msgstr "Notificações"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_res_company__mercadolibre_official_store_id
+msgid "Official Store Id"
+msgstr "Id da Loja Oficial"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_order_items__order_id
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_payments__order_id
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__order
+#: model_terms:ir.ui.view,arch_db:meli_oerp.meli_orders_search_view
+msgid "Order"
+msgstr "Pedido"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__order_id
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__order_id
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment_item__order_id
+msgid "Order Id"
+msgstr "Id do Pedido"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__order_items
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_meli_orders_form
+msgid "Order Items"
+msgstr "Itens do Pedido"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__status
+#: model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_status
+msgid "Order Status"
+msgstr "Status do Pedido"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_meli_shipment_form
+msgid "Orders"
+msgstr "Pedidos"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__pack_id
+msgid "Pack Id"
+msgstr "Id do Pack"
+
+#. module: meli_oerp
+#: model:ir.model.fields.selection,name:meli_oerp.selection__res_company__mercadolibre_order_total_config__paid_amount
+msgid "Paid Amount"
+msgstr "Valor Pago"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__paid_amount
+#: model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_paid_amount
+msgid "Paid amount"
+msgstr "Valor pago"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_payments__payment_id
+msgid "Payment Id"
+msgstr "Id do Pagamento"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_payments__status
+msgid "Payment Status"
+msgstr "Status do Pagamento"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__payments
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_meli_orders_form
+msgid "Payments"
+msgstr "Pagamentos"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_buyers__phone
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__receiver_address_phone
+msgid "Phone"
+msgstr "Telefone"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.meli_buyers_search_view
+msgid "Phone ML"
+msgstr "Telefone ML"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__access_url
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__access_url
+msgid "Portal Access URL"
+msgstr "URL de Acesso ao Portal"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_order_items__posting_id
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_questions__posting_id
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__posting_id
+msgid "Posting"
+msgstr "Publicação"
+
+#. module: meli_oerp
+#: model:ir.model,name:meli_oerp.model_product_template
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_order_items__product_id
+msgid "Product"
+msgstr "Produto"
+
+#. module: meli_oerp
+#: model:ir.model,name:meli_oerp.model_product_attribute
+msgid "Product Attribute"
+msgstr "Atributo de Produto"
+
+#. module: meli_oerp
+#: model:ir.model,name:meli_oerp.model_product_image
+msgid "Product Image"
+msgstr "Imagem de Produto"
+
+#. module: meli_oerp
+#: model:ir.model,name:meli_oerp.model_product_template_attribute_line
+msgid "Product Template Attribute Line"
+msgstr "Linha de Atributo de Modelo de Produto"
+
+#. module: meli_oerp
+#: model:ir.model,name:meli_oerp.model_product_product
+#: model:ir.model.fields,help:meli_oerp.field_mercadolibre_order_items__product_id
+msgid "Product Variant"
+msgstr "Variante de Produto"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_order_items__quantity
+msgid "Quantity"
+msgstr "Quantidade"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_questions__question_id
+msgid "Question Id"
+msgstr "Id da Pergunta"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_questions__status
+msgid "Question Status"
+msgstr "Status da Pergunta"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_questions__text
+msgid "Question Text"
+msgstr "Texto da Pergunta"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_posting__posting_questions
+msgid "Questions"
+msgstr "Perguntas"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_notification__received
+msgid "Received"
+msgstr "Recebido"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category_import__meli_recursive_import
+msgid "Recursive Import"
+msgstr "Importação Recursiva"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_res_company__mercadolibre_recursive_import
+msgid "Recursive import"
+msgstr "Importação recursiva"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_res_company__mercadolibre_refresh_token
+#: model:ir.model.fields,help:meli_oerp.field_res_company__mercadolibre_refresh_token
+msgid "Refresh Token"
+msgstr "Token de Atualização"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_product_template_import
+msgid "Report"
+msgstr "Relatório"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_notification__resource
+msgid "Resource"
+msgstr "Recurso"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_chart__rows
+msgid "Rows"
+msgstr "Linhas"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__message_has_sms_error
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__message_has_sms_error
+msgid "SMS Delivery error"
+msgstr "Erro de Entrega de SMS"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__sale_order
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__sale_order
+msgid "Sale Order"
+msgstr "Pedido de Venda"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_res_company__mercadolibre_secret_key
+msgid "Secret Key"
+msgstr "Chave Secreta"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_notification__seller_id
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__seller_id
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__seller_id
+msgid "Seller"
+msgstr "Vendedor"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_notification__sent
+msgid "Sent"
+msgstr "Enviado"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_image__sequence
+msgid "Sequence"
+msgstr "Sequência"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category__meli_category_settings
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_meli_category_form
+msgid "Settings"
+msgstr "Configurações"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__shipment
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment_item__shipment_id
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_meli_shipment_form
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_meli_shipment_tree
+msgid "Shipment"
+msgstr "Envio"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__shipment_status
+msgid "Shipment Status"
+msgstr "Status do Envio"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_meli_orders_form
+msgid "Shipments"
+msgstr "Envios"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__shipping
+#: model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_shipping
+msgid "Shipping"
+msgstr "Envio"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__shipping_cost
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__shipping_cost
+#: model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_shipping_cost
+msgid "Shipping Cost"
+msgstr "Custo de Envio"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__shipping_list_cost
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__shipping_list_cost
+#: model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_shipping_list_cost
+msgid "Shipping List Cost"
+msgstr "Custo da Lista de Envio"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_shipping_method
+#: model:ir.model.fields,field_description:meli_oerp.field_product_template__meli_shipping_method
+msgid "Shipping Method"
+msgstr "Método de Envio"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_shipping_mode
+#: model:ir.model.fields,field_description:meli_oerp.field_product_template__meli_shipping_mode
+msgid "Shipping Mode"
+msgstr "Modo de Envio"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__shipping_seller_cost
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_payments__shipping_seller_cost
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__shipping_seller_cost
+#: model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_shipping_seller_cost
+msgid "Shipping Seller Cost"
+msgstr "Custo de Envio do Vendedor"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_image__meli_imagen_size
+#: model:ir.model.fields,field_description:meli_oerp.field_product_image__meli_imagen_size
+msgid "Size"
+msgstr "Tamanho"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__receiver_state_id
+#: model_terms:ir.ui.view,arch_db:meli_oerp.meli_notifications_search_view
+msgid "State"
+msgstr "Estado"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__status
+#: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_status
+#: model_terms:ir.ui.view,arch_db:meli_oerp.meli_orders_search_view
+#: model_terms:ir.ui.view,arch_db:meli_oerp.meli_posting_search_view
+#: model_terms:ir.ui.view,arch_db:meli_oerp.product_tpl_ml_form_view
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_meli_shipment_form
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_product_template_import
+msgid "Status"
+msgstr "Status"
+
+#. module: meli_oerp
+#: model:ir.model,name:meli_oerp.model_stock_move
+msgid "Stock Move"
+msgstr "Movimentação de Estoque"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_sub_status
+msgid "Sub status"
+msgstr "Sub status"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_product_template_import
+msgid "Sync Status"
+msgstr "Status de Sincronização"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__tags
+msgid "Tags"
+msgstr "Etiquetas"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_res_company__mercadolibre_tax_included
+msgid "Tax Included"
+msgstr "Imposto Incluído"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_meli_warning__title
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_template_import__title
+msgid "Title"
+msgstr "Título"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.meli_notifications_search_view
+msgid "Today"
+msgstr "Hoje"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_notification__topic
+#: model_terms:ir.ui.view,arch_db:meli_oerp.meli_notifications_search_view
+msgid "Topic"
+msgstr "Tópico"
+
+#. module: meli_oerp
+#: model:ir.model.fields.selection,name:meli_oerp.selection__res_company__mercadolibre_order_total_config__total_amount
+msgid "Total Amount"
+msgstr "Valor Total"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__total_amount
+#: model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_total_amount
+msgid "Total amount"
+msgstr "Valor total"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__tracking_number
+msgid "Tracking number"
+msgstr "Número de rastreamento"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_payments__transaction_amount
+msgid "Transaction Amount"
+msgstr "Valor da Transação"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_meli_warning__type
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category_attribute__type
+msgid "Type"
+msgstr "Tipo"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_row_col__unit
+msgid "Unit"
+msgstr "Unidade"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_order_items__unit_price
+msgid "Unit price"
+msgstr "Preço unitário"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_notification__user_id
+msgid "User Id"
+msgstr "Id do Usuário"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_row_col__value
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_value__value
+msgid "Value"
+msgstr "Valor"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category_attribute__value_type
+msgid "Value Type"
+msgstr "Tipo de Valor"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category_attribute__values
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_attribute__values
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_attribute_line__val_id
+msgid "Values"
+msgstr "Valores"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.product_tpl_ml_form_view
+msgid "Variant"
+msgstr "Variante"
+
+#. module: meli_oerp
+#: model_terms:ir.ui.view,arch_db:meli_oerp.product_tpl_ml_form_view
+msgid "Variants"
+msgstr "Variantes"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_product_attribute__meli_default_id_attribute_variation_attribute
+msgid "Variation"
+msgstr "Variação"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category_attribute__variation_attribute
+msgid "Variation Attribute"
+msgstr "Atributo de Variação"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment_item__variation_id
+#: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_id_variation
+msgid "Variation Id"
+msgstr "Id de Variação"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_image__video_url
+#: model_terms:ir.ui.view,arch_db:meli_oerp.view_mercadolibre_image_form
+msgid "Video URL"
+msgstr "URL de Vídeo"
+
+#. module: meli_oerp
+#: model:ir.model,name:meli_oerp.model_stock_warehouse
+msgid "Warehouse"
+msgstr "Armazém"
+
+#. module: meli_oerp
+#: model:ir.actions.act_window,name:meli_oerp.action_warning
+#: model:ir.model.fields.selection,name:meli_oerp.selection__meli_warning__type__warning
+#: model_terms:ir.ui.view,arch_db:meli_oerp.warning_form
+msgid "Warning"
+msgstr "Aviso"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__website_message_ids
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__website_message_ids
+msgid "Website Messages"
+msgstr "Mensagens do Site"
+
+#. module: meli_oerp
+#: model:ir.model,name:meli_oerp.model_product_public_category
+msgid "Website Product Category"
+msgstr "Categoria de Produto do Site"
+
+#. module: meli_oerp
+#: model:ir.model.fields,help:meli_oerp.field_mercadolibre_orders__website_message_ids
+#: model:ir.model.fields,help:meli_oerp.field_mercadolibre_shipment__website_message_ids
+msgid "Website communication history"
+msgstr "Histórico de comunicação do site"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__receiver_zip_code
+msgid "Zip Code"
+msgstr "CEP"

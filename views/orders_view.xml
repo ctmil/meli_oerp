@@ -283,7 +283,7 @@
             <field name="name">mercadolibre.orders.search</field>
             <field name="model">mercadolibre.orders</field>
             <field name="arch" type="xml">
-    	         <search string="Search MercadoLibre Orders Information">
+    	         <search>
                  <field name="name" string="Order" filter_domain="['|', '|', '|', '|','|', '|', ('name', 'ilike', self), ('order_id', 'ilike', self), ('pack_id', 'ilike', self), ('order_product_sku', 'ilike', self), ('order_product_meli_id', 'ilike', self), ('order_product_meli_variation_id', 'ilike', self), ('buyer', 'ilike', self)]"/>
                  <field name="order_id" string="Order ID"/>
                  <field name="order_product_sku" string="Product SKU"/>
@@ -305,7 +305,7 @@
             <field name="name">mercadolibre.buyers.search</field>
             <field name="model">mercadolibre.buyers</field>
             <field name="arch" type="xml">
-        	    <search string="Search MercadoLibre Buyers Information">
+        	    <search>
                   <field name="nickname" string="Usuario ML"/>
                   <field name="first_name" string="Nombre ML"/>
                   <field name="last_name" string="Apellido ML"/>
