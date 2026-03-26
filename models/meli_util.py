@@ -410,18 +410,11 @@ class MeliApiNoSDK:
         _t_start = _time_module.time() if MeliApiNoSDK._benchmark_enabled else 0
         _original_path = path
 
-        def _clean_stock_path(p):
-            if not p:
-                return p
-            return p.replace("/stock/type/seller_warehouse", "/stock")
-
         atok = params.get("access_token", "") or ""
         headers = (params.get("headers") or {}).copy()
         timeout = params.get("timeout", 20)
         qparams = params.get("query", None)
 
-        # Normalize path para stock endpoints
-        path = _clean_stock_path(path)
         url = self._abs_url(path)
 
         # Headers finales
