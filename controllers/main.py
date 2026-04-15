@@ -43,7 +43,18 @@ class MercadoLibre(http.Controller):
 
         return "MercadoLibre Publisher for Odoo - Copyright Moldeo Interactive 2021"
 
-    @http.route(['/meli_notify'], type=route_typejson, auth='public', methods=["POST"])
+    # csrf=False is required because this endpoint is a webhook called
+    # from MercadoLibre servers — they cannot provide an Odoo CSRF token.
+    # Authentication is done inside the handler by validating the
+    # notification payload (user_id/app_id).
+    #
+    # The /odoo/meli_notify aliases exist so the webhook works no matter
+    # whether the ML app was configured with https://<host>/meli_notify
+    # or https://<host>/odoo/meli_notify (Odoo 17+ backend prefix).
+    @http.route(
+        ['/meli_notify', '/odoo/meli_notify'],
+        type=route_typejson, auth='public', methods=["POST"], csrf=False,
+    )
     def meli_notify(self,**kw):
         _logger.info("meli_notify")
         #_logger.info(kw)
@@ -61,7 +72,7 @@ class MercadoLibre(http.Controller):
         else:
             return ""
 
-    @http.route(['/meli_notify'], type='http', auth='public', methods=["GET"])
+    @http.route(['/meli_notify', '/odoo/meli_notify'], type='http', auth='public', methods=["GET"])
     def meli_notify_http(self,**kw):
         _logger.info("meli_notify_http")
         #_logger.info(kw)

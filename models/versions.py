@@ -7,7 +7,7 @@ import logging
 _logger = logging.getLogger(__name__)
 import json
 import re
-# Odoo version 17.0
+# Odoo version 16.0
 
 # Odoo 18.0 -> type='json', Odoo 19.0 -> type='jsonrpc'
 route_typejson = "json"

@@ -155,6 +155,7 @@
                                 <field name="mercadolibre_order_confirmation" invisible="0"/>
                                 <field name="mercadolibre_order_confirmation_full" invisible="0"/>
                                 <field name="mercadolibre_payment_term" invisible="0"/>
+                                <field name="mercadolibre_notification_mode" invisible="0"/>
                                 <!--
                                   <field name="mercadolibre_overwrite_template" invisible="0"/>
                                   <field name="mercadolibre_overwrite_variant" invisible="0"/>

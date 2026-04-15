@@ -8,6 +8,19 @@ from . import versions
 
 _logger = logging.getLogger(__name__)
 
+
+class MergePartnerAutomatic(models.TransientModel):
+    _inherit = 'base.partner.merge.automatic.wizard'
+
+    def _merge(self, partner_ids, dst_partner=None, extra_checks=True):
+        """Clear meli_buyer_id on source partners before merge to avoid unique constraint violation."""
+        if dst_partner and partner_ids:
+            src_partners = self.env['res.partner'].browse(partner_ids) - dst_partner
+            if src_partners:
+                src_partners.write({'meli_buyer_id': False})
+        return super()._merge(partner_ids, dst_partner=dst_partner, extra_checks=extra_checks)
+
+
 class ResPartner(models.Model):
 
     _inherit = "res.partner"

@@ -929,7 +929,7 @@ class product_product(models.Model):
                 if ( product.lst_price ):
                     new_price = product.lst_price
 
-        tax_excluded = ml_tax_excluded(self)
+        tax_excluded = ml_tax_excluded(self, config=config)
         if ( price_list_apply_tax and tax_excluded and product_tmpl.taxes_id ):
             _logger.info("Adjust taxes for publish")
             txfixed = 0

@@ -20,8 +20,46 @@
 ##############################################################################
 
 from odoo import fields, models, api
+from odoo.tools import html_escape
+from markupsafe import Markup
 import logging
+import re
 from .meli_oerp_config import *
+
+# Traducción de códigos de cancelación ML → español
+_MELI_CANCEL_CODES_ES = {
+    'expired_order':            'Orden vencida — plazo de pago superado (más de 20 días)',
+    'buyer_cancel_pre_payment': 'El comprador canceló antes de realizar el pago',
+    'buyer_cancel_accepted':    'Devolución solicitada por el comprador y aceptada',
+    'seller_cancel':            'El vendedor canceló la orden',
+    'meli_cancel':              'Cancelado por MercadoLibre',
+    'non_payment':              'Pago no realizado',
+    'out_of_stock':             'Sin stock disponible al momento de la venta',
+    'refund_obligatory':        'Devolución obligatoria (reembolso)',
+    'chargeback':               'Contracargo bancario',
+    'payment_issue':            'Problema con el método de pago',
+    'system_cancel':            'Cancelado automáticamente por el sistema',
+    'receiver_absent':          'Receptor ausente al momento de la entrega',
+    'fraud':                    'Fraude detectado',
+    'duplicate':                'Orden duplicada',
+    'forced_close':             'Cierre forzado por MercadoLibre',
+    'quality_issue':            'Problema de calidad reportado',
+    'user_request':             'Solicitado por el usuario',
+    'internal_ml':              'Proceso interno de MercadoLibre',
+    'not_delivery':             'No se realizó la entrega',
+    'return_expired':           'Plazo de devolución vencido',
+    'not_yet_shipped':          'No despachado en el tiempo requerido',
+    'buyer_not_pick_up':        'El comprador no retiró el paquete',
+    'bad_debt':                 'Deuda incobrable',
+}
+_MELI_REQUESTED_BY_ES = {
+    'meli':     'MercadoLibre',
+    'buyer':    'Comprador',
+    'seller':   'Vendedor',
+    'system':   'Sistema automático',
+    'admin':    'Administrador ML',
+    'mediator': 'Mediador',
+}
 
 #from ..melisdk.meli import Meli
 
@@ -460,28 +498,12 @@ class sale_order(models.Model):
           el motivo en el chatter de la orden y de cada factura involucrada.
         """
         # 1. Devolver albaranes ya entregados
-        for picking in self.picking_ids.filtered(lambda p: p.state == 'done'):
-            try:
-                return_wizard = self.env['stock.return.picking'].with_context(
-                    active_id=picking.id, active_ids=[picking.id]
-                ).create({'picking_id': picking.id})
-                return_dict = return_wizard.create_returns()
-                return_picking_name = ''
-                if return_dict and return_dict.get('res_id'):
-                    return_picking = self.env['stock.picking'].browse(return_dict['res_id'])
-                    return_picking_name = return_picking.name
-                self.message_post(
-                    body="Devolución de albarán %s creada automáticamente (%s) por cancelación en MercadoLibre." % (picking.name, return_picking_name),
-                    message_type=order_message_type
-                )
-            except Exception as e:
-                _logger.error("meli_cancel_with_detail: error devolviendo picking %s: %s", picking.name, e, exc_info=True)
-                self.message_post(
-                    body="No se pudo devolver el albarán %s automáticamente. Error: %s. Gestionar manualmente." % (picking.name, str(e)),
-                    message_type=order_message_type
-                )
+        # _meli_return_done_pickings usa hasattr para compatibilidad Odoo 16/17/18
+        # (action_create_returns / create_returns) y evita crear devoluciones duplicadas.
+        self._meli_return_done_pickings()
 
         # 2. Gestionar facturas existentes
+        _has_unresolved_posted_invoice = False
         for invoice in self.invoice_ids:
             if invoice.state == 'posted':
                 # Intentar resetear a borrador para poder cancelar
@@ -496,13 +518,19 @@ class sale_order(models.Model):
                 except Exception as e:
                     _logger.warning("meli_cancel_with_detail: no se pudo revertir factura %s a borrador: %s", invoice.name, e)
                 if not reverted:
-                    # No se pudo revertir: informar que se requiere nota de crédito
+                    # No se pudo revertir: la orden NO debe cancelarse automáticamente.
+                    # El usuario debe crear una Nota de Crédito manualmente desde la factura.
+                    _has_unresolved_posted_invoice = True
                     invoice.message_post(
-                        body=cancel_msg + " — Se requiere NOTA DE CRÉDITO para reversar esta factura.",
+                        body=cancel_msg + " — ⚠️ ACCIÓN REQUERIDA: esta factura no pudo revertirse a borrador. "
+                             "Debe crear una NOTA DE CRÉDITO manualmente para reversarla. "
+                             "La orden de venta NO fue cancelada automáticamente para permitir la gestión.",
                         message_type=order_message_type
                     )
                     self.message_post(
-                        body="Factura %s publicada no se pudo revertir — crear nota de crédito manualmente." % invoice.name,
+                        body="⚠️ Cancelación de ML pendiente: factura %s publicada no pudo revertirse. "
+                             "Crear nota de crédito desde la factura y luego cancelar la orden manualmente. "
+                             "Motivo ML: %s" % (invoice.name, cancel_msg),
                         message_type=order_message_type
                     )
             elif invoice.state == 'draft':
@@ -511,6 +539,12 @@ class sale_order(models.Model):
                         invoice.button_cancel()
                 except Exception as e:
                     _logger.warning("meli_cancel_with_detail: no se pudo cancelar borrador de factura %s: %s", invoice.name, e)
+
+        # Si hay facturas publicadas que no pudieron revertirse, no cancelar la orden.
+        # El usuario debe crear NC primero y luego cancelar manualmente.
+        if _has_unresolved_posted_invoice:
+            _logger.warning("meli_cancel_with_detail: orden %s NO cancelada — factura publicada sin revertir. Acción manual requerida.", self.name)
+            return
 
         # 3. Desbloquear si la orden esta bloqueada o en estado done
         is_locked = self.state == 'done' or ('locked' in self._fields and self.locked)
@@ -804,6 +838,245 @@ class sale_order(models.Model):
         ('unique_meli_order_id', 'meli_order_id', 'Meli Order id already exists!'),
     ])
 
+    meli_cancel_banner = fields.Html(
+        compute='_compute_meli_cancel_banner',
+        string='Banner cancelación ML',
+        sanitize=False,
+    )
+
+    @api.depends('meli_status_detail', 'state')
+    def _compute_meli_cancel_banner(self):
+        for order in self:
+            detail = (order.meli_status_detail or '').strip().lstrip('|').strip()
+            if not detail or order.state != 'cancel':
+                order.meli_cancel_banner = False
+                continue
+
+            # Parse: "code: description (solicitado por: X, fecha: Y)"
+            code = desc = by_raw = date_raw = ''
+            m = re.match(
+                r'^(\w+):\s*(.+?)(?:\s*\(solicitado\s+por:\s*([^,]+),\s*fecha:\s*([^)]+)\))?$',
+                detail.strip(),
+            )
+            if m:
+                code     = m.group(1) or ''
+                desc     = (m.group(2) or '').strip()
+                by_raw   = (m.group(3) or '').strip()
+                date_raw = (m.group(4) or '').strip()
+            else:
+                desc = detail
+
+            code_es = _MELI_CANCEL_CODES_ES.get(
+                code, code.replace('_', ' ').title() if code else 'Motivo desconocido'
+            )
+            by_es = _MELI_REQUESTED_BY_ES.get(by_raw.lower(), by_raw) if by_raw else ''
+
+            # Format ISO date → dd/mm/YYYY HH:MM
+            date_display = date_raw
+            if date_raw:
+                try:
+                    from datetime import datetime as _dt
+                    date_display = _dt.fromisoformat(date_raw[:19]).strftime('%d/%m/%Y %H:%M')
+                except Exception:
+                    pass
+
+            code_line = Markup(
+                '<div style="margin-bottom:4px;">'
+                '<span style="font-size:13px;color:#495057;">'
+                '<b>Código:</b> {ce} '
+                '<span style="color:#888;font-size:11px;">({c})</span>'
+                '</span></div>'
+            ).format(ce=html_escape(code_es), c=html_escape(code)) if code else Markup('')
+
+            desc_line = Markup(
+                '<div style="margin-bottom:4px;">'
+                '<span style="font-size:13px;color:#495057;">'
+                '<b>Descripción original:</b> {d}'
+                '</span></div>'
+            ).format(d=html_escape(desc)) if desc else Markup('')
+
+            meta_parts = []
+            if by_es:
+                meta_parts.append(Markup('<b>Solicitado por:</b> {v}').format(v=html_escape(by_es)))
+            if date_display:
+                meta_parts.append(Markup('<b>Fecha:</b> {v}').format(v=html_escape(date_display)))
+            meta_line = Markup(
+                '<div style="font-size:12px;color:#6c757d;margin-top:2px;">{c}</div>'
+            ).format(c=Markup(' &nbsp;·&nbsp; ').join(meta_parts)) if meta_parts else Markup('')
+
+            order.meli_cancel_banner = Markup("""
+<div style="position:relative;overflow:hidden;background:#fff8e1;
+            border-left:5px solid #e53935;border-radius:4px;
+            padding:14px 20px 14px 16px;margin-bottom:12px;">
+  <div style="position:absolute;top:18px;right:-24px;background:#e53935;
+              color:#fff;font-size:10px;font-weight:700;padding:5px 44px;
+              transform:rotate(45deg);letter-spacing:1.5px;
+              box-shadow:0 1px 4px rgba(0,0,0,.25);white-space:nowrap;">
+    CANCELADO ML
+  </div>
+  <div style="display:flex;align-items:flex-start;gap:12px;padding-right:70px;">
+    <span style="font-size:28px;line-height:1;flex-shrink:0;">🚫</span>
+    <div>
+      <div style="font-size:15px;font-weight:700;color:#b71c1c;margin-bottom:8px;">
+        Orden cancelada por MercadoLibre
+      </div>
+      {cl}{dl}{ml}
+    </div>
+  </div>
+</div>
+""").format(cl=code_line, dl=desc_line, ml=meta_line)
+
+    # -----------------------------------------------------------------------
+    # Banner: cancelado en ML pero NO cancelado en Odoo (acción requerida)
+    # -----------------------------------------------------------------------
+    meli_cancel_pending_banner = fields.Html(
+        compute='_compute_meli_cancel_pending_banner',
+        string='Alerta: cancelación ML pendiente en Odoo',
+        sanitize=False,
+    )
+
+    @api.depends('meli_status', 'state', 'meli_status_detail',
+                 'invoice_ids.state', 'picking_ids.state')
+    def _compute_meli_cancel_pending_banner(self):
+        for order in self:
+            # Solo mostrar cuando ML canceló pero Odoo NO está cancelado
+            if order.meli_status != 'cancelled' or order.state == 'cancel':
+                order.meli_cancel_pending_banner = False
+                continue
+
+            # Parsear motivo de cancelación
+            detail = (order.meli_status_detail or '').strip().lstrip('|').strip()
+            code = desc = by_raw = date_raw = ''
+            if detail:
+                m = re.match(
+                    r'^(\w+):\s*(.+?)(?:\s*\(solicitado\s+por:\s*([^,]+),\s*fecha:\s*([^)]+)\))?$',
+                    detail.strip(),
+                )
+                if m:
+                    code     = m.group(1) or ''
+                    desc     = (m.group(2) or '').strip()
+                    by_raw   = (m.group(3) or '').strip()
+                    date_raw = (m.group(4) or '').strip()
+                else:
+                    desc = detail
+
+            code_es = _MELI_CANCEL_CODES_ES.get(
+                code, code.replace('_', ' ').title() if code else 'Motivo desconocido'
+            )
+            by_es = _MELI_REQUESTED_BY_ES.get(by_raw.lower(), by_raw) if by_raw else ''
+            date_display = date_raw
+            if date_raw:
+                try:
+                    from datetime import datetime as _dt
+                    date_display = _dt.fromisoformat(date_raw[:19]).strftime('%d/%m/%Y %H:%M')
+                except Exception:
+                    pass
+
+            reason_html = Markup('')
+            if code_es or desc:
+                reason_html = Markup(
+                    '<div style="margin:6px 0 10px 0;padding:8px 12px;'
+                    'background:rgba(0,0,0,.05);border-radius:4px;font-size:13px;">'
+                    '<b>Motivo:</b> {ce}'
+                    '{sep}{d}'
+                    '{meta}'
+                    '</div>'
+                ).format(
+                    ce=html_escape(code_es),
+                    sep=Markup(' &mdash; ') if desc and desc != code_es else Markup(''),
+                    d=html_escape(desc) if desc and desc != code_es else Markup(''),
+                    meta=Markup(
+                        '<span style="color:#888;font-size:12px;display:block;margin-top:3px;">'
+                        '{by}{sep2}{fecha}'
+                        '</span>'
+                    ).format(
+                        by=Markup('<b>Por:</b> {v}').format(v=html_escape(by_es)) if by_es else Markup(''),
+                        sep2=Markup(' &nbsp;·&nbsp; ') if by_es and date_display else Markup(''),
+                        fecha=Markup('<b>Fecha:</b> {v}').format(v=html_escape(date_display)) if date_display else Markup(''),
+                    ) if (by_es or date_display) else Markup(''),
+                )
+
+            # Detectar documentos pendientes
+            done_pickings = order.picking_ids.filtered(
+                lambda p: p.state == 'done' and p.picking_type_code == 'outgoing'
+            )
+            has_return = done_pickings.filtered(
+                lambda p: any(p.move_ids.mapped('origin_returned_move_id'))
+            )
+            needs_return = done_pickings - has_return
+            posted_invoices = order.invoice_ids.filtered(
+                lambda i: i.move_type == 'out_invoice' and i.state == 'posted'
+            )
+
+            steps_html = Markup('')
+            step_n = 1
+            if needs_return:
+                names = ', '.join(needs_return.mapped('name'))
+                steps_html += Markup(
+                    '<li style="margin-bottom:6px;">'
+                    '<b>Paso {n}:</b> Crear devolución (albarán de entrada) para: <b>{names}</b>'
+                    '<br/><span style="font-size:12px;color:#555;">Ir al albarán → Devolver</span>'
+                    '</li>'
+                ).format(n=step_n, names=html_escape(names))
+                step_n += 1
+            if has_return:
+                names = ', '.join(has_return.mapped('name'))
+                steps_html += Markup(
+                    '<li style="margin-bottom:6px;color:#388e3c;">'
+                    '✓ Devolución ya creada para: <b>{names}</b>'
+                    '</li>'
+                ).format(names=html_escape(names))
+            if posted_invoices:
+                names = ', '.join(posted_invoices.mapped('name'))
+                steps_html += Markup(
+                    '<li style="margin-bottom:6px;">'
+                    '<b>Paso {n}:</b> Emitir Nota de Crédito para: <b>{names}</b>'
+                    '<br/><span style="font-size:12px;color:#555;">'
+                    'Ir a la factura → Agregar Nota de Crédito</span>'
+                    '</li>'
+                ).format(n=step_n, names=html_escape(names))
+                step_n += 1
+            steps_html += Markup(
+                '<li style="margin-bottom:4px;">'
+                '<b>Paso {n}:</b> Cancelar esta orden de venta manualmente'
+                '</li>'
+            ).format(n=step_n)
+
+            order.meli_cancel_pending_banner = Markup("""
+<div style="background:#fff3e0;border-left:6px solid #f57c00;border-radius:4px;
+            padding:16px 20px;margin-bottom:14px;position:relative;">
+  <div style="position:absolute;top:14px;right:-20px;background:#f57c00;
+              color:#fff;font-size:10px;font-weight:700;padding:5px 40px;
+              transform:rotate(45deg);letter-spacing:1.5px;
+              box-shadow:0 1px 4px rgba(0,0,0,.3);white-space:nowrap;">
+    ACCIÓN REQUERIDA
+  </div>
+  <div style="padding-right:72px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+      <span style="font-size:26px;line-height:1;">⚠️</span>
+      <div>
+        <div style="font-size:16px;font-weight:800;color:#e65100;line-height:1.2;">
+          Cancelada en MercadoLibre — pendiente en Odoo
+        </div>
+        <div style="font-size:12px;color:#6d4c41;margin-top:2px;">
+          ML canceló esta orden pero no se pudo cancelar automáticamente en Odoo
+          por existir entregas realizadas y/o facturas emitidas.
+        </div>
+      </div>
+    </div>
+    {reason}
+    <div style="background:rgba(0,0,0,.04);border-radius:4px;padding:10px 14px;margin-top:8px;">
+      <div style="font-size:13px;font-weight:700;color:#4e342e;margin-bottom:6px;">
+        Pasos a seguir:
+      </div>
+      <ol style="margin:0;padding-left:20px;font-size:13px;color:#4e342e;">
+        {steps}
+      </ol>
+    </div>
+  </div>
+</div>
+""").format(reason=reason_html, steps=steps_html)
+
 class mercadolibre_orders(models.Model):
     _name = "mercadolibre.orders"
     _description = "Pedidos en MercadoLibre"
@@ -999,26 +1272,202 @@ class mercadolibre_orders(models.Model):
             return Buyer['billing_info']["ZIP_CODE"]
         return ""
 
-    def get_billing_info( self, order_id=None, meli=None, data=None ):
+    def _normalize_billing_info_v2(self, bi, site_id=None):
+        """Flatten the new ML billing-info v2 response into the legacy
+        UPPERCASE-key dict that the rest of this module consumes.
+
+        Input (v2 shape, from /orders/billing-info/{SITE_ID}/{BILLING_INFO_ID}):
+          {
+            "name": "...", "last_name": "...",
+            "identification": {"type": "...", "number": "..."},
+            "taxes": {"taxpayer_type": {"description": "..."}, "economic_activity": "..."},
+            "address": {"street_name": "...", "state": {"name": "..."}, "zip_code": "..."},
+            "attributes": {"vat_discriminated_billing": "true", "cust_type": "CO"|"BU", ...}
+          }
+
+        Output: a new dict preserving all v2 fields PLUS the legacy uppercase
+        keys (FIRST_NAME, LAST_NAME, DOC_TYPE, DOC_NUMBER, ...) the downstream
+        code in this module expects. Also fills INVOICE_TYPE per site_id
+        rules now that the upstream field is being phased out:
+        MLA: CUIT -> Factura A, DNI/CUIL -> Factura B.
+        """
+        if not isinstance(bi, dict):
+            return bi
+
+        out = dict(bi)  # preserve v2 fields as fallbacks
+
+        attributes = bi.get('attributes') or {}
+        cust_type = (attributes.get('cust_type') or attributes.get('customer_type') or '').upper()
+        name = bi.get('name') or ''
+        last_name = bi.get('last_name') or ''
+        if cust_type == 'BU':
+            out['BUSINESS_NAME'] = name
+            out['FIRST_NAME'] = ''
+            out['LAST_NAME'] = ''
+        else:
+            out['FIRST_NAME'] = name
+            out['LAST_NAME'] = last_name
+            out['BUSINESS_NAME'] = ''
+        out['first_name'] = out['FIRST_NAME']
+        out['last_name'] = out['LAST_NAME']
+
+        identification = bi.get('identification') or {}
+        doc_type = identification.get('type') or ''
+        doc_number = identification.get('number') or ''
+        out['DOC_TYPE'] = doc_type
+        out['DOC_NUMBER'] = doc_number
+        out['doc_type'] = doc_type
+        out['doc_number'] = doc_number
+
+        taxes = bi.get('taxes') or {}
+        taxpayer_type = taxes.get('taxpayer_type') or {}
+        out['TAXPAYER_TYPE_ID'] = taxpayer_type.get('description') or ''
+        out['ECONOMIC_ACTIVITY'] = taxes.get('economic_activity') or ''
+
+        address = bi.get('address') or {}
+        state = address.get('state') or {}
+        out['STREET_NAME'] = address.get('street_name') or ''
+        out['STREET_NUMBER'] = address.get('street_number') or ''
+        out['CITY_NAME'] = address.get('city_name') or ''
+        out['STATE_NAME'] = state.get('name') or ''
+        out['ZIP_CODE'] = address.get('zip_code') or ''
+        out['NEIGHBORHOOD'] = address.get('neighborhood') or ''
+
+        out['VAT_DISCRIMINATED_BILLING'] = str(attributes.get('vat_discriminated_billing') or '')
+
+        # INVOICE_TYPE: the upstream attribute is being removed; keep it when
+        # present (MLA still returns it as of 03/2026) and otherwise derive
+        # it from the document type for MLA per the official mapping.
+        invoice_type = attributes.get('invoice_type') or bi.get('invoice_type') or ''
+        if not invoice_type and site_id and str(site_id).upper() == 'MLA':
+            _doc = (doc_type or '').upper()
+            if _doc == 'CUIT':
+                invoice_type = 'Factura A'
+            elif _doc in ('DNI', 'CUIL'):
+                invoice_type = 'Factura B'
+        out['INVOICE_TYPE'] = invoice_type
+
+        return out
+
+    def get_billing_info( self, order_id=None, meli=None, data=None, site_id=None ):
+        """Fetch the billing info for a ML order.
+
+        Since April 2026 the legacy endpoint /orders/{id}/billing_info was
+        replaced by /orders/billing-info/{SITE_ID}/{BILLING_INFO_ID} with an
+        'x-version: 2' header, and the billing_info_id now lives inside the
+        order itself at order.buyer.billing_info.id. We call the new endpoint
+        first and normalize the response to the legacy UPPERCASE-key shape so
+        the 100+ downstream consumers keep working unchanged.
+
+        site_id resolution order:
+          1. explicit `site_id` kwarg (caller knows best, e.g. multi-account
+             context where the mercadolibre.account has its own site_id)
+          2. data['site_id']  (root of the ML order payload — always present
+             on modern orders)
+          3. company._get_ML_sites(meli=meli)  (derived from the company's
+             currency — used only as last-resort safety net)
+
+        The legacy endpoint is still attempted as a last-resort fallback in
+        case an order does not have billing_info.id yet (transitional), but
+        it will disappear as MercadoLibre completes the migration.
+        """
         order_id = order_id or (data and 'id' in data and data['id']) or (self and self.order_id)
         Buyer = (data and 'buyer' in data and data['buyer']) or {}
         _billing_info = ('billing_info' in Buyer and Buyer['billing_info']) or {}
-        if meli and order_id:
-            response = meli.get("/orders/"+str(order_id)+"/billing_info", {'access_token':meli.access_token})
-            if response:
-                biljson = response.json()
-                #_logger.info("get_billing_info: "+str(biljson))
-                api_billing_info = (biljson and 'billing_info' in biljson and biljson['billing_info']) or None
-                if api_billing_info:
-                    _billing_info = api_billing_info
-                    if "additional_info" in _billing_info:
-                        adds = _billing_info["additional_info"]
-                        for add in adds:
-                            _billing_info[add["type"]] = add["value"]
-                            # Also add lowercase version for compatibility
-                            _billing_info[add["type"].lower()] = add["value"]
+
+        if not (meli and order_id):
+            return _billing_info
+
+        # Resolve site_id with explicit fallbacks so we NEVER call the new
+        # endpoint with a wrong site (e.g. MLA account hitting /billing-info/MLM/...).
+        site_id_source = None
+        if site_id:
+            site_id_source = "kwarg"
+        elif data and data.get('site_id'):
+            site_id = data.get('site_id')
+            site_id_source = "order_payload"
+        else:
+            # Safety net: derive from the current company's currency.
+            try:
+                company = self.env.user.company_id
+                site_id = company and company._get_ML_sites(meli=meli)
+                site_id_source = "company_currency_fallback"
+            except Exception as e:
+                _logger.warning("get_billing_info: could not derive site_id from company: %s", str(e))
+                site_id = None
+
+        billing_info_id = None
+        if isinstance(_billing_info, dict):
+            billing_info_id = _billing_info.get('id')
+
+        _logger.info(
+            "get_billing_info: order_id=%s site_id=%s (source=%s) billing_info_id=%s",
+            order_id, site_id, site_id_source, billing_info_id,
+        )
+
+        api_billing_info = None
+
+        # 1) NEW endpoint: /orders/billing-info/{SITE_ID}/{BILLING_INFO_ID}
+        if site_id and billing_info_id:
+            try:
+                url = "/orders/billing-info/%s/%s" % (str(site_id), str(billing_info_id))
+                response = meli.get(
+                    url,
+                    {'access_token': meli.access_token},
+                    extra_headers={'x-version': '2'},
+                )
+                if response is not None and getattr(response, 'status_code', 0) == 200:
+                    biljson = response.json() or {}
+                    # v2 wraps billing_info under buyer
+                    api_billing_info = (
+                        (biljson.get('buyer') or {}).get('billing_info')
+                        or biljson.get('billing_info')
+                    )
+                    # Prefer site_id echoed back by the API for the normalizer
+                    response_site_id = biljson.get('site_id') or site_id
+                    if api_billing_info:
+                        api_billing_info = self._normalize_billing_info_v2(api_billing_info, site_id=response_site_id)
                 else:
-                    _logger.debug("get_billing_info: API response sin billing_info, usando fallback de la orden. order_id: %s biljson keys: %s", order_id, str(biljson and biljson.keys()))
+                    _logger.warning(
+                        "get_billing_info: new endpoint %s returned status=%s for order_id=%s, "
+                        "falling back to legacy endpoint",
+                        url, response and getattr(response, 'status_code', None), order_id,
+                    )
+            except Exception as e:
+                _logger.error(
+                    "get_billing_info: new endpoint failed for order_id=%s site=%s bid=%s: %s",
+                    order_id, site_id, billing_info_id, str(e),
+                )
+
+        # 2) LEGACY endpoint fallback: /orders/{order_id}/billing_info
+        #    Kept as a safety net for transitional orders without
+        #    billing_info.id in their payload. Will 404 once ML removes it.
+        if not api_billing_info:
+            try:
+                response = meli.get("/orders/"+str(order_id)+"/billing_info", {'access_token':meli.access_token})
+                if response:
+                    biljson = response.json()
+                    #_logger.info("get_billing_info: "+str(biljson))
+                    api_billing_info = (biljson and 'billing_info' in biljson and biljson['billing_info']) or None
+                    if api_billing_info:
+                        if "additional_info" in api_billing_info:
+                            adds = api_billing_info["additional_info"]
+                            for add in adds:
+                                api_billing_info[add["type"]] = add["value"]
+                                # Also add lowercase version for compatibility
+                                api_billing_info[add["type"].lower()] = add["value"]
+                    else:
+                        _logger.debug(
+                            "get_billing_info: legacy response sin billing_info, "
+                            "usando fallback de la orden. order_id: %s biljson keys: %s",
+                            order_id, str(biljson and biljson.keys()),
+                        )
+            except Exception as e:
+                _logger.error("get_billing_info: legacy endpoint failed for order_id=%s: %s", order_id, str(e))
+
+        if api_billing_info:
+            _billing_info = api_billing_info
+
         return _billing_info
 
     def billing_info( self, billing_json, context=None ):
@@ -1948,7 +2397,7 @@ class mercadolibre_orders(models.Model):
                                 _logger.error("creando sii_giro: "+str(sii_giro))
 
                             meli_buyer_fields['activity_description'] = (sii_giro and sii_giro.id) or None
-                    except E as Exception:
+                    except Exception as E:
                         _logger.error("billing_info_economic_activity"+str(E))
                         pass;
 
@@ -2471,6 +2920,54 @@ class mercadolibre_orders(models.Model):
                     if 'meli_buyer_partner_id' in partner_invoice_id._fields and not partner_invoice_id.meli_buyer_partner_id:
                         invoice_update['meli_buyer_partner_id'] = partner_id.id
 
+                    # RESCUE: Si este update no trae l10n_latam_identification_type_id (porque
+                    # ML no envió el doc_type en esta orden) Y el contacto existente lo tiene vacío
+                    # ("SIN REGISTROS"), intentar inferirlo del VAT para no dejar el campo vacío.
+                    _id_type_field = None
+                    if 'l10n_latam_identification_type_id' in partner_invoice_id._fields:
+                        _id_type_field = 'l10n_latam_identification_type_id'
+                    elif 'partner_document_type_id' in partner_invoice_id._fields:
+                        _id_type_field = 'partner_document_type_id'
+                    if (_id_type_field
+                            and _id_type_field not in invoice_update
+                            and not partner_invoice_id[_id_type_field]
+                            and billing_vat):
+                        _vat_digits = ''.join(c for c in billing_vat if c.isdigit())
+                        _country_code = (partner_invoice_id.country_id.code
+                                         or (company and company.country_id.code)
+                                         or '')
+                        _inferred_type = None
+                        if _country_code == 'AR':
+                            if len(_vat_digits) == 11:
+                                _inferred_type = self.env['l10n_latam.identification.type'].search(
+                                    [('l10n_ar_afip_code', '=', '80')], limit=1
+                                ) if 'l10n_ar_afip_code' in self.env['l10n_latam.identification.type']._fields else \
+                                self.env['l10n_latam.identification.type'].search(
+                                    [('name', 'in', ['CUIT', 'Clave Única de Identificación Tributaria'])], limit=1
+                                )
+                            elif len(_vat_digits) in (7, 8):
+                                _inferred_type = self.env['l10n_latam.identification.type'].search(
+                                    [('l10n_ar_afip_code', '=', '96')], limit=1
+                                ) if 'l10n_ar_afip_code' in self.env['l10n_latam.identification.type']._fields else \
+                                self.env['l10n_latam.identification.type'].search(
+                                    [('name', 'in', ['DNI', 'Documento Nacional de Identidad'])], limit=1
+                                )
+                        if _inferred_type:
+                            invoice_update[_id_type_field] = _inferred_type.id
+                            _logger.info(
+                                "SIN REGISTROS rescue: tipo de doc inferido '%s' (AFIP code=%s) "
+                                "desde VAT %s para contacto id:%s '%s'",
+                                _inferred_type.name,
+                                getattr(_inferred_type, 'l10n_ar_afip_code', '?'),
+                                billing_vat, partner_invoice_id.id, partner_invoice_id.display_name
+                            )
+                        else:
+                            _logger.warning(
+                                "SIN REGISTROS: no se pudo inferir tipo de documento para VAT %s "
+                                "(país: %s, dígitos: %d) en contacto id:%s",
+                                billing_vat, _country_code, len(_vat_digits), partner_invoice_id.id
+                            )
+
                     if invoice_update:
                         _logger.info("Actualizando contacto facturación id:%s vat:%s campos:%s",
                                      partner_invoice_id.id, invoice_update.get('vat', '-'), list(invoice_update.keys()))
@@ -2602,13 +3099,28 @@ class mercadolibre_orders(models.Model):
 
                     # Limpiar VAT del buyer para evitar la advertencia de NIF duplicado.
                     # El VAT pertenece a la entidad fiscal, no al buyer.
-                    try:
-                        partner_id.write({'vat': False})
-                        _logger.info("MELI_DUPLICATE_VAT: limpiado VAT %s del buyer id:%s (ahora solo en entidad fiscal id:%s)",
-                                     billing_vat, partner_id.id, partner_invoice_id.id)
-                    except Exception as e:
-                        _logger.warning("MELI_DUPLICATE_VAT: no se pudo limpiar VAT del buyer id:%s: %s",
-                                        partner_id.id, str(e))
+                    # PERO: no limpiar si hay hijos sin VAT propio, porque
+                    # _commercial_sync_to_children propagaría vat=False y
+                    # constraints como kc_l10n_uy.check_vat lo impedirían.
+                    _children_without_vat = respartner_obj.search_count([
+                        ('parent_id', '=', partner_id.id),
+                        ('id', '!=', partner_invoice_id.id),
+                        ('vat', 'in', [False, '']),
+                    ])
+                    if _children_without_vat:
+                        _logger.info(
+                            "MELI_DUPLICATE_VAT: NO se limpia VAT %s del buyer id:%s porque tiene %d hijo(s) sin VAT propio "
+                            "(limpiar causaría error en constraints de terceros)",
+                            billing_vat, partner_id.id, _children_without_vat)
+                    else:
+                        try:
+                            with self.env.cr.savepoint():
+                                partner_id.write({'vat': False})
+                            _logger.info("MELI_DUPLICATE_VAT: limpiado VAT %s del buyer id:%s (ahora solo en entidad fiscal id:%s)",
+                                         billing_vat, partner_id.id, partner_invoice_id.id)
+                        except Exception as e:
+                            _logger.warning("MELI_DUPLICATE_VAT: no se pudo limpiar VAT del buyer id:%s: %s",
+                                            partner_id.id, str(e))
 
             # Si no hay VAT en billing_info, usar contacto principal para facturación
             if not partner_invoice_id:
@@ -2635,7 +3147,12 @@ class mercadolibre_orders(models.Model):
         original_contact_partner_id = partner_id
         if original_contact_partner_id:
             #fix Just, fijar la lista de precio predeterminada de cada cliente
-            original_contact_partner_id.property_product_pricelist = (config and config.mercadolibre_pricelist)
+            try:
+                with self.env.cr.savepoint():
+                    original_contact_partner_id.property_product_pricelist = (config and config.mercadolibre_pricelist)
+            except Exception as e:
+                _logger.warning('Could not set pricelist on partner %s (id:%s): %s',
+                                original_contact_partner_id.name, original_contact_partner_id.id, e)
 
 
         if (original_contact_partner_id):
@@ -2741,6 +3258,31 @@ class mercadolibre_orders(models.Model):
                 #_logger.info("Pack Order, dont create sale.order, leave it to mercadolibre.shipment")
                 if not order.sale_order:
                     meli_message_post(order, "Pack Order, dont create sale.order, leave it to mercadolibre.shipment", config=config)
+            elif not meli_order_fields.get('partner_id'):
+                # SAFETY GUARD: sale.order.partner_id is NOT NULL en la BD. Si
+                # llegamos aca sin partner_id, llamar a create() levanta
+                # psycopg2 NotNullViolation y deja la transaccion abortada,
+                # provocando cascada de errores "current transaction is aborted"
+                # en los siguientes pedidos del mismo batch.
+                #
+                # Causas tipicas de partner_id vacio:
+                #   - config.mercadolibre_cron_get_orders_shipment_client = False
+                #     (no se importa el cliente) y ademas mercadolibre_contact_partner
+                #     no esta configurado como fallback.
+                #   - Buyer sin meli_buyer_id/VAT valido y la busqueda no matcheo.
+                #   - Error silencioso al crear res.partner mas arriba.
+                _logger.error(
+                    "Skipping sale.order create for ML order %s: partner_id is missing. "
+                    "Revisar 'Importar clientes' (mercadolibre_cron_get_orders_shipment_client) "
+                    "y/o el 'Contacto para MercadoLibre' (mercadolibre_contact_partner) en la configuracion.",
+                    order_json.get('id', '?'))
+                if order:
+                    meli_message_post(
+                        order,
+                        "No se creo sale.order: falta partner_id del comprador. "
+                        "Activar 'Importar clientes' o configurar un 'Contacto para MercadoLibre' "
+                        "en la configuracion de la cuenta MeLi.",
+                        config=config)
             else:
                 #_logger.info("Adding new sale.order: " )
                 sorder = saleorder_obj.create((meli_order_fields))
@@ -3244,7 +3786,7 @@ class mercadolibre_orders(models.Model):
             #_logger.info("Updating order: Shipment: "+str(order.shipping_id))
             if (order and order.shipping_id):
                 shipment = shipment_obj.fetch_shipment( order, meli=meli, config=config )
-                if (shipment):
+                if shipment and not isinstance(shipment, dict):
                     order.shipment = shipment
                     # NOTE: shipping_seller_cost copy is now also done inside fetch_shipment
                     # (before _update_sale_order_shipping_info) so purchase_price gets the correct value.
