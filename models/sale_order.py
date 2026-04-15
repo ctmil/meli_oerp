@@ -1,7 +1,46 @@
 # -*- coding: utf-8 -*-
 
 from odoo import fields, osv, models, api
+from odoo.tools import html_escape
+from markupsafe import Markup
+import re
 import odoo.addons.decimal_precision as dp
+
+# Traducción de códigos de cancelación ML → español
+_MELI_CANCEL_CODES_ES = {
+    'expired_order':              'Orden vencida — plazo de pago superado (más de 20 días)',
+    'buyer_cancel_pre_payment':   'El comprador canceló antes de realizar el pago',
+    'buyer_cancel_accepted':      'Devolución solicitada por el comprador y aceptada',
+    'seller_cancel':              'El vendedor canceló la orden',
+    'meli_cancel':                'Cancelado por MercadoLibre',
+    'non_payment':                'Pago no realizado',
+    'out_of_stock':               'Sin stock disponible al momento de la venta',
+    'refund_obligatory':          'Devolución obligatoria (reembolso)',
+    'chargeback':                 'Contracargo bancario',
+    'payment_issue':              'Problema con el método de pago',
+    'system_cancel':              'Cancelado automáticamente por el sistema',
+    'receiver_absent':            'Receptor ausente al momento de la entrega',
+    'fraud':                      'Fraude detectado',
+    'duplicate':                  'Orden duplicada',
+    'forced_close':               'Cierre forzado por MercadoLibre',
+    'quality_issue':              'Problema de calidad reportado',
+    'user_request':               'Solicitado por el usuario',
+    'internal_ml':                'Proceso interno de MercadoLibre',
+    'not_delivery':               'No se realizó la entrega',
+    'return_expired':             'Plazo de devolución vencido',
+    'not_yet_shipped':            'No despachado en el tiempo requerido',
+    'buyer_not_pick_up':          'El comprador no retiró el paquete',
+    'bad_debt':                   'Deuda incobrable',
+}
+
+_MELI_REQUESTED_BY_ES = {
+    'meli':     'MercadoLibre',
+    'buyer':    'Comprador',
+    'seller':   'Vendedor',
+    'system':   'Sistema automático',
+    'admin':    'Administrador ML',
+    'mediator': 'Mediador',
+}
 
 class SaleOrder(models.Model):
 
@@ -135,6 +174,94 @@ class SaleOrder(models.Model):
 #        'buyer': fields.many2one( "mercadolibre.buyers","Buyer"),
 #       'meli_seller': fields.text( string='Seller' ),
 
+
+    meli_cancel_banner = fields.Html(
+        compute='_compute_meli_cancel_banner',
+        string='Banner cancelación ML',
+        sanitize=False,
+    )
+
+    @api.depends('meli_status_detail', 'state')
+    def _compute_meli_cancel_banner(self):
+        for order in self:
+            detail = (order.meli_status_detail or '').strip().lstrip('|').strip()
+            if not detail or order.state != 'cancel':
+                order.meli_cancel_banner = False
+                continue
+
+            # Parse: "code: description (solicitado por: X, fecha: Y)"
+            code = desc = by_raw = date_raw = ''
+            m = re.match(
+                r'^(\w+):\s*(.+?)(?:\s*\(solicitado\s+por:\s*([^,]+),\s*fecha:\s*([^)]+)\))?$',
+                detail.strip(),
+            )
+            if m:
+                code     = m.group(1) or ''
+                desc     = (m.group(2) or '').strip()
+                by_raw   = (m.group(3) or '').strip()
+                date_raw = (m.group(4) or '').strip()
+            else:
+                desc = detail  # fallback: show raw text
+
+            code_es = _MELI_CANCEL_CODES_ES.get(code, code.replace('_', ' ').title() if code else 'Motivo desconocido')
+            by_es   = _MELI_REQUESTED_BY_ES.get(by_raw.lower(), by_raw) if by_raw else ''
+
+            # Format ISO date: 2026-02-01T23:31:35.000-04:00 → 01/02/2026 23:31
+            date_display = date_raw
+            if date_raw:
+                try:
+                    from datetime import datetime as _dt
+                    d = _dt.fromisoformat(date_raw[:19])  # strip tz for simple parse
+                    date_display = d.strftime('%d/%m/%Y %H:%M')
+                except Exception:
+                    pass
+
+            # Build safe HTML lines
+            code_line = Markup(
+                '<div style="margin-bottom:4px;">'
+                '<span style="font-size:13px;color:#495057;">'
+                '<b>Código:</b> {code_es}'
+                '<span style="color:#888;font-size:11px;"> ({code})</span>'
+                '</span></div>'
+            ).format(code_es=html_escape(code_es), code=html_escape(code)) if code else Markup('')
+
+            desc_line = Markup(
+                '<div style="margin-bottom:4px;">'
+                '<span style="font-size:13px;color:#495057;">'
+                '<b>Descripción original:</b> {desc}'
+                '</span></div>'
+            ).format(desc=html_escape(desc)) if desc else Markup('')
+
+            meta_parts = []
+            if by_es:
+                meta_parts.append(Markup('<b>Solicitado por:</b> {v}').format(v=html_escape(by_es)))
+            if date_display:
+                meta_parts.append(Markup('<b>Fecha:</b> {v}').format(v=html_escape(date_display)))
+            meta_line = Markup(
+                '<div style="font-size:12px;color:#6c757d;margin-top:2px;">{content}</div>'
+            ).format(content=Markup(' &nbsp;·&nbsp; ').join(meta_parts)) if meta_parts else Markup('')
+
+            order.meli_cancel_banner = Markup("""
+<div style="position:relative;overflow:hidden;background:#fff8e1;
+            border-left:5px solid #e53935;border-radius:4px;
+            padding:14px 20px 14px 16px;margin-bottom:12px;">
+  <div style="position:absolute;top:18px;right:-24px;background:#e53935;
+              color:#fff;font-size:10px;font-weight:700;padding:5px 44px;
+              transform:rotate(45deg);letter-spacing:1.5px;
+              box-shadow:0 1px 4px rgba(0,0,0,.25);white-space:nowrap;">
+    CANCELADO ML
+  </div>
+  <div style="display:flex;align-items:flex-start;gap:12px;padding-right:70px;">
+    <span style="font-size:28px;line-height:1;flex-shrink:0;">🚫</span>
+    <div>
+      <div style="font-size:15px;font-weight:700;color:#b71c1c;margin-bottom:8px;">
+        Orden cancelada por MercadoLibre
+      </div>
+      {code_line}{desc_line}{meta_line}
+    </div>
+  </div>
+</div>
+""").format(code_line=code_line, desc_line=desc_line, meta_line=meta_line)
 
     def action_print_tag_delivery(self):
         meli_orders = self.mapped('meli_order_id').filtered(lambda x: x.status == 'paid')
