@@ -78,6 +78,15 @@
             <field name="inherit_id" ref="sale.view_order_form"/>
             <field name="arch" type="xml">
                 <data>
+                    <!-- Banner de cancelación ML: visible solo en órdenes canceladas en Odoo -->
+                    <!-- Banner de acción requerida: cancelada en ML pero NO en Odoo -->
+                    <xpath expr="//div[@name='button_box']" position="after">
+                        <field name="meli_cancel_pending_banner" widget="html" readonly="1" nolabel="1"
+                               invisible="not meli_cancel_pending_banner"/>
+                        <field name="meli_cancel_banner" widget="html" readonly="1" nolabel="1"
+                               invisible="not meli_cancel_banner"/>
+                    </xpath>
+
                     <notebook>
                         <page string="MercadoLibre" invisible="meli_order_id==False">
                             <button name='meli_oerp_update' type="object"
