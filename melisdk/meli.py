@@ -84,8 +84,10 @@ class Meli(object):
             raise Exception("Offline-Access is not allowed.")
 
     # REQUEST METHODS
-    def get(self, path, params={}):
+    def get(self, path, params={}, extra_headers=None):
         headers = {'Accept': 'application/json', 'User-Agent':self.SDK_VERSION, 'Content-type':'application/json'}
+        if extra_headers:
+            headers.update(extra_headers)
         uri = self.make_path(path)
         response = requests.get(uri, params=urlencode(params), headers=headers)
         return response
