@@ -221,10 +221,10 @@ class MeliApiNoSDK:
     def json(self):
         return self.rjson
 
-    def get(self, path, params={}):
+    def get(self, path, params={}, extra_headers=None):
         """
         GET genérico sin SDK.
-        - Firma: get(self, path, params={})
+        - Firma: get(self, path, params={}, extra_headers=None)
         - Mantiene self.response y self.rjson
         - Retorna self
         """
@@ -238,6 +238,8 @@ class MeliApiNoSDK:
             atok = ""
 
         headers = (params.get("headers") or {}).copy()
+        if extra_headers:
+            headers.update(extra_headers)
         timeout = params.get("timeout", 20)
         scroll_id = params.get("scroll_id", None)
         qparams = params.get("query", None)
@@ -810,7 +812,13 @@ if _versions.MELI_SDK_AVAILABLE and _meli_sdk and _ApiClient:
         def json(self):
             return self.rjson
 
-        def get(self, path, params={}):
+        def get(self, path, params={}, extra_headers=None):
+            # When custom headers are required (e.g. x-version for versioned
+            # endpoints) the SDK's resource_get does not expose a per-call
+            # header hook, so fall back to the requests-based client which
+            # supports arbitrary headers.
+            if extra_headers:
+                return self.get_mini(path, params, extra_headers=extra_headers)
             try:
                 atok = ("access_token" in params and params["access_token"]) or ""
                 if atok == "PASIVA":
@@ -839,13 +847,13 @@ if _versions.MELI_SDK_AVAILABLE and _meli_sdk and _ApiClient:
             return self
 
         # get_mini y post_mini usan requests directo (como en la versión original)
-        def get_mini(self, path, params={}):
+        def get_mini(self, path, params={}, extra_headers=None):
             """GET sin SDK (requests directo) - para compatibilidad"""
             _nosdk = MeliApiNoSDK(config=configuration_nosdk)
             _nosdk.__dict__.update({k: v for k, v in self.__dict__.items()
                                      if k in ('client_id', 'client_secret', 'access_token',
                                               'refresh_token', 'redirect_uri', 'seller_id')})
-            _nosdk.get(path, params)
+            _nosdk.get(path, params, extra_headers=extra_headers)
             self.response = _nosdk.response
             self.rjson = _nosdk.rjson
             return self
@@ -1175,9 +1183,11 @@ class MeliUtil(models.AbstractModel):
             if api_rest_client.needlogin_state:
                 _logger.warning("Need login for "+str(company.name))
 
+                # IMPORTANTE: NO se borran mercadolibre_access_token/refresh_token/code
+                # ni se apaga mercadolibre_cron_refresh. El refresh_token de ML sigue
+                # siendo válido aunque el access_token haya vencido, y conservarlo
+                # permite recuperar la conexión en la próxima corrida del cron.
                 if (company.mercadolibre_cron_refresh and company.mercadolibre_cron_mail):
-                    company.write({'mercadolibre_access_token': '', 'mercadolibre_refresh_token': '', 'mercadolibre_code': '', 'mercadolibre_cron_refresh': False } )
-
                     # we put the job_exception in context to be able to print it inside
                     # the email template
                     context = {
@@ -1192,7 +1202,6 @@ class MeliUtil(models.AbstractModel):
                                 company.mercadolibre_cron_mail.id
                             ).with_context(context).sudo().send_mail( (company.id), force_send=True)
                     _logger.info("Result sending:" + str(rese) )
-                company.write({'mercadolibre_access_token': '', 'mercadolibre_refresh_token': '', 'mercadolibre_code': '', 'mercadolibre_cron_refresh': False } )
 
         except Exception as e:
             _logger.error(e)
