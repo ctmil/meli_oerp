@@ -28,6 +28,10 @@ from .warning import warning
 
 import requests
 #from ..melisdk.meli import Meli
+
+# MULTIGET: Cache de categorías en RAM — evita search() por cada binding en importación masiva
+# {(db_name, meli_category_id): (ml_cat_id, www_cat_id)}
+_CATEGORY_CACHE = {}
 import json
 import math
 
@@ -310,6 +314,15 @@ class mercadolibre_category(models.Model):
         mlcatid = False
         www_cat_id = False
 
+        if not category_id:
+            return mlcatid, www_cat_id
+
+        # MULTIGET: Cache en RAM — evita search() repetido para la misma categoría
+        db_name = self.env.cr.dbname
+        cache_key = (db_name, category_id)
+        if cache_key in _CATEGORY_CACHE:
+            return _CATEGORY_CACHE[cache_key]
+
         if not meli:
             meli = self.get_meli(meli=meli)
             if meli.need_login():
@@ -328,8 +341,6 @@ class mercadolibre_category(models.Model):
                 www_cat_id = ml_cat.public_category_id
 
         if not www_cat_id and ml_cat_id:
-            #_logger.info( "Creating category: " + str(category_id) )
-            #https://api.mercadolibre.com/categories/MLA1743
             www_cat_id = self.create_ecommerce_category( category_id=category_id, meli=meli, create_missing_website=create_missing_website )
 
             if www_cat_id:
@@ -337,7 +348,9 @@ class mercadolibre_category(models.Model):
                 if (len(p_cat_id)):
                     cat_fields['public_category_id'] = www_cat_id
                     cat_fields['public_category'] = p_cat_id.id
-                #cat_fields['public_category'] = p_cat_id
+
+        # Guardar en cache para próximas llamadas con la misma categoría
+        _CATEGORY_CACHE[cache_key] = (mlcatid, www_cat_id)
 
         return mlcatid, www_cat_id
 

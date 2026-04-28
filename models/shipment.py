@@ -636,12 +636,21 @@ class mercadolibre_shipment(models.Model):
                 product_shipping_id = product_shipping_id[0]
             else:
                 product_shipping_id = None
+                # categ_id is NOT NULL on product.template; resolve a safe
+                # default (the standard "All" category) before creating the
+                # shipping service product, falling back to any existing
+                # category or creating one if none exist.
+                default_categ = self.env.ref('product.product_category_all', raise_if_not_found=False)
+                if not default_categ:
+                    default_categ = self.env['product.category'].search([], limit=1)
+                if not default_categ:
+                    default_categ = self.env['product.category'].create({'name': 'All'})
                 ship_prod = {
                     "name": ship_name,
                     "default_code": ship_default_code,
                     "type": "service",
                     #"taxes_id": None
-                    #"categ_id": 279,
+                    "categ_id": default_categ.id,
                     "company_id": company.id
                 }
                 #_logger.info(ship_prod)
@@ -677,7 +686,11 @@ class mercadolibre_shipment(models.Model):
             all_company_ok = False
             if ship_carrier_id and product_shipping_id:
                 all_company_ok = ship_carrier_id.company_id == sorder.company_id and product_shipping_id.company_id == sorder.company_id
-                sorder.message_post(body=str("Companias Coinciden OK, Carrier, Servicio de envio y Pedido"))
+                already_notified = sorder.message_ids.filtered(
+                    lambda m: m.body and "Companias Coinciden OK" in (m.body or "")
+                )
+                if not already_notified:
+                    sorder.message_post(body=str("Companias Coinciden OK, Carrier, Servicio de envio y Pedido"))
 
                 if all_company_ok == False:
                     #try and check to set or change products and carriers
@@ -719,7 +732,7 @@ class mercadolibre_shipment(models.Model):
             if type(delivery_price)==tuple and len(delivery_price):
                 delivery_price = delivery_price[0]
 
-            conflict = abs( sorder.meli_paid_amount - sorder.meli_total_amount + sorder.meli_coupon_amount ) > 1.0
+            conflict = abs( sorder.meli_paid_amount - sorder.meli_total_amount + (sorder.meli_discount_seller_amount or sorder.meli_coupon_amount) ) > 1.0
 
             received_amount = sorder.meli_amount_to_invoice( meli=meli, config=config )
             conflict = ( received_amount == 0.0 )
@@ -1549,7 +1562,7 @@ class mercadolibre_shipment(models.Model):
                                                                                     ('order_id','=',shipment.sale_order.id)] )
 
                                 if not saleorderline_item_ids:
-                                    if sorder_pack.amount_total<(sorder_pack.meli_paid_amount-sorder_pack.meli_coupon_amount):
+                                    if sorder_pack.amount_total<(sorder_pack.meli_paid_amount-(sorder_pack.meli_discount_seller_amount or sorder_pack.meli_coupon_amount)):
                                         #_logger.info("Sale Order Pack Create line")
                                         saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
                                 

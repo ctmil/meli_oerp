@@ -231,6 +231,7 @@ class sale_order(models.Model):
     meli_paid_amount = fields.Float(string='Paid amount',help='Paid amount (include shipping cost)')
     meli_fee_amount = fields.Float(string='Fee amount',help="Comisión")
     meli_coupon_amount = fields.Float(string='Coupont amount',help="Descuento",default=0.0)
+    meli_discount_seller_amount = fields.Float(string='Discount Seller Amount',help="Monto del descuento que absorbe el vendedor (desde /orders/{id}/discounts)",default=0.0)
     meli_financing_fee_amount = fields.Float(string='Financing fee amount',help="Financiamiento",default=0.0)
 
     meli_currency_id = fields.Char(string='Currency ML')
@@ -388,26 +389,27 @@ class sale_order(models.Model):
             #resolve always as conflict
             return 0
 
+        seller_discount = self.meli_discount_seller_amount or 0.0
+
         if total_config in ['manual_conflict']:
 
             if abs(self.meli_total_amount - self.meli_paid_amount + self.meli_coupon_amount)<1.0:
                 if ( meli_shipment and meli_shipment.shipping_cost>0 and meli_shipment.shipping_list_cost>0 ):
                     return 0
-                return (self.meli_paid_amount - self.meli_coupon_amount)
+                return (self.meli_paid_amount - seller_discount)
             else:
                 #conflict if do not match
                 if ( meli_shipment and meli_shipment.shipping_cost>0 and meli_shipment.shipping_list_cost>0 ):
                     if ( self.meli_total_amount + self.meli_shipping_cost - self.meli_paid_amount )<1.0:
-                        return (self.meli_paid_amount - self.meli_coupon_amount)
+                        return (self.meli_paid_amount - seller_discount)
                 return 0
 
         if total_config in ['paid_amount','transaction_amount']:
 
             if (including_shipping_cost=="never"):
-                #sacamos le precio del envio
-                return (self.meli_paid_amount - self.meli_coupon_amount - self.meli_shipping_amount)
+                return (self.meli_paid_amount - seller_discount - self.meli_shipping_amount)
 
-            return (self.meli_paid_amount - self.meli_coupon_amount)
+            return (self.meli_paid_amount - seller_discount)
 
         if total_config in ['total_amount']:
             return self.meli_total_amount
@@ -1525,10 +1527,51 @@ class mercadolibre_orders(models.Model):
 
         return full_phone
 
+    def _fetch_order_discounts(self, meli=None):
+        """Fetch /orders/{order_id}/discounts to determine seller-funded discount amount.
+        Sets discount_seller_amount = sum of amounts.seller from all discount items.
+        If seller=0 for all items, the discount is fully ML-funded and doesn't affect the SO price."""
+        if not meli or not self.order_id:
+            return
+        try:
+            response = meli.get("/orders/"+str(self.order_id)+"/discounts", {'access_token': meli.access_token})
+            rjson = response.json()
+            if not rjson or 'details' not in rjson:
+                return
+            seller_total = 0.0
+            for detail in rjson.get('details', []):
+                for item in detail.get('items', []):
+                    amounts = item.get('amounts', {})
+                    seller_total += float(amounts.get('seller', 0) or 0)
+            self.discount_seller_amount = seller_total
+            _logger.info("MELI discounts for order %s: seller_amount=%.2f (coupon_amount=%.2f)",
+                         self.order_id, seller_total, self.coupon_amount)
+        except Exception as e:
+            _logger.info("MELI: Could not fetch /orders/%s/discounts: %s", self.order_id, e)
+            self._estimate_seller_discount_from_charges()
+
+    def _estimate_seller_discount_from_charges(self):
+        """Fallback: estimate seller discount from payment charges (mercadolibre.payment.charge).
+        If coupon account_from='collector' -> seller pays; from='ml' -> ML pays."""
+        if not self.sale_order:
+            return
+        seller_total = 0.0
+        charge_model = self.env.get('mercadolibre.payment.charge')
+        if not charge_model:
+            return
+        for meli_order in self.sale_order.meli_orders:
+            for payment in meli_order.payments:
+                if not hasattr(payment, 'charge_ids'):
+                    continue
+                for charge in payment.charge_ids:
+                    if charge.charge_type == 'coupon' and charge.account_from == 'collector':
+                        seller_total += float(charge.amount_original or 0)
+        self.discount_seller_amount = seller_total
+
     def _set_product_unit_price( self, product_related_obj, Item, config=None ):
         order = self
-        #unit price after applied taxes
-        unit_price = float(Item['unit_price'])- float(float(order.coupon_amount)/float(Item['quantity']))
+        seller_discount = float(order.discount_seller_amount or 0)
+        unit_price = float(Item['unit_price']) - float(seller_discount / float(Item['quantity']))
         upd_line = {
             "price_unit": ml_product_price_conversion( self, product_related_obj=product_related_obj, price=unit_price, config=config )
         }
@@ -3238,6 +3281,11 @@ class mercadolibre_orders(models.Model):
             #_logger.info(order_fields)
             order = order_obj.create( (order_fields))
 
+        # Fetch discount details from ML API to determine seller-funded portion
+        if order and order.coupon_amount > 0:
+            order._fetch_order_discounts(meli=meli)
+            meli_order_fields['meli_discount_seller_amount'] = order.discount_seller_amount or 0.0
+
         if (sorder and sorder.id):
             #_logger.info("Updating sale.order: %s" % (sorder.id))
             if (sorder.state in ['sale','done']) or ("locked" in sorder._fields and sorder.locked):
@@ -3583,7 +3631,7 @@ class mercadolibre_orders(models.Model):
                                                                         ('order_id','=',sorder.id)], limit=1 )
 
                     if not saleorderline_item_ids:
-                        if sorder.meli_paid_amount==0.0 or 1.1<abs((sorder.meli_paid_amount-sorder.meli_coupon_amount)-sorder.amount_total):
+                        if sorder.meli_paid_amount==0.0 or 1.1<abs((sorder.meli_paid_amount-(sorder.meli_discount_seller_amount or 0))-sorder.amount_total):
                             saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
                     
                     if saleorderline_item_ids:
@@ -4199,24 +4247,23 @@ class mercadolibre_orders(models.Model):
 
 
     def search_order_order_product(self, operator, value):
-        #_logger.info(search_order_item_product_id")
-        #_logger.info(operator)
-        #_logger.info(value)
+        if operator == '!=' and value is False:
+            operator = '='
+            value = True
+        elif operator == '!=' and value is True:
+            operator = '='
+            value = False
         if operator == '=':
             #name = self.env.context.get('name', False)
             #if name is not False:
             id_list = []
-            #_logger.info(self.env.context)
-            #name = self.env.context.get('name', False)
             order_items = []
             if value == True:
                 order_items = self.env['mercadolibre.order_items'].search([('product_id','!=',False)], limit=10000)
             else:
                 order_items = self.env['mercadolibre.order_items'].search([('product_id','=',False)], limit=10000)
 
-            #if (value):
             for item in order_items:
-                #if (value in p.meli_publications):
                 id_list.append(item.order_id.id)
 
             return [('id', 'in', id_list)]
@@ -4225,6 +4272,7 @@ class mercadolibre_orders(models.Model):
                 'The field name is not searchable'
                 ' with the operator: {}',format(operator)
             )
+            return [('id', 'in', [])]
 
     order_items = fields.One2many('mercadolibre.order_items','order_id',string='Order Items' )
 
@@ -4292,6 +4340,7 @@ class mercadolibre_orders(models.Model):
     shipping_list_cost = fields.Float(string='Shipping List Cost',help='Gastos de envío, costo de lista/interno')
     paid_amount = fields.Float(string='Paid amount',help='Includes shipping cost')
     coupon_amount = fields.Float(string='Coupon amount',help='Descuento',default=0.0)
+    discount_seller_amount = fields.Float(string='Discount Seller Amount',help='Monto del descuento absorbido por el vendedor',default=0.0)
     currency_id = fields.Char(string='Currency')
     buyer =  fields.Many2one( "mercadolibre.buyers","Buyer")
     buyer_billing_info = fields.Text(string="Billing Info")
