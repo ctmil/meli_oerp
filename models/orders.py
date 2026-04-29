@@ -99,6 +99,19 @@ class sale_order(models.Model):
     meli_order_id =  fields.Char(string='Meli Order Id',index=True)
     meli_orders = fields.Many2many('mercadolibre.orders',string="ML Orders")
 
+    MELI_STATUS_LABELS = {
+        "paid ship-ready_to_shipprinted":        "Etiqueta impresa",
+        "paid ship-ready_to_shipready_to_print": "Lista para imprimir",
+        "paid ship-ready_to_ship":               "Listo para enviar",
+        "paid ship-shippedout_for_delivery":     "En camino - en reparto",
+        "paid ship-shipped":                     "En camino",
+        "paid ship-delivered":                   "Entregado",
+        "paid ship-not_delivered":               "No entregado",
+        "paid ship-":                            "Pagado",
+        "payment_in_process ship-":              "Pago en proceso",
+        "cancelled ship-":                       "Cancelado",
+    }
+
     def _meli_status_brief(self):
         # WARNING: This is a computed field - it must NEVER modify data or call APIs
         # Calling update_order_status() here was causing multiple pickings to be created
@@ -109,7 +122,8 @@ class sale_order(models.Model):
                 # Only read existing values, do NOT call update_order_status()
                 order.meli_status = morder.status
                 order.meli_status_detail = morder.status_detail
-                order.meli_status_brief = str(morder.status or '')+" ship-"+( (morder.shipment_status and str(morder.shipment_status)) or "" ) + ( (morder.shipment_substatus and str(morder.shipment_substatus)) or "")
+                raw = str(morder.status)+" ship-"+( (morder.shipment_status and str(morder.shipment_status)) or "" ) + ( (morder.shipment_substatus and str(morder.shipment_substatus)) or "")
+                order.meli_status_brief = self.MELI_STATUS_LABELS.get(raw, raw)
             else:
                 order.meli_status_brief = "-"
                 order.meli_status =  order.meli_status
@@ -496,6 +510,9 @@ class sale_order(models.Model):
         - Si hay albaranes entregados (done), crea devoluciones automaticamente.
         - Si hay facturas publicadas (posted), intenta resetearlas a borrador o
           notifica que se requiere una nota de credito manual.
+        - Facturas: delega a _meli_cancel_invoices() si existe (respeta
+          mercadolibre_invoice_cancel_mode). Si no existe el método, NO toca
+          las facturas y postea en el chatter para gestión manual.
         - Cancela la orden de venta (desbloqueandola si hace falta) y postea
           el motivo en el chatter de la orden y de cada factura involucrada.
         """
@@ -504,43 +521,50 @@ class sale_order(models.Model):
         # (action_create_returns / create_returns) y evita crear devoluciones duplicadas.
         self._meli_return_done_pickings()
 
-        # 2. Gestionar facturas existentes
+        # 2. Gestionar facturas existentes — delegar a la política de configuración
         _has_unresolved_posted_invoice = False
-        for invoice in self.invoice_ids:
-            if invoice.state == 'posted':
-                # Intentar resetear a borrador para poder cancelar
-                reverted = False
-                try:
-                    invoice.button_draft()
-                    reverted = True
-                    invoice.message_post(
+        if hasattr(self, '_meli_cancel_invoices'):
+            try:
+                self._meli_cancel_invoices()
+            except Exception as e:
+                _logger.warning("meli_cancel_with_detail: _meli_cancel_invoices falló para %s: %s", self.name, e)
+        else:
+            # Sin módulo accounting: solo notificar, no tocar facturas
+            for invoice in self.invoice_ids:
+                if invoice.state == 'posted':
+                    # Intentar resetear a borrador para poder cancelar
+                    reverted = False
+                    try:
+                        invoice.button_draft()
+                        reverted = True
+                        invoice.message_post(
                         body=cancel_msg + " — Factura revertida a borrador por cancelación de orden en MercadoLibre.",
                         message_type=order_message_type
-                    )
-                except Exception as e:
-                    _logger.warning("meli_cancel_with_detail: no se pudo revertir factura %s a borrador: %s", invoice.name, e)
-                if not reverted:
-                    # No se pudo revertir: la orden NO debe cancelarse automáticamente.
-                    # El usuario debe crear una Nota de Crédito manualmente desde la factura.
-                    _has_unresolved_posted_invoice = True
-                    invoice.message_post(
+                        )
+                    except Exception as e:
+                        _logger.warning("meli_cancel_with_detail: no se pudo revertir factura %s a borrador: %s", invoice.name, e)
+                    if not reverted:
+                        # No se pudo revertir: la orden NO debe cancelarse automáticamente.
+                        # El usuario debe crear una Nota de Crédito manualmente desde la factura.
+                        _has_unresolved_posted_invoice = True
+                        invoice.message_post(
                         body=cancel_msg + " — ⚠️ ACCIÓN REQUERIDA: esta factura no pudo revertirse a borrador. "
-                             "Debe crear una NOTA DE CRÉDITO manualmente para reversarla. "
-                             "La orden de venta NO fue cancelada automáticamente para permitir la gestión.",
+                            "Debe crear una NOTA DE CRÉDITO manualmente para reversarla. "
+                            "La orden de venta NO fue cancelada automáticamente para permitir la gestión.",
                         message_type=order_message_type
-                    )
-                    self.message_post(
+                        )
+                        self.message_post(
                         body="⚠️ Cancelación de ML pendiente: factura %s publicada no pudo revertirse. "
-                             "Crear nota de crédito desde la factura y luego cancelar la orden manualmente. "
-                             "Motivo ML: %s" % (invoice.name, cancel_msg),
+                            "Crear nota de crédito desde la factura y luego cancelar la orden manualmente. "
+                            "Motivo ML: %s" % (invoice.name, cancel_msg),
                         message_type=order_message_type
-                    )
-            elif invoice.state == 'draft':
-                try:
-                    if hasattr(invoice, 'button_cancel'):
-                        invoice.button_cancel()
-                except Exception as e:
-                    _logger.warning("meli_cancel_with_detail: no se pudo cancelar borrador de factura %s: %s", invoice.name, e)
+                        )
+                elif invoice.state == 'draft':
+                    try:
+                        if hasattr(invoice, 'button_cancel'):
+                            invoice.button_cancel()
+                    except Exception as e:
+                        _logger.warning("meli_cancel_with_detail: no se pudo cancelar borrador de factura %s: %s", invoice.name, e)
 
         # Verificar si quedaron facturas publicadas sin resolver
         posted_invoices = self.invoice_ids.filtered(lambda inv: inv.state == 'posted' and inv.move_type == 'out_invoice')
