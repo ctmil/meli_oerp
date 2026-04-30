@@ -78,6 +78,15 @@
             <field name="inherit_id" ref="sale.view_order_form"/>
             <field name="arch" type="xml">
                 <data>
+                    <!-- Banner de cancelación ML: visible solo en órdenes canceladas en Odoo -->
+                    <!-- Banner de acción requerida: cancelada en ML pero NO en Odoo -->
+                    <xpath expr="//div[@name='button_box']" position="after">
+                        <field name="meli_cancel_pending_banner" widget="html" readonly="1" nolabel="1"
+                               invisible="not meli_cancel_pending_banner"/>
+                        <field name="meli_cancel_banner" widget="html" readonly="1" nolabel="1"
+                               invisible="not meli_cancel_banner"/>
+                    </xpath>
+
                     <notebook>
                         <page string="MercadoLibre" invisible="meli_order_id==False"
                                 groups="meli_oerp.group_mercadolibre_manager">
@@ -113,6 +122,7 @@
                               <field name="meli_fee_amount" widget="monetary" invisible="0"/>
                               <field name="meli_paid_amount" widget="monetary" invisible="0"/>
                               <field name="meli_coupon_amount" widget="monetary" invisible="0"/>
+                              <field name="meli_discount_seller_amount" widget="monetary" invisible="0"/>
                               <field name="meli_financing_fee_amount" widget="monetary" invisible="0"/>
                               <field name="meli_currency_id" invisible="0"/>
                               <field name="meli_date_created" invisible="0"/>
@@ -296,7 +306,34 @@
                  <field name="buyer" string="Comprador"/>
                  <field name="company_id" string="Compania"/>
                  <field name="seller_id" string="Vendedor"/>
-                 <!--field name="seller" string="Vendedor"/-->
+                 <separator/>
+                 <filter name="filter_no_product" string="Sin producto asignado"
+                         domain="[('order_items.product_id','=',False)]"/>
+                 <filter name="filter_has_product" string="Con producto asignado"
+                         domain="[('order_items.product_id','!=',False)]"/>
+                 <separator/>
+                 <filter name="filter_confirmed" string="Confirmadas"
+                         domain="[('status','=','confirmed')]"/>
+                 <filter name="filter_paid" string="Pagadas"
+                         domain="[('status','=','paid')]"/>
+                 <filter name="filter_cancelled" string="Canceladas"
+                         domain="[('status','=','cancelled')]"/>
+                 <separator/>
+                 <filter name="filter_has_pack" string="Con Pack"
+                         domain="[('pack_id','!=',False)]"/>
+                 <separator/>
+                 <filter name="group_pack_id" string="Pack Id"
+                         context="{'group_by': 'pack_id'}"/>
+                 <filter name="group_status" string="Estado"
+                         context="{'group_by': 'status'}"/>
+                 <filter name="group_logistic_type" string="Tipo logístico"
+                         context="{'group_by': 'shipment_logistic_type'}"/>
+                 <filter name="group_seller" string="Vendedor"
+                         context="{'group_by': 'seller_id'}"/>
+                 <filter name="group_buyer" string="Comprador"
+                         context="{'group_by': 'buyer'}"/>
+                 <filter name="group_shipment_status" string="Estado de envío"
+                         context="{'group_by': 'shipment_status'}"/>
     	         </search>
             </field>
         </record>
