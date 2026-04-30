@@ -88,7 +88,8 @@
                     </xpath>
 
                     <notebook>
-                        <page string="MercadoLibre" invisible="meli_order_id==False">
+                        <page string="MercadoLibre" invisible="meli_order_id==False"
+                                groups="meli_oerp.group_mercadolibre_manager">
                             <button name='meli_oerp_update' type="object"
                             string="Actualizar"
                             invisible="meli_order_id==False"
@@ -141,7 +142,7 @@
                 <data>
                     <notebook>
                         <page string="MercadoLibre"
-			                         invisible="meli_buyer_id == False">
+                              invisible="meli_buyer_id == False">
                           <group>
                             <field name="meli_buyer_id" invisible="0"/>
                             <field name="meli_buyer" invisible="0"/>

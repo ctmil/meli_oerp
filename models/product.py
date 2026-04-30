@@ -47,6 +47,36 @@ from .versions import *
 
 from html.parser import HTMLParser
 
+
+_MELI_PRODUCT_DOMAINS = {
+    'MLB': 'https://produto.mercadolivre.com.br',
+    'MLA': 'https://articulo.mercadolibre.com.ar',
+    'MLM': 'https://articulo.mercadolibre.com.mx',
+    'MCO': 'https://articulo.mercadolibre.com.co',
+    'MPE': 'https://articulo.mercadolibre.com.pe',
+    'MLC': 'https://articulo.mercadolibre.cl',
+    'MLU': 'https://articulo.mercadolibre.com.uy',
+    'MLV': 'https://articulo.mercadolibre.com.ve',
+    'MRD': 'https://articulo.mercadolibre.com.do',
+    'MPA': 'https://articulo.mercadolibre.com.pa',
+    'MPY': 'https://articulo.mercadolibre.com.py',
+    'MEC': 'https://articulo.mercadolibre.com.ec',
+    'MBO': 'https://articulo.mercadolibre.com.bo',
+}
+
+def _meli_short_permalink(meli_id):
+    """URL corta canónica construida directamente desde el meli_id guardado.
+    Formato: https://<dominio-pais>/<SITE>-<NUMEROID>
+    No requiere llamada a la API."""
+    if not meli_id:
+        return ''
+    k = next((i for i, c in enumerate(meli_id) if c.isdigit()), len(meli_id))
+    if k >= len(meli_id):
+        return ''
+    site = meli_id[:k]
+    domain = _MELI_PRODUCT_DOMAINS.get(site, 'https://www.mercadolibre.com')
+    return domain + '/' + site + '-' + meli_id[k:]
+
 class MyHTMLParser(HTMLParser):
 
     full_text = ""
@@ -368,6 +398,18 @@ class product_template(models.Model):
                           Si se proporciona, se usara para asignar imagenes especificas
                           a cada variante segun su color/atributo.
         """
+        # Determinar idioma del conector para leer traducciones correctas de atributos
+        _COUNTRY_LANG_MAP = {
+            'BR': 'pt_BR', 'AR': 'es_AR', 'MX': 'es_MX', 'CO': 'es_CO',
+            'CL': 'es_CL', 'PE': 'es_PE', 'UY': 'es_UY', 'VE': 'es_VE',
+            'EC': 'es_EC', 'BO': 'es_BO', 'PY': 'es_PY',
+        }
+        _meli_lang = None
+        if config and 'country_id' in config._fields and config.country_id:
+            _meli_lang = _COUNTRY_LANG_MAP.get(config.country_id.code)
+        if not _meli_lang and config and 'company_id' in config._fields and config.company_id:
+            _meli_lang = config.company_id.partner_id.lang
+
         variations = False
         for product_tmpl in self:
             for variant in product_tmpl.product_variant_ids:
@@ -375,7 +417,7 @@ class product_template(models.Model):
                     variant.meli_pub = True
 
                     #COMBINACIONES: Color, Talle, etc...
-                    var = variant._combination()
+                    var = variant._combination(lang=_meli_lang)
                     var_pics = []
                     var_pics_full = []
 
@@ -1991,7 +2033,6 @@ class product_product(models.Model):
             'meli_imagen_id': imagen_id,
             #'meli_post_required': True,
             'meli_id': rjson['id'],
-            'meli_permalink': rjson['permalink'],
             'meli_title': str(rjson['title']),
             'meli_family_name': str(rjson['family_name']),
             'meli_description': desplain,
@@ -2842,24 +2883,13 @@ class product_product(models.Model):
 
         ML_status = "unknown"
         ML_sub_status = ""
-        ML_permalink = ""
         ML_permalink_edit = ""
         ML_permalink_api = ""
         ML_state = False
-        #meli = None
-        #self.meli_status = ML_status
-        #self.meli_sub_status = ML_sub_status
-        #self.meli_permalink = ML_permalink
-        #self.meli_state = ML_state
-        #return {}
         meli = self.env['meli.util'].get_new_instance(company)
-        #if not meli.access_token:
-        #    _logger.info("returning: "+str(meli))
-            #return {}
 
         if meli and meli.need_login():
             ML_status = "unknown"
-            ML_permalink = ""
             ML_permalink_edit = ""
             ML_permalink_api = ""
             ML_state = True
@@ -2871,12 +2901,10 @@ class product_product(models.Model):
                 if "status" in rjson:
                     ML_status = rjson["status"]
                 if "permalink" in rjson:
-                    ML_permalink = rjson["permalink"]
                     ML_permalink_edit = company.get_ML_LINK_URL(meli=meli)+str("publicaciones/")+str(product.meli_id)+str("/modificar")
-                    ML_permalink_api = str("https://api.mercadolibre.com/items/")+str(product.meli_id)+str("?include_attributes=all")
+                    ML_permalink_api = str("https://api.mercadolibre.com/items/")+str(product.meli_id)+str("?include_attributes=all&access_token="+str(meli and meli.access_token))
                 if "error" in rjson:
                     ML_status = rjson["error"]
-                    ML_permalink = ""
                 if "sub_status" in rjson:
                     if len(rjson["sub_status"]):
                         ML_sub_status =  rjson["sub_status"][0]
@@ -2885,10 +2913,13 @@ class product_product(models.Model):
 
             product.meli_status = ML_status
             product.meli_sub_status = ML_sub_status
-            product.meli_permalink = ML_permalink
             product.meli_permalink_edit = ML_permalink_edit
             product.meli_permalink_api = ML_permalink_api
             product.meli_state = ML_state
+
+    def _compute_meli_permalink(self):
+        for product in self:
+            product.meli_permalink = _meli_short_permalink(product.meli_id or '')
 
     def _is_value_excluded(self, att_value ):
         company = self.env.user.company_id
@@ -2923,7 +2954,7 @@ class product_product(models.Model):
         return conditionok
 
     #return all combinations for this product variants, based on tamplate attributes selected
-    def _combination(self):
+    def _combination(self, lang=None):
         var_comb = False
         product = self
         product_tmpl = self.product_tmpl_id
@@ -2975,8 +3006,10 @@ class product_product(models.Model):
         custom_name = ""
         custom_values = ""
         for att in customs:
-            custom_name = custom_name + sep + att.attribute_id.name.capitalize()
-            custom_values = custom_values + sep + att.name.capitalize()
+            _att_name = att.with_context(lang=lang).attribute_id.name.capitalize() if lang else att.attribute_id.name.capitalize()
+            _att_val  = att.with_context(lang=lang).name.capitalize() if lang else att.name.capitalize()
+            custom_name = custom_name + sep + _att_name
+            custom_values = custom_values + sep + _att_val
             sep = "."
 
         if (len(customs)):
@@ -2990,10 +3023,11 @@ class product_product(models.Model):
             if (att.attribute_id.name.capitalize() in att_to_pub):
                 if (att.attribute_id.meli_default_id_attribute.id):
                     if (att.attribute_id.meli_default_id_attribute.variation_attribute):
+                        _val_name = att.with_context(lang=lang).name.capitalize() if lang else att.name.capitalize()
                         att_combination = {
                             "name":att.attribute_id.meli_default_id_attribute.name.capitalize(),
                             "id": att.attribute_id.meli_default_id_attribute.att_id,
-                            "value_name": att.name.capitalize(),
+                            "value_name": _val_name,
                         }
                         var_comb["attribute_combinations"].append(att_combination)
 
@@ -3179,33 +3213,91 @@ class product_product(models.Model):
         return updated_row_size_attribute
 
 
-    def _update_sale_terms( self, meli, productjson=None ):
-        #check and fix warranty:
-        # default is Garantia del Vendedor
-        # but can recognized Garantía de fǽbrica: or Sin garantía
+    # Mapeo de tipo de garantía por idioma (ML acepta el nombre localizado en value_name)
+    _WARRANTY_TYPE_BY_LANG = {
+        # Brasil (pt_BR)
+        'pt_BR': {
+            'seller':    'Garantia do vendedor',
+            'factory':   'Garantia de fábrica',
+            'no_warranty': 'Sem garantia',
+        },
+        # Argentina / España / genérico
+        'es_AR': {
+            'seller':    'Garantía del vendedor',
+            'factory':   'Garantía de fábrica',
+            'no_warranty': 'Sin garantía',
+        },
+        'es': {
+            'seller':    'Garantía del vendedor',
+            'factory':   'Garantía de fábrica',
+            'no_warranty': 'Sin garantía',
+        },
+        'en_US': {
+            'seller':    "Seller's warranty",
+            'factory':   "Manufacturer's warranty",
+            'no_warranty': 'No warranty',
+        },
+    }
+
+    def _update_sale_terms(self, meli, productjson=None, config=None):
         product = self
         sale_terms = []
 
-        #WARRANTY
-        #st_warranty_type = meli.get_sale_terms( sale_term_id="WARRANTY_TYPE")
-        #st_warranty_time = meli.get_sale_terms( sale_term_id="WARRANTY_TIME")
+        if not product.meli_warranty:
+            return sale_terms
 
-        if product.meli_warranty:
+        w = product.meli_warranty.lower()
 
-            is_fabrica = "Garantía de fábrica" in product.meli_warranty
-            is_vendedor = "Garantía de vendedor" in product.meli_warranty
-            is_sin_garantia = "Sin garantía" in product.meli_warranty
+        # Detectar tipo por palabras clave (independiente del idioma)
+        is_vendedor    = any(k in w for k in ('vendedor', 'seller', 'vendor'))
+        is_fabrica     = any(k in w for k in ('fábrica', 'fabrica', 'fabric', 'manufacturer', 'fabricante'))
+        is_sin_garantia = any(k in w for k in ('sin garantía', 'sin garantia', 'sem garantia', 'no warranty', 'without warranty'))
 
-            if is_vendedor:
-               sale_terms.append({ "id": "WARRANTY_TYPE", "value_name": "Garantía de vendedor" })
-               sale_terms.append({ "id": "WARRANTY_TIME", "value_name": product.meli_warranty.replace("Garantía de vendedor: ", "" ) })
+        # Determinar idioma del país de la conexión
+        _COUNTRY_LANG = {
+            'BR': 'pt_BR', 'AR': 'es_AR', 'MX': 'es', 'CO': 'es',
+            'CL': 'es', 'UY': 'es', 'PE': 'es', 'VE': 'es',
+            'US': 'en_US', 'GB': 'en_US',
+        }
+        _lang = 'es'
+        if config and 'country_id' in config._fields and config.country_id:
+            _lang = _COUNTRY_LANG.get(config.country_id.code, 'es')
+        elif config and 'company_id' in config._fields and config.company_id:
+            _lang = _COUNTRY_LANG.get(
+                config.company_id.country_id.code if config.company_id.country_id else '', 'es'
+            )
 
-            if is_fabrica:
-               sale_terms.append({ "id": "WARRANTY_TYPE", "value_name": "Garantía de fábrica" })
-               sale_terms.append({ "id": "WARRANTY_TIME", "value_name": product.meli_warranty.replace("Garantía de fábrica: ", "" ) })
+        _wmap = self._WARRANTY_TYPE_BY_LANG.get(_lang) or self._WARRANTY_TYPE_BY_LANG.get('es')
 
-            if is_sin_garantia:
-               sale_terms.append({ "id": "WARRANTY_TYPE", "value_name": "Sin garantía" })
+        # Extraer el tiempo de garantía eliminando cualquier prefijo conocido
+        _time_raw = product.meli_warranty
+        for _prefix in (
+            'Garantía del vendedor: ', 'Garantía de vendedor: ',
+            'Garantia do vendedor: ', "Seller's warranty: ",
+            'Garantía de fábrica: ', 'Garantia de fábrica: ',
+            "Manufacturer's warranty: ", 'Garantía de fábrica: ',
+            'Sin garantía', 'Sem garantia', 'No warranty',
+        ):
+            if _time_raw.startswith(_prefix):
+                _time_raw = _time_raw[len(_prefix):]
+                break
+        _time_raw = _time_raw.strip()
+
+        if is_sin_garantia:
+            sale_terms.append({'id': 'WARRANTY_TYPE', 'value_name': _wmap['no_warranty']})
+        elif is_fabrica:
+            sale_terms.append({'id': 'WARRANTY_TYPE', 'value_name': _wmap['factory']})
+            if _time_raw:
+                sale_terms.append({'id': 'WARRANTY_TIME', 'value_name': _time_raw})
+        elif is_vendedor:
+            sale_terms.append({'id': 'WARRANTY_TYPE', 'value_name': _wmap['seller']})
+            if _time_raw:
+                sale_terms.append({'id': 'WARRANTY_TIME', 'value_name': _time_raw})
+        else:
+            # Sin prefijo reconocido → asumir garantía del vendedor
+            sale_terms.append({'id': 'WARRANTY_TYPE', 'value_name': _wmap['seller']})
+            if product.meli_warranty.strip():
+                sale_terms.append({'id': 'WARRANTY_TIME', 'value_name': product.meli_warranty.strip()})
 
         return sale_terms
 
@@ -3555,7 +3647,7 @@ class product_product(models.Model):
             "condition": product.meli_condition  or '',
             "available_quantity": product.meli_available_quantity  or '0',
             #"warranty": product.meli_warranty or '',
-            "sale_terms": product._update_sale_terms( meli=meli, productjson=productjson ),
+            "sale_terms": product._update_sale_terms( meli=meli, productjson=productjson, config=config ),
             #"pictures": [ { 'source': product.meli_imagen_logo} ] ,
             "video_id": product.meli_video  or '',
         }
@@ -3621,7 +3713,7 @@ class product_product(models.Model):
                 #"condition": product.meli_condition or '',
                 "available_quantity": product.meli_available_quantity or '0',
                 #"warranty": product.meli_warranty or '',
-                "sale_terms": product._update_sale_terms( meli=meli, productjson=productjson ),
+                "sale_terms": product._update_sale_terms( meli=meli, productjson=productjson, config=config ),
 
                 "pictures": [],
                 "video_id": product.meli_video or '',
@@ -4448,7 +4540,7 @@ class product_product(models.Model):
     meli_multi_imagen_id = fields.Char(string='Multi Imagen Ids', size=512)
     meli_video = fields.Char(string='Video (id de youtube)', default='')
 
-    meli_permalink = fields.Char( compute=product_get_meli_update, size=256, string='Link',help='PermaLink in MercadoLibre' )
+    meli_permalink = fields.Char( compute='_compute_meli_permalink', size=256, string='Link', help='PermaLink en MercadoLibre (calculado desde meli_id, sin llamada API)', depends=['meli_id'] )
     meli_permalink_edit = fields.Char( compute=product_get_meli_update, size=256, string='Link Edit',help='PermaLink Edit in MercadoLibre' )
     meli_permalink_api = fields.Char( compute=product_get_meli_update, size=256, string='Link Api',help='PermaLink Api in MercadoLibre' )
     meli_state = fields.Boolean( compute=product_get_meli_update, string='Login',help="Inicio de sesión requerida" )
