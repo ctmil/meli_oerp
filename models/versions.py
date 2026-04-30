@@ -62,6 +62,11 @@ def sql_constraints_if_no_unique_index(constraints):
     constraints: list of (name, fields_expr, message)
     - Odoo 17+  : returns []          (UniqueIndex handles the constraint)
     - Odoo < 17 : returns the list    (classic _sql_constraints fallback)
+
+    Note: On Odoo 19+ this still triggers a cosmetic deprecation warning
+    ("_sql_constraints is no longer supported") even for empty lists, because
+    the attribute exists in the class namespace. This is harmless — the actual
+    constraints are enforced by UniqueIndex declarations on the model.
     """
     if HAS_UNIQUE_INDEX:
         return []

@@ -3263,6 +3263,31 @@ class mercadolibre_orders(models.Model):
         partner_invoice_id = mercadolibre_invoice_partner_id or partner_invoice_id
         partner_shipping_id = mercadolibre_shipping_partner_id or partner_shipping_id
 
+        # Unificar los 3 contactos cuando todos comparten el mismo nombre (modo Brasil)
+        _merge_flag = ('mercadolibre_merge_same_name_contacts' in config._fields
+                       and config.mercadolibre_merge_same_name_contacts)
+        if _merge_flag and partner_id and not (sorder and sorder.id):
+            import unicodedata as _ud_m, re as _re_m
+            def _norm_m(s):
+                s = (s or '').lower().strip()
+                s = _ud_m.normalize('NFD', s)
+                s = ''.join(c for c in s if _ud_m.category(c) != 'Mn')
+                return _re_m.sub(r'\s+', ' ', s)
+            _pnorm = _norm_m(partner_id.name)
+            _inv_diff = partner_invoice_id and partner_invoice_id.id != partner_id.id
+            _shp_diff = partner_shipping_id and partner_shipping_id.id != partner_id.id
+            _all_names_match = True
+            if _inv_diff and _norm_m(partner_invoice_id.name) != _pnorm:
+                _all_names_match = False
+            if _shp_diff and _norm_m(partner_shipping_id.name) != _pnorm:
+                _all_names_match = False
+            if _all_names_match and (_inv_diff or _shp_diff):
+                _logger.info("merge_same_name_contacts: unificando contactos para '%s'", partner_id.name)
+                if _inv_diff:
+                    partner_invoice_id = partner_id
+                if _shp_diff:
+                    partner_shipping_id = partner_id
+
         meli_order_fields = self.prepare_sale_order_vals( order_json=order_json, meli=meli, config=config, sale_order=sorder )
         meli_order_fields.update({'pricelist_id': plistid.id })
 
