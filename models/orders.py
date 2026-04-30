@@ -84,6 +84,11 @@ except ImportError:
     from urllib.parse import urlencode
 
 from . import versions
+import time
+try:
+    from psycopg2 import errors as psycopg2_errors
+except ImportError:
+    psycopg2_errors = None
 from .versions import *
 
 class sale_order_line(models.Model):
@@ -4166,14 +4171,23 @@ class mercadolibre_orders(models.Model):
                         if in_range:
                             __fetch_ids.append(str(order_json["id"]))
                     else:
-                        try:
-                            ret = self.orders_update_order_json( data=pdata, config=config, meli=meli )
-                            MeliCommit( self )
-                        except Exception as e:
-                            _logger.info("orders_query_iterate > Error actualizando ORDEN")
-                            _logger.error(e, exc_info=True)
-                            MeliRollback( self )
-                            pass;
+                        _serialization_ex = psycopg2_errors.SerializationFailure if psycopg2_errors else ()
+                        for _attempt in range(3):
+                            try:
+                                ret = self.orders_update_order_json( data=pdata, config=config, meli=meli )
+                                MeliCommit( self )
+                                break
+                            except _serialization_ex as e:
+                                MeliRollback( self )
+                                if _attempt < 2:
+                                    time.sleep(0.3 * (_attempt + 1))
+                                else:
+                                    _logger.warning("orders_query_iterate > SerializationFailure tras 3 intentos, orden omitida")
+                            except Exception as e:
+                                _logger.info("orders_query_iterate > Error actualizando ORDEN")
+                                _logger.error(e, exc_info=True)
+                                MeliRollback( self )
+                                break
 
         if (offset_next>0):
             __fetch_ids = self.orders_query_iterate( offset=offset_next, meli=meli, config=config, fetch_id_only=fetch_id_only, fetch_ids=__fetch_ids )
