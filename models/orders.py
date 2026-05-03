@@ -263,6 +263,33 @@ class sale_order(models.Model):
     meli_shipment_logistic_type = fields.Char(string="Logistic Type",index=True)
     meli_update_forbidden = fields.Boolean(string="Bloqueado para actualizar desde ML",default=False, index=True)
 
+    meli_handling_limit = fields.Datetime(
+        related='meli_shipment.estimated_handling_limit',
+        readonly=True, string="Límite despacho ML")
+
+    meli_handling_limit_status = fields.Selection([
+        ('none',    'Sin fecha límite'),
+        ('ok',      'En plazo'),
+        ('urgent',  'Urgente (< 4 h)'),
+        ('overdue', 'Vencido'),
+    ], compute='_compute_so_handling_limit_status', store=False,
+       string="Estado límite despacho")
+
+    @api.depends('meli_shipment.estimated_handling_limit')
+    def _compute_so_handling_limit_status(self):
+        from datetime import timedelta
+        now = fields.Datetime.now()
+        for rec in self:
+            ehl = rec.meli_shipment.estimated_handling_limit if rec.meli_shipment else False
+            if not ehl:
+                rec.meli_handling_limit_status = 'none'
+            elif ehl < now:
+                rec.meli_handling_limit_status = 'overdue'
+            elif ehl < now + timedelta(hours=4):
+                rec.meli_handling_limit_status = 'urgent'
+            else:
+                rec.meli_handling_limit_status = 'ok'
+
     def _ml_shipping_status(self):
 
         for ord in self:
@@ -3338,6 +3365,14 @@ class mercadolibre_orders(models.Model):
                 order_fields['shipping_id'] = order_json["shipping"]["id"]
                 meli_order_fields['meli_shipping_id'] = order_json["shipping"]["id"]
 
+                # Agregar ID envío o nro seguimiento al nombre de la venta
+                shipping_label = str(order_json["shipping"]["id"])
+                if order and order.shipment and order.shipment.tracking_number:
+                    shipping_label = str(order.shipment.tracking_number)
+                current_name = meli_order_fields.get('name', '')
+                if current_name:
+                    meli_order_fields['name'] = current_name + " | " + shipping_label
+
         #create or update order
         if (order and order.id):
             #_logger.info("Updating order: %s" % (order.id))
@@ -3398,8 +3433,14 @@ class mercadolibre_orders(models.Model):
                         "en la configuracion de la cuenta MeLi.",
                         config=config)
             else:
-                #_logger.info("Adding new sale.order: " )
-                sorder = saleorder_obj.create((meli_order_fields))
+                # Sanitize vals for compatibility with auditlog (copy.deepcopy)
+                safe_meli_fields = {}
+                for k, v in meli_order_fields.items():
+                    if hasattr(v, '_ids'):
+                        safe_meli_fields[k] = v.id if len(v) == 1 else v.ids
+                    else:
+                        safe_meli_fields[k] = v
+                sorder = saleorder_obj.create(safe_meli_fields)
                 if sorder:
                     sorder.meli_fix_team( meli=meli, config=config )
                     if order:
@@ -3862,9 +3903,8 @@ class mercadolibre_orders(models.Model):
                                         _logger.info("MELI: Adding coupon as fee: %.2f (name: %s)", coupon_fee_amount, fee_name)
                                         if (order):
                                             order.fee_amount = payment_fields["fee_amount"]
-                                            # Also update coupon_amount if it wasn't set from order json
-                                            #if order.coupon_amount == 0:
-                                            #    order.coupon_amount = coupon_fee_amount
+                                            if not order.coupon_amount:
+                                                order.coupon_amount = coupon_fee_amount
 
                                 #if (fee_payer and fee_payer == "collector" and fee_type == "application_fee"):
                                 #    payment_fields["fee_amount"] = fee_detail["amount"]
@@ -3893,8 +3933,20 @@ class mercadolibre_orders(models.Model):
                     #_logger.info("Upading payment fields:"+str(payment_fields))
                     payment_ids.write( ( payment_fields ) )
 
-        #if order:
-        #    return_id = self.env['mercadolibre.orders'].update
+        # Aplicar descuento de cupón a líneas del pedido de venta
+        if order and order.coupon_amount and sorder:
+            if not sorder.meli_coupon_amount:
+                sorder.meli_coupon_amount = order.coupon_amount
+            if sorder.state not in ('done',) and not ("locked" in sorder._fields and sorder.locked):
+                non_delivery_lines = sorder.order_line.filtered(lambda l: not l.is_delivery)
+                total_line_amount = sum(l.price_unit * l.product_uom_qty for l in non_delivery_lines)
+                if total_line_amount > 0:
+                    discount_pct = (order.coupon_amount / total_line_amount) * 100.0
+                    for line in non_delivery_lines:
+                        if not line.discount:
+                            line.discount = discount_pct
+                    _logger.info("MELI: Applied coupon discount %.2f%% (coupon: %.2f / total: %.2f) to %d lines on SO %s",
+                                 discount_pct, order.coupon_amount, total_line_amount, len(non_delivery_lines), sorder.name)
 
         if (1==1 or config.mercadolibre_cron_get_orders_shipment):
             #_logger.info("Updating order: Shipment: "+str(order.shipping_id))

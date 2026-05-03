@@ -112,6 +112,8 @@
                                 <field name="mercadolibre_invoice_partner" invisible="0"/>
                                 <field name="mercadolibre_generic_vats" invisible="0"
                                        placeholder="XAXX010101000,XEXX010101000"/>
+                                <field name="mercadolibre_days_to_availability" invisible="0"/>
+                                <field name="mercadolibre_merge_same_name_contacts" invisible="0"/>
 
                                 <field name="mercadolibre_attributes" invisible="0"/>
                                 <field name="mercadolibre_exclude_attributes"  widget="many2many" options="{'no_create': True}">
