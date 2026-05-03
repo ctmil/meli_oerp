@@ -84,6 +84,11 @@ except ImportError:
     from urllib.parse import urlencode
 
 from . import versions
+import time
+try:
+    from psycopg2 import errors as psycopg2_errors
+except ImportError:
+    psycopg2_errors = None
 from .versions import *
 
 class sale_order_line(models.Model):
@@ -99,6 +104,19 @@ class sale_order(models.Model):
     meli_order_id =  fields.Char(string='Meli Order Id',index=True)
     meli_orders = fields.Many2many('mercadolibre.orders',string="ML Orders")
 
+    MELI_STATUS_LABELS = {
+        "paid ship-ready_to_shipprinted":        "Etiqueta impresa",
+        "paid ship-ready_to_shipready_to_print": "Lista para imprimir",
+        "paid ship-ready_to_ship":               "Listo para enviar",
+        "paid ship-shippedout_for_delivery":     "En camino - en reparto",
+        "paid ship-shipped":                     "En camino",
+        "paid ship-delivered":                   "Entregado",
+        "paid ship-not_delivered":               "No entregado",
+        "paid ship-":                            "Pagado",
+        "payment_in_process ship-":              "Pago en proceso",
+        "cancelled ship-":                       "Cancelado",
+    }
+
     def _meli_status_brief(self):
         # WARNING: This is a computed field - it must NEVER modify data or call APIs
         # Calling update_order_status() here was causing multiple pickings to be created
@@ -109,7 +127,8 @@ class sale_order(models.Model):
                 # Only read existing values, do NOT call update_order_status()
                 order.meli_status = morder.status
                 order.meli_status_detail = morder.status_detail
-                order.meli_status_brief = str(morder.status or '')+" ship-"+( (morder.shipment_status and str(morder.shipment_status)) or "" ) + ( (morder.shipment_substatus and str(morder.shipment_substatus)) or "")
+                raw = str(morder.status)+" ship-"+( (morder.shipment_status and str(morder.shipment_status)) or "" ) + ( (morder.shipment_substatus and str(morder.shipment_substatus)) or "")
+                order.meli_status_brief = self.MELI_STATUS_LABELS.get(raw, raw)
             else:
                 order.meli_status_brief = "-"
                 order.meli_status =  order.meli_status
@@ -243,6 +262,33 @@ class sale_order(models.Model):
     meli_shipment_pdf_filename = fields.Char(string='Pdf Filename',related="meli_shipment.pdf_filename",readonly=True)
     meli_shipment_logistic_type = fields.Char(string="Logistic Type",index=True)
     meli_update_forbidden = fields.Boolean(string="Bloqueado para actualizar desde ML",default=False, index=True)
+
+    meli_handling_limit = fields.Datetime(
+        related='meli_shipment.estimated_handling_limit',
+        readonly=True, string="Límite despacho ML")
+
+    meli_handling_limit_status = fields.Selection([
+        ('none',    'Sin fecha límite'),
+        ('ok',      'En plazo'),
+        ('urgent',  'Urgente (< 4 h)'),
+        ('overdue', 'Vencido'),
+    ], compute='_compute_so_handling_limit_status', store=False,
+       string="Estado límite despacho")
+
+    @api.depends('meli_shipment.estimated_handling_limit')
+    def _compute_so_handling_limit_status(self):
+        from datetime import timedelta
+        now = fields.Datetime.now()
+        for rec in self:
+            ehl = rec.meli_shipment.estimated_handling_limit if rec.meli_shipment else False
+            if not ehl:
+                rec.meli_handling_limit_status = 'none'
+            elif ehl < now:
+                rec.meli_handling_limit_status = 'overdue'
+            elif ehl < now + timedelta(hours=4):
+                rec.meli_handling_limit_status = 'urgent'
+            else:
+                rec.meli_handling_limit_status = 'ok'
 
     def _ml_shipping_status(self):
 
@@ -496,6 +542,9 @@ class sale_order(models.Model):
         - Si hay albaranes entregados (done), crea devoluciones automaticamente.
         - Si hay facturas publicadas (posted), intenta resetearlas a borrador o
           notifica que se requiere una nota de credito manual.
+        - Facturas: delega a _meli_cancel_invoices() si existe (respeta
+          mercadolibre_invoice_cancel_mode). Si no existe el método, NO toca
+          las facturas y postea en el chatter para gestión manual.
         - Cancela la orden de venta (desbloqueandola si hace falta) y postea
           el motivo en el chatter de la orden y de cada factura involucrada.
         """
@@ -504,48 +553,67 @@ class sale_order(models.Model):
         # (action_create_returns / create_returns) y evita crear devoluciones duplicadas.
         self._meli_return_done_pickings()
 
-        # 2. Gestionar facturas existentes
+        # 2. Gestionar facturas existentes — delegar a la política de configuración
         _has_unresolved_posted_invoice = False
-        for invoice in self.invoice_ids:
-            if invoice.state == 'posted':
-                # Intentar resetear a borrador para poder cancelar
-                reverted = False
-                try:
-                    invoice.button_draft()
-                    reverted = True
-                    invoice.message_post(
+        if hasattr(self, '_meli_cancel_invoices'):
+            try:
+                self._meli_cancel_invoices()
+            except Exception as e:
+                _logger.warning("meli_cancel_with_detail: _meli_cancel_invoices falló para %s: %s", self.name, e)
+        else:
+            # Sin módulo accounting: solo notificar, no tocar facturas
+            for invoice in self.invoice_ids:
+                if invoice.state == 'posted':
+                    # Intentar resetear a borrador para poder cancelar
+                    reverted = False
+                    try:
+                        invoice.button_draft()
+                        reverted = True
+                        invoice.message_post(
                         body=cancel_msg + " — Factura revertida a borrador por cancelación de orden en MercadoLibre.",
                         message_type=order_message_type
-                    )
-                except Exception as e:
-                    _logger.warning("meli_cancel_with_detail: no se pudo revertir factura %s a borrador: %s", invoice.name, e)
-                if not reverted:
-                    # No se pudo revertir: la orden NO debe cancelarse automáticamente.
-                    # El usuario debe crear una Nota de Crédito manualmente desde la factura.
-                    _has_unresolved_posted_invoice = True
-                    invoice.message_post(
+                        )
+                    except Exception as e:
+                        _logger.warning("meli_cancel_with_detail: no se pudo revertir factura %s a borrador: %s", invoice.name, e)
+                    if not reverted:
+                        # No se pudo revertir: la orden NO debe cancelarse automáticamente.
+                        # El usuario debe crear una Nota de Crédito manualmente desde la factura.
+                        _has_unresolved_posted_invoice = True
+                        invoice.message_post(
                         body=cancel_msg + " — ⚠️ ACCIÓN REQUERIDA: esta factura no pudo revertirse a borrador. "
-                             "Debe crear una NOTA DE CRÉDITO manualmente para reversarla. "
-                             "La orden de venta NO fue cancelada automáticamente para permitir la gestión.",
+                            "Debe crear una NOTA DE CRÉDITO manualmente para reversarla. "
+                            "La orden de venta NO fue cancelada automáticamente para permitir la gestión.",
                         message_type=order_message_type
-                    )
-                    self.message_post(
+                        )
+                        self.message_post(
                         body="⚠️ Cancelación de ML pendiente: factura %s publicada no pudo revertirse. "
-                             "Crear nota de crédito desde la factura y luego cancelar la orden manualmente. "
-                             "Motivo ML: %s" % (invoice.name, cancel_msg),
+                            "Crear nota de crédito desde la factura y luego cancelar la orden manualmente. "
+                            "Motivo ML: %s" % (invoice.name, cancel_msg),
                         message_type=order_message_type
-                    )
-            elif invoice.state == 'draft':
-                try:
-                    if hasattr(invoice, 'button_cancel'):
-                        invoice.button_cancel()
-                except Exception as e:
-                    _logger.warning("meli_cancel_with_detail: no se pudo cancelar borrador de factura %s: %s", invoice.name, e)
+                        )
+                elif invoice.state == 'draft':
+                    try:
+                        if hasattr(invoice, 'button_cancel'):
+                            invoice.button_cancel()
+                    except Exception as e:
+                        _logger.warning("meli_cancel_with_detail: no se pudo cancelar borrador de factura %s: %s", invoice.name, e)
 
-        # Si hay facturas publicadas que no pudieron revertirse, no cancelar la orden.
-        # El usuario debe crear NC primero y luego cancelar manualmente.
+        # Verificar si quedaron facturas publicadas sin resolver
+        posted_invoices = self.invoice_ids.filtered(lambda inv: inv.state == 'posted' and inv.move_type == 'out_invoice')
+        if posted_invoices:
+            _has_unresolved_posted_invoice = True
+            self.message_post(
+                body="⚠️ Cancelación de ML pendiente: %d factura(s) publicada(s) sin resolver (%s). "
+                     "Gestionar manualmente. Motivo ML: %s" % (
+                    len(posted_invoices),
+                    ", ".join(posted_invoices.mapped('name')),
+                    cancel_msg
+                ),
+                message_type=order_message_type
+            )
+
         if _has_unresolved_posted_invoice:
-            _logger.warning("meli_cancel_with_detail: orden %s NO cancelada — factura publicada sin revertir. Acción manual requerida.", self.name)
+            _logger.warning("meli_cancel_with_detail: orden %s NO cancelada — factura publicada sin resolver. Acción manual requerida.", self.name)
             return
 
         # 3. Desbloquear si la orden esta bloqueada o en estado done
@@ -3222,6 +3290,31 @@ class mercadolibre_orders(models.Model):
         partner_invoice_id = mercadolibre_invoice_partner_id or partner_invoice_id
         partner_shipping_id = mercadolibre_shipping_partner_id or partner_shipping_id
 
+        # Unificar los 3 contactos cuando todos comparten el mismo nombre (modo Brasil)
+        _merge_flag = ('mercadolibre_merge_same_name_contacts' in config._fields
+                       and config.mercadolibre_merge_same_name_contacts)
+        if _merge_flag and partner_id and not (sorder and sorder.id):
+            import unicodedata as _ud_m, re as _re_m
+            def _norm_m(s):
+                s = (s or '').lower().strip()
+                s = _ud_m.normalize('NFD', s)
+                s = ''.join(c for c in s if _ud_m.category(c) != 'Mn')
+                return _re_m.sub(r'\s+', ' ', s)
+            _pnorm = _norm_m(partner_id.name)
+            _inv_diff = partner_invoice_id and partner_invoice_id.id != partner_id.id
+            _shp_diff = partner_shipping_id and partner_shipping_id.id != partner_id.id
+            _all_names_match = True
+            if _inv_diff and _norm_m(partner_invoice_id.name) != _pnorm:
+                _all_names_match = False
+            if _shp_diff and _norm_m(partner_shipping_id.name) != _pnorm:
+                _all_names_match = False
+            if _all_names_match and (_inv_diff or _shp_diff):
+                _logger.info("merge_same_name_contacts: unificando contactos para '%s'", partner_id.name)
+                if _inv_diff:
+                    partner_invoice_id = partner_id
+                if _shp_diff:
+                    partner_shipping_id = partner_id
+
         meli_order_fields = self.prepare_sale_order_vals( order_json=order_json, meli=meli, config=config, sale_order=sorder )
         meli_order_fields.update({'pricelist_id': plistid.id })
 
@@ -3271,6 +3364,14 @@ class mercadolibre_orders(models.Model):
             if ("id" in order_json["shipping"] and order_json["shipping"]["id"]):
                 order_fields['shipping_id'] = order_json["shipping"]["id"]
                 meli_order_fields['meli_shipping_id'] = order_json["shipping"]["id"]
+
+                # Agregar ID envío o nro seguimiento al nombre de la venta
+                shipping_label = str(order_json["shipping"]["id"])
+                if order and order.shipment and order.shipment.tracking_number:
+                    shipping_label = str(order.shipment.tracking_number)
+                current_name = meli_order_fields.get('name', '')
+                if current_name:
+                    meli_order_fields['name'] = current_name + " | " + shipping_label
 
         #create or update order
         if (order and order.id):
@@ -3332,8 +3433,14 @@ class mercadolibre_orders(models.Model):
                         "en la configuracion de la cuenta MeLi.",
                         config=config)
             else:
-                #_logger.info("Adding new sale.order: " )
-                sorder = saleorder_obj.create((meli_order_fields))
+                # Sanitize vals for compatibility with auditlog (copy.deepcopy)
+                safe_meli_fields = {}
+                for k, v in meli_order_fields.items():
+                    if hasattr(v, '_ids'):
+                        safe_meli_fields[k] = v.id if len(v) == 1 else v.ids
+                    else:
+                        safe_meli_fields[k] = v
+                sorder = saleorder_obj.create(safe_meli_fields)
                 if sorder:
                     sorder.meli_fix_team( meli=meli, config=config )
                     if order:
@@ -3796,9 +3903,8 @@ class mercadolibre_orders(models.Model):
                                         _logger.info("MELI: Adding coupon as fee: %.2f (name: %s)", coupon_fee_amount, fee_name)
                                         if (order):
                                             order.fee_amount = payment_fields["fee_amount"]
-                                            # Also update coupon_amount if it wasn't set from order json
-                                            #if order.coupon_amount == 0:
-                                            #    order.coupon_amount = coupon_fee_amount
+                                            if not order.coupon_amount:
+                                                order.coupon_amount = coupon_fee_amount
 
                                 #if (fee_payer and fee_payer == "collector" and fee_type == "application_fee"):
                                 #    payment_fields["fee_amount"] = fee_detail["amount"]
@@ -3827,8 +3933,20 @@ class mercadolibre_orders(models.Model):
                     #_logger.info("Upading payment fields:"+str(payment_fields))
                     payment_ids.write( ( payment_fields ) )
 
-        #if order:
-        #    return_id = self.env['mercadolibre.orders'].update
+        # Aplicar descuento de cupón a líneas del pedido de venta
+        if order and order.coupon_amount and sorder:
+            if not sorder.meli_coupon_amount:
+                sorder.meli_coupon_amount = order.coupon_amount
+            if sorder.state not in ('done',) and not ("locked" in sorder._fields and sorder.locked):
+                non_delivery_lines = sorder.order_line.filtered(lambda l: not l.is_delivery)
+                total_line_amount = sum(l.price_unit * l.product_uom_qty for l in non_delivery_lines)
+                if total_line_amount > 0:
+                    discount_pct = (order.coupon_amount / total_line_amount) * 100.0
+                    for line in non_delivery_lines:
+                        if not line.discount:
+                            line.discount = discount_pct
+                    _logger.info("MELI: Applied coupon discount %.2f%% (coupon: %.2f / total: %.2f) to %d lines on SO %s",
+                                 discount_pct, order.coupon_amount, total_line_amount, len(non_delivery_lines), sorder.name)
 
         if (1==1 or config.mercadolibre_cron_get_orders_shipment):
             #_logger.info("Updating order: Shipment: "+str(order.shipping_id))
@@ -4130,14 +4248,23 @@ class mercadolibre_orders(models.Model):
                         if in_range:
                             __fetch_ids.append(str(order_json["id"]))
                     else:
-                        try:
-                            ret = self.orders_update_order_json( data=pdata, config=config, meli=meli )
-                            MeliCommit( self )
-                        except Exception as e:
-                            _logger.info("orders_query_iterate > Error actualizando ORDEN")
-                            _logger.error(e, exc_info=True)
-                            MeliRollback( self )
-                            pass;
+                        _serialization_ex = psycopg2_errors.SerializationFailure if psycopg2_errors else ()
+                        for _attempt in range(3):
+                            try:
+                                ret = self.orders_update_order_json( data=pdata, config=config, meli=meli )
+                                MeliCommit( self )
+                                break
+                            except _serialization_ex as e:
+                                MeliRollback( self )
+                                if _attempt < 2:
+                                    time.sleep(0.3 * (_attempt + 1))
+                                else:
+                                    _logger.warning("orders_query_iterate > SerializationFailure tras 3 intentos, orden omitida")
+                            except Exception as e:
+                                _logger.info("orders_query_iterate > Error actualizando ORDEN")
+                                _logger.error(e, exc_info=True)
+                                MeliRollback( self )
+                                break
 
         if (offset_next>0):
             __fetch_ids = self.orders_query_iterate( offset=offset_next, meli=meli, config=config, fetch_id_only=fetch_id_only, fetch_ids=__fetch_ids )

@@ -515,6 +515,16 @@ class mercadolibre_shipment(models.Model):
     # Status history (JSON text)
     status_history_json = fields.Text(string='Status History JSON')
 
+    # Status history dates (parsed from status_history object)
+    date_handling = fields.Datetime(string='Fecha preparación', help='Fecha en que se empezó a preparar el envío')
+    date_ready_to_ship = fields.Datetime(string='Fecha listo para enviar', help='Fecha en que el envío quedó listo para despachar')
+    date_shipped = fields.Datetime(string='Fecha despachado', help='Fecha en que el envío fue despachado')
+    date_delivered = fields.Datetime(string='Fecha entregado', help='Fecha en que el envío fue entregado al comprador')
+    date_first_visit = fields.Datetime(string='Fecha primera visita', help='Fecha de la primera visita de entrega')
+    date_not_delivered = fields.Datetime(string='Fecha no entregado', help='Fecha en que se registró como no entregado')
+    date_returned = fields.Datetime(string='Fecha devuelto', help='Fecha en que el envío fue devuelto')
+    date_cancelled = fields.Datetime(string='Fecha cancelado', help='Fecha en que el envío fue cancelado')
+
     pdf_link = fields.Char('Pdf link')
     pdf_file = fields.Binary(string='Pdf File',attachment=True)
     pdf_filename = fields.Char(string='Pdf Filename')
@@ -529,6 +539,79 @@ class mercadolibre_shipment(models.Model):
     _sql_constraints = versions.sql_constraints_if_no_unique_index([
         ('unique_shipping_id', 'shipping_id', 'Meli Shipping id already exists!'),
     ])
+
+    # ------------------------------------------------------------------ #
+    #  Computed: estado del límite de despacho respecto al momento actual  #
+    # ------------------------------------------------------------------ #
+    handling_limit_status = fields.Selection([
+        ('none',    'Sin fecha límite'),
+        ('ok',      'En plazo'),
+        ('urgent',  'Urgente (< 4 h)'),
+        ('overdue', 'Vencido'),
+    ], compute='_compute_handling_limit_status', store=False,
+       string="Estado límite despacho")
+
+    @api.depends('estimated_handling_limit')
+    def _compute_handling_limit_status(self):
+        now = fields.Datetime.now()
+        for rec in self:
+            ehl = rec.estimated_handling_limit
+            if not ehl:
+                rec.handling_limit_status = 'none'
+            elif ehl < now:
+                rec.handling_limit_status = 'overdue'
+            elif ehl < now + timedelta(hours=4):
+                rec.handling_limit_status = 'urgent'
+            else:
+                rec.handling_limit_status = 'ok'
+
+    # ------------------------------------------------------------------ #
+    #  Gate: ¿se puede imprimir la etiqueta?                              #
+    # ------------------------------------------------------------------ #
+    def can_print_label(self):
+        """Returns (can_print: bool, reason: str).
+        Fulfillment orders are managed by ML; all others require ready_to_ship.
+        estimated_handling_limit is a dispatch DEADLINE, not a printing gate.
+        """
+        if self.logistic_type == 'fulfillment':
+            return False, "ME Full (Fulfillment): ML gestiona el envío, no se imprime etiqueta."
+        if self.status not in ('ready_to_ship', 'shipped'):
+            return False, "El envío aún no está listo para despachar (estado: %s)." % (self.status or 'sin estado')
+        return True, ""
+
+    # ------------------------------------------------------------------ #
+    #  Chatter: notificar cambios en el límite de despacho                #
+    # ------------------------------------------------------------------ #
+    def write(self, vals):
+        old_limit = {r.id: r.estimated_handling_limit for r in self}
+        res = super().write(vals)
+        if 'estimated_handling_limit' in vals:
+            for rec in self:
+                new_val = rec.estimated_handling_limit
+                old_val = old_limit.get(rec.id)
+                if new_val == old_val:
+                    continue
+                sorder = rec.sale_order
+                if not sorder:
+                    continue
+                if new_val:
+                    # Odoo Datetime → string local para el mensaje
+                    limit_str = fields.Datetime.to_string(new_val)
+                    if old_val:
+                        body = "📦 <b>Límite de despacho ML actualizado:</b> %s → %s" % (
+                            fields.Datetime.to_string(old_val), limit_str)
+                    else:
+                        body = "📦 <b>Límite de despacho ML:</b> %s (tipo logístico: %s)" % (
+                            limit_str, rec.logistic_type or 'no especificado')
+                else:
+                    body = "📦 Límite de despacho ML eliminado."
+                try:
+                    sorder.message_post(body=body)
+                    for picking in sorder.picking_ids.filtered(lambda p: p.state not in ('done', 'cancel')):
+                        picking.message_post(body=body)
+                except Exception:
+                    pass
+        return res
 
     def create_shipment( self ):
         return {}
@@ -672,17 +755,35 @@ class mercadolibre_shipment(models.Model):
                 "company_id": (self.company_id and self.company_id.id),
             }
             ship_carrier["product_id"] = product_shipping_id.id
-            ship_carrier_id = self.env["delivery.carrier"].search([ ('name','=',ship_carrier['name'])]
-                                                                  + company_domain,
-                                                                  order="company_id asc",
-                                                                  limit=1)
+
+            # 1) Buscar en tabla de mapeo meli_oerp.carrier.mapping
+            ship_carrier_id = self.env["meli_oerp.carrier.mapping"].resolve_carrier(
+                meli_name=ship_name,
+                company=company,
+                product_shipping_id=product_shipping_id,
+            )
+
+            # 2) Fallback: buscar delivery.carrier por nombre
+            if not ship_carrier_id:
+                ship_carrier_id = self.env["delivery.carrier"].search(
+                    [('name', '=ilike', ship_carrier['name'])] + company_domain,
+                    order="company_id asc", limit=1)
+            if not ship_carrier_id:
+                ship_carrier_id = self.env["delivery.carrier"].search(
+                    [('name', '=ilike', ship_carrier['name'])],
+                    order="company_id asc", limit=1)
+
+            # 3) Último recurso: crear carrier nuevo
             if not ship_carrier_id:
                 ship_carrier_id = self.env["delivery.carrier"].create(ship_carrier)
 
-            #if (len(ship_carrier_id)>1):
-            #    _logger.info("Actualizando delivery.carrier "+str(ship_carrier))
-            #    ship_carrier_id = ship_carrier_id[0]
-            #    ship_carrier_id.write(ship_carrier)
+            # Asegurar que el carrier usa el producto de servicio correcto
+            if ship_carrier_id and product_shipping_id and ship_carrier_id.product_id != product_shipping_id:
+                try:
+                    ship_carrier_id.product_id = product_shipping_id
+                except Exception as e:
+                    _logger.warning("No se pudo actualizar product_id del carrier %s: %s", ship_carrier_id.name, e)
+
             all_company_ok = False
             if ship_carrier_id and product_shipping_id:
                 all_company_ok = ship_carrier_id.company_id == sorder.company_id and product_shipping_id.company_id == sorder.company_id
@@ -713,6 +814,14 @@ class mercadolibre_shipment(models.Model):
                 #if ( 1==2 and ship_carrier_id ):
                 #    st_pick.carrier_id = ship_carrier_id
                 st_pick.carrier_tracking_ref = shipment.tracking_number
+
+            # Actualizar nombre del sale.order con nro de seguimiento o ID envío
+            if sorder:
+                base_name = (sorder.name or "").split(" | ")[0]
+                if shipment.tracking_number:
+                    sorder.name = base_name + " | " + str(shipment.tracking_number)
+                elif shipment.shipping_id:
+                    sorder.name = base_name + " | " + str(shipment.shipping_id)
 
             if (shipment.tracking_method == "MEL Distribution"):
                 #_logger.info('MEL Distribution, not adding to order')
@@ -771,16 +880,10 @@ class mercadolibre_shipment(models.Model):
                     set_delivery_line( sorder, delivery_price, "Defined by MELI" )
 
 
-            if (ship_carrier_id and not sorder.carrier_id):
-                #_logger.info("set_delivery_line (first set carrier):"+str(delivery_price))
+            if ship_carrier_id and (not sorder.carrier_id or sorder.carrier_id != ship_carrier_id):
+                #_logger.info("set_delivery_line (set/update carrier):"+str(delivery_price))
                 sorder.carrier_id = ship_carrier_id
-                #vals = sorder.carrier_id.rate_shipment(sorder)
-                #if vals.get('success'):
-                #delivery_message = vals.get('warning_message', False)
                 delivery_message = "Defined by MELI"
-                #delivery_price = vals['price']
-                #display_price = vals['carrier_price']
-                #_logger.info("Agregar delivery line delivery_price:"+str(delivery_price))
                 if (not including_shipping_cost=="never"):
                     set_delivery_line(sorder, delivery_price, delivery_message )
 
@@ -1121,10 +1224,36 @@ class mercadolibre_shipment(models.Model):
                 # Parse status_history
                 if "status_history" in ship_json and ship_json["status_history"]:
                     import json
+                    sh = ship_json["status_history"]
                     try:
-                        ship_fields["status_history_json"] = json.dumps(ship_json["status_history"])
+                        ship_fields["status_history_json"] = json.dumps(sh)
                     except Exception:
                         pass
+                    for sh_key, sh_field in [
+                        ("date_handling", "date_handling"),
+                        ("date_ready_to_ship", "date_ready_to_ship"),
+                        ("date_shipped", "date_shipped"),
+                        ("date_delivered", "date_delivered"),
+                        ("date_first_visit", "date_first_visit"),
+                        ("date_not_delivered", "date_not_delivered"),
+                        ("date_returned", "date_returned"),
+                        ("date_cancelled", "date_cancelled"),
+                    ]:
+                        if sh.get(sh_key):
+                            ship_fields[sh_field] = ml_datetime(sh[sh_key])
+
+                # Parse shipping_option estimated delivery (fallback when no lead_time)
+                shipping_option = ship_json.get("shipping_option") or {}
+                if shipping_option:
+                    so_edt = shipping_option.get("estimated_delivery_time") or {}
+                    if so_edt and so_edt.get("date") and not ship_fields.get("estimated_delivery_date"):
+                        ship_fields["estimated_delivery_date"] = ml_datetime(so_edt["date"])
+                    so_edl = shipping_option.get("estimated_delivery_limit") or {}
+                    if so_edl and so_edl.get("date") and not ship_fields.get("estimated_delivery_limit"):
+                        ship_fields["estimated_delivery_limit"] = ml_datetime(so_edl["date"])
+                    so_edf = shipping_option.get("estimated_delivery_final") or {}
+                    if so_edf and so_edf.get("date") and not ship_fields.get("estimated_delivery_final"):
+                        ship_fields["estimated_delivery_final"] = ml_datetime(so_edf["date"])
 
                 # Parse lead_time data (delivery estimates, shipping method, etc.)
                 lead_time = ship_json.get("lead_time") or {}
@@ -1508,8 +1637,14 @@ class mercadolibre_shipment(models.Model):
                                 sorder_pack.write(meli_order_fields)
                             #sorder_pack.meli_fix_team( meli=meli, config=config )
                         else:
-                            #_logger.info("Create sale.order pack")
-                            sorder_pack = self.env["sale.order"].create(meli_order_fields)
+                            # Sanitize vals for compatibility with auditlog (copy.deepcopy)
+                            safe_fields = {}
+                            for k, v in meli_order_fields.items():
+                                if hasattr(v, '_ids'):
+                                    safe_fields[k] = v.id if len(v) == 1 else v.ids
+                                else:
+                                    safe_fields[k] = v
+                            sorder_pack = self.env["sale.order"].create(safe_fields)
                             #_logger.info("Create sale.order pack: ALL PASS OK")
                             if sorder_pack:
                                 sorder_pack.meli_fix_team( meli=meli, config=config )

@@ -476,6 +476,21 @@ class res_company(models.Model):
              "no se usan para buscar/crear contactos de facturación en Modo 3.",
     )
 
+    mercadolibre_days_to_availability = fields.Integer(
+        string="Días para disponibilidad de envío",
+        default=0,
+        help="Días hábiles que tarda el vendedor en despachar el producto (days_to_availability). "
+             "0 = despacho inmediato.",
+    )
+
+    mercadolibre_merge_same_name_contacts = fields.Boolean(
+        string="Unificar contactos con mismo nombre",
+        default=False,
+        help="Cuando el comprador, el contacto de facturación y el de envío tienen el mismo nombre "
+             "(normalizado), los tres se unifican al registro del comprador. "
+             "Evita triplicar contactos para la misma persona.",
+    )
+
     #mercadolibre_use_buyer_name = fields.Boolean(string="Use buyer name",default=True)
 
     #Toma y lista los ids de las publicaciones del sitio de MercadoLibre, filtrados por official_store_id

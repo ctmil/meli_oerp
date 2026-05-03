@@ -45,3 +45,5 @@ access_sale_mercadolibre_grid_attribute,mercadolibre.grid.attribute manager,mode
 access_sale_mercadolibre_grid_attribute_line,mercadolibre.grid.attribute.line manager,model_mercadolibre_grid_attribute_line,sales_team.group_sale_manager,1,1,1,1
 access_sale_mercadolibre_grid_value,mercadolibre.grid.value manager,model_mercadolibre_grid_value,sales_team.group_sale_manager,1,1,1,1
 access_sale_mercadolibre_meli_image,mercadolibre.image manager,model_mercadolibre_image,sales_team.group_sale_manager,1,1,1,1
+access_meli_carrier_mapping_sm,meli_oerp.carrier.mapping manager,model_meli_oerp_carrier_mapping,sales_team.group_sale_manager,1,1,1,1
+access_meli_carrier_mapping_ml,meli_oerp.carrier.mapping meli manager,model_meli_oerp_carrier_mapping,meli_oerp.group_mercadolibre_manager,1,1,1,1

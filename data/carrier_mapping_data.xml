@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- Carriers típicos de MercadoLibre Argentina.
+             carrier_id vacío: el usuario debe asignar manualmente
+             al delivery.carrier correspondiente en su instancia. -->
+
+        <record id="carrier_mapping_andreani_estandar" model="meli_oerp.carrier.mapping">
+            <field name="meli_name">Andreani Estándar</field>
+            <field name="logistic_type">drop_off</field>
+        </record>
+
+        <record id="carrier_mapping_andreani_prioritario" model="meli_oerp.carrier.mapping">
+            <field name="meli_name">Andreani Prioritario</field>
+            <field name="logistic_type">drop_off</field>
+        </record>
+
+        <record id="carrier_mapping_andreani_sucursal_next_day" model="meli_oerp.carrier.mapping">
+            <field name="meli_name">Andreani a sucursal next day</field>
+            <field name="logistic_type">xd_drop_off</field>
+        </record>
+
+        <record id="carrier_mapping_andreani_sucursal_a_sucursal" model="meli_oerp.carrier.mapping">
+            <field name="meli_name">Andreani sucursal a sucursal</field>
+            <field name="logistic_type">xd_drop_off</field>
+        </record>
+
+        <record id="carrier_mapping_colecta_retiro_sucursal" model="meli_oerp.carrier.mapping">
+            <field name="meli_name">Colecta Retiro Sucursal</field>
+            <field name="logistic_type">cross_docking</field>
+        </record>
+
+        <record id="carrier_mapping_correo_argentino_estandar" model="meli_oerp.carrier.mapping">
+            <field name="meli_name">Correo Argentino Estándar</field>
+            <field name="logistic_type">drop_off</field>
+        </record>
+
+        <record id="carrier_mapping_correo_argentino_prioritario" model="meli_oerp.carrier.mapping">
+            <field name="meli_name">Correo Argentino Prioritario</field>
+            <field name="logistic_type">drop_off</field>
+        </record>
+
+        <record id="carrier_mapping_estandar" model="meli_oerp.carrier.mapping">
+            <field name="meli_name">Estándar</field>
+            <field name="logistic_type">default</field>
+        </record>
+
+        <record id="carrier_mapping_mel_distribution" model="meli_oerp.carrier.mapping">
+            <field name="meli_name">MEL Distribution</field>
+            <field name="logistic_type">fulfillment</field>
+        </record>
+
+        <record id="carrier_mapping_mel_distribution_extended_same_day" model="meli_oerp.carrier.mapping">
+            <field name="meli_name">MEL Distribution - Extended Same Day</field>
+            <field name="logistic_type">fulfillment</field>
+        </record>
+
+        <record id="carrier_mapping_mel_distribution_same_day" model="meli_oerp.carrier.mapping">
+            <field name="meli_name">MEL Distribution - Same Day</field>
+            <field name="logistic_type">fulfillment</field>
+        </record>
+
+        <record id="carrier_mapping_oca_sucursal_next_day" model="meli_oerp.carrier.mapping">
+            <field name="meli_name">OCA a sucursal next day</field>
+            <field name="logistic_type">xd_drop_off</field>
+        </record>
+
+        <record id="carrier_mapping_pickit_colecta" model="meli_oerp.carrier.mapping">
+            <field name="meli_name">Pickit Colecta Retiro a Sucursal</field>
+            <field name="logistic_type">cross_docking</field>
+        </record>
+
+        <record id="carrier_mapping_places_pickup" model="meli_oerp.carrier.mapping">
+            <field name="meli_name">Places Pickup</field>
+            <field name="logistic_type">xd_drop_off</field>
+        </record>
+
+        <record id="carrier_mapping_prioritario" model="meli_oerp.carrier.mapping">
+            <field name="meli_name">Prioritario</field>
+            <field name="logistic_type">default</field>
+        </record>
+
+        <record id="carrier_mapping_retiro_en_sucursal" model="meli_oerp.carrier.mapping">
+            <field name="meli_name">Retiro en una sucursal</field>
+            <field name="logistic_type">xd_drop_off</field>
+        </record>
+
+        <record id="carrier_mapping_urbano_estandar" model="meli_oerp.carrier.mapping">
+            <field name="meli_name">Urbano Estándar</field>
+            <field name="logistic_type">drop_off</field>
+        </record>
+
+        <record id="carrier_mapping_webpack" model="meli_oerp.carrier.mapping">
+            <field name="meli_name">Webpack</field>
+            <field name="logistic_type">drop_off</field>
+        </record>
+
+    </data>
+</odoo>

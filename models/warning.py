@@ -86,6 +86,10 @@ class warning(models.TransientModel):
                 title = "WARNING MELI: " + title
                 alertstatus = 'warning'
 
+            if str(rstatus) in ["400"]:
+                title = "ERROR MELI (400): " + title
+                alertstatus = 'error'
+
             alertstatus = (alertstatus in ["error"] and "danger" ) or  ( str(alertstatus) in ["400"] and "danger" ) or alertstatus
             alertstatusico = (rstatus in ["error"] and "times-circle" ) or ( str(rstatus) in ["400"] and "times-circle" ) or rstatus
 
@@ -93,6 +97,7 @@ class warning(models.TransientModel):
             if rmessage and type(rmessage)==dict:
                 _logger.info("_format_meli_error message:"+str(rmessage))
                 _logger.info(rmessage)
+                _cause_messages = []  # acumular mensajes de causa para el message principal
                 for rmess in rmessage:
                     _logger.info("rmess:"+str(rmess))
                     if rmess == "error":
@@ -101,10 +106,8 @@ class warning(models.TransientModel):
                         message_html = '<div role="alert" class="alert alert-'+str(alertstatus)+'" title="Meli Message"><i class="fa fa-'+str(alertstatusico)+'" role="img" aria-label="Meli Message"/> %s </div>' % (str(ecodemess))
                     if rmess == "message":
                         message = rmessage[rmess]
-                        #message_html+= "<br/>"+str(rmessage[rmess])
                     if rmess == "status":
                         estatus = rmessage[rmess]
-                        #message_html+= "<br/>Estado: "+str(estatus)
                     if rmess == "cause":
                         ecause = rmessage[rmess]
                         if isinstance(ecause, list) and len(ecause):
@@ -122,10 +125,18 @@ class warning(models.TransientModel):
                                 ecaalertstatus = (ecatype in ["error"] and "danger" ) or ecatype
                                 ecatypeicon = (ecatype in ["error"] and "times-circle" ) or ecatype
 
+                                # acumular para el texto plano del mensaje principal
+                                if ecamess:
+                                    _icon = "✗" if ecatype == "error" else "⚠"
+                                    _cause_messages.append("%s %s" % (_icon, ecamess))
 
                                 ecacodemess = "<strong>"+str(ecacodemess)+"</strong><br/>"
                                 ecacodemess+= str(ecamess)
                                 message_html+= '<div role="alert" class="alert alert-'+str(ecaalertstatus)+'" title="Meli Message, Code: '+str(ecacode)+'"><i class="fa fa-'+str(ecatypeicon)+'" role="img" aria-label="Meli Message"/> %s </div>' % (str(ecacodemess))
+
+                # Si hay mensajes de causa, mostrarlos claramente como texto principal
+                if _cause_messages:
+                    message = "\n".join(_cause_messages)
             elif type(rmessage)==str:
                 ecode = rmessage
                 ecodemess = (ecode in meli_errors and meli_errors[ecode]) or ecode
