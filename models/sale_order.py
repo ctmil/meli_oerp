@@ -5,6 +5,7 @@ from odoo.tools import html_escape
 from markupsafe import Markup
 import re
 import odoo.addons.decimal_precision as dp
+from datetime import timedelta
 
 # Traducción de códigos de cancelación ML → español
 _MELI_CANCEL_CODES_ES = {
@@ -66,6 +67,32 @@ class SaleOrder(models.Model):
 
 #        'meli_order_items': fields.one2many('mercadolibre.order_items','order_id','Order Items' ),
 #        'meli_payments': fields.one2many('mercadolibre.payments','order_id','Payments' ),
+    meli_handling_limit = fields.Datetime(
+        related='meli_shipment.estimated_handling_limit',
+        readonly=True, string="Límite despacho ML")
+
+    meli_handling_limit_status = fields.Selection([
+        ('none',    'Sin fecha límite'),
+        ('ok',      'En plazo'),
+        ('urgent',  'Urgente (< 4 h)'),
+        ('overdue', 'Vencido'),
+    ], compute='_compute_so_handling_limit_status', store=False,
+       string="Estado límite despacho")
+
+    @api.depends('meli_shipment.estimated_handling_limit')
+    def _compute_so_handling_limit_status(self):
+        now = fields.Datetime.now()
+        for rec in self:
+            ehl = rec.meli_shipment.estimated_handling_limit if rec.meli_shipment else False
+            if not ehl:
+                rec.meli_handling_limit_status = 'none'
+            elif ehl < now:
+                rec.meli_handling_limit_status = 'overdue'
+            elif ehl < now + timedelta(hours=4):
+                rec.meli_handling_limit_status = 'urgent'
+            else:
+                rec.meli_handling_limit_status = 'ok'
+
     meli_shipping = fields.Text(string="Shipping")
     shipping_id = fields.Char(u'ID de Entrega')
     shipping_name = fields.Char(u'Metodo de Entrega')

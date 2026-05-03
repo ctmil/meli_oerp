@@ -113,6 +113,13 @@
                               <field name="meli_shipment_pdf_file" invisible="0"/>
                               <field name="meli_shipment_pdf_filename" invisible="0"/>
                               <field name="meli_shipment_logistic_type" invisible="0"/>
+                              <field name="meli_handling_limit" readonly="1"
+                                     string="Límite despacho ML"/>
+                              <field name="meli_handling_limit_status" readonly="1" widget="badge"
+                                     decoration-success="meli_handling_limit_status == 'ok'"
+                                     decoration-warning="meli_handling_limit_status == 'urgent'"
+                                     decoration-danger="meli_handling_limit_status == 'overdue'"
+                                     decoration-muted="meli_handling_limit_status == 'none'"/>
                               <field name="meli_status_detail" invisible="0"/>
                               <field name="meli_total_amount" widget="monetary" invisible="0"/>
                               <field name="meli_shipping_amount" widget="monetary" invisible="0"/>

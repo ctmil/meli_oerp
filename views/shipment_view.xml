@@ -21,6 +21,15 @@
                   <field name="order_cost"/>
                   <field name="base_cost"  invisible="1"/>
                   <field name="tracking_number"/>
+                  <field name="logistic_type" optional="show"/>
+                  <field name="estimated_handling_limit" optional="show"/>
+                  <field name="handling_limit_status" optional="show" widget="badge"
+                         decoration-success="handling_limit_status == 'ok'"
+                         decoration-warning="handling_limit_status == 'urgent'"
+                         decoration-danger="handling_limit_status == 'overdue'"/>
+                  <field name="estimated_delivery_date" optional="show"/>
+                  <field name="date_shipped" optional="hide"/>
+                  <field name="date_delivered" optional="hide"/>
                   <field name="comments"/>
                   <field name="receiver_id"  invisible="1"/>
                   <field name="sender_id"  invisible="1"/>
@@ -132,6 +141,25 @@
                         <field name="sender_longitude"/>
                       </group>
                     </group>
+                    <group string="Fechas de envío">
+                      <group string="Fechas estimadas">
+                        <field name="estimated_delivery_date"/>
+                        <field name="estimated_delivery_limit"/>
+                        <field name="estimated_delivery_final"/>
+                        <field name="estimated_handling_limit"/>
+                        <field name="estimated_delivery_extended"/>
+                      </group>
+                      <group string="Fechas reales (status_history)">
+                        <field name="date_handling"/>
+                        <field name="date_ready_to_ship"/>
+                        <field name="date_shipped"/>
+                        <field name="date_delivered"/>
+                        <field name="date_first_visit"/>
+                        <field name="date_not_delivered"/>
+                        <field name="date_returned"/>
+                        <field name="date_cancelled"/>
+                      </group>
+                    </group>
                     <group string="Guias">
                       <group>
                         <field name="pdf_file" filename="pdf_filename"/>
@@ -157,9 +185,45 @@
                     <field name="shipping_id" />
                     <field name="status"/>
                     <field name="substatus"/>
+                    <field name="logistic_type"/>
                     <field name="tracking_method" />
                     <field name="receiver_address_name"/>
                     <field name="tracking_number"/>
+
+                    <!-- Filtros de estado -->
+                    <filter name="status_handling" string="En preparación (handling)"
+                            domain="[('status','=','handling')]"/>
+                    <filter name="status_ready_to_ship" string="Listo para enviar"
+                            domain="[('status','=','ready_to_ship')]"/>
+                    <filter name="status_shipped" string="Enviado"
+                            domain="[('status','=','shipped')]"/>
+                    <separator/>
+
+                    <!-- Filtros por tipo logístico -->
+                    <filter name="logistic_cross_docking" string="Cross Docking"
+                            domain="[('logistic_type','=','cross_docking')]"/>
+                    <filter name="logistic_self_service" string="Self Service"
+                            domain="[('logistic_type','=','self_service')]"/>
+                    <filter name="logistic_fulfillment" string="Fulfillment"
+                            domain="[('logistic_type','=','fulfillment')]"/>
+                    <separator/>
+
+                    <!-- Filtro clave: órdenes con fecha límite de despacho activa -->
+                    <filter name="con_handling_limit" string="Con fecha límite despacho"
+                            domain="[('estimated_handling_limit','!=',False)]"/>
+                    <filter name="handling_vencido" string="Límite despacho vencido"
+                            domain="[('estimated_handling_limit','&lt;', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))]"/>
+                    <separator/>
+
+                    <!-- Agrupaciones -->
+                    <group expand="0" string="Agrupar por">
+                        <filter name="group_status" string="Estado"
+                                context="{'group_by': 'status'}"/>
+                        <filter name="group_logistic_type" string="Tipo logístico"
+                                context="{'group_by': 'logistic_type'}"/>
+                        <filter name="group_substatus" string="Sub-estado"
+                                context="{'group_by': 'substatus'}"/>
+                    </group>
         	    </search>
             </field>
         </record>

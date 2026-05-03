@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+
+        <!-- Tree View -->
+        <record id="view_meli_carrier_mapping_tree" model="ir.ui.view">
+            <field name="name">meli_oerp.carrier.mapping.tree</field>
+            <field name="model">meli_oerp.carrier.mapping</field>
+            <field name="arch" type="xml">
+                <list editable="bottom" decoration-danger="carrier_active == False and carrier_id != False">
+                    <field name="meli_name"/>
+                    <field name="carrier_id" domain="[('active', '=', True)]"/>
+                    <field name="carrier_active" invisible="1"/>
+                    <field name="logistic_type"/>
+                    <field name="company_id" groups="base.group_multi_company"/>
+                    <field name="active" invisible="1"/>
+                </list>
+            </field>
+        </record>
+
+        <!-- Form View -->
+        <record id="view_meli_carrier_mapping_form" model="ir.ui.view">
+            <field name="name">meli_oerp.carrier.mapping.form</field>
+            <field name="model">meli_oerp.carrier.mapping</field>
+            <field name="arch" type="xml">
+                <form>
+                    <sheet>
+                        <group>
+                            <group string="MercadoLibre">
+                                <field name="meli_name"/>
+                                <field name="logistic_type"/>
+                            </group>
+                            <group string="Odoo">
+                                <field name="carrier_id"/>
+                                <field name="company_id" groups="base.group_multi_company"/>
+                                <field name="active"/>
+                            </group>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- Action -->
+        <record id="action_meli_carrier_mapping" model="ir.actions.act_window">
+            <field name="name">Mapeo de Transportistas ML</field>
+            <field name="res_model">meli_oerp.carrier.mapping</field>
+            <field name="view_mode">list,form</field>
+            <field name="context">{'active_test': False}</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Configurar mapeo de transportistas de MercadoLibre
+                </p>
+                <p>
+                    Asigne cada nombre de tracking method de MercadoLibre a un
+                    transportista existente en Odoo para evitar duplicados.
+                    Los nombres sin asignar se crearán automáticamente.
+                </p>
+            </field>
+        </record>
+
+        <!-- Menu item bajo MercadoLibre > Configuración -->
+        <menuitem id="menu_meli_carrier_mapping"
+            name="Mapeo de Transportistas"
+            parent="meli_oerp.menu_meli"
+            action="action_meli_carrier_mapping"
+            sequence="90"/>
+
+    </data>
+</odoo>
