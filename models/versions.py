@@ -39,6 +39,16 @@ try:
     from odoo.models import UniqueIndex as _OdooUniqueIndex
     HAS_UNIQUE_INDEX = True
     _logger.info("versions: models.UniqueIndex disponible (Odoo 17+)")
+    # On Odoo 19+ the registry emits a WARNING via logging (not warnings module)
+    # for ANY model class that has _sql_constraints in __dict__, even when it's [].
+    # Since all our models pair UniqueIndex declarations with
+    # sql_constraints_if_no_unique_index (which returns [] when UniqueIndex IS
+    # available), the warning is purely cosmetic — suppress it at the logging
+    # level for the odoo.registry logger.
+    class _SqlConstraintWarningFilter(logging.Filter):
+        def filter(self, record):
+            return '_sql_constraints' not in record.getMessage()
+    logging.getLogger('odoo.registry').addFilter(_SqlConstraintWarningFilter())
 except (ImportError, AttributeError):
     _logger.info("versions: models.UniqueIndex no disponible - usando _sql_constraints")
 
