@@ -43,9 +43,6 @@ class ResPartner(models.Model):
         help='Contactos de facturación creados desde este buyer de MeLi')
 
     _unique_partner_meli_buyer_id = versions.UniqueIndex('meli_buyer_id, active, company_id', message='Meli Partner Buyer id already exists in this company!')
-    _sql_constraints = versions.sql_constraints_if_no_unique_index([
-        ('unique_partner_meli_buyer_id', 'meli_buyer_id, active, company_id', 'Meli Partner Buyer id already exists in this company!'),
-    ])
 
     # --- Protección de datos fiscales en billing children de MeLi ---
     # En MeLi, un mismo buyer puede facturar con diferentes entidades fiscales

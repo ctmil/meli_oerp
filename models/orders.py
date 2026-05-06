@@ -436,6 +436,19 @@ class sale_order(models.Model):
             return 0
 
         seller_discount = self.meli_discount_seller_amount or 0.0
+        _coupon_cap = self.meli_coupon_amount or 0.0
+        # /orders/{id}/discounts amounts.seller has two meanings depending on the order:
+        # (A) List-price reduction already reflected in SO unit_price → over-deduction:
+        #     (meli_paid_amount - seller_discount) falls BELOW so.amount_total.
+        #     Cap at coupon_amount to avoid under-invoicing.
+        # (B) Legitimate seller-absorbed discount not in SO unit_price →
+        #     (meli_paid_amount - seller_discount) is ABOVE or near so.amount_total.
+        #     No cap needed; the tolerance in confirm_ml/meli_create_invoice covers the rest.
+        # Distinguish by result: cap only when uncapped amount_to_invoice < so.amount_total.
+        if _coupon_cap > 0 and self.amount_total > 0:
+            _uncapped = (self.meli_paid_amount or 0.0) - seller_discount
+            if _uncapped < self.amount_total:
+                seller_discount = min(seller_discount, _coupon_cap)
 
         if total_config in ['manual_conflict']:
 
@@ -651,6 +664,46 @@ class sale_order(models.Model):
         res = res and ( config.mercadolibre_pricelist.id == self.pricelist_id.id )
         return res
 
+    def meli_repair_missing_pickings(self):
+        """Repair sale orders that are confirmed (state='sale') but have stock.move
+        records with picking_id=NULL.  This can happen when an exception inside
+        action_confirm() is silently caught, leaving the SO confirmed but without
+        a delivery order.
+
+        Strategy: call _assign_picking() directly on the orphan moves so that
+        Odoo creates (or reassigns) the picking without re-running full procurement.
+        Safe to call multiple times (idempotent).
+        """
+        repaired = 0
+        skipped = 0
+        for so in self:
+            if so.state not in ('sale', 'done'):
+                skipped += 1
+                continue
+            orphan_moves = self.env['stock.move'].search([
+                ('picking_id', '=', False),
+                ('state', 'in', ['confirmed', 'waiting', 'partially_available', 'assigned']),
+                ('sale_line_id.order_id', '=', so.id),
+            ])
+            if not orphan_moves:
+                skipped += 1
+                continue
+            _logger.warning(
+                "meli_repair_missing_pickings: SO %s (id=%d) has %d orphan moves — attempting _assign_picking()",
+                so.name, so.id, len(orphan_moves)
+            )
+            for move in orphan_moves:
+                try:
+                    move._assign_picking()
+                    repaired += 1
+                except Exception as e:
+                    _logger.error(
+                        "meli_repair_missing_pickings: failed to assign picking for move %d on SO %s: %s",
+                        move.id, so.name, e, exc_info=True
+                    )
+        _logger.info("meli_repair_missing_pickings: repaired=%d skipped=%d", repaired, skipped)
+        return {'repaired': repaired, 'skipped': skipped}
+
     def _meli_return_done_pickings(self):
         """Create return pickings for done outgoing pickings when MeLi cancels the order."""
         ReturnWiz = self.env["stock.return.picking"]
@@ -694,9 +747,26 @@ class sale_order(models.Model):
                 return res
 
             amount_to_invoice = self.meli_amount_to_invoice( meli=meli, config=config )
-            confirm_cond = (amount_to_invoice > 0) and abs( float(amount_to_invoice) - self.amount_total ) < 1.1
+            # When a coupon is applied as a line discount in the SO, amount_total
+            # is lower than paid_amount by (coupon × (1 + tax_rate)). The standard
+            # tolerance of $1.10 doesn't cover this. Widen it to account for the
+            # coupon discount + its tax effect (up to 30% tax rate coverage).
+            _tolerance = 1.1
+            _coupon = abs(self.meli_coupon_amount or 0.0)
+            if _coupon > 0:
+                _tolerance = max(_tolerance, _coupon * 1.3)
+            confirm_cond = (amount_to_invoice > 0) and abs( float(amount_to_invoice) - self.amount_total ) < _tolerance
             if not confirm_cond:
-                serror = "MELI: Condition not met: meli_paid_amount and amount_total doesn't match, check products missings, taxes and discounts."
+                serror = (
+                    "MELI: Condition not met: meli_paid_amount and amount_total doesn't match, "
+                    "check products missings, taxes and discounts. "
+                    "(amount_to_invoice=%.2f, amount_total=%.2f, diff=%.2f, tolerance=%.2f, "
+                    "coupon=%.2f, seller_discount=%.2f)"
+                ) % (
+                    amount_to_invoice or 0, self.amount_total or 0,
+                    abs((amount_to_invoice or 0) - (self.amount_total or 0)),
+                    _tolerance, _coupon, self.meli_discount_seller_amount or 0,
+                )
                 meli_message_post(self, serror, config=config)
                 return {'error': serror}
 
@@ -742,11 +812,46 @@ class sale_order(models.Model):
 
 
         except Exception as e:
-            _logger.info("Confirm Order Exception")
-            _logger.error(e, exc_info=True)
+            # Log the full diagnostic context so we can identify root cause in production.
+            # The exception is intentionally swallowed here to prevent the cron from
+            # rolling back the whole batch; but we need to know WHAT failed.
+            _logger.error(
+                "MELI confirm_ml EXCEPTION on SO '%s' (id=%s, state=%s, "
+                "meli_status=%s, picking_count=%d, orphan_moves=%d): %s",
+                getattr(self, 'name', '?'), getattr(self, 'id', '?'),
+                getattr(self, 'state', '?'), getattr(self, 'meli_status', '?'),
+                len(getattr(self, 'picking_ids', [])),
+                len(self.env['stock.move'].search([
+                    ('picking_id', '=', False),
+                    ('state', 'not in', ['cancel', 'draft']),
+                    ('sale_line_id.order_id', '=', self.id if self.id else 0),
+                ])),
+                str(e),
+                exc_info=True,
+            )
             return { 'error': str(e) }
             pass
         #_logger.info("meli_oerp confirm_ml ended.")
+
+        # Post-confirmation integrity check: warn if SO is confirmed but has no picking.
+        if self.state in ('sale', 'done') and not self.picking_ids:
+            orphan = self.env['stock.move'].search([
+                ('picking_id', '=', False),
+                ('state', 'not in', ['cancel', 'draft']),
+                ('sale_line_id.order_id', '=', self.id),
+            ])
+            if orphan:
+                _logger.warning(
+                    "MELI confirm_ml POST-CHECK: SO '%s' (id=%d) confirmed but has %d "
+                    "orphan moves with no picking — attempting auto-repair",
+                    self.name, self.id, len(orphan)
+                )
+                try:
+                    self.meli_repair_missing_pickings()
+                except Exception as repair_err:
+                    _logger.error("meli_repair_missing_pickings failed for SO %s: %s",
+                                  self.name, repair_err, exc_info=True)
+
         return res
 
     def meli_fix_team( self, meli=None, config=None ):
@@ -792,6 +897,15 @@ class sale_order(models.Model):
         for order in self:
             if order.meli_orders:
                 res = order.meli_orders[0].orders_update_order()
+            # Auto-repair: if SO is confirmed but has no picking, fix orphan moves
+            if order.state in ('sale', 'done') and not order.picking_ids:
+                orphan = self.env['stock.move'].search([
+                    ('picking_id', '=', False),
+                    ('state', 'in', ['confirmed', 'waiting', 'partially_available', 'assigned']),
+                    ('sale_line_id.order_id', '=', order.id),
+                ], limit=1)
+                if orphan:
+                    order.meli_repair_missing_pickings()
         return res
 
     def meli_oerp_print( self ):
@@ -904,9 +1018,6 @@ class sale_order(models.Model):
         return self.currency_id.round(base_unit)
 
     _unique_meli_order_id = versions.UniqueIndex('meli_order_id', message='Meli Order id already exists!')
-    _sql_constraints = versions.sql_constraints_if_no_unique_index([
-        ('unique_meli_order_id', 'meli_order_id', 'Meli Order id already exists!'),
-    ])
 
     meli_cancel_banner = fields.Html(
         compute='_compute_meli_cancel_banner',
@@ -2309,6 +2420,11 @@ class mercadolibre_orders(models.Model):
                         meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
                     
 
+                # Tracking: campos fiscales seteados EXPLÍCITAMENTE por datos de ML
+                # (vs defaults como CF code=5). Se usa en el UPDATE path para no
+                # sobreescribir datos fiscales buenos con defaults del cron.
+                _ml_explicit_fiscal_fields = set()
+
                 #Chile/Arg/Latam
                 if ( ('doc_type' in Buyer['billing_info']) and ('l10n_latam_identification_type_id' in self.env['res.partner']._fields) ):
                     _doc_type = Buyer['billing_info']['doc_type']
@@ -2345,18 +2461,27 @@ class mercadolibre_orders(models.Model):
 
                     if (company.country_id.code == "AR" and 'l10n_ar.afip.responsibility.type' in self.env
                         and 'l10n_ar_afip_responsibility_type_id' in self.env['res.partner']._fields):
-                        afipid = self.env['l10n_ar.afip.responsibility.type'].search([('code','=',5)]).id
-                        meli_buyer_fields["l10n_ar_afip_responsibility_type_id"] = afipid
-                        if ('TAXPAYER_TYPE_ID' in Buyer['billing_info'] and Buyer['billing_info']['TAXPAYER_TYPE_ID'] and Buyer['billing_info']['TAXPAYER_TYPE_ID']=="IVA Responsable Inscripto"):
-                            afipid = self.env['l10n_ar.afip.responsibility.type'].search([('code','=',1)]).id
-                            meli_buyer_fields["l10n_ar_afip_responsibility_type_id"] = afipid
-                        if ('TAXPAYER_TYPE_ID' in Buyer['billing_info'] and Buyer['billing_info']['TAXPAYER_TYPE_ID'] and Buyer['billing_info']['TAXPAYER_TYPE_ID']=="IVA Sujeto Exento"):
-                            afipid = self.env['l10n_ar.afip.responsibility.type'].search([('code','=',4)]).id
-                            meli_buyer_fields["l10n_ar_afip_responsibility_type_id"] = afipid
-                        if ('TAXPAYER_TYPE_ID' in Buyer['billing_info'] and Buyer['billing_info']['TAXPAYER_TYPE_ID'] and Buyer['billing_info']['TAXPAYER_TYPE_ID']=="Responsable Monotributo"):
-                            afipid = self.env['l10n_ar.afip.responsibility.type'].search([('code','=',6)]).id
+                        _taxpayer_raw = Buyer['billing_info'].get('TAXPAYER_TYPE_ID', '') or ''
+                        _taxpayer_upper = _taxpayer_raw.strip().upper()
+                        _afip_code_map = {
+                            'IVA RESPONSABLE INSCRIPTO': 1,
+                            'IVA SUJETO EXENTO': 4,
+                            'RESPONSABLE MONOTRIBUTO': 6,
+                            'MONOTRIBUTO': 6,
+                        }
+                        if _taxpayer_upper and _taxpayer_upper in _afip_code_map:
+                            _afip_code = _afip_code_map[_taxpayer_upper]
+                            _ml_explicit_fiscal_fields.add('l10n_ar_afip_responsibility_type_id')
+                        else:
+                            _afip_code = 5  # Default: Consumidor Final
+                        afipid = self.env['l10n_ar.afip.responsibility.type'].search([('code','=',_afip_code)], limit=1).id
+                        if afipid:
                             meli_buyer_fields["l10n_ar_afip_responsibility_type_id"] = afipid
 
+                    if Buyer['billing_info'].get('doc_type'):
+                        _ml_explicit_fiscal_fields.add('l10n_latam_identification_type_id')
+                    if Buyer['billing_info'].get('doc_number'):
+                        _ml_explicit_fiscal_fields.add('vat')
                     meli_buyer_fields['vat'] = Buyer['billing_info']['doc_number']
 
                 #Arg 15.0/17.0 CER BlueOrange Blue Orange
@@ -2368,7 +2493,9 @@ class mercadolibre_orders(models.Model):
                     _logger.info("CER_BLOCK: doc_type=%s doc_type_id=%s", doc_type, doc_type_id.id if doc_type_id else None)
 
                     tax_type = 'TAXPAYER_TYPE_ID' in Buyer['billing_info'] and Buyer['billing_info']['TAXPAYER_TYPE_ID']
+                    _cer_taxpayer_explicit = False
                     if (tax_type):
+                        _cer_taxpayer_explicit = True
                         if (tax_type=="Monotributo"):
                             tax_type = "Responsable Monotributo"
                         if (tax_type=="IVA Exento"):
@@ -2380,6 +2507,11 @@ class mercadolibre_orders(models.Model):
                     tax_type_id = self.env["account.fiscal.position"].search([('name','ilike',tax_type),('company_id','=',company.id)],limit=1)
                     if (tax_type_id and 'property_account_position_id' in self.env['res.partner']._fields):
                         meli_buyer_fields['property_account_position_id'] = (tax_type_id and tax_type_id.id)
+                        if _cer_taxpayer_explicit:
+                            _ml_explicit_fiscal_fields.add('property_account_position_id')
+
+                    if doc_type:
+                        _ml_explicit_fiscal_fields.add('partner_document_type_id')
 
                     # CER/Blue Orange: también setear l10n_ar_afip_responsibility_type_id
                     # si el campo existe (requerido por AFIP WSFE para validar facturas)
@@ -2393,21 +2525,23 @@ class mercadolibre_orders(models.Model):
                         # Default: Consumidor Final (code=5)
                         afip_resp = self.env['l10n_ar.afip.responsibility.type'].search([('code','=',5)], limit=1)
                         if tax_type and afip_resp:
-                            afip_map = {
-                                'IVA Responsable Inscripto': 1,
-                                'Responsable Inscripto': 1,
-                                'Responsable Monotributo': 6,
-                                'Monotributo': 6,
-                                'IVA Sujeto Exento': 4,
-                                'Exento': 4,
-                                'Consumidor Final': 5,
+                            _afip_map_cer = {
+                                'IVA RESPONSABLE INSCRIPTO': 1,
+                                'RESPONSABLE INSCRIPTO': 1,
+                                'RESPONSABLE MONOTRIBUTO': 6,
+                                'MONOTRIBUTO': 6,
+                                'IVA SUJETO EXENTO': 4,
+                                'EXENTO': 4,
+                                'CONSUMIDOR FINAL': 5,
                             }
-                            afip_code = afip_map.get(tax_type, 5)
+                            afip_code = _afip_map_cer.get((tax_type or '').strip().upper(), 5)
                             afip_resp = self.env['l10n_ar.afip.responsibility.type'].search([('code','=',afip_code)], limit=1)
                         if afip_resp:
                             meli_buyer_fields['l10n_ar_afip_responsibility_type_id'] = afip_resp.id
-                            _logger.info("CER_BLOCK AFIP: SET l10n_ar_afip_responsibility_type_id=%s (code=%s, tax_type=%s)",
-                                         afip_resp.id, afip_resp.code, tax_type)
+                            if _cer_taxpayer_explicit:
+                                _ml_explicit_fiscal_fields.add('l10n_ar_afip_responsibility_type_id')
+                            _logger.info("CER_BLOCK AFIP: SET l10n_ar_afip_responsibility_type_id=%s (code=%s, tax_type=%s, explicit=%s)",
+                                         afip_resp.id, afip_resp.code, tax_type, _cer_taxpayer_explicit)
                         else:
                             _logger.warning("CER_BLOCK AFIP: no se encontró l10n_ar.afip.responsibility.type para tax_type=%s", tax_type)
                     elif company.country_id.code == "AR" and _already_set:
@@ -2968,10 +3102,24 @@ class mercadolibre_orders(models.Model):
                             except Exception as _e:
                                 _logger.warning("BILLING_DEDUP: no se pudo actualizar nombre del buyer: %s", _e)
                         # Poner datos fiscales directamente en el contacto principal
-                        _fiscal_update = {
-                            k: v for k, v in billing_child_fields.items()
-                            if k not in ('name', 'type', 'meli_buyer_id', 'meli_order_id', 'meli_buyer_partner_id')
+                        _FISCAL_PROTECTED_DEDUP = {
+                            'l10n_ar_afip_responsibility_type_id',
+                            'l10n_latam_identification_type_id',
+                            'afip_responsability_type_id',
+                            'property_account_position_id',
+                            'partner_document_type_id',
+                            'vat',
                         }
+                        _fiscal_update = {}
+                        for k, v in billing_child_fields.items():
+                            if k in ('name', 'type', 'meli_buyer_id', 'meli_order_id', 'meli_buyer_partner_id'):
+                                continue
+                            if (k in _FISCAL_PROTECTED_DEDUP
+                                    and k not in _ml_explicit_fiscal_fields
+                                    and k in partner_id._fields
+                                    and partner_id[k]):
+                                continue
+                            _fiscal_update[k] = v
                         if _fiscal_update:
                             try:
                                 partner_id.write(_fiscal_update)
@@ -3030,6 +3178,32 @@ class mercadolibre_orders(models.Model):
                     # Vincular al buyer actual si no tiene vínculo
                     if 'meli_buyer_partner_id' in partner_invoice_id._fields and not partner_invoice_id.meli_buyer_partner_id:
                         invoice_update['meli_buyer_partner_id'] = partner_id.id
+
+                    # PROTECCIÓN: no sobreescribir campos fiscales que ya tienen
+                    # valor en el contacto existente si ML no los envió explícitamente
+                    # en esta corrida (evita que el default CF borre datos fiscales
+                    # configurados manualmente por el operador).
+                    _FISCAL_PROTECTED = {
+                        'l10n_ar_afip_responsibility_type_id',
+                        'l10n_latam_identification_type_id',
+                        'afip_responsability_type_id',
+                        'property_account_position_id',
+                        'partner_document_type_id',
+                        'vat',
+                    }
+                    _protected_skipped = []
+                    for _fp in _FISCAL_PROTECTED:
+                        if (_fp in invoice_update
+                                and _fp not in _ml_explicit_fiscal_fields
+                                and _fp in partner_invoice_id._fields
+                                and partner_invoice_id[_fp]):
+                            _protected_skipped.append(_fp)
+                            del invoice_update[_fp]
+                    if _protected_skipped:
+                        _logger.info(
+                            "FISCAL_PROTECT: contacto id:%s ya tiene valores para %s "
+                            "— no sobreescritos (ML no envió datos explícitos en esta corrida)",
+                            partner_invoice_id.id, _protected_skipped)
 
                     # RESCUE: Si este update no trae l10n_latam_identification_type_id (porque
                     # ML no envió el doc_type en esta orden) Y el contacto existente lo tiene vacío
@@ -3311,6 +3485,59 @@ class mercadolibre_orders(models.Model):
             if _all_names_match and (_inv_diff or _shp_diff):
                 _logger.info("merge_same_name_contacts: unificando contactos para '%s'", partner_id.name)
                 if _inv_diff:
+                    # Before reassigning, copy fiscal fields from billing child
+                    # to parent — otherwise the parent stays without the DNI /
+                    # Consumidor Final / vat that the billing child had, and
+                    # AFIP rejects the invoice for missing fiscal data.
+                    _fiscal_fields_to_copy = {}
+                    _src = partner_invoice_id  # the billing child being merged away
+                    # ALWAYS copy doc type and AFIP responsibility from the
+                    # billing child — it has the correct values straight from
+                    # ML's billing_info. The parent may have defaults (e.g.
+                    # "IVA" instead of "DNI") or stale values from Odoo's
+                    # _commercial_sync which propagates `vat` but NOT
+                    # `l10n_latam_identification_type_id`.
+                    if _src.vat:
+                        _fiscal_fields_to_copy['vat'] = _src.vat
+                    if ('l10n_latam_identification_type_id' in _src._fields
+                            and _src.l10n_latam_identification_type_id):
+                        _fiscal_fields_to_copy['l10n_latam_identification_type_id'] = _src.l10n_latam_identification_type_id.id
+                    if ('l10n_ar_afip_responsibility_type_id' in _src._fields
+                            and _src.l10n_ar_afip_responsibility_type_id):
+                        _fiscal_fields_to_copy['l10n_ar_afip_responsibility_type_id'] = _src.l10n_ar_afip_responsibility_type_id.id
+                    if ('property_account_position_id' in _src._fields
+                            and _src.property_account_position_id
+                            and not partner_id.property_account_position_id):
+                        _fiscal_fields_to_copy['property_account_position_id'] = _src.property_account_position_id.id
+                    if _fiscal_fields_to_copy:
+                        try:
+                            # Write identification type FIRST, then VAT in a
+                            # separate call. Odoo's l10n_ar VAT constraint
+                            # validates the number against the CURRENT doc type
+                            # on the record — if we write both in one call, the
+                            # constraint may fire before the type changes from
+                            # CUIT (default) to DNI, rejecting a valid DNI
+                            # number with "el número CUIT no es válido".
+                            _type_fields = {}
+                            _vat_fields = {}
+                            for k, v in _fiscal_fields_to_copy.items():
+                                if k == 'vat':
+                                    _vat_fields[k] = v
+                                else:
+                                    _type_fields[k] = v
+                            if _type_fields:
+                                partner_id.sudo().write(_type_fields)
+                            if _vat_fields:
+                                partner_id.sudo().write(_vat_fields)
+                            _logger.info(
+                                "merge_same_name_contacts: copied fiscal fields from billing child id:%s to parent id:%s: %s",
+                                _src.id, partner_id.id, list(_fiscal_fields_to_copy.keys()),
+                            )
+                        except Exception as _merge_err:
+                            _logger.warning(
+                                "merge_same_name_contacts: could not copy fiscal fields from id:%s to id:%s: %s",
+                                _src.id, partner_id.id, _merge_err,
+                            )
                     partner_invoice_id = partner_id
                 if _shp_diff:
                     partner_shipping_id = partner_id
@@ -3365,13 +3592,18 @@ class mercadolibre_orders(models.Model):
                 order_fields['shipping_id'] = order_json["shipping"]["id"]
                 meli_order_fields['meli_shipping_id'] = order_json["shipping"]["id"]
 
-                # Agregar ID envío o nro seguimiento al nombre de la venta
-                shipping_label = str(order_json["shipping"]["id"])
-                if order and order.shipment and order.shipment.tracking_number:
-                    shipping_label = str(order.shipment.tracking_number)
-                current_name = meli_order_fields.get('name', '')
-                if current_name:
-                    meli_order_fields['name'] = current_name + " | " + shipping_label
+                # Agregar ID envío o nro seguimiento al nombre de la venta (opcional)
+                _include_tracking = (
+                    'mercadolibre_so_name_tracking' in config._fields
+                    and config.mercadolibre_so_name_tracking
+                )
+                if _include_tracking:
+                    shipping_label = str(order_json["shipping"]["id"])
+                    if order and order.shipment and order.shipment.tracking_number:
+                        shipping_label = str(order.shipment.tracking_number)
+                    current_name = meli_order_fields.get('name', '')
+                    if current_name:
+                        meli_order_fields['name'] = current_name + " | " + shipping_label
 
         #create or update order
         if (order and order.id):
@@ -4257,7 +4489,7 @@ class mercadolibre_orders(models.Model):
                             except _serialization_ex as e:
                                 MeliRollback( self )
                                 if _attempt < 2:
-                                    time.sleep(0.3 * (_attempt + 1))
+                                    import time as _time; _time.sleep(0.3 * (_attempt + 1))
                                 else:
                                     _logger.warning("orders_query_iterate > SerializationFailure tras 3 intentos, orden omitida")
                             except Exception as e:
@@ -4483,9 +4715,6 @@ class mercadolibre_orders(models.Model):
     shipment_substatus = fields.Char(string="Shipment SubStatus",related="shipment.substatus",index=True)
 
     _unique_order_id = versions.UniqueIndex('order_id', message='Meli Order id already exists!')
-    _sql_constraints = versions.sql_constraints_if_no_unique_index([
-        ('unique_order_id', 'order_id', 'Meli Order id already exists!'),
-    ])
 
 
 class mercadolibre_order_items(models.Model):
@@ -4583,9 +4812,6 @@ class mercadolibre_buyers(models.Model):
     billing_info_invoice_type = fields.Char(string='Billing Info Invoice Type')
 
     _unique_buyer_id = versions.UniqueIndex('buyer_id', message='Meli Buyer id already exists!')
-    _sql_constraints = versions.sql_constraints_if_no_unique_index([
-        ('unique_buyer_id', 'buyer_id', 'Meli Buyer id already exists!'),
-    ])
 
 class mercadolibre_orders_update(models.TransientModel):
     _name = "mercadolibre.orders.update"

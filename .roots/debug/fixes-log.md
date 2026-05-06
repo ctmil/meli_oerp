@@ -4,6 +4,53 @@
 
 ---
 
+### 2026-05-05 — FIX-009: CSRF fix en /meli_notify `[19.0.keleb]`
+
+**Commit:** pending
+**Resuelve:** ERROR-002
+**Archivos:** `meli_oerp/controllers/main.py`, `meli_oerp_multiple/controllers/main.py`
+
+Agregado `csrf=False` y `methods=['POST']` a ambas rutas de notificación ML. Sin este fix Odoo 17 rechazaba todos los POST externos con 400.
+El módulo multiple también valida `application_id` vs `client_id` y `user_id` contra los vendedores autorizados de la cuenta.
+
+---
+
+### 2026-05-05 — FIX-008: Migración a billing_info v2 `[19.0.keleb]`
+
+**Commit:** pending
+**Resuelve:** ERROR-003
+**Archivos:** `meli_oerp/models/orders.py`
+
+Nuevo endpoint `/orders/billing-info/{SITE_ID}/{BILLING_INFO_ID}` con header `x-version: 2`.
+La respuesta v2 tiene estructura nested distinta a v1. Se implementó un normalizador que convierte el response v2 al formato legacy UPPERCASE flat, transparente para el código existente.
+El método `_get_billing_info_extra_headers()` agrega el header `x-version: 2` al SDK.
+Fallback automático al endpoint legacy si el v2 falla.
+Mapeo de `INVOICE_TYPE` para MLA derivado del `doc_type` cuando el campo no viene en v2 (CUIT → Factura A, DNI → Factura B).
+
+---
+
+### 2026-05-05 — FIX-007: Seller discount capping para cupones `[19.0.keleb]`
+
+**Commit:** `bf2931f`, refinado en `c73eb35`
+**Resuelve:** ERROR-004
+**Archivos:** `meli_oerp/models/orders.py`
+
+Lógica: cap el `seller_discount` al monto del cupón **solo si** `(paid_amount - seller_discount) < amount_total`.
+Si la condición es falsa, el descuento es legítimo (no es un descuento de lista) y no se capea.
+Ejemplo: paid=$57,960, discount=$24,038, total=$54,725 → `(57,960 - 24,038) = $33,922 < $54,725` → cap a coupon=$5,288 → invoice=$55,289 ≈ total ✓
+
+---
+
+### 2026-05-05 — FIX-006b: meli_repair_missing_pickings `[cross-client]`
+
+**Commit:** (parte de 26.26)
+**Archivos:** `meli_oerp/models/orders.py`
+
+Nuevo método `meli_repair_missing_pickings()`. Detecta stock moves en `state in ('confirmed','assigned','partially_available')` sin `picking_id`. Los asigna a un picking existente vía `_assign_picking()` o crea uno nuevo. Retorna `{repaired: N, skipped: M}`.
+Llamado automáticamente si `confirm_ml()` detecta que la orden confirmada tiene 0 pickings.
+
+---
+
 ### 2026-05-02 — FIX-004: Fix upgrade error action_create_mercadolibre_account `[16.0.shoppy]`
 
 **Commit:** `af33b78`

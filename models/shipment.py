@@ -536,9 +536,6 @@ class mercadolibre_shipment(models.Model):
     pack_order = fields.Boolean(string="Carrito de compra")
 
     _unique_shipping_id = versions.UniqueIndex('shipping_id', message='Meli Shipping id already exists!')
-    _sql_constraints = versions.sql_constraints_if_no_unique_index([
-        ('unique_shipping_id', 'shipping_id', 'Meli Shipping id already exists!'),
-    ])
 
     # ------------------------------------------------------------------ #
     #  Computed: estado del límite de despacho respecto al momento actual  #
@@ -816,7 +813,15 @@ class mercadolibre_shipment(models.Model):
                 st_pick.carrier_tracking_ref = shipment.tracking_number
 
             # Actualizar nombre del sale.order con nro de seguimiento o ID envío
-            if sorder:
+            # Solo si la cuenta tiene mercadolibre_so_name_tracking activado.
+            # Antes de f943fcd este bloque no existia; se agregó sin el gate
+            # causando rename incondicional de todas las órdenes.
+            _so_name_tracking = (
+                config
+                and 'mercadolibre_so_name_tracking' in config._fields
+                and config.mercadolibre_so_name_tracking
+            )
+            if sorder and _so_name_tracking:
                 base_name = (sorder.name or "").split(" | ")[0]
                 if shipment.tracking_number:
                     sorder.name = base_name + " | " + str(shipment.tracking_number)
@@ -1652,6 +1657,7 @@ class mercadolibre_shipment(models.Model):
                     
                         if (sorder_pack.id):
                             shipment.sale_order = sorder_pack
+                            sorder_pack.meli_shipment = shipment
 
                             order.sale_order = sorder_pack
                             order.shipping_cost = shipment.shipping_cost
