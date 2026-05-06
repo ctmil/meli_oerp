@@ -755,16 +755,25 @@ class sale_order(models.Model):
             _coupon = abs(self.meli_coupon_amount or 0.0)
             if _coupon > 0:
                 _tolerance = max(_tolerance, _coupon * 1.3)
-            confirm_cond = (amount_to_invoice > 0) and abs( float(amount_to_invoice) - self.amount_total ) < _tolerance
+            _diff_direct = abs( float(amount_to_invoice) - self.amount_total )
+            # For self_service logistics the SO has no shipping line, but
+            # meli_paid_amount (and thus amount_to_invoice) includes the shipping
+            # amount. Accept if the diff is fully explained by shipping.
+            _shipping = self.meli_shipping_amount or 0.0
+            _diff_no_ship = abs( float(amount_to_invoice) - _shipping - self.amount_total ) if _shipping > 0 else _diff_direct
+            confirm_cond = (amount_to_invoice > 0) and (
+                _diff_direct < _tolerance
+                or (_shipping > 0 and _diff_no_ship < _tolerance)
+            )
             if not confirm_cond:
                 serror = (
                     "MELI: Condition not met: meli_paid_amount and amount_total doesn't match, "
                     "check products missings, taxes and discounts. "
-                    "(amount_to_invoice=%.2f, amount_total=%.2f, diff=%.2f, tolerance=%.2f, "
+                    "(amount_to_invoice=%.2f, amount_total=%.2f, diff=%.2f, diff_no_ship=%.2f, tolerance=%.2f, "
                     "coupon=%.2f, seller_discount=%.2f)"
                 ) % (
                     amount_to_invoice or 0, self.amount_total or 0,
-                    abs((amount_to_invoice or 0) - (self.amount_total or 0)),
+                    _diff_direct, _diff_no_ship,
                     _tolerance, _coupon, self.meli_discount_seller_amount or 0,
                 )
                 meli_message_post(self, serror, config=config)
