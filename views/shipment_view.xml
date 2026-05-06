@@ -216,14 +216,12 @@
                     <separator/>
 
                     <!-- Agrupaciones -->
-                    <group expand="0" string="Agrupar por">
-                        <filter name="group_status" string="Estado"
-                                context="{'group_by': 'status'}"/>
-                        <filter name="group_logistic_type" string="Tipo logístico"
-                                context="{'group_by': 'logistic_type'}"/>
-                        <filter name="group_substatus" string="Sub-estado"
-                                context="{'group_by': 'substatus'}"/>
-                    </group>
+                    <filter name="group_status" string="Estado"
+                            context="{'group_by': 'status'}"/>
+                    <filter name="group_logistic_type" string="Tipo logístico"
+                            context="{'group_by': 'logistic_type'}"/>
+                    <filter name="group_substatus" string="Sub-estado"
+                            context="{'group_by': 'substatus'}"/>
         	    </search>
             </field>
         </record>

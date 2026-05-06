@@ -4816,9 +4816,6 @@ class product_product(models.Model):
 
     # Original UNIQUE constraint was relaxed to a no-op CHECK(1=1) to allow duplicates
     _unique_variant_meli_id_variation = versions.Constraint('CHECK(1=1)', message='Meli Id, Meli Id Variation duplication possible!')
-    _sql_constraints = versions.sql_constraints_if_no_constraint([
-        ('unique_variant_meli_id_variation', 'CHECK(1=1)', 'Meli Id, Meli Id Variation duplication possible!'),
-    ])
 
 
 
