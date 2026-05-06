@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import fields, models, api
+from . import versions
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -30,7 +31,7 @@ class MeliCarrierMapping(models.Model):
     carrier_active = fields.Boolean(
         related="carrier_id.active",
         string="Carrier activo",
-        store=True,
+        readonly=True,
     )
     logistic_type = fields.Char(
         string="Tipo logístico",
