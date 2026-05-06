@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import fields, models, api
+from . import versions
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -30,7 +31,7 @@ class MeliCarrierMapping(models.Model):
     carrier_active = fields.Boolean(
         related="carrier_id.active",
         string="Carrier activo",
-        store=True,
+        readonly=True,
     )
     logistic_type = fields.Char(
         string="Tipo logístico",
@@ -54,13 +55,10 @@ class MeliCarrierMapping(models.Model):
                 }
             }
 
-    _sql_constraints = [
-        (
-            "unique_meli_name_company",
-            "UNIQUE(meli_name, company_id)",
-            "Ya existe un mapeo para este nombre de ML en esta empresa.",
-        ),
-    ]
+    _unique_meli_name_company = versions.UniqueIndex(
+        'meli_name, company_id',
+        message="Ya existe un mapeo para este nombre de ML en esta empresa.",
+    )
 
     @api.model
     def resolve_carrier(self, meli_name, company=None, product_shipping_id=None):

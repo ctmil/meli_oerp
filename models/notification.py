@@ -83,10 +83,6 @@ class MercadolibreNotification(models.Model):
     seller_id = fields.Many2one("res.users",string="Seller")
 
     _unique_notification_id = versions.UniqueIndex('notification_id', message='Notification Id must be unique!')
-    _sql_constraints = versions.sql_constraints_if_no_unique_index([
-        #('ref_uniq', 'notification_id, application_id, user_id, topic', 'Notification Id must be unique!'),
-        ('unique_notification_id', 'notification_id', 'Notification Id must be unique!'),
-    ])
 
     def _prepare_values(self, values):
         company = self.env.user.company_id
