@@ -349,7 +349,7 @@
             <field name="name">mercadolibre.buyers.search</field>
             <field name="model">mercadolibre.buyers</field>
             <field name="arch" type="xml">
-        	    <search string="Search MercadoLibre Buyers Information">
+        	    <search>
                   <field name="nickname" string="Usuario ML"/>
                   <field name="first_name" string="Nombre ML"/>
                   <field name="last_name" string="Apellido ML"/>

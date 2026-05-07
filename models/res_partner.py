@@ -63,8 +63,18 @@ class ResPartner(models.Model):
                            'l10n_ar_afip_responsibility_type_id']
 
     def _commercial_sync_from_company(self):
-        # Solo proteger billing children de MeLi (type=invoice con meli_order_id)
-        if self.type == 'invoice' and self.meli_order_id:
+        # Proteger billing children de MeLi: tanto los que tienen meli_order_id directamente
+        # como los que son hijos de un buyer de MeLi (parent tiene meli_buyer o meli_order_id).
+        # Los billing children (type=invoice, parent=buyer) NO tienen meli_order_id en sí mismos,
+        # solo el buyer parent lo tiene — de ahí el bug original que esta condición corrige.
+        _is_meli_billing_child = (
+            self.type == 'invoice'
+            and (
+                self.meli_order_id
+                or (self.parent_id and (self.parent_id.meli_buyer or self.parent_id.meli_order_id))
+            )
+        )
+        if _is_meli_billing_child:
             # Guardar datos fiscales antes del sync
             fiscal_backup = {}
             for fname in self._MELI_FISCAL_FIELDS:
