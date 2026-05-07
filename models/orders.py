@@ -694,7 +694,11 @@ class sale_order(models.Model):
             )
             for move in orphan_moves:
                 try:
-                    move._assign_picking()
+                    move.with_context(
+                        tracking_disable=True,
+                        mail_notrack=True,
+                        meli_skip_stock_update=True,
+                    )._assign_picking()
                     repaired += 1
                 except Exception as e:
                     _logger.error(
@@ -747,10 +751,9 @@ class sale_order(models.Model):
                 return res
 
             amount_to_invoice = self.meli_amount_to_invoice( meli=meli, config=config )
-            # When a coupon is applied as a line discount in the SO, amount_total
-            # is lower than paid_amount by (coupon × (1 + tax_rate)). The standard
-            # tolerance of $1.10 doesn't cover this. Widen it to account for the
-            # coupon discount + its tax effect (up to 30% tax rate coverage).
+            # coupon_amount es costo de ML, no del vendedor — el SO ya tiene el precio completo.
+            # La tolerancia extendida se mantiene como safety-net para órdenes anteriores al fix
+            # que todavía tengan el descuento aplicado en líneas.
             _tolerance = 1.1
             _coupon = abs(self.meli_coupon_amount or 0.0)
             if _coupon > 0:
@@ -1527,13 +1530,24 @@ class mercadolibre_orders(models.Model):
 
         # INVOICE_TYPE: the upstream attribute is being removed; keep it when
         # present (MLA still returns it as of 03/2026) and otherwise derive
-        # it from the document type for MLA per the official mapping.
+        # from doc_type for MLA.  IMPORTANT: CUIT alone does NOT imply Factura A —
+        # Monotributo taxpayers also hold CUIT but must receive Factura B.
+        # So we also check TAXPAYER_TYPE_ID before mapping CUIT → Factura A.
         invoice_type = attributes.get('invoice_type') or bi.get('invoice_type') or ''
         if not invoice_type and site_id and str(site_id).upper() == 'MLA':
             _doc = (doc_type or '').upper()
-            if _doc == 'CUIT':
+            _taxpayer_desc = (out.get('TAXPAYER_TYPE_ID') or '').strip().upper()
+            # Only map CUIT to Factura A when the taxpayer is RI; Monotributo/Exento/CF with CUIT → Factura B
+            _ri_keywords = ('RESPONSABLE INSCRIPTO',)
+            _non_ri_keywords = ('MONOTRIBUTO', 'EXENTO', 'CONSUMIDOR FINAL', 'NO RESPONSABLE', 'NO CATEGORIZADO')
+            _is_ri = any(kw in _taxpayer_desc for kw in _ri_keywords)
+            _is_non_ri = any(kw in _taxpayer_desc for kw in _non_ri_keywords)
+            if _doc == 'CUIT' and _is_ri and not _is_non_ri:
                 invoice_type = 'Factura A'
-            elif _doc in ('DNI', 'CUIL'):
+            elif _doc == 'CUIT' and not _taxpayer_desc:
+                # Unknown taxpayer type with CUIT — default to Factura A (RI is most common with CUIT)
+                invoice_type = 'Factura A'
+            elif _doc in ('DNI', 'CUIL') or (_doc == 'CUIT' and _is_non_ri):
                 invoice_type = 'Factura B'
         out['INVOICE_TYPE'] = invoice_type
 
@@ -3696,6 +3710,20 @@ class mercadolibre_orders(models.Model):
         #check error
         if not sorder:
             _logger.warning("Warning adding sale.order. Normally a pack order." )
+            # Pack sub-order: meli_order_fields was not written to any SO.
+            # If we resolved a billing child different from the buyer parent,
+            # propagate partner_invoice_id to the pack SO so meli_create_invoice
+            # finds the billing child (with fiscal data) instead of the parent.
+            if order and order.sale_order and partner_invoice_id and partner_id and partner_invoice_id.id != partner_id.id:
+                _pack_so = order.sale_order
+                if not _pack_so.partner_invoice_id or _pack_so.partner_invoice_id.id != partner_invoice_id.id:
+                    try:
+                        _pack_so.write({'partner_invoice_id': partner_invoice_id.id})
+                        _logger.info("Pack sub-order: actualizado partner_invoice_id en SO id:%s -> billing child id:%s (%s)",
+                                     _pack_so.id, partner_invoice_id.id, partner_invoice_id.name)
+                    except Exception as _e:
+                        _logger.warning("Pack sub-order: no se pudo actualizar partner_invoice_id en SO id:%s: %s",
+                                        _pack_so.id, _e)
         else:
             #assign mercadolibre.order to sale.order (its only one product)
             sorder.meli_orders = [(6, 0, [order.id])]
@@ -4174,20 +4202,35 @@ class mercadolibre_orders(models.Model):
                     #_logger.info("Upading payment fields:"+str(payment_fields))
                     payment_ids.write( ( payment_fields ) )
 
-        # Aplicar descuento de cupón a líneas del pedido de venta
+        # coupon_amount es un descuento que ML aplica al comprador sobre el precio bruto.
+        # La factura al comprador debe reflejar lo que realmente pagó (bruto − cupón).
+        # El % de descuento se calcula sobre el precio bruto con impuestos (no sobre la base)
+        # para que la factura quede exactamente en (total_bruto - coupon_amount).
+        # Ejemplo: precio_bruto=$59200, cupón=$1480 → 1480/59200×100=2.5% → factura=$57720
         if order and order.coupon_amount and sorder:
             if not sorder.meli_coupon_amount:
                 sorder.meli_coupon_amount = order.coupon_amount
             if sorder.state not in ('done',) and not ("locked" in sorder._fields and sorder.locked):
                 non_delivery_lines = sorder.order_line.filtered(lambda l: not l.is_delivery)
-                total_line_amount = sum(l.price_unit * l.product_uom_qty for l in non_delivery_lines)
-                if total_line_amount > 0:
-                    discount_pct = (order.coupon_amount / total_line_amount) * 100.0
+                # Calcular el total bruto (con impuestos) usando price_unit sin descuento como base,
+                # para evitar error si ya había un descuento incorrecto aplicado anteriormente.
+                total_gross = 0.0
+                for line in non_delivery_lines:
+                    tax_pct = sum(
+                        t.amount for t in line.tax_id
+                        if t.amount_type == 'percent' and not t.price_include
+                    )
+                    total_gross += line.price_unit * line.product_uom_qty * (1.0 + tax_pct / 100.0)
+                if total_gross > 0:
+                    discount_pct = round((order.coupon_amount / total_gross) * 100.0, 6)
                     for line in non_delivery_lines:
-                        if not line.discount:
-                            line.discount = discount_pct
-                    _logger.info("MELI: Applied coupon discount %.2f%% (coupon: %.2f / total: %.2f) to %d lines on SO %s",
-                                 discount_pct, order.coupon_amount, total_line_amount, len(non_delivery_lines), sorder.name)
+                        line.discount = discount_pct
+                    _logger.info(
+                        "MELI: Applied coupon discount %.4f%% (coupon=%.2f / gross_total=%.2f) "
+                        "to %d lines on SO %s",
+                        discount_pct, order.coupon_amount, total_gross,
+                        len(non_delivery_lines), sorder.name,
+                    )
 
         if (1==1 or config.mercadolibre_cron_get_orders_shipment):
             #_logger.info("Updating order: Shipment: "+str(order.shipping_id))

@@ -39,16 +39,6 @@ try:
     from odoo.models import UniqueIndex as _OdooUniqueIndex
     HAS_UNIQUE_INDEX = True
     _logger.info("versions: models.UniqueIndex disponible (Odoo 17+)")
-    # On Odoo 19+ the registry emits a WARNING via logging (not warnings module)
-    # for ANY model class that has _sql_constraints in __dict__, even when it's [].
-    # Since all our models pair UniqueIndex declarations with
-    # sql_constraints_if_no_unique_index (which returns [] when UniqueIndex IS
-    # available), the warning is purely cosmetic — suppress it at the logging
-    # level for the odoo.registry logger.
-    class _SqlConstraintWarningFilter(logging.Filter):
-        def filter(self, record):
-            return '_sql_constraints' not in record.getMessage()
-    logging.getLogger('odoo.registry').addFilter(_SqlConstraintWarningFilter())
 except (ImportError, AttributeError):
     _logger.info("versions: models.UniqueIndex no disponible - usando _sql_constraints")
 
@@ -72,11 +62,6 @@ def sql_constraints_if_no_unique_index(constraints):
     constraints: list of (name, fields_expr, message)
     - Odoo 17+  : returns []          (UniqueIndex handles the constraint)
     - Odoo < 17 : returns the list    (classic _sql_constraints fallback)
-
-    Note: On Odoo 19+ this still triggers a cosmetic deprecation warning
-    ("_sql_constraints is no longer supported") even for empty lists, because
-    the attribute exists in the class namespace. This is harmless — the actual
-    constraints are enforced by UniqueIndex declarations on the model.
     """
     if HAS_UNIQUE_INDEX:
         return []
@@ -304,7 +289,11 @@ def MeliCr( self ):
     #or return self._cr
 
 def MeliCommit( self ):
-    return self.env.cr.commit();
+    # flush_all() en vez de cr.commit(): fuerza writes ORM al DB dentro de la
+    # transacción actual sin hacer COMMIT. Un cr.commit() destruiría savepoints
+    # activos (ej: wizard batch usa 'with env.cr.savepoint()') causando
+    # "savepoint does not exist" y aborto de la transacción en cascada.
+    return self.env.flush_all();
 
 def MeliRollback( self ):
     return self.env.cr.rollback();
