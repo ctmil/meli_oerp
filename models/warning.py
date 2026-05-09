@@ -143,6 +143,29 @@ class warning(models.TransientModel):
 
                 message_html = '<div role="alert" class="alert alert-'+str(alertstatus)+'" title="Meli Message"><i class="fa fa-warning" role="img" aria-label="Meli Message"/> %s </div>' % (ecodemess)
 
+                # Procesar causas aunque el mensaje sea string (ej: "Validation error" con causes detalladas)
+                if rcause and isinstance(rcause, list):
+                    _cause_messages = []
+                    for eca in rcause:
+                        if type(eca) == dict:
+                            ecatype = eca.get("type", "error")
+                            ecacode = eca.get("code", "")
+                            ecamess = eca.get("message", "")
+                        else:
+                            ecatype = "error"
+                            ecacode = ""
+                            ecamess = str(eca)
+                        ecacodemess = (ecacode in meli_errors and meli_errors[ecacode]) or ecacode
+                        ecaalertstatus = "danger" if ecatype == "error" else ecatype
+                        ecatypeicon = "times-circle" if ecatype == "error" else ecatype
+                        if ecamess:
+                            _icon = "✗" if ecatype == "error" else "⚠"
+                            _cause_messages.append("%s %s" % (_icon, ecamess))
+                        ecacodemess_html = "<strong>"+str(ecacodemess)+"</strong><br/>"+str(ecamess)
+                        message_html += '<div role="alert" class="alert alert-'+str(ecaalertstatus)+'" title="Meli Message, Code: '+str(ecacode)+'"><i class="fa fa-'+str(ecatypeicon)+'" role="img" aria-label="Meli Message"/> %s </div>' % ecacodemess_html
+                    if _cause_messages:
+                        message = "\n".join(_cause_messages)
+
 
 
                         #message_html+= "<br/>Causa: "+str(ecause)
