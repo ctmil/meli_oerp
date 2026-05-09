@@ -706,7 +706,23 @@ class sale_order(models.Model):
                         move.id, so.name, e, exc_info=True
                     )
         _logger.info("meli_repair_missing_pickings: repaired=%d skipped=%d", repaired, skipped)
-        return {'repaired': repaired, 'skipped': skipped}
+        if repaired:
+            msg = "Entrega reparada correctamente. Recargá la página para ver el botón de entrega."
+            msg_type = 'success'
+        else:
+            msg = "No se encontraron movimientos de stock huérfanos para reparar."
+            msg_type = 'warning'
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': 'Reparar entrega',
+                'message': msg,
+                'type': msg_type,
+                'sticky': False,
+                'next': {'type': 'ir.actions.act_window_close'},
+            },
+        }
 
     def _meli_return_done_pickings(self):
         """Create return pickings for done outgoing pickings when MeLi cancels the order."""
@@ -4202,35 +4218,69 @@ class mercadolibre_orders(models.Model):
                     #_logger.info("Upading payment fields:"+str(payment_fields))
                     payment_ids.write( ( payment_fields ) )
 
-        # coupon_amount es un descuento que ML aplica al comprador sobre el precio bruto.
-        # La factura al comprador debe reflejar lo que realmente pagó (bruto − cupón).
-        # El % de descuento se calcula sobre el precio bruto con impuestos (no sobre la base)
-        # para que la factura quede exactamente en (total_bruto - coupon_amount).
-        # Ejemplo: precio_bruto=$59200, cupón=$1480 → 1480/59200×100=2.5% → factura=$57720
+        # coupon_amount = descuento que ML financia DE SU PROPIO COSTO al comprador.
+        # El vendedor cobra el precio completo — este campo NO es un descuento del vendedor.
+        # config.meli_coupon_discount_on_invoice controla si se refleja en la factura:
+        #   False (default): sin descuento en líneas → factura por precio de venta completo.
+        #   True: aplica el cupón ML como % de descuento sobre el precio bruto (con IVA)
+        #         → factura queda exactamente en (total_bruto - coupon_amount).
+        # En ningún caso se tocan descuentos del vendedor ni descuentos manuales preexistentes.
         if order and order.coupon_amount and sorder:
             if not sorder.meli_coupon_amount:
                 sorder.meli_coupon_amount = order.coupon_amount
-            if sorder.state not in ('done',) and not ("locked" in sorder._fields and sorder.locked):
-                non_delivery_lines = sorder.order_line.filtered(lambda l: not l.is_delivery)
-                # Calcular el total bruto (con impuestos) usando price_unit sin descuento como base,
-                # para evitar error si ya había un descuento incorrecto aplicado anteriormente.
-                total_gross = 0.0
-                for line in non_delivery_lines:
-                    tax_pct = sum(
-                        t.amount for t in line.tax_id
-                        if t.amount_type == 'percent' and not t.price_include
-                    )
-                    total_gross += line.price_unit * line.product_uom_qty * (1.0 + tax_pct / 100.0)
-                if total_gross > 0:
-                    discount_pct = round((order.coupon_amount / total_gross) * 100.0, 6)
+            _apply_coupon_discount = (
+                config
+                and "meli_coupon_discount_on_invoice" in config._fields
+                and config.meli_coupon_discount_on_invoice
+            )
+            if _apply_coupon_discount:
+                if sorder.state not in ('done',) and not ("locked" in sorder._fields and sorder.locked):
+                    non_delivery_lines = sorder.order_line.filtered(lambda l: not l.is_delivery)
+                    total_gross = 0.0
                     for line in non_delivery_lines:
-                        line.discount = discount_pct
-                    _logger.info(
-                        "MELI: Applied coupon discount %.4f%% (coupon=%.2f / gross_total=%.2f) "
-                        "to %d lines on SO %s",
-                        discount_pct, order.coupon_amount, total_gross,
-                        len(non_delivery_lines), sorder.name,
-                    )
+                        tax_pct = sum(
+                            t.amount for t in line.tax_id
+                            if t.amount_type == 'percent' and not t.price_include
+                        )
+                        total_gross += line.price_unit * line.product_uom_qty * (1.0 + tax_pct / 100.0)
+                    if total_gross > 0:
+                        discount_pct = round((order.coupon_amount / total_gross) * 100.0, 6)
+                        for line in non_delivery_lines:
+                            line.discount = discount_pct
+                        _logger.info(
+                            "MELI: Applied coupon discount %.4f%% (coupon=%.2f / gross_total=%.2f) "
+                            "to %d lines on SO %s",
+                            discount_pct, order.coupon_amount, total_gross,
+                            len(non_delivery_lines), sorder.name,
+                        )
+            else:
+                # Sin descuento: si había un descuento previo de cupón, limpiarlo.
+                if sorder.state not in ('done',) and not ("locked" in sorder._fields and sorder.locked):
+                    non_delivery_lines = sorder.order_line.filtered(lambda l: not l.is_delivery)
+                    total_gross = 0.0
+                    for line in non_delivery_lines:
+                        tax_pct = sum(
+                            t.amount for t in line.tax_id
+                            if t.amount_type == 'percent' and not t.price_include
+                        )
+                        total_gross += line.price_unit * line.product_uom_qty * (1.0 + tax_pct / 100.0)
+                    if total_gross > 0:
+                        prev_pct_bug = round((order.coupon_amount / sum(
+                            line.price_unit * line.product_uom_qty
+                            for line in non_delivery_lines
+                        )) * 100.0, 6) if sum(
+                            line.price_unit * line.product_uom_qty for line in non_delivery_lines
+                        ) > 0 else 0
+                        prev_pct_ok = round((order.coupon_amount / total_gross) * 100.0, 6)
+                        for line in non_delivery_lines:
+                            if (abs(line.discount - prev_pct_bug) < 0.01
+                                    or abs(line.discount - prev_pct_ok) < 0.01):
+                                line.discount = 0.0
+                                _logger.info(
+                                    "MELI: Removed coupon discount from line %s on SO %s "
+                                    "(meli_coupon_discount_on_invoice=False)",
+                                    line.id, sorder.name,
+                                )
 
         if (1==1 or config.mercadolibre_cron_get_orders_shipment):
             #_logger.info("Updating order: Shipment: "+str(order.shipping_id))
