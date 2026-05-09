@@ -87,6 +87,24 @@
                                invisible="not meli_cancel_banner"/>
                     </xpath>
 
+                    <!-- picking_ids needed for invisible condition below -->
+                    <xpath expr="//field[@name='locked']" position="after">
+                        <field name="picking_ids" invisible="1"/>
+                    </xpath>
+
+                    <!-- Botón de reparación: visible cuando la orden está confirmada pero
+                         no tiene entrega (orphan stock moves sin picking_id) -->
+                    <xpath expr="//div[@name='button_box']" position="inside">
+                        <field name="picking_ids" invisible="1"/>
+                        <button name="meli_repair_missing_pickings" type="object"
+                                string="Reparar entrega"
+                                icon="fa-wrench"
+                                class="oe_stat_button"
+                                invisible="state not in ('sale','done') or picking_ids"
+                                confirm="¿Reparar los movimientos de stock huérfanos y crear la entrega faltante?"
+                                groups="base.group_system"/>
+                    </xpath>
+
                     <notebook>
                         <page string="MercadoLibre" invisible="meli_order_id==False"
                                 groups="meli_oerp.group_mercadolibre_manager">
