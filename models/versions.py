@@ -289,7 +289,11 @@ def MeliCr( self ):
     #or return self._cr
 
 def MeliCommit( self ):
-    return self.env.cr.commit();
+    # flush_all() en vez de cr.commit(): fuerza writes ORM al DB dentro de la
+    # transacción actual sin hacer COMMIT. Un cr.commit() destruiría savepoints
+    # activos (ej: wizard batch usa 'with env.cr.savepoint()') causando
+    # "savepoint does not exist" y aborto de la transacción en cascada.
+    return self.env.flush_all();
 
 def MeliRollback( self ):
     return self.env.cr.rollback();
