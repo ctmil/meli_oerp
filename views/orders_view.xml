@@ -87,11 +87,6 @@
                                invisible="not meli_cancel_banner"/>
                     </xpath>
 
-                    <!-- picking_ids needed for invisible condition below -->
-                    <xpath expr="//field[@name='locked']" position="after">
-                        <field name="picking_ids" invisible="1"/>
-                    </xpath>
-
                     <!-- Botón de reparación: visible cuando la orden está confirmada pero
                          no tiene entrega (orphan stock moves sin picking_id) -->
                     <xpath expr="//div[@name='button_box']" position="inside">
