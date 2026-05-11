@@ -840,25 +840,17 @@ class sale_order(models.Model):
 
 
         except Exception as e:
-            # Log the full diagnostic context so we can identify root cause in production.
-            # The exception is intentionally swallowed here to prevent the cron from
-            # rolling back the whole batch; but we need to know WHAT failed.
-            _logger.error(
-                "MELI confirm_ml EXCEPTION on SO '%s' (id=%s, state=%s, "
-                "meli_status=%s, picking_count=%d, orphan_moves=%d): %s",
-                getattr(self, 'name', '?'), getattr(self, 'id', '?'),
-                getattr(self, 'state', '?'), getattr(self, 'meli_status', '?'),
-                len(getattr(self, 'picking_ids', [])),
-                len(self.env['stock.move'].search([
-                    ('picking_id', '=', False),
-                    ('state', 'not in', ['cancel', 'draft']),
-                    ('sale_line_id.order_id', '=', self.id if self.id else 0),
-                ])),
-                str(e),
-                exc_info=True,
-            )
+            # Log diagnostic context. Use self.id (in-memory) and str(e) only —
+            # do NOT access ORM fields (self.name, self.state) because the DB
+            # transaction may be aborted (InFailedSqlTransaction).
+            try:
+                _logger.error(
+                    "MELI confirm_ml EXCEPTION on SO id=%s: %s",
+                    self.id, str(e), exc_info=True,
+                )
+            except Exception:
+                _logger.error("MELI confirm_ml EXCEPTION (cannot log details): %s", str(e))
             return { 'error': str(e) }
-            pass
         #_logger.info("meli_oerp confirm_ml ended.")
 
         # Post-confirmation integrity check: warn if SO is confirmed but has no picking.
