@@ -12,6 +12,50 @@
 
 ## Errores Resueltos
 
+### ERROR-005: Descuento de cupón ML calculado con denominador sin IVA — factura por menos de lo pagado `[17.0.elvimarta]`
+
+**Reportado:** 2026-05-08
+**Severidad:** Alta — la factura quedaba por debajo del monto pagado por el comprador
+**Estado:** Resuelto
+
+**Síntomas:**
+En órdenes con `coupon_amount > 0` donde `meli_coupon_discount_on_invoice = True`, la factura mostraba un monto menor al esperado. El pago de ML no alcanzaba para cubrir la factura completa, quedando con residual.
+
+**Ejemplo (caso Elvimarta):**
+```
+coupon_amount = 1480
+Cálculo incorrecto: discount_pct = 1480 / sum(price_unit × qty) = 1480 / 48925 = 3.02%
+Factura = 48925 × (1 - 3.02%) × 1.21 = $57,412  ← menos de lo que pagó ML
+
+Cálculo correcto: discount_pct = 1480 / sum(price_unit × qty × (1 + IVA)) = 1480 / 59200 = 2.5%
+Factura = 48925 × (1 - 2.5%) × 1.21 = $57,720  ← correcto
+```
+
+**Causa raíz:**
+El denominador para calcular el % de descuento usaba el precio base sin IVA. Como el cupón de ML es un monto bruto (con IVA), aplicar ese porcentaje sobre el precio neto generaba un descuento mayor al real.
+
+**Resolución:** Ver [fixes-log.md](./fixes-log.md) → FIX-010
+
+---
+
+### ERROR-006: Odoo 19 — xpath `//field[@name='locked']` no encontrado en orders_view `[19.0.scoremx]`
+
+**Reportado:** 2026-05-08
+**Severidad:** Crítica — ParseError fatal en carga del módulo
+**Estado:** Resuelto
+**Detalle completo:** `.roots/19.0.scoremx/meli_oerp/debug/errors-log.md → ERROR-002`
+
+**Síntomas:**
+```
+ParseError: while parsing meli_oerp/views/orders_view.xml:75
+El elemento '<xpath expr="//field[@name='locked']">' no puede ser localizado en la vista padre
+```
+El campo `locked` no existe en la vista base de `sale.order` en Odoo 19.
+
+**Resolución:** Ver [fixes-log.md](./fixes-log.md) → FIX-011
+
+---
+
 ### ERROR-004: Seller discount capping incorrecto con cupones `[19.0.keleb]`
 
 **Reportado:** 2026-05-05
