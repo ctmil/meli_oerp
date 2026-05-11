@@ -4,6 +4,37 @@
 
 ---
 
+### 2026-05-08 — FIX-011: Odoo 19 — orders_view xpath `locked` eliminado `[19.0.scoremx]`
+
+**Commit:** `400f4f2`
+**Resuelve:** ERROR-006
+**Archivos:** `meli_oerp/views/orders_view.xml`
+
+El xpath `//field[@name='locked']` fallaba porque `locked` no existe en Odoo 19.
+`<field name="picking_ids" invisible="1"/>` se movió directamente dentro del primer `button_box` xpath, eliminando el xpath separado que dependía del campo eliminado.
+
+**Patrón:** Antes de usar xpath por nombre de campo, verificar que el campo sigue existiendo en la vista base de la versión de Odoo objetivo.
+
+---
+
+### 2026-05-08 — FIX-010: Cupón ML — denominador correcto (con IVA) + control `meli_coupon_discount_on_invoice` `[17.0.elvimarta]`
+
+**Commit:** (v26.28)
+**Resuelve:** ERROR-005
+**Archivos:** `meli_oerp/models/orders.py`, `meli_oerp_accounting/models/company.py`
+
+**Fix:**
+1. El cálculo del % de descuento ahora usa el precio bruto con IVA como denominador:
+   ```python
+   tax_pct = sum(t.amount for t in line.tax_id if t.amount_type == 'percent' and not t.price_include)
+   total_gross += line.price_unit * line.product_uom_qty * (1.0 + tax_pct / 100.0)
+   discount_pct = round(coupon_amount / total_gross * 100.0, 6)
+   ```
+2. El descuento solo se aplica si `config.meli_coupon_discount_on_invoice = True` (campo nuevo en `res.company`).
+3. Cuando `meli_coupon_discount_on_invoice = False` (default): si la orden tenía descuentos incorrectos del bug anterior, se detectan y limpian (compara contra `pct_bug` y `pct_ok` con tolerancia 0.01).
+
+---
+
 ### 2026-05-05 — FIX-009: CSRF fix en /meli_notify `[19.0.keleb]`
 
 **Commit:** pending
