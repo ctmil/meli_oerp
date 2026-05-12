@@ -592,6 +592,8 @@ class mercadolibre_products_import_line(models.TransientModel):
         ('missing', 'Sin vincular'),
         ('duplicate', 'Duplicado'),
         ('imported', 'Importado'),
+        ('sku_mapped', 'Mapeado por Regla SKU'),
+        ('sku_case', 'SKU capitalización distinta'),
         ('error', 'Error'),
     ], string="Estado", default='pending', index=True)
     error = fields.Char(string="Error")
