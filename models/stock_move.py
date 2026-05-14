@@ -126,6 +126,24 @@ class StockMove(models.Model):
                         product._meli_stock_moves_update()
                     except Exception as e2:
                         _logger.debug("Skipping meli_stock_moves_update for %s: %s", product.display_name, e2)
+
+            # STEP 3b: Reset meli_stock_update to NULL for affected products so the
+            # stock cron (ORDER BY meli_stock_update ASC NULLS FIRST) picks them up
+            # as priority in the next cycle. Without this, a product synced minutes
+            # ago with qty=0 sits at the back of the queue and reactivation is delayed
+            # by many cron cycles even after stock is replenished.
+            try:
+                self.env.cr.execute(
+                    "UPDATE product_product SET meli_stock_update = NULL WHERE id = ANY(%s)",
+                    (list(products_to_update),)
+                )
+                self.env['product.product'].invalidate_model(['meli_stock_update'])
+                _logger.debug(
+                    "meli_update_boms: reset meli_stock_update for %d products → cron priority",
+                    len(products_to_update)
+                )
+            except Exception as e:
+                _logger.debug("meli_update_boms: error resetting meli_stock_update: %s", e)
         t3_end = time.time()
 
         # Calculate total time and log benchmark if enabled

@@ -4231,7 +4231,7 @@ class mercadolibre_orders(models.Model):
                     total_gross = 0.0
                     for line in non_delivery_lines:
                         tax_pct = sum(
-                            t.amount for t in line.tax_id
+                            t.amount for t in (line.tax_ids if hasattr(line, 'tax_ids') else line.tax_id)
                             if t.amount_type == 'percent' and not t.price_include
                         )
                         total_gross += line.price_unit * line.product_uom_qty * (1.0 + tax_pct / 100.0)
@@ -4252,7 +4252,7 @@ class mercadolibre_orders(models.Model):
                     total_gross = 0.0
                     for line in non_delivery_lines:
                         tax_pct = sum(
-                            t.amount for t in line.tax_id
+                            t.amount for t in (line.tax_ids if hasattr(line, 'tax_ids') else line.tax_id)
                             if t.amount_type == 'percent' and not t.price_include
                         )
                         total_gross += line.price_unit * line.product_uom_qty * (1.0 + tax_pct / 100.0)
