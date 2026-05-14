@@ -119,3 +119,69 @@ La API de ML requiere `access_token` como query param para acceso directo sin se
 **Resolución:** Ver [fixes-log.md](./fixes-log.md) → FIX-001
 
 ---
+
+### ERROR-005: Publicaciones ML no se reactivan al reabastecer stock
+
+**Reportado:** 12 Mayo 2026
+**Severidad:** Alta
+**Estado:** Resuelto
+
+**Síntomas:**
+Cuando ML auto-pausa una publicación (`status=paused, sub_status=out_of_stock`), al
+reabastecer el stock en Odoo la publicación no se reactiva automáticamente. Puede
+tardar 30+ minutos o no activarse.
+
+**Causa raíz:**
+`meli_update_boms()` actualizaba `meli_stock_moves_update` (timestamp del movimiento)
+pero no tocaba `meli_stock_update` (timestamp del último sync con ML). El cron ordena
+por `meli_stock_update ASC NULLS FIRST` — un producto synced recientemente con qty=0
+quedaba al fondo de la cola.
+
+**Solución:**
+`meli_update_boms()` ahora también resetea `meli_stock_update = NULL` vía SQL directo.
+Con NULL, el cron (NULLS FIRST) procesa el producto en el primer ciclo siguiente.
+
+---
+
+### ERROR-006: Endpoint billing_info v1 deprecado por ML (Q1 2026)
+
+**Reportado:** 10 Abril 2026
+**Severidad:** Alta
+**Estado:** Resuelto
+
+**Síntomas:**
+Emisión de facturas falló porque el endpoint `/orders/{order_id}/billing_info` quedó
+deprecado. ML migró a `/orders/billing-info/{SITE_ID}/{BILLING_INFO_ID}` con header
+`x-version: 2`.
+
+**Causa raíz:**
+El código seguía llamando al endpoint legacy sin el nuevo path y sin el header requerido.
+El formato de respuesta también cambió radicalmente (UPPERCASE flat → JSON anidado).
+
+**Solución:**
+Migrado al endpoint v2 con normalizador de claves para mantener compatibilidad con el
+código consumidor sin tocar 100+ líneas de procesamiento.
+
+---
+
+### ERROR-007: Webhooks ML rechazados con 400 CSRF
+
+**Reportado:** 10 Abril 2026
+**Severidad:** Alta
+**Estado:** Resuelto
+
+**Síntomas:**
+```
+werkzeug: POST /odoo/meli_notify/keleb 400
+odoo.http: No CSRF validation token provided for path '/odoo/meli_notify/keleb'
+```
+
+**Causa raíz:**
+Los decorators de route de `/meli_notify` y `/meli_notify/<login_id>` no tenían
+`csrf=False`. Odoo rechazaba los POST externos de ML.
+
+**Solución:**
+Agregado `csrf=False` a ambos decorators. La validación de origen se hace via
+`application_id` y `user_id` en el handler.
+
+---

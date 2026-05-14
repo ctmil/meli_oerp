@@ -21,6 +21,7 @@
 
 from odoo import fields, models, api
 from odoo.tools.translate import _
+from markupsafe import Markup
 import logging
 _logger = logging.getLogger(__name__)
 
@@ -1432,7 +1433,7 @@ class res_company(models.Model):
         if not company.mercadolibre_cron_post_update_stock:
             return {}
 
-        auto_commit = not getattr(threading.currentThread(), 'testing', False)
+        auto_commit = not getattr(threading.current_thread(), 'testing', False)
         topcommits = 40
 
         # OPTIMIZED: Single SQL query with NULLS FIRST ordering instead of two separate ORM searches
@@ -1466,6 +1467,18 @@ class res_company(models.Model):
                 MeliCommit( self )
             for obj in product_ids:
                 if (obj.meli_id and icount<=topcommits):
+                    # Fulfillment products: ML manages warehouse stock independently.
+                    # Odoo cannot push quantity to a fulfillment publication.
+                    is_fulfillment = bool(
+                        obj.meli_shipping_logistic_type
+                        and obj.meli_shipping_logistic_type == 'fulfillment'
+                    )
+                    if is_fulfillment:
+                        obj.meli_stock_error = "fulfillment"
+                        icount += 1
+                        logs_list.append(f"{obj.default_code} {obj.meli_id}: fulfillment (skipped)")
+                        continue
+
                     icommit+= 1
                     icount+= 1
                     try:
@@ -1475,10 +1488,6 @@ class res_company(models.Model):
                         if "error" in resjson:
                             obj.meli_stock_error = str(resjson)
                             errors_list.append(f"{obj.default_code} {obj.meli_id} >> {resjson}")
-
-                            is_fulfillment = obj.meli_shipping_logistic_type and "fulfillment" in obj.meli_shipping_logistic_type
-                            if is_fulfillment:
-                                obj.meli_stock_error = "fulfillment"
                         else:
                             obj.meli_stock_error = str({})
 
@@ -1501,6 +1510,12 @@ class res_company(models.Model):
             noti.resource = "meli_update_remote_stock #"+str(icount) +'/'+str(maxcommits)
             noti.stop_internal_notification(errors="\n".join(errors_list), logs="\n".join(logs_list))
 
+            # Safety diagnostic: detect paused items with stock, drift, etc.
+            try:
+                self.meli_stock_diagnostic(meli=meli)
+            except Exception as _diag_err:
+                _logger.warning("meli_update_remote_stock > diagnostic error: %s", _diag_err)
+
         except Exception as e:
             _logger.info("meli_update_remote_stock > Exception founded!")
             _logger.info(e, exc_info=True)
@@ -1522,7 +1537,7 @@ class res_company(models.Model):
         if not company.mercadolibre_cron_post_update_stock:
             return {}
 
-        auto_commit = not getattr(threading.currentThread(), 'testing', False)
+        auto_commit = not getattr(threading.current_thread(), 'testing', False)
         topcommits = 40
 
         # OPTIMIZED: Single SQL query with NULLS FIRST ordering instead of two separate ORM searches
@@ -1555,6 +1570,18 @@ class res_company(models.Model):
                 MeliCommit( self )
             for obj in product_ids:
                 if (obj.meli_id and icount<=topcommits):
+                    # Fulfillment products: ML manages warehouse stock independently.
+                    # Odoo cannot push quantity to a fulfillment publication.
+                    is_fulfillment = bool(
+                        obj.meli_shipping_logistic_type
+                        and obj.meli_shipping_logistic_type == 'fulfillment'
+                    )
+                    if is_fulfillment:
+                        obj.meli_stock_error = "fulfillment"
+                        icount += 1
+                        logs_list.append(f"{obj.default_code} {obj.meli_id}: fulfillment (skipped)")
+                        continue
+
                     icommit+= 1
                     icount+= 1
                     try:
@@ -1564,10 +1591,6 @@ class res_company(models.Model):
                         if "error" in resjson:
                             obj.meli_stock_error = str(resjson)
                             errors_list.append(f"{obj.default_code} {obj.meli_id} >> {resjson}")
-
-                            is_fulfillment = obj.meli_shipping_logistic_type and "fulfillment" in obj.meli_shipping_logistic_type
-                            if is_fulfillment:
-                                obj.meli_stock_error = "fulfillment"
                         else:
                             obj.meli_stock_error = str({})
 
@@ -1601,12 +1624,370 @@ class res_company(models.Model):
 
         return {}
 
+    def meli_stock_diagnostic(self, meli=False):
+        """
+        Diagnostic safety check: compare Odoo stock vs ML stock for all published products.
+        Runs at the end of each stock cron cycle. Detects and corrects:
+          - Items paused in ML but with available stock in Odoo (reactivates them).
+          - Items active in ML with quantity=0 and stock available in Odoo (pushes correction).
+          - Stock drift: Odoo meli_available_quantity differs from ML's available_quantity.
+        Does NOT make API calls per-product — reuses the stored meli_available_quantity
+        and triggers product_post_stock only for products needing correction.
+        Posts a summary to the mercadolibre.account chatter when meli_cron_log_chatter=True.
+        """
+        import time as _time
+        t_diag_start = _time.time()
+
+        company = self.env.user.company_id
+        if not company.mercadolibre_cron_post_update_stock:
+            return {}
+
+        _logger.info("MELI_STOCK_DIAG: starting diagnostic for company %s", company.name)
+
+        auto_commit = not getattr(threading.current_thread(), 'testing', False)
+
+        # Check if chatter logging is enabled
+        chatter_log = False
+        chatter_account = False
+        if 'mercadolibre.account' in self.env:
+            chatter_account = self.env['mercadolibre.account'].sudo().search([
+                ('company_id', '=', company.id),
+                ('meli_cron_log_chatter', '=', True),
+            ], limit=1)
+            chatter_log = bool(chatter_account)
+
+        # Load published products with available stock in a single SQL query.
+        # company_id lives on product_template, so we JOIN it.
+        # qty_on_hand comes from stock_quant (internal, unreserved) — much faster
+        # than ORM browse() for virtual_available which triggers expensive recompute.
+        self.env.cr.execute("""
+            SELECT pp.id, pp.default_code, pp.meli_id, pp.meli_available_quantity,
+                   COALESCE(sq.avail_qty, 0) AS qty_on_hand,
+                   pp.meli_shipping_logistic_type
+            FROM product_product pp
+            JOIN product_template pt ON pt.id = pp.product_tmpl_id
+            LEFT JOIN (
+                SELECT sq.product_id,
+                       SUM(GREATEST(sq.quantity - sq.reserved_quantity, 0)) AS avail_qty
+                FROM stock_quant sq
+                JOIN stock_location sl ON sl.id = sq.location_id
+                WHERE sl.usage = 'internal' AND sl.active IS TRUE
+                GROUP BY sq.product_id
+            ) sq ON sq.product_id = pp.id
+            WHERE pp.meli_pub IS TRUE
+            AND pp.meli_id LIKE 'M%%'
+            AND (pt.company_id IS NULL OR pt.company_id = %s)
+            AND (pp.meli_shipping_logistic_type IS NULL OR pp.meli_shipping_logistic_type != 'fulfillment')
+        """, (company.id,))
+        rows = self.env.cr.fetchall()
+
+        reactivate_candidates = []        # (id, sku, meli_id, odoo_qty, meli_qty)
+        drift_candidates = []             # (id, sku, meli_id, odoo_qty, meli_qty)
+        fulfillment_user_candidates = []  # fulfillment_user_product_id items with Odoo stock
+        actions_taken = []                # human-readable lines for chatter summary
+        checked_items_log = []            # per-item detail for chatter debug
+
+        for row in rows:
+            pid, sku, meli_id, meli_qty, odoo_qty, logistic_type = row
+            odoo_qty = max(odoo_qty or 0.0, 0.0)
+            meli_qty = meli_qty or 0
+
+            # fulfillment_user_product_id items: stored meli_qty reflects meli_facility
+            # (ML-managed) not selling_address (Odoo-managed). Check them via API separately.
+            if logistic_type == 'fulfillment_user_product_id' and odoo_qty > 0:
+                fulfillment_user_candidates.append((pid, sku, meli_id, odoo_qty, meli_qty))
+            # Drift: Odoo has more stock than last synced to ML
+            elif odoo_qty > 0 and meli_qty == 0:
+                reactivate_candidates.append((pid, sku, meli_id, odoo_qty, meli_qty))
+            elif abs(odoo_qty - meli_qty) > 1:
+                drift_candidates.append((pid, sku, meli_id, odoo_qty, meli_qty))
+
+        # Also check products that have meli_last_status='paused' stored
+        # (via mercadolibre.product if available) and have Odoo stock > 0.
+        # These are missed by the qty-only check above when meli_available_quantity > 0.
+        paused_with_stock_missed = []
+        if 'mercadolibre.product' in self.env:
+            try:
+                self.env.cr.execute("""
+                    SELECT mp.product_id, pp.default_code, mp.conn_id,
+                           pp.meli_available_quantity,
+                           COALESCE(sq.avail_qty, 0) AS qty_on_hand
+                    FROM mercadolibre_product mp
+                    JOIN product_product pp ON pp.id = mp.product_id
+                    JOIN product_template pt ON pt.id = pp.product_tmpl_id
+                    LEFT JOIN (
+                        SELECT sq.product_id,
+                               SUM(GREATEST(sq.quantity - sq.reserved_quantity, 0)) AS avail_qty
+                        FROM stock_quant sq
+                        JOIN stock_location sl ON sl.id = sq.location_id
+                        WHERE sl.usage = 'internal' AND sl.active IS TRUE
+                        GROUP BY sq.product_id
+                    ) sq ON sq.product_id = pp.id
+                    WHERE mp.meli_last_status = 'paused'
+                      AND COALESCE(sq.avail_qty, 0) > 0
+                      AND (pt.company_id IS NULL OR pt.company_id = %s)
+                      AND mp.conn_id IS NOT NULL
+                      AND mp.conn_id LIKE 'M%%'
+                      AND (pp.meli_shipping_logistic_type IS NULL OR pp.meli_shipping_logistic_type != 'fulfillment')
+                    ORDER BY qty_on_hand DESC
+                    LIMIT 100
+                """, (company.id,))
+                for pid2, sku2, meli_id2, meli_qty2, odoo_qty2 in self.env.cr.fetchall():
+                    odoo_qty2 = max(odoo_qty2 or 0.0, 0.0)
+                    # Skip if already in reactivate_candidates or fulfillment_user_candidates
+                    already = (
+                        any(r[2] == meli_id2 for r in reactivate_candidates)
+                        or any(r[2] == meli_id2 for r in fulfillment_user_candidates)
+                    )
+                    if not already:
+                        paused_with_stock_missed.append((pid2, sku2, meli_id2, odoo_qty2, meli_qty2 or 0))
+            except Exception as _mp_err:
+                _logger.debug("MELI_STOCK_DIAG: mercadolibre.product paused check failed: %s", _mp_err)
+
+        # Log drift summary
+        if drift_candidates:
+            _logger.warning(
+                "MELI_STOCK_DIAG: %d products with stock drift (Odoo≠ML):\n%s",
+                len(drift_candidates),
+                "\n".join(
+                    f"  [{sku}] {mid}: Odoo={oq:.0f} ML={mq}"
+                    for _, sku, mid, oq, mq in drift_candidates
+                )
+            )
+
+        # Reactivate candidates: Odoo has stock but ML has 0 (possibly paused)
+        all_to_check = list(reactivate_candidates) + [
+            (pid, sku, meli_id, odoo_qty, meli_qty)
+            for pid, sku, meli_id, odoo_qty, meli_qty in paused_with_stock_missed
+        ] + fulfillment_user_candidates
+
+        if all_to_check:
+            _logger.warning(
+                "MELI_STOCK_DIAG: %d products to check (reactivate_candidates=%d, paused_missed=%d, fulfillment_user=%d)",
+                len(all_to_check), len(reactivate_candidates), len(paused_with_stock_missed),
+                len(fulfillment_user_candidates)
+            )
+            if not meli:
+                meli = self.env['meli.util'].get_new_instance(company)
+
+            for pid, sku, meli_id, odoo_qty, meli_qty in all_to_check:
+                item_log = f"[{sku}] {meli_id} Odoo={odoo_qty:.0f} stored_qty={meli_qty}"
+                try:
+                    response = meli.get("/items/%s" % meli_id, {'access_token': meli.access_token})
+                    if not response:
+                        checked_items_log.append(f"⚠️ {item_log} → sin respuesta ML")
+                        continue
+                    rjson = response.json()
+                    ml_status = rjson.get('status', 'unknown')
+                    ml_qty = rjson.get('available_quantity', 0)
+                    _logger.warning(
+                        "MELI_STOCK_DIAG: [%s] %s → ML status=%s ML_qty=%d Odoo_qty=%.0f",
+                        sku, meli_id, ml_status, ml_qty, odoo_qty
+                    )
+                    item_log += f" → ML:{ml_status} ML_qty={ml_qty}"
+                    ml_logistic = rjson.get('shipping', {}).get('logistic_type', '')
+                    ml_user_product_id = rjson.get('user_product_id')
+                    # fulfillment_user_product_id: logistic_type='fulfillment' AND user_product_id set
+                    is_fulfillment_user = bool(ml_user_product_id and ml_logistic == 'fulfillment')
+
+                    if ml_status == 'paused' and odoo_qty > 0:
+                        # Skip only pure ML-managed fulfillment (no user_product_id — ML controls stock)
+                        if ml_logistic == 'fulfillment' and not ml_user_product_id:
+                            checked_items_log.append(f"⏭ {item_log} → paused pero FULFILLMENT ML puro (skip)")
+                            continue
+                        product = self.env['product.product'].browse(pid)
+                        if not product.meli_update_stock_blocked and not product.product_tmpl_id.meli_update_stock_blocked:
+                            _logger.warning(
+                                "MELI_STOCK_DIAG: REACTIVATING [%s] %s (paused + Odoo_qty=%.0f)",
+                                sku, meli_id, odoo_qty
+                            )
+                            product.product_post_stock(meli=meli)
+                            actions_taken.append(f"✅ REACTIVADA [{sku}] {meli_id} — paused + Odoo={odoo_qty:.0f}")
+                            checked_items_log.append(f"✅ {item_log} → REACTIVADA")
+                            if auto_commit:
+                                MeliCommit(self)
+                        else:
+                            _logger.warning(
+                                "MELI_STOCK_DIAG: SKIP reactivate [%s] %s — meli_update_stock_blocked=True",
+                                sku, meli_id
+                            )
+                            actions_taken.append(f"⏭ SKIP [{sku}] {meli_id} — paused pero blocked")
+                            checked_items_log.append(f"⏭ {item_log} → paused pero BLOCKED")
+                    elif ml_status == 'active' and ml_qty > 0 and meli_qty == 0:
+                        # Publication is active and ML has stock — our stored qty is stale.
+                        _logger.warning(
+                            "MELI_STOCK_DIAG: STALE QTY [%s] %s — ML active, ML_qty=%d, updating meli_available_quantity",
+                            sku, meli_id, ml_qty
+                        )
+                        try:
+                            self.env.cr.execute(
+                                "UPDATE product_product SET meli_available_quantity = %s WHERE id = %s",
+                                (ml_qty, pid)
+                            )
+                            self.env['product.product'].invalidate_model(['meli_available_quantity'])
+                            actions_taken.append(f"🔄 QTY STALE [{sku}] {meli_id} — qty actualizada 0→{ml_qty} (Odoo←ML)")
+                            checked_items_log.append(f"🔄 {item_log} → qty stale actualizada a {ml_qty}")
+                            if auto_commit:
+                                MeliCommit(self)
+                        except Exception as _upd_err:
+                            _logger.warning("MELI_STOCK_DIAG: error updating stale qty [%s]: %s", sku, _upd_err)
+                            actions_taken.append(f"❌ ERROR stale qty [{sku}] {meli_id}: {_upd_err}")
+                            checked_items_log.append(f"❌ {item_log} → error stale qty")
+                    elif ml_status == 'active' and ml_qty == 0 and odoo_qty > 0:
+                        is_fulfillment = False
+                        try:
+                            product_chk = self.env['product.product'].browse(pid)
+                            is_fulfillment = bool(
+                                product_chk.meli_shipping_logistic_type
+                                and product_chk.meli_shipping_logistic_type == 'fulfillment'
+                            )
+                        except Exception:
+                            pass
+                        if is_fulfillment:
+                            checked_items_log.append(f"⏭ {item_log} → fulfillment skip")
+                        else:
+                            _logger.warning(
+                                "MELI_STOCK_DIAG: PUSH CORRECTION [%s] %s (active, ML_qty=0, Odoo=%.0f)",
+                                sku, meli_id, odoo_qty
+                            )
+                            product = self.env['product.product'].browse(pid)
+                            product.product_post_stock(meli=meli)
+                            actions_taken.append(f"📤 PUSH CORRECCIÓN [{sku}] {meli_id} — active+ML_qty=0, Odoo={odoo_qty:.0f}")
+                            checked_items_log.append(f"📤 {item_log} → push corrección")
+                            if auto_commit:
+                                MeliCommit(self)
+                    elif is_fulfillment_user and ml_status == 'active' and odoo_qty > 0:
+                        # fulfillment_user_product_id: check pushable locations (selling_address +
+                        # seller_warehouse) via /user-products/{id}/stock. meli_available_quantity
+                        # on the item reflects the sum including meli_facility (ML-managed), so we
+                        # must read each location separately to detect drift in the pushable portion.
+                        try:
+                            sa_resp = meli.get(
+                                "/user-products/%s/stock" % str(ml_user_product_id),
+                                {'access_token': meli.access_token}
+                            )
+                            sa_json = sa_resp.json() if sa_resp else {}
+                            sa_locations = sa_json.get('locations') or []
+                            _PUSHABLE = ('selling_address', 'seller_warehouse')
+                            pushable_qty = 0
+                            loc_detail = []
+                            for _loc in sa_locations:
+                                _ltype = _loc.get('type', '')
+                                _lqty = _loc.get('quantity', 0)
+                                if _ltype in _PUSHABLE:
+                                    pushable_qty += _lqty
+                                loc_detail.append(f"{_ltype}={_lqty}")
+                            loc_str = " / ".join(loc_detail) if loc_detail else "sin_ubicaciones"
+                            _logger.warning(
+                                "MELI_STOCK_DIAG: FULFILLMENT_USER [%s] %s → %s pushable=%d Odoo=%.0f",
+                                sku, meli_id, loc_str, pushable_qty, odoo_qty
+                            )
+                            if pushable_qty < odoo_qty:
+                                product = self.env['product.product'].browse(pid)
+                                if not product.meli_update_stock_blocked and not product.product_tmpl_id.meli_update_stock_blocked:
+                                    _logger.warning(
+                                        "MELI_STOCK_DIAG: PUSH FULFILLMENT_USER [%s] %s (pushable=%d < Odoo=%.0f, delta=%d)",
+                                        sku, meli_id, pushable_qty, odoo_qty, int(odoo_qty - pushable_qty)
+                                    )
+                                    product.product_post_stock(meli=meli)
+                                    actions_taken.append(
+                                        f"📤 PUSH FULFILLMENT_USER [{sku}] {meli_id} — {loc_str} pushable={pushable_qty} < Odoo={odoo_qty:.0f} (delta={int(odoo_qty-pushable_qty)})"
+                                    )
+                                    checked_items_log.append(
+                                        f"📤 {item_log} → fulfillment_user {loc_str} pushable={pushable_qty} < Odoo={odoo_qty:.0f}, push"
+                                    )
+                                    if auto_commit:
+                                        MeliCommit(self)
+                                else:
+                                    checked_items_log.append(
+                                        f"⏭ {item_log} → fulfillment_user pushable={pushable_qty} < Odoo={odoo_qty:.0f} pero BLOCKED"
+                                    )
+                            else:
+                                checked_items_log.append(
+                                    f"ℹ️ {item_log} → fulfillment_user {loc_str} pushable={pushable_qty} (ok)"
+                                )
+                        except Exception as _sa_err:
+                            if getattr(_sa_err, 'pgcode', '') in ('40001', '40P01'):
+                                raise  # serialization error — propagate to outer handler
+                            _logger.warning("MELI_STOCK_DIAG: error checking fulfillment_user stock [%s] %s: %s", sku, meli_id, _sa_err)
+                            checked_items_log.append(f"❌ {item_log} → error fulfillment_user stock: {_sa_err}")
+                    else:
+                        # No action needed — log for visibility
+                        checked_items_log.append(f"ℹ️ {item_log} → sin acción (status={ml_status})")
+
+                except Exception as e:
+                    if getattr(e, 'pgcode', '') in ('40001', '40P01'):
+                        _logger.warning(
+                            "MELI_STOCK_DIAG: serialization error on [%s] %s — aborting loop: %s",
+                            sku, meli_id, e
+                        )
+                        raise  # propagate to cron_meli_stock_diagnostic's savepoint handler
+                    _logger.warning("MELI_STOCK_DIAG: error checking [%s] %s: %s", sku, meli_id, e)
+                    actions_taken.append(f"❌ ERROR [{sku}] {meli_id}: {e}")
+                    checked_items_log.append(f"❌ {item_log} → error: {e}")
+
+        t_diag_elapsed = _time.time() - t_diag_start
+        _logger.info(
+            "MELI_STOCK_DIAG: done in %.2fs — total=%d reactivate=%d paused_missed=%d fulfillment_user=%d drift=%d actions=%d checked=%d",
+            t_diag_elapsed, len(rows), len(reactivate_candidates), len(paused_with_stock_missed),
+            len(fulfillment_user_candidates), len(drift_candidates), len(actions_taken), len(checked_items_log)
+        )
+
+        if chatter_log and chatter_account:
+            from datetime import datetime as _dt
+            drift_lines = "".join(
+                f"<li>[{sku}] {mid}: Odoo={oq:.0f} → stored={mq}</li>"
+                for _, sku, mid, oq, mq in drift_candidates[:20]
+            )
+            if len(drift_candidates) > 20:
+                drift_lines += f"<li>... y {len(drift_candidates) - 20} más</li>"
+
+            checked_lines = "".join(f"<li>{a}</li>" for a in checked_items_log) or "<li>Ninguno revisado via API</li>"
+            actions_lines = "".join(f"<li>{a}</li>" for a in actions_taken) or "<li>Sin acciones</li>"
+
+            # Summary header color: red if paused_with_stock exist and no reactivations
+            header_color = "#e8f4fd"
+            border_color = "#17a2b8"
+            if paused_with_stock_missed and not any("REACTIVADA" in a for a in actions_taken):
+                header_color = "#fff3cd"
+                border_color = "#ffc107"
+
+            chatter_body = f"""
+<div style="font-family: monospace; font-size: 12px; background: {header_color}; padding: 10px; border-radius: 5px; border-left: 4px solid {border_color};">
+<b>🩺 STOCK DIAGNOSTIC</b> — {_dt.now().strftime('%H:%M:%S')} ({t_diag_elapsed:.1f}s)<br/>
+<b>Publicaciones analizadas (SQL):</b> {len(rows)} &nbsp;|&nbsp;
+<b>Con qty=0 en Odoo (candidatos):</b> {len(reactivate_candidates)} &nbsp;|&nbsp;
+<b>Pausadas con stock no detectadas por qty:</b> {len(paused_with_stock_missed)}<br/>
+<b>Fulfillment_user con stock (selling_addr check):</b> {len(fulfillment_user_candidates)} &nbsp;|&nbsp;
+<b>Drift:</b> {len(drift_candidates)} &nbsp;|&nbsp;
+<b>Revisadas via API ML:</b> {len(checked_items_log)} &nbsp;|&nbsp;
+<b>Acciones:</b> {len(actions_taken)}
+<hr/><b>Detalle items revisados via API:</b><ul>{checked_lines}</ul>
+{f'<hr/><b>Acciones ejecutadas:</b><ul>{actions_lines}</ul>' if actions_taken else ''}
+{f'<hr/><b>Drift (Odoo stored ≠ Odoo actual):</b><ul>{drift_lines}</ul>' if drift_candidates else ''}
+</div>"""
+            try:
+                with self.env.registry.cursor() as _chat_cr:
+                    _chat_env = self.env(cr=_chat_cr)
+                    _chat_env['mercadolibre.account'].browse(chatter_account.id).message_post(
+                        body=Markup(chatter_body), subtype_xmlid='mail.mt_note'
+                    )
+                    _chat_cr.commit()
+            except Exception as _chat_err:
+                _logger.warning("MELI_STOCK_DIAG: chatter post failed: %s", _chat_err)
+
+        return {
+            'reactivate_candidates': len(reactivate_candidates),
+            'drift_candidates': len(drift_candidates),
+            'actions_taken': len(actions_taken),
+            'elapsed_seconds': round(t_diag_elapsed, 2),
+        }
 
     def meli_update_remote_price(self, meli=False):
         company = self.env.user.company_id
         company_domain = ['|',('company_id','=',False),('company_id','=',company.id)]
         if (company.mercadolibre_cron_post_update_price):
-            auto_commit = not getattr(threading.currentThread(), 'testing', False)
+            auto_commit = not getattr(threading.current_thread(), 'testing', False)
             #product_ids = self.env['product.product'].search([('meli_pub','=',True),('meli_id','!=',False),
             #                                                  '|',('company_id','=',False),('company_id','=',company.id)])
 

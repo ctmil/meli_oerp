@@ -4,6 +4,31 @@
 
 ---
 
+## Versión 26.29
+2026-05-13
+
+**Cambios:**
+
+1. **Stock — Priorización por movimiento de stock:** Cuando ocurre un movimiento de stock para un producto publicado en ML, `meli_update_boms()` ahora resetea `meli_stock_update = NULL` vía SQL directo. El cron ordena por `meli_stock_update ASC NULLS FIRST` — con NULL, el producto sube al frente del queue en el primer ciclo siguiente (5-10 min). Antes, un producto synced con qty=0 quedaba al fondo de la cola y podía tardar 30+ minutos en reactivarse.
+
+2. **Stock — `meli_stock_diagnostic()` como red de seguridad:** Nueva función que corre al final de cada ciclo de `meli_update_remote_stock`. Detecta y corrige automáticamente:
+   - Items `status=paused` en ML con `virtual_available > 0` → reactiva vía `product_post_stock()`
+   - Items `status=active` con `available_quantity=0` pero Odoo tiene stock → push corrección
+   - `meli_available_quantity` stale cuando ML tiene qty>0 → sincroniza desde ML (SQL directo)
+   - Drift de cantidades (Odoo ≠ ML) → log WARNING `MELI_STOCK_DIAG`
+
+3. **Stock — Skip fulfillment en cron:** Productos con `meli_shipping_logistic_type='fulfillment'` ya no generan llamadas a ML API innecesarias en el cron de stock (ML no permite modificar stock de almacenes fulfillment vía API). El cron ahora hace `continue` directamente con `meli_stock_error="fulfillment"`.
+
+4. **Órdenes — Fix `seller_discount` sobreestimado con cupón:** `amounts.seller` del endpoint `/orders/{id}/discounts` contiene el descuento total de precio de lista (precio original − precio de venta), no la contribución real del vendedor al cupón. Para evitar que `meli_amount_to_invoice` devuelva un valor menor al correcto, el descuento del vendedor se capea al `coupon_amount` cuando `(paid - seller_discount) < amount_total`.
+
+5. **Webhooks ML — CSRF desactivado en `/meli_notify`:** Los endpoints de webhook de ML (`/meli_notify`, `/meli_notify/<login_id>`) ahora tienen `csrf=False` en el decorator. Sin este flag, Odoo rechazaba los POST de ML con 400 "No CSRF validation token provided".
+
+6. **Billing info — Migración a API v2:** El endpoint legacy `/orders/{order_id}/billing_info` fue deprecado por ML en Q1 2026. Migrado al nuevo endpoint `/orders/billing-info/{SITE_ID}/{BILLING_INFO_ID}` con header `x-version: 2`. Incluye normalizador de formato para el nuevo schema anidado (antes UPPERCASE flat, ahora `identification.type`, `name`, `address.street_name`).
+
+7. **Compatibilidad Odoo 19 — `_sql_constraints` obsoletos eliminados:** 23 warnings de startup eliminados. Odoo 19 emite `DeprecationWarning` por cada clase con `_sql_constraints`. Todos los modelos ya tenían `UniqueIndex`/`Constraint` como atributos de clase — el atributo era redundante.
+
+---
+
 ## Versión 26.28
 2026-05-08
 

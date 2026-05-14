@@ -4,6 +4,102 @@
 
 ---
 
+### 12 Mayo 2026 - fix(stock): reset meli_stock_update en moves para priorización en cron
+
+**Commit:** `77ef170`
+**Resuelve:** ERROR-005
+**Archivos:** `meli_oerp/models/stock_move.py`
+
+Cuando ocurre un stock move, `meli_update_boms()` (Step 3b) resetea `meli_stock_update = NULL`
+para todos los productos ML afectados via SQL directo:
+
+```python
+self.env.cr.execute(
+    "UPDATE product_product SET meli_stock_update = NULL WHERE id = ANY(%s)",
+    (list(products_to_update),)
+)
+self.env['product.product'].invalidate_model(['meli_stock_update'])
+```
+
+Con `meli_stock_update = NULL`, el cron (ORDER BY `meli_stock_update ASC NULLS FIRST`)
+procesa esos productos en el primer ciclo siguiente (5-10 min). Si ML tiene `status=paused`,
+`product_post_stock()` llama `product_meli_status_active()` para reactivar.
+
+---
+
+### 12 Mayo 2026 - feat(stock): meli_stock_diagnostic() — red de seguridad post-cron
+
+**Commit:** `6c7a8e2`
+**Archivos:** `meli_oerp/models/company.py`
+
+Nueva función que corre al final de cada ciclo de `meli_update_remote_stock`. Detecta:
+- `status=paused` en ML + `virtual_available > 0` → `product_post_stock()` (reactiva)
+- `status=active` + `ml_qty=0` pero Odoo tiene stock → push corrección
+- `meli_available_quantity=0` + `ml_qty>0` + `status=active` → SQL update (sincroniza meli_qty desde ML)
+
+Respeta `meli_update_stock_blocked`. Protegida con try/except para no romper el cron.
+
+---
+
+### 12 Mayo 2026 - fix(stock): fulfillment skip en cron de stock
+
+**Commit:** `c3ec111`
+**Archivos:** `meli_oerp/models/company.py`
+
+Productos con `meli_shipping_logistic_type` conteniendo `'fulfillment'` ya no generan
+API calls a ML (ML rechaza stock updates en almacenes fulfillment). Guard antes del loop:
+`meli_stock_error="fulfillment"`, `continue`. Aplica en `meli_update_remote_stock` y
+`meli_update_remote_stock_rt`.
+
+---
+
+### 10 Abril 2026 - fix(webhook): csrf=False en endpoints /meli_notify
+
+**Resuelve:** ERROR-007
+**Archivos:** `meli_oerp/controllers/main.py`, `meli_oerp_multiple/controllers/main.py`
+
+Agregado `csrf=False` a los decorators de route de `/meli_notify` y `/meli_notify/<string:meli_login_id>`.
+
+---
+
+### 10 Abril 2026 - fix(billing_info): migración a endpoint v2 con normalizador de formato
+
+**Resuelve:** ERROR-006
+**Archivos:** `meli_oerp/models/orders.py`
+
+Migrado de `/orders/{id}/billing_info` a `/orders/billing-info/{SITE_ID}/{BILLING_INFO_ID}`
+con header `x-version: 2`. Agregado normalizador de claves para mapear el nuevo schema
+anidado al formato esperado por el código consumidor.
+
+---
+
+### 05 Mayo 2026 - fix(orders): cap seller_discount condicional en meli_amount_to_invoice
+
+**Resuelve:** ERROR-004
+**Archivos:** `meli_oerp/models/orders.py`
+
+`amounts.seller` de `/orders/{id}/discounts` tiene dos semánticas. El cap solo se aplica
+cuando `(paid - seller_discount) < amount_total`:
+
+```python
+if _coupon_cap > 0 and self.amount_total > 0:
+    _uncapped = (self.meli_paid_amount or 0.0) - seller_discount
+    if _uncapped < self.amount_total:
+        seller_discount = min(seller_discount, _coupon_cap)
+```
+
+---
+
+### 05 Mayo 2026 - fix(odoo19): eliminar _sql_constraints obsoletos (23 warnings)
+
+**Resuelve:** ERROR-003
+**Archivos:** 8 modelos en meli_oerp, meli_oerp_multiple, meli_oerp_stock, odoo_connector_api
+
+Eliminados `_sql_constraints = versions.sql_constraints_if_no_unique_index(...)` de 14 modelos.
+Todos ya tenían `UniqueIndex`/`Constraint` como atributos de clase.
+
+---
+
 ### 2026-05-08 — FIX-011: Odoo 19 — orders_view xpath `locked` eliminado `[19.0.scoremx]`
 
 **Commit:** `400f4f2`
