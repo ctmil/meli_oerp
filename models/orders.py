@@ -774,12 +774,23 @@ class sale_order(models.Model):
             _coupon = abs(self.meli_coupon_amount or 0.0)
             if _coupon > 0:
                 _tolerance = max(_tolerance, _coupon * 1.3)
-            _diff_direct = abs( float(amount_to_invoice) - self.amount_total )
+            # If retention taxes are on SO lines (legacy, without withholding module),
+            # add back their amounts so the check compares like-for-like.
+            tax_field = SaleOrderLineTaxField(self)
+            _retention_total = 0.0
+            for line in self.order_line:
+                if line.price_unit <= 0:
+                    continue
+                for tax in line[tax_field]:
+                    if tax.amount < 0:
+                        _retention_total += abs(line.price_subtotal * tax.amount / 100.0)
+            _amount_total_before_retentions = self.amount_total + _retention_total
+            _diff_direct = abs( float(amount_to_invoice) - _amount_total_before_retentions )
             # For self_service logistics the SO has no shipping line, but
             # meli_paid_amount (and thus amount_to_invoice) includes the shipping
             # amount. Accept if the diff is fully explained by shipping.
             _shipping = self.meli_shipping_amount or 0.0
-            _diff_no_ship = abs( float(amount_to_invoice) - _shipping - self.amount_total ) if _shipping > 0 else _diff_direct
+            _diff_no_ship = abs( float(amount_to_invoice) - _shipping - _amount_total_before_retentions ) if _shipping > 0 else _diff_direct
             confirm_cond = (amount_to_invoice > 0) and (
                 _diff_direct < _tolerance
                 or (_shipping > 0 and _diff_no_ship < _tolerance)

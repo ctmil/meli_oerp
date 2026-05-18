@@ -1,15 +1,16 @@
-<!-- CANONICAL: https://github.com/ctmil/roots_seed/blob/main/roots_seed.md -->
-<!-- COPIA distribuida — módulo self-contained. -->
-<!-- Cambios permanentes: editar canonical y re-distribuir. -->
-<!-- Cambios experimentales: nota al pie de este archivo. -->
+<!-- CANONICAL: odoo_moldeo_roots/roots_seed.md -->
+<!-- Esto es una COPIA distribuida del seed para que el módulo sea self-contained. -->
+<!-- Para cambios permanentes: editar el canonical y re-distribuir a todos los .roots/. -->
+<!-- Para cambios locales experimentales: agregar nota al pie de este archivo. -->
 
 # Roots Seed - Agentic Memory Structure
 
 > Plantilla maestra para crear estructura de documentación y memoria de desarrollo. Este archivo define los estándares de formato, estilo y protocolos de poblado.
 
-**Versión:** 1.5
+**Versión:** 1.6
 
 **Changelog:**
+- **1.6** (10 Mayo 2026) — Modos de trabajo replanteados como modelo híbrido multi-source. Nuevo **Context Format Registry** con contexto estructurado por dominio (Odoo como primer formato: `{major}.{minor}.{infra}.{project}`). Nuevo sistema de **Sources embebidos**: el cliente copia `.roots/` de cada source en `sources/`, con `_sources.json` como manifest de vinculación. **Cascada de precedencia** formalizada: cliente raíz > source embebido > source original. **Namespace de conflictos** con patrón `source.skill_name` y overrides del cliente. **Promoción semi-automática** de descubrimientos del cliente al source original. Nueva sección **Tool Compatibility** con filosofía tool-agnostic, 5 herramientas principales como referencia y merging strategies. `_meta.json` extendido con `context_format`, `context_parsed`, `sources`. Script de inicialización actualizado a v1.6.
 - **1.5** (30 Abril 2026) — Nueva sección "Modos de trabajo" con dos modos: **client branch** (`.roots/{version}.{client}/`) y **source** (`.roots/{module}/`). El modo se pregunta al usuario al procesar el seed por primera vez y se persiste en `_meta.json.working_mode`. Actualizada "Estructura Base" con ambos layouts. `on-seed-process` ampliado con paso 0 de detección de modo. Nuevo protocolo de merge entre namespaces de distintos clientes/branches. `_meta.json` extendido con campos `working_mode`, `odoo_version`, `repo`.
 - **1.4** (24 Abril 2026) — Nueva carpeta `workbench/` para materiales de referencia del usuario. Nueva sección "Sync con canonical upstream (ctmil/roots_seed)" con protocolo de comparación de versiones y reglas de contribución. Nueva sección "Integración con CLAUDE.md y Claude Code (.claude/)" con jerarquía de contexto, reglas de no-duplicación, template de CLAUDE.md, y tabla de compatibilidad futura. Nuevo hook `on-seed-process.md` que consolida bootstrap completo: sync upstream, distribución, verificación CLAUDE.md, y creación de workbench. `session-start` ampliado para listar `workbench/` al inicio.
 - **1.3** (18 Abril 2026) — Regla de distribución del seed dentro de cada `.roots/`. Cada módulo/proyecto lleva una **copia local** del seed que lo generó, así es self-contained y reprocesable aunque se extraiga a otro repo. Nuevo hook `on-seed-update` para re-distribuir al canonical bumpear versión. `session-start` ahora compara copia local vs canonical y avisa si están desincronizadas.
@@ -42,40 +43,149 @@ Esta estructura está diseñada para ser usada por **agentes de IA** y **desarro
 
 | Modo | Namespace | Cuándo usar | Ejemplo |
 |------|-----------|-------------|---------|
-| **Client branch** | `.roots/{version}.{client}/` | Trabajando en un branch de cliente específico que luego se mergea al source | `.roots/19.0.tecnolosys/` |
-| **Source (full history)** | `.roots/{module}/` | Trabajando en el branch principal del módulo (source of truth) | `.roots/meli_oerp/` |
+| **Client branch** | `.roots/{context}.{project}/` | Trabajando en un branch de cliente/proyecto que consume uno o más sources | `.roots/17.0.sh.acme/` |
+| **Source** | `.roots/{module}/` | Trabajando en el branch principal del módulo (source of truth) | `.roots/meli_oerp/` |
+
+### Modelo híbrido multi-source
+
+Un proyecto cliente es siempre un **híbrido de uno o más sources**. El `.roots/` del cliente no es una isla — referencia y embebe los `.roots/` de cada source que consume:
+
+```
+.roots/17.0.sh.acme/                    ← client branch
+    _meta.json                           ← manifest del cliente
+    _sources.json                        ← registro de sources vinculados
+    roots_seed.md                        ← seed self-contained
+    journal/                             ← journal propio del cliente
+    tasks/                               ← tasks propias del cliente
+    debug/                               ← errores del contexto del cliente
+    sources/                             ← copias de .roots/ de cada source
+        meli_oerp/                       ← copia del .roots/meli_oerp/
+            context.md
+            journal/
+            debug/
+            skills/
+            docs/                        ← manuales, documentación técnica
+        odoo_moldeo_sync/                ← copia de otro source
+            context.md
+            journal/
+            ...
+```
+
+**¿Por qué embeber los sources?** Porque el agente del cliente tiene acceso completo al conocimiento del source:
+- Lee `docs/` → sabe cómo funciona el módulo para el usuario final
+- Lee `debug/errors-log.md` → conoce errores ya diagnosticados y sus fixes
+- Lee `skills/patterns.md` → sabe qué patrones seguir y qué anti-patrones evitar
+- Lee `tasks/` → ve si hay trabajo en marcha en el source que podría colisionar
+- Lee `journal/diary.md` → sabe si un tema recurrente ya fue discutido y qué se decidió
+- Lee `design/decisions.md` → entiende POR QUÉ se tomó una decisión de arquitectura
+
+### `_sources.json` — Manifest de sources vinculados
+
+Cada client branch mantiene un archivo `_sources.json` que registra sus sources:
+
+```json
+{
+  "sources": [
+    {
+      "source_id": "meli_oerp",
+      "source_version": "1.6",
+      "linked_at": "2026-05-10",
+      "linked_by": "claude",
+      "upstream_url": "github.com/ctmil/meli_oerp",
+      "roots_path": "sources/meli_oerp/",
+      "sync_include": ["docs/", "debug/", "journal/", "tasks/", "skills/", "design/"],
+      "sync_exclude": ["workbench/"],
+      "last_sync": "2026-05-10"
+    },
+    {
+      "source_id": "odoo_moldeo_sync",
+      "source_version": "1.6",
+      "linked_at": "2026-05-08",
+      "linked_by": "claude",
+      "upstream_url": "github.com/ctmil/odoo_moldeo_sync",
+      "roots_path": "sources/odoo_moldeo_sync/",
+      "sync_include": ["docs/", "debug/", "skills/"],
+      "sync_exclude": ["workbench/", "journal/"],
+      "last_sync": "2026-05-10"
+    }
+  ]
+}
+```
+
+| Campo | Descripción |
+|-------|-------------|
+| `source_id` | Nombre/path del módulo source |
+| `source_version` | Versión del seed del source al momento de vinculación |
+| `linked_at` | Fecha de vinculación |
+| `linked_by` | Quién vinculó (agente o usuario) |
+| `upstream_url` | Repositorio público del source (si existe) |
+| `roots_path` | Path relativo dentro del client `.roots/` donde vive la copia |
+| `sync_include` | Carpetas a sincronizar (vacío = todas) |
+| `sync_exclude` | Carpetas a excluir del sync |
+| `last_sync` | Última fecha de sincronización |
+
+### Cascada de precedencia
+
+Cuando hay conflictos entre el cliente y sus sources, la precedencia es de arriba hacia abajo:
+
+```
+Nivel 1 (máxima prioridad):  .roots/17.0.sh.acme/            ← cliente raíz
+Nivel 2:                      .roots/17.0.sh.acme/sources/X/  ← source embebido
+Nivel 3 (base):               X/.roots/                       ← source original
+```
+
+El cliente **siempre gana**. Si el cliente define un pattern o skill que contradice al source, el del cliente aplica.
+
+### Namespace de conflictos
+
+Cuando dos sources definen hooks, skills o patterns con el mismo nombre, se usa **namespace con prefijo del source**:
+
+```
+meli_oerp.discount_pattern        → PAT-001 del meli_oerp
+meli_oerp_accounting.tax_rule     → patrón del módulo de facturación
+odoo_moldeo_sync.git_workflow     → workflow del módulo de sync
+```
+
+El agente que procesa el `.roots/` raíz del repo (nivel meta) puede:
+1. **Comparar** — ¿el `meli_oerp.patterns` de un cliente y otro divergieron?
+2. **Promover** — si un cliente descubrió un patrón útil, subirlo al source original
+3. **Detectar** — si un skill del cliente sobreescribe uno del source, el agente avisa
+
+### Promoción de descubrimientos
+
+Cuando el cliente descubre algo valioso (pattern, fix, decisión) que aplica a todos los usuarios del source:
+
+```
+source .roots/  ──→  client .roots/sources/  ──→  client usa y adapta
+                                                        │
+                                                        ▼
+repo raíz .roots/ ← agrega todos los clients ← revisa con namespace
+        │
+        ▼
+    ¿vale la pena?  ──sí──→  promueve a source .roots/ original
+                    ──no──→  queda como override del cliente
+```
+
+**Regla:** la promoción es **semi-automática**. El agente sugiere ("este pattern de acme aplica a todos los clientes, ¿lo promuevo al source?"), el usuario decide.
+
+Cuando el cliente override un skill o pattern del source, el agente registra el override en el journal del cliente con la razón.
 
 ### Modo Client Branch
 
 El desarrollador trabaja en un branch derivado del source, adaptando y configurando para un cliente específico. El namespace aísla la historia de ese cliente.
 
-**Estructura:**
-```
-.roots/
-└── {version}.{client}/
-    ├── _meta.json
-    ├── roots_seed.md
-    ├── {module_a}/
-    │   ├── context.md
-    │   ├── journal/
-    │   ├── debug/
-    │   └── ...
-    └── {module_b}/
-        └── ...
-```
-
 **Características:**
-- El namespace `{version}.{client}` identifica la versión del framework (ej: `19.0`) y el cliente/repo (ej: `tecnolosys`)
-- Múltiples clientes pueden coexistir: `.roots/19.0.cliente_a/`, `.roots/19.0.cliente_b/`
+- El namespace `{context}.{project}` sigue el formato del Context Format Registry (ver § siguiente)
+- Múltiples clientes pueden coexistir: `.roots/17.0.sh.acme/`, `.roots/17.0.premise.farmacia/`
 - Al mergear al source, cada cliente trae su `.roots/` sin pisar el de otros
-- `_meta.json` incluye `"working_mode": "client"`, `"odoo_version": "19.0"`, `"repo": "tecnolosys"`
+- `_meta.json` incluye `"working_mode": "client"`, `"context_format"`, `"context_parsed"`
 
 **Cuándo se usa:**
 - Branches de implementación para clientes específicos
 - Forks con customizaciones
 - Branches de testing/staging que capturan contexto del entorno
 
-### Modo Source (Full History)
+### Modo Source
 
 El desarrollador trabaja directamente en el source del módulo. Es la fuente de verdad.
 
@@ -97,6 +207,7 @@ El desarrollador trabaja directamente en el source del módulo. Es la fuente de 
 - Sin namespace extra — los módulos van directamente bajo `.roots/`
 - Es el `.roots/` canónico del proyecto
 - `_meta.json` incluye `"working_mode": "source"`
+- Puede recibir contribuciones promovidas desde client branches
 
 **Cuándo se usa:**
 - Branch principal de desarrollo (ej: `19.0`, `main`)
@@ -110,17 +221,19 @@ Al ejecutar `on-seed-process` por primera vez (bootstrap), el agente debe pregun
 ```
 ¿En qué modo estás trabajando?
 
-1. Client branch — Estoy en un branch de un cliente específico
-   (ej: branch 19.0-tecnolosys, fork de cliente)
-   → Se creará .roots/{version}.{client}/ con namespace aislado
+1. Client branch — Estoy en un branch de un cliente/proyecto específico
+   (ej: branch 17.0-acme, fork de cliente)
+   → Se creará .roots/{context}.{project}/ con namespace aislado
+   → Se preguntará el formato de contexto (Odoo, genérico, custom)
 
-2. Source / full history — Estoy en el branch principal del módulo
+2. Source — Estoy en el branch principal del módulo
    (ej: branch 19.0, main)
    → Se creará .roots/{module}/ directamente
 
 Si elegís (1), también se preguntará:
-  - Versión del framework (ej: 19.0)
-  - Nombre del cliente/repo (ej: tecnolosys)
+  - Formato de contexto (ver Context Format Registry)
+  - Datos específicos del formato elegido
+  - Sources a vincular (módulos cuyo .roots/ embeber)
 ```
 
 La respuesta se persiste en `_meta.json` como `working_mode` y **no se vuelve a preguntar** en sesiones posteriores.
@@ -129,15 +242,16 @@ La respuesta se persiste en `_meta.json` como `working_mode` y **no se vuelve a 
 
 | Escenario | Comportamiento |
 |-----------|----------------|
-| Client A → Source | `.roots/{version}.{client_a}/` coexiste con `.roots/{module}/` — no se pisan |
-| Client A + Client B | `.roots/{version}.{client_a}/` y `.roots/{version}.{client_b}/` coexisten sin conflicto |
+| Client A → Source | `.roots/{context}.{client_a}/` coexiste con `.roots/{module}/` — no se pisan |
+| Client A + Client B | Cada client tiene su namespace, coexisten sin conflicto |
 | Client → Client (mismo namespace) | Git merge estándar — los archivos append-only (diary, errors-log) se resuelven naturalmente |
-| Source → Client | El client hereda el `.roots/{module}/` del source como referencia read-only |
+| Source → Client | El client embebe el `.roots/` del source en `sources/` — es una copia de referencia |
+| Source actualiza → Client | El agente detecta diff entre source embebido y source original, propone sync |
 
 **Regla de merge:** al detectar múltiples namespaces en `.roots/`, **no consolidar automáticamente**. Cada namespace es una historia independiente. Si el usuario quiere consolidar (ej: cerrar un client branch y llevar lo aprendido al source), debe ser explícito:
 
 ```
-"Consolidar .roots/19.0.tecnolosys/ → .roots/meli_oerp/"
+"Consolidar .roots/17.0.sh.acme/ → .roots/meli_oerp/"
 ```
 
 El agente entonces:
@@ -147,27 +261,141 @@ El agente entonces:
 4. Se mergea el contenido seleccionado
 5. El namespace del client puede archivarse o eliminarse
 
-### _meta.json extendido
+---
+
+## Context Format Registry
+
+El `{context}` en `.roots/{context}.{project}/` no es un string libre — tiene **estructura semántica según el dominio**. Esto permite que los agentes parseen el contexto y razonen sobre el entorno.
+
+### Formatos registrados
+
+#### Odoo Context
+
+**Pattern:** `{major}.{minor}.{infra}`
+
+| Segmento | Valores | Descripción |
+|----------|---------|-------------|
+| `major` | `16`, `17`, `18`, `19` | Versión major de Odoo |
+| `minor` | `0`, `1`, ... | Versión minor de Odoo |
+| `infra` | `sh`, `premise`, `cp`, `vps`, `docker`, `dev` | Infraestructura de despliegue |
+
+**Códigos de infraestructura recomendados:**
+
+| Código | Significado |
+|--------|-------------|
+| `sh` | Odoo.sh (PaaS oficial) |
+| `premise` | On-premise (servidor propio del cliente) |
+| `cp` | CloudPepper (PaaS third-party) |
+| `vps` | VPS genérico |
+| `docker` | Docker / contenedores |
+| `dev` | Desarrollo / local |
+
+**Ejemplos:**
+```
+.roots/17.0.sh.acme/              → Odoo 17.0, SH, cliente Acme
+.roots/16.0.premise.farmacia/     → Odoo 16.0, on-premise, cliente Farmacia
+.roots/17.0.cp.tienda/            → Odoo 17.0, CloudPepper, cliente Tienda
+.roots/18.0.vps.coop/             → Odoo 18.0, VPS, cliente Coop
+.roots/19.0.dev.testing/          → Odoo 19.0, desarrollo, entorno testing
+```
+
+Los códigos de infraestructura son **semi-abiertos**: se definen los comunes arriba, pero el usuario puede usar custom (ej: `aws`, `gcp`, `hetzner`).
+
+#### Generic Context (default)
+
+**Pattern:** `{version}`
+
+Para proyectos no-Odoo o sin estructura de dominio específica:
+```
+.roots/v2.acme/                   → Versión 2, proyecto Acme
+.roots/main.internal/             → Branch main, proyecto interno
+```
+
+#### Custom Contexts
+
+Los dominios pueden registrar su propio formato de contexto en `_meta.json`. El seed no pretende cubrir todos los frameworks — la comunidad puede contribuir formatos para Django, Rails, Next.js, etc.
+
+### `context_parsed` en `_meta.json`
+
+El `_meta.json` de cada `.roots/` declara explícitamente su context format para que el agente pueda parsearlo:
 
 ```json
 {
-  "seed_version": "1.5",
-  "created_at": "2026-04-30T00:00:00",
+  "context_format": "odoo",
+  "context_parsed": {
+    "major": 17,
+    "minor": 0,
+    "infra": "sh",
+    "project": "acme"
+  }
+}
+```
+
+Así el agente puede razonar sobre el entorno (sabe que es Odoo 17 en SH) sin adivinar.
+
+---
+
+## _meta.json extendido
+
+```json
+{
+  "seed_version": "1.6",
+  "created_at": "2026-05-10T00:00:00",
   "working_mode": "client",
-  "odoo_version": "19.0",
-  "repo": "tecnolosys",
-  "project": "19.0.tecnolosys",
-  "modules": ["meli_oerp", "meli_oerp_multiple", "meli_oerp_stock"]
+  "context_format": "odoo",
+  "context_parsed": {
+    "major": 17,
+    "minor": 0,
+    "infra": "sh",
+    "project": "acme"
+  },
+  "project": "17.0.sh.acme",
+  "modules": ["meli_oerp", "meli_oerp_stock", "odoo_moldeo_sync"],
+  "sources": ["meli_oerp", "odoo_moldeo_sync"]
 }
 ```
 
 | Campo | Modo client | Modo source |
 |-------|-------------|-------------|
 | `working_mode` | `"client"` | `"source"` |
-| `odoo_version` | Versión del framework | Versión del framework |
-| `repo` | Nombre del cliente/repo | Nombre del proyecto |
-| `project` | `"{version}.{client}"` | Nombre del proyecto |
-| `modules` | Lista de módulos | Lista de módulos |
+| `context_format` | `"odoo"`, `"generic"`, o custom | Opcional |
+| `context_parsed` | Objeto con campos parseados del contexto | Opcional |
+| `project` | `"{context}.{project}"` | Nombre del proyecto |
+| `modules` | Lista de módulos del cliente | Lista de módulos del source |
+| `sources` | Lista de source_ids vinculados (ref. `_sources.json`) | No aplica (es el source) |
+
+---
+
+## Tool Compatibility
+
+### Filosofía
+
+`.roots/` es **tool-agnostic by design**. La estructura es plain files y directories — cualquier herramienta de IA que pueda leer archivos puede usarla. La portabilidad viene de la **simplicidad y claridad de la descripción**, no de traducciones automáticas.
+
+### Herramientas principales con compatibilidad conocida
+
+| Herramienta | Punto de integración | Estrategia de merge |
+|-------------|---------------------|---------------------|
+| **Claude Code** | `.claude/` + `CLAUDE.md` | File-based — lee `.roots/` directamente. Bridge via `CLAUDE.md` (ver § Integración) |
+| **Codex** | `codex.md` / `.codex/` | Hybrid — mapear `context.md` → `codex.md`, tiene soporte nativo + config |
+| **Antigravity** | nativo | File-based — soporte directo de `.roots/` |
+| **VS Code + Copilot** | `.github/copilot-instructions.md` | Instruction-based — referenciar `.roots/` desde instructions |
+| **Cursor** | `.cursorrules` | Instruction-based — referenciar `.roots/` desde rules |
+
+### Merging Strategies
+
+Cada herramienta integra contexto de forma diferente:
+
+- **File-based**: La herramienta lee archivos de `.roots/` directamente al iniciar sesión (Claude Code, Antigravity)
+- **Instruction-based**: La herramienta necesita un archivo puntero que referencia `.roots/` (Copilot, Cursor)
+- **Hybrid**: La herramienta tiene soporte nativo + archivo de configuración (Codex)
+
+### Extensibilidad
+
+- **Máximo 5 herramientas principales**, 10 tope en el seed — el resto es comunidad
+- Integraciones adicionales pueden contribuirse como skills en el upstream (`ctmil/roots_seed`)
+- La idea es que la descripción sea tan clara y simple que cualquier IA nueva la entienda sin traducción
+- Pensar siempre en base a una **progresión infinita de IAs** — las referencias a las 5 principales sirven para ubicar a futuras herramientas
 
 ---
 
@@ -384,10 +612,21 @@ La estructura varía según el modo de trabajo (ver § "Modos de trabajo"):
 **Modo Client Branch:**
 ```
 .roots/
-└── {version}.{client}/
+└── {context}.{project}/
     ├── _meta.json
+    ├── _sources.json
     ├── roots_seed.md
-    └── {module_name}/
+    ├── sources/                    ← copias de .roots/ de cada source
+    │   ├── {source_module_a}/
+    │   │   ├── context.md
+    │   │   ├── journal/
+    │   │   ├── debug/
+    │   │   ├── skills/
+    │   │   ├── docs/
+    │   │   └── ...
+    │   └── {source_module_b}/
+    │       └── ...
+    └── {module_name}/              ← módulos propios del cliente
 ```
 
 Dentro de cada módulo, la estructura interna es idéntica en ambos modos:
@@ -1247,9 +1486,10 @@ humano que retome el repo.
 0. **Detectar modo de trabajo (solo en bootstrap inicial):**
    - Si `_meta.json` ya existe y tiene `working_mode` → usar ese modo, no preguntar
    - Si no existe `_meta.json` o no tiene `working_mode` → preguntar al usuario:
-     - Client branch → pedir versión y nombre de cliente → crear `.roots/{version}.{client}/`
+     - Client branch → pedir formato de contexto (ver § Context Format Registry),
+       datos del contexto, y sources a vincular → crear `.roots/{context}.{project}/`
      - Source → crear `.roots/{module}/` directamente
-   - Persistir la respuesta en `_meta.json.working_mode`
+   - Persistir la respuesta en `_meta.json.working_mode`, `context_format`, `context_parsed`
    - Este paso NO se repite en sesiones posteriores
 
 1. **Sync con upstream público:**
@@ -1269,7 +1509,16 @@ humano que retome el repo.
    - Cada `.roots/roots_seed.md` queda alineado con el canonical
    - Verificar con diff que no quedaron copias desincronizadas
 
-4. **Verificar/crear CLAUDE.md:**
+4. **Vincular/sincronizar sources (solo modo client):**
+   - Si `_sources.json` existe → para cada source registrado:
+     - Comparar `sources/{source_id}/` embebido vs source original
+     - Si hay diff → proponer sync al humano (no mergear a ciegas)
+     - Actualizar `last_sync` en `_sources.json`
+   - Si `_sources.json` no existe y es modo client → preguntar al humano
+     qué sources vincular, crear `_sources.json` y `sources/` con copias
+   - Respetar `sync_include`/`sync_exclude` del manifest
+
+5. **Verificar/crear CLAUDE.md:**
    - Si no existe `CLAUDE.md` en la raíz → crearlo con el template
      definido en § "Integración con CLAUDE.md"
    - Si existe → verificar que la lista de módulos con `.roots/`
@@ -1277,11 +1526,11 @@ humano que retome el repo.
    - Si existe `.claude/` → verificar que sus hooks referencian
      `.roots/` sin duplicar lógica
 
-5. **Verificar workbench/:**
+6. **Verificar workbench/:**
    - Para cada `.roots/{module}/` que no tenga `workbench/` → crearla
    - No agregar contenido — es espacio del usuario
 
-6. **Registrar:**
+7. **Registrar:**
    - Agregar entrada en `journal/diary.md` o `docs/commits.md`
      documentando el procesamiento del seed, versión, y acciones tomadas
 
@@ -1289,6 +1538,7 @@ humano que retome el repo.
 
 - Canonical local alineado (o con delta documentado) con upstream
 - Todas las copias `.roots/roots_seed.md` sincronizadas
+- Sources embebidos sincronizados (modo client)
 - `CLAUDE.md` actualizado con índice de módulos
 - Carpetas `workbench/` existentes en todos los módulos
 - Registro del procesamiento en journal o commits
@@ -1398,7 +1648,7 @@ Al iniciar sesión en un proyecto con `.roots/`:
 
 MODULE_NAME=${1:-"module"}
 BASE_PATH=".roots/$MODULE_NAME"
-SEED_VERSION="1.4"
+SEED_VERSION="1.6"
 
 mkdir -p "$BASE_PATH"/{journal,debug,design,docs,tasks,hooks,skills,workbench}
 
@@ -1786,5 +2036,9 @@ echo "  - _meta.json: metadata de inicialización"
 14. **Consistencia de formato** — Seguir las plantillas de este documento
 15. **_meta.json es automático** — No editarlo manualmente, es para herramientas
 16. **workbench/ es del usuario** — El agente consulta pero no inventa contenido ahí; revisar al inicio de cada sesión
+17. **Sources embebidos son referencia** — En modo client, `sources/` es una copia de consulta; los cambios se hacen en el source original y se sincronizan
+18. **Namespace evita conflictos** — Usar `source.skill_name` cuando dos sources definen el mismo concepto
+19. **Promoción es explícita** — El agente sugiere, el usuario decide si un descubrimiento del cliente se sube al source
+20. **Context format es parseable** — El nombre del directorio `.roots/` tiene estructura semántica, no es un string libre
 
 ---
