@@ -7,6 +7,7 @@ import logging
 _logger = logging.getLogger(__name__)
 import json
 import re
+from markupsafe import Markup
 # Odoo version 19.0
 
 # Odoo 18.0 -> type='json', Odoo 19.0 -> type='jsonrpc'
@@ -139,7 +140,12 @@ def meli_message_post(record, body, config=None):
         _logger.info("MELI [%s] %s: %s", record._name, getattr(record, 'name', record.id), body)
         return
 
-    kwargs = {'body': str(body)}
+    body_val = body
+    if isinstance(body_val, str) and '<' in body_val and '>' in body_val:
+        body_val = Markup(body_val)
+    else:
+        body_val = str(body_val)
+    kwargs = {'body': body_val}
     if mode == 'internal_note':
         kwargs['message_type'] = 'comment'
         kwargs['subtype_xmlid'] = 'mail.mt_note'
