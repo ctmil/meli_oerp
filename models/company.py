@@ -1638,7 +1638,7 @@ class res_company(models.Model):
         import time as _time
         t_diag_start = _time.time()
 
-        company = self.env.user.company_id
+        company = self if self and self._name == 'res.company' and self.id else self.env.user.company_id
         if not company.mercadolibre_cron_post_update_stock:
             return {}
 
