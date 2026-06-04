@@ -53,3 +53,7 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# .roots siempre versionado (forest) — no editar a mano
+!.roots/
+!.roots/**
