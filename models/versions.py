@@ -7,6 +7,7 @@ import logging
 _logger = logging.getLogger(__name__)
 import json
 import re
+from markupsafe import Markup
 # Odoo version 16.0
 
 # Odoo 18.0 -> type='json', Odoo 19.0 -> type='jsonrpc'
