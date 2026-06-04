@@ -774,12 +774,27 @@ class sale_order(models.Model):
             _coupon = abs(self.meli_coupon_amount or 0.0)
             if _coupon > 0:
                 _tolerance = max(_tolerance, _coupon * 1.3)
-            _diff_direct = abs( float(amount_to_invoice) - self.amount_total )
+            # If retention taxes are on SO lines (legacy, without withholding module),
+            # add back their amounts so the check compares like-for-like.
+            # Skip withholding-on-payment taxes — they belong on the payment, not SO lines.
+            tax_field = SaleOrderLineTaxField(self)
+            _has_wth = 'is_withholding_tax_on_payment' in self.env['account.tax']._fields
+            _retention_total = 0.0
+            for line in self.order_line:
+                if line.price_unit <= 0:
+                    continue
+                for tax in line[tax_field]:
+                    if tax.amount < 0:
+                        if _has_wth and tax.is_withholding_tax_on_payment:
+                            continue
+                        _retention_total += abs(line.price_subtotal * tax.amount / 100.0)
+            _amount_total_before_retentions = self.amount_total + _retention_total
+            _diff_direct = abs( float(amount_to_invoice) - _amount_total_before_retentions )
             # For self_service logistics the SO has no shipping line, but
             # meli_paid_amount (and thus amount_to_invoice) includes the shipping
             # amount. Accept if the diff is fully explained by shipping.
             _shipping = self.meli_shipping_amount or 0.0
-            _diff_no_ship = abs( float(amount_to_invoice) - _shipping - self.amount_total ) if _shipping > 0 else _diff_direct
+            _diff_no_ship = abs( float(amount_to_invoice) - _shipping - _amount_total_before_retentions ) if _shipping > 0 else _diff_direct
             confirm_cond = (amount_to_invoice > 0) and (
                 _diff_direct < _tolerance
                 or (_shipping > 0 and _diff_no_ship < _tolerance)
@@ -3981,9 +3996,55 @@ class mercadolibre_orders(models.Model):
                         order_item_id.write( ( order_item_fields ) )
 
                 if (product_related_obj == False or len(product_related_obj)==0):
-                    error = { 'error': 'No product related to meli_id '+str(Item['item']['id']), 'item': str(Item['item']), 'product_related_obj': str(product_related_obj) }
+                    _item_sku = Item['item'].get('seller_sku', '') or Item['item'].get('seller_custom_field', '') or ''
+                    _item_title = Item['item'].get('title', '') or ''
+                    _item_meli_id = str(Item['item'].get('id', ''))
+                    _item_variation = str(Item['item'].get('variation_id', '') or '')
+                    error = { 'error': 'No product related to meli_id '+_item_meli_id, 'item': str(Item['item']), 'product_related_obj': str(product_related_obj) }
                     _logger.error(error)
                     order and meli_message_post(order, str(error["error"])+"\n"+str(error["item"]), config=config)
+                    _sku_html = (
+                        '<span style="font-size:16px;font-weight:bold;">%s</span>' % _item_sku
+                    ) if _item_sku else (
+                        '<span style="color:#dc3545;font-size:16px;font-weight:bold;">SIN SKU</span>'
+                    )
+                    _barcode_html = ''
+                    if _item_sku:
+                        _barcode_html = (
+                            '<tr><td style="padding:4px 8px;font-weight:bold;">Barcode:</td>'
+                            '<td style="padding:4px 8px;">%s</td></tr>' % _item_sku
+                        )
+                    _missing_html = (
+                        '<div style="border:2px solid #dc3545;border-radius:8px;padding:12px;margin:8px 0;background:#fff3f3;">'
+                        '<div style="font-size:18px;font-weight:bold;color:#dc3545;margin-bottom:8px;">'
+                        '&#9888; PRODUCTO NO ENCONTRADO</div>'
+                        '<p style="margin:4px 0;">No se encontró un producto en Odoo para la publicación de MercadoLibre.</p>'
+                        '<table style="margin:8px 0;border-collapse:collapse;">'
+                        '<tr><td style="padding:4px 8px;font-weight:bold;">SKU:</td>'
+                        '<td style="padding:4px 8px;">%(sku_html)s</td></tr>'
+                        '%(barcode_row)s'
+                        '<tr><td style="padding:4px 8px;font-weight:bold;">ML Item ID:</td>'
+                        '<td style="padding:4px 8px;">%(meli_id)s</td></tr>'
+                        '<tr><td style="padding:4px 8px;font-weight:bold;">Variación:</td>'
+                        '<td style="padding:4px 8px;">%(variation)s</td></tr>'
+                        '<tr><td style="padding:4px 8px;font-weight:bold;">Título:</td>'
+                        '<td style="padding:4px 8px;">%(title)s</td></tr>'
+                        '</table>'
+                        '<p style="margin:8px 0 0 0;padding:8px;background:#fff8e1;border-radius:4px;">'
+                        '<b>Para resolver:</b> vincule la publicación al producto en Odoo desde '
+                        '<b>MercadoLibre &gt; Product Maestro</b>, o cree el producto con el SKU '
+                        '<code style="background:#f0f0f0;padding:2px 6px;border-radius:3px;">%(sku_raw)s</code>.</p>'
+                        '</div>'
+                    ) % {
+                        'sku_html': _sku_html,
+                        'barcode_row': _barcode_html,
+                        'meli_id': _item_meli_id,
+                        'variation': _item_variation or '-',
+                        'title': _item_title,
+                        'sku_raw': _item_sku or _item_meli_id,
+                    }
+                    if sorder:
+                        meli_message_post(sorder, _missing_html, config=config)
 
                 #Short cut to meli id and sku
                 order._order_product_sku()
@@ -4234,7 +4295,7 @@ class mercadolibre_orders(models.Model):
                     total_gross = 0.0
                     for line in non_delivery_lines:
                         tax_pct = sum(
-                            t.amount for t in line.tax_id
+                            t.amount for t in (line.tax_ids if hasattr(line, 'tax_ids') else line.tax_id)
                             if t.amount_type == 'percent' and not t.price_include
                         )
                         total_gross += line.price_unit * line.product_uom_qty * (1.0 + tax_pct / 100.0)
@@ -4255,7 +4316,7 @@ class mercadolibre_orders(models.Model):
                     total_gross = 0.0
                     for line in non_delivery_lines:
                         tax_pct = sum(
-                            t.amount for t in line.tax_id
+                            t.amount for t in (line.tax_ids if hasattr(line, 'tax_ids') else line.tax_id)
                             if t.amount_type == 'percent' and not t.price_include
                         )
                         total_gross += line.price_unit * line.product_uom_qty * (1.0 + tax_pct / 100.0)

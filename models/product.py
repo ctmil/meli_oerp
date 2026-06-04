@@ -4279,7 +4279,10 @@ class product_product(models.Model):
                         sum = 0
                     best_available+= sum
                 if (best_available>0 and product.meli_status=="paused" and product.meli_update_stock_blocked==False and product_tmpl.meli_update_stock_blocked==False):
-                    _logger.info("Active!")
+                    _logger.info(
+                        "STOCK_SYNC REACTIVATE (variant): %s meli_id=%s best_available=%s → activating",
+                        product.default_code, product.meli_id, best_available
+                    )
                     product.product_meli_status_active()
                 elif (best_available<=0 and product.meli_status=="active"):
                     _logger.info("Pause!")
@@ -4325,10 +4328,15 @@ class product_product(models.Model):
                             product_tmpl.meli_stock_error = product.meli_stock_error
                             return error
 
-                if (product.meli_available_quantity<=0 and product.meli_status=="active"):
+                _ml_status_now = product.meli_status
+                if (product.meli_available_quantity<=0 and _ml_status_now=="active"):
                     #product.product_meli_status_pause(meli=meli)
                     _logger.info("pause")
-                elif (product.meli_available_quantity>0 and product.meli_status=="paused" and product.meli_update_stock_blocked==False and product_tmpl.meli_update_stock_blocked==False):
+                elif (product.meli_available_quantity>0 and _ml_status_now=="paused" and product.meli_update_stock_blocked==False and product_tmpl.meli_update_stock_blocked==False):
+                    _logger.info(
+                        "STOCK_SYNC REACTIVATE: %s meli_id=%s qty=%s meli_status=paused → activating",
+                        product.default_code, product.meli_id, product.meli_available_quantity
+                    )
                     product.product_meli_status_active(meli=meli)
 
         except Exception as e:
