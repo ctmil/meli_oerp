@@ -444,6 +444,9 @@ class mercadolibre_shipment(models.Model):
     shipping_cost = fields.Float(string='Shipping Cost')
     shipping_seller_cost = fields.Float(string='Shipping Seller Cost')
     shipping_list_cost = fields.Float(string='Shipping List Cost')
+    shipping_receiver_cost = fields.Float(string='Shipping Receiver Cost',
+        help='Costo del envío a cargo del comprador (receiver.cost de /shipments/{id}/costs). '
+             'Para órdenes pack/ME2 donde el flete no viene en payment.shipping_amount ni en shipping_option.cost.')
     promoted_amount = fields.Float(string='Promoted amount')
 
     #state = fields.Selection(string="State",)
@@ -873,6 +876,12 @@ class mercadolibre_shipment(models.Model):
             if not mercadolibre_use_payment_shipping_amount:
                 del_price = shipment.shipping_cost
 
+            # Fallback órdenes pack/ME2: si ni el pago (payment.shipping_amount) ni
+            # shipping_option.cost traen el flete (queda 0), usar el costo del envío a
+            # cargo del comprador (receiver.cost de /shipments/{id}/costs).
+            if not del_price and shipment.shipping_receiver_cost:
+                del_price = shipment.shipping_receiver_cost
+
             delivery_price = ml_product_price_conversion( self, product_related_obj=product_shipping_id, price=del_price, config=config ),
             if type(delivery_price)==tuple and len(delivery_price):
                 delivery_price = delivery_price[0]
@@ -1244,6 +1253,11 @@ class mercadolibre_shipment(models.Model):
                         for discount in recdiscounts:
                             if 'promoted_amount' in discount:
                                 ship_json['promoted_amount'] =  discount['promoted_amount'] or 0.0
+                    # Costo del envío a cargo del COMPRADOR (receiver.cost). En órdenes
+                    # pack/ME2 el flete no viene en payment.shipping_amount ni en
+                    # shipping_option.cost — sí acá, en /costs → receiver.cost.
+                    _receiver = (isinstance(rcosts, dict) and rcosts.get('receiver')) or {}
+                    ship_json['receiver_cost'] = (isinstance(_receiver, dict) and _receiver.get('cost')) or 0.0
 
                 seller_id = None
                 if config.mercadolibre_seller_user:
@@ -1263,6 +1277,7 @@ class mercadolibre_shipment(models.Model):
                     "order_cost": ship_json["order_cost"],
                     "shipping_cost": ("cost" in ship_json["shipping_option"] and ship_json["shipping_option"]["cost"]) or 0.0,
                     "shipping_list_cost": ("list_cost" in ship_json["shipping_option"] and ship_json["shipping_option"]["list_cost"]) or 0.0,
+                    "shipping_receiver_cost": ('receiver_cost' in ship_json and ship_json['receiver_cost']) or 0.0,
                     "base_cost": ship_json["base_cost"],
                     'promoted_amount': ('promoted_amount' in ship_json and ship_json['promoted_amount']) or 0.0,
                     "status": ship_json["status"],
@@ -1623,6 +1638,13 @@ class mercadolibre_shipment(models.Model):
                         #fix ML order_json... for pack_order "shipping_cost" added
                         if not mercadolibre_use_payment_shipping_amount and shipment.shipping_cost:
                             totales['paid_amount']+= shipment.shipping_cost
+
+                        # Fallback pack/ME2: el flete del COMPRADOR (receiver.cost) no viene
+                        # en los pagos ni en shipping_option.cost — sumarlo una vez al total
+                        # del pack para que la factura cierre con lo que pagó el comprador.
+                        if not totales['shipping_amount'] and shipment.shipping_receiver_cost:
+                            totales['shipping_amount'] = shipment.shipping_receiver_cost
+                            totales['paid_amount'] += shipment.shipping_receiver_cost
 
                         order_json = {
                             "id": all_orders[0]["order_id"],
