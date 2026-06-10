@@ -33,6 +33,8 @@ _logger = logging.getLogger(__name__)
 from urllib.request import urlopen
 import requests
 import base64
+import io
+import zipfile
 try:
     base64encode = base64.encodestring
 except:
@@ -256,7 +258,7 @@ class mercadolibre_shipment_print(models.TransientModel):
         # ------------------------------------------------------------
         # 3) Build FINAL MELI URLs (single source of truth)
         # ------------------------------------------------------------
-        response_type = "zpl2" if resolved_print_mode == "zpl" else "pdf"
+        response_type = "zpl2" if resolved_print_mode in ("zpl", "zpl_txt") else "pdf"
 
         for atoken, token_data in result["by_token"].items():
             token_data["url"] = (
@@ -342,7 +344,7 @@ class mercadolibre_shipment_print(models.TransientModel):
                     full_url_link_pdf[atoken]['comma']  = ","
 
                     full_url_link_pdf[atoken]['full_link'] = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_url_link_pdf[atoken]['full_ids']+"&response_type=pdf&access_token="+atoken
-                    if (print_mode=="zpl"):
+                    if (print_mode in ("zpl","zpl_txt")):
                         full_url_link_pdf[atoken]['full_link'] = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_url_link_pdf[atoken]['full_ids']+"&response_type=zpl2&access_token="+atoken
 
             sep = "<br>"+"\n"
@@ -510,6 +512,12 @@ class mercadolibre_shipment(models.Model):
     estimated_delivery_extended = fields.Datetime(string='Estimated Delivery Extended')
     estimated_delivery_limit = fields.Datetime(string='Estimated Delivery Limit')
     estimated_delivery_final = fields.Datetime(string='Estimated Delivery Final')
+    estimated_buffering_date = fields.Datetime(string='Buffering Date', help='Fecha límite para despachar (self_service: hasta cuándo llevar el paquete a la agencia)')
+    estimated_schedule_limit = fields.Datetime(string='Estimated Schedule Limit', help='Límite de horario programado')
+    estimated_pay_before = fields.Datetime(string='Pay Before', help='Pagar antes de esta fecha para asegurar la entrega estimada')
+    pickup_promise_from = fields.Datetime(string='Pickup Promise From', help='Inicio del rango de retiro por el transportista')
+    pickup_promise_to = fields.Datetime(string='Pickup Promise To', help='Fin del rango de retiro por el transportista')
+    desired_promised_delivery = fields.Datetime(string='Desired Promised Delivery', help='Fecha de entrega prometida deseada')
     delay = fields.Char(string='Delay')
 
     # Status history (JSON text)
@@ -548,11 +556,11 @@ class mercadolibre_shipment(models.Model):
     ], compute='_compute_handling_limit_status', store=False,
        string="Estado límite despacho")
 
-    @api.depends('estimated_handling_limit')
+    @api.depends('estimated_handling_limit', 'estimated_buffering_date')
     def _compute_handling_limit_status(self):
         now = fields.Datetime.now()
         for rec in self:
-            ehl = rec.estimated_handling_limit
+            ehl = rec.estimated_handling_limit or rec.estimated_buffering_date
             if not ehl:
                 rec.handling_limit_status = 'none'
             elif ehl < now:
@@ -774,12 +782,23 @@ class mercadolibre_shipment(models.Model):
             if not ship_carrier_id:
                 ship_carrier_id = self.env["delivery.carrier"].create(ship_carrier)
 
-            # Asegurar que el carrier usa el producto de servicio correcto
-            if ship_carrier_id and product_shipping_id and ship_carrier_id.product_id != product_shipping_id:
+            # Respetar el producto del carrier mapeado. La tabla de mapeo existe
+            # para REUTILIZAR carriers ya configurados sin duplicar: si el carrier
+            # resuelto (p.ej. Flex desde el mapeo) YA tiene producto, se conserva.
+            # Solo se le asigna el servicio de envío resuelto por nombre cuando el
+            # carrier todavía no tiene producto (recién creado o sin configurar).
+            if ship_carrier_id and product_shipping_id and not ship_carrier_id.product_id:
                 try:
                     ship_carrier_id.product_id = product_shipping_id
                 except Exception as e:
-                    _logger.warning("No se pudo actualizar product_id del carrier %s: %s", ship_carrier_id.name, e)
+                    _logger.warning("No se pudo asignar product_id al carrier %s: %s", ship_carrier_id.name, e)
+
+            # De acá en más usar el producto EFECTIVO del carrier: la línea de envío
+            # nativa toma el producto de carrier_id.product_id (ver set_delivery_line/
+            # get_delivery_line en versions.py), así que el precio, el chequeo de
+            # compañía y el coste quedan consistentes con el carrier mapeado.
+            if ship_carrier_id and ship_carrier_id.product_id:
+                product_shipping_id = ship_carrier_id.product_id
 
             all_company_ok = False
             if ship_carrier_id and product_shipping_id:
@@ -837,8 +856,17 @@ class mercadolibre_shipment(models.Model):
             if (config and "mercadolibre_use_payment_shipping_amount" in config._fields):
                 mercadolibre_use_payment_shipping_amount = config.mercadolibre_use_payment_shipping_amount
 
+            # Chequeo final: asegurar que los pagos tengan shipping_amount cargado
+            # ANTES de calcular la línea de envío. Si el fetch a MercadoPago falló en
+            # la primera pasada del import, payments_shipment_amount queda en 0 y la
+            # línea saldría en 0 hasta un 'Actualizar' manual; esto lo recupera en la
+            # misma pasada (solo re-consulta MP si está en 0).
+            if order and not order.payments_shipment_amount:
+                order._ensure_payment_shipping_amounts(meli=meli, config=config)
+                order.invalidate_recordset(['payments_shipment_amount'])
+
             del_price = order.payments_shipment_amount;
-            
+
             if not mercadolibre_use_payment_shipping_amount:
                 del_price = shipment.shipping_cost
 
@@ -1253,12 +1281,28 @@ class mercadolibre_shipment(models.Model):
                     so_edt = shipping_option.get("estimated_delivery_time") or {}
                     if so_edt and so_edt.get("date") and not ship_fields.get("estimated_delivery_date"):
                         ship_fields["estimated_delivery_date"] = ml_datetime(so_edt["date"])
+                    if so_edt and so_edt.get("pay_before"):
+                        ship_fields["estimated_pay_before"] = ml_datetime(so_edt["pay_before"])
                     so_edl = shipping_option.get("estimated_delivery_limit") or {}
                     if so_edl and so_edl.get("date") and not ship_fields.get("estimated_delivery_limit"):
                         ship_fields["estimated_delivery_limit"] = ml_datetime(so_edl["date"])
                     so_edf = shipping_option.get("estimated_delivery_final") or {}
                     if so_edf and so_edf.get("date") and not ship_fields.get("estimated_delivery_final"):
                         ship_fields["estimated_delivery_final"] = ml_datetime(so_edf["date"])
+                    so_buf = shipping_option.get("buffering") or {}
+                    if so_buf.get("date"):
+                        ship_fields["estimated_buffering_date"] = ml_datetime(so_buf["date"])
+                    so_esl = shipping_option.get("estimated_schedule_limit") or {}
+                    if so_esl.get("date"):
+                        ship_fields["estimated_schedule_limit"] = ml_datetime(so_esl["date"])
+                    so_pprom = shipping_option.get("pickup_promise") or {}
+                    if so_pprom.get("from"):
+                        ship_fields["pickup_promise_from"] = ml_datetime(so_pprom["from"])
+                    if so_pprom.get("to"):
+                        ship_fields["pickup_promise_to"] = ml_datetime(so_pprom["to"])
+                    so_dpd = shipping_option.get("desired_promised_delivery") or {}
+                    if so_dpd.get("from"):
+                        ship_fields["desired_promised_delivery"] = ml_datetime(so_dpd["from"])
 
                 # Parse lead_time data (delivery estimates, shipping method, etc.)
                 lead_time = ship_json.get("lead_time") or {}
@@ -1844,7 +1888,7 @@ class mercadolibre_shipment(models.Model):
             #full_str_ids = full_str_ids + comma + shipment
             if (print_mode=='pdf'):
                 download_url = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+shipment.shipping_id+"&response_type=pdf&access_token="+meli.access_token
-            if (print_mode=='zpl'):
+            if (print_mode in ('zpl','zpl_txt')):
                 download_url = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+shipment.shipping_id+"&response_type=zpl2&access_token="+meli.access_token
     
             shipment.pdf_link = download_url
@@ -1871,9 +1915,26 @@ class mercadolibre_shipment(models.Model):
                             except Exception as img_e:
                                 _logger.debug("Error generating PDF preview: %s", str(img_e))
 
-                    if print_mode == 'zpl':
+                    if print_mode in ('zpl', 'zpl_txt'):
                         data = urlopen(shipment.pdf_link).read()
-                        shipment.pdf_filename = "Shipment_"+shipment.shipping_id+".zpl"
+                        is_zip = data[:2] == b'PK'
+                        if print_mode == 'zpl_txt':
+                            # ML entrega la etiqueta ZPL2 dentro de un ZIP. En modo
+                            # "ZPL (txt)" se extrae el contenido plano del zip y se guarda
+                            # como .zpl directo (sin el empaquetado). Si ML ya devolviera
+                            # ZPL plano, se usa tal cual.
+                            if is_zip:
+                                try:
+                                    with zipfile.ZipFile(io.BytesIO(data)) as zf:
+                                        names = zf.namelist()
+                                        if names:
+                                            data = zf.read(names[0])
+                                except Exception as zerr:
+                                    _logger.warning("No se pudo extraer ZPL del zip para %s: %s", shipment.shipping_id, zerr)
+                            shipment.pdf_filename = "Shipment_"+shipment.shipping_id+".zpl"
+                        else:
+                            # "ZPL (zip)": se conserva el paquete tal cual lo entrega ML.
+                            shipment.pdf_filename = "Shipment_"+shipment.shipping_id+(".zip" if is_zip else ".zpl")
                         shipment.pdf_file = base64.b64encode(data)
 
 
@@ -1883,7 +1944,7 @@ class mercadolibre_shipment(models.Model):
                     #return warningobj.info( title='Impresión de etiquetas: Error descargando guias', message=download_url )
                     if (print_mode=='pdf'):
                         ship_report['message'] = "Error descargando pdf:" + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)+'<a href="'+download_url+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'
-                    if (print_mode=='zpl'):
+                    if (print_mode in ('zpl','zpl_txt')):
                         ship_report['message'] = "Error descargando zpl:" + str(shipment.shipping_id) + " - Status: " + str(shipment.status) + " - SubStatus: " + str(shipment.substatus)+'<a href="'+download_url+'" target="_blank"><strong><u>Descargar PDF</u></strong></a>'
 
                     #sep = "<br>"+"\n"
