@@ -4,6 +4,15 @@
 
 ---
 
+## Versión 26.40
+10 jun 2026
+
+**Cambios:**
+
+1. **Envíos — Flete del comprador en órdenes pack/ME2:** En ventas tipo pack (varios ítems en un carrito), el costo de envío a cargo del comprador no viene en el pago (`payment.shipping_amount=0`) ni en la orden — vive en el envío (`/shipments/{id}/costs → receiver.cost`). Ahora el conector lo captura (`mercadolibre.shipment.shipping_receiver_cost`) y lo usa como precio de la línea de envío cuando el pago no lo trae, de modo que la factura cierra con lo que pagó el comprador (producto + envío).
+
+---
+
 ## Versión 26.39
 10 jun 2026
 
