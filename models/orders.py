@@ -275,12 +275,13 @@ class sale_order(models.Model):
     ], compute='_compute_so_handling_limit_status', store=False,
        string="Estado límite despacho")
 
-    @api.depends('meli_shipment.estimated_handling_limit')
+    @api.depends('meli_shipment.estimated_handling_limit', 'meli_shipment.estimated_buffering_date')
     def _compute_so_handling_limit_status(self):
         from datetime import timedelta
         now = fields.Datetime.now()
         for rec in self:
-            ehl = rec.meli_shipment.estimated_handling_limit if rec.meli_shipment else False
+            ship = rec.meli_shipment
+            ehl = (ship.estimated_handling_limit or ship.estimated_buffering_date) if ship else False
             if not ehl:
                 rec.meli_handling_limit_status = 'none'
             elif ehl < now:
@@ -913,15 +914,27 @@ class sale_order(models.Model):
             #unassign, wrong warehouse_id company
             so.sudo().write( { 'warehouse_id': None } )
         #_logger.info("check team")
-        if (team_id and team_id.company_id.id != company.id) or not team_id:
-            if (seller_team and seller_team.company_id.id == company.id):
-                if team_id.id!=seller_team.id:
+        # Un equipo SIN compañía (company_id vacío) es válido en cualquier compañía:
+        # solo se reasigna/limpia si tiene una compañía distinta o si está vacío. Así
+        # no se pisa un equipo seteado a mano (mismo patrón que warehouse_id arriba).
+        if (team_id and team_id.company_id and team_id.company_id.id != company.id) or not team_id:
+            # Un seller_team SIN compañía (company_id vacío) también es válido y debe
+            # ASIGNARSE: solo se descarta si tiene una compañía distinta a la de la orden.
+            # (Antes se exigía company_id == company → un seller_team sin compañía no
+            #  pasaba y caía al else, dejando el equipo en None: por eso "no se asignaba".)
+            seller_team_ok = seller_team and (not seller_team.company_id or seller_team.company_id.id == company.id)
+            if seller_team_ok:
+                if not team_id or team_id.id != seller_team.id:
                     so.sudo().write( { 'team_id': seller_team.id } )
             else:
-                #unassign, wrong company team
+                #unassign: equipo de otra compañía y sin seller_team válido para reemplazarlo
                 so.sudo().write( { 'team_id': None } )
         #_logger.info("check user id")
-        if (user_id and seller_user and user_id.id!=seller_user.id) or not user_id:
+        # Mismo criterio que el team: respetar un vendedor seteado a mano que sea
+        # válido para la compañía (está en sus company_ids); solo corregir cuando el
+        # vendedor está vacío o no puede operar en la compañía.
+        user_company_ok = bool(user_id and company.id in user_id.company_ids.ids)
+        if (user_id and not user_company_ok) or not user_id:
             if seller_user:
                 so.sudo().write( { 'user_id': seller_user.id } )
             else:
@@ -4844,6 +4857,43 @@ class mercadolibre_orders(models.Model):
             mor.payments_shipment_amount = sum
 
     payments_shipment_amount = fields.Float(string="Payments Shipment Amount", compute="_payments_shipment_amount" )
+
+    def _ensure_payment_shipping_amounts(self, meli=None, config=None):
+        """Chequeo final: si un pago aprobado quedó con shipping_amount=0 porque el
+        fetch a MercadoPago falló/expiró en la PRIMERA pasada del import, re-consulta
+        el detalle del pago en MP y completa shipping_amount. Evita que la línea de
+        envío de la venta quede en 0 hasta un 'Actualizar' manual. Solo re-consulta
+        los pagos aprobados que tienen shipping_amount=0 (no agrega llamadas si ya
+        está cargado)."""
+        for order in self:
+            _meli = meli
+            if not _meli:
+                company = order.company_id or self.env.user.company_id
+                _meli = self.env['meli.util'].get_new_instance(company)
+            if not _meli or _meli.need_login():
+                continue
+            for pay in order.payments:
+                if pay.status != 'approved' or pay.shipping_amount or not pay.payment_id:
+                    continue
+                url = "https://api.mercadopago.com/v1/payments/" + str(pay.payment_id)
+                try:
+                    resp = requests.get(
+                        url, params=urlencode({'access_token': _meli.access_token}),
+                        headers={'Accept': 'application/json', 'User-Agent': 'Odoo'}, timeout=10)
+                except Exception as e:
+                    _logger.warning("MELI _ensure_payment_shipping_amounts: re-consulta MP del pago %s falló: %s", pay.payment_id, e)
+                    continue
+                if resp is not None and resp.ok:
+                    try:
+                        data = resp.json() or {}
+                    except Exception:
+                        data = {}
+                    sa = data.get('shipping_amount') or 0.0
+                    if sa:
+                        pay.shipping_amount = sa
+                        _logger.info("MELI: shipping_amount=%s completado en pago %s (order %s) por chequeo final.",
+                                     sa, pay.payment_id, order.order_id)
+
     shipping = fields.Text(string="Shipping")
     shipping_id = fields.Char(string="Shipping id")
     shipment = fields.Many2one('mercadolibre.shipment',string='Shipment')
