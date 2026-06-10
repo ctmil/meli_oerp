@@ -42,8 +42,7 @@ acá no usan modifiers). No se tocó `view_mode` (esta tanda no lo modificó).
 **API verificada en 19:** `invalidate_recordset`, `with_user`/`with_company`, `requests`/`urlencode`
 disponibles; sin `name_get()` ni APIs deprecadas en la tanda.
 
----
-
-*Sin migraciones documentadas aún*
+**Modifiers (nota de versión):** sintaxis nativa python `invisible="<expr>"` (NO attrs). El commit
+16.0 `28b86e3` (python→attrs) NO se porta a 19.
 
 ---
