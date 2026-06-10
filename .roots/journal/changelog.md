@@ -4,6 +4,21 @@
 
 ---
 
+## Versión 26.39
+10 jun 2026
+
+**Cambios (tanda fixes meli jun-2026):**
+
+1. **Mapeo de transportistas — respeta el producto del carrier:** La línea de envío del pedido ahora usa el producto del transportista mapeado en su tabla de mapeo (antes lo pisaba con un servicio de envío autogenerado). `shipment.py _update_sale_order_shipping_info`.
+2. **Etiqueta de envío — modos PDF / ZPL (zip) / ZPL (txt):** Nuevo modo `zpl_txt` que extrae el contenido ZPL del zip que entrega ML y lo guarda como `.zpl` plano (listo para impresora). Además **fix del nombre de descarga**: los binarios de etiqueta ahora llevan `filename=`, así la descarga muestra `Shipment_<id>.pdf/.zpl` en vez del tamaño (`"1.10 Kb"`).
+3. **Equipo / vendedor:** `meli_fix_team` ya no resetea el equipo ni el vendedor cuando fueron seteados a mano; asigna `seller_team` aunque la cuenta no tenga compañía (guard company-less).
+4. **Posición fiscal configurable:** El sistema respeta el flag `mercadolibre_set_fiscal_position` (default True). En False deja en blanco la posición fiscal de la venta. `orders.py`.
+5. **Fechas placeholder de ML descartadas:** `ml_datetime` descarta las fechas placeholder de ML (año < 1970) que rompían el `write` del envío con `ValueError '1-01-01 00:00:00'`. `versions.py`.
+6. **Costo de envío en la primera importación:** `_ensure_payment_shipping_amounts` completa el `shipping_amount` del pago antes de calcular la línea de envío, evitando que el envío quede en 0 en la primera importación de la orden. `orders.py`.
+7. **Fechas del envío desde `shipping_option`:** Se incorporan buffering_date, schedule_limit, pay_before, pickup_promise (from/to) y desired_promised_delivery a la ficha del envío.
+
+---
+
 ## Versión 26.29
 2026-05-13
 

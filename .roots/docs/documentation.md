@@ -1,5 +1,25 @@
 # meli_oerp — Documentación técnica
 
+## Tanda jun-2026 (v26.39) — campos/modos/config de cara al usuario
+
+- **Modo de impresión de etiqueta `zpl_txt`:** además de PDF y ZPL (zip), nuevo modo que extrae
+  el contenido ZPL del zip que entrega ML y lo guarda como `.zpl` plano (listo para enviar a la
+  impresora sin descomprimir). El selector de modo vive en la configuración de la cuenta
+  (`meli_oerp_multiple`); el armado lo hace `shipment.py` (`response_type=zpl2`, `io`+`zipfile`).
+- **Nombre de descarga de la etiqueta:** los campos binarios de etiqueta declaran `filename=`,
+  por lo que la descarga ahora muestra `Shipment_<shipping_id>.pdf` / `.zpl` (antes mostraba el
+  tamaño, p.ej. "1.10 Kb").
+- **`mercadolibre_set_fiscal_position` (Boolean, default True):** controla si la importación de la
+  orden setea la posición fiscal de la venta. En **False** deja la posición fiscal en blanco
+  (campo en `meli_oerp_multiple`, consumido por `orders.py`).
+- **Equipo/vendedor respetados:** si el equipo de ventas o el vendedor se setearon a mano, la
+  importación ya no los pisa. El vendedor de ML (`seller_team`) se asigna aunque la cuenta no
+  tenga compañía asociada.
+- **Fechas del envío:** la ficha del envío muestra además buffering_date, schedule_limit,
+  pay_before, pickup_promise (from/to) y desired_promised_delivery, tomadas de `shipping_option`.
+
+---
+
 ## Etiquetas de envío (guías ML): dónde se guardan y cómo ubicar el archivo en disco
 
 > Versión Odoo **17.0**. Mismo modelo/campos/método en 16.0/17.0/18.0/19.0; sólo cambian
