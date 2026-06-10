@@ -123,7 +123,7 @@
                               <field name="meli_status" invisible="0"/>
                               <!--field name="meli_status_brief" invisible="0"/-->
                               <field name="meli_shipment" invisible="0"/>
-                              <field name="meli_shipment_pdf_file" invisible="0"/>
+                              <field name="meli_shipment_pdf_file" filename="meli_shipment_pdf_filename" invisible="0"/>
                               <field name="meli_shipment_pdf_filename" invisible="0"/>
                               <field name="meli_shipment_logistic_type" invisible="0"/>
                               <field name="meli_handling_limit" readonly="1"

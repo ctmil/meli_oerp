@@ -491,7 +491,14 @@ def ml_datetime(datestr):
     try:
         #return parse(datestr).isoformat().replace("T"," ")
         datestr = str(datestr)
-        return parse(datestr).astimezone(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+        dt = parse(datestr).astimezone(timezone.utc)
+        # Fechas placeholder/nulas de ML (año 0001, p.ej. bloques de shipping_option
+        # no aplicables) → vacío. Si no, strftime('%Y') en glibc no rellena ceros y
+        # devuelve '1-01-01 00:00:00' (año de 1 dígito), que luego rompe el parseo de
+        # Odoo (to_datetime elige el formato por longitud) con ValueError al escribir.
+        if dt.year < 1970:
+            return None
+        return dt.strftime('%Y-%m-%d %H:%M:%S')
     except:
         #_logger.error(type(datestr))
         #_logger.error(datestr)
