@@ -4,6 +4,26 @@
 
 ---
 
+### 10 jun 2026 — Tanda fixes meli jun-2026 (v26.39)
+
+**Archivos:** `meli_oerp/models/shipment.py`, `meli_oerp/models/orders.py`, `meli_oerp/models/versions.py`, `meli_oerp/views/orders_view.xml`, `meli_oerp/views/shipment_view.xml`
+
+1. **Carrier mapeado pisado por servicio autogenerado** — *Síntoma:* la línea de envío del SO usaba un producto de servicio creado al vuelo aunque el transportista estuviera mapeado. *Causa:* `_update_sale_order_shipping_info` sobreescribía `product_id` con el autogenerado. *Fix:* usa el producto efectivo del carrier mapeado; solo asigna producto si el carrier no tiene uno. `shipment.py`.
+
+2. **Nombre de descarga de la etiqueta = tamaño ("1.10 Kb")** — *Síntoma:* al descargar la guía, el navegador mostraba el tamaño en vez de un nombre. *Causa:* los campos binarios de etiqueta no declaraban `filename=`. *Fix:* `filename="pdf_filename"` (PDF/ZPL) y el del preview en `orders_view.xml` y `shipment_view.xml`. Además nuevo modo `zpl_txt` (extrae el ZPL plano del zip de ML con `io`+`zipfile`, response_type `zpl2`). `shipment.py`.
+
+3. **`meli_fix_team` reseteaba equipo/vendedor manuales** — *Síntoma:* equipo y vendedor seteados a mano se perdían al re-procesar. *Causa:* el método los reasignaba siempre y exigía compañía para `seller_team`. *Fix:* respeta team/seller seteados a mano; asigna `seller_team` aunque la cuenta no tenga compañía; user válido si `company in user.company_ids`. `orders.py`.
+
+4. **Posición fiscal forzada siempre** — *Síntoma:* no se podía dejar la venta sin posición fiscal. *Causa:* `fiscal_position_id` se seteaba incondicionalmente. *Fix:* gate `mercadolibre_set_fiscal_position` (default True; en False → `fiscal_position_id=False`). El campo vive en `meli_oerp_multiple`. `orders.py`.
+
+5. **`ValueError '1-01-01 00:00:00'` al escribir el shipment** — *Síntoma:* el `write` del envío reventaba con fechas año 0001. *Causa:* ML manda fechas placeholder (año < 1970) en algunos campos. *Fix:* `ml_datetime` descarta año < 1970 → devuelve `None`. `versions.py`.
+
+6. **Envío en 0 en la primera importación** — *Síntoma:* la línea de envío quedaba en 0 al importar la orden por primera vez. *Causa:* el `shipping_amount` del pago aún no estaba completo al calcular la línea. *Fix:* `_ensure_payment_shipping_amounts` re-consulta MP los pagos aprobados con `shipping_amount=0` y completa el monto antes de calcular la línea (chequeo final + `invalidate_recordset`). `orders.py`.
+
+7. **Fechas del envío incompletas** — *Fix (feature):* se parsean desde `shipping_option` los campos buffering_date, schedule_limit, pay_before, pickup_promise (from/to) y desired_promised_delivery. `shipment.py`/`orders.py`.
+
+---
+
 ### 12 Mayo 2026 - fix(stock): reset meli_stock_update en moves para priorización en cron
 
 **Commit:** `77ef170`
