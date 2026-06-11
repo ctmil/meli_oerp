@@ -1644,7 +1644,8 @@ class mercadolibre_shipment(models.Model):
                         #_logger.info("ship_json[receiver_address]:"+str(ship_json["receiver_address"]) )
                         if ('account.payment.term' in self.env):
                             inmediate_or_not = ('mercadolibre_payment_term' in config._fields and config.mercadolibre_payment_term) or ('mercadolibre_payment_term' in company._fields and company.mercadolibre_payment_term) or None
-                            meli_order_fields["payment_term_id"] = (inmediate_or_not and inmediate_or_not.id)
+                            if inmediate_or_not:
+                                meli_order_fields["payment_term_id"] = inmediate_or_not.id
 
 
                         if partner_id:

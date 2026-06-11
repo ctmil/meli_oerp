@@ -2953,7 +2953,7 @@ class mercadolibre_orders(models.Model):
                     if ("documento" in self.env['res.partner']._fields and Buyer['billing_info']['doc_number']):
                         meli_buyer_fields['documento'] = Buyer['billing_info']['doc_number']
 
-                    if ("property_payment_term_id" in self.env['res.partner']._fields):
+                    if ("property_payment_term_id" in self.env['res.partner']._fields) and config.mercadolibre_payment_term:
                         meli_buyer_fields['property_payment_term_id'] = config.mercadolibre_payment_term and config.mercadolibre_payment_term.id
 
                 # ============================================================
@@ -3642,7 +3642,8 @@ class mercadolibre_orders(models.Model):
 
         if ('account.payment.term' in self.env):
             inmediate_or_not = ('mercadolibre_payment_term' in config._fields and config.mercadolibre_payment_term) or ('mercadolibre_payment_term' in company._fields and company.mercadolibre_payment_term) or None
-            meli_order_fields["payment_term_id"] = (inmediate_or_not and inmediate_or_not.id)
+            if inmediate_or_not:
+                meli_order_fields["payment_term_id"] = inmediate_or_not.id
 
         if ("shipping" in order_json and order_json["shipping"]):
             order_fields['shipping'] = self.pretty_json( id, order_json["shipping"] )
