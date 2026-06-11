@@ -4,6 +4,16 @@
 
 ---
 
+### 11 jun 2026 — fix(payment_term): no forzar el término de pago (respetar el del tercero) (v42)
+
+**Archivos:** `meli_oerp/models/orders.py`, `meli_oerp/models/shipment.py`
+
+- **Síntoma:** órdenes importadas de MeLi quedaban en *Pago inmediato* al confirmar, pisando el término del tercero (p.ej. **crédito**) → rompía el despacho sin validar pago (caso TYL Colombia).
+- **Causa:** `payment_term_id` de la orden y `property_payment_term_id` del comprador se seteaban siempre desde `mercadolibre_payment_term`; vacío escribía `False`, borrando el término propio.
+- **Fix:** sólo setear el término si está configurado; si no, **no sobrescribir**. Acompaña `meli_oerp_multiple` (campo opcional).
+
+---
+
 ### 10 jun 2026 — Tanda fixes meli jun-2026 (v26.39)
 
 **Archivos:** `meli_oerp/models/shipment.py`, `meli_oerp/models/orders.py`, `meli_oerp/models/versions.py`, `meli_oerp/views/orders_view.xml`, `meli_oerp/views/shipment_view.xml`
