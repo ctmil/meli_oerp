@@ -977,6 +977,28 @@ class mercadolibre_shipment(models.Model):
                             delivery_line.qty_to_invoice = 0
                     #_logger.info("Procesar delivery_price == 0 remover linea")
                     #sorder._remove_delivery_line()
+                elif delivery_price > 0.0:
+                    # When delivery has a real cost (e.g. ENVIO-ME1), ensure qty_to_invoice=1
+                    # so the line appears on the invoice. Carrier products typically use
+                    # invoice_policy='delivery' which computes qty_to_invoice=0 until the
+                    # picking is done — but for MeLi we invoice on payment, not on delivery.
+                    delivery_line = get_delivery_line(sorder)
+                    if delivery_line and delivery_line.state not in ('cancel',):
+                        _expected_qty = delivery_line.product_uom_qty or 1.0
+                        if delivery_line.qty_to_invoice != _expected_qty:
+                            try:
+                                delivery_line.qty_to_invoice = _expected_qty
+                                _logger.info(
+                                    "MELI shipment: restored qty_to_invoice=%.2f on delivery line "
+                                    "for SO %s (price=%.2f, product=%s)",
+                                    _expected_qty, sorder.name, delivery_price,
+                                    delivery_line.product_id.default_code or delivery_line.product_id.name,
+                                )
+                            except Exception as _e:
+                                _logger.warning(
+                                    "MELI shipment: could not restore qty_to_invoice for SO %s: %s",
+                                    sorder.name, _e,
+                                )
                 #_logger.info("Finished _update_sale_order_shipping_info")
             return
 

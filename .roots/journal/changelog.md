@@ -4,6 +4,19 @@
 
 ---
 
+## Versión 26.41
+11 jun 2026
+
+**Cambios:**
+
+1. **Devoluciones — Sin duplicar al cancelar:** Corregido el chequeo de devoluciones ya existentes (busca por `origin_returned_move_id` sobre los movimientos del picking, no al revés) y eliminada una doble llamada interna en la cancelación, que generaban pickings de devolución (IN) duplicados por cada ciclo de cron.
+
+2. **AFIP — Códigos de responsabilidad ampliados:** El mapeo de tipo de contribuyente de ML reconoce más variantes (`RESPONSABLE INSCRIPTO`, `IVA EXENTO`, `EXENTO`, `SUJETO EXENTO`).
+
+3. **Envíos — Línea de envío con costo en factura:** Cuando el envío tiene costo real, se restaura `qty_to_invoice` en la línea para que aparezca en la factura (el conector factura al pago, no a la entrega).
+
+---
+
 ## Versión 26.40
 10 jun 2026
 
