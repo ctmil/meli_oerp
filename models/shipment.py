@@ -895,6 +895,26 @@ class mercadolibre_shipment(models.Model):
             #    received_amount = sorder.meli_total_amount
 
             #_logger.info("delivery_price:"+str(delivery_price)+" received_amount: "+str(received_amount) +" amount_total:"+str(sorder.amount_total) )
+            # ENVÍO CON CUPÓN: la línea de envío debe llevar la venta a lo FACTURABLE
+            # (received_amount), absorbiendo el cupón. Antes se usaba el envío BRUTO
+            # (payments_shipment_amount) y, con cupón parcial, la reconciliación terminaba
+            # dejando la línea en 0 (la venta no podía superar lo facturable). Ahora el
+            # envío = received_amount - total de producto (= envío neto del cupón). Si el
+            # cupón cubre TODO el envío (residual <= 0) -> 0, que es lo correcto (bonificado).
+            # Solo se toca cuando hay cupón; sin cupón el residual == envío bruto (sin cambio).
+            _coupon = abs(sorder.meli_coupon_amount or 0.0)
+            if _coupon > 0.0 and received_amount and received_amount > 0:
+                _dline_total = sum(l.price_total for l in sorder.order_line if l.is_delivery)
+                _product_total = sorder.amount_total - _dline_total
+                _ship_residual = received_amount - _product_total
+                if _ship_residual < 0.0:
+                    _ship_residual = 0.0
+                _dp = ml_product_price_conversion( self, product_related_obj=product_shipping_id, price=_ship_residual, config=config )
+                if type(_dp) == tuple and len(_dp):
+                    _dp = _dp[0]
+                delivery_price = _dp
+                del_price = _ship_residual
+
             shipment_amount_cond = abs(received_amount - sorder.amount_total)>1.0 and (delivery_price>0.0)
 
             #_logger.info("shipment_amount_cond:"+str(shipment_amount_cond))
