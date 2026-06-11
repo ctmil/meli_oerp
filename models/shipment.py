@@ -1551,13 +1551,18 @@ class mercadolibre_shipment(models.Model):
 
                     #buyer_ids = buyers_obj.search([  ('buyer_id','=',buyer_fields['buyer_id'] ) ] )
                     partner_invoice_meli_order_id = str(all_orders[0]['pack_id'] or all_orders[0]['id'])
-                    partner_id = respartner_obj.search([  ('meli_buyer_id','=',ship_fields['receiver_id'] ) ]+company_only_domain, limit=1 )
+                    # with_user(1): el cron corre como uid restringido por módulos de terceros
+                    # (ej: exe_restriction_user_16) que filtran res.partner.search por user_id → no
+                    # ve los partners de compradores MeLi (user_id NULL). SUPERUSER bypasea el override
+                    # (mismo fix que en orders.py). El pack/FULL SO depende de encontrar este partner.
+                    _rp_su = respartner_obj.with_user(1)
+                    partner_id = _rp_su.search([  ('meli_buyer_id','=',ship_fields['receiver_id'] ) ]+company_only_domain, limit=1 )
                     if not partner_id:
-                        partner_id = respartner_obj.search([  ('meli_buyer_id','=',ship_fields['receiver_id'] ) ]+company_none_domain, limit=1 )
+                        partner_id = _rp_su.search([  ('meli_buyer_id','=',ship_fields['receiver_id'] ) ]+company_none_domain, limit=1 )
 
-                    partner_invoice_id = respartner_obj.search([  ('meli_order_id','=',partner_invoice_meli_order_id ) ]+company_only_domain, limit=1 )
+                    partner_invoice_id = _rp_su.search([  ('meli_order_id','=',partner_invoice_meli_order_id ) ]+company_only_domain, limit=1 )
                     if not partner_invoice_id:
-                        partner_invoice_id = respartner_obj.search([  ('meli_order_id','=',partner_invoice_meli_order_id ) ]+company_none_domain, limit=1 ) or partner_id
+                        partner_invoice_id = _rp_su.search([  ('meli_order_id','=',partner_invoice_meli_order_id ) ]+company_none_domain, limit=1 ) or partner_id
 
                     original_contact_partner_id = partner_id
                     partner_shipping_id = None
