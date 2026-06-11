@@ -3080,30 +3080,58 @@ class mercadolibre_orders(models.Model):
             # --- Buscar contacto principal (padre) por meli_buyer_id ---
             partner_invoice_id = None
             partner_invoice_meli_order_id = str(order_json['pack_id'] or order_json['id'])
-            partner_id = respartner_obj.search([('meli_buyer_id', '=', buyer_fields['buyer_id'])] + company_only_domain, limit=1)
+            # Buyer['id'] llega como ENTERO del JSON de Meli, pero meli_buyer_id es Char y se
+            # guarda como string. Hay que castear a str() o el search (varchar = int) no matchea
+            # → no encuentra el partner existente → intenta crear → choca la constraint única.
+            _buyer_id_str = str(buyer_fields['buyer_id'])
+            # NOTA: usamos with_user(1) (SUPERUSER) en las búsquedas de partner para bypasear
+            # overrides de search() en módulos de terceros (ej: exe_restriction_user_16) que
+            # filtran por user_id del cron y bloquean la visibilidad de partners sin vendedor.
+            # sudo() NO es suficiente: solo bypasea ir.rules, pero NO los overrides de search()
+            # que usan has_group() sobre self.env.user (que sigue siendo uid=29 con sudo=True).
+            # with_user(1) cambia uid→1, haciendo que has_group() devuelva False y el override
+            # no aplique. El cron no requiere ir.rules propias para buscar sus propios partners.
+            respartner_su = respartner_obj.with_user(1)
+            partner_id = respartner_su.search([('meli_buyer_id', '=', _buyer_id_str)] + company_only_domain, limit=1)
             if not partner_id:
-                partner_id = respartner_obj.search([('meli_buyer_id', '=', buyer_fields['buyer_id'])] + company_none_domain, limit=1)
+                partner_id = respartner_su.search([('meli_buyer_id', '=', _buyer_id_str)] + company_none_domain, limit=1)
 
             # Fallback: buscar por VAT si no se encontró por meli_buyer_id
             # (no buscar por VATs genéricos — matchearían miles de contactos)
             _fallback_vat = buyer_fields.get('billing_info_doc_number', '')
             _is_generic_vat = _generic_vats and _fallback_vat and _fallback_vat.strip().upper() in _generic_vats
             if (search_partner_vat_match and (not partner_id and _fallback_vat and not _is_generic_vat)):
-                partner_id = respartner_obj.search([('vat', '=', _fallback_vat)] + company_only_domain, limit=1)
+                partner_id = respartner_su.search([('vat', '=', _fallback_vat)] + company_only_domain, limit=1)
                 if partner_id:
                     partner_id.meli_buyer_id = buyer_fields['buyer_id']
                 else:
-                    partner_id = respartner_obj.search([('vat', '=', _fallback_vat)] + company_none_domain, limit=1)
+                    partner_id = respartner_su.search([('vat', '=', _fallback_vat)] + company_none_domain, limit=1)
 
             # --- Crear contacto principal si no existe (solo datos de identidad MeLi) ---
             if not partner_id:
                 try:
                     if config.mercadolibre_cron_get_orders_shipment_client:
-                        partner_id = respartner_obj.create(meli_buyer_fields)
+                        # savepoint: si el INSERT choca la constraint única
+                        # (meli_buyer_id, active, company_id), se revierte SOLO este create
+                        # y la transacción del batch sigue sana (no se abortan las demás órdenes).
+                        with self.env.cr.savepoint():
+                            partner_id = respartner_obj.create(meli_buyer_fields)
+                            partner_id.flush_recordset()  # forzar el INSERT dentro del savepoint
                         _logger.info("Contacto principal creado: %s (meli_buyer_id: %s)", partner_id.name, buyer_fields['buyer_id'])
                 except Exception as e:
                     _logger.info("orders_update_order > Error creando Partner: " + str(e))
                     _logger.error(e, exc_info=True)
+                    # Self-heal (red de seguridad): el create chocó la constraint → el partner
+                    # YA existe. Se reusa con with_user(1) + active_test=False para bypasear
+                    # tanto ir.rules como overrides de search() de módulos de terceros.
+                    partner_id = respartner_su.with_context(active_test=False).search(
+                        [('meli_buyer_id', '=', _buyer_id_str)], limit=1)
+                    if partner_id:
+                        _logger.info("orders_update_order > Partner existente reusado (su) tras colisión meli_buyer_id=%s: %s",
+                                     buyer_fields['buyer_id'], partner_id.name)
+                    else:
+                        _logger.warning("orders_update_order > colisión meli_buyer_id=%s pero el partner no aparece ni con su (revisar)",
+                                        buyer_fields['buyer_id'])
             elif ("meli_update_forbidden" in partner_id._fields and not partner_id.meli_update_forbidden):
                 # Actualizar contacto principal: solo campos de identidad, NO nombre ni datos fiscales
                 parent_update = {}
