@@ -731,8 +731,15 @@ class sale_order(models.Model):
         for picking in self.picking_ids.filtered(
             lambda p: p.state == "done" and p.picking_type_code == "outgoing"
         ):
-            # skip if already has a return
-            if any(picking.move_ids.mapped("origin_returned_move_id")):
+            # Skip if a return already exists for this picking.
+            # Correct check: look for moves that reference this picking's moves as their origin.
+            # (origin_returned_move_id is set on the RETURN move, not the original OUT move,
+            # so checking it on picking.move_ids was always False — causing duplicate returns.)
+            already_returned = self.env['stock.move'].search_count([
+                ('origin_returned_move_id', 'in', picking.move_ids.ids),
+                ('state', '!=', 'cancel'),
+            ])
+            if already_returned:
                 continue
             try:
                 wiz = ReturnWiz.with_context(active_id=picking.id, active_ids=[picking.id], active_model="stock.picking").create({})
@@ -762,8 +769,9 @@ class sale_order(models.Model):
             if (self.meli_status=="cancelled"):
                 cancel_msg = "Orden cancelada por MercadoLibre."
                 if self.meli_status_detail:
-                    self._meli_return_done_pickings()
                     cancel_msg += " Motivo: %s" % self.meli_status_detail
+                # meli_cancel_with_detail already calls _meli_return_done_pickings() internally.
+                # Do NOT call it here too — that caused duplicate IN return pickings per cron cycle.
                 self.meli_cancel_with_detail(cancel_msg)
                 return res
 
@@ -2527,7 +2535,12 @@ class mercadolibre_orders(models.Model):
                         _taxpayer_upper = _taxpayer_raw.strip().upper()
                         _afip_code_map = {
                             'IVA RESPONSABLE INSCRIPTO': 1,
+                            'RESPONSABLE INSCRIPTO': 1,
+                            # ML can send 'IVA Sujeto Exento' or just 'IVA Exento' — both map to code=4
                             'IVA SUJETO EXENTO': 4,
+                            'IVA EXENTO': 4,
+                            'EXENTO': 4,
+                            'SUJETO EXENTO': 4,
                             'RESPONSABLE MONOTRIBUTO': 6,
                             'MONOTRIBUTO': 6,
                         }
