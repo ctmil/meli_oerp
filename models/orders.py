@@ -3179,6 +3179,10 @@ class mercadolibre_orders(models.Model):
                     'mercadolibre_skip_same_name_billing_contact' in config._fields
                     and config.mercadolibre_skip_same_name_billing_contact
                 )
+                # ESTRATEGIA B: forzar los datos fiscales al contacto principal SIEMPRE
+                # (aunque el nickname del buyer difiera de la razón social). El dato de
+                # facturación (razón social + DOC) es el autoritativo y va al principal,
+                # corrigiendo el nombre al legal. Opt-in por cuenta (B2B/multi-CUIT: False).
                 _force_on_main = (
                     'mercadolibre_billing_force_on_main' in config._fields
                     and config.mercadolibre_billing_force_on_main
