@@ -3179,7 +3179,15 @@ class mercadolibre_orders(models.Model):
                     'mercadolibre_skip_same_name_billing_contact' in config._fields
                     and config.mercadolibre_skip_same_name_billing_contact
                 )
-                if _skip_same_name:
+                # ESTRATEGIA B: forzar los datos fiscales al contacto principal SIEMPRE
+                # (aunque el nickname del buyer difiera de la razón social). El dato de
+                # facturación (razón social + DOC) es el autoritativo y va al principal,
+                # corrigiendo el nombre al legal. Opt-in por cuenta (B2B/multi-CUIT: False).
+                _force_on_main = (
+                    'mercadolibre_billing_force_on_main' in config._fields
+                    and config.mercadolibre_billing_force_on_main
+                )
+                if _skip_same_name or _force_on_main:
                     import unicodedata, re as _re
                     def _norm(s):
                         s = (s or '').lower().strip()
@@ -3188,7 +3196,7 @@ class mercadolibre_orders(models.Model):
                         return _re.sub(r'\s+', ' ', s)
                     _buyer_norm = _norm(partner_id.name)
                     _billing_norm = _norm(billing_full_name)
-                    if _buyer_norm and _buyer_norm == _billing_norm:
+                    if _billing_norm and (_force_on_main or (_buyer_norm and _buyer_norm == _billing_norm)):
                         _logger.info(
                             "BILLING_DEDUP: nombre buyer '%s' == billing '%s' — "
                             "datos fiscales al contacto principal, sin crear hijo.",

@@ -492,6 +492,15 @@ class res_company(models.Model):
              "Evita triplicar contactos para la misma persona.",
     )
 
+    mercadolibre_billing_force_on_main = fields.Boolean(
+        string="Datos fiscales SIEMPRE en el contacto principal (no separar)",
+        default=False,
+        help="ESTRATEGIA B: asigna los datos de facturación (razón social, CUIT/VAT, tipo doc, "
+             "posición fiscal) directamente al contacto principal del comprador y corrige su "
+             "nombre al legal, aunque el nickname de MercadoLibre no coincida con la razón social. "
+             "Evita el contacto fiscal separado. Recomendado para personas físicas (AR/CL).",
+    )
+
     #mercadolibre_use_buyer_name = fields.Boolean(string="Use buyer name",default=True)
 
     #Toma y lista los ids de las publicaciones del sitio de MercadoLibre, filtrados por official_store_id
