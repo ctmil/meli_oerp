@@ -4,6 +4,17 @@
 
 ---
 
+### 13 jun 2026 — fix(orders/returns): guard cantidad-cero en devolución FULL — evita bucle de error del cron (v26.45)
+
+**Archivos:** `meli_oerp/models/orders.py` (`_meli_return_done_pickings`)
+
+- **Síntoma:** en órdenes **FULL** canceladas por MeLi, el cron logueaba en bucle (~cada 5 min) `Error creating return for picking FULL/OUT/NNNN: Especifique al menos una cantidad diferente a cero` y posteaba el aviso repetido en el chatter de la orden.
+- **Causa:** el wizard `stock.return.picking` calcula `quantity=0` en `product_return_moves` (el stock FULL vive en el fulfillment de ML); `action_create_returns()` lanza UserError y, sin guard, el cron reintenta indefinidamente.
+- **Fix:** antes de `action_create_returns()`, si `sum(product_return_moves.quantity)==0` → omitir la devolución con `_logger.info` y `continue` (no-fatal). Detectado por smoke-test en prod (Dannok).
+
+---
+
+
 ### 11 jun 2026 — fix(payment_term): no forzar el término de pago (respetar el del tercero) (v42)
 
 **Archivos:** `meli_oerp/models/orders.py`, `meli_oerp/models/shipment.py`

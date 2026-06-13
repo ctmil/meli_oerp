@@ -743,6 +743,13 @@ class sale_order(models.Model):
                 continue
             try:
                 wiz = ReturnWiz.with_context(active_id=picking.id, active_ids=[picking.id], active_model="stock.picking").create({})
+                # Guard cantidad-cero: si el wizard no calculó nada a devolver, no intentar
+                # (action_create_returns tiraría 'Especifique al menos una cantidad diferente a
+                # cero' y el cron lo reintentaría en bucle). Típico de pickings FULL cuyo stock
+                # vive en el fulfillment de ML.
+                if "product_return_moves" in wiz._fields and not sum(wiz.product_return_moves.mapped("quantity")):
+                    _logger.info("Return omitida para %s: sin cantidades a devolver (FULL).", picking.name)
+                    continue
                 if hasattr(wiz, "action_create_returns"):
                     wiz.action_create_returns()
                 elif hasattr(wiz, "create_returns"):
