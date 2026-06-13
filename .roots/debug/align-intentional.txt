@@ -1,0 +1,8 @@
+# Divergencias de versión INTENCIONALES de meli_oerp — sources-align.sh las trata como convergido.
+# (vive en el worktree del base = 16.0; el script lo lee de ahí). Formato por línea:
+#   file:<basename>  → ese archivo difiere por versión a propósito (out-of-scope / dead code) → se saltea entero
+#   rx:<regex>       → líneas de diff que matcheen son intencionales (se suman al filtro de lo intencional)
+#   # comentario / línea vacía → ignorado
+
+file:warning.py            # clase warning1 (TransientModel 'warning') comentada desde 2022-01-19 ("Upgrade 22.4") en 17/18/19; dead code, activa solo en 16.0
+rx:web_editor|html_editor  # Odoo 19 renombró el módulo web_editor -> html_editor (import en product_image.py)
