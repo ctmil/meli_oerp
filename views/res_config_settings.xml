@@ -22,6 +22,11 @@
                     <setting name="mercadolibre_sending_message_to_customer" string="Activar/desactivar envio de mensaje a cliente" type="boolean">
                         <field name="mercadolibre_sending_message_to_customer"/>
                     </setting>
+                    <setting name="mercadolibre_http_proxy" string="Host API ML (rescate)" type="char"
+                              groups="base.group_system"
+                              help="Reemplaza api.mercadolibre.com por un reverse proxy externo. Usar cuando la IP del servidor esté bloqueada por ML. Formato: http://proxy.example.com">
+                        <field name="mercadolibre_http_proxy" groups="base.group_system"/>
+                    </setting>
                 </block>
             </xpath>
         </field>
