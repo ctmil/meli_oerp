@@ -4,6 +4,14 @@
 
 ---
 
+## 2026-06-15 — Promoción http_proxy (Deco→source) + sources-align 16/17/18/19 (v26.46)
+
+- Feature `mercadolibre_http_proxy` desarrollado en 19.0 (merge atento sobre el source) y **forward-port/backport idéntico** a 16/17/18 (los anchors de `get_new_instance`, `company.py` y `res_config_settings.*` estaban convergidos entre versiones → edición byte-idéntica). Sin diferencias de sintaxis por versión (`groups=`/`<setting>` válidos en 16-19; no toca grupos de `res.users`).
+- **Schema:** columna `mercadolibre_http_proxy` en `res_company`, la añade el ORM al upgradear (bump 26.46, sin migración manual). Campo vacío por default → comportamiento idéntico al previo.
+- `sources-align.sh meli` → CONVERGIDO en las 4 versiones tras la promoción.
+
+---
+
 ## 2026-06-10 — Forward-port tanda fixes meli jun-2026 (16.0 → 18.0)
 
 Origen: shoppy `ctmil/main` (Odoo 16.0), rango `2e5289a..fa5eb40`. Bump 18.0.26.31 → **18.0.26.39**.
