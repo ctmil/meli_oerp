@@ -4,6 +4,15 @@
 
 ---
 
+## Versión 26.46
+15 jun 2026
+
+**Cambios:**
+
+1. **Host API ML de rescate (reverse proxy):** Nuevo campo de configuración (solo administrador técnico) **"Host API ML (rescate)"** que permite rutear las llamadas a MercadoLibre — y el OAuth — por un reverse proxy externo cuando la IP del servidor está bloqueada por ML. Vacío = directo a `api.mercadolibre.com` (comportamiento por defecto, sin cambios). Pensado para incidentes de IP bloqueada.
+
+---
+
 ## Versión 26.41
 11 jun 2026
 

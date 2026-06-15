@@ -328,6 +328,15 @@ class res_company(models.Model):
 
     #mercadolibre_sending_message_to_customer = fields.Boolean(string='Activate sending message to customer')
 
+    mercadolibre_http_proxy = fields.Char(
+        string='Host API ML (rescate)',
+        help='Reemplaza api.mercadolibre.com por un reverse proxy externo cuando la IP del '
+             'servidor está bloqueada por ML. Formato: http://proxy.example.com  '
+             'El proxy debe reenviar las requests a https://api.mercadolibre.com. '
+             'Vacío = directo a api.mercadolibre.com.',
+        size=512,
+    )
+
     mercadolibre_cron_refresh = fields.Boolean(string='Keep alive',help='Cron Automatic Token Refresh for keeping ML connection alive.')
     mercadolibre_cron_mail = fields.Many2one(
         comodel_name="mail.template",
