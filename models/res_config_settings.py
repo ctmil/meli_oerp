@@ -36,3 +36,10 @@ class ResConfigSettings(models.TransientModel):
         related='company_id.mercadolibre_sending_message_to_customer',
         readonly=False
     )
+    mercadolibre_http_proxy = fields.Char(
+        string='Host API ML (rescate)',
+        help='Reemplaza api.mercadolibre.com por un reverse proxy externo cuando la IP del '
+             'servidor está bloqueada por ML. Formato: http://proxy.example.com',
+        related='company_id.mercadolibre_http_proxy',
+        readonly=False,
+    )

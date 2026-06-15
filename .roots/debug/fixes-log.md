@@ -4,6 +4,18 @@
 
 ---
 
+### 15 jun 2026 — feat(meli_util): host API de rescate (reverse proxy) — PROMOVIDO desde cliente Deco (v26.46)
+
+**Archivos:** `models/company.py`, `models/meli_util.py`, `models/res_config_settings.py`, `views/res_config_settings.xml`
+
+- **Qué:** campo `mercadolibre_http_proxy` (Char 512, `base.group_system`) en `res.company`; `get_new_instance()` ahora rutea `api_host = company.mercadolibre_http_proxy or "https://api.mercadolibre.com"` y construye config por-host cuando hay proxy (SDK: `_meli_sdk.Configuration(host=...)`; noSDK: `MeliConfiguration(host=...)`). El OAuth ya va por `_abs_url("/oauth/token")`, así que tambien se rutea. Vacío = directo (sin cambio de comportamiento).
+- **Origen:** feature nacido en el cliente Deco (incidente de IP de Odoo.sh bloqueada por ML). Promovido al source para no re-conflictuar en cada sync.
+- **Merge atento (no copia):** el source ya había divergido en la zona OAuth/noSDK (tiene `_abs_url`, authorize/refresh por `_abs_url`). Solo se injertó el ruteo de host en `get_new_instance`; el resto del source se preservó.
+- **Sanitización:** el dominio real del proxy del cliente (`proxy.moldeointeractive.com`) NO entra al source — reemplazado por `proxy.example.com` ficticio en help/placeholder. Campo vacío por default.
+- **Retry (DECISIÓN PENDIENTE, no resuelta acá):** Deco usa `requests.Session()` sin auto-retry (`retries=False`, rationale "los 429 agravan el rate-limit") mientras el source usa `LoggingRetry` (backoff 413/429/503). Se **preservó el `LoggingRetry` del source** para el path por defecto (cambio de amplio alcance); cuando el proxy ESTÁ activo se usa `retries=False` (scoped, conservador). La unificación global queda a decisión del usuario (Deco `7c676f0` 2026-05-20 es posterior al `LoggingRetry` del source `a71004cb` 2026-02-25).
+
+---
+
 ### 13 jun 2026 — fix(orders/returns): guard cantidad-cero en devolución FULL — evita bucle de error del cron (v26.45)
 
 **Archivos:** `meli_oerp/models/orders.py` (`_meli_return_done_pickings`)

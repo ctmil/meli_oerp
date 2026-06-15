@@ -1035,12 +1035,24 @@ class MeliUtil(models.AbstractModel):
         if not company:
             company = self.env.user.company_id
 
+        # Proxy de rescate: si la empresa tiene configurado un host alternativo,
+        # rutear la API (y el OAuth, vía _abs_url) por ese reverse proxy.
+        api_host = company.mercadolibre_http_proxy or "https://api.mercadolibre.com"
+        use_custom_host = api_host != "https://api.mercadolibre.com"
+
         # Crear instancia de MeliApi según modo activo (SDK o requests)
         if _versions.USE_MELI_SDK and MeliApiSDK is not None:
-            api_client = _ApiClient(configuration=configuration_sdk)
+            if use_custom_host:
+                sdk_config = _meli_sdk.Configuration(host=api_host)
+                # Host de rescate: sin auto-retry (los 429 agravan el rate-limit del proxy).
+                sdk_config.retries = False
+                api_client = _ApiClient(configuration=sdk_config)
+            else:
+                api_client = _ApiClient(configuration=configuration_sdk)
             api_rest_client = MeliApi(api_client)
         else:
-            api_rest_client = MeliApi(config=configuration_nosdk)
+            config = MeliConfiguration(host=api_host) if use_custom_host else configuration_nosdk
+            api_rest_client = MeliApi(config=config)
         api_rest_client.client_id = company.mercadolibre_client_id
         api_rest_client.client_secret = company.mercadolibre_secret_key
         api_rest_client.access_token = company.mercadolibre_access_token or ''
