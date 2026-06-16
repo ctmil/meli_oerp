@@ -4,6 +4,19 @@
 
 ---
 
+### 17 jun 2026 — fix(report): o.type → o.move_type en report_invoice_shipment (v26.47)
+
+**Archivo:** `report/report_invoice_shipment_view.xml` (línea 36, activa — la línea 23 está comentada)
+
+- **Síntoma:** QWebException al renderizar el reporte de factura+envío en Odoo 17+.
+- **Causa:** `account.move` usa `move_type` desde Odoo 16 (el campo `type` no existe). El template activo `report_invoice_shipment` comparaba `o.type in ('in_invoice', 'in_refund')` → AttributeError / QWebException en render.
+- **Fix:** `o.type` → `o.move_type` en la línea 36 del template activo.
+- **Versiones:** corregido en 16/17/18/19. Ver commits en 16.0 fixes-log.
+- **Validación:** xmllint OK.
+- **Commit:** 17.0→52ee5b06
+
+---
+
 ### 15 jun 2026 — feat(meli_util): host API de rescate (reverse proxy) — PROMOVIDO desde cliente Deco (v26.46)
 
 **Archivos:** `models/company.py`, `models/meli_util.py`, `models/res_config_settings.py`, `views/res_config_settings.xml`
