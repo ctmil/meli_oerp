@@ -4,6 +4,15 @@
 
 ---
 
+## Versión 26.48
+17 jun 2026
+
+**Cambios:**
+
+1. **Refactor interno — helper `meli_confirm_ready` (sin cambio de comportamiento):** se extrajo el criterio de "venta lista para confirmar" (la condición de monto de `confirm_ml`: monto a facturar de ML vs total del pedido, con tolerancia por cupón y retenciones, con/sin envío) a un método **read-only** `meli_confirm_ready()` que devuelve `(lista, motivo)`. La confirmación automática lo consume sin cambiar su lógica ni sus mensajes. Esto permite que otros flujos (p. ej. el wizard de importación de `meli_oerp_multiple`) detecten ventas incompletas **con exactamente el mismo criterio**, sin confirmar ni modificar las ventas.
+
+---
+
 ## Versión 26.46
 15 jun 2026
 
