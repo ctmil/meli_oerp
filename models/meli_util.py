@@ -1051,7 +1051,15 @@ class MeliUtil(models.AbstractModel):
                 api_client = _ApiClient(configuration=configuration_sdk)
             api_rest_client = MeliApi(api_client)
         else:
-            config = MeliConfiguration(host=api_host) if use_custom_host else configuration_nosdk
+            if use_custom_host:
+                config = MeliConfiguration(host=api_host)
+                # Host de rescate: sin auto-retry (los 429 agravan el rate-limit del proxy).
+                # Espeja la rama SDK: el config fresco por-host NO debe heredar el Retry
+                # por defecto (status_forcelist=[413,429,503]); reintentar contra el proxy
+                # sólo amplifica el bloqueo. Resiliencia = sin reintentos in-band.
+                config.retries = False
+            else:
+                config = configuration_nosdk
             api_rest_client = MeliApi(config=config)
         api_rest_client.client_id = company.mercadolibre_client_id
         api_rest_client.client_secret = company.mercadolibre_secret_key

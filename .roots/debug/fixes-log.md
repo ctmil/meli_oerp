@@ -4,6 +4,23 @@
 
 ---
 
+### 18 jun 2026 — fix(proxy): host de rescate noSDK sin reintentos (v26.49)
+
+**Archivo:** `models/meli_util.py` (`get_new_instance`, rama noSDK del proxy)
+
+- **Síntoma:** con `company.mercadolibre_http_proxy` seteado y corriendo en modo **noSDK**, el config
+  fresco por-host (`MeliConfiguration(host=proxy)`) heredaba el `LoggingRetry` por defecto
+  (`status_forcelist=[413,429,503]`, backoff 0.5) → reintentos in-band contra el proxy que **amplifican**
+  el rate-limit (el mismo patrón 429 que se quería evitar).
+- **Causa:** sólo la rama **SDK** del proxy hacía `retries = False`; la noSDK no.
+- **Fix:** la rama noSDK ahora hace `config.retries = False` antes de construir `MeliApi`
+  (`get_session()` arma el `HTTPAdapter(max_retries=False)` → reintentos desactivados). Espeja la rama SDK.
+- **Resiliencia:** host de rescate = **sin reintentos** (los 429 los maneja la cola/pacing del lado cliente,
+  no el retry in-band). Detectado en onboarding RPM Motos (acct 532, modo SDK; fix preventivo para noSDK).
+- **Pendiente:** promover a 16/17/18 (sources-align) — el proxy fue promovido desde Deco en 19.0.
+
+---
+
 ### 17 jun 2026 — fix(report): o.type → o.move_type en report_invoice_shipment (v26.47)
 
 **Archivo:** `report/report_invoice_shipment_view.xml` (línea 36, activa — la línea 23 está comentada)
