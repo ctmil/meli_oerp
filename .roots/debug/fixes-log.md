@@ -4,6 +4,30 @@
 
 ---
 
+### 25 jun 2026 — fix(category): cache RAM de meli_get_category devolvia ids huerfanos → FK violation meli_category (v26.48) [#410 Solsun]
+
+**Archivos:** `models/category.py` (`meli_get_category`), `models/product.py` (`_meli_set_category`)
+
+- **Síntoma:** al sincronizar/actualizar productos: `insert or update on table mercadolibre_product_template
+  violates foreign key constraint ... Key (meli_category)=(1) is not present in table mercadolibre_category`,
+  seguido de `InFailedSqlTransaction` en los productos siguientes de la misma corrida.
+- **Causa:** `_CATEGORY_CACHE` (cache en RAM por `(db, category_id)`) guarda el **id de DB** de la
+  `mercadolibre.category`. Si la transaccion que creo la categoria (via `import_category`) hace **rollback**,
+  el id cacheado queda **huerfano** (nunca se committeo). La siguiente llamada para la misma categoria
+  devolvia ese id desde RAM sin revalidar → `product.write({'meli_category': <id inexistente>})` → FK violation
+  que aborta la transaccion de toda la sync. El `id=1` es consistente con la primera categoria creada en un
+  worker que luego rollbackeo.
+- **Fix (2 capas):**
+  1. *Cache hit:* antes de devolver el id cacheado se valida con `.browse(id).exists()`; si no existe se
+     descarta la entrada (`del`) y se recomputa. Ademas se **cachea solo lookups exitosos** (`if mlcatid:`) —
+     un `mlcatid` vacio (login pendiente / categoria inexistente / fallo transitorio) ya no envenena llamadas
+     posteriores.
+  2. *Defensa-en-profundidad:* `_meli_set_category` solo escribe el FK si el id existe de verdad
+     (`mlcatid and ...browse(mlcatid).exists()`).
+- **Versiones:** 16/17/18/19 (bloque byte-identico, edicion identica). Solo codigo Python, sin migracion.
+
+---
+
 ### 17 jun 2026 — fix(report): o.type → o.move_type en report_invoice_shipment (v26.47)
 
 **Archivo:** `report/report_invoice_shipment_view.xml` (línea 36, activa — la línea 23 está comentada)
