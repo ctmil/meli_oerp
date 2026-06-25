@@ -902,8 +902,19 @@ class mercadolibre_shipment(models.Model):
             # envío = received_amount - total de producto (= envío neto del cupón). Si el
             # cupón cubre TODO el envío (residual <= 0) -> 0, que es lo correcto (bonificado).
             # Solo se toca cuando hay cupón; sin cupón el residual == envío bruto (sin cambio).
+            # FIX #399 (opción B): si el comprador paga el flete ENTERO
+            # (shipping_seller_cost==0 y hay shipping_cost/receiver/payments_shipment_amount),
+            # NO imputar el cupón al envío — la línea de envío debe quedar con el flete REAL
+            # (del_price ya calculado arriba). En ese caso el cupón se imputa al PRODUCTO en
+            # orders.py (mismo criterio _buyer_pays_full_shipping). Si el VENDEDOR paga el
+            # flete (shipping_seller_cost>0), se mantiene el comportamiento anterior.
+            _buyer_pays_full_shipping = (not shipment.shipping_seller_cost) and (
+                order.payments_shipment_amount
+                or shipment.shipping_receiver_cost
+                or shipment.shipping_cost
+            )
             _coupon = abs(sorder.meli_coupon_amount or 0.0)
-            if _coupon > 0.0 and received_amount and received_amount > 0:
+            if _coupon > 0.0 and received_amount and received_amount > 0 and not _buyer_pays_full_shipping:
                 _dline_total = sum(l.price_total for l in sorder.order_line if l.is_delivery)
                 _product_total = sorder.amount_total - _dline_total
                 _ship_residual = received_amount - _product_total
