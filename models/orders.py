@@ -4392,10 +4392,22 @@ class mercadolibre_orders(models.Model):
         if order and order.coupon_amount and sorder:
             if not sorder.meli_coupon_amount:
                 sorder.meli_coupon_amount = order.coupon_amount
+            # FIX #399 (opción B): cuando el comprador paga el flete ENTERO
+            # (shipping_seller_cost==0 y hay shipping_cost/payments_shipment_amount), el cupón
+            # NO puede imputarse al envío (la línea de envío queda con el flete real en
+            # shipment.py) — debe imputarse al PRODUCTO para que el total quede en lo facturable
+            # (received_amount). En ese caso se aplica el reparto cupón→producto AUNQUE el flag
+            # meli_coupon_discount_on_invoice esté OFF. Mismo criterio que shipment.py.
+            _buyer_pays_full_shipping = (not order.shipping_seller_cost) and (
+                order.payments_shipment_amount or order.shipping_cost
+            )
             _apply_coupon_discount = (
-                config
-                and "meli_coupon_discount_on_invoice" in config._fields
-                and config.meli_coupon_discount_on_invoice
+                (
+                    config
+                    and "meli_coupon_discount_on_invoice" in config._fields
+                    and config.meli_coupon_discount_on_invoice
+                )
+                or _buyer_pays_full_shipping
             )
             if _apply_coupon_discount:
                 if sorder.state not in ('done',) and not ("locked" in sorder._fields and sorder.locked):
