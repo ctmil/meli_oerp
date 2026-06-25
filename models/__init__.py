@@ -17,6 +17,7 @@ from . import banner
 from . import posting
 from . import product_post
 from . import questions
+from . import claim
 from . import orders
 from . import res_partner
 #from . import currency
