@@ -1022,7 +1022,10 @@ class product_product(models.Model):
 
         mlcatid, www_cat_id = self.env["mercadolibre.category"].meli_get_category( category_id, meli=meli, create_missing_website=config.mercadolibre_create_website_categories, config=config )
 
-        if (mlcatid):
+        # Defensa-en-profundidad: solo escribir si el id de mercadolibre.category existe
+        # realmente. Evita FK violation (meli_category=<id> not present) si meli_get_category
+        # devolviera un id huerfano; un id invalido abortaria la transaccion de toda la sync.
+        if (mlcatid and self.env["mercadolibre.category"].browse(mlcatid).exists()):
             product.write( {'meli_category': mlcatid} )
             product_template.write( {'meli_category': mlcatid} )
 

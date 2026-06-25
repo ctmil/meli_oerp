@@ -321,7 +321,14 @@ class mercadolibre_category(models.Model):
         db_name = self.env.cr.dbname
         cache_key = (db_name, category_id)
         if cache_key in _CATEGORY_CACHE:
-            return _CATEGORY_CACHE[cache_key]
+            cached_mlcatid, cached_www_cat_id = _CATEGORY_CACHE[cache_key]
+            # Validar que el id de mercadolibre.category cacheado siga existiendo.
+            # Un id puede quedar huerfano en el cache si la transaccion que creo la
+            # categoria hizo rollback (InFailedSqlTransaction): devolverlo provocaria
+            # un FK violation al escribir meli_category. Si no existe, descartar y recomputar.
+            if not cached_mlcatid or self.env['mercadolibre.category'].browse(cached_mlcatid).exists():
+                return cached_mlcatid, cached_www_cat_id
+            del _CATEGORY_CACHE[cache_key]
 
         if not meli:
             meli = self.get_meli(meli=meli)
@@ -349,8 +356,11 @@ class mercadolibre_category(models.Model):
                     cat_fields['public_category_id'] = www_cat_id
                     cat_fields['public_category'] = p_cat_id.id
 
-        # Guardar en cache para próximas llamadas con la misma categoría
-        _CATEGORY_CACHE[cache_key] = (mlcatid, www_cat_id)
+        # Guardar en cache solo lookups exitosos (mlcatid real). Cachear un mlcatid
+        # vacio (login pendiente / categoria inexistente en ML / fallo transitorio)
+        # envenenaria llamadas posteriores que devolverian False sin reintentar.
+        if mlcatid:
+            _CATEGORY_CACHE[cache_key] = (mlcatid, www_cat_id)
 
         return mlcatid, www_cat_id
 
