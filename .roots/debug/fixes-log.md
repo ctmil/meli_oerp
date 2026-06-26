@@ -4,6 +4,27 @@
 
 ---
 
+### 27 jun 2026 — fix(chatter): idempotencia en message_post anti-spam — PRODUCTO NO ENCONTRADO + Condition not met (v17.0.26.50) [#415 NipSkin/Inity 520]
+
+**Archivos:** `models/orders.py`
+
+- **Síntoma:** el chatter de ciertas órdenes se llenaba de mensajes repetidos en cada ciclo del cron. Dos
+  casos: (1) "PRODUCTO NO ENCONTRADO" re-posteado por cada corrida cuando la publicación ML no tenía
+  producto en Odoo; (2) "Condition not met: meli_paid_amount and amount_total doesn't match" re-posteado en
+  cada intento de confirmación (típico en órdenes con amount_total=0 / sin líneas).
+- **Causa:** los `meli_message_post(...)` no tenían guard de idempotencia; el cron reintenta la misma orden
+  indefinidamente → un mensaje nuevo por ciclo.
+- **Fix:** antes de postear se consulta un slice acotado de `message_ids` (performance):
+  - PRODUCTO NO ENCONTRADO: postea sólo si no existe ya un mensaje con "PRODUCTO NO ENCONTRADO" **para ese
+    ítem ML** (`_item_meli_id` en el body) en los últimos 50 mensajes.
+  - Condition not met (paid_amount): postea sólo si no hay ya un "Condition not met" en los últimos ~5
+    mensajes. La validación y el `return {'error': serror}` NO cambian (no se altera el control de flujo).
+- **Versiones:** 16/17/18/19. El guard PRODUCTO es byte-idéntico en las 4. El guard "Condition not met"
+  difiere por estructura: en 19.0 el serror viene de `meli_confirm_ready()` (refactor) y el guard va en
+  `confirm_ml`; en 16/17/18 el serror se arma inline en `confirm_ml` (mismo guard, distinto anchor).
+- Solo código Python, sin migración. Reportado por NipSkin/Inity (account 520, Odoo 19), tickets #414/#415.
+
+---
 ### 25 jun 2026 — fix(category): cache RAM de meli_get_category devolvia ids huerfanos → FK violation meli_category (v26.48) [#410 Solsun]
 
 **Archivos:** `models/category.py` (`meli_get_category`), `models/product.py` (`_meli_set_category`)
