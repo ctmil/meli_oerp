@@ -860,7 +860,15 @@ class sale_order(models.Model):
             confirm_ready, serror = self.meli_confirm_ready( meli=meli, config=config )
             confirm_cond = confirm_ready
             if not confirm_cond:
-                meli_message_post(self, serror, config=config)
+                # FIX #415 (NipSkin/Inity 520, tickets #414/#415): evitar spam en chatter.
+                # El cron reintenta la orden cada ciclo (afecta ordenes con amount_total=0 sin
+                # lineas) y re-posteaba siempre. Postear solo si no hay ya un "Condition not met"
+                # en los ultimos ~5 mensajes.
+                _recent_cond = self.message_ids[:5].filtered(
+                    lambda m: m.body and "Condition not met" in (m.body or "")
+                )
+                if not _recent_cond:
+                    meli_message_post(self, serror, config=config)
                 return {'error': serror}
 
             if (self.state in ['draft']):
@@ -4152,7 +4160,16 @@ class mercadolibre_orders(models.Model):
                         'sku_raw': _item_sku or _item_meli_id,
                     }
                     if sorder:
-                        meli_message_post(sorder, _missing_html, config=config)
+                        # FIX #415 (NipSkin/Inity 520, tickets #414/#415): evitar spam en chatter.
+                        # Postear "PRODUCTO NO ENCONTRADO" una sola vez por item ML: el cron de
+                        # import re-procesa la orden cada ciclo y re-posteaba el mismo aviso.
+                        # Slice acotado por performance (no recorrer miles de mensajes).
+                        _missing_seen = sorder.message_ids[:50].filtered(
+                            lambda m: m.body and "PRODUCTO NO ENCONTRADO" in (m.body or "")
+                            and _item_meli_id in (m.body or "")
+                        )
+                        if not _missing_seen:
+                            meli_message_post(sorder, _missing_html, config=config)
 
                 #Short cut to meli id and sku
                 order._order_product_sku()
