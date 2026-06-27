@@ -17,7 +17,7 @@
 
 - [ ] Parsear `metadata.item_id` de charges_details para descuentos per-item si ML lo provee
 - [ ] Agregar fechas estimadas de envío al stock.picking (related desde shipment)
-- [ ] Producteca: resolver `connection_monitor` column missing (upgrade módulo o ALTER TABLE)
+- [x] Producteca: resolver `connection_monitor` column missing — RESUELTO 2026-06-27: faltaba la **definición** del campo en `meli_oerp_multiple` (regresión `0be207d`); agregado `connection_monitor = fields.Boolean(default=True)` en `mercadolibre.account` (v26.52, 16-19). El `-u` crea la columna; no hace falta ALTER manual. Ver `meli_oerp_multiple/*/.roots/debug/fixes-log.md`.
 - [ ] Agregar validación pre-publish de campos ML obligatorios (título, precio, stock, categoría)
 
 ---
