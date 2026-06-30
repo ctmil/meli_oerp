@@ -4,6 +4,31 @@
 
 ---
 
+## Versión 26.55 — cupón ML: respeta la preferencia de facturación (modo de cupón configurable) [#433]
+30 jun 2026
+
+**Cambios:**
+
+1. **El cupón de MercadoLibre vuelve a respetar la configuración del cliente.** Una corrección previa
+   (#399) forzaba el descuento del cupón sobre el producto cuando el comprador pagaba el envío completo,
+   incluso con la opción de facturar-con-descuento **desactivada** — pisando la preferencia del vendedor
+   (regresión #433). Ahora el tratamiento del cupón depende **solo** del modo declarado en la cuenta.
+
+2. **Modo de facturación del cupón (tri-estado).** La antigua casilla pasa a un selector con tres modos:
+   - **Precio pleno** (por defecto, equivale a la casilla desactivada): la factura se emite por el precio
+     completo. Correcto cuando MercadoLibre reembolsa el cupón al vendedor (el ingreso gravado es el precio
+     pleno). *Ni el producto ni el envío llevan el descuento del cupón.*
+   - **Descuento en producto** (equivale a la casilla activada): el cupón se refleja como % de descuento
+     sobre las líneas de producto.
+   - **Línea de descuento separada** (opcional, avanzado): el cupón se imputa como línea(s) de descuento
+     aparte, una por grupo de impuesto, sin tocar producto ni envío. *Requiere validación fiscal previa.*
+
+   En todos los modos el total facturado sigue cuadrando con lo que corresponde cobrar. La migración deja a
+   cada cuenta en el modo equivalente a su configuración anterior (desactivada → Precio pleno; activada →
+   Descuento en producto).
+
+---
+
 ## Versión 26.54 — alta automática de productos inexistentes al importar órdenes (sin frenar por permisos)
 30 jun 2026
 
