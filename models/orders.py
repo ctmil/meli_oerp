@@ -3927,7 +3927,7 @@ class mercadolibre_orders(models.Model):
                                 'meli_id': Item['item']['id'],
                                 'meli_pub': True,
                             }
-                            product_related.write((prod_fields))
+                            product_related.sudo().write((prod_fields))  # bind meli_id con privilegios (cron Vendedor ML sin grupo productos)
                             if (product_related.product_tmpl_id):
                                 product_related.product_tmpl_id.meli_pub = True
                             product_related.product_meli_get_product()
@@ -3976,7 +3976,8 @@ class mercadolibre_orders(models.Model):
                                 #prod_fields['default_code'] = rjson3['id']
                                 #productcreated = False
                                 if seller_sku and config.mercadolibre_create_product_from_order and not productcreated:
-                                    productcreated = self.env['product.product'].create((prod_fields))
+                                    # sudo: crear el producto on-the-fly al importar una orden es una INTEGRACIÓN DE SISTEMA, no una acción de usuario. El cron puede correr como el Vendedor ML (with_user) que NO tiene grupo de creación de productos → sin sudo lanza AccessError (product.template/product.product). Gate de negocio: config.mercadolibre_create_product_from_order.
+                                    productcreated = self.env['product.product'].sudo().create((prod_fields))
                                 if (productcreated):
                                     if (productcreated.product_tmpl_id):
                                         productcreated.product_tmpl_id.meli_pub = True
