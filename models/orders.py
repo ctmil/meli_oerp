@@ -4376,25 +4376,19 @@ class mercadolibre_orders(models.Model):
         if order and order.coupon_amount and sorder:
             if not sorder.meli_coupon_amount:
                 sorder.meli_coupon_amount = order.coupon_amount
-            # FIX #399 (opción B): cuando el comprador paga el flete ENTERO
-            # (shipping_seller_cost==0 y hay shipping_cost/payments_shipment_amount), el cupón
-            # NO puede imputarse al envío (la línea de envío queda con el flete real en
-            # shipment.py) — debe imputarse al PRODUCTO para que el total quede en lo facturable
-            # (received_amount). En ese caso se aplica el reparto cupón→producto AUNQUE el flag
-            # meli_coupon_discount_on_invoice esté OFF. Mismo criterio que shipment.py.
-            _buyer_pays_full_shipping = (not order.shipping_seller_cost) and (
-                order.payments_shipment_amount or order.shipping_cost
-            )
-            _apply_coupon_discount = (
-                (
-                    config
-                    and "meli_coupon_discount_on_invoice" in config._fields
-                    and config.meli_coupon_discount_on_invoice
-                )
-                or _buyer_pays_full_shipping
-            )
-            if _apply_coupon_discount:
-                if sorder.state not in ('done',) and not ("locked" in sorder._fields and sorder.locked):
+            # Modo de facturación del cupón ML (tri-estado meli_coupon_invoice_mode):
+            #   full (default): NO se imputa a ninguna línea → factura a precio pleno. Correcto
+            #       cuando ML reembolsa el cupón al vendedor (made-whole). [#433 Elvimarta]
+            #   product_discount: cupón como descuento (%) sobre líneas de PRODUCTO (= flag ON).
+            #   separate_line: cupón como línea(s) de descuento separada(s) por grupo de impuesto
+            #       (OPT-IN, riesgos AFIP/CL — validar antes de habilitar).
+            # El FIX #399 forzaba product_discount aun con el flag OFF cuando el comprador pagaba
+            # el flete entero; eso pisaba la preferencia del cliente (regresión #433). Ahora el
+            # reparto depende SOLO del modo declarado en la config.
+            _coupon_mode = meli_resolve_coupon_invoice_mode(config)
+            _so_editable = sorder.state not in ('done',) and not ("locked" in sorder._fields and sorder.locked)
+            if _coupon_mode == 'product_discount':
+                if _so_editable:
                     non_delivery_lines = sorder.order_line.filtered(lambda l: not l.is_delivery)
                     total_gross = 0.0
                     for line in non_delivery_lines:
@@ -4413,9 +4407,12 @@ class mercadolibre_orders(models.Model):
                             discount_pct, order.coupon_amount, total_gross,
                             len(non_delivery_lines), sorder.name,
                         )
+            elif _coupon_mode == 'separate_line':
+                if _so_editable:
+                    meli_apply_coupon_separate_line(sorder, order.coupon_amount)
             else:
-                # Sin descuento: si había un descuento previo de cupón, limpiarlo.
-                if sorder.state not in ('done',) and not ("locked" in sorder._fields and sorder.locked):
+                # modo 'full': sin descuento. Limpiar cualquier descuento de cupón previo.
+                if _so_editable:
                     non_delivery_lines = sorder.order_line.filtered(lambda l: not l.is_delivery)
                     total_gross = 0.0
                     for line in non_delivery_lines:
@@ -4438,9 +4435,10 @@ class mercadolibre_orders(models.Model):
                                 line.discount = 0.0
                                 _logger.info(
                                     "MELI: Removed coupon discount from line %s on SO %s "
-                                    "(meli_coupon_discount_on_invoice=False)",
+                                    "(coupon_invoice_mode=full)",
                                     line.id, sorder.name,
                                 )
+                    meli_remove_coupon_separate_line(sorder)
 
         if (1==1 or config.mercadolibre_cron_get_orders_shipment):
             #_logger.info("Updating order: Shipment: "+str(order.shipping_id))
