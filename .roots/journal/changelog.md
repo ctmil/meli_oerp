@@ -4,6 +4,21 @@
 
 ---
 
+## Versión 26.54 — alta automática de productos inexistentes al importar órdenes (sin frenar por permisos)
+30 jun 2026
+
+**Cambios:**
+
+1. **Productos nuevos al importar una orden:** cuando llega una orden de MercadoLibre cuyo producto aún no
+   existe en Odoo y la cuenta tiene activada *"Crear producto desde la orden"*, el sistema lo da de alta
+   automáticamente. Si el cron operaba a nombre del *Vendedor ML* (sin permiso para crear productos), esa
+   alta fallaba con un error de acceso y la orden quedaba sin importar. Ahora la creación y el vínculo del
+   producto corren con **privilegios de sistema** (es parte de la integración automática), de modo que la
+   orden se importa completa. Con la opción **desactivada** el comportamiento no cambia: el producto no se
+   crea y la incidencia se registra en el log sin abortar el resto de la importación.
+
+---
+
 ## Versión 26.46
 15 jun 2026
 

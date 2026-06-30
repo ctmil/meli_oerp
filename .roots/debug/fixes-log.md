@@ -4,6 +4,35 @@
 
 ---
 
+### 30 jun 2026 — fix(perms): la creación on-the-fly de producto al importar una orden corre con sudo (v18.0.26.54) [Deco/KPI 526, suite-wide]
+
+**Archivos:** `models/orders.py (`orders_update_order_json`)`
+
+- **Síntoma (2º eslabón tras 26.53):** con el dispatcher ya en su=True, las órdenes con producto EXISTENTE
+  importaban OK, pero las de producto INEXISTENTE seguían fallando: `Access Denied by ACLs: create, uid
+  <vendedor>, model: product.template/product.product` →
+  `productcreated = self.env['product.product'].create(prod_fields)`. La orden quedaba sin la línea
+  (shipment: *"product not found in database"*) → cron `Imported N, failed M`.
+- **Causa raíz:** `search_meli_product` (y el path equivalente en el base) ya hacían `.sudo()` en sus
+  **lecturas** privilegiadas (`product_obj.sudo().search(...)` gated por `mercadolibre_update_product_company`),
+  evidencia de que el método se diseñó para correr como el usuario-cron y auto-elevar sus ops privilegiadas;
+  pero la **creación** del `product.product` y el **write** de binding (`meli_id`/`meli_pub`) quedaron SIN
+  sudo. El su=True del dispatcher cubre la cadena vía el env del recordset, pero el chokepoint de creación de
+  producto quedaba expuesto a los grupos del Vendedor ML (que NO incluyen creación de productos). El sudo
+  parcial preexistente es el smoking gun: faltaba sudo-ear el create + el bind-write.
+- **Fix (suite-wide, chokepoint puntual, NO sudo ciego):**
+  - `product.product.create(...)` → `.sudo().create(...)` (alta on-the-fly = integración de sistema).
+  - `product_related.write(prod_fields)` (bind meli_id) → `.sudo().write(...)`.
+  - El gate de negocio sigue siendo `config.mercadolibre_create_product_from_order`: con la opción OFF NO se
+    crea nada; el create-on-order es **opt-in por cuenta**. La atribución (salesperson/team) la fija
+    `meli_fix_team()`. Constraints/computes NO se saltan (sudo sólo afecta ACL/reglas).
+- **Diseño (creación on-the-fly):** se mantiene config-driven. Recomendación para clientes en fase de
+  relevamiento de maestra (p.ej. Deco): considerar DESACTIVAR `mercadolibre_create_product_from_order` para
+  no poblar el catálogo con productos sin SKU/costo; el fix garantiza que, con la opción en cualquiera de los
+  dos estados, el cron no aborta la importación.
+
+---
+
 ### 27 jun 2026 — fix(chatter): idempotencia en message_post anti-spam — PRODUCTO NO ENCONTRADO + Condition not met (v18.0.26.50) [#415 NipSkin/Inity 520]
 
 **Archivos:** `models/orders.py`
