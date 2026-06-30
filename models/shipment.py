@@ -917,7 +917,11 @@ class mercadolibre_shipment(models.Model):
                 or shipment.shipping_cost
             )
             _coupon = abs(sorder.meli_coupon_amount or 0.0)
-            if _coupon > 0.0 and received_amount and received_amount > 0 and not _buyer_pays_full_shipping:
+            # El cupón solo se ABSORBE en la línea de ENVÍO en modo 'product_discount' (flag ON
+            # histórico). En 'full' (made-whole, factura a precio pleno — #433) y en
+            # 'separate_line' la línea de envío queda con el flete REAL.
+            _coupon_mode_ship = meli_resolve_coupon_invoice_mode(config)
+            if _coupon_mode_ship == 'product_discount' and _coupon > 0.0 and received_amount and received_amount > 0 and not _buyer_pays_full_shipping:
                 _dline_total = sum(l.price_total for l in sorder.order_line if l.is_delivery)
                 _product_total = sorder.amount_total - _dline_total
                 _ship_residual = received_amount - _product_total

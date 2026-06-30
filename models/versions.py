@@ -543,6 +543,123 @@ def get_inventory_fields( product, warehouse, quantity=0 ):
             #"name": "INV: "+ product.name
             }
 
+COUPON_DISCOUNT_CODE = "MELI_COUPON_DISC"
+
+
+def meli_resolve_coupon_invoice_mode(config):
+    """Modo de facturacion del cupon ML (tri-estado). Devuelve 'full'|'product_discount'|'separate_line'.
+
+      - full (default): factura a precio pleno; el cupon ML (reembolsado por ML, vendedor
+        made-whole) NO se refleja en lineas. [caso #433 Elvimarta]
+      - product_discount: el cupon se imputa como descuento (%) sobre las lineas de PRODUCTO.
+      - separate_line: el cupon se imputa como linea(s) de descuento separada(s), una por grupo
+        de impuesto (prorrateo), sin tocar producto ni envio. OPT-IN (riesgos AFIP/CL).
+
+    Campo nuevo: meli_coupon_invoice_mode (meli_oerp_multiple / meli_oerp_accounting).
+    Compat: si solo existe el booleano obsoleto meli_coupon_discount_on_invoice,
+            True -> 'product_discount', False -> 'full'.
+    """
+    if not config:
+        return "full"
+    if "meli_coupon_invoice_mode" in config._fields and config.meli_coupon_invoice_mode:
+        return config.meli_coupon_invoice_mode
+    if "meli_coupon_discount_on_invoice" in config._fields:
+        return "product_discount" if config.meli_coupon_discount_on_invoice else "full"
+    return "full"
+
+
+def _meli_line_tax_field(rec):
+    return "tax_ids" if "tax_ids" in rec._fields else "tax_id"
+
+
+def meli_get_coupon_discount_product(env):
+    Product = env["product.product"].sudo()
+    prod = Product.search([("default_code", "=", COUPON_DISCOUNT_CODE)], limit=1)
+    if not prod:
+        try:
+            prod = Product.create({
+                "name": "Descuento cupon MercadoLibre",
+                "default_code": COUPON_DISCOUNT_CODE,
+                "type": "service",
+                "sale_ok": True,
+                "purchase_ok": False,
+                "taxes_id": [(5, 0, 0)],
+            })
+        except Exception as E:
+            _logger.info("MELI: could not create coupon discount product: %s", str(E))
+            prod = None
+    return prod
+
+
+def meli_remove_coupon_separate_line(sorder):
+    """Elimina la(s) linea(s) de descuento de cupon separada(s) si existieran."""
+    try:
+        if sorder.state in ("done",) or ("locked" in sorder._fields and sorder.locked):
+            return
+        prod = sorder.env["product.product"].sudo().search(
+            [("default_code", "=", COUPON_DISCOUNT_CODE)], limit=1)
+        if not prod:
+            return
+        lines = sorder.order_line.filtered(lambda l: l.product_id.id == prod.id)
+        if lines:
+            lines.unlink()
+    except Exception as E:
+        _logger.info("MELI: remove coupon separate line failed: %s", str(E))
+
+
+def meli_apply_coupon_separate_line(sorder, coupon_amount):
+    """OPT-IN: imputa el cupon ML como linea(s) de descuento separada(s), UNA POR GRUPO DE
+    IMPUESTO (prorrateo sobre el bruto con IVA), sin tocar precio de producto ni de envio.
+    RIESGOS AFIP/CL: una linea de monto negativo puede ser rechazada por validaciones de FE
+    electronica; VALIDAR contra meli_oerp_accounting_afip antes de habilitar. No es el default.
+    El total facturado sigue == (bruto - coupon_amount)."""
+    try:
+        if sorder.state in ("done",) or ("locked" in sorder._fields and sorder.locked):
+            return
+        coupon_amount = abs(coupon_amount or 0.0)
+        meli_remove_coupon_separate_line(sorder)
+        if coupon_amount <= 0.0:
+            return
+        prod = meli_get_coupon_discount_product(sorder.env)
+        if not prod:
+            return
+        non_disc_lines = sorder.order_line.filtered(
+            lambda l: not l.is_delivery and l.product_id.id != prod.id)
+        groups = {}
+        total_gross = 0.0
+        for line in non_disc_lines:
+            taxes = line[_meli_line_tax_field(line)]
+            tax_pct = sum(t.amount for t in taxes
+                          if t.amount_type == "percent" and not t.price_include)
+            gross = line.price_unit * line.product_uom_qty * (1.0 + tax_pct / 100.0)
+            key = tuple(sorted(taxes.ids))
+            g = groups.setdefault(key, {"gross": 0.0, "taxes": taxes, "tax_pct": tax_pct})
+            g["gross"] += gross
+            total_gross += gross
+        if total_gross <= 0.0:
+            return
+        SOL = sorder.env["sale.order.line"]
+        tfield = "tax_ids" if "tax_ids" in SOL._fields else "tax_id"
+        for key, g in groups.items():
+            share_gross = coupon_amount * (g["gross"] / total_gross)
+            if share_gross <= 0.0:
+                continue
+            price_net = -(share_gross / (1.0 + g["tax_pct"] / 100.0))
+            SOL.create({
+                "order_id": sorder.id,
+                "product_id": prod.id,
+                "name": "Descuento cupon MercadoLibre",
+                "product_uom_qty": 1.0,
+                "price_unit": price_net,
+                "discount": 0.0,
+                tfield: [(6, 0, list(g["taxes"].ids))],
+            })
+        _logger.info("MELI: applied coupon as %d separate discount line(s), total=%.2f on SO %s",
+                     len(groups), coupon_amount, sorder.name)
+    except Exception as E:
+        _logger.info("MELI: apply coupon separate line failed: %s", str(E))
+
+
 def get_delivery_line(sorder):
     delivery_line = None
     try:
