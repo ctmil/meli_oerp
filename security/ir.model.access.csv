@@ -58,3 +58,5 @@ access_sale_mercadolibre_posting_reader,mercadolibre.posting reader,model_mercad
 access_sale_mercadolibre_claim_sm,mercadolibre.claim manager,model_mercadolibre_claim,sales_team.group_sale_manager,1,1,1,1
 access_sale_mercadolibre_claim_ml,mercadolibre.claim meli manager,model_mercadolibre_claim,meli_oerp.group_mercadolibre_manager,1,1,1,1
 access_sale_mercadolibre_claim_reader,mercadolibre.claim reader,model_mercadolibre_claim,meli_oerp.group_mercadolibre_reader,1,0,0,0
+access_meli_channel_mkt_ml,meli.channel.mkt meli manager,model_meli_channel_mkt,meli_oerp.group_mercadolibre_manager,1,0,0,0
+access_meli_channel_mkt_reader,meli.channel.mkt reader,model_meli_channel_mkt,meli_oerp.group_mercadolibre_reader,1,0,0,0
