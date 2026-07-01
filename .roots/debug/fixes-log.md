@@ -4,6 +4,25 @@
 
 ---
 
+
+### 1 jul 2026 — fix(token): DB neutralizada no rota el refresh_token de ML (v17.0.26.56) [Deco/KPI 526, suite-wide]
+
+**Archivos:** `models/meli_util.py` (`meli.util`: helpers `_meli_is_neutralized` + `_meli_log_neutralized_skip`; guard en `get_new_instance`), `models/company.py` (`res.company.get_meli_state` early no-op).
+
+- **Síntoma (prod Deco 526, verificado):** cuentas ML flapean entre conectado/401. Staging (copia de la DB
+  de prod en Odoo.sh) y prod se pelean por el mismo refresh_token de ML, que es rotativo (un solo uso): cada
+  refresh del cron de staging invalida el access_token de prod, y viceversa.
+- **Causa raíz:** el suite no distinguía la DB neutralizada. El cron "Get Meli State" (cada 10 min) y las
+  refrescadas lazy pasan por `meli.util.get_new_instance`, que ante token vencido hace el POST
+  `grant_type=refresh_token`. Ese POST **rota el token server-side en ML aunque no se persista** → le roba
+  la sesión a producción.
+- **Fix:** `_meli_is_neutralized()` lee `ir.config_parameter 'database.is_neutralized'` (parseo robusto
+  '1'/'true'/'t'/'yes'; prod = False). En `get_new_instance` el disparador del refresh pasó a `elif` detrás
+  de un `if self._meli_is_neutralized()` que NO hace el POST ni el write (needlogin_state queda True; el test
+  sigue leyendo con el token vigente hasta que expire). El cron `res.company.get_meli_state` sale temprano
+  (no-op) si is_neutralized. INFO una sola vez por proceso (flag de módulo, sin spam). NO se toca el OAuth
+  inicial (authorize/callback). Prod (is_neutralized=False) idéntico al comportamiento actual.
+
 ### 30 jun 2026 — fix(perms): la creación on-the-fly de producto al importar una orden corre con sudo (v17.0.26.54) [Deco/KPI 526, suite-wide]
 
 **Archivos:** `models/orders.py (`orders_update_order_json`)`
