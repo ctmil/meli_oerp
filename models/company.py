@@ -182,6 +182,11 @@ class res_company(models.Model):
         return "MLA"
 
     def get_meli_state( self ):
+        if self.env['meli.util']._meli_is_neutralized():
+            # Cron "Get Meli State" en DB neutralizada: no-op. No leer ni refrescar,
+            # para no arriesgar la rotación del token de PRODUCCIÓN.
+            self.env['meli.util']._meli_log_neutralized_skip()
+            return
         # recoger el estado y devolver True o False (meli)
         #False if logged ok
         #True if need login

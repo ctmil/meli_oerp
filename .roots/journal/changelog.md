@@ -4,6 +4,20 @@
 
 ---
 
+
+## Versión 16.0.26.56 — no rotar el token de MercadoLibre en bases de prueba (neutralizadas)
+1 jul 2026
+
+**Cambios:**
+
+1. **Las copias de prueba (staging/duplicados en Odoo.sh) ya no desconectan a producción.** Al duplicar
+   la base para un entorno de test, Odoo la marca como *neutralizada*. Hasta ahora el conector seguía
+   intentando **renovar el token** de MercadoLibre desde esa copia; como el token de renovación es rotativo
+   (un solo uso), cada renovación desde el test **invalidaba la sesión de producción** (y viceversa),
+   causando cortes intermitentes de conexión (401). Ahora una base neutralizada **nunca renueva el token**:
+   el entorno de prueba sigue leyendo con el token vigente hasta que expira y luego queda desconectado
+   (esperado en test), sin afectar a producción. _(Producción sin cambios de comportamiento.)_
+
 ## Versión 26.55 — cupón ML: respeta la preferencia de facturación (modo de cupón configurable) [#433]
 30 jun 2026
 
