@@ -1021,6 +1021,12 @@ else:
     _logger.info("MeliApi: usando requests directo (sin SDK)")
 
 
+# Flag de proceso: loguear UNA sola vez que se omite el refresh por neutralización
+# (evita spam del cron 'Get Meli State' cada 10 min). Se resetea al reiniciar el
+# worker de Odoo (aceptable).
+_NEUTRALIZED_REFRESH_LOGGED = False
+
+
 class MeliUtil(models.AbstractModel):
 
     _name = 'meli.util'
@@ -1028,6 +1034,27 @@ class MeliUtil(models.AbstractModel):
 
     def get_meli_state(self):
         return self.get_new_instance()
+
+    def _meli_is_neutralized(self):
+        """True si la DB está neutralizada (staging/duplicado en Odoo.sh).
+
+        En esas DBs NUNCA se debe rotar el refresh_token de MercadoLibre: el POST
+        grant_type=refresh_token rota el token del lado de ML (token rotativo de un
+        solo uso) e invalidaría el access_token de PRODUCCIÓN. Odoo marca las copias
+        neutralizadas con ir.config_parameter 'database.is_neutralized'.
+        """
+        try:
+            val = self.env['ir.config_parameter'].sudo().get_param('database.is_neutralized')
+        except Exception:
+            return False
+        return str(val).strip().lower() in ('1', 'true', 't', 'yes')
+
+    def _meli_log_neutralized_skip(self):
+        """Loguea una sola vez por proceso que se omite el refresh por neutralización."""
+        global _NEUTRALIZED_REFRESH_LOGGED
+        if not _NEUTRALIZED_REFRESH_LOGGED:
+            _logger.info("DB neutralizada: se omite refresh de token ML para no invalidar producción")
+            _NEUTRALIZED_REFRESH_LOGGED = True
 
     @api.model
     def get_new_instance(self, company=None, refresh_force=False):
@@ -1139,7 +1166,13 @@ class MeliUtil(models.AbstractModel):
                                     pass;
                             logs+= str(message)+"\n"
                             _logger.info("message: " +str(message))
-                            if (refresh_force or ( message and "invalid" in str(message)) or ( message and "expired" in str(message)) 
+                            if self._meli_is_neutralized():
+                                # DB neutralizada (staging/duplicado en Odoo.sh): NUNCA rotar el refresh_token.
+                                # El POST grant_type=refresh_token lo rota server-side en ML y le robaría la
+                                # sesión a PRODUCCIÓN. needlogin_state ya quedó True arriba; el entorno de test
+                                # puede seguir LEYENDO con el access_token vigente hasta que expire (aceptable).
+                                self._meli_log_neutralized_skip()
+                            elif (refresh_force or ( message and "invalid" in str(message)) or ( message and "expired" in str(message)) 
                                 or message=="expired_token" or message=="invalid_token" or message=="internal_server_error"):
                                 api_rest_client.needlogin_state = True
                                 try:
