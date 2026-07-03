@@ -5,6 +5,18 @@
 ---
 
 
+## Versión 16.0.26.60 — backfill "Traer medidas": resolución de cuentas overridable (multi-cuenta real) [#424 Deco/KPI]
+3 jul 2026
+
+**Cambios:**
+
+1. **El relleno de medidas ("Traer medidas") ahora funciona también en instalaciones con varias cuentas de
+   MercadoLibre.** La resolución de "de qué cuenta leer cada publicación" se hizo **extensible**: la versión
+   base sigue funcionando con una cuenta por compañía, y el módulo multi-cuenta (meli_oerp_multiple) la
+   completa para recorrer las cuentas reales. Sin este cambio, en instalaciones multi-cuenta el relleno no
+   encontraba credenciales y no completaba nada.
+
+
 ## Versión 16.0.26.59 — fix del backfill "Traer medidas": corrige el error al ejecutarlo y soporta multi-cuenta [#424 Deco/KPI]
 3 jul 2026
 

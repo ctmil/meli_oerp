@@ -5,6 +5,23 @@
 ---
 
 
+### 3 jul 2026 — refactor(backfill): resolución de cuentas a hooks overridables (v16.0.26.60) [#424 Deco/KPI 526]
+
+**Archivos:** `models/product.py` (`product.template`: nuevos hooks `_meli_backfill_get_accounts` + `_meli_backfill_list_ids`; `action_meli_backfill_template_fields` reescrito para usarlos).
+
+- **Contexto:** el backfill 26.59 enumeraba credenciales desde `res.company`
+  (`search([('mercadolibre_seller_id','!=',False)])`). En setups multi-cuenta (meli_oerp_multiple) las
+  compañías tienen `mercadolibre_seller_id`/token = False (los tokens viven en `mercadolibre.account`), así
+  que `meli_by_company` quedaba vacío → `return True` sin poblar nada (verificado en prod Deco: la query daba 0).
+- **Fix (base):** se extrajo la parte "enumerar cuentas ML logueadas" y "listar los meli_ids de cada cuenta"
+  a dos hooks overridables — `_meli_backfill_get_accounts()` (devuelve dicts `key`/`meli`/`company`/`source`)
+  y `_meli_backfill_list_ids(account)` (usa `source.fetch_list_meli_ids`, misma firma en res.company y en
+  mercadolibre.account). El loop (mapa `meli_id→cuenta`, fetch con el token correcto,
+  `_meli_import_template_attributes`, savepoint por producto) quedó igual y reusable. La base conserva el
+  comportamiento single-account (res.company) intacto.
+- **Override multi-cuenta:** en `meli_oerp_multiple` (26.60). Ver su fixes-log.
+
+
 ### 3 jul 2026 — fix(backfill): action_meli_backfill_template_fields — meli_id en la variante + multi-cuenta (v16.0.26.59) [#424 Deco/KPI 526, verificado en prod Deco]
 
 **Archivos:** `models/product.py` (`product.template.action_meli_backfill_template_fields` reescrito; helper `product.template._meli_template_variant`), `views/product_view.xml` (filtro del `ir.actions.server`).
