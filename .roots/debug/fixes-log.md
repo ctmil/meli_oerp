@@ -5,6 +5,32 @@
 ---
 
 
+### 3 jul 2026 — fix(backfill): action_meli_backfill_template_fields — meli_id en la variante + multi-cuenta (v16.0.26.59) [#424 Deco/KPI 526, verificado en prod Deco]
+
+**Archivos:** `models/product.py` (`product.template.action_meli_backfill_template_fields` reescrito; helper `product.template._meli_template_variant`), `views/product_view.xml` (filtro del `ir.actions.server`).
+
+- **BUG A — `meli_id` no existe en product.template (está en product.product/variante).** El backfill 26.58
+  hacía `self.filtered(lambda t: t.meli_id)`, `self.search([('meli_id','!=',False)])` y `template.meli_id`
+  sobre product.template → `ValueError: Invalid field product.template.meli_id`. El filtro del server action
+  (`records.filtered(lambda t: t.meli_id)`) rompía igual. **Fix:** resolver la variante con la publicación
+  vía `_meli_template_variant()` (`product_variant_ids.filtered("meli_id")[:1]`); el search sin `self` filtra
+  por `[('product_variant_ids.meli_id','!=',False)]`; el filtro del server action pasó a
+  `any(v.meli_id for v in t.product_variant_ids)`.
+- **BUG B — multi-cuenta: usaba un solo token (`env.user.company_id`).** En Deco hay 3 cuentas ML
+  (DECO/ECOMMARKET/DELTA), cada ítem pertenece a un seller distinto; leer `/items/<id>` con el token
+  equivocado da **403 access_denied** (verificado; con el token del seller dueño devuelve 200 y trae los
+  SELLER_PACKAGE_*). **Fix:** el token/cuenta se vive en `res.company` (`mercadolibre_seller_id` + tokens).
+  El backfill ahora: (1) arma un `meli.util` por cada compañía ML-configurada logueada
+  (`search([('mercadolibre_seller_id','!=',False)])`), (2) resuelve la compañía **dueña de cada ítem** con
+  un mapa `meli_id→company` construido perezosamente por cuenta vía `company.fetch_list_meli_ids(meli=...)`
+  (lista los items del propio seller — nunca pega a `/items` con el token ajeno), prefiriendo el
+  `template.company_id` del producto, y (3) hace el fetch con el token de esa cuenta. Se agrupa por cuenta
+  para no re-instanciar por ítem. Savepoint por producto + log de progreso se mantienen.
+- **Alcance:** solo el backfill (método + filtro del server action). El mapeo `_meli_import_template_attributes`
+  (import ML→Odoo) quedó intacto — verificado OK en prod Deco.
+- **Deploy:** re-deploy a Deco (kpi-mas/Deco produccion) lo hace el coordinador.
+
+
 ### 3 jul 2026 — feat(import): ML→Odoo puebla los campos de la pestaña "MELI Plantilla" + backfill (v16.0.26.57) [#424 Deco/KPI 526, suite-wide]
 
 **Archivos:** `models/product.py` (product.product: `_MELI_IMPORT_ATTR_MAP` / `_MELI_IMPORT_ATTR_FALLBACK`, `_meli_attr_value`, `_meli_import_template_attributes`; llamada en `product_meli_get_product` tras escribir meli_fields/tmpl_fields; product.template: `action_meli_backfill_template_fields`), `views/product_view.xml` (botón "Traer medidas" en la pestaña MELI Plantilla + `ir.actions.server` `action_meli_backfill_template_fields_server` como acción de lista).
