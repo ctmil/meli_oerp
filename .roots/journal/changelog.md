@@ -5,6 +5,23 @@
 ---
 
 
+## Versión 17.0.26.57 — el IMPORT ML→Odoo trae las medidas del paquete y demás campos de la pestaña "MELI Plantilla" [#424 Deco/KPI]
+3 jul 2026
+
+**Cambios:**
+
+1. **Al importar un producto desde MercadoLibre ya se completan los campos de la pestaña "MercadoLibre / Plantilla".**
+   Antes, al traer un item de ML, la sección **"Dimensiones del paquete (Vendedor – Mercado Envíos)"**
+   (Alto/Ancho/Largo/Peso del paquete) y los campos **Marca**, **Modelo** y **Género** quedaban vacíos —
+   había que cargarlos a mano para poder **re-publicar** (Mercado Envíos exige las medidas del paquete).
+   Ahora el import lee esos datos del propio item de ML y los rellena automáticamente. Si ML no informa un
+   dato, **no se pisa** lo que hayas cargado a mano (es idempotente).
+2. **Nuevo botón "Traer medidas" y acción masiva** para los productos **ya importados** sin estos datos:
+   en la ficha del producto (pestaña MELI Plantilla) y como acción sobre la lista de productos, relee el
+   item de ML de cada producto con publicación y completa los campos faltantes. Procesa de a lotes de forma
+   segura: si un producto falla, el resto continúa.
+
+
 ## Versión 17.0.26.56 — no rotar el token de MercadoLibre en bases de prueba (neutralizadas)
 1 jul 2026
 
