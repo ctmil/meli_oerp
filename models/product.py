@@ -249,33 +249,100 @@ class product_template(models.Model):
 
         return ret
 
+    def _meli_template_variant(self):
+        """Return the variant that carries the ML publication (meli_id lives on
+        product.product, NOT on product.template)."""
+        self.ensure_one()
+        return self.product_variant_ids.filtered("meli_id")[:1]
+
     def action_meli_backfill_template_fields(self):
         """Backfill the MELI "Plantilla" Char fields (seller package
         dimensions, brand, model, gender) for already-imported products by
-        re-reading their ML item. Batch-safe: one savepoint per product so a
+        re-reading their ML item. Multi-account aware: each item is fetched
+        with the token of the COMPANY that owns it (using the wrong seller's
+        token returns 403 access_denied), grouping by account to avoid
+        re-instantiating per item. Batch-safe: one savepoint per product so a
         failing item never aborts the whole run. Idempotent (only fills from
         non-empty ML attributes). Usable as a form button and a list action."""
-        company = self.env.user.company_id
-        meli = self.env['meli.util'].get_new_instance(company)
-        if meli.need_login():
-            return meli.redirect_login()
-        templates = self.filtered(lambda t: t.meli_id) if self else self.search([('meli_id', '!=', False)])
+        util = self.env['meli.util']
+        company_obj = self.env['res.company']
+
+        # meli_id lives on the variant (product.product), so filter templates by
+        # their variants' meli_id (NOT template.meli_id, which does not exist).
+        if self:
+            templates = self.filtered(lambda t: any(v.meli_id for v in t.product_variant_ids))
+        else:
+            templates = self.search([('product_variant_ids.meli_id', '!=', False)])
+
+        # ML-configured companies: each holds its own seller_id + access token.
+        ml_companies = company_obj.search([('mercadolibre_seller_id', '!=', False)])
+        meli_by_company = {}
+        for company in ml_companies:
+            meli = util.get_new_instance(company)
+            if meli and not meli.need_login():
+                meli_by_company[company.id] = meli
+            else:
+                _logger.warning("MELI backfill: cuenta '%s' sin login, se omite", company.name)
+        if not meli_by_company:
+            _logger.warning("MELI backfill: no hay cuentas ML logueadas; nada que hacer")
+            return True
+
+        # meli_id -> owning company.id. Built lazily per account by listing each
+        # seller's own item ids (so we never hit /items with the wrong token).
+        owner_by_meli_id = {}
+        listed = set()
+
+        def _list_company_items(company):
+            if company.id in listed:
+                return
+            listed.add(company.id)
+            try:
+                ids = company.fetch_list_meli_ids(meli=meli_by_company[company.id]) or []
+            except Exception as e:
+                _logger.warning("MELI backfill: no se pudieron listar items de '%s': %s", company.name, e)
+                ids = []
+            for mid in ids:
+                owner_by_meli_id.setdefault(str(mid), company.id)
+            _logger.info("MELI backfill: cuenta '%s' aporta %s items al mapa de propiedad", company.name, len(ids))
+
+        def _resolve_meli(meli_id, template):
+            mid = str(meli_id)
+            if mid not in owner_by_meli_id:
+                # product's own company first (multi-company), then the rest.
+                cand = template.company_id
+                order = ([cand] if (cand and cand.id in meli_by_company) else []) + \
+                        [c for c in ml_companies if c.id in meli_by_company]
+                for c in order:
+                    if c.id in listed:
+                        continue
+                    _list_company_items(c)
+                    if mid in owner_by_meli_id:
+                        break
+            cid = owner_by_meli_id.get(mid)
+            return meli_by_company.get(cid) if cid else None
+
         total = len(templates)
-        product_obj = self.env['product.product']
         done = ok = errors = 0
-        _logger.info("MELI backfill plantilla: starting for %s templates", total)
+        _logger.info("MELI backfill plantilla: starting for %s templates (%s cuentas ML)", total, len(meli_by_company))
         for template in templates:
-            meli_id = template.meli_id
             done += 1
+            variant = template._meli_template_variant()
+            meli_id = variant.meli_id if variant else False
+            if not meli_id:
+                continue
             try:
                 with self.env.cr.savepoint():
+                    meli = _resolve_meli(meli_id, template)
+                    if not meli:
+                        errors += 1
+                        _logger.warning("MELI backfill: item %s sin cuenta ML dueña resuelta, se omite", meli_id)
+                        continue
                     response = meli.get("/items/" + str(meli_id), {'access_token': meli.access_token, 'include_attributes': 'all'})
                     rjson = response and response.json()
                     if not rjson or (isinstance(rjson, dict) and 'error' in rjson):
                         errors += 1
                         _logger.warning("MELI backfill: item %s unavailable: %s", meli_id, isinstance(rjson, dict) and rjson.get('error'))
                         continue
-                    variant = template.product_variant_id or template.product_variant_ids[:1] or product_obj
                     variant._meli_import_template_attributes(template, rjson)
                     ok += 1
             except Exception as e:

@@ -585,7 +585,7 @@
             <field name="binding_model_id" ref="product.model_product_template"/>
             <field name="binding_view_types">list,form</field>
             <field name="state">code</field>
-            <field name="code">records.filtered(lambda t: t.meli_id).action_meli_backfill_template_fields()</field>
+            <field name="code">records.filtered(lambda t: any(v.meli_id for v in t.product_variant_ids)).action_meli_backfill_template_fields()</field>
         </record>
 
         <menuitem id="menu_meli" name="MercadoLibre" parent="sale.sale_menu_root" sequence="16"/>

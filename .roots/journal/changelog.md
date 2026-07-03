@@ -5,6 +5,19 @@
 ---
 
 
+## Versión 18.0.26.59 — fix del backfill "Traer medidas": corrige el error al ejecutarlo y soporta multi-cuenta [#424 Deco/KPI]
+3 jul 2026
+
+**Cambios:**
+
+1. **El botón "Traer medidas" / acción de lista ya no da error y funciona con varias cuentas de MercadoLibre.**
+   La acción de relleno (agregada en 26.58) fallaba al ejecutarse y, en cuentas con varios vendedores de ML
+   en la misma base (p. ej. 3 cuentas), intentaba leer cada publicación con el token de una sola cuenta →
+   error de permisos (403). Ahora cada publicación se lee con el token de **la cuenta que realmente la
+   posee** (se agrupan por cuenta para no repetir conexiones), y se completa correctamente. Sin cambios en
+   el mapeo de campos (que ya estaba OK).
+
+
 ## Versión 18.0.26.57 — el IMPORT ML→Odoo trae las medidas del paquete y demás campos de la pestaña "MELI Plantilla" [#424 Deco/KPI]
 3 jul 2026
 
