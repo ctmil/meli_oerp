@@ -249,6 +249,43 @@ class product_template(models.Model):
 
         return ret
 
+    def action_meli_backfill_template_fields(self):
+        """Backfill the MELI "Plantilla" Char fields (seller package
+        dimensions, brand, model, gender) for already-imported products by
+        re-reading their ML item. Batch-safe: one savepoint per product so a
+        failing item never aborts the whole run. Idempotent (only fills from
+        non-empty ML attributes). Usable as a form button and a list action."""
+        company = self.env.user.company_id
+        meli = self.env['meli.util'].get_new_instance(company)
+        if meli.need_login():
+            return meli.redirect_login()
+        templates = self.filtered(lambda t: t.meli_id) if self else self.search([('meli_id', '!=', False)])
+        total = len(templates)
+        product_obj = self.env['product.product']
+        done = ok = errors = 0
+        _logger.info("MELI backfill plantilla: starting for %s templates", total)
+        for template in templates:
+            meli_id = template.meli_id
+            done += 1
+            try:
+                with self.env.cr.savepoint():
+                    response = meli.get("/items/" + str(meli_id), {'access_token': meli.access_token, 'include_attributes': 'all'})
+                    rjson = response and response.json()
+                    if not rjson or (isinstance(rjson, dict) and 'error' in rjson):
+                        errors += 1
+                        _logger.warning("MELI backfill: item %s unavailable: %s", meli_id, isinstance(rjson, dict) and rjson.get('error'))
+                        continue
+                    variant = template.product_variant_id or template.product_variant_ids[:1] or product_obj
+                    variant._meli_import_template_attributes(template, rjson)
+                    ok += 1
+            except Exception as e:
+                errors += 1
+                _logger.error("MELI backfill error on template %s (meli_id=%s): %s", template.id, meli_id, e, exc_info=True)
+            if done % 50 == 0:
+                _logger.info("MELI backfill progress: %s/%s (ok=%s, errors=%s)", done, total, ok, errors)
+        _logger.info("MELI backfill plantilla: finished %s/%s (ok=%s, errors=%s)", done, total, ok, errors)
+        return True
+
     def _collect_and_upload_images_for_meli(self, meli=None, config=None):
         """
         Recolecta y sube todas las imagenes del template y sus variantes a MercadoLibre.
@@ -809,6 +846,97 @@ class product_template(models.Model):
 class product_product(models.Model):
 
     _inherit = "product.product"
+
+    # --- ML -> Odoo import of the MELI "Plantilla" tab attributes -----------
+    # Single source of truth for the ML item-attribute -> Odoo Char field map
+    # used by the import (_meli_import_template_attributes) and the backfill.
+    # SELLER_PACKAGE_* are the seller-editable Mercado Envios shipping
+    # dimensions; the publish side (Odoo->ML) builds these same ids.
+    _MELI_IMPORT_ATTR_MAP = {
+        "SELLER_PACKAGE_HEIGHT": "meli_seller_package_height",
+        "SELLER_PACKAGE_WIDTH":  "meli_seller_package_width",
+        "SELLER_PACKAGE_LENGTH": "meli_seller_package_length",
+        "SELLER_PACKAGE_WEIGHT": "meli_seller_package_weight",
+        "BRAND":  "meli_brand",
+        "MODEL":  "meli_model",
+        "GENDER": "meli_gender",
+    }
+    # Catalog PACKAGE_* attrs (read-only on ML) fall back to the SAME seller
+    # fields; publish remaps PACKAGE_*->SELLER_PACKAGE_* (same relation, here
+    # reversed for import). Lower priority than the SELLER_PACKAGE_* primaries.
+    _MELI_IMPORT_ATTR_FALLBACK = {
+        "PACKAGE_HEIGHT": "meli_seller_package_height",
+        "PACKAGE_WIDTH":  "meli_seller_package_width",
+        "PACKAGE_LENGTH": "meli_seller_package_length",
+        "PACKAGE_WEIGHT": "meli_seller_package_weight",
+    }
+
+    @staticmethod
+    def _meli_attr_value(att):
+        """Robustly extract an attribute value as ML may send it:
+        value_name, values[0].name/value_name, or value_id (as string)."""
+        if not isinstance(att, dict):
+            return None
+        val = att.get("value_name")
+        if not val:
+            values = att.get("values")
+            if values and isinstance(values, list) and isinstance(values[0], dict):
+                val = values[0].get("name") or values[0].get("value_name")
+        if not val:
+            vid = att.get("value_id")
+            if vid not in (None, False, ""):
+                val = str(vid)
+        if val is None:
+            return None
+        val = str(val).strip()
+        return val or None
+
+    def _meli_import_template_attributes(self, product_template, rjson):
+        """ML->Odoo: populate the MELI "Plantilla" tab Char fields (seller
+        package dimensions + BRAND/MODEL/GENDER) from the item `attributes`.
+
+        Idempotent: only writes when ML provides a non-empty value, so a value
+        loaded by hand in Odoo is never wiped by an empty ML attribute.
+        Writes both the template and the variant (self) when the field exists
+        on each. `self` may be an empty product.product recordset (then only
+        the template is written)."""
+        if not rjson or not isinstance(rjson, dict):
+            return
+        attributes = rjson.get("attributes") or []
+        if not isinstance(attributes, list) or not attributes:
+            return
+        primary = self._MELI_IMPORT_ATTR_MAP
+        fallback = self._MELI_IMPORT_ATTR_FALLBACK
+        tmpl_vals = {}
+        prod_vals = {}
+        seen_primary = set()
+        for att in attributes:
+            if not isinstance(att, dict):
+                continue
+            att_id = att.get("id")
+            if not att_id:
+                continue
+            is_primary = att_id in primary
+            field = primary.get(att_id) or fallback.get(att_id)
+            if not field:
+                continue
+            # a fallback PACKAGE_* must not override a primary SELLER_PACKAGE_*
+            if not is_primary and field in seen_primary:
+                continue
+            val = self._meli_attr_value(att)
+            if not val:
+                continue
+            if is_primary:
+                seen_primary.add(field)
+            if field in product_template._fields:
+                tmpl_vals[field] = val
+            if field in self._fields:
+                prod_vals[field] = val
+        if tmpl_vals:
+            product_template.write(tmpl_vals)
+            _logger.info("MELI import: plantilla fields set on template %s: %s", product_template.id, list(tmpl_vals.keys()))
+        if prod_vals and self:
+            self.write(prod_vals)
 
     def action_debug_supplierinfo(self):
         """Delegates to template. Kept so cached views don't break Odoo 19 validation."""
@@ -2105,6 +2233,9 @@ class product_product(models.Model):
 
         product.write( meli_fields )
         product_template.write( tmpl_fields )
+        # ML -> Odoo: populate MELI "Plantilla" tab fields from item attributes
+        # (seller package dimensions, brand, model, gender). Idempotent.
+        product._meli_import_template_attributes( product_template, rjson )
         meli_available_quantity = rjson.get('available_quantity', 0)
         if (meli_available_quantity >=0):
             UpdateProductType(product_template)
@@ -2348,24 +2479,12 @@ class product_product(models.Model):
             seller_sku = None
             barcode = None
 
-            _seller_pkg_attr_map = {
-                "SELLER_PACKAGE_HEIGHT": "meli_seller_package_height",
-                "SELLER_PACKAGE_WIDTH":  "meli_seller_package_width",
-                "SELLER_PACKAGE_LENGTH": "meli_seller_package_length",
-                "SELLER_PACKAGE_WEIGHT": "meli_seller_package_weight",
-            }
             if not seller_sku and "attributes" in rjson:
                 for att in rjson['attributes']:
                     if att["id"] == "SELLER_SKU":
                         seller_sku = att["values"][0]["name"]
                     if att["id"] == "GTIN":
                         barcode = att["values"][0]["name"]
-                    if att["id"] in _seller_pkg_attr_map:
-                        _val = att.get("value_name") or (att.get("values") and att["values"][0].get("name"))
-                        if _val:
-                            _fld = _seller_pkg_attr_map[att["id"]]
-                            product[_fld] = _val
-                            product_template[_fld] = _val
 
             if (not seller_sku and "seller_custom_field" in rjson):
                 seller_sku = rjson["seller_custom_field"]

@@ -126,6 +126,12 @@
                             confirm="¿Está seguro que quiere importar los datos desde ML?"
                             class="oe_stat_button"
                           icon="fa-cloud-download"/>
+                          <button name='action_meli_backfill_template_fields' type="object"
+                            string="Traer medidas"
+                            title="Rellenar campos de la plantilla (medidas del paquete, marca, modelo, genero) desde ML"
+                            confirm="¿Traer/actualizar los campos de la plantilla (medidas del paquete, marca, modelo, genero) desde ML? No pisa valores cargados a mano si ML no los trae."
+                            class="oe_stat_button"
+                            icon="fa-download"/>
                           <button name='action_category_predictor' type="object"
             								string="Sugerir Categoria"
                             attrs="{'invisible':[('meli_category','!=',False)]}"
@@ -571,6 +577,15 @@
             <field name="search_view_id" ref="meli_oerp_product_pricelist_items_search_view" />
             <!--field name="context">{"search_default_producteca_filter":1}</field-->
             <!--field name="search_view_id" ref="producteca_sale_order_search_view" /-->
+        </record>
+
+        <record id="action_meli_backfill_template_fields_server" model="ir.actions.server">
+            <field name="name">MELI: traer medidas/plantilla desde ML</field>
+            <field name="model_id" ref="product.model_product_template"/>
+            <field name="binding_model_id" ref="product.model_product_template"/>
+            <field name="binding_view_types">list,form</field>
+            <field name="state">code</field>
+            <field name="code">records.filtered(lambda t: t.meli_id).action_meli_backfill_template_fields()</field>
         </record>
 
         <menuitem id="menu_meli" name="MercadoLibre" parent="sale.sale_menu_root" sequence="16"/>
