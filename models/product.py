@@ -255,18 +255,49 @@ class product_template(models.Model):
         self.ensure_one()
         return self.product_variant_ids.filtered("meli_id")[:1]
 
+    def _meli_backfill_get_accounts(self):
+        """Hook: list the ML "accounts" to back-fill from. Each entry is a dict:
+          'key'     unique str id for the account,
+          'meli'    a logged-in meli.util instance (its own token),
+          'company' res.company for owner preference (may be empty),
+          'source'  the record able to list its own item ids via
+                    fetch_list_meli_ids(meli=...).
+
+        Base = single-account layout: one entry per ML-configured res.company
+        (seller_id + token live on the company). meli_oerp_multiple overrides
+        this to iterate mercadolibre.account, where the tokens actually live in
+        multi-account setups (the companies there have seller_id/token=False)."""
+        util = self.env['meli.util']
+        accounts = []
+        ml_companies = self.env['res.company'].search([('mercadolibre_seller_id', '!=', False)])
+        for company in ml_companies:
+            meli = util.get_new_instance(company)
+            if meli and not meli.need_login():
+                accounts.append({'key': 'company-%s' % company.id, 'meli': meli, 'company': company, 'source': company})
+            else:
+                _logger.warning("MELI backfill: cuenta '%s' sin login, se omite", company.name)
+        return accounts
+
+    def _meli_backfill_list_ids(self, account):
+        """Hook: return the meli_id (str) list owned by `account` (an entry from
+        _meli_backfill_get_accounts). Default uses the source record's
+        fetch_list_meli_ids, defined with the same signature both on res.company
+        and on mercadolibre.account."""
+        ids = account['source'].fetch_list_meli_ids(meli=account['meli']) or []
+        return [str(m) for m in ids]
+
     def action_meli_backfill_template_fields(self):
         """Backfill the MELI "Plantilla" Char fields (seller package
         dimensions, brand, model, gender) for already-imported products by
-        re-reading their ML item. Multi-account aware: each item is fetched
-        with the token of the COMPANY that owns it (using the wrong seller's
-        token returns 403 access_denied), grouping by account to avoid
-        re-instantiating per item. Batch-safe: one savepoint per product so a
-        failing item never aborts the whole run. Idempotent (only fills from
-        non-empty ML attributes). Usable as a form button and a list action."""
-        util = self.env['meli.util']
-        company_obj = self.env['res.company']
-
+        re-reading their ML item. Multi-account aware: each item is fetched with
+        the token of the ACCOUNT that owns it (using the wrong seller's token
+        returns 403 access_denied). The set of accounts and how to list each
+        account's item ids come from the overridable _meli_backfill_get_accounts
+        / _meli_backfill_list_ids hooks (base = res.company; meli_oerp_multiple =
+        mercadolibre.account). Accounts are grouped so we don't re-instantiate
+        per item. Batch-safe: one savepoint per product so a failing item never
+        aborts the whole run. Idempotent (only fills from non-empty ML
+        attributes). Usable as a form button and a list action."""
         # meli_id lives on the variant (product.product), so filter templates by
         # their variants' meli_id (NOT template.meli_id, which does not exist).
         if self:
@@ -274,56 +305,48 @@ class product_template(models.Model):
         else:
             templates = self.search([('product_variant_ids.meli_id', '!=', False)])
 
-        # ML-configured companies: each holds its own seller_id + access token.
-        ml_companies = company_obj.search([('mercadolibre_seller_id', '!=', False)])
-        meli_by_company = {}
-        for company in ml_companies:
-            meli = util.get_new_instance(company)
-            if meli and not meli.need_login():
-                meli_by_company[company.id] = meli
-            else:
-                _logger.warning("MELI backfill: cuenta '%s' sin login, se omite", company.name)
-        if not meli_by_company:
+        accounts = self._meli_backfill_get_accounts()
+        if not accounts:
             _logger.warning("MELI backfill: no hay cuentas ML logueadas; nada que hacer")
             return True
+        meli_by_key = {a['key']: a['meli'] for a in accounts}
 
-        # meli_id -> owning company.id. Built lazily per account by listing each
+        # meli_id -> owning account key. Built lazily per account by listing each
         # seller's own item ids (so we never hit /items with the wrong token).
         owner_by_meli_id = {}
         listed = set()
 
-        def _list_company_items(company):
-            if company.id in listed:
+        def _list_account(a):
+            if a['key'] in listed:
                 return
-            listed.add(company.id)
+            listed.add(a['key'])
             try:
-                ids = company.fetch_list_meli_ids(meli=meli_by_company[company.id]) or []
+                ids = self._meli_backfill_list_ids(a) or []
             except Exception as e:
-                _logger.warning("MELI backfill: no se pudieron listar items de '%s': %s", company.name, e)
+                _logger.warning("MELI backfill: no se pudieron listar items de '%s': %s", a['key'], e)
                 ids = []
             for mid in ids:
-                owner_by_meli_id.setdefault(str(mid), company.id)
-            _logger.info("MELI backfill: cuenta '%s' aporta %s items al mapa de propiedad", company.name, len(ids))
+                owner_by_meli_id.setdefault(str(mid), a['key'])
+            _logger.info("MELI backfill: cuenta '%s' aporta %s items al mapa de propiedad", a['key'], len(ids))
 
         def _resolve_meli(meli_id, template):
             mid = str(meli_id)
             if mid not in owner_by_meli_id:
                 # product's own company first (multi-company), then the rest.
                 cand = template.company_id
-                order = ([cand] if (cand and cand.id in meli_by_company) else []) + \
-                        [c for c in ml_companies if c.id in meli_by_company]
-                for c in order:
-                    if c.id in listed:
+                ordered = [a for a in accounts if cand and a.get('company') and a['company'].id == cand.id] + list(accounts)
+                for a in ordered:
+                    if a['key'] in listed:
                         continue
-                    _list_company_items(c)
+                    _list_account(a)
                     if mid in owner_by_meli_id:
                         break
-            cid = owner_by_meli_id.get(mid)
-            return meli_by_company.get(cid) if cid else None
+            key = owner_by_meli_id.get(mid)
+            return meli_by_key.get(key) if key else None
 
         total = len(templates)
         done = ok = errors = 0
-        _logger.info("MELI backfill plantilla: starting for %s templates (%s cuentas ML)", total, len(meli_by_company))
+        _logger.info("MELI backfill plantilla: starting for %s templates (%s cuentas ML)", total, len(accounts))
         for template in templates:
             done += 1
             variant = template._meli_template_variant()
