@@ -6,6 +6,8 @@
 
 ## Alta Prioridad
 
+- [x] **IMPORT trae campos de la pestaña MELI Plantilla** (`product.template`) — HECHO 3-jul-2026 (26.57, 4 versiones, sin push): mapeo inverso ML→Odoo en `_meli_import_template_attributes` (llamado en `product_meli_get_product`, cubre crear+actualizar) → `meli_seller_package_*` (+fallback catalog `PACKAGE_*`), `meli_brand`/`meli_model`/`meli_gender`. Idempotente. + **backfill** `action_meli_backfill_template_fields` (botón form + acción de lista, savepoint por producto). Char + backfill hechos; dimensiones estructuradas value/uom para MRP = FASE 2 pendiente. Spec: workspace `.roots/state/meli-product-import-template-fields.md`. [Deco/KPI, rel #424]
+
 - [ ] **Wizard "Ventas procesadas"** `[16.0.shoppy]`: las import_lines transient se pierden al recrear wizard. Opciones: modelo persistente para resultados, o computed field desde mercadolibre.orders filtrando por timestamp
 - [ ] Validar descuento de cupón en órdenes multi-item reales (proporcional por precio)
 - [ ] Reiniciar Odoo para que SDK tome `extra_headers` (billing-info v2 endpoint)
