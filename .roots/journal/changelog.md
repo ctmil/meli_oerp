@@ -4,6 +4,15 @@
 
 ---
 
+## Versión 18.0.26.61 — Stock multiwarehouse: se corrige un caso que impedía publicar stock [#425]
+5 jul 2026
+
+**Cambios:**
+
+1. Se corrigió un error por el cual, en publicaciones con variaciones, el identificador de "producto de
+   usuario" (user_product_id) se guardaba con un formato inválido y la actualización de stock por
+   user-products no llegaba a intentarse. Ahora se guarda correctamente cuando es inequívoco.
+
 
 ## Versión 18.0.26.60 — backfill "Traer medidas": resolución de cuentas overridable (multi-cuenta real) [#424 Deco/KPI]
 3 jul 2026
