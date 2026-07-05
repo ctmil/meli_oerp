@@ -4,6 +4,17 @@
 
 ---
 
+### 5 jul 2026 — fix(stock): _fetch_meli_user_product_id devolvía la lista-string str(upids) (v19.0.26.61) [#425 Elvimarta/158] (A2)
+
+**Archivos/funciones:** `models/product.py::product.product._fetch_meli_user_product_id`
+- Cuando NO se pedía una variación específica y la publicación tenía variaciones, el método devolvía
+  `str(upids)` (p.ej. `"['MLMU123']"`), que se persistía tal cual en `meli_user_product_id`. Eso rompía el
+  push de stock por user-products (degradaba a modo standard → `not_modifiable` → estacionado (N1)); es la
+  firma de los ~34 `no posted stock try` del reporte.
+- Ahora devuelve el `user_product_id` sólo si es **inequívoco** (un único upid distinto entre las variaciones);
+  si hay 0 o >1, cae al upid a nivel de item (si existe) o `None` — nunca fabrica un valor. La variación exacta
+  (cuando se pide `meli_id_variation`) devuelve su propio upid como antes. Sin push.
+
 
 ### 3 jul 2026 — refactor(backfill): resolución de cuentas a hooks overridables (v19.0.26.60) [#424 Deco/KPI 526]
 
