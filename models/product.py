@@ -2101,21 +2101,32 @@ class product_product(models.Model):
         if ( "variations" in item_json and len(item_json["variations"]) ):
 
             for var in item_json["variations"]:
+                vupid = var.get("user_product_id") if isinstance(var, dict) else None
                 if (meli_id_variation and str(var["id"])==str(meli_id_variation)):
                     #_logger.info("meli_oerp > _fetch_meli_user_product_id > found! "+str(var))
-                    if "user_product_id" in var and var["user_product_id"]:
-                        upid = var["user_product_id"]
+                    # exact variation requested -> return its own user_product_id
+                    if vupid:
+                        upid = vupid
                         return upid
                 else:
-                    if "user_product_id" in var and var["user_product_id"]:
-                        upid = var["user_product_id"]
-            
-            if (upid):
-                upids.append(upid)
-                if (not meli_id_variation):
-                    #devolvemos el arreglo de upids para referenciarlo en la publicacion
-                    #solo si tiene contenido
-                    return str(upids)
+                    if vupid:
+                        upid = vupid
+                        if vupid not in upids:
+                            upids.append(vupid)
+
+            if (not meli_id_variation):
+                # A2 fix (ticket #425): do NOT return the list-string str(upids)
+                # (e.g. "['MLMU123']"). It used to be persisted verbatim into
+                # meli_user_product_id, which broke the user-products stock push
+                # (degraded to standard -> not_modifiable -> stranded, the
+                # "no posted stock try" signature). With no specific variation
+                # requested, only return a user_product_id when it is unambiguous:
+                # a single distinct variation-level upid; otherwise fall back to the
+                # item-level upid (if any) or None. Never fabricate a value.
+                if len(upids) == 1:
+                    return upids[0]
+                item_upid = item_json.get("user_product_id")
+                return item_upid or None
 
         return upid
 
