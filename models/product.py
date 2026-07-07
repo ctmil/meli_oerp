@@ -77,6 +77,35 @@ def _meli_short_permalink(meli_id):
     domain = _MELI_PRODUCT_DOMAINS.get(site, 'https://www.mercadolibre.com')
     return domain + '/' + site + '-' + meli_id[k:]
 
+
+def _meli_is_valid_gtin(code):
+    """¿`code` es un GTIN/EAN/UPC válido para MercadoLibre?
+
+    MercadoLibre acepta como Product Identifier (GTIN) sólo códigos GTIN-8,
+    UPC-A (12), EAN-13 (13) o GTIN-14: numéricos, de longitud 8/12/13/14 y con
+    dígito verificador correcto (módulo 10, GS1). Un SKU/código interno como
+    'C6536' NO es un GTIN → devuelve False y NO debe mandarse como GTIN.
+
+    100% defensivo: cualquier entrada no válida devuelve False.
+    """
+    if not code:
+        return False
+    try:
+        s = str(code).strip()
+        if not s.isdigit() or len(s) not in (8, 12, 13, 14):
+            return False
+        digits = [int(c) for c in s]
+        check = digits[-1]
+        body = digits[:-1]
+        # dígito verificador GS1: pesos 3/1 alternados desde la derecha del cuerpo
+        total = 0
+        for i, d in enumerate(reversed(body)):
+            total += d * (3 if i % 2 == 0 else 1)
+        expected = (10 - (total % 10)) % 10
+        return expected == check
+    except Exception:
+        return False
+
 class MyHTMLParser(HTMLParser):
 
     full_text = ""
@@ -3345,6 +3374,49 @@ class product_product(models.Model):
             if (variant_principal):
                 product.meli_id = variant_principal.meli_id
 
+    def _meli_category_requires_gtin( self, meli_category=None ):
+        """True si la categoría de ML exige el atributo GTIN (tag 'required').
+
+        Usa el catálogo YA importado `mercadolibre.category.attribute` (campo
+        `required`, poblado desde GET /categories/{cat}/attributes). No hace
+        llamadas a la API en runtime. 100% defensivo -> ante error asume False.
+        """
+        try:
+            meli_category = meli_category if meli_category is not None else self.meli_category
+            cat_id = meli_category and meli_category.meli_category_id
+            if not cat_id:
+                return False
+            att = self.env['mercadolibre.category.attribute'].sudo().search([
+                ('cat_id', '=', cat_id), ('att_id', '=', 'GTIN'), ('required', '=', True)
+            ], limit=1)
+            return bool(att)
+        except Exception:
+            _logger.exception("meli GTIN required check failed; assuming not required")
+            return False
+
+    def _meli_gtin_attribute( self, barcode, meli_category=None ):
+        """Decide, category-aware, si mandar el atributo GTIN a MercadoLibre.
+
+        Reglas:
+        - `barcode` es GTIN/EAN/UPC válido -> {'id':'GTIN','value_name': barcode}.
+        - `barcode` inválido/vacío + la categoría NO exige GTIN -> None (no se
+          envía; evita el 400 'Product Identifier [GTIN] invalid format' y permite
+          publicar productos cuyo barcode es en realidad un SKU interno).
+        - `barcode` inválido + la categoría SÍ exige GTIN -> None + warning LEGIBLE
+          (no se manda el SKU inválido; hay que cargar un EAN real). "Inventar" un
+          GTIN queda como last-resort explícito (opt-in), NUNCA por default.
+
+        Devuelve el dict del atributo, o None si no corresponde mandarlo.
+        """
+        if _meli_is_valid_gtin(barcode):
+            return { "id": "GTIN", "value_name": str(barcode).strip() }
+        if barcode and self._meli_category_requires_gtin(meli_category):
+            _logger.warning(
+                "MELI GTIN: la categoría exige un GTIN/EAN válido, pero el código '%s' no lo es "
+                "(parece un SKU/código interno). No se envía como GTIN; cargá un EAN/GTIN real "
+                "para poder publicar en esta categoría.", barcode)
+        return None
+
     #Add/Update SELLER_SKU attribute, only if present in Odoo, also can update GTIN (barcode)
     def _update_sku_attribute( self, attributes=[], set_sku=True, set_barcode=True, var_info = [] ):
 
@@ -3363,7 +3435,8 @@ class product_product(models.Model):
 
             elif (set_barcode and "id" in att and att["id"]=="GTIN" and variant.barcode):
                 barcode_updated = True
-                att = { "id": att["id"], "value_name": variant.barcode }
+                # category-aware: solo mandar GTIN si es un EAN/GTIN válido (no un SKU)
+                att = variant._meli_gtin_attribute(variant.barcode, variant.meli_category)
 
             #no duplicar row id
             if att and "id" in att and att["id"]!="SIZE_GRID_ROW_ID":
@@ -3373,7 +3446,10 @@ class product_product(models.Model):
             updated_attributes.append( { "id": "SELLER_SKU", "value_name": variant.default_code } )
 
         if not barcode_updated and set_barcode and variant.barcode:
-            updated_attributes.append( { "id": "GTIN", "value_name": variant.barcode } )
+            # category-aware: solo agregar GTIN si el barcode es un EAN/GTIN válido
+            _gtin_attr = variant._meli_gtin_attribute(variant.barcode, variant.meli_category)
+            if _gtin_attr:
+                updated_attributes.append(_gtin_attr)
 
         var_attributes_grid = variant._update_row_size_grid_attribute( attributes=attributes, var_info = var_info )
         _logger.info("var_attributes_grid: "+str(var_attributes_grid))
@@ -3651,7 +3727,11 @@ class product_product(models.Model):
             return warningobj.info( title='MELI WARNING', message="La longitud del título ("+str(len(product.meli_title))+") es muy corta o no significativa, escriba un titulo coherente con su marca, modelo, etc...", message_html=product.meli_title )
 
         if ( product.meli_title and len(product.meli_title)>60 ):
-            return warningobj.info( title='MELI WARNING', message="La longitud del título ("+str(len(product.meli_title))+") es superior a 60 caracteres.", message_html=product.meli_title )
+            _msg = ("El título tiene "+str(len(product.meli_title))+" caracteres y MercadoLibre "
+                    "permite un máximo de 60. Acortá el campo 'Nombre del producto en Mercado Libre' "
+                    "(pestaña MercadoLibre del producto). Recordá que el título se puede editar hasta "
+                    "que entre la primera venta.")
+            return warningobj.info( title='MELI WARNING', message=_msg, message_html=product.meli_title )
 
         #_product_post_set_price
         product.set_meli_price(meli=meli,config=config)
@@ -3782,10 +3862,14 @@ class product_product(models.Model):
             product.meli_model = product_tmpl.meli_model
 
         if (product.barcode and not product_tmpl.meli_pub_as_variant and not "GTIN" in attributes_ids):
-            attribute = { "id": "GTIN", "value_name": product.barcode }
-            attributes_ids[attribute["id"]] = attribute["value_name"]
-            attributes.append(attribute)
-            _logger.info("attributes:"+str(attributes))
+            # category-aware: solo mandar GTIN si el barcode es un EAN/GTIN válido
+            # (evita el 400 'Product Identifier [GTIN] invalid format' cuando el
+            #  barcode es en realidad un SKU interno, p.ej. koreautos 'C6536').
+            attribute = product._meli_gtin_attribute(product.barcode, product.meli_category)
+            if attribute:
+                attributes_ids[attribute["id"]] = attribute["value_name"]
+                attributes.append(attribute)
+                _logger.info("attributes:"+str(attributes))
 
         if product.meli_brand and len(product.meli_brand) > 0 and not "BRAND" in attributes_ids:
             attribute = { "id": "BRAND", "value_name": product.meli_brand }
