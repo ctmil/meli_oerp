@@ -2,6 +2,7 @@ from odoo import fields, models
 from odoo.tools.translate import _
 import pdb
 import json
+import re
 
 
 from . import versions
@@ -25,6 +26,94 @@ meli_errors = {
     "item.image.required": "Imagen requerida para publicar el producto",
     "body.invalid_field_types": "Tipo de valor de propiedad de campo inválido (revisar términos de venta, garantia, etc...)"
 }
+
+
+# ---------------------------------------------------------------------------
+# Humanización de errores de publicación de la API de MercadoLibre.
+#
+# La API de ML devuelve, en el 400 de validación, una lista `cause` con
+# mensajes CRUDOS en inglés (ej: "Product Identifier [GTIN] contains values
+# with invalid format: [C6536]"). Estos llegaban tal cual al usuario, resultando
+# ILEGIBLES. Acá los mapeamos a un texto claro, en español y accionable.
+#
+# Cada entrada = (regex, plantilla). La plantilla puede ser:
+#   - str  → mensaje fijo.
+#   - callable(match) → mensaje que usa los grupos capturados.
+# El PRIMER patrón que matchea gana. Si NINGUNO matchea, se conserva el texto
+# original de ML (defensivo: no perder información). Extensible: agregar filas.
+# ---------------------------------------------------------------------------
+MELI_PUBLISH_ERROR_PATTERNS = [
+    # --- GTIN/EAN/UPC: los más comunes e ilegibles (koreautos, catálogo) ---
+    # GTIN con formato inválido (típico: barcode = SKU interno, no un EAN real)
+    (r"Product Identifier\s*\[?\s*(GTIN|EAN|UPC)\s*\]?.*?invalid format\s*:?\s*\[?\s*([^\]\.]+?)\s*\]?\s*$",
+     lambda m: ("El código de barras / %s '%s' no tiene un formato válido para MercadoLibre "
+                "(parece un SKU/código interno, no un EAN real). Dejá el campo GTIN/EAN vacío o "
+                "cargá un EAN real; el SKU no sirve como GTIN." % (m.group(1).upper(), m.group(2).strip()))),
+    # GTIN ignorado por no ser modificable (benigno: lo gestiona el catálogo de ML)
+    (r"Attribute\s*\[?\s*(GTIN|EAN|UPC)\s*\]?\s+ignored because it is not modifiable",
+     lambda m: ("El código %s/EAN no se puede modificar en esta publicación (lo gestiona el catálogo "
+                "de MercadoLibre). No impide publicar." % m.group(1).upper())),
+    # --- Medidas/peso del paquete requeridas (seller_package_*) ---
+    (r"attributes?\s*\[[^\]]*seller_package[^\]]*\].*?(?:are|is)\s+(?:all\s+)?required",
+     "Faltan las medidas y el peso del paquete (alto, ancho, largo y peso). Cargalos en el producto "
+     "(pestaña Inventario/Envío, dimensiones del paquete) para poder publicar."),
+    # --- Atributos obligatorios que ML ya devuelve en español (según locale) ---
+    # Marca
+    (r'El campo\s*"?Marca"?\s+es obligatorio',
+     "Falta cargar la Marca del producto (atributo obligatorio de la categoría)."),
+    # Número de pieza / Part Number
+    (r'El campo\s*"?N[uú]mero de pieza"?\s+es obligatorio',
+     "Falta el Número de pieza (Part Number), atributo obligatorio de la categoría."),
+    # Campo obligatorio en español genérico: El campo "X" es obligatorio [y no está cargado]
+    (r'El campo\s*"?([^"]+?)"?\s+es obligatorio',
+     lambda m: ("Falta cargar '%s' (atributo obligatorio de la categoría en MercadoLibre)."
+                % m.group(1).strip())),
+    # --- Atributos en inglés (genéricos, después de los específicos) ---
+    # Atributo ignorado por no ser modificable (no-GTIN)
+    (r"Attribute\s*\[?\s*([^\]]+?)\s*\]?\s+ignored because it is not modifiable",
+     lambda m: ("El atributo '%s' fue ignorado porque ya no se puede modificar en una publicación "
+                "existente. No impide publicar." % m.group(1).strip())),
+    # Atributo obligatorio faltante (genérico en inglés)
+    (r"(?:The\s+)?attributes?\s*\[?\s*([^\]]+?)\s*\]?\s+(?:are|is)\s+(?:all\s+)?required",
+     lambda m: ("Falta completar el/los atributo(s) obligatorio(s) '%s' en la ficha de MercadoLibre "
+                "(pestaña MercadoLibre del producto)." % m.group(1).strip())),
+    # --- Título demasiado largo (por si viene desde la API y no del pre-check) ---
+    (r"title.*?(?:length|too long|exceed).*?(\d+)",
+     lambda m: ("El título supera el máximo de 60 caracteres permitido por MercadoLibre. "
+                "Acortá 'Nombre del producto en Mercado Libre' (pestaña MercadoLibre). "
+                "El título se puede editar hasta que entre la primera venta.")),
+    # --- Fotos / imágenes (ES que devuelve ML + EN) ---
+    (r"Las fotos|La imagen|(?:picture|image)s?.*?(?:required|invalid|not.*?found|must)",
+     "Problema con las fotos del producto: MercadoLibre requiere imágenes válidas (tamaño/formato "
+     "correcto y al menos una imagen). Revisá que el producto tenga fotos que cumplan los requisitos."),
+    # --- Precio inválido / mínimo ---
+    (r"price.*?(?:invalid|minimum|not.*?valid)",
+     "El precio no es válido para MercadoLibre (revisá que no sea 0 y que cumpla el mínimo de la categoría)."),
+]
+
+
+def _meli_humanize_publish_message(text):
+    """Traduce/aclara un mensaje individual de la lista `cause` de la API de ML.
+
+    Devuelve (texto_es, matched_bool). Si ningún patrón conocido matchea,
+    devuelve el texto ORIGINAL (defensivo: nunca perder info del error crudo).
+    100% defensivo: cualquier excepción cae al texto original.
+    """
+    if not text:
+        return "", False
+    stext = str(text).strip()
+    try:
+        for pat, tmpl in MELI_PUBLISH_ERROR_PATTERNS:
+            m = re.search(pat, stext, re.IGNORECASE | re.DOTALL)
+            if m:
+                try:
+                    return (tmpl(m) if callable(tmpl) else tmpl), True
+                except Exception:
+                    _logger.exception("meli humanize: fallo aplicando plantilla; uso texto original")
+                    return stext, False
+    except Exception:
+        _logger.exception("meli humanize: fallo inesperado; uso texto original")
+    return stext, False
 
 
 
@@ -78,16 +167,22 @@ class warning(models.TransientModel):
             rerror = "error" in rjson and rjson["error"]
             alertstatus = 'warning'
 
+            # El título entrante suele ser el genérico 'MELI WARNING'; para un
+            # error real de publicación resulta confuso. Lo reemplazamos por un
+            # título claro y accionable (el detalle va en el message itemizado).
+            _generic_titles = ["MELI WARNING", "MELI ERROR", "WARNING", "ERROR", False, None, ""]
+            _clean_title = "" if title in _generic_titles else str(title)
+
             if rstatus in ["error",403]:
-                title = "ERROR MELI: " + title
+                title = ("No se pudo publicar en MercadoLibre" + (" — " + _clean_title if _clean_title else ""))
                 alertstatus = 'error'
 
             if rstatus in ["warning"]:
-                title = "WARNING MELI: " + title
+                title = ("Advertencia de MercadoLibre" + (" — " + _clean_title if _clean_title else ""))
                 alertstatus = 'warning'
 
             if str(rstatus) in ["400"]:
-                title = "ERROR MELI (400): " + title
+                title = ("No se pudo publicar en MercadoLibre" + (" — " + _clean_title if _clean_title else ""))
                 alertstatus = 'error'
 
             alertstatus = (alertstatus in ["error"] and "danger" ) or  ( str(alertstatus) in ["400"] and "danger" ) or alertstatus
@@ -125,13 +220,17 @@ class warning(models.TransientModel):
                                 ecaalertstatus = (ecatype in ["error"] and "danger" ) or ecatype
                                 ecatypeicon = (ecatype in ["error"] and "times-circle" ) or ecatype
 
-                                # acumular para el texto plano del mensaje principal
+                                # humanizar el mensaje crudo de ML (inglés) -> español accionable
+                                _hmess, _matched = _meli_humanize_publish_message(ecamess)
+
+                                # acumular para el texto plano del mensaje principal,
+                                # prefijando con "Falta:" (error) / "Advertencia:" (warning)
                                 if ecamess:
-                                    _icon = "✗" if ecatype == "error" else "⚠"
-                                    _cause_messages.append("%s %s" % (_icon, ecamess))
+                                    _prefix = "Falta:" if ecatype == "error" else "Advertencia:"
+                                    _cause_messages.append("%s %s" % (_prefix, _hmess))
 
                                 ecacodemess = "<strong>"+str(ecacodemess)+"</strong><br/>"
-                                ecacodemess+= str(ecamess)
+                                ecacodemess+= str(_hmess)
                                 message_html+= '<div role="alert" class="alert alert-'+str(ecaalertstatus)+'" title="Meli Message, Code: '+str(ecacode)+'"><i class="fa fa-'+str(ecatypeicon)+'" role="img" aria-label="Meli Message"/> %s </div>' % (str(ecacodemess))
 
                 # Si hay mensajes de causa, mostrarlos claramente como texto principal
@@ -158,10 +257,12 @@ class warning(models.TransientModel):
                         ecacodemess = (ecacode in meli_errors and meli_errors[ecacode]) or ecacode
                         ecaalertstatus = "danger" if ecatype == "error" else ecatype
                         ecatypeicon = "times-circle" if ecatype == "error" else ecatype
+                        # humanizar el mensaje crudo de ML (inglés) -> español accionable
+                        _hmess, _matched = _meli_humanize_publish_message(ecamess)
                         if ecamess:
-                            _icon = "✗" if ecatype == "error" else "⚠"
-                            _cause_messages.append("%s %s" % (_icon, ecamess))
-                        ecacodemess_html = "<strong>"+str(ecacodemess)+"</strong><br/>"+str(ecamess)
+                            _prefix = "Falta:" if ecatype == "error" else "Advertencia:"
+                            _cause_messages.append("%s %s" % (_prefix, _hmess))
+                        ecacodemess_html = "<strong>"+str(ecacodemess)+"</strong><br/>"+str(_hmess)
                         message_html += '<div role="alert" class="alert alert-'+str(ecaalertstatus)+'" title="Meli Message, Code: '+str(ecacode)+'"><i class="fa fa-'+str(ecatypeicon)+'" role="img" aria-label="Meli Message"/> %s </div>' % ecacodemess_html
                     if _cause_messages:
                         message = "\n".join(_cause_messages)
