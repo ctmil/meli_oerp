@@ -4,6 +4,16 @@
 
 ---
 
+## Versión 17.0.26.62 — Cancelaciones de MercadoLibre que no se reflejaban solas en Odoo [#475]
+8 jul 2026
+
+**Cambios:**
+
+1. **Las cancelaciones (y cambios de estado) de pedidos hechas en MercadoLibre ahora se reflejan solas en Odoo, aunque el pedido sea más viejo que las últimas ~50 órdenes.** Antes, el cron horario de importación sólo repasaba las órdenes más nuevas por fecha de creación; si un pedido de días atrás se cancelaba en ML, la cancelación no bajaba a Odoo hasta abrir la orden a mano. Ahora un cron dedicado ("Cron Meli Orders Status Resync", cada 30 min) re-consulta los pedidos abiertos recientes y refleja la cancelación automáticamente (con su devolución/NC según la política contable ya configurada).
+
+2. Nuevos parámetros por compañía (Configuración ML → Automatización ML a Odoo): activar/desactivar el re-sync de estado, ventana en días hacia atrás (default 7) y tope de pedidos por ciclo (default 100) para acotar el uso de la API.
+
+
 ## Versión 17.0.26.61 — Stock multiwarehouse: se corrige un caso que impedía publicar stock [#425]
 5 jul 2026
 
