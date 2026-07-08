@@ -4821,7 +4821,7 @@ class mercadolibre_orders(models.Model):
                     order.sale_order.meli_status_detail = order.status_detail
                     order.sale_order.confirm_ml(meli=meli,config=config)
 
-    def orders_resync_status( self, meli=None, config=None ):
+    def orders_resync_status( self, meli=None, config=None, account=None ):
         """#475 - Re-sincroniza el ESTADO de los pedidos MeLi recientes que siguen
         ABIERTOS en Odoo, para reflejar cancelaciones (y otros cambios de estado)
         que el cron de importacion (orders_query_iterate, sort=date_desc) no alcanza
@@ -4830,10 +4830,20 @@ class mercadolibre_orders(models.Model):
         Barrido ACOTADO (rate-limit safe): solo pedidos con sale.order NO cancelada,
         creados en los ultimos N dias (mercadolibre_cron_orders_status_days), con tope
         mercadolibre_cron_orders_status_limit. Por pedido hace UN GET /orders/<id> (ligero)
-        y solo procesa (confirm_ml / meli_cancel_with_detail) cuando el estado CAMBIO."""
+        y solo procesa (confirm_ml / meli_cancel_with_detail) cuando el estado CAMBIO.
+
+        #475 multi-cuenta: `account` (mercadolibre.account) es opcional. Cuando el
+        dispatcher de meli_oerp_multiple lo pasa, el barrido se scopea por esa cuenta
+        (connection_account) y toma la compañia del `config` (connection_configuration).
+        Sin `account` el comportamiento es identico al mono-cuenta historico."""
         company = self.env.user.company_id
         if not config:
             config = company
+        # #475 multi-cuenta: si el config trae su propia compania (connection_configuration
+        # en meli_oerp_multiple), usarla para scopear; si es res.company (mono-cuenta) o no
+        # la expone, se cae al company del usuario del cron (retrocompat total).
+        if config is not None and "company_id" in config._fields and config.company_id:
+            company = config.company_id
         if not meli:
             meli = self.env['meli.util'].get_new_instance(company)
         if not meli or meli.needlogin_state:
@@ -4855,6 +4865,10 @@ class mercadolibre_orders(models.Model):
         ]
         if "company_id" in self._fields:
             domain.append(("company_id", "in", (company.id, False)))
+        # #475 multi-cuenta: scope preciso por cuenta ML cuando el dispatcher lo pasa,
+        # para no re-consultar con el token de una cuenta ordenes de otra.
+        if account is not None and "connection_account" in self._fields:
+            domain.append(("connection_account", "=", account.id))
         candidates = self.search(domain, order="date_created desc", limit=query_limit)
 
         Autocommit(self, False)
@@ -4898,7 +4912,7 @@ class mercadolibre_orders(models.Model):
             except Exception as e:
                 _logger.error("orders_resync_status > error en orden %s: %s", order.order_id, e, exc_info=True)
                 MeliRollback(self)
-        _logger.info("orders_resync_status: checked=%s changed=%s cancelled=%s (days=%s limit=%s)", checked, changed, cancelled, days, query_limit)
+        _logger.info("orders_resync_status: cuenta=%s checked=%s changed=%s cancelled=%s (days=%s limit=%s)", (account and account.name) or "-", checked, changed, cancelled, days, query_limit)
         return {"checked": checked, "changed": changed, "cancelled": cancelled}
 
     def _get_config( self, config=None ):
