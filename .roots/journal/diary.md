@@ -4,6 +4,12 @@
 
 ---
 
+**2026-07-08** `[18.0.26.65]` — `orders_resync_status` acepta `account=None` (multi-cuenta) [#475]
+
+El re-sync de estado de #475 (26.62) era mono-cuenta: `orders_resync_status` derivaba `company` de `self.env.user.company_id` y consultaba con un único token. Se agregó param opcional `account` (mercadolibre.account): cuando viene (lo pasa el dispatcher de meli_oerp_multiple) el dominio suma `("connection_account","=",account.id)` y `company` se deriva de `config.company_id` (connection_configuration) en vez del user del cron. Retrocompat total: sin `account`, idéntico al histórico. Log final incluye `cuenta=`. Bump 26.64→26.65, 4 versiones. Dispatcher en meli_oerp_multiple (reutiliza `ir_cron_module_cron_meli_orders_status`, sin cron nuevo). Caso Score/WODPRO (co1 361 + co3 499 mismo Odoo).
+
+---
+
 ## 2026
 
 **2026-07-08** `[18.0.26.63]` — Import de medidas del paquete: fill-empty → OVERWRITE (ML autoritativo) [#424 Deco/KPI]
