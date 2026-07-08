@@ -6,6 +6,15 @@
 
 ## 2026
 
+**2026-07-08** `[17.0.26.63]` — Import de medidas del paquete: fill-empty → OVERWRITE (ML autoritativo) [#424 Deco/KPI]
+
+`_meli_import_template_attributes` (models/product.py) escribía cada campo mapeado cuando ML traía valor, pero para las dimensiones del paquete no alcanzaba: filas legacy tenían el WIDTH/HEIGHT del *producto* (ej. '100 cm' = 1 m convertido) en `meli_seller_package_*`, y el import/backfill las conservaba porque el mapeo NO toca el atributo bare WIDTH/HEIGHT/LENGTH (sólo `SELLER_PACKAGE_*` + fallback catalog `PACKAGE_*`). Se dividió la semántica de escritura:
+- `_MELI_IMPORT_OVERWRITE_FIELDS` (las 4 dims del paquete) → **OVERWRITE** con `SELLER_PACKAGE_*` (ML es fuente autoritativa del paquete). `PACKAGE_*` sólo como fallback si no hay `SELLER_PACKAGE_*`; nunca pisa con vacío (`if not val: continue`).
+- brand/model/gender → **fill-empty** (no pisar carga manual).
+El backfill "Traer medidas" usa el mismo helper → corrige los ya importados. Sin cambio de schema (sin migración). Bumps 26.62→26.63, 4 versiones.
+
+---
+
 **2026-05-02** `[16.0.shoppy]` — Sesión intensiva de features, fixes y estabilización.
 
 Sesión larga cubriendo múltiples áreas del módulo:
