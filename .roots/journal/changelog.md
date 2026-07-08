@@ -4,6 +4,21 @@
 
 ---
 
+## Versión 19.0.26.65 — Re-sync de cancelaciones ahora soporta multi-cuenta [#475]
+8 jul 2026
+
+**Cambios:**
+
+1. El barrido que re-consulta a MercadoLibre el estado de los pedidos abiertos de días
+   anteriores (para cancelarlos solos sin abrirlos uno por uno — ver 26.62) ahora puede
+   trabajar **por cuenta de MercadoLibre**. El método `orders_resync_status` acepta un
+   parámetro opcional de cuenta: cuando se le indica, limita el barrido a los pedidos de
+   esa cuenta y usa la compañía de su configuración. Sin ese parámetro, el comportamiento
+   es idéntico al anterior (mono-cuenta). Esto habilita que en instalaciones con varias
+   cuentas/tiendas de MercadoLibre en un mismo Odoo, TODAS las cuentas queden cubiertas
+   (el dispatcher vive en el módulo Multi-cuenta).
+
+
 ## Versión 19.0.26.63 — Medidas del paquete: se corrigen valores viejos equivocados al traer de MercadoLibre [#424]
 8 jul 2026
 
