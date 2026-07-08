@@ -4036,6 +4036,15 @@ class mercadolibre_orders(models.Model):
                     'sale_fee': ("sale_fee" in Item and Item["sale_fee"]) or 0.0
                 }
 
+                # CAPTURA depósito ML por ítem (surtido multi-almacén): la orden trae el
+                # nodo logístico de origen en Item['stock'] = {store_id, node_id}. Se persiste
+                # para el ruteo entrante en _meli_get_stock_location_from_mapping (meli_oerp_stock).
+                _item_stock = ("stock" in Item and isinstance(Item.get("stock"), dict) and Item["stock"]) or {}
+                if ("meli_stock_node_id" in order_items_obj._fields):
+                    order_item_fields['meli_stock_node_id'] = _item_stock.get("node_id") or ''
+                if ("meli_stock_store_id" in order_items_obj._fields):
+                    order_item_fields['meli_stock_store_id'] = _item_stock.get("store_id") or ''
+
                 order.fee_amount = order_item_fields["sale_fee"] or 0.0
 
                 if ("full_unit_price" in Item and "full_unit_price" in order_items_obj._fields):
@@ -5127,6 +5136,15 @@ class mercadolibre_order_items(models.Model):
     seller_sku = fields.Char(string='SKU',index=True)
     seller_custom_field = fields.Char(string='seller_custom_field',index=True)
     sale_fee = fields.Float(string="Sale Fee",index=True)
+
+    # Surtido multi-almacén: la orden ML trae el depósito logístico de origen a
+    # nivel ítem en Item['stock'] = {store_id, node_id}. Se persiste por línea para
+    # rutear la entrega al warehouse/ubicación Odoo mapeado en
+    # mercadolibre.account.stock_location (network_node_id <- node_id ; meli_store_id <- store_id).
+    meli_stock_node_id = fields.Char(string='ML Stock Node ID', index=True,
+        help='Network node del depósito ML de origen de esta línea (Item.stock.node_id, ej: MXP4397768091).')
+    meli_stock_store_id = fields.Char(string='ML Stock Store ID', index=True,
+        help='Store id del depósito ML de origen de esta línea (Item.stock.store_id).')
 
 
 class mercadolibre_payments(models.Model):

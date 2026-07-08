@@ -4,6 +4,17 @@
 
 ---
 
+### 8 jul 2026 — fix(carga v17+): quitar `ir.cron` `numbercall` de `claims_cron.xml` (v17.0.26.66)
+
+**Archivos:** `data/claims_cron.xml` (cron `cron_sync_claims`, Fase 1, `active=False`).
+
+**Problema:** Odoo 17 removió los campos `numbercall`/`doall` de `ir.cron`; al cargar el data XML
+fallaba con `Invalid field 'numbercall' on model 'ir.cron'`. Bug latente en el source para todo
+cliente 17/18/19 (el cron es nuevo, Fase 1). Detectado en Tus Refacciones MX (431, build 34645734).
+
+**Fix:** se elimina el `<field name="numbercall">-1</field>` (el cron corre indefinido por
+defecto). Sólo v17/v18/v19 (en ≤16 `numbercall` sigue siendo válido → no se toca).
+
 ### 8 jul 2026 — perf(backfill): resolucion de cuenta por FETCH DIRECTO por item — funciona en cuentas GRANDES (v17.0.26.64) [#424 Deco/KPI 526]
 
 **Archivos/funciones:** `models/product.py`

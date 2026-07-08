@@ -4,6 +4,18 @@
 
 ---
 
+## Versión 17.0.26.66 — Surtido multi-almacén: se captura el depósito de origen de MercadoLibre
+8 jul 2026
+
+**Cambios:**
+
+1. Cada línea de la orden de MercadoLibre ahora guarda el **depósito logístico de origen** que ML
+   asigna al surtir (el nodo de red y la tienda que ML manda en `Item.stock` de la orden), en dos
+   campos nuevos de la línea de orden: **"ML Stock Node ID"** y **"ML Stock Store ID"**. Es la base
+   del **surtido multi-almacén**: permite rutear la venta al almacén/ubicación de Odoo que
+   corresponde al depósito desde el que ML surte esa línea (la resolución vive en el módulo Stock,
+   ver meli_oerp_stock). Sin mapeo cargado el comportamiento es idéntico al anterior (inerte).
+
 ## Versión 17.0.26.65 — Re-sync de cancelaciones ahora soporta multi-cuenta [#475]
 8 jul 2026
 

@@ -20,6 +20,19 @@
 
 ---
 
+## Surtido multi-almacén — depósito de origen por línea de orden (8 jul 2026, v17.0.26.66)
+
+La orden de MercadoLibre trae, por ítem, el **depósito logístico de origen** desde el que ML surte
+(`Item.stock = {"store_id": ..., "node_id": ...}`). Ahora se persiste en la línea de orden
+(`mercadolibre.order_items`):
+
+- **`meli_stock_node_id`** (ML Stock Node ID) — network node del depósito ML (ej. `MXP4397768091`).
+- **`meli_stock_store_id`** (ML Stock Store ID) — store id del depósito ML.
+
+Ambos indexados. Se cruzan con el mapeo Depósito ML→ubicación Odoo (`mercadolibre.account.stock_location`,
+en meli_oerp_multiple) para rutear la venta al almacén correcto (ver meli_oerp_stock). Poblado
+automático al procesar/actualizar la orden.
+
 ## Etiquetas de envío (guías ML): dónde se guardan y cómo ubicar el archivo en disco
 
 > Versión Odoo **17.0**. Mismo modelo/campos/método en 16.0/17.0/18.0/19.0; sólo cambian
