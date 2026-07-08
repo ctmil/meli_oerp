@@ -4,6 +4,63 @@
 
 ---
 
+### 8 jul 2026 — perf(backfill): resolucion de cuenta por FETCH DIRECTO por item — funciona en cuentas GRANDES (v18.0.26.64) [#424 Deco/KPI 526]
+
+**Archivos/funciones:** `models/product.py`
+- `product.template._meli_backfill_fetch_item(meli, meli_id)` (NUEVO helper, proxy-safe)
+- `product.template.action_meli_backfill_template_fields` (reescrito: pre-scan → fetch directo)
+- `product.template._meli_backfill_list_ids` (docstring: ahora fallback opcional, ya no lo usa el backfill)
+
+**Problema (verificado prod Deco 526):** el backfill resolvía la cuenta ML dueña de cada ítem
+**pre-escaneando la lista completa de ítems de cada cuenta** (`_meli_backfill_list_ids` →
+`fetch_list_meli_ids` → `/users/<seller>/items/search` paginado) para armar el mapa
+`meli_id→cuenta`. En cuentas GRANDES (DECO tiene **20.834 ítems**) ese pre-scan NO cubre todos los
+ítems → muchos productos quedaban SIN resolver dueño → el botón "Traer medidas" no los corregía.
+Confirmado: `MLA1685903163` no lo tocaba el backfill, pero un fetch DIRECTO del ítem sí lo corrige.
+
+**Fix:** se eliminó el pre-scan. Ahora, por cada `product.template` a backfillear, se obtiene su
+`meli_id` (de la variante vía `_meli_template_variant`) y se hace **fetch directo**
+`GET /items/<meli_id>?include_attributes=all` **probando el token de cada cuenta ML logueada**
+(las cuentas siguen viniendo del hook `_meli_backfill_get_accounts` — base=res.company,
+meli_oerp_multiple=mercadolibre.account) hasta que una devuelve **HTTP 200** = la cuenta dueña (con
+token ajeno da 403 access_denied y se prueba la siguiente). Es exactamente la corrección masiva que
+se corrió a mano y funcionó. La cuenta que respondió OK se recuerda y se prueba primero (los ítems
+de un mismo seller vienen en rachas); luego la compañía del propio producto. El fetch usa
+`meli.get()` de la instancia `meli.util` del hook → **proxy-safe** (en clientes con el rescate proxy
+rutea por su http_proxy; NO urllib crudo). `_meli_backfill_fetch_item` detecta éxito por
+`status_code==200` + rjson dict con `id` y sin `error`.
+
+**Se mantiene:** savepoint por producto (un ítem que falla no corta el lote), log de progreso cada 50,
+y la semántica de overwrite del 26.63 (`_meli_import_template_attributes`: SELLER_PACKAGE_* pisa,
+brand/model/gender fill-empty) INTACTA — se construye encima. Sin cambio de schema (sin migración).
+
+**Alcance:** solo el backfill (helper nuevo + método). `meli_oerp_multiple` NO cambia: su override de
+`_meli_backfill_get_accounts` sólo aporta la lista de cuentas, que el fetch directo consume igual.
+`py_compile` OK + bloque byte-idéntico en 16/17/18/19.
+
+---
+
+### 8 jul 2026 — fix(backfill/import): dims del paquete pisan con ML SELLER_PACKAGE_* (v18.0.26.63) [#424 Deco/KPI 526, verificado prod Deco]
+
+**Archivos/funciones:** `models/product.py::product.product._meli_import_template_attributes`
+
+**BUG D (KPI vía WhatsApp, ej. `MLA1685903163` "Cortina 100x200"):** ML trae
+`SELLER_PACKAGE_WIDTH='10 cm'` (paquete) y `WIDTH='1 m'` (producto), pero Odoo mostraba
+`meli_seller_package_width='100 cm'` = el WIDTH del producto (1 m→100 cm), un valor **legacy** que un
+proceso viejo metió en el campo del paquete. El import idempotente lo **preservaba** en vez de
+corregirlo.
+
+**Fix:** se dividió la semántica de escritura con `_MELI_IMPORT_OVERWRITE_FIELDS` (= las 4 dims del
+paquete): dims del paquete → **OVERWRITE** con `SELLER_PACKAGE_*` siempre que ML traiga valor no-vacío
+(ML es autoritativo del paquete); `PACKAGE_*` catalog sigue como fallback SOLO si no hay
+`SELLER_PACKAGE_*`; ML vacío NUNCA borra; brand/model/gender siguen **fill-empty**. El backfill usa el
+mismo helper → al re-correrlo corrige los ya importados. Sin cambio de schema.
+
+**Commits:** 16 `f8b74fe2` · 17 `fe9ed470` · 18 `0347cf7e` · 19 `a56142de`. Deployado a Deco (patch
+quirúrgico, prod `9340ed9`).
+
+---
+
 ### 8 jul 2026 — feat(orders): cron dedicado de re-sync de estado para cancelaciones fuera de ventana (v18.0.26.62) [#475 ScoreMX]
 
 **Archivos/funciones:**
