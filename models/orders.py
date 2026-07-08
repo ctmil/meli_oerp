@@ -4852,6 +4852,86 @@ class mercadolibre_orders(models.Model):
                     order.sale_order.meli_status_detail = order.status_detail
                     order.sale_order.confirm_ml(meli=meli,config=config)
 
+    def orders_resync_status( self, meli=None, config=None ):
+        """#475 - Re-sincroniza el ESTADO de los pedidos MeLi recientes que siguen
+        ABIERTOS en Odoo, para reflejar cancelaciones (y otros cambios de estado)
+        que el cron de importacion (orders_query_iterate, sort=date_desc) no alcanza
+        cuando la orden es mas vieja que la ventana de las ~50 mas nuevas por creacion.
+
+        Barrido ACOTADO (rate-limit safe): solo pedidos con sale.order NO cancelada,
+        creados en los ultimos N dias (mercadolibre_cron_orders_status_days), con tope
+        mercadolibre_cron_orders_status_limit. Por pedido hace UN GET /orders/<id> (ligero)
+        y solo procesa (confirm_ml / meli_cancel_with_detail) cuando el estado CAMBIO."""
+        company = self.env.user.company_id
+        if not config:
+            config = company
+        if not meli:
+            meli = self.env['meli.util'].get_new_instance(company)
+        if not meli or meli.needlogin_state:
+            return {}
+
+        days = 7
+        if "mercadolibre_cron_orders_status_days" in config._fields and config.mercadolibre_cron_orders_status_days:
+            days = config.mercadolibre_cron_orders_status_days
+        query_limit = 100
+        if "mercadolibre_cron_orders_status_limit" in config._fields and config.mercadolibre_cron_orders_status_limit:
+            query_limit = config.mercadolibre_cron_orders_status_limit
+
+        cutoff = fields.Datetime.now() - timedelta(days=days)
+        domain = [
+            ("date_created", ">=", cutoff),
+            ("sale_order", "!=", False),
+            ("sale_order.state", "!=", "cancel"),
+            ("status", "not in", ("cancelled", "invalid")),
+        ]
+        if "company_id" in self._fields:
+            domain.append(("company_id", "in", (company.id, False)))
+        candidates = self.search(domain, order="date_created desc", limit=query_limit)
+
+        Autocommit(self, False)
+        checked = changed = cancelled = 0
+        for order in candidates:
+            try:
+                response = meli.get("/orders/"+str(order.order_id), {'access_token': meli.access_token})
+                order_json = response.json()
+                checked += 1
+                if "id" not in order_json:
+                    continue
+                new_status = order_json.get("status") or ''
+                if str(order.status) == str(new_status):
+                    # sin cambios -> sin side effects (idempotente, barato: 1 GET)
+                    continue
+                changed += 1
+                cancel_detail = order_json.get("cancel_detail") or {}
+                cancel_detail_text = ""
+                if cancel_detail:
+                    cancel_detail_text = " | %s: %s (solicitado por: %s, fecha: %s)" % (
+                        cancel_detail.get("code", ""),
+                        cancel_detail.get("description", ""),
+                        cancel_detail.get("requested_by", ""),
+                        cancel_detail.get("date", ""),
+                    )
+                order.status = new_status
+                order.status_detail = (order_json.get("status_detail") or '') + cancel_detail_text
+                sorder = order.sale_order
+                if sorder:
+                    sorder.meli_status_detail = order.status_detail
+                    if new_status == "cancelled" and sorder.state in ("draft", "sent", "sale", "done"):
+                        cancel_msg = "Orden cancelada por MercadoLibre."
+                        if sorder.meli_status_detail:
+                            cancel_msg += " Motivo: %s" % sorder.meli_status_detail
+                        sorder.meli_cancel_with_detail(cancel_msg)
+                        cancelled += 1
+                    else:
+                        # otro cambio de estado -> resync completo por ID
+                        order.orders_update_order(meli=meli, config=config)
+                MeliCommit(self)
+            except Exception as e:
+                _logger.error("orders_resync_status > error en orden %s: %s", order.order_id, e, exc_info=True)
+                MeliRollback(self)
+        _logger.info("orders_resync_status: checked=%s changed=%s cancelled=%s (days=%s limit=%s)", checked, changed, cancelled, days, query_limit)
+        return {"checked": checked, "changed": changed, "cancelled": cancelled}
+
     def _get_config( self, config=None ):
         
         _logger.info("_get_config from meli_oerp")
