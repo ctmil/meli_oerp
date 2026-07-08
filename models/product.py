@@ -989,6 +989,19 @@ class product_product(models.Model):
         "PACKAGE_LENGTH": "meli_seller_package_length",
         "PACKAGE_WEIGHT": "meli_seller_package_weight",
     }
+    # Fields where ML (SELLER_PACKAGE_*/PACKAGE_*) is the AUTHORITATIVE source:
+    # on import/backfill they OVERWRITE any pre-existing Odoo value whenever ML
+    # sends a non-empty one. This corrects legacy rows where an old process
+    # stored the product WIDTH/HEIGHT (e.g. '100 cm') in the package field
+    # instead of the real SELLER_PACKAGE_WIDTH ('10 cm'). The remaining mapped
+    # fields (brand/model/gender) stay fill-empty (may be manual). ML empty
+    # never wipes (guarded by `if not val: continue`).
+    _MELI_IMPORT_OVERWRITE_FIELDS = {
+        "meli_seller_package_height",
+        "meli_seller_package_width",
+        "meli_seller_package_length",
+        "meli_seller_package_weight",
+    }
 
     @staticmethod
     def _meli_attr_value(att):
@@ -1014,8 +1027,17 @@ class product_product(models.Model):
         """ML->Odoo: populate the MELI "Plantilla" tab Char fields (seller
         package dimensions + BRAND/MODEL/GENDER) from the item `attributes`.
 
-        Idempotent: only writes when ML provides a non-empty value, so a value
-        loaded by hand in Odoo is never wiped by an empty ML attribute.
+        Write semantics (per field):
+          * Package dims (_MELI_IMPORT_OVERWRITE_FIELDS): ML SELLER_PACKAGE_* is
+            AUTHORITATIVE -> OVERWRITE the Odoo value whenever ML sends a
+            non-empty one (corrects legacy rows that stored the product
+            WIDTH/HEIGHT instead of the package measure).
+          * brand/model/gender: fill-empty (may be manual) -> only written when
+            the Odoo field is currently empty.
+        ML empty never wipes: a field is touched only when ML provides a
+        non-empty value. The catalog PACKAGE_* fallback applies only when no
+        SELLER_PACKAGE_* is present. Bare WIDTH/HEIGHT/LENGTH (the *product*
+        dimensions) are intentionally NOT mapped.
         Writes both the template and the variant (self) when the field exists
         on each. `self` may be an empty product.product recordset (then only
         the template is written)."""
@@ -1047,10 +1069,15 @@ class product_product(models.Model):
                 continue
             if is_primary:
                 seen_primary.add(field)
+            # Package dims: ML is authoritative -> overwrite. Others
+            # (brand/model/gender): fill-empty (do not clobber manual input).
+            overwrite = field in self._MELI_IMPORT_OVERWRITE_FIELDS
             if field in product_template._fields:
-                tmpl_vals[field] = val
+                if overwrite or not product_template[field]:
+                    tmpl_vals[field] = val
             if field in self._fields:
-                prod_vals[field] = val
+                if overwrite or not (self and self[field]):
+                    prod_vals[field] = val
         if tmpl_vals:
             product_template.write(tmpl_vals)
             _logger.info("MELI import: plantilla fields set on template %s: %s", product_template.id, list(tmpl_vals.keys()))
@@ -2363,8 +2390,8 @@ class product_product(models.Model):
 
         product.write( meli_fields )
         product_template.write( tmpl_fields )
-        # ML -> Odoo: populate MELI "Plantilla" tab fields from item attributes
-        # (seller package dimensions, brand, model, gender). Idempotent.
+        # ML -> Odoo: populate MELI "Plantilla" tab fields from item attributes.
+        # Package dims overwrite (ML authoritative); brand/model/gender fill-empty.
         product._meli_import_template_attributes( product_template, rjson )
         meli_available_quantity = rjson.get('available_quantity', 0)
         if (meli_available_quantity >=0):
