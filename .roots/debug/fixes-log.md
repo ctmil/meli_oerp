@@ -4,6 +4,19 @@
 
 ---
 
+### 8 jul 2026 — feat(orders): cron dedicado de re-sync de estado para cancelaciones fuera de ventana (v18.0.26.62) [#475 ScoreMX]
+
+**Archivos/funciones:**
+- `models/orders.py::mercadolibre_orders.orders_resync_status` (NUEVO)
+- `models/company.py::res_company.cron_meli_orders_status` (NUEVO) + campos `mercadolibre_cron_get_orders_status` (bool, default True), `mercadolibre_cron_orders_status_days` (int, default 7), `mercadolibre_cron_orders_status_limit` (int, default 100)
+- `data/cron_jobs.xml`: `ir_cron_module_cron_meli_orders_status` (cada 30 min, activo)
+- `views/company_view.xml`: los 3 campos en el grupo "Automatización ML a Odoo"
+
+**Problema (#475, suite-wide 16/17/18/19):** el cron horario `cron_meli_orders → meli_query_orders → orders_query_recent → orders_query_iterate` consulta `/orders/search?seller=…&sort=date_desc` (orden por fecha de CREACIÓN). Sin `mercadolibre_filter_order_datetime` la paginación se desactiva (`orders_query_iterate`: `if orders_limit or not order_date_filter: offset_next = 0`) → sólo re-procesa las ~50 órdenes más nuevas por creación. Una orden vieja cancelada días después queda fuera de esa ventana → nunca se re-consulta → la cancelación no baja a Odoo hasta abrir la orden a mano (refresh puntual por ID). El banner `_compute_meli_cancel_pending_banner` ya detectaba el gap pero ningún cron lo resolvía.
+
+**Fix:** cron dedicado que barre `mercadolibre.orders` con `sale_order` NO cancelada, `date_created` en los últimos N días y `status not in (cancelled, invalid)`, ordenado por fecha desc y **acotado por `limit`**. Por pedido hace **UN** `GET /orders/<id>`; si el estado NO cambió, no toca nada (idempotente, barato). Si cambió a `cancelled`, reusa `sale.order.meli_cancel_with_detail` (misma lógica del banner: devolución de albaranes, política de facturas, cancelación de la SO); otros cambios delegan a `orders_update_order` (resync por ID). **Rate-limit:** sólo candidatos recientes+abiertos, tope configurable (default 100), 1 GET por pedido salvo cambio real; respeta el retry/backoff de `meli.get`. Alineado 16≡17≡18≡19 (único delta entre versiones = estilo de `data/cron_jobs.xml` y line-endings preexistentes). Sin push.
+
+
 ### 5 jul 2026 — fix(stock): _fetch_meli_user_product_id devolvía la lista-string str(upids) (v18.0.26.61) [#425 Elvimarta/158] (A2)
 
 **Archivos/funciones:** `models/product.py::product.product._fetch_meli_user_product_id`
