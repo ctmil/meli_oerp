@@ -5,7 +5,7 @@
         <record model="ir.ui.view" id="view_meli_claims_tree">
             <field name="name">mercadolibre.claim.tree</field>
             <field name="model">mercadolibre.claim</field>
-            <field name="type">tree</field>
+            <field name="type">list</field>
             <field name="arch" type="xml">
                 <list string="Reclamos" default_order="date_created desc" create="0">
                     <field name="claim_id"/>

@@ -4,6 +4,29 @@
 
 ---
 
+### 8 jul 2026 — fix(carga v18/v19): `ir.ui.view type='tree'` → `list` en `claims_view.xml` (v18.0.26.66)
+
+**Archivos:** `views/claims_view.xml` (vista `view_meli_claims_tree`).
+
+**Problema:** Odoo 18 removió `tree` del selection de `ir.ui.view.type`; al cargar el módulo
+fallaba con `ValueError: Wrong value for ir.ui.view.type: 'tree'` (el `arch` ya era `<list>`).
+Bloqueaba el `-u`/instalación de meli_oerp en TODO cliente 18.0/19.0. Detectado en el build de
+Tus Refacciones MX (431, 26.67, build Odoo.sh 34644423).
+
+**Fix:** `<field name="type">tree</field>` → `list`. Sólo v18/v19 (en ≤17 `tree` sigue siendo
+válido → no se toca, migración ≠ refactor).
+
+### 8 jul 2026 — fix(carga v17+): quitar `ir.cron` `numbercall` de `claims_cron.xml` (v18.0.26.66)
+
+**Archivos:** `data/claims_cron.xml` (cron `cron_sync_claims`, Fase 1, `active=False`).
+
+**Problema:** Odoo 17 removió los campos `numbercall`/`doall` de `ir.cron`; al cargar el data XML
+fallaba con `Invalid field 'numbercall' on model 'ir.cron'`. Bug latente en el source para todo
+cliente 17/18/19 (el cron es nuevo, Fase 1). Detectado en Tus Refacciones MX (431, build 34645734).
+
+**Fix:** se elimina el `<field name="numbercall">-1</field>` (el cron corre indefinido por
+defecto). Sólo v17/v18/v19 (en ≤16 `numbercall` sigue siendo válido → no se toca).
+
 ### 8 jul 2026 — perf(backfill): resolucion de cuenta por FETCH DIRECTO por item — funciona en cuentas GRANDES (v18.0.26.64) [#424 Deco/KPI 526]
 
 **Archivos/funciones:** `models/product.py`
