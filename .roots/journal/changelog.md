@@ -4,6 +4,15 @@
 
 ---
 
+## Versión 18.0.26.63 — Medidas del paquete: se corrigen valores viejos equivocados al traer de MercadoLibre [#424]
+8 jul 2026
+
+**Cambios:**
+
+1. Al importar/actualizar un producto desde MercadoLibre (y con la acción **"Traer medidas"**), las **dimensiones del paquete del vendedor** (Alto/Ancho/Largo/Peso del paquete — Mercado Envíos) ahora se **corrigen con el valor de MercadoLibre**, que es la fuente autoritativa del paquete. Antes, si un proceso viejo había dejado en esos campos la medida del *producto* en lugar de la del *paquete* (por ejemplo "100 cm", el ancho del producto, en vez de "10 cm", el del paquete), ese valor viejo equivocado se conservaba. Ahora MercadoLibre lo pisa.
+2. Si MercadoLibre no informa la medida del paquete, no se borra lo cargado (no se pisa con vacío). Marca/Modelo/Género siguen respetando la carga manual (sólo se completan si están vacíos).
+
+
 ## Versión 18.0.26.62 — Cancelaciones de MercadoLibre que no se reflejaban solas en Odoo [#475]
 8 jul 2026
 
