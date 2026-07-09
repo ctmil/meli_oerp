@@ -4,6 +4,33 @@
 
 ---
 
+### 9 jul 2026 — fix: BUG-009 fecha real de ML en `date_order` + BUG-007 cancelación explícita en `update_order_status` (v18.0.26.68) — promoción Dannok `0eff11d`
+
+**Archivos/funciones:** `models/orders.py::mercadolibre_orders.prepare_sale_order_vals`,
+`models/orders.py::mercadolibre_orders.update_order_status`
+
+**Origen:** ambos arreglos vivían solo en el repo del cliente Dannok/Delbre (commit `0eff11d`,
+07-may) y el re-sync del grove 18.0 (26.27→26.44) los **sobreescribió** al reemplazar `orders.py`
+entero (el diff de sync los reportó como "0 custom divergente" porque no eran customizaciones
+marcadas). Re-aplicados en el cliente como 26.44.2 y **promovidos ahora al source** para las 4
+versiones (16/17/18/19), de modo que un próximo re-sync ya no los pise.
+
+**BUG-009 (`prepare_sale_order_vals`):** `meli_order_fields` ahora setea
+`'date_order': ml_datetime(order_json["date_closed"]) or ml_datetime(order_json["date_created"])`
+→ la SO refleja la fecha real de la operación en MercadoLibre, no el timestamp de importación en
+Odoo. Corrige el síntoma "ventas entrando con delay / fecha que no coincide con ML".
+
+**BUG-007 (`update_order_status`):** se reemplazó la llamada incondicional
+`order.sale_order.confirm_ml(...)` por manejo explícito: si `order_json["status"] == "cancelled"` y
+la SO no está cancelada → setea `meli_status='cancelled'` y llama `meli_cancel_with_detail(cancel_msg)`
+(motivo desde `status_detail`); en cualquier otro estado → `confirm_ml(...)` como antes. Asegura que
+las sub-órdenes de un pack disparen la cancelación aunque el path de update no llegue al chequeo. (El
+método más nuevo `orders_resync_status` #475 ya tenía este manejo; este arreglo lo lleva también al
+re-chequeo puntual `update_order_status`.)
+
+**Verificación:** inserción byte-idéntica en las 4 versiones (anchors convergidos); `py_compile` OK.
+Sin migración de datos (`date_order`/`meli_status` ya existen en `sale.order`).
+
 ### 9 jul 2026 — fix(orders/returns): guard cantidad-cero del 13-jun (v26.45) quedó ciego en Odoo 18+ — usar `action_create_returns_all()` [#339 D VIGI 485]
 
 **Archivos/funciones:** `models/orders.py::sale_order._meli_return_done_pickings`
