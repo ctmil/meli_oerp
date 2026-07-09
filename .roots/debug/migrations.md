@@ -4,6 +4,17 @@
 
 ---
 
+## 9 jul 2026 — BUG-009 `date_order` + BUG-007 cancelación en `update_order_status` (v16.0.26.68)
+
+- **Sin migración de datos ni de esquema.** Cambio de código puro en `models/orders.py`: `date_order`
+  y `meli_status` son campos **ya existentes** de `sale.order` → el bump 26.68 no crea columnas ni
+  requiere backfill. Los pedidos ya importados conservan su `date_order` histórico; el nuevo valor
+  (fecha real de ML) aplica a las órdenes procesadas de aquí en más.
+- **Salto de versión:** 26.67 fue un fix específico de Odoo 18/19 (`action_create_returns_all`) que
+  no aplica a esta versión → 16.0 salta de 26.66 a **26.68**.
+- **Convergencia:** inserción byte-idéntica en 16/17/18/19 (anchors `prepare_sale_order_vals` y
+  `update_order_status` convergidos). Promoción desde el cliente Dannok (`0eff11d`).
+
 ## 8 jul 2026 — Feature surtido multi-almacén (captura depósito ML) + fixes de migración (v16.0.26.66)
 
 - **Feature (16≡17≡18≡19, byte-idéntico):** 2 campos Char nuevos en `mercadolibre.order_items`
