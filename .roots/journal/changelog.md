@@ -4,6 +4,25 @@
 
 ---
 
+## Versión 19.0.26.68 — La fecha de la orden refleja la fecha real de MercadoLibre + cancelación explícita al re-chequear estado
+9 jul 2026
+
+**Cambios:**
+
+1. **BUG-009 — Fecha de la orden = fecha real de MercadoLibre.** Al crear/actualizar la orden de
+   venta desde una orden de MercadoLibre, la **Fecha de la orden** (`date_order`) ahora toma la
+   fecha de cierre de la operación en ML (o la fecha de creación como respaldo), en lugar del
+   momento en que Odoo importó la orden. Las ventas dejan de "entrar con delay" con una fecha que
+   no coincide con la de MercadoLibre.
+2. **BUG-007 — Cancelación explícita al re-chequear estado.** El re-chequeo puntual de estado de un
+   pedido (`update_order_status`), cuando MercadoLibre reporta la orden como **cancelada**, ahora
+   marca la orden de venta como cancelada y dispara la cancelación con detalle (albaranes/facturas)
+   en lugar de reconfirmarla. Antes reconfirmaba de forma incondicional y las sub-órdenes de un pack
+   podían quedar sin cancelar.
+
+> Corrige una regresión de sincronización: ambos arreglos vivían solo en un cliente (Dannok) y no
+> estaban en el código base; ahora quedan en el source para las 4 versiones (16/17/18/19).
+
 ## Versión 19.0.26.66 — Surtido multi-almacén: se captura el depósito de origen de MercadoLibre
 8 jul 2026
 

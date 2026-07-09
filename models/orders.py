@@ -2035,6 +2035,7 @@ class mercadolibre_orders(models.Model):
             'meli_currency_id': ("currency_id" in order_json and order_json["currency_id"]),
             'meli_date_created': ml_datetime(order_json["date_created"]),
             'meli_date_closed': ml_datetime(order_json["date_closed"]),
+            'date_order': ml_datetime(order_json["date_closed"]) or ml_datetime(order_json["date_created"]),
         }
         return meli_order_fields
 
@@ -4876,7 +4877,17 @@ class mercadolibre_orders(models.Model):
                 order.status_detail = (order_json.get("status_detail") or '') + cancel_detail_text
                 if order.sale_order:
                     order.sale_order.meli_status_detail = order.status_detail
-                    order.sale_order.confirm_ml(meli=meli,config=config)
+                    if order_json["status"] in ("cancelled",):
+                        sorder = order.sale_order
+                        if sorder.meli_status != "cancelled":
+                            sorder.meli_status = "cancelled"
+                        if sorder.state in ["draft", "sale", "sent", "done"]:
+                            cancel_msg = "Orden cancelada por MercadoLibre."
+                            if order.status_detail:
+                                cancel_msg += " Motivo: %s" % order.status_detail
+                            sorder.meli_cancel_with_detail(cancel_msg)
+                    else:
+                        order.sale_order.confirm_ml(meli=meli,config=config)
 
     def orders_resync_status( self, meli=None, config=None, account=None ):
         """#475 - Re-sincroniza el ESTADO de los pedidos MeLi recientes que siguen
