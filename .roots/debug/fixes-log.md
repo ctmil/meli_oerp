@@ -4,6 +4,57 @@
 
 ---
 
+### 9 jul 2026 — fix(orders/returns): guard cantidad-cero del 13-jun (v26.45) quedó ciego en Odoo 18+ — usar `action_create_returns_all()` [#339 D VIGI 485]
+
+**Archivos/funciones:** `models/orders.py::sale_order._meli_return_done_pickings`
+
+**Síntoma (prod D VIGI, picking `MELIF/OUT/05215`, ~39 veces/día):** loop de
+`Error creating return for picking MELIF/OUT/05215: Especifique al menos una cantidad
+diferente a cero`. Diagnóstico en prod (`odoo shell`, solo lectura, `env.cr.savepoint()`
+con rollback): la orden ML `2000013914520257` está `meli_status=cancelled` (comprador
+canceló, mediación), el picking está `done` con **1 unidad realmente entregada**
+(`move.quantity=1.0`, lote `V4ASP/06-05-26/01`) — NO es un caso "sin stock real" — y sin
+embargo `wiz.product_return_moves.quantity` daba **0**.
+
+**Causa raíz (no es específica de D VIGI — afecta a TODO cliente 18.0/19.0):** en Odoo
+≤17, `stock.return.picking._prepare_stock_return_picking_line_vals_from_move` precalculaba
+`quantity = move.quantity - ya_devuelto` al crear el wizard. En Odoo 18 el core **removió
+ese cálculo** — `product_return_moves.quantity` nace **siempre en 0** (ver
+`stock/wizard/stock_picking_return.py`) — y lo movió a un método nuevo,
+`action_create_returns_all()`, que hay que llamar en vez de `action_create_returns()`
+directo. El guard cantidad-cero agregado el 13-jun (v26.45, ERROR original: bucle en
+pickings FULL) miraba `product_return_moves.quantity`, que en 18/19 **siempre es 0** por el
+cambio de core — el guard pasó de "saltear casos FULL sin stock real" a **saltear TODAS
+las devoluciones automáticas en Odoo 18/19**, silenciosamente (sin loguear error, por eso
+no había un `errors-log` para esto — dejó de fallar pero también dejó de funcionar).
+Verificado que el picking de D VIGI seguía dando el ERROR porque prod corre
+`18.0.26.22` (44 versiones detrás del source `18.0.26.66`) — **nunca recibió el guard de
+junio**; pero el guard tal como está en el source tampoco lo resuelve del todo en 18+.
+
+**Fix:** rama por capacidad del wizard:
+- Si existe `action_create_returns_all` (Odoo 18+): el guard cantidad-cero ahora mira la
+  cantidad **entregada en los moves originales** del picking (`picking.move_ids...quantity`,
+  no `product_return_moves.quantity`, que en 18+ siempre es 0) — sólo saltea si
+  **de verdad** no hay nada entregado. Si hay algo entregado, llama
+  `action_create_returns_all()` (calcula la cantidad correcta por línea — entregado menos
+  ya devuelto — y crea la devolución en un solo paso, igual que hacía el core ≤17
+  internamente).
+- Si no existe (Odoo ≤17): comportamiento sin cambios (guard sobre
+  `product_return_moves.quantity`, que ahí sí viene precalculado).
+
+**Verificación (prod D VIGI, solo lectura):** reproducido con el picking real
+`MELIF/OUT/05215` (id 48958) dentro de `env.cr.savepoint()` + `raise` para forzar rollback
+(sin `cr.commit()` — el shell de Odoo hace `cr.rollback()` al salir por diseño, doble
+resguardo): `wiz.action_create_returns_all()` creó correctamente `MELIF/IN/01781` con
+`qty=1.0` y `origin_returned_move_id` apuntando al move original — sin excepción. Nada
+persistido (verificado, no hubo commit).
+
+**Pendiente:** deploy a D VIGI (prod está en `18.0.26.22`, lejos del source) — no
+desplegado, no pusheado (confirmación pendiente del usuario). Aplica igual a 19.0 (mismo
+cambio de core), no portado todavía a ese grove.
+
+---
+
 ### 8 jul 2026 — fix(carga v18/v19): `ir.ui.view type='tree'` → `list` en `claims_view.xml` (v18.0.26.66)
 
 **Archivos:** `views/claims_view.xml` (vista `view_meli_claims_tree`).
