@@ -4,6 +4,26 @@
 
 ---
 
+## Versión 16.0.26.71 — Errores al publicar: ahora legibles, en español y accionables [#532]
+10 jul 2026
+
+**Cambios:**
+
+1. Cuando MercadoLibre rechaza una publicación, el aviso que ve el usuario ahora traduce a
+   **español claro y accionable** varios errores que antes salían crudos en inglés:
+   - "attributes are required" / build-title → *"Faltan atributos obligatorios de la categoría.
+     Completá la ficha técnica del producto (marca, modelo, código universal, etc.)…"*.
+   - `[family_name]` faltante → *"Falta el Nombre de la familia (Family Name)…"*.
+   - GTIN/EAN requerido o faltante → *"Debe definir el código de barras (GTIN/EAN)…"*.
+   - SKU del vendedor, categoría inválida/requerida, y otras propiedades del catálogo.
+2. Se mejoró la **presentación**: cuando el error llega como un único mensaje (no como lista de
+   causas) —el caso típico de build-title— ahora se muestra con el mismo recuadro estilado
+   (rojo si bloquea la publicación, amarillo si es advertencia), con ícono y un título claro,
+   igual que la lista de causas. Antes ese caso se veía pobre y en amarillo fijo.
+3. Comportamiento **defensivo**: si un mensaje no coincide con ningún patrón conocido, se
+   conserva el texto original de MercadoLibre (nunca se pierde información).
+
+
 ## Versión 16.0.26.70 — Cancelaciones de días anteriores: el barrido ahora cubre TODA la ventana [#475]
 10 jul 2026
 
