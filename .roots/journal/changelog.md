@@ -4,6 +4,21 @@
 
 ---
 
+## Versión 19.0.26.72 — "Sugerir Categoría" mucho más rápido [#532]
+10 jul 2026
+
+**Cambios:**
+
+1. El botón **"Sugerir Categoría"** (pestaña MercadoLibre del producto) ahora responde en 1-2s
+   en vez de ~10s. Antes, al sugerir, se importaba cada categoría candidata con TODOS sus
+   atributos y su árbol completo (decenas de llamadas a la API de MercadoLibre). Ahora la
+   sugerencia trae sólo lo necesario para elegir (identificador + nombre) de las 3 primeras
+   opciones; si la categoría ya existe en el sistema, no vuelve a consultar a ML.
+2. Los **atributos completos** de la categoría se cargan al **SELECCIONARLA** (no al sugerir),
+   por lo que la publicación sigue validando y enviando todo igual que antes (el pre-flight de
+   atributos obligatorios no cambia).
+
+
 ## Versión 19.0.26.71 — Errores al publicar: ahora legibles, en español y accionables [#532]
 10 jul 2026
 

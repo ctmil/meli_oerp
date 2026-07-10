@@ -28,4 +28,13 @@ class MeliConsultCategoryWizard(models.TransientModel):
         self.ensure_one()
         if not self.category_selected_id:
             raise ValidationError(_("Seleccione al menos una categoría"))
+        # FIX #532: la predicción trajo la categoría en modo liviano (id+nombre). Al SELECCIONARLA
+        # la hidratamos con un import completo (atributos, grid charts, catalog_domain) para que
+        # quede lista para publicar. Es 1 sola categoría, no las N sugeridas → sigue siendo rápido.
+        try:
+            self.env['mercadolibre.category'].import_category(
+                self.category_selected_id.meli_category_id, create_missing_website=False)
+        except Exception:
+            _logger.exception("apply_category: no se pudo hidratar la categoría %s",
+                              self.category_selected_id.meli_category_id)
         self.product_tmpl_id.meli_category = self.category_selected_id

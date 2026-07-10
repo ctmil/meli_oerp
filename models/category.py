@@ -519,7 +519,7 @@ class mercadolibre_category(models.Model):
                 except:
                     _logger.error("No se pudo importar: "+ str(obj.meli_father_category_id))
 
-    def import_category(self, category_id, meli=None, create_missing_website=False ):
+    def import_category(self, category_id, meli=None, create_missing_website=False, predict_only=False ):
 
        #_logger.info("Import Category "+str(category_id))
         company = self.env.user.company_id
@@ -536,6 +536,37 @@ class mercadolibre_category(models.Model):
         create_missing_website = create_missing_website or config.mercadolibre_create_website_categories
         ml_cat_id = None
         www_cat_id = None
+
+        # FIX #532 (perf): camino LIVIANO para PREDICCIÓN/sugerencia de categorías. Para mostrar
+        # las opciones en el wizard alcanza id + nombre: NO importamos atributos (_get_attributes),
+        # ni grid charts (get_search_chart_filters), ni catalog_domain_json, ni la categoría web.
+        # Todo eso se difiere a la SELECCIÓN/publicación (apply_category hace un import completo de
+        # la elegida; el pre-flight de atributos consulta la API por su cuenta). Además, si la
+        # categoría YA existe en la DB, short-circuit total (0 llamadas a la API de ML).
+        if predict_only and category_id:
+            existing = category_obj.search([('meli_category_id','=',str(category_id))], limit=1)
+            if existing:
+                return existing
+            try:
+                response_cat = meli.get("/categories/"+str(category_id), {'access_token':meli.access_token})
+                rjson_cat = response_cat.json()
+            except Exception:
+                _logger.exception("import_category(predict_only): fallo GET /categories/%s", category_id)
+                return category_obj
+            is_branch = ("children_categories" in rjson_cat and len(rjson_cat["children_categories"])>0)
+            fullname = ""
+            if ("path_from_root" in rjson_cat):
+                for path in rjson_cat["path_from_root"]:
+                    fullname = fullname + "/" + path["name"]
+            if not fullname:
+                fullname = rjson_cat.get("name","") or str(category_id)
+            return category_obj.create({
+                'name': fullname,
+                'meli_category_id': ''+str(category_id),
+                'is_branch': is_branch,
+                'data_json': json.dumps(rjson_cat),
+            })
+
         if (category_id):
             is_branch = False
             father = None
