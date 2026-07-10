@@ -53,6 +53,34 @@ MELI_PUBLISH_ERROR_PATTERNS = [
     (r"Attribute\s*\[?\s*(GTIN|EAN|UPC)\s*\]?\s+ignored because it is not modifiable",
      lambda m: ("El código %s/EAN no se puede modificar en esta publicación (lo gestiona el catálogo "
                 "de MercadoLibre). No impide publicar." % m.group(1).upper())),
+    # GTIN/EAN/UPC requerido o faltante (obligatorio en catálogo; distinto de "invalid format")
+    (r"(?:GTIN|EAN|UPC|c[oó]digo\s+universal(?:\s+de\s+producto)?)\b.*?"
+     r"(?:is\s+required|are\s+required|\brequired\b|faltante|missing|es\s+requerido|es\s+obligatorio|obligatorio)",
+     "Debe definir el código de barras (GTIN/EAN) del producto de forma obligatoria. "
+     "Cargá un EAN/GTIN válido en el producto para poder publicar en el catálogo de MercadoLibre."),
+    # --- Catálogo: build-title (ML no pudo armar el título por faltar atributos de la categoría) ---
+    # Llega como message STRING: "...resource /decorations/build-title... message:attributes are required"
+    # (también cubre el "attributes are required" pelado que puede venir en `cause`).
+    (r"(?:build-title.*?)?\battributes?\s+are\s+required\b",
+     "Faltan atributos obligatorios de la categoría. Completá la ficha técnica del producto "
+     "(marca, modelo, código universal, etc.) en la pestaña MercadoLibre para poder publicar en MercadoLibre."),
+    # --- Catálogo: falta family_name (u otras propiedades del body del catálogo) ---
+    (r"body\s+does\s+not\s+contains?\s+some\s+or\s+none\s+of\s+the\s+following\s+properties\s*\[?\s*family_name",
+     "Falta el Nombre de la familia (Family Name) del producto, requerido para publicar en el "
+     "catálogo de MercadoLibre. Completá el campo Family Name en la ficha del producto."),
+    (r"body\s+does\s+not\s+contains?\s+some\s+or\s+none\s+of\s+the\s+following\s+properties\s*\[?\s*([^\]]+?)\s*\]?\s*$",
+     lambda m: ("Faltan propiedades obligatorias para publicar en el catálogo de MercadoLibre: %s. "
+                "Completá esos campos en la ficha del producto." % m.group(1).strip())),
+    # --- SKU del vendedor requerido ---
+    (r"(?:SELLER_SKU|seller_sku|seller_custom_field)\b.*?"
+     r"(?:required|missing|es\s+requerido|es\s+obligatorio)",
+     "Falta el SKU del vendedor (código interno del producto). Cargá la Referencia interna del "
+     "producto para poder publicar en MercadoLibre."),
+    # --- Categoría inválida / requerida ---
+    (r"(?:category|categor[ií]a)\b.*?"
+     r"(?:invalid|not\s+found|required|inv[aá]lida|no\s+encontrada|requerida)",
+     "La categoría de MercadoLibre es inválida o falta seleccionarla. Elegí una categoría válida en "
+     "la pestaña MercadoLibre del producto (o en la plantilla)."),
     # --- Medidas/peso del paquete requeridas (seller_package_*) ---
     (r"attributes?\s*\[[^\]]*seller_package[^\]]*\].*?(?:are|is)\s+(?:all\s+)?required",
      "Faltan las medidas y el peso del paquete (alto, ancho, largo y peso). Cargalos en el producto "
@@ -237,10 +265,28 @@ class warning(models.TransientModel):
                 if _cause_messages:
                     message = "\n".join(_cause_messages)
             elif type(rmessage)==str:
+                # El mensaje viene como STRING (no lista `cause`): p.ej. el error de
+                # build-title ("...message:attributes are required") o un code conocido
+                # (invalid_token, etc.). Antes se volcaba CRUDO y en inglés, con ícono
+                # amarillo fijo. Ahora lo humanizamos y lo presentamos con el mismo estilo
+                # (alert rojo/amarillo + ícono + título accionable) que la rama `cause`.
                 ecode = rmessage
-                ecodemess = (ecode in meli_errors and meli_errors[ecode]) or ecode
+                if ecode in meli_errors:
+                    ecodemess = meli_errors[ecode]
+                else:
+                    # traducir el string crudo de ML -> español accionable (defensivo)
+                    ecodemess, _matched_str = _meli_humanize_publish_message(ecode)
 
-                message_html = '<div role="alert" class="alert alert-'+str(alertstatus)+'" title="Meli Message"><i class="fa fa-warning" role="img" aria-label="Meli Message"/> %s </div>' % (ecodemess)
+                # severidad/ícono coherentes con el status (rojo si error/400, amarillo si warning)
+                _sev = alertstatus if alertstatus in ["danger", "warning"] else "warning"
+                _ico = "times-circle" if _sev == "danger" else "warning"
+                _hdr = "No se pudo publicar en MercadoLibre" if _sev == "danger" else "Advertencia de MercadoLibre"
+                message_html = ('<div role="alert" class="alert alert-'+str(_sev)+'" title="Meli Message">'
+                                '<i class="fa fa-'+str(_ico)+'" role="img" aria-label="Meli Message"/> '
+                                '<strong>'+_hdr+'</strong><br/> %s </div>') % (str(ecodemess))
+                # que el texto plano del wizard también muestre el mensaje humanizado
+                if ecodemess:
+                    message = ("Falta: " if _sev == "danger" else "Advertencia: ") + str(ecodemess)
 
                 # Procesar causas aunque el mensaje sea string (ej: "Validation error" con causes detalladas)
                 if rcause and isinstance(rcause, list):
