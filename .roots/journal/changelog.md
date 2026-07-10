@@ -4,6 +4,24 @@
 
 ---
 
+## Versión 19.0.26.70 — Cancelaciones de días anteriores: el barrido ahora cubre TODA la ventana [#475]
+10 jul 2026
+
+**Cambios:**
+
+1. El barrido que detecta y cancela solas las ventas que MercadoLibre canceló días atrás
+   (sin abrir el pedido) ahora se concentra en las órdenes **en tránsito / no entregadas**,
+   que son las únicas que un comprador puede cancelar. Las ya **entregadas** se excluyen
+   (no son cancelables por esa vía), lo que reduce muchísimo el volumen a revisar y permite
+   que el barrido cubra **toda la ventana de días** configurada, en lugar de solo un puñado
+   de las más recientes (que el proceso normal ya cubría).
+2. El barrido ahora recorre primero las órdenes **más viejas** de la ventana — que son
+   justamente las de mayor riesgo de haber sido canceladas sin que Odoo se enterara — y deja
+   para el final las más nuevas (ya cubiertas por el proceso normal).
+3. Se ampliaron los valores por defecto de la ventana (15 días) y del tope por ciclo (500);
+   en la práctica se ajustan por configuración según el volumen de cada cuenta.
+
+
 ## Versión 19.0.26.69 — "Actualizar Título": empujar solo el título de la publicación a Mercado Libre
 10 jul 2026
 
