@@ -4,6 +4,35 @@
 
 ---
 
+### 10 jul 2026 — feat: humanización de errores de publicación ML + presentación amarillo/rojo pareja (v17.0.26.71) [#532 RPM Motos]
+
+**Archivos/funciones:** `models/warning.py::MELI_PUBLISH_ERROR_PATTERNS`,
+`models/warning.py::_meli_humanize_publish_message`, `models/warning.py::warning._format_meli_error`
+
+**GAP 1 (traducción):** el framework de humanización (regex→español) existía pero le faltaban patrones
+para errores que le salían a RPM Motos. Agregados a `MELI_PUBLISH_ERROR_PATTERNS`:
+- `attributes are required` / `/decorations/build-title` → "Faltan atributos obligatorios de la
+  categoría. Completá la ficha técnica del producto (marca, modelo, código universal, etc.)…".
+- `body does not contains ... [family_name]` → "Falta el Nombre de la familia (Family Name)…"
+  (+ variante genérica que lista la/s propiedad/es faltante/s).
+- GTIN/EAN/UPC/código universal **requerido/faltante** (distinto del ya existente "invalid format").
+- SELLER_SKU requerido; categoría inválida/requerida.
+Orden verificado: los patrones específicos ganan sobre los genéricos (GTIN invalid-format antes que
+GTIN-required; build-title antes que el genérico "attributes [X] are required").
+
+**GAP 2 (presentación):** la rama `type(rmessage)==str` de `_format_meli_error` volcaba el string
+CRUDO en inglés con ícono `fa-warning` amarillo fijo, sin respetar severidad. El error de build-title
+llega justamente como `message` string (no lista `cause`) → se veía pobre. Ahora esa rama:
+(1) humaniza el string vía `_meli_humanize_publish_message`, (2) elige severidad/ícono según el status
+(`alert-danger`+`times-circle` rojo si error/400; `alert-warning`+`warning` amarillo si advertencia),
+(3) agrega un título accionable en `<strong>` y (4) refleja el texto humanizado también en el `message`
+plano del wizard. Queda parejo con la rama `cause`.
+
+**Defensivo:** si ningún patrón matchea, se conserva el texto original de ML (nunca se pierde info).
+`py_compile` OK. Convergido 16/17/18/19.
+
+---
+
 ### 9 jul 2026 — fix: BUG-009 fecha real de ML en `date_order` + BUG-007 cancelación explícita en `update_order_status` (v17.0.26.68) — promoción Dannok `0eff11d`
 
 **Archivos/funciones:** `models/orders.py::mercadolibre_orders.prepare_sale_order_vals`,
