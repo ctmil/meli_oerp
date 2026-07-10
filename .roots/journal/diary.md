@@ -4,6 +4,12 @@
 
 ---
 
+**2026-07-10** `[17.0.26.70]` — orders_resync_status: dominio in-flight + order asc [#475]
+
+Refinado el barrido de re-sync de estado para que cubra la ventana DE VERDAD (en sellers de alto volumen el limit=100/desc cubría ~10% y justo las órdenes NUEVAS que el sweep normal date_desc ya cubre). Cambios en `orders_resync_status` (models/orders.py): (a) dominio suma `("shipment_status", "not in", ("delivered",))` — la cancelación del comprador es pre-entrega; delivered (~73% en Score/WodPro) no es cancelable por esa vía → excluirla concentra el barrido en las in-flight (empty/pending/ready_to_ship/not_delivered/shipped = todas las no-entregadas, no se pierde ninguna cancelable) y hace la ventana entera cubrible (medido prod 30d: Score 1107 / WodPro 482 in-flight vs 4784 "abiertas"). (b) `order="date_created asc"` (más viejas primero = at-risk; si el limit trunca, trunca las nuevas ya cubiertas). (c) defaults days 7→15, limit 100→500 (en prod se fijan por CONFIG). `shipment_status` = Char related indexado (models/orders.py). Bump 26.69→26.70, 4 versiones idénticas. meli_oerp_multiple no cambia (dispatcher igual). Nota: source venía de 26.65→26.69 por trabajo concurrente (post_title 26.69 unpushed encima).
+
+---
+
 **2026-07-08** `[17.0.26.65]` — `orders_resync_status` acepta `account=None` (multi-cuenta) [#475]
 
 El re-sync de estado de #475 (26.62) era mono-cuenta: `orders_resync_status` derivaba `company` de `self.env.user.company_id` y consultaba con un único token. Se agregó param opcional `account` (mercadolibre.account): cuando viene (lo pasa el dispatcher de meli_oerp_multiple) el dominio suma `("connection_account","=",account.id)` y `company` se deriva de `config.company_id` (connection_configuration) en vez del user del cron. Retrocompat total: sin `account`, idéntico al histórico. Log final incluye `cuenta=`. Bump 26.64→26.65, 4 versiones. Dispatcher en meli_oerp_multiple (reutiliza `ir_cron_module_cron_meli_orders_status`, sin cron nuevo). Caso Score/WODPRO (co1 361 + co3 499 mismo Odoo).
