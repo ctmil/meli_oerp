@@ -884,6 +884,19 @@ class product_template(models.Model):
                 res.append(r)
         return res
 
+    def product_template_post_title( self, context=None, meli=None ):
+        # Empuja SOLO el título (no el producto completo) a MercadoLibre. Espejo de
+        # product_template_post_price pero corta y devuelve el error del primer
+        # variant que falle (dict con 'error') para que el wizard lo muestre.
+        _logger.info("base product.template: product_template_post_title")
+        context = context or self.env.context
+        for productT in self:
+            for variant in productT.product_variant_ids:
+                r = variant.product_post_title(meli=meli)
+                if r and isinstance(r, dict) and 'error' in r:
+                    return r
+        return {}
+
     #name = fields.Char('Name', size=128, required=True, translate=False, index=True)
     meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
     meli_family_name = fields.Char(string='Nombre de la familia del user product en Mercado Libre',size=256)
@@ -4851,6 +4864,43 @@ class product_product(models.Model):
         self.product_tmpl_id.meli_price_error = self.meli_price_error
         self.product_tmpl_id.meli_price_update = self.meli_price_update
 
+        return {}
+
+    def product_post_title(self, context=None, meli=None):
+        # Empuja SOLO el título de la publicación a ML (no el producto completo).
+        # Espejo de product_post_price: PUT /items/{meli_id} { 'title': <titulo> }.
+        # El título es un campo a nivel item (no por variación), asi que el body es
+        # siempre { 'title': title } contra el item padre (meli_id), aun con variaciones.
+        # Devuelve {} en OK, o el rjson con 'error' en falla (para el wizard).
+        context = context or self.env.context
+        company = get_company_selected( self, context=context )
+
+        product = self
+        product_tmpl = self.product_tmpl_id
+
+        if not product.meli_id:
+            return {}
+
+        if not meli:
+            meli = self.env['meli.util'].get_new_instance(company)
+            if meli.need_login():
+                return meli.redirect_login()
+
+        meli_id = product.meli_id
+        # Fuente del título: meli_title del producto -> nombre -> meli_title de la plantilla
+        title = product.meli_title or product.name or (product_tmpl and product_tmpl.meli_title)
+        if not title:
+            _logger.error("product_post_title: título vacío para meli_id:"+str(meli_id))
+            return {}
+
+        _logger.info("product_post_title (single) /items/"+str(meli_id)+" title:"+str(title))
+        response = meli.put_mini("/items/"+str(meli_id), { 'title': title }, {'access_token':meli.access_token})
+        if response:
+            rjson = response.json()
+            if rjson and "error" in rjson:
+                _logger.error("product_post_title error /items/"+str(meli_id)+": "+str(rjson))
+                return rjson
+            _logger.info("Posted title ok (single) /items/"+str(meli_id)+": "+str(title))
         return {}
 
     def get_title_for_meli(self):
