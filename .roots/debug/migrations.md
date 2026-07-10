@@ -4,6 +4,12 @@
 
 ---
 
+## 10 jul 2026 — humanización de errores de publicación (v19.0.26.71) [#532]
+
+- **Sin migración de datos ni de esquema.** Cambio de código puro en `models/warning.py`
+  (patrones regex + presentación del wizard `meli.warning`, que es TransientModel). No crea columnas,
+  no requiere backfill, no toca vistas. Convergencia byte-idéntica 16/17/18/19.
+
 ## 9 jul 2026 — BUG-009 `date_order` + BUG-007 cancelación en `update_order_status` (v19.0.26.68)
 
 - **Sin migración de datos ni de esquema.** Cambio de código puro en `models/orders.py`: `date_order`
