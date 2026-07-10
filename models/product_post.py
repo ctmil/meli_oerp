@@ -58,6 +58,7 @@ class product_template_post(models.TransientModel):
                                         default=False)
     post_stock = fields.Boolean(string="Actualizar Stock",help="No actualiza el producto completo, solo el stock",default=False)
     post_price = fields.Boolean(string="Actualizar Precio",help="No actualiza el producto completo, solo el precio",default=False)
+    post_title = fields.Boolean(string="Actualizar Título",help="No actualiza el producto completo, solo el título",default=False)
     action_pause = fields.Boolean(string="Pausar producto",help="No actualiza el producto completo, sólo pausa el producto",default=False)
 
 
@@ -86,6 +87,7 @@ class product_template_post(models.TransientModel):
             'force_meli_variant': self.force_meli_variant,
             'post_stock': self.post_stock,
             'post_price': self.post_price,
+            'post_title': self.post_title,
             'action_pause': self.action_pause
         }
         posted_products = 0
@@ -104,9 +106,13 @@ class product_template_post(models.TransientModel):
                         res = product.with_context(custom_context).product_template_post_stock(meli=meli)
                     if self.post_price:
                         res = product.with_context(custom_context).product_template_post_price(meli=meli)
+                    if self.post_title:
+                        res = product.with_context(custom_context).product_template_post_title(meli=meli)
+                        if res and isinstance(res, dict) and 'error' in res:
+                            return warningobj.info( title='MELI TITLE', message="No se pudo actualizar el título en Mercado Libre.", message_html=self.pretty_json(res) )
                     if self.action_pause:
                         res = product.with_context(custom_context).action_meli_pause()
-                    if not self.post_stock and not self.post_price and not self.action_pause:
+                    if not self.post_stock and not self.post_price and not self.post_title and not self.action_pause:
                         res = product.with_context(custom_context).product_template_post()
 
                     if (res and 'name' in res):
@@ -183,6 +189,7 @@ class product_post(models.TransientModel):
 	    #'mercadolibre_state': fields.related( 'res.company', 'mercadolibre_state', string="State" )
     post_stock = fields.Boolean(string="Actualizar Stock",help="No actualiza el producto, solo el stock",default=False)
     post_price = fields.Boolean(string="Acutalizar Precio",help="No actualiza el producto, solo el precio",default=False)
+    post_title = fields.Boolean(string="Actualizar Título",help="No actualiza el producto, solo el título",default=False)
     action_pause = fields.Boolean(string="Pausar producto",help="No actualiza el producto completo, sólo pausa el producto",default=False)
 
 
@@ -214,9 +221,13 @@ class product_post(models.TransientModel):
                     res = product.product_post_stock(meli=meli)
                 if self.post_price:
                     res = product.product_post_price(meli=meli)
+                if self.post_title:
+                    res = product.product_post_title(meli=meli)
+                    if res and isinstance(res, dict) and 'error' in res:
+                        return warningobj.info( title='MELI TITLE', message="No se pudo actualizar el título en Mercado Libre.", message_html=self.pretty_json(res) )
                 if self.action_pause:
                     res = product.action_meli_pause()
-                if not self.post_stock and not self.post_price and not self.action_pause:
+                if not self.post_stock and not self.post_price and not self.post_title and not self.action_pause:
                     res = product.product_post()
 
             #Pausa

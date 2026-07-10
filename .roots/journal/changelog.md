@@ -4,6 +4,24 @@
 
 ---
 
+## Versión 18.0.26.69 — "Actualizar Título": empujar solo el título de la publicación a Mercado Libre
+10 jul 2026
+
+**Cambios:**
+
+1. **Nueva opción "Actualizar Título" en el wizard de Publicar.** Al publicar/actualizar productos en
+   Mercado Libre ahora hay una casilla **Actualizar Título** (junto a Actualizar Stock / Actualizar
+   Precio). Marcada, empuja **solo el título** de la/s publicación/es (`PUT /items/{id}` con
+   `{ "title": ... }`), sin re-publicar el producto completo. Disponible en el wizard de producto y
+   en el de plantilla. El título enviado sale del campo **ML Title** (`meli_title`) del producto; si
+   está vacío se usa el nombre del producto.
+2. **Reporte de error en pantalla.** Si Mercado Libre rechaza el cambio de título (p. ej. título
+   > 60 caracteres, publicación con catálogo/moderación o no modificable), el wizard muestra el
+   detalle del error devuelto por ML en un aviso, en lugar de fallar en silencio.
+
+> Motivado por el cliente RPM Motos (#532), que necesitaba actualizar títulos de publicaciones desde
+> Odoo. El título es un dato a nivel item (no por variación): el PUT se hace siempre contra el item padre.
+
 ## Versión 18.0.26.68 — La fecha de la orden refleja la fecha real de MercadoLibre + cancelación explícita al re-chequear estado
 9 jul 2026
 
