@@ -814,11 +814,15 @@ class product_template(models.Model):
         meli_categ = self.env['mercadolibre.category'].sudo()
         _logger.info(rjson)
         _logger.info(isinstance(rjson, list))
+        # FIX #532 (perf): SÓLO sugerir. Limitamos a las 3 primeras opciones de domain_discovery
+        # e importamos en modo LIVIANO (predict_only=True): id+nombre, sin atributos ni árbol.
+        # La hidratación completa (atributos/chart) se hace al SELECCIONAR (wizard.apply_category).
+        _MAX_PREDICTOR_SUGGESTIONS = 3
         if rjson and isinstance(rjson, list):
-            for data in rjson:
+            for data in rjson[:_MAX_PREDICTOR_SUGGESTIONS]:
                 if "category_id" in data:
                     #_logger.info("Take first suggestion")
-                    meli_categ += self.env['mercadolibre.category'].import_category(data['category_id'], meli=meli )
+                    meli_categ += self.env['mercadolibre.category'].import_category(data['category_id'], meli=meli, predict_only=True )
                     if (meli_categ==None):
                         _logger.info("Import category failed.")
         return meli_categ, rjson
