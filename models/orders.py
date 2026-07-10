@@ -4847,10 +4847,13 @@ class mercadolibre_orders(models.Model):
         que el cron de importacion (orders_query_iterate, sort=date_desc) no alcanza
         cuando la orden es mas vieja que la ventana de las ~50 mas nuevas por creacion.
 
-        Barrido ACOTADO (rate-limit safe): solo pedidos con sale.order NO cancelada,
-        creados en los ultimos N dias (mercadolibre_cron_orders_status_days), con tope
-        mercadolibre_cron_orders_status_limit. Por pedido hace UN GET /orders/<id> (ligero)
-        y solo procesa (confirm_ml / meli_cancel_with_detail) cuando el estado CAMBIO.
+        Barrido ACOTADO (rate-limit safe): solo pedidos IN-FLIGHT (no entregados —
+        la cancelacion del comprador es pre-entrega) con sale.order NO cancelada, creados
+        en los ultimos N dias (mercadolibre_cron_orders_status_days), con tope
+        mercadolibre_cron_orders_status_limit, ordenados de MAS VIEJO a mas nuevo (las
+        at-risk que el sweep normal date_desc no cubre). Por pedido hace UN GET
+        /orders/<id> (ligero) y solo procesa (confirm_ml / meli_cancel_with_detail)
+        cuando el estado CAMBIO.
 
         #475 multi-cuenta: `account` (mercadolibre.account) es opcional. Cuando el
         dispatcher de meli_oerp_multiple lo pasa, el barrido se scopea por esa cuenta
@@ -4869,10 +4872,10 @@ class mercadolibre_orders(models.Model):
         if not meli or meli.needlogin_state:
             return {}
 
-        days = 7
+        days = 15
         if "mercadolibre_cron_orders_status_days" in config._fields and config.mercadolibre_cron_orders_status_days:
             days = config.mercadolibre_cron_orders_status_days
-        query_limit = 100
+        query_limit = 500
         if "mercadolibre_cron_orders_status_limit" in config._fields and config.mercadolibre_cron_orders_status_limit:
             query_limit = config.mercadolibre_cron_orders_status_limit
 
@@ -4882,6 +4885,13 @@ class mercadolibre_orders(models.Model):
             ("sale_order", "!=", False),
             ("sale_order.state", "!=", "cancel"),
             ("status", "not in", ("cancelled", "invalid")),
+            # #475: la cancelacion por el comprador es SIEMPRE pre-entrega. Una vez
+            # entregada (delivered), la orden ya no es cancelable por esa via, asi que
+            # re-consultarla es gasto de API puro. Excluir delivered concentra el barrido
+            # en las ordenes IN-FLIGHT (empty/pending/ready_to_ship/not_delivered/shipped
+            # = todas las no-entregadas, no se pierde ninguna cancelable) y hace que la
+            # ventana entera sea cubrible en sellers de alto volumen (delivered ~73%).
+            ("shipment_status", "not in", ("delivered",)),
         ]
         if "company_id" in self._fields:
             domain.append(("company_id", "in", (company.id, False)))
@@ -4889,7 +4899,10 @@ class mercadolibre_orders(models.Model):
         # para no re-consultar con el token de una cuenta ordenes de otra.
         if account is not None and "connection_account" in self._fields:
             domain.append(("connection_account", "=", account.id))
-        candidates = self.search(domain, order="date_created desc", limit=query_limit)
+        # #475: order ASC (mas VIEJAS primero) — son las at-risk que el sweep normal
+        # (orders_query_iterate, date_desc) NO cubre. Complementario: si el limit trunca,
+        # trunca las NUEVAS (ya cubiertas por el sweep normal), nunca las viejas.
+        candidates = self.search(domain, order="date_created asc", limit=query_limit)
 
         Autocommit(self, False)
         checked = changed = cancelled = 0
