@@ -4,6 +4,34 @@
 
 ---
 
+### 11 jul 2026 — feat: IDs de atributo ML en errores de publicación resueltos a NOMBRE ES (v18.0.26.73) [#521 Koreautos]
+
+**Archivos/funciones:** `models/warning.py::warning._meli_resolve_attribute_ids` (nuevo),
+`models/warning.py::warning._format_meli_error`, `models/warning.py::MELI_PUBLISH_ERROR_PATTERNS`
+
+Los errores de publicación de ML citan atributos por su ID crudo entre corchetes (`[PART_NUMBER]`,
+`[BRAND,VEHICLE_TYPE]`), ilegible para el vendedor. Nuevo método `_meli_resolve_attribute_ids(text, cat_id=None)`
+(100% defensivo, try/except → texto original) que, con regex `\[([A-Z0-9_]+(?:\s*,\s*[A-Z0-9_]+)*)\]`,
+detecta esos códigos y les antepone el nombre real en español tomado de `mercadolibre.category.attribute`
+(att_id → name, ES por locale). Scopea por `cat_id` si viene y hace fallback global. Listas `[A,B]` se
+expanden legible ("Marca [BRAND], Tipo de vehículo [VEHICLE_TYPE]"). Código no resuelto → se deja crudo.
+Se llama sobre el texto ya humanizado (`_hmess`/`ecodemess`) en las 3 ramas de `_format_meli_error`
+(dict-cause, string, rcause).
+
+**Acople:** las plantillas genéricas de atributos en `MELI_PUBLISH_ERROR_PATTERNS`
+("atributo … ignored" / "attributes … required") ahora emiten el código ENTRE CORCHETES (antes comillas)
+para que el resolver lo detecte tras la humanización.
+
+**cat_id:** el flujo de publicación (`product.py ~4468/4471`) entrega al wizard sólo `context={"rjson": rjson}`
+con el cuerpo de error de ML (error/message/status/cause), SIN `category_id` → la resolución es global en la
+práctica (suficiente: BRAND→"Marca", PART_NUMBER→"Número de pieza" son estables entre categorías). Se dejó
+el hook por si a futuro se pasa la categoría del producto.
+
+Antes: `…atributo(s) obligatorio(s) 'PART_NUMBER'…`
+Después: `…atributo(s) obligatorio(s) Número de pieza [PART_NUMBER]…`
+
+---
+
 ### 10 jul 2026 — feat: humanización de errores de publicación ML + presentación amarillo/rojo pareja (v18.0.26.71) [#532 RPM Motos]
 
 **Archivos/funciones:** `models/warning.py::MELI_PUBLISH_ERROR_PATTERNS`,

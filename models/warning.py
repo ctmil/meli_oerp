@@ -99,11 +99,14 @@ MELI_PUBLISH_ERROR_PATTERNS = [
     # --- Atributos en inglés (genéricos, después de los específicos) ---
     # Atributo ignorado por no ser modificable (no-GTIN)
     (r"Attribute\s*\[?\s*([^\]]+?)\s*\]?\s+ignored because it is not modifiable",
-     lambda m: ("El atributo '%s' fue ignorado porque ya no se puede modificar en una publicación "
+     lambda m: ("El atributo [%s] fue ignorado porque ya no se puede modificar en una publicación "
                 "existente. No impide publicar." % m.group(1).strip())),
     # Atributo obligatorio faltante (genérico en inglés)
+    # NOTA: se deja el/los código(s) ENTRE CORCHETES (no comillas) a propósito, para
+    # que `_meli_resolve_attribute_ids` los detecte y anteponga el nombre ES del
+    # atributo (att_id -> name de mercadolibre.category.attribute).
     (r"(?:The\s+)?attributes?\s*\[?\s*([^\]]+?)\s*\]?\s+(?:are|is)\s+(?:all\s+)?required",
-     lambda m: ("Falta completar el/los atributo(s) obligatorio(s) '%s' en la ficha de MercadoLibre "
+     lambda m: ("Falta completar el/los atributo(s) obligatorio(s) [%s] en la ficha de MercadoLibre "
                 "(pestaña MercadoLibre del producto)." % m.group(1).strip())),
     # --- Título demasiado largo (por si viene desde la API y no del pre-check) ---
     (r"title.*?(?:length|too long|exceed).*?(\d+)",
@@ -216,6 +219,26 @@ class warning(models.TransientModel):
             alertstatus = (alertstatus in ["error"] and "danger" ) or  ( str(alertstatus) in ["400"] and "danger" ) or alertstatus
             alertstatusico = (rstatus in ["error"] and "times-circle" ) or ( str(rstatus) in ["400"] and "times-circle" ) or rstatus
 
+            # cat_id para resolver IDs de atributo de ML -> nombre en español.
+            # OJO (de dónde sale, o no, el cat_id): en el flujo real de publicación
+            # (product.py ~4468/4471) el wizard recibe context={"rjson": rjson}, donde
+            # rjson es el CUERPO DE ERROR de ML (keys: error/message/status/cause) y NO
+            # incluye category_id. Por eso _cat_id casi siempre queda None y la
+            # resolución cae al fallback GLOBAL — que alcanza, porque los atributos
+            # frecuentes (BRAND->"Marca", PART_NUMBER->"Número de pieza") son estables
+            # entre categorías. Se deja el hook por si a futuro el context/rjson trae
+            # la categoría del producto que se estaba publicando.
+            _cat_id = None
+            try:
+                if context and context.get("cat_id"):
+                    _cat_id = context.get("cat_id")
+                elif context and context.get("category_id"):
+                    _cat_id = context.get("category_id")
+                elif isinstance(rjson, dict) and rjson.get("category_id"):
+                    _cat_id = rjson.get("category_id")
+            except Exception:
+                _cat_id = None
+
 
             if rmessage and type(rmessage)==dict:
                 _logger.info("_format_meli_error message:"+str(rmessage))
@@ -250,6 +273,8 @@ class warning(models.TransientModel):
 
                                 # humanizar el mensaje crudo de ML (inglés) -> español accionable
                                 _hmess, _matched = _meli_humanize_publish_message(ecamess)
+                                # resolver IDs de atributo entre corchetes -> nombre ES
+                                _hmess = self._meli_resolve_attribute_ids(_hmess, cat_id=_cat_id)
 
                                 # acumular para el texto plano del mensaje principal,
                                 # prefijando con "Falta:" (error) / "Advertencia:" (warning)
@@ -276,6 +301,9 @@ class warning(models.TransientModel):
                 else:
                     # traducir el string crudo de ML -> español accionable (defensivo)
                     ecodemess, _matched_str = _meli_humanize_publish_message(ecode)
+
+                # resolver IDs de atributo entre corchetes -> nombre ES
+                ecodemess = self._meli_resolve_attribute_ids(ecodemess, cat_id=_cat_id)
 
                 # severidad/ícono coherentes con el status (rojo si error/400, amarillo si warning)
                 _sev = alertstatus if alertstatus in ["danger", "warning"] else "warning"
@@ -305,6 +333,8 @@ class warning(models.TransientModel):
                         ecatypeicon = "times-circle" if ecatype == "error" else ecatype
                         # humanizar el mensaje crudo de ML (inglés) -> español accionable
                         _hmess, _matched = _meli_humanize_publish_message(ecamess)
+                        # resolver IDs de atributo entre corchetes -> nombre ES
+                        _hmess = self._meli_resolve_attribute_ids(_hmess, cat_id=_cat_id)
                         if ecamess:
                             _prefix = "Falta:" if ecatype == "error" else "Advertencia:"
                             _cause_messages.append("%s %s" % (_prefix, _hmess))
@@ -322,6 +352,76 @@ class warning(models.TransientModel):
 
 
         return title, message, message_html
+
+    def _meli_resolve_attribute_ids(self, text, cat_id=None):
+        """Reescribe los IDs de atributo de ML que ML manda ENTRE CORCHETES
+        (ej: "[PART_NUMBER]", "[BRAND,VEHICLE_TYPE]") anteponiéndoles el NOMBRE
+        REAL EN ESPAÑOL del atributo, tomado del modelo
+        `mercadolibre.category.attribute` (mapa att_id -> name, ES por locale).
+
+        Ej:
+          "...atributo(s) obligatorio(s) [PART_NUMBER]..."
+              -> "...atributo(s) obligatorio(s) Número de pieza [PART_NUMBER]..."
+          "...[BRAND,VEHICLE_TYPE]..."
+              -> "...Marca [BRAND], Tipo de vehículo [VEHICLE_TYPE]..."
+
+        `cat_id` (opcional): si viene, scopea la búsqueda a esa categoría primero
+        y hace fallback global si no matchea. En la práctica el flujo de
+        publicación entrega al wizard solo el `rjson` de error de ML (sin la
+        categoría del producto), así que cat_id suele venir None y se resuelve
+        global — suficiente porque los atributos frecuentes (BRAND->"Marca",
+        PART_NUMBER->"Número de pieza") son estables entre categorías.
+
+        100% defensivo: cualquier excepción -> devuelve el `text` ORIGINAL intacto.
+        Comportamiento IDÉNTICO (no-op) si el mensaje no trae IDs entre corchetes.
+        Si un código no resuelve a un nombre, se deja crudo entre corchetes.
+        """
+        if not text:
+            return text
+        try:
+            stext = str(text)
+            Att = self.env['mercadolibre.category.attribute'].sudo()
+            _cache = {}
+
+            def _resolve_one(code):
+                code = (code or "").strip()
+                if not code:
+                    return None
+                if code in _cache:
+                    return _cache[code]
+                name = None
+                try:
+                    rec = None
+                    # scopear por categoría primero (si la tenemos)
+                    if cat_id:
+                        rec = Att.search([('att_id', '=', code),
+                                          ('cat_id', '=', cat_id)], limit=1)
+                    # fallback global (primer match no vacío)
+                    if not rec:
+                        rec = Att.search([('att_id', '=', code)], limit=1)
+                    if rec and rec.name:
+                        name = rec.name.strip() or None
+                except Exception:
+                    name = None
+                _cache[code] = name
+                return name
+
+            def _repl(m):
+                inner = m.group(1)
+                codes = [c.strip() for c in inner.split(',') if c.strip()]
+                parts = []
+                for c in codes:
+                    nm = _resolve_one(c)
+                    # si resuelve: "<Nombre ES> [CÓDIGO]"; si no: "[CÓDIGO]" crudo
+                    parts.append(("%s [%s]" % (nm, c)) if nm else ("[%s]" % c))
+                return ", ".join(parts)
+
+            # grupos de IDs de atributo ML entre corchetes (mayúsc/dígitos/_,
+            # admite listas separadas por coma)
+            return re.sub(r"\[([A-Z0-9_]+(?:\s*,\s*[A-Z0-9_]+)*)\]", _repl, stext)
+        except Exception:
+            _logger.exception("meli resolve attribute ids: fallo inesperado; uso texto original")
+            return text
 
     def _get_view_id(self ):
         """Get the view id
