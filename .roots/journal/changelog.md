@@ -4,6 +4,19 @@
 
 ---
 
+## Versión 17.0.26.73 — Errores de publicación: se muestra el NOMBRE del atributo faltante [#521 Koreautos]
+11 jul 2026
+
+**Cambios:**
+
+1. Cuando MercadoLibre rechaza una publicación por atributos faltantes, el mensaje ahora
+   muestra el **nombre real en español** del atributo además de su código técnico. Antes se
+   veía "atributo obligatorio 'PART_NUMBER'"; ahora "atributo obligatorio Número de pieza
+   [PART_NUMBER]". Si faltan varios (ej. Marca y Tipo de vehículo) se listan todos con su
+   nombre. El nombre sale del catálogo de atributos de MercadoLibre ya importado en el sistema.
+
+---
+
 ## Versión 17.0.26.72 — "Sugerir Categoría" mucho más rápido [#532]
 10 jul 2026
 
