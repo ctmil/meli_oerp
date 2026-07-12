@@ -4,6 +4,19 @@
 
 ---
 
+### 12 jul 2026 — align(horizontal 16≡17≡18≡19): backport returns-guard #339 + meli_util retries-noSDK + default billing_force_on_main (v17.0.26.75)
+
+Convergencia horizontal (sesión flota, SIN push). Tres cambios que faltaban en esta versión:
+- **[A] returns-guard `action_create_returns_all` (#339 D VIGI)** — backport del fix 18.0 `b2e9ab02` (2026-07-09).
+  El guard cantidad-cero quedaba ciego en Odoo 18+ (`product_return_moves.quantity` nace en 0); el bloque es
+  hasattr-safe (rama `action_create_returns_all` para 18+, `elif action_create_returns` para ≤17) → en 17.0 usa
+  el `elif` como siempre. `models/orders.py`. Bump 26.73 → 26.74.
+- **[B] meli_util `retries=False` en path noSDK con proxy** — backport del fix 19.0 `879c0fa5` (2026-06-18):
+  completa el scoping ya decidido (retries=False SOLO con host de rescate activo; inerte sin proxy).
+  `models/meli_util.py`. Bump 26.74 → 26.75.
+- **default `mercadolibre_billing_force_on_main=True`** (Estrategia B unificada por defecto; informe Dannok
+  BUG-012/013) — `models/company.py`. Solo afecta companies NUEVAS; clientes existentes conservan su valor.
+
 ### 11 jul 2026 — feat: IDs de atributo ML en errores de publicación resueltos a NOMBRE ES (v17.0.26.73) [#521 Koreautos]
 
 **Archivos/funciones:** `models/warning.py::warning._meli_resolve_attribute_ids` (nuevo),
