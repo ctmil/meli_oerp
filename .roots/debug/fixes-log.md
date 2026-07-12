@@ -4,6 +4,49 @@
 
 ---
 
+### 12 jul 2026 — default billing_force_on_main=True (Estrategia B unificada por defecto) — company.py [Dannok BUG-012/013]
+
+Convergencia horizontal (sesión flota, SIN push): **default `mercadolibre_billing_force_on_main=True`** en
+`models/company.py` (Estrategia B unificada por defecto; informe Dannok BUG-012/013). Solo afecta companies
+NUEVAS; clientes existentes conservan su valor guardado. Los otros dos cambios de la tanda ([A] returns-guard
+`8f79a1f2` y [B] meli_util retries-noSDK `879c0fa5`) ya estaban en 19.0 (fueron el origen del backport).
+Divergencia 19.0-only que QUEDA (deferida, ver ledger): feature `meli_confirm_ready` / "Ventas incompletas" /
+`cron_meli_drain_draft_invoices` (refactor de `confirm_ml`, adyacente a BUG-015) — no backporteada por decisión.
+
+### 11 jul 2026 — DOC + GAPS: botón "Importar" (`product_meli_get_product`) + diagnóstico re-import 0 (RPM #532) [SIN código]
+
+Estudio del flujo del botón "Importar" documentado en `.roots/docs/documentation.md` (secciones
+"Botón Importar" y "OVERRIDE de meli_oerp_multiple + diagnóstico"). **Corrige una afirmación previa
+errónea** y suma el hallazgo empírico de prod (test en MLA841410482). Puntos firmes:
+
+- **CORRECCIÓN:** era **FALSO** que "la ficha técnica genérica no se importa por ningún path".
+  `_get_non_variant_attributes` (base `product.py:1811`) **SÍ** crea la ficha completa como
+  `attribute_line_ids` (`meli_default_id_attribute`, `create_variant=no_variation`) cuando (a) el flag
+  de variantes está prendido y (b) la categoría del ítem tiene sus atributos mapeados. Verificado: los
+  productos viejos de RPM (neumáticos 25-26 líneas, baterías 15) los tienen así.
+- **RPM ejecuta el OVERRIDE de `meli_oerp_multiple`** (`product.py:1234`), no el base. Diferencias:
+  1. lee `config.mercadolibre_update_existings_variants` = `connection_configuration` (multiple L288,
+     override L1724), **NO** `company.` (base company.py:467). → toggle en `company` no tiene efecto.
+  2. **NO llama `_meli_import_template_attributes`** → los 7 Char de "Plantilla" no se pueblan por la
+     cuenta (divergencia base↔override; el base lo hace en L2468).
+  3. descripción gateada por `'descriptions' in rjson` (override L1277) que el `/items` moderno ya no
+     trae → `desc=0`.
+- **Diagnóstico del 0 (Kit Pistón MLA841410482, single-variant):** attr_lines=0 = flag equivocado
+  (company vs config) + categoría sin atributos mapeados (`_get_non_variant_attributes` gate L1831);
+  meli_brand=False = override no llama `_meli_import_template_attributes`; desc=0 = guard `descriptions`;
+  meli_category=None = `_meli_set_category` sí corre pero `meli_get_category`/`import_category`
+  (category.py:306/341) devolvió False (a verificar en prod).
+- **Prerequisito por categoría (paso 1):** `category.get_attributes()` (category.py:397, botón
+  `get_attributes` category_view.xml:174) crea `mercadolibre.category.attribute` + `product.attribute`
+  mapeado — **solo si `company.mercadolibre_product_attribute_creation != 'manual'`** (L455).
+- **Imágenes máx. resolución `_meli_best_picture_url` (L1624) SOLO en 19.0**; 16/17/18 con bug `-O`
+  (fix = forward-port, sources-align).
+- **Barcode "already defined" NO aborta** (writes defensivos L2644/2678/2722) → re-import idempotente.
+- Workflow de 2 pasos + gaps en `.roots/docs/documentation.md` y
+  `.roots/state/rpm-motos-import-maestro.md`.
+
+---
+
 ### 10 jul 2026 — feat: humanización de errores de publicación ML + presentación amarillo/rojo pareja (v19.0.26.71) [#532 RPM Motos]
 
 **Archivos/funciones:** `models/warning.py::MELI_PUBLISH_ERROR_PATTERNS`,
