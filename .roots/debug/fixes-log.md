@@ -4,6 +4,16 @@
 
 ---
 
+### 12 jul 2026 — align(horizontal 16≡17≡18≡19): meli_util retries-noSDK + default billing_force_on_main (v18.0.26.74)
+
+Convergencia horizontal (sesión flota, SIN push). Dos cambios que faltaban en esta versión (el returns-guard
+#339 `b2e9ab02` ya estaba en 18.0):
+- **[B] meli_util `retries=False` en path noSDK con proxy** — backport del fix 19.0 `879c0fa5` (2026-06-18):
+  completa el scoping ya decidido (retries=False SOLO con host de rescate activo; inerte sin proxy).
+  `models/meli_util.py`. Bump 26.73 → 26.74.
+- **default `mercadolibre_billing_force_on_main=True`** (Estrategia B unificada por defecto; informe Dannok
+  BUG-012/013) — `models/company.py`. Solo afecta companies NUEVAS; clientes existentes conservan su valor.
+
 ### 11 jul 2026 — feat: IDs de atributo ML en errores de publicación resueltos a NOMBRE ES (v18.0.26.73) [#521 Koreautos]
 
 **Archivos/funciones:** `models/warning.py::warning._meli_resolve_attribute_ids` (nuevo),
