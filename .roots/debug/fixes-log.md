@@ -4,6 +4,14 @@
 
 ---
 
+### 12 jul 2026 — [C] backport meli_confirm_ready (BUG-015 visibilidad) + BUG-011 dedup nombre contacto
+- **[C] BUG-015** (backport 19.0 `c04bddd2`): helper read-only `meli_confirm_ready` en `sale.order` y
+  `mercadolibre.orders` (comparte la matemática de `confirm_ml`) para LISTAR ventas ML trabadas/incompletas.
+  Alimenta la pestaña "Ventas incompletas" del wizard (meli_oerp_multiple). `models/orders.py`.
+- **BUG-011** (dedup nombre): helper module-level `_meli_norm_name`; `buyer_full_name` y `billing_full_name`
+  ya NO concatenan el apellido si ML lo manda == nombre (razón social repetida en compradores empresa sin
+  persona de contacto). `models/orders.py`.
+
 ### 12 jul 2026 — align(horizontal 16≡17≡18≡19): backport returns-guard #339 + meli_util retries-noSDK + default billing_force_on_main (v16.0.26.75)
 
 Convergencia horizontal (sesión flota, SIN push). Tres cambios que faltaban en esta versión:
