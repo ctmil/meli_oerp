@@ -4,6 +4,11 @@
 
 ---
 
+### 12 jul 2026 — BUG-011 dedup nombre contacto (razón social repetida)
+Helper module-level `_meli_norm_name`; `buyer_full_name`/`billing_full_name` no concatenan el apellido si ML
+lo manda == nombre (compradores empresa sin persona de contacto). `models/orders.py`. ([C] meli_confirm_ready
+ya existía en 19.0, es el origen del backport).
+
 ### 12 jul 2026 — default billing_force_on_main=True (Estrategia B unificada por defecto) — company.py [Dannok BUG-012/013]
 
 Convergencia horizontal (sesión flota, SIN push): **default `mercadolibre_billing_force_on_main=True`** en
