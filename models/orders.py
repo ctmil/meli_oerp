@@ -91,6 +91,18 @@ except ImportError:
     psycopg2_errors = None
 from .versions import *
 
+
+def _meli_norm_name(s):
+    """Normaliza un nombre para comparar: minúsculas, sin acentos, espacios colapsados.
+    Se usa para deduplicar nombre/apellido que ML manda REPETIDOS en compradores empresa
+    sin persona de contacto (BUG-011)."""
+    import unicodedata
+    s = (s or '').lower().strip()
+    s = unicodedata.normalize('NFD', s)
+    s = ''.join(c for c in s if unicodedata.category(c) != 'Mn')
+    return re.sub(r'\s+', ' ', s)
+
+
 class sale_order_line(models.Model):
     _inherit = "sale.order.line"
 
@@ -1553,8 +1565,13 @@ class mercadolibre_orders(models.Model):
         last_name = str( ('last_name' in Buyer and Buyer['last_name']) or '' )
 
         if first_name and last_name:
-            first_name = first_name.capitalize()
-            last_name = ' '+last_name.capitalize()
+            # BUG-011: ML manda la razón social REPETIDA en first_name y last_name para
+            # compradores empresa sin persona de contacto → no duplicar el nombre.
+            if _meli_norm_name(first_name) == _meli_norm_name(last_name):
+                last_name = ''
+            else:
+                first_name = first_name.capitalize()
+                last_name = ' '+last_name.capitalize()
 
         full_name = first_name + last_name
 
@@ -2418,7 +2435,9 @@ class mercadolibre_orders(models.Model):
             billing_full_name = ''
             if _billing_fn:
                 billing_full_name = _billing_fn.strip().title()
-                if _billing_ln:
+                # BUG-011: no concatenar el apellido si ML lo manda igual al nombre
+                # (razón social repetida en FIRST_NAME y LAST_NAME de billing_info).
+                if _billing_ln and _meli_norm_name(_billing_ln) != _meli_norm_name(_billing_fn):
                     billing_full_name += ' ' + _billing_ln.strip().title()
             billing_full_name = billing_full_name or _billing_bn or self.buyer_full_name(Buyer)
             Receiver = False
