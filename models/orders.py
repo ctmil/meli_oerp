@@ -780,6 +780,79 @@ class sale_order(models.Model):
                 _logger.error("Error creating return for picking %s: %s", picking.name, e, exc_info=True)
                 meli_message_post(self, "No se pudo devolver el albarán %s automáticamente. Error: %s. Gestionar manualmente." % (picking.name, str(e)))
 
+    def meli_confirm_ready( self, meli=None, config=None ):
+        """Evalúa, SIN efectos secundarios, si la venta ML está lista para confirmar.
+
+        Devuelve una tupla (ready: bool, reason: str). `reason` queda vacío cuando
+        `ready` es True; si no, contiene un motivo legible para mostrar al usuario.
+
+        Es el corazón de `confirm_ml` extraído como helper read-only para que tanto
+        la confirmación como el wizard de importación (pestaña "Ventas incompletas")
+        compartan exactamente la misma matemática (mismo amount_to_invoice, misma
+        tolerancia con cupón/retenciones, misma comparación con/sin envío).
+
+        Notas:
+        - Las órdenes canceladas NO son "incompletas": se reportan ready=True con
+          reason vacío para que el llamador las excluya del listado de incompletas.
+        - Devuelve también el detalle numérico embebido en `reason` cuando hay
+          mismatch, igual que el mensaje MELI de confirm_ml.
+        """
+        # Órdenes canceladas: NO son incompletas (las maneja confirm_ml aparte).
+        if self.meli_status == "cancelled":
+            return (True, "")
+
+        # Sin pedido de venta no se puede evaluar el monto.
+        if not self.order_line:
+            return (False, "Sin líneas de venta / producto no encontrado (SKU sin vincular)")
+
+        amount_to_invoice = self.meli_amount_to_invoice( meli=meli, config=config )
+        # coupon_amount es costo de ML, no del vendedor — el SO ya tiene el precio completo.
+        # La tolerancia extendida se mantiene como safety-net para órdenes anteriores al fix
+        # que todavía tengan el descuento aplicado en líneas.
+        _tolerance = 1.1
+        _coupon = abs(self.meli_coupon_amount or 0.0)
+        if _coupon > 0:
+            _tolerance = max(_tolerance, _coupon * 1.3)
+        # If retention taxes are on SO lines (legacy, without withholding module),
+        # add back their amounts so the check compares like-for-like.
+        # Skip withholding-on-payment taxes — they belong on the payment, not SO lines.
+        tax_field = SaleOrderLineTaxField(self)
+        _has_wth = 'is_withholding_tax_on_payment' in self.env['account.tax']._fields
+        _retention_total = 0.0
+        for line in self.order_line:
+            if line.price_unit <= 0:
+                continue
+            for tax in line[tax_field]:
+                if tax.amount < 0:
+                    if _has_wth and tax.is_withholding_tax_on_payment:
+                        continue
+                    _retention_total += abs(line.price_subtotal * tax.amount / 100.0)
+        _amount_total_before_retentions = self.amount_total + _retention_total
+        _diff_direct = abs( float(amount_to_invoice) - _amount_total_before_retentions )
+        # For self_service logistics the SO has no shipping line, but
+        # meli_paid_amount (and thus amount_to_invoice) includes the shipping
+        # amount. Accept if the diff is fully explained by shipping.
+        _shipping = self.meli_shipping_amount or 0.0
+        _diff_no_ship = abs( float(amount_to_invoice) - _shipping - _amount_total_before_retentions ) if _shipping > 0 else _diff_direct
+        confirm_cond = (amount_to_invoice > 0) and (
+            _diff_direct < _tolerance
+            or (_shipping > 0 and _diff_no_ship < _tolerance)
+        )
+        if not confirm_cond:
+            serror = (
+                "MELI: Condition not met: meli_paid_amount and amount_total doesn't match, "
+                "check products missings, taxes and discounts. "
+                "(amount_to_invoice=%.2f, amount_total=%.2f, diff=%.2f, diff_no_ship=%.2f, tolerance=%.2f, "
+                "coupon=%.2f, seller_discount=%.2f)"
+            ) % (
+                amount_to_invoice or 0, self.amount_total or 0,
+                _diff_direct, _diff_no_ship,
+                _tolerance, _coupon, self.meli_discount_seller_amount or 0,
+            )
+            return (False, serror)
+
+        return (True, "")
+
     def confirm_ml( self, meli=None, config=None ):
         try:
             #_logger.info("meli_oerp confirm_ml")
@@ -799,50 +872,11 @@ class sale_order(models.Model):
                 self.meli_cancel_with_detail(cancel_msg)
                 return res
 
-            amount_to_invoice = self.meli_amount_to_invoice( meli=meli, config=config )
-            # coupon_amount es costo de ML, no del vendedor — el SO ya tiene el precio completo.
-            # La tolerancia extendida se mantiene como safety-net para órdenes anteriores al fix
-            # que todavía tengan el descuento aplicado en líneas.
-            _tolerance = 1.1
-            _coupon = abs(self.meli_coupon_amount or 0.0)
-            if _coupon > 0:
-                _tolerance = max(_tolerance, _coupon * 1.3)
-            # If retention taxes are on SO lines (legacy, without withholding module),
-            # add back their amounts so the check compares like-for-like.
-            # Skip withholding-on-payment taxes — they belong on the payment, not SO lines.
-            tax_field = SaleOrderLineTaxField(self)
-            _has_wth = 'is_withholding_tax_on_payment' in self.env['account.tax']._fields
-            _retention_total = 0.0
-            for line in self.order_line:
-                if line.price_unit <= 0:
-                    continue
-                for tax in line[tax_field]:
-                    if tax.amount < 0:
-                        if _has_wth and tax.is_withholding_tax_on_payment:
-                            continue
-                        _retention_total += abs(line.price_subtotal * tax.amount / 100.0)
-            _amount_total_before_retentions = self.amount_total + _retention_total
-            _diff_direct = abs( float(amount_to_invoice) - _amount_total_before_retentions )
-            # For self_service logistics the SO has no shipping line, but
-            # meli_paid_amount (and thus amount_to_invoice) includes the shipping
-            # amount. Accept if the diff is fully explained by shipping.
-            _shipping = self.meli_shipping_amount or 0.0
-            _diff_no_ship = abs( float(amount_to_invoice) - _shipping - _amount_total_before_retentions ) if _shipping > 0 else _diff_direct
-            confirm_cond = (amount_to_invoice > 0) and (
-                _diff_direct < _tolerance
-                or (_shipping > 0 and _diff_no_ship < _tolerance)
-            )
+            # Misma matemática que antes, ahora vía helper read-only compartido con
+            # el wizard de importación. confirm_cond conserva idéntico comportamiento.
+            confirm_ready, serror = self.meli_confirm_ready( meli=meli, config=config )
+            confirm_cond = confirm_ready
             if not confirm_cond:
-                serror = (
-                    "MELI: Condition not met: meli_paid_amount and amount_total doesn't match, "
-                    "check products missings, taxes and discounts. "
-                    "(amount_to_invoice=%.2f, amount_total=%.2f, diff=%.2f, diff_no_ship=%.2f, tolerance=%.2f, "
-                    "coupon=%.2f, seller_discount=%.2f)"
-                ) % (
-                    amount_to_invoice or 0, self.amount_total or 0,
-                    _diff_direct, _diff_no_ship,
-                    _tolerance, _coupon, self.meli_discount_seller_amount or 0,
-                )
                 # FIX #415 (NipSkin/Inity 520, tickets #414/#415): evitar spam en chatter.
                 # El cron reintenta la orden cada ciclo (afecta ordenes con amount_total=0 sin
                 # lineas) y re-posteaba siempre. Postear solo si no hay ya un "Condition not met"
@@ -4976,6 +5010,35 @@ class mercadolibre_orders(models.Model):
     def orders_get_invoice(self, context=None, meli=None, config=None):
         #_logger.info("orders_get_invoice")
         pass;
+
+    def meli_confirm_ready(self, meli=None, config=None):
+        """Versión read-only a nivel de orden ML: indica si la venta está lista
+        para confirmar. Devuelve (ready: bool, reason: str).
+
+        Delega en el helper homónimo de la `sale.order` vinculada (donde vive la
+        matemática de confirm_ml). Motivos posibles:
+          - "Cancelada en MercadoLibre" -> NO es incompleta (ready=True, el llamador
+             la excluye usando el flag self.status/meli_status).
+          - "Sin pedido de venta (sale.order)" -> orden ML importada sin SO.
+          - "Total $0 (sin monto a facturar)" -> amount_total del SO en cero.
+          - el mensaje MELI de mismatch (amount_to_invoice vs amount_total) cuando
+             el total no coincide fuera de tolerancia.
+        """
+        self.ensure_one()
+        # Cancelada: no es "incompleta", la maneja confirm_ml/cancel aparte.
+        if self.status == "cancelled":
+            return (True, "")
+        so = self.sale_order
+        if not so:
+            return (False, "Sin pedido de venta (sale.order)")
+        # Total 0: la venta no es confirmable (sin monto a facturar). Lo detectamos
+        # aquí explícitamente para dar un motivo claro distinto del mismatch.
+        if not so.amount_total:
+            return (False, "Total $0 (sin monto a facturar): revisar productos/precios")
+        ready, reason = so.meli_confirm_ready(meli=meli, config=config)
+        if not ready and not reason:
+            reason = "Venta incompleta: revisar productos faltantes, impuestos y descuentos"
+        return (ready, reason)
 
     name = fields.Char(string='Order Name',index=True)
     order_id = fields.Char(string='Order Id',index=True)
