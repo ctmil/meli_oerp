@@ -2197,7 +2197,11 @@ class mercadolibre_orders(models.Model):
             rjson = response and response.json()            
         tax_found = False
         if rjson:
-            for att in rjson['attributes']:
+            # Guard: some /items/{id} responses (e.g. deleted/restricted listings
+            # referenced by pack sub-orders) come back without an "attributes"
+            # key at all, raising KeyError('attributes') and aborting the whole
+            # notification (loops every ~45s via the notification cron retry).
+            for att in (rjson.get('attributes') or []):
                 # att["name"] == "IVA"
                 if att["id"] == "VALUE_ADDED_TAX":
                     tax_found = True
@@ -2223,7 +2227,8 @@ class mercadolibre_orders(models.Model):
 
         tax_found = False
         if rjson:
-            for att in rjson['attributes']:
+            # Guard: see fetchIVA() above - some /items/{id} responses lack "attributes".
+            for att in (rjson.get('attributes') or []):
                 # att["name"] == "Impuesto interno"
                 if att["id"] == "IMPORT_DUTY":
                     tax_found = True
