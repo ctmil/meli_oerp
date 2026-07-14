@@ -221,12 +221,13 @@ class MeliApiNoSDK:
     def json(self):
         return self.rjson
 
-    def get(self, path, params={}, extra_headers=None):
+    def get(self, path, params={}, extra_headers=None, **kwargs):
         """
         GET genérico sin SDK.
         - Firma: get(self, path, params={}, extra_headers=None)
         - Mantiene self.response y self.rjson
         - Retorna self
+        - Absorbe kwargs desconocidos de forma segura (nunca TypeError por firma)
         """
         import time as _time_module
         _t_start = _time_module.time() if MeliApiNoSDK._benchmark_enabled else 0
@@ -308,19 +309,21 @@ class MeliApiNoSDK:
 
         return self
 
-    def get_mini(self, path, params={}):
-        """GET via requests — alias de get() para compatibilidad"""
+    def get_mini(self, path, params={}, extra_headers=None, **kwargs):
+        """GET via requests — alias de get() para compatibilidad.
+        Firma alineada con get(): acepta extra_headers y absorbe kwargs
+        desconocidos de forma segura (no debe romper por firma)."""
         import time as _time_module
         _t_start = _time_module.time() if MeliApiNoSDK._benchmark_enabled else 0
-        result = self.get(path, params)
+        result = self.get(path, params, extra_headers=extra_headers)
         if MeliApiNoSDK._benchmark_enabled:
             self._record_benchmark('get_mini', path, _time_module.time() - _t_start)
         return result
 
-    def post(self, path, body=None, params={}):
+    def post(self, path, body=None, params={}, extra_headers=None, **kwargs):
         """
         POST genérico sin SDK.
-        - Firma: post(self, path, body=None, params={})
+        - Firma: post(self, path, body=None, params={}, extra_headers=None)
         - Mantiene self.response y self.rjson
         - Retorna self
         """
@@ -331,6 +334,8 @@ class MeliApiNoSDK:
         # Extrae y NO muta el dict original
         atok = params.get("access_token", "") or ""
         headers = (params.get("headers") or {}).copy()
+        if extra_headers:
+            headers.update(extra_headers)
         timeout = params.get("timeout", 20)
         files = params.get("files", None)
         qparams = params.get("query", None)
@@ -392,19 +397,21 @@ class MeliApiNoSDK:
 
         return self
 
-    def post_mini(self, path, body=None, params={}):
-        """POST via requests — alias de post() para compatibilidad"""
+    def post_mini(self, path, body=None, params={}, extra_headers=None, **kwargs):
+        """POST via requests — alias de post() para compatibilidad.
+        Firma alineada con post(): acepta extra_headers y absorbe kwargs
+        desconocidos de forma segura."""
         import time as _time_module
         _t_start = _time_module.time() if MeliApiNoSDK._benchmark_enabled else 0
-        result = self.post(path, body, params)
+        result = self.post(path, body, params, extra_headers=extra_headers)
         if MeliApiNoSDK._benchmark_enabled:
             self._record_benchmark('post_mini', path, _time_module.time() - _t_start)
         return result
 
-    def put(self, path, body=None, params={}):
+    def put(self, path, body=None, params={}, extra_headers=None, **kwargs):
         """
         PUT genérico sin SDK.
-        - Firma: put(self, path, body=None, params={})
+        - Firma: put(self, path, body=None, params={}, extra_headers=None)
         - Mantiene self.response y self.rjson
         - Retorna self
         """
@@ -414,6 +421,8 @@ class MeliApiNoSDK:
 
         atok = params.get("access_token", "") or ""
         headers = (params.get("headers") or {}).copy()
+        if extra_headers:
+            headers.update(extra_headers)
         timeout = params.get("timeout", 20)
         qparams = params.get("query", None)
 
@@ -461,19 +470,21 @@ class MeliApiNoSDK:
 
         return self
 
-    def put_mini(self, path, body=None, params={}):
-        """PUT via requests — alias de put() para compatibilidad"""
+    def put_mini(self, path, body=None, params={}, extra_headers=None, **kwargs):
+        """PUT via requests — alias de put() para compatibilidad.
+        Firma alineada con put(): acepta extra_headers y absorbe kwargs
+        desconocidos de forma segura."""
         import time as _time_module
         _t_start = _time_module.time() if MeliApiNoSDK._benchmark_enabled else 0
-        result = self.put(path, body, params)
+        result = self.put(path, body, params, extra_headers=extra_headers)
         if MeliApiNoSDK._benchmark_enabled:
             self._record_benchmark('put_mini', path, _time_module.time() - _t_start)
         return result
 
-    def delete(self, path, params={}):
+    def delete(self, path, params={}, extra_headers=None, **kwargs):
         """
         DELETE genérico sin SDK.
-        - Firma: delete(self, path, params={})
+        - Firma: delete(self, path, params={}, extra_headers=None)
         - Mantiene self.response y self.rjson
         - Retorna self
         """
@@ -483,6 +494,8 @@ class MeliApiNoSDK:
 
         atok = params.get("access_token", "") or ""
         headers = (params.get("headers") or {}).copy()
+        if extra_headers:
+            headers.update(extra_headers)
         timeout = params.get("timeout", 20)
 
         url = self._abs_url(path)
@@ -812,11 +825,14 @@ if _versions.MELI_SDK_AVAILABLE and _meli_sdk and _ApiClient:
         def json(self):
             return self.rjson
 
-        def get(self, path, params={}, extra_headers=None):
+        def get(self, path, params={}, extra_headers=None, **kwargs):
             # When custom headers are required (e.g. x-version for versioned
             # endpoints) the SDK's resource_get does not expose a per-call
             # header hook, so fall back to the requests-based client which
             # supports arbitrary headers.
+            # NOTA: **kwargs absorbe cualquier keyword extra desconocido de
+            # forma segura — nunca debe tirar TypeError por firma (ver
+            # ERROR extra_headers/get_billing_info, meli_oerp 26.70 Aramid).
             if extra_headers:
                 return self.get_mini(path, params, extra_headers=extra_headers)
             try:
@@ -847,7 +863,7 @@ if _versions.MELI_SDK_AVAILABLE and _meli_sdk and _ApiClient:
             return self
 
         # get_mini y post_mini usan requests directo (como en la versión original)
-        def get_mini(self, path, params={}, extra_headers=None):
+        def get_mini(self, path, params={}, extra_headers=None, **kwargs):
             """GET sin SDK (requests directo) - para compatibilidad"""
             _nosdk = MeliApiNoSDK(config=configuration_nosdk)
             _nosdk.__dict__.update({k: v for k, v in self.__dict__.items()
@@ -858,7 +874,12 @@ if _versions.MELI_SDK_AVAILABLE and _meli_sdk and _ApiClient:
             self.rjson = _nosdk.rjson
             return self
 
-        def post(self, path, body=None, params={}):
+        def post(self, path, body=None, params={}, extra_headers=None, **kwargs):
+            # Misma estrategia que get(): resource_post no expone un hook de
+            # headers por-llamada, así que si se piden extra_headers delegamos
+            # al cliente requests puro (get_mini/post_mini pattern).
+            if extra_headers:
+                return self.post_mini(path, body, params, extra_headers=extra_headers)
             try:
                 atok = ("access_token" in params and params["access_token"]) or ""
                 if atok:
@@ -873,21 +894,24 @@ if _versions.MELI_SDK_AVAILABLE and _meli_sdk and _ApiClient:
                 pass
             return self
 
-        def post_mini(self, path, body=None, params={}):
+        def post_mini(self, path, body=None, params={}, extra_headers=None, **kwargs):
             """POST sin SDK (requests directo) - para compatibilidad"""
             _nosdk = MeliApiNoSDK(config=configuration_nosdk)
             _nosdk.__dict__.update({k: v for k, v in self.__dict__.items()
                                      if k in ('client_id', 'client_secret', 'access_token',
                                               'refresh_token', 'redirect_uri', 'seller_id')})
-            _nosdk.post(path, body, params)
+            _nosdk.post(path, body, params, extra_headers=extra_headers)
             self.response = _nosdk.response
             self.rjson = _nosdk.rjson
             return self
 
-        def put(self, path, body=None, params={}):
+        def put(self, path, body=None, params={}, extra_headers=None, **kwargs):
             try:
                 atok = params.get("access_token", "") or ""
                 headers = params.get("headers", {}) or {}
+                if extra_headers:
+                    headers = dict(headers)
+                    headers.update(extra_headers)
                 self.response = self.resource_put(resource=path, access_token=atok, body=body, headers=headers)
                 self.rjson = self.response
             except _ApiException as e:
@@ -896,18 +920,18 @@ if _versions.MELI_SDK_AVAILABLE and _meli_sdk and _ApiClient:
                 pass
             return self
 
-        def put_mini(self, path, body=None, params={}):
+        def put_mini(self, path, body=None, params={}, extra_headers=None, **kwargs):
             """PUT sin SDK (requests directo) - para compatibilidad"""
             _nosdk = MeliApiNoSDK(config=configuration_nosdk)
             _nosdk.__dict__.update({k: v for k, v in self.__dict__.items()
                                      if k in ('client_id', 'client_secret', 'access_token',
                                               'refresh_token', 'redirect_uri', 'seller_id')})
-            _nosdk.put(path, body, params)
+            _nosdk.put(path, body, params, extra_headers=extra_headers)
             self.response = _nosdk.response
             self.rjson = _nosdk.rjson
             return self
 
-        def delete(self, path, params={}):
+        def delete(self, path, params={}, extra_headers=None, **kwargs):
             try:
                 atok = ("access_token" in params and params["access_token"]) or ""
                 self.response = self.resource_delete(resource=path, access_token=atok)

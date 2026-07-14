@@ -4,6 +4,47 @@
 
 ---
 
+### 14 jul 2026 — hardening(meli_util): firma extra_headers/kwargs consistente en TODAS las variantes get/post/put/delete `[ERROR-008]`
+
+**Resuelve:** ERROR-008 (spam ERROR `MeliApiSDK.get() got an unexpected keyword argument 'extra_headers'`,
+Aramid post-deploy 26.70). No reproducible en el source actual (ver diagnóstico completo en errors-log.md);
+`get()` de ambas variantes (`MeliApiNoSDK` y `MeliApiSDK`) ya aceptaba `extra_headers` desde 26.22 (`717bac7`).
+Aplicado igual como hardening defensivo + fix real de una inconsistencia menor encontrada en la auditoría.
+
+**Archivos:** `meli_oerp/models/meli_util.py` (v17.0.26.78)
+
+**Cambios:**
+1. `MeliApiNoSDK.get_mini()` — **fix real**: no propagaba `extra_headers` al delegar a `get()` (única
+   variante con la firma realmente rota, aunque no coincide exactamente con el síntoma reportado — nadie la
+   llama hoy con extra_headers, pero es la inconsistencia de firma que sí existía en el código).
+2. `MeliApiNoSDK` y `MeliApiSDK` (rama `if MELI_SDK_AVAILABLE`) — alineadas TODAS las variantes
+   (`get`, `get_mini`, `post`, `post_mini`, `put`, `put_mini`, `delete`) para aceptar `extra_headers=None`
+   con la misma firma y semántica que `get()` (merge en headers finales, o delegación a `*_mini` en el caso
+   SDK que no expone hook de headers por-llamada vía `resource_*`).
+3. Agregado `**kwargs` a todas esas variantes (ambas clases) para absorber cualquier keyword argument
+   inesperado de forma segura — nunca debe volver a tirar `TypeError` por firma, sea cual sea la causa real
+   del próximo mismatch.
+
+**Verificación:**
+- `python3 -m py_compile models/meli_util.py` → OK.
+- Smoke standalone (pyenv17, paquete real `meli` 3.0.0 instalado, sin mocks del SDK): instanciadas ambas
+  clases (`MeliApiSDK` con `MELI_SDK_AVAILABLE=True` real, y `MeliApiNoSDK`) y llamadas `get/get_mini/post/
+  put/delete` con `extra_headers={'x-version':'2'}` + un kwarg inventado (`unexpected_future_kwarg=...`) —
+  las 8 combinaciones (4 métodos × 2 clases) devuelven sin excepción.
+
+**Reportado (no migrado):** mismo patrón (get_mini/post/post_mini sin `extra_headers`) confirmado presente
+en meli_oerp 16.0/18.0/19.0 del grove — pendiente de portar en tanda de convergencia horizontal si se decide.
+
+**Hallazgos laterales fuera de alcance (reportados, no arreglados):**
+- `meli_oerp/requirements.txt` (fork `ctmil/python-sdk-2025`) vs `meli_oerp_stock/requirements.txt` (oficial
+  `mercadolibre/python-sdk`) — mismo nombre de paquete pip `meli`/versión `3.0.0`, dos fuentes git distintas.
+  Riesgo de build no-determinístico; reconciliar en ticket aparte.
+- `get_billing_info()` (orders.py): `getattr(response, 'status_code', 0) == 200` nunca es True porque
+  ninguna variante de `get()` setea `self.status_code` — el endpoint v2 de billing_info nunca "gana", siempre
+  cae al legacy. Funciona (legacy resuelve bien), pero la migración a v2 nunca se ejerce de verdad.
+
+---
+
 ### 12 jul 2026 — [C] backport meli_confirm_ready (BUG-015 visibilidad) + BUG-011 dedup nombre contacto
 - **[C] BUG-015** (backport 19.0 `c04bddd2`): helper read-only `meli_confirm_ready` en `sale.order` y
   `mercadolibre.orders` (comparte la matemática de `confirm_ml`) para LISTAR ventas ML trabadas/incompletas.
