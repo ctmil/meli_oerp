@@ -4,6 +4,53 @@
 
 ---
 
+### 14 jul 2026 — hardening(meli_util): forward-port firma extra_headers/**kwargs consistente en get/post/put/delete `[ERROR-008]`
+
+**Propaga a 16.0** el hardening ya aplicado en 17.0 (26.78, ver su fixes-log). Convergencia horizontal del grove.
+
+**Archivos:** `meli_oerp/models/meli_util.py` (v16.0.26.78)
+
+**Cambios (idénticos a 17.0):**
+1. `MeliApiNoSDK` y `MeliApiSDK`: TODAS las variantes (`get`, `get_mini`, `post`, `post_mini`, `put`,
+   `put_mini`, `delete`) ahora aceptan `extra_headers=None` con misma firma/semántica (merge en headers
+   finales, o delegación a `*_mini` en el caso SDK sin hook de headers por-llamada).
+2. `**kwargs` agregado a todas esas variantes (ambas clases) como red de seguridad anti-`TypeError` por firma.
+3. Fix real: `get_mini`/`post_mini`/`put_mini` de NoSDK no propagaban `extra_headers` al delegar; ahora sí.
+
+**Verificación:** `python3 -m py_compile` OK. Sin deploy. Push lo confirma el usuario.
+
+---
+
+### 12 jul 2026 — BUG-018 (PROPUESTO, sin deploy): `KeyError('attributes')` en `fetchIVA`/`fetchImpuestoInterno` — item ML 404 sin `attributes` `[justdistribution]`
+
+**Reportado:** prod JustDistribution — `meli_oerp_multiple.models.connection_notification: _process_notification_order >> 'attributes'` repetido ~637 veces/día, siempre precedido de `meli_oerp.models.orders: Warning adding sale.order. Normally a pack order.`
+**Estado:** Diagnosticado + fix escrito en el source, **pendiente de validación del usuario antes de deploy**
+**Archivo:** `models/orders.py` (`fetchIVA` línea ~2203, `fetchImpuestoInterno` línea ~2233)
+
+**Causa raíz:** al procesar los `order_items` de una orden pack (`orders_update_order_json`), por cada
+ítem se pide el detalle a `/items/{id}` con `include_attributes=all` y se llama `fetchIVA(rjson=rjson3)`,
+que hace `for att in rjson['attributes']:` sin guardia. Confirmado en vivo (llamada read-only a la API
+ML desde prod) que para el ítem `MLA1428496705` (variación de una orden pack real del log de hoy) la
+API devuelve **404**: `{'error': 'get error', 'status': 404, 'cause': 'Not Found', 'message': '...Item
+with id MLA1428496705 not found...'}` — un dict NO vacío (pasa el check `if rjson:`) pero sin key
+`attributes` → `KeyError`. La excepción no está capturada en `orders_update_order_json`, sube sin
+trap hasta el `except Exception` de `_process_notification_order` en `meli_oerp_multiple`, que marca
+la notificación `FAILED` y la reintenta en el próximo ciclo del cron (~45s) — loop infinito para
+notificaciones que referencian publicaciones eliminadas/vencidas de MercadoLibre. No bloquea ventas
+(la SO/factura sigue su curso normal; el error es solo en el enriquecimiento de IVA/impuesto interno
+del ítem para el log).
+
+**Fix propuesto:** `rjson.get('attributes') or []` en ambas funciones (`fetchIVA` y
+`fetchImpuestoInterno`, mismo patrón, la segunda no tiene caller activo hoy pero comparte el bug).
+Sin cambio de comportamiento para el caso normal (ítem con attributes) — cuando faltan, el loop
+simplemente no encuentra IVA/impuesto interno (igual que el `else` ya contemplado) en vez de crashear.
+
+**Pendiente:**
+- Validar con el usuario antes de deployar.
+- Portar el mismo fix a `meli_oerp/17.0`, `18.0`, `19.0` (mismo código, mismas líneas).
+
+---
+
 ### 12 jul 2026 — [C] backport meli_confirm_ready (BUG-015 visibilidad) + BUG-011 dedup nombre contacto
 - **[C] BUG-015** (backport 19.0 `c04bddd2`): helper read-only `meli_confirm_ready` en `sale.order` y
   `mercadolibre.orders` (comparte la matemática de `confirm_ml`) para LISTAR ventas ML trabadas/incompletas.
