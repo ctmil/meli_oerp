@@ -4,6 +4,23 @@
 
 ---
 
+### 14 jul 2026 — hardening(meli_util): forward-port firma extra_headers/**kwargs consistente en get/post/put/delete `[ERROR-008]`
+
+**Propaga a 19.0** el hardening ya aplicado en 17.0 (26.78, ver su fixes-log). Convergencia horizontal del grove.
+
+**Archivos:** `meli_oerp/models/meli_util.py` (v19.0.26.75)
+
+**Cambios (idénticos a 17.0):**
+1. `MeliApiNoSDK` y `MeliApiSDK`: TODAS las variantes (`get`, `get_mini`, `post`, `post_mini`, `put`,
+   `put_mini`, `delete`) ahora aceptan `extra_headers=None` con misma firma/semántica (merge en headers
+   finales, o delegación a `*_mini` en el caso SDK sin hook de headers por-llamada).
+2. `**kwargs` agregado a todas esas variantes (ambas clases) como red de seguridad anti-`TypeError` por firma.
+3. Fix real: `get_mini`/`post_mini`/`put_mini` de NoSDK no propagaban `extra_headers` al delegar; ahora sí.
+
+**Verificación:** `python3 -m py_compile` OK. Sin deploy. Push lo confirma el usuario.
+
+---
+
 ### 12 jul 2026 — BUG-011 dedup nombre contacto (razón social repetida)
 Helper module-level `_meli_norm_name`; `buyer_full_name`/`billing_full_name` no concatenan el apellido si ML
 lo manda == nombre (compradores empresa sin persona de contacto). `models/orders.py`. ([C] meli_confirm_ready
