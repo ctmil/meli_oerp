@@ -4,6 +4,15 @@
 
 ---
 
+**2026-07-15** `[19.0.26.77]` — "Traer medidas": la acción de lista tragaba el resultado + backfill mudo [#485 Deco/KPI]
+
+El cliente reportó "aparece la opción pero no hace nada" al usar la acción masiva desde la vista Lista. **Corría bien**: el log de prod (Deco, 13/7 12:43) muestra `MELI backfill plantilla: finished 2342/2342 (ok=2342, errors=2)` — escribió el reclamo a las 12:43:21, mientras el proceso todavía corría (terminó 12:43:51). Dos causas independientes, ambas de feedback:
+- `action_meli_backfill_template_fields` (models/product.py) terminaba en `return True`: todo el resultado iba al log, cero notificación. Ahora devuelve un `display_notification` **sticky** (el proceso dura minutos; un toast que se desvanece es justo lo que dejaba la duda) con actualizados / omitidos / errores. Casos "sin cuentas ML logueadas" y "ningún producto vinculado" también avisan.
+- **El server action de la lista descartaba el retorno**: `views/product_view.xml` tenía `records.filtered(...).action_meli_backfill_template_fields()` sin asignar a `action` → en `ir.actions.server` state=code, sin `action = ...` el dict devuelto **no llega al cliente**. Con solo arreglar el método, el camino que usó el cliente (lista) hubiera seguido mudo. Además se quitó el `.filtered(...)` previo: el método ya filtra, y necesita VER los no-vinculados para poder reportarlos (si no, `omitted` daba 0 siempre desde la lista).
+Contadores nuevos: `skipped` (link en template pero no en variante) + `unlinked` (seleccionados sin vínculo ML); en el log van separados, en pantalla se suman como "omitidos". Sin cambio de schema. Bump 26.76→26.77 (solo 19.0: sesión de cliente; backport 16/17/18 = deuda).
+
+---
+
 **2026-07-10** `[19.0.26.70]` — orders_resync_status: dominio in-flight + order asc [#475]
 
 Refinado el barrido de re-sync de estado para que cubra la ventana DE VERDAD (en sellers de alto volumen el limit=100/desc cubría ~10% y justo las órdenes NUEVAS que el sweep normal date_desc ya cubre). Cambios en `orders_resync_status` (models/orders.py): (a) dominio suma `("shipment_status", "not in", ("delivered",))` — la cancelación del comprador es pre-entrega; delivered (~73% en Score/WodPro) no es cancelable por esa vía → excluirla concentra el barrido en las in-flight (empty/pending/ready_to_ship/not_delivered/shipped = todas las no-entregadas, no se pierde ninguna cancelable) y hace la ventana entera cubrible (medido prod 30d: Score 1107 / WodPro 482 in-flight vs 4784 "abiertas"). (b) `order="date_created asc"` (más viejas primero = at-risk; si el limit trunca, trunca las nuevas ya cubiertas). (c) defaults days 7→15, limit 100→500 (en prod se fijan por CONFIG). `shipment_status` = Char related indexado (models/orders.py). Bump 26.69→26.70, 4 versiones idénticas. meli_oerp_multiple no cambia (dispatcher igual). Nota: source venía de 26.65→26.69 por trabajo concurrente (post_title 26.69 unpushed encima).
