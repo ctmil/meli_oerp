@@ -347,6 +347,21 @@ class product_template(models.Model):
             return None
         return rjson
 
+    def _meli_backfill_notify(self, message, warning=False):
+        """Notification shown when the backfill ends. Sticky on purpose: the run
+        takes minutes, and a toast that fades is exactly what left users unsure
+        whether anything happened at all."""
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': "Traer medidas",
+                'message': message,
+                'type': 'warning' if warning else 'success',
+                'sticky': True,
+            },
+        }
+
     def action_meli_backfill_template_fields(self):
         """Backfill the MELI "Plantilla" Char fields (seller package
         dimensions, brand, model, gender) for already-imported products by
@@ -370,7 +385,11 @@ class product_template(models.Model):
         one savepoint per product so a failing item never aborts the whole run.
         Idempotent / overwrite semantics live in _meli_import_template_attributes
         (SELLER_PACKAGE_* overwrite, brand/model/gender fill-empty). Usable as a
-        form button and a list action."""
+        form button and a list action.
+
+        Always ends in a user-facing notification: this runs for minutes over
+        thousands of products and used to return silently, so from the UI it was
+        indistinguishable from doing nothing (Deco/KPI ticket #485)."""
         # meli_id lives on the variant (product.product), so filter templates by
         # their variants' meli_id (NOT template.meli_id, which does not exist).
         if self:
@@ -378,10 +397,25 @@ class product_template(models.Model):
         else:
             templates = self.search([('product_variant_ids.meli_id', '!=', False)])
 
+        # Selected products with no ML link at all: filtered out above, but the
+        # user has to hear about them -- picking non-published products and
+        # getting "0 updated" is otherwise unexplainable.
+        unlinked = len(self) - len(templates) if self else 0
+
         accounts = self._meli_backfill_get_accounts()
         if not accounts:
             _logger.warning("MELI backfill: no hay cuentas ML logueadas; nada que hacer")
-            return True
+            return self._meli_backfill_notify(
+                "No hay ninguna cuenta de MercadoLibre conectada, así que no se pudo traer nada. "
+                "Revisá la conexión de la cuenta y volvé a intentar.", warning=True)
+
+        if not templates:
+            _logger.info("MELI backfill plantilla: ningún producto seleccionado está vinculado a ML")
+            return self._meli_backfill_notify(
+                ("Ninguno de los %s productos seleccionados está vinculado a una publicación de "
+                 "MercadoLibre, así que no hay medidas para traer." % unlinked) if self else
+                "No hay ningún producto vinculado a una publicación de MercadoLibre.",
+                warning=True)
 
         # Remember which account owned the previous item to try it first (items
         # of one seller tend to come in runs); the product's own company is the
@@ -408,13 +442,14 @@ class product_template(models.Model):
             return None
 
         total = len(templates)
-        done = ok = errors = 0
+        done = ok = errors = skipped = 0
         _logger.info("MELI backfill plantilla: starting for %s templates (%s cuentas ML)", total, len(accounts))
         for template in templates:
             done += 1
             variant = template._meli_template_variant()
             meli_id = variant.meli_id if variant else False
             if not meli_id:
+                skipped += 1
                 continue
             try:
                 with self.env.cr.savepoint():
@@ -430,8 +465,19 @@ class product_template(models.Model):
                 _logger.error("MELI backfill error on template %s (meli_id=%s): %s", template.id, meli_id, e, exc_info=True)
             if done % 50 == 0:
                 _logger.info("MELI backfill progress: %s/%s (ok=%s, errors=%s)", done, total, ok, errors)
-        _logger.info("MELI backfill plantilla: finished %s/%s (ok=%s, errors=%s)", done, total, ok, errors)
-        return True
+        _logger.info("MELI backfill plantilla: finished %s/%s (ok=%s, errors=%s, skipped=%s)",
+                     done, total, ok, errors, skipped)
+
+        # unlinked (never had an ML link) and skipped (link on the template but
+        # not on the variant) are the same story for the user: "no había de dónde
+        # traerlas". Keep them apart in the log, together on screen.
+        omitted = unlinked + skipped
+        parts = ["%s producto(s) actualizado(s) con los datos de MercadoLibre" % ok]
+        if omitted:
+            parts.append("%s sin publicación vinculada (se omitieron)" % omitted)
+        if errors:
+            parts.append("%s no se pudieron leer de MercadoLibre (ver el registro del servidor)" % errors)
+        return self._meli_backfill_notify(". ".join(parts) + ".", warning=bool(errors) or not ok)
 
     def _collect_and_upload_images_for_meli(self, meli=None, config=None):
         """

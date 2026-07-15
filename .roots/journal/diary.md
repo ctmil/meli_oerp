@@ -4,6 +4,15 @@
 
 ---
 
+**2026-07-15** `[17.0.26.80]` — backport #485: "Traer medidas" avisa + la acción de lista tragaba el retorno [Deco/KPI]
+
+Backport de 19.0 (`33133d7b`). Dos causas de feedback, ambas presentes IDÉNTICAS en las 4 versiones:
+- `action_meli_backfill_template_fields` (models/product.py) terminaba en `return True`: el resultado iba solo al log. Ahora devuelve `display_notification` **sticky** (el proceso dura minutos sobre miles de productos) con actualizados/omitidos/errores; también avisa "sin cuentas ML logueadas" y "ningún producto vinculado".
+- `views/product_view.xml`: el `ir.actions.server` de la vista Lista llamaba al método **sin asignar a `action`** → en state=code el dict devuelto NO llega al cliente. **La acción masiva estaba muda en TODAS las versiones**, no solo en la del cliente que lo reportó. Se quitó además el `.filtered(...)` previo (el método ya filtra y necesita ver los no-vinculados para contarlos).
+Contadores `skipped`/`unlinked` separados en el log, sumados como "omitidos" en pantalla. Sin cambio de schema. Verificado end-to-end en la prod de Deco (19.0, 26.77): productos vinculados → aviso `success`; sin vínculo → `warning`.
+
+---
+
 **2026-07-10** `[17.0.26.70]` — orders_resync_status: dominio in-flight + order asc [#475]
 
 Refinado el barrido de re-sync de estado para que cubra la ventana DE VERDAD (en sellers de alto volumen el limit=100/desc cubría ~10% y justo las órdenes NUEVAS que el sweep normal date_desc ya cubre). Cambios en `orders_resync_status` (models/orders.py): (a) dominio suma `("shipment_status", "not in", ("delivered",))` — la cancelación del comprador es pre-entrega; delivered (~73% en Score/WodPro) no es cancelable por esa vía → excluirla concentra el barrido en las in-flight (empty/pending/ready_to_ship/not_delivered/shipped = todas las no-entregadas, no se pierde ninguna cancelable) y hace la ventana entera cubrible (medido prod 30d: Score 1107 / WodPro 482 in-flight vs 4784 "abiertas"). (b) `order="date_created asc"` (más viejas primero = at-risk; si el limit trunca, trunca las nuevas ya cubiertas). (c) defaults days 7→15, limit 100→500 (en prod se fijan por CONFIG). `shipment_status` = Char related indexado (models/orders.py). Bump 26.69→26.70, 4 versiones idénticas. meli_oerp_multiple no cambia (dispatcher igual). Nota: source venía de 26.65→26.69 por trabajo concurrente (post_title 26.69 unpushed encima).
