@@ -585,7 +585,11 @@
             <field name="binding_model_id" ref="product.model_product_template"/>
             <field name="binding_view_types">list,form</field>
             <field name="state">code</field>
-            <field name="code">records.filtered(lambda t: any(v.meli_id for v in t.product_variant_ids)).action_meli_backfill_template_fields()</field>
+            <!-- `action = ...` is what sends the result notification back to the client: without it
+                 the server action swallows the returned dict and the list action looks like it did
+                 nothing (Deco/KPI #485). No .filtered() here either: the method filters, and it
+                 needs to see the unlinked records to report them. -->
+            <field name="code">action = records.action_meli_backfill_template_fields()</field>
         </record>
 
         <menuitem id="menu_meli" name="MercadoLibre" parent="sale.sale_menu_root" sequence="16"/>
