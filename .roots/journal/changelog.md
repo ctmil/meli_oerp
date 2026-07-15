@@ -4,6 +4,18 @@
 
 ---
 
+## Versión 18.0.26.79 — "Traer medidas" ahora avisa qué hizo (antes parecía no hacer nada) [#485 Deco/KPI]
+15 jul 2026
+
+**Cambios:**
+
+1. La acción **"Traer medidas"** (botón del producto y acción masiva desde la vista Lista) ahora **muestra un aviso en pantalla al terminar**, con el resultado: cuántos productos se actualizaron, cuántos se omitieron por no tener publicación vinculada, y cuántos no se pudieron leer de MercadoLibre. Antes terminaba en silencio: el proceso corría varios minutos sobre miles de productos y no informaba nada, así que desde la pantalla era **indistinguible de que no hiciera nada**.
+2. Se corrigió la **acción masiva de la vista Lista**, que además descartaba el resultado: aunque el proceso corriera bien, nunca llegaba ningún aviso al usuario.
+3. Si no hay ninguna cuenta de MercadoLibre conectada, o si ninguno de los productos seleccionados está vinculado a una publicación, ahora lo dice explícitamente en vez de terminar en silencio.
+
+**Nota:** "Traer medidas" trae las medidas **del paquete de envío** (Mercado Envíos: alto/ancho/largo/peso), marca, modelo y género. No trae medidas propias del producto (por ejemplo el ancho y el largo de una cortina).
+
+
 ## Versión 18.0.26.73 — Errores de publicación: se muestra el NOMBRE del atributo faltante [#521 Koreautos]
 11 jul 2026
 
