@@ -4131,6 +4131,41 @@ class product_product(models.Model):
                     attributes.append(attribute)
                     _logger.info("seller_package attribute added: "+str(attribute))
 
+        # Product dimensions (item) -> ML WIDTH/HEIGHT/LENGTH, rebuilt as
+        # "<number> <unit>" from the Float value + unit Char. [#424 Deco/KPI]
+        _prod_dim_fields = [
+            ("meli_product_width",  "meli_product_width_unit",  "WIDTH"),
+            ("meli_product_height", "meli_product_height_unit", "HEIGHT"),
+            ("meli_product_length", "meli_product_length_unit", "LENGTH"),
+        ]
+        for _vf, _uf, _att_id in _prod_dim_fields:
+            if _att_id not in attributes_ids:
+                _num = getattr(product, _vf, None) or getattr(product_tmpl, _vf, None)
+                if _num:
+                    _unit = getattr(product, _uf, None) or getattr(product_tmpl, _uf, None)
+                    _nums = ("%g" % _num)  # 1.2 -> '1.2', 120.0 -> '120'
+                    _val = ("%s %s" % (_nums, _unit)) if _unit else _nums
+                    attribute = {"id": _att_id, "value_name": _val}
+                    attributes_ids[_att_id] = _val
+                    attributes.append(attribute)
+                    _logger.info("product dimension attribute added: "+str(attribute))
+
+        # Taxes (often MANDATORY to publish, see #474) -> ML VALUE_ADDED_TAX /
+        # IMPORT_DUTY. Sending them from the imported fields avoids the "missing
+        # conditional required attribute" publish error. [#474 Deco/KPI]
+        _tax_fields = [
+            ("meli_vat", "VALUE_ADDED_TAX"),
+            ("meli_import_duty", "IMPORT_DUTY"),
+        ]
+        for _field, _att_id in _tax_fields:
+            if _att_id not in attributes_ids:
+                _val = getattr(product, _field, None) or getattr(product_tmpl, _field, None)
+                if _val:
+                    attribute = {"id": _att_id, "value_name": str(_val)}
+                    attributes_ids[_att_id] = _val
+                    attributes.append(attribute)
+                    _logger.info("tax attribute added: "+str(attribute))
+
         #_product_post_set_category
         if www_cats:
             if product.public_categ_ids:

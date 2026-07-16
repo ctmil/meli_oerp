@@ -4,6 +4,12 @@
 
 ---
 
+**2026-07-16** `[19.0.26.79]` — publish: envia WIDTH/HEIGHT/LENGTH + VALUE_ADDED_TAX/IMPORT_DUTY a ML [#424/#474 Deco/KPI]
+
+Cara de publicacion (bidireccional con el import de 26.78). En el builder de atributos del body (junto al bloque SELLER_PACKAGE_*): dimensiones del producto -> WIDTH/HEIGHT/LENGTH reconstruidas como "<%g> <unit>" desde meli_product_{width,height,length} + *_unit; e IVA/impuesto interno -> VALUE_ADDED_TAX/IMPORT_DUTY desde meli_vat/meli_import_duty. Solo agrega el atributo si no venia ya en attributes_ids (no pisa lo explicito). Enviar VALUE_ADDED_TAX/IMPORT_DUTY (obligatorios) cierra el error de publicacion de #474. Bump 26.78->26.79.
+
+---
+
 **2026-07-16** `[19.0.26.78]` — dimensiones del producto (float+unidad) + IVA/impuesto interno desde ML [#424/#474 Deco/KPI]
 
 Pedido en call con Deco/KPI. Campos nuevos en product.template y product.product (pestaña MELI Plantilla):

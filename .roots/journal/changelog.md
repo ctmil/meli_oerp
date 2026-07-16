@@ -4,6 +4,16 @@
 
 ---
 
+## Versión 19.0.26.79 — Al publicar, se envían a MercadoLibre las dimensiones y los impuestos del producto [#424/#474 Deco/KPI]
+16 jul 2026
+
+**Cambios:**
+
+1. Al **publicar o actualizar** una publicación en MercadoLibre, ahora se envían automáticamente, como atributos de la publicación, el **Ancho / Alto / Largo del producto** (WIDTH/HEIGHT/LENGTH, reconstruidos como "1.2 m" desde el número + unidad) y el **IVA** e **Impuesto interno** (VALUE_ADDED_TAX / IMPORT_DUTY).
+2. Como IVA e Impuesto interno suelen ser **obligatorios** para publicar, enviarlos automáticamente **evita el error de publicación** por atributo faltante (el que se veía en el ticket #474).
+
+Con la importación (26.78) y la publicación (26.79), estos campos viajan en los dos sentidos: MercadoLibre → Odoo al importar, y Odoo → MercadoLibre al publicar.
+
 ## Versión 19.0.26.78 — Dimensiones del producto + IVA/Impuesto interno se traen de la ficha técnica de ML [#424/#474 Deco/KPI]
 16 jul 2026
 
