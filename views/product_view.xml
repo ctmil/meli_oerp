@@ -179,6 +179,17 @@
                         <field name="meli_seller_package_length" />
                         <field name="meli_seller_package_weight" />
                       </group>
+                      <separator string="Dimensiones del producto (desde la ficha técnica de ML)" colspan="1"/>
+                      <group name="product_dims">
+                        <field name="meli_product_width" />
+                        <field name="meli_product_width_unit" />
+                        <field name="meli_product_height" />
+                        <field name="meli_product_height_unit" />
+                        <field name="meli_product_length" />
+                        <field name="meli_product_length_unit" />
+                        <field name="meli_vat" />
+                        <field name="meli_import_duty" />
+                      </group>
                       <group name="Basic description2">
                         <field name="meli_model"/>
                         <field name="meli_gender"/>
@@ -485,6 +496,14 @@
                               <field name="meli_seller_package_width" />
                               <field name="meli_seller_package_length" />
                               <field name="meli_seller_package_weight" />
+                              <field name="meli_product_width" />
+                              <field name="meli_product_width_unit" />
+                              <field name="meli_product_height" />
+                              <field name="meli_product_height_unit" />
+                              <field name="meli_product_length" />
+                              <field name="meli_product_length_unit" />
+                              <field name="meli_vat" />
+                              <field name="meli_import_duty" />
                               <field name="meli_imagen_logo" />
                               <field name="meli_imagen_id" />
                               <field name="meli_imagen_link" />

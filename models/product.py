@@ -1053,6 +1053,23 @@ class product_template(models.Model):
     meli_seller_package_length = fields.Char(string="Largo del paquete [vendedor]", help="SELLER_PACKAGE_LENGTH: Largo del paquete a enviar. Ej: '40 cm'")
     meli_seller_package_weight = fields.Char(string="Peso del paquete [vendedor]", help="SELLER_PACKAGE_WEIGHT: Peso del paquete a enviar. Ej: '500 g'")
 
+    # Product dimensions (the item itself, NOT the shipping package) taken from
+    # the ML product attributes WIDTH/HEIGHT/LENGTH. Numeric value + its unit
+    # kept apart on purpose (value as Float so it is directly usable downstream,
+    # e.g. copied onto the sale order line; unit kept verbatim as ML sends it,
+    # 'm'/'cm'/... -- we do NOT normalize). [#424 Deco/KPI]
+    meli_product_width = fields.Float(string="Ancho del producto", help="Atributo WIDTH de la publicación (valor numérico).")
+    meli_product_width_unit = fields.Char(string="Unidad ancho", help="Unidad del atributo WIDTH tal como la envía ML (ej. 'm', 'cm').")
+    meli_product_height = fields.Float(string="Alto del producto", help="Atributo HEIGHT de la publicación (valor numérico).")
+    meli_product_height_unit = fields.Char(string="Unidad alto", help="Unidad del atributo HEIGHT tal como la envía ML (ej. 'm', 'cm').")
+    meli_product_length = fields.Float(string="Largo del producto", help="Atributo LENGTH de la publicación (valor numérico).")
+    meli_product_length_unit = fields.Char(string="Unidad largo", help="Unidad del atributo LENGTH tal como la envía ML (ej. 'm', 'cm').")
+
+    # Taxes brought from ML (VALUE_ADDED_TAX / IMPORT_DUTY). Often mandatory to
+    # publish (#474); imported so they need not be entered by hand. Ej: '21 %'.
+    meli_vat = fields.Char(string="IVA [meli]", help="Atributo VALUE_ADDED_TAX de la publicación (ej. '21 %').")
+    meli_import_duty = fields.Char(string="Impuesto interno [meli]", help="Atributo IMPORT_DUTY de la publicación (ej. '0 %').")
+
 class product_product(models.Model):
 
     _inherit = "product.product"
@@ -1070,6 +1087,10 @@ class product_product(models.Model):
         "BRAND":  "meli_brand",
         "MODEL":  "meli_model",
         "GENDER": "meli_gender",
+        # Taxes: often MANDATORY to publish (see #474). Bring them from ML so the
+        # client does not have to re-enter them by hand. ML value like '21 %'.
+        "VALUE_ADDED_TAX": "meli_vat",
+        "IMPORT_DUTY":     "meli_import_duty",
     }
     # Catalog PACKAGE_* attrs (read-only on ML) fall back to the SAME seller
     # fields; publish remaps PACKAGE_*->SELLER_PACKAGE_* (same relation, here
@@ -1092,7 +1113,49 @@ class product_product(models.Model):
         "meli_seller_package_width",
         "meli_seller_package_length",
         "meli_seller_package_weight",
+        # Taxes: ML authoritative -> keep synced on every import (mandatory
+        # attributes, avoid manual drift). [#474]
+        "meli_vat",
+        "meli_import_duty",
     }
+    # Product dimensions (item, not package): ML attribute id -> (value field,
+    # unit field). Value goes to a Float, unit kept verbatim in a Char. ML is
+    # authoritative -> overwrite when it sends a numeric value. [#424 Deco/KPI]
+    _MELI_PRODUCT_DIM_MAP = {
+        "WIDTH":  ("meli_product_width",  "meli_product_width_unit"),
+        "HEIGHT": ("meli_product_height", "meli_product_height_unit"),
+        "LENGTH": ("meli_product_length", "meli_product_length_unit"),
+    }
+
+    @staticmethod
+    def _meli_parse_dimension(att):
+        """Split an ML dimension attribute into (number, unit).
+
+        Prefers ML's structured form (`value_struct = {'number': 1.2,
+        'unit': 'm'}`); falls back to parsing `value_name` like '1.2 m' /
+        '70 cm' (also tolerates a comma decimal). Returns (None, None) when no
+        numeric value can be read -- the caller then leaves the field untouched
+        (ML empty never wipes)."""
+        if not isinstance(att, dict):
+            return (None, None)
+        vs = att.get("value_struct")
+        if isinstance(vs, dict) and vs.get("number") not in (None, False, ""):
+            try:
+                return (float(vs.get("number")), (vs.get("unit") or "").strip() or False)
+            except (TypeError, ValueError):
+                pass
+        raw = att.get("value_name")
+        if not raw:
+            return (None, None)
+        m = re.search(r"([-+]?\d+(?:[.,]\d+)?)\s*([^\d\s].*)?$", str(raw).strip())
+        if not m:
+            return (None, None)
+        try:
+            number = float(m.group(1).replace(",", "."))
+        except (TypeError, ValueError):
+            return (None, None)
+        unit = (m.group(2) or "").strip() or False
+        return (number, unit)
 
     @staticmethod
     def _meli_attr_value(att):
@@ -1128,7 +1191,9 @@ class product_product(models.Model):
         ML empty never wipes: a field is touched only when ML provides a
         non-empty value. The catalog PACKAGE_* fallback applies only when no
         SELLER_PACKAGE_* is present. Bare WIDTH/HEIGHT/LENGTH (the *product*
-        dimensions) are intentionally NOT mapped.
+        dimensions, distinct from the package) go to the numeric
+        meli_product_{width,height,length} + their *_unit Char via
+        _MELI_PRODUCT_DIM_MAP (ML authoritative -> overwrite). [#424]
         Writes both the template and the variant (self) when the field exists
         on each. `self` may be an empty product.product recordset (then only
         the template is written)."""
@@ -1169,6 +1234,26 @@ class product_product(models.Model):
             if field in self._fields:
                 if overwrite or not (self and self[field]):
                     prod_vals[field] = val
+        # Product dimensions (WIDTH/HEIGHT/LENGTH) -> Float value + unit Char, on
+        # BOTH template and variant. ML is authoritative -> overwrite when it
+        # sends a numeric value; a missing/blank one is left untouched. [#424]
+        dim_map = self._MELI_PRODUCT_DIM_MAP
+        for att in attributes:
+            if not isinstance(att, dict):
+                continue
+            pair = dim_map.get(att.get("id"))
+            if not pair:
+                continue
+            value_field, unit_field = pair
+            number, unit = self._meli_parse_dimension(att)
+            if number is None:
+                continue
+            if value_field in product_template._fields:
+                tmpl_vals[value_field] = number
+                tmpl_vals[unit_field] = unit
+            if value_field in self._fields:
+                prod_vals[value_field] = number
+                prod_vals[unit_field] = unit
         if tmpl_vals:
             product_template.write(tmpl_vals)
             _logger.info("MELI import: plantilla fields set on template %s: %s", product_template.id, list(tmpl_vals.keys()))
@@ -5044,6 +5129,18 @@ class product_product(models.Model):
     meli_seller_package_width  = fields.Char(string="Ancho del paquete [vendedor]", help="SELLER_PACKAGE_WIDTH: Ancho del paquete a enviar. Ej: '20 cm'")
     meli_seller_package_length = fields.Char(string="Largo del paquete [vendedor]", help="SELLER_PACKAGE_LENGTH: Largo del paquete a enviar. Ej: '40 cm'")
     meli_seller_package_weight = fields.Char(string="Peso del paquete [vendedor]", help="SELLER_PACKAGE_WEIGHT: Peso del paquete a enviar. Ej: '500 g'")
+
+    # Product dimensions (item, NOT package) from ML WIDTH/HEIGHT/LENGTH. Mirror
+    # of the same fields on product.template; the import fills both. [#424 Deco/KPI]
+    meli_product_width = fields.Float(string="Ancho del producto", help="Atributo WIDTH de la publicación (valor numérico).")
+    meli_product_width_unit = fields.Char(string="Unidad ancho", help="Unidad del atributo WIDTH tal como la envía ML (ej. 'm', 'cm').")
+    meli_product_height = fields.Float(string="Alto del producto", help="Atributo HEIGHT de la publicación (valor numérico).")
+    meli_product_height_unit = fields.Char(string="Unidad alto", help="Unidad del atributo HEIGHT tal como la envía ML (ej. 'm', 'cm').")
+    meli_product_length = fields.Float(string="Largo del producto", help="Atributo LENGTH de la publicación (valor numérico).")
+    meli_product_length_unit = fields.Char(string="Unidad largo", help="Unidad del atributo LENGTH tal como la envía ML (ej. 'm', 'cm').")
+
+    meli_vat = fields.Char(string="IVA [meli]", help="Atributo VALUE_ADDED_TAX de la publicación (ej. '21 %').")
+    meli_import_duty = fields.Char(string="Impuesto interno [meli]", help="Atributo IMPORT_DUTY de la publicación (ej. '0 %').")
 
     meli_full_update = fields.Datetime(string="Product update",index=True)
     meli_image_update = fields.Datetime(string="Image update",index=True)
