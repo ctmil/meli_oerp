@@ -4,6 +4,14 @@
 
 ---
 
+## Versión %s.%s — Dimensiones e impuestos del producto: import + publish [#424/#474 Deco/KPI]
+16 jul 2026
+
+**Cambios (backport de 19.0):**
+
+1. Nuevos campos en el producto (plantilla y variante): **Ancho/Alto/Largo del producto** (número + unidad) e **IVA/Impuesto interno**, que se completan al importar desde la ficha técnica de MercadoLibre.
+2. Al **publicar**, esos mismos datos se envían a MercadoLibre como los atributos correspondientes (WIDTH/HEIGHT/LENGTH, VALUE_ADDED_TAX, IMPORT_DUTY). Enviar los impuestos —obligatorios— evita el error de publicación por atributo faltante.
+
 ## Versión 16.0.26.80 — "Traer medidas" ahora avisa qué hizo (antes parecía no hacer nada) [#485 Deco/KPI]
 15 jul 2026
 

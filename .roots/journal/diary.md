@@ -4,6 +4,12 @@
 
 ---
 
+**2026-07-16** `[16.0.26.81]` — backport dims del producto + IVA/impuesto interno (import+publish) [#424/#474 Deco/KPI]
+
+Backport de 19.0 (26.78 import + 26.79 publish). Campos meli_product_{width,height,length}+*_unit y meli_vat/meli_import_duty en product.template/product.product; parser _meli_parse_dimension; poblado en _meli_import_template_attributes (+ llamada agregada en meli_oerp_multiple.product_meli_get_product, que no encadena a la base); publish envia WIDTH/HEIGHT/LENGTH + VALUE_ADDED_TAX/IMPORT_DUTY en el builder de atributos del body. Bump oerp ->26.81, multiple ->26.78.
+
+---
+
 **2026-07-15** `[16.0.26.80]` — backport #485: "Traer medidas" avisa + la acción de lista tragaba el retorno [Deco/KPI]
 
 Backport de 19.0 (`33133d7b`). Dos causas de feedback, ambas presentes IDÉNTICAS en las 4 versiones:
