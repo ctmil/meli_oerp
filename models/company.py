@@ -1840,9 +1840,28 @@ class res_company(models.Model):
                                 "MELI_STOCK_DIAG: REACTIVATING [%s] %s (paused + Odoo_qty=%.0f)",
                                 sku, meli_id, odoo_qty
                             )
+                            # MEJORA #2: push stock first, then reactivate status EXPLICITLY.
+                            # ML status confirmed 'paused' via the LIVE API above, so we set
+                            # status=active directly instead of relying on product_post_stock's
+                            # gate on the LOCAL meli_status field, which can be stale='active'
+                            # when ML auto-paused the item for out_of_stock (that gate would then
+                            # push qty but leave the publication paused). Respects
+                            # meli_update_stock_blocked (already checked above). Idempotent:
+                            # PUT status=active on an already-active item is harmless.
                             product.product_post_stock(meli=meli)
-                            actions_taken.append(f"✅ REACTIVADA [{sku}] {meli_id} — paused + Odoo={odoo_qty:.0f}")
-                            checked_items_log.append(f"✅ {item_log} → REACTIVADA")
+                            try:
+                                product.product_meli_status_active(meli=meli)
+                                actions_taken.append(f"✅ REACTIVADA [{sku}] {meli_id} — paused + Odoo={odoo_qty:.0f} (status=active explícito)")
+                                checked_items_log.append(f"✅ {item_log} → REACTIVADA (status=active explícito)")
+                            except Exception as _act_err:
+                                if getattr(_act_err, 'pgcode', '') in ('40001', '40P01'):
+                                    raise
+                                _logger.warning(
+                                    "MELI_STOCK_DIAG: explicit activate failed [%s] %s: %s — stock pushed anyway",
+                                    sku, meli_id, _act_err
+                                )
+                                actions_taken.append(f"⚠️ REACTIVADA parcial [{sku}] {meli_id} — stock ok, activate error: {_act_err}")
+                                checked_items_log.append(f"⚠️ {item_log} → stock ok pero activate error: {_act_err}")
                             if auto_commit:
                                 MeliCommit(self)
                         else:
