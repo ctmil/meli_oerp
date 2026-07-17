@@ -4,6 +4,15 @@
 
 ---
 
+## Versión 19.0.26.82 — El diagnóstico de stock reactiva de forma EXPLÍCITA las publicaciones pausadas con stock
+17 jul 2026
+
+**Cambios:**
+
+1. Cuando el diagnóstico de stock (la red de seguridad que corre al terminar el cron de stock) detecta —consultando el estado **en vivo** a MercadoLibre— una publicación **pausada** que **sí tiene stock** en Odoo, ahora la **reactiva de forma explícita** (la pone "activa") además de reenviarle el stock.
+2. Antes se dependía de un estado guardado localmente que a veces quedaba **desactualizado** (Odoo la creía "activa" cuando MercadoLibre ya la había pausado por falta de stock): en ese caso el stock se reenviaba pero la publicación **seguía pausada**. Ahora, al confirmar el estado real contra MercadoLibre, se garantiza que vuelva a quedar activa.
+3. Sigue respetando el **bloqueo manual** de stock (productos marcados como "no actualizar stock" no se tocan) y es **idempotente**: si la publicación ya estaba activa, no genera ningún cambio.
+
 ## Versión 19.0.26.79 — Al publicar, se envían a MercadoLibre las dimensiones y los impuestos del producto [#424/#474 Deco/KPI]
 16 jul 2026
 
