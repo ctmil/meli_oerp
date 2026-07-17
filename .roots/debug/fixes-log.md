@@ -4,6 +4,25 @@
 
 ---
 
+### 17 jul 2026 — hardening(stock): meli_stock_diagnostic reactiva pausadas-con-stock con status=active explícito [MEJORA #2]
+
+**Contexto:** en la rama `ml_status == 'paused' and odoo_qty > 0` de `meli_stock_diagnostic` (que ya
+confirmó `paused` por API VIVA) se llamaba sólo a `product.product_post_stock(meli=meli)`. La
+reactivación dentro de `product_post_stock` está condicionada al campo LOCAL `meli_status`
+(product.py ~L4908: `... _ml_status_now=="paused" ...`), que puede quedar **stale='active'** cuando ML
+auto-pausó por `out_of_stock` → el stock se surtía pero la publicación **quedaba pausada**.
+
+**Fix:** `meli_oerp/models/company.py` (v17.0.26.82), branch paused del diagnóstico:
+1. Se mantiene el push de stock (`product_post_stock`) — no deja de surtir.
+2. Se agrega llamada **explícita** `product.product_meli_status_active(meli=meli)` tras el push,
+   apoyándose en el estado VIVO de ML (paused, confirmado arriba) en vez del gate de campo local.
+3. Respeta `meli_update_stock_blocked` (ya chequeado en el `if` previo) y **NO** desbloquea
+   (`product_meli_unblock`). Idempotente: PUT status=active sobre item ya activo es inocuo.
+4. `except` acotado: re-propaga errores de serialización (`pgcode` 40001/40P01) al handler del cron;
+   cualquier otro error de activación se loguea y el stock igual quedó surtido (acción "parcial").
+
+**Verificación:** `python3 -m py_compile` OK en las 4 versiones. Sin merge/deploy.
+
 ### 14 jul 2026 — hardening(meli_util): firma extra_headers/kwargs consistente en TODAS las variantes get/post/put/delete `[ERROR-008]`
 
 **Resuelve:** ERROR-008 (spam ERROR `MeliApiSDK.get() got an unexpected keyword argument 'extra_headers'`,
