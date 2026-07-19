@@ -210,6 +210,8 @@ class sale_order(models.Model):
             so.meli_order = False
             so.meli_buyer = False
             so.meli_buyer_name = False
+            so.meli_buyer_nickname = False
+            so.meli_buyer_id = False
 
             meli_order = so.meli_orders and so.meli_orders[0]
             if meli_order:
@@ -218,10 +220,16 @@ class sale_order(models.Model):
                 if meli_buyer:
                     so.meli_buyer = meli_buyer
                     so.meli_buyer_name = meli_buyer and meli_buyer.name
+                    so.meli_buyer_nickname = meli_buyer and meli_buyer.nickname
+                    so.meli_buyer_id = meli_buyer and meli_buyer.buyer_id
 
     meli_order = fields.Many2one( 'mercadolibre.orders',string="Meli Orden", compute="_get_meli_order", store=True, index=True )
     meli_buyer =  fields.Many2one( "mercadolibre.buyers",string="Meli Comprador", compute="_get_meli_order", store=True, index=True)
     meli_buyer_name =  fields.Char( string="Meli Comprador Nombre", compute="_get_meli_order", search=_search_meli_buyer_name, store=True, index=True )
+    # Nickname e ID del comprador ML, almacenados+indexados en la propia sale.order para
+    # poder buscarlos/filtrarlos directo (ej. nickname "VIEIROBRIAN20210623234209", id "780371376").
+    meli_buyer_nickname = fields.Char( string="Meli Comprador Nickname", compute="_get_meli_order", store=True, index=True )
+    meli_buyer_id = fields.Char( string="Meli Comprador ID", compute="_get_meli_order", store=True, index=True )
 
     meli_status = fields.Selection( [
         #Initial state of an order, and it has no payment yet.
@@ -272,6 +280,12 @@ class sale_order(models.Model):
     meli_shipment = fields.Many2one('mercadolibre.shipment',string='Meli Shipment Obj')
     meli_shipment_pdf_file = fields.Binary(string='Pdf File',attachment=True, related="meli_shipment.pdf_file",readonly=True)
     meli_shipment_pdf_filename = fields.Char(string='Pdf Filename',related="meli_shipment.pdf_filename",readonly=True)
+    # Zona del receiver (comprador) expuesta en la propia orden para buscar/filtrar/agrupar.
+    # Almacenados+indexados desde el envío (mercadolibre.shipment).
+    meli_receiver_state = fields.Char(string="ML Receiver Provincia", related="meli_shipment.receiver_state", store=True, index=True, readonly=True)
+    meli_receiver_city = fields.Char(string="ML Receiver Localidad", related="meli_shipment.receiver_city", store=True, index=True, readonly=True)
+    meli_receiver_neighborhood = fields.Char(string="ML Receiver Barrio", related="meli_shipment.receiver_neighborhood", store=True, index=True, readonly=True)
+    meli_receiver_zip_code = fields.Char(string="ML Receiver CP", related="meli_shipment.receiver_zip_code", store=True, index=True, readonly=True)
     meli_shipment_logistic_type = fields.Char(string="Logistic Type",index=True)
     meli_update_forbidden = fields.Boolean(string="Bloqueado para actualizar desde ML",default=False, index=True)
 

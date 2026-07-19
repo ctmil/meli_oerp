@@ -4,6 +4,19 @@
 
 ---
 
+## Versión 19.0.26.82 — Comprador (nickname/ID) y zona del receiver buscables en el pedido de venta [#404 Deco/KPI]
+19 jul 2026
+
+**Cambios:**
+
+1. En el **pedido de venta** (sale.order) ahora se puede **buscar y filtrar** por datos del comprador y del destinatario de MercadoLibre:
+   - **Nickname** e **ID** del comprador ML (ej. "VIEIROBRIAN20210623234209" / "780371376").
+   - **Provincia**, **Localidad**, **Barrio** y **Código Postal** del receiver del envío.
+   Aparecen en el buscador (filtros) y en la pestaña MercadoLibre del formulario del pedido.
+2. El objeto **Envío** (mercadolibre.shipment) ahora guarda además el **Barrio** y el **Municipio** del destinatario, parseados de la dirección que envía MercadoLibre.
+
+Feature genérica, promovida desde el cliente Deco/KPI (cuenta 526). Requiere actualizar el módulo (-u meli_oerp).
+
 ## Versión 19.0.26.79 — Al publicar, se envían a MercadoLibre las dimensiones y los impuestos del producto [#424/#474 Deco/KPI]
 16 jul 2026
 
