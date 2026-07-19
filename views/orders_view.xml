@@ -9,6 +9,12 @@
             <field name="arch" type="xml">
                 <xpath expr="//filter[@name='my_sale_orders_filter']" position="after">
                   <field name="meli_order_id" string="MercadoLibre Order Id"/>
+                  <field name="meli_buyer_nickname" string="ML Comprador Nickname"/>
+                  <field name="meli_buyer_id" string="ML Comprador ID"/>
+                  <field name="meli_receiver_state" string="ML Provincia"/>
+                  <field name="meli_receiver_city" string="ML Localidad"/>
+                  <field name="meli_receiver_neighborhood" string="ML Barrio"/>
+                  <field name="meli_receiver_zip_code" string="ML CP"/>
                   <separator/>
                   <filter string="MercadoLibre Orders" name="sale_orders_ml" domain="[('meli_order_id','!=',False)]" />
                 </xpath>
@@ -22,6 +28,12 @@
             <field name="arch" type="xml">
                 <xpath expr="//filter[@name='my_quotation']" position="after">
                   <field name="meli_order_id" string="MercadoLibre Order Id"/>
+                  <field name="meli_buyer_nickname" string="ML Comprador Nickname"/>
+                  <field name="meli_buyer_id" string="ML Comprador ID"/>
+                  <field name="meli_receiver_state" string="ML Provincia"/>
+                  <field name="meli_receiver_city" string="ML Localidad"/>
+                  <field name="meli_receiver_neighborhood" string="ML Barrio"/>
+                  <field name="meli_receiver_zip_code" string="ML CP"/>
                   <!--field name="meli_status_brief" string="MercadoLibre Status Brief"/-->
                   <field name="meli_status" string="MercadoLibre Status"/>
                   <field name="meli_update_forbidden" string="No actualizar desde ML"/>
@@ -118,11 +130,17 @@
                               <field name="meli_order"/>
                               <field name="meli_buyer"/>
                               <field name="meli_buyer_name"/>
+                              <field name="meli_buyer_nickname"/>
+                              <field name="meli_buyer_id"/>
                               <field name="meli_update_forbidden" string="No actualizar desde ML"/>
                               <field name="meli_order_id" invisible="0"/>
                               <field name="meli_status" invisible="0"/>
                               <!--field name="meli_status_brief" invisible="0"/-->
                               <field name="meli_shipment" invisible="0"/>
+                              <field name="meli_receiver_state" readonly="1"/>
+                              <field name="meli_receiver_city" readonly="1"/>
+                              <field name="meli_receiver_neighborhood" readonly="1"/>
+                              <field name="meli_receiver_zip_code" readonly="1"/>
                               <field name="meli_shipment_pdf_file" filename="meli_shipment_pdf_filename" invisible="0"/>
                               <field name="meli_shipment_pdf_filename" invisible="0"/>
                               <field name="meli_shipment_logistic_type" invisible="0"/>
