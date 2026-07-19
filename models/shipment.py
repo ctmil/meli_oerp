@@ -471,6 +471,8 @@ class mercadolibre_shipment(models.Model):
     receiver_street_number = fields.Char('Nro')
     receiver_city = fields.Char('Ciudad')
     receiver_city_code = fields.Char(string='Codigo Ciudad')
+    receiver_neighborhood = fields.Char('Barrio')
+    receiver_municipality = fields.Char('Municipio')
     receiver_state = fields.Char('Estado')
     receiver_state_code = fields.Char('Estado ID')
     receiver_state_id = fields.Many2one('res.country.state',string='State')
@@ -1442,7 +1444,10 @@ class mercadolibre_shipment(models.Model):
                         "receiver_country_code": ship_json["receiver_address"]["country"]["id"],
                         "receiver_latitude": ship_json["receiver_address"]["latitude"],
                         "receiver_longitude": ship_json["receiver_address"]["longitude"],
-                        "receiver_zip_code": (("zip_code" in ship_json["receiver_address"]) and ship_json["receiver_address"]["zip_code"]) or False
+                        "receiver_zip_code": (("zip_code" in ship_json["receiver_address"]) and ship_json["receiver_address"]["zip_code"]) or False,
+                        # Barrio / municipio del receiver (pueden venir como dict {id,name} o ausentes)
+                        "receiver_neighborhood": ((ship_json["receiver_address"].get("neighborhood") or {}).get("name")) or False,
+                        "receiver_municipality": ((ship_json["receiver_address"].get("municipality") or {}).get("name")) or False
                     })
                     receiver_phone = ("receiver_phone" in ship_json["receiver_address"] and ship_json["receiver_address"]["receiver_phone"] and not "XXXX" in ship_json["receiver_address"]["receiver_phone"] and ship_json["receiver_address"]["receiver_phone"])
                     if receiver_phone:
