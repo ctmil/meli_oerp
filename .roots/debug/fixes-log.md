@@ -4,6 +4,18 @@
 
 ---
 
+### 19 jul 2026 — feat(promoción cliente→source): comprador + zona del receiver buscables en sale.order (v17.0.26.82) [#404 Deco]
+
+Promoción cliente→source (grove meli) del feature implementado en Deco/KPI (cuenta 526, commit cliente
+`09723b1`). Genérico, sin nada Deco-específico. `sale.order`: `meli_buyer_nickname`/`meli_buyer_id`
+(computed+store+index desde `meli_buyer`) y `meli_receiver_state/city/neighborhood/zip_code`
+(related+store+index desde `meli_shipment`); `mercadolibre.shipment` gana `receiver_neighborhood`/
+`receiver_municipality` + parse; vistas search+form. Ver changelog 26.82 y migrations.
+
+**Archivos:** `models/orders.py`, `models/shipment.py`, `views/orders_view.xml`, `__manifest__.py`.
+**Verificación:** py_compile + xmllint OK. Convergencia 16≡17≡18≡19 (inserción byte-idéntica).
+Branch `claude/meli-deco-receiver-fields-17.0` (push automático). Merge a deploy + push a prod: NO (a confirmar con el usuario).
+
 ### 14 jul 2026 — hardening(meli_util): firma extra_headers/kwargs consistente en TODAS las variantes get/post/put/delete `[ERROR-008]`
 
 **Resuelve:** ERROR-008 (spam ERROR `MeliApiSDK.get() got an unexpected keyword argument 'extra_headers'`,
