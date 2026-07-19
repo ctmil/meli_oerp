@@ -4,6 +4,18 @@
 
 ---
 
+### 19 jul 2026 — feat(promoción cliente→source): comprador + zona del receiver buscables en sale.order (v18.0.26.82) [#404 Deco]
+
+Promoción cliente→source (grove meli) del feature implementado en Deco/KPI (cuenta 526, commit cliente
+`09723b1`). Genérico, sin nada Deco-específico. `sale.order`: `meli_buyer_nickname`/`meli_buyer_id`
+(computed+store+index desde `meli_buyer`) y `meli_receiver_state/city/neighborhood/zip_code`
+(related+store+index desde `meli_shipment`); `mercadolibre.shipment` gana `receiver_neighborhood`/
+`receiver_municipality` + parse; vistas search+form. Ver changelog 26.82 y migrations.
+
+**Archivos:** `models/orders.py`, `models/shipment.py`, `views/orders_view.xml`, `__manifest__.py`.
+**Verificación:** py_compile + xmllint OK. Convergencia 16≡17≡18≡19 (inserción byte-idéntica).
+Branch `claude/meli-deco-receiver-fields-18.0` (push automático). Merge a deploy + push a prod: NO (a confirmar con el usuario).
+
 ### 14 jul 2026 — hardening(meli_util): forward-port firma extra_headers/**kwargs consistente en get/post/put/delete `[ERROR-008]`
 
 **Propaga a 18.0** el hardening ya aplicado en 17.0 (26.78, ver su fixes-log). Convergencia horizontal del grove.
