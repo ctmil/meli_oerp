@@ -4,7 +4,7 @@
 
 ---
 
-## Versión 16.0.26.82 — Comprador (nickname/ID) y zona del receiver buscables en el pedido de venta [#404 Deco/KPI]
+## Versión 16.0.26.83 — Comprador (nickname/ID) y zona del receiver buscables en el pedido de venta [#404 Deco/KPI]
 19 jul 2026
 
 **Cambios:**
@@ -16,6 +16,18 @@
 2. El objeto **Envío** (mercadolibre.shipment) ahora guarda además el **Barrio** y el **Municipio** del destinatario, parseados de la dirección que envía MercadoLibre.
 
 Feature genérica, promovida desde el cliente Deco/KPI (cuenta 526). Requiere actualizar el módulo (-u meli_oerp).
+## Versión 16.0.26.83 — Savepoints anti-`InFailedSqlTransaction` al importar categorías y productos [#410 SOLSUN]
+20 jul 2026
+
+**Cambios:**
+
+1. La importación de categorías y de productos ya no puede dejar la transacción de base de datos
+   "abortada" cuando falla un paso frágil (carga de atributos de categoría, filtros de búsqueda o
+   asignación de categoría a un ítem): cada paso queda **aislado** con un punto de guardado
+   (savepoint), así un fallo puntual **no interrumpe el resto de la sincronización** con el error en
+   cascada `InFailedSqlTransaction`.
+2. Cierra además la **causa raíz** del error de clave foránea de categoría (`meli_category`) que
+   aparecía al importar (#410): la categoría recién creada ya no se pierde en un rollback silencioso.
 
 ## Versión %s.%s — Dimensiones e impuestos del producto: import + publish [#424/#474 Deco/KPI]
 16 jul 2026
