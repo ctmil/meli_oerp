@@ -4,17 +4,37 @@
 
 ---
 
-### 19 jul 2026 — feat(promoción cliente→source): comprador + zona del receiver buscables en sale.order (v19.0.26.82) [#404 Deco]
+### 19 jul 2026 — feat(promoción cliente→source): comprador + zona del receiver buscables en sale.order (v19.0.26.83) [#404 Deco]
 
 Promoción cliente→source (grove meli) del feature implementado en Deco/KPI (cuenta 526, commit cliente
 `09723b1`). Genérico, sin nada Deco-específico. `sale.order`: `meli_buyer_nickname`/`meli_buyer_id`
 (computed+store+index desde `meli_buyer`) y `meli_receiver_state/city/neighborhood/zip_code`
 (related+store+index desde `meli_shipment`); `mercadolibre.shipment` gana `receiver_neighborhood`/
-`receiver_municipality` + parse; vistas search+form. Ver changelog 26.82 y migrations.
+`receiver_municipality` + parse; vistas search+form. Ver changelog 26.83 y migrations.
 
 **Archivos:** `models/orders.py`, `models/shipment.py`, `views/orders_view.xml`, `__manifest__.py`.
 **Verificación:** py_compile + xmllint OK. Convergencia 16≡17≡18≡19 (inserción byte-idéntica).
 Branch `claude/meli-deco-receiver-fields-19.0` (push automático). Merge a deploy + push a prod: NO (a confirmar con el usuario).
+### 20 jul 2026 — savepoints anti-`InFailedSqlTransaction` en import de categorías/productos (v19.0.26.83) `[#410 SOLSUN]`
+
+Promoción cliente→source (SOLSUN 381, rama `claude/fix-odoo-server-error-VVNHH`, marcadores `# [solsun-local]`).
+El source **no los tenía** (verificado leyendo el código pinneado en las 4 versiones). Patrón: `except`
+desnudos atrapaban la excepción Python pero dejaban la transacción PG abortada → el SQL siguiente moría
+con `InFailedSqlTransaction` en cascada; el savepoint aísla el fallo.
+
+**Archivos:** `models/category.py`, `models/product.py`.
+
+**Cambios:**
+1. `category.py · import_category`: savepoints alrededor de `_get_attributes` y `get_search_chart_filters`
+   en **ambos** call-sites (camino create **y** camino write; el fix original del cliente sólo cubría el
+   create). Cierra la causa raíz del FK violation `meli_category` (#410 BUG 3) — complementario al fix de
+   síntoma ya presente en el source (`eb68d899`).
+2. `product.py`: savepoint alrededor de `_meli_set_category` (un fallo suyo tumbaba el resto de la sync).
+
+**Convergencia:** inserción byte-idéntica 16≡17≡18≡19 (anchors idénticos). py_compile OK ×4.
+Rama `claude/meli-solsun-savepoints-19.0`. Push del `claude/*` hecho; SIN merge a deploy.
+
+---
 
 ### 14 jul 2026 — hardening(meli_util): forward-port firma extra_headers/**kwargs consistente en get/post/put/delete `[ERROR-008]`
 
