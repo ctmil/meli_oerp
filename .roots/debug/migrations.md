@@ -4,6 +4,12 @@
 
 ---
 
+## 20 jul 2026 — savepoints anti-`InFailedSqlTransaction` (v17.0.26.82) [#410 SOLSUN]
+
+- **Sin migración de datos ni de esquema.** Cambio de código puro en `models/category.py` y
+  `models/product.py` (savepoints ORM alrededor de llamadas frágiles). El bump 26.82 sólo dispara
+  `-u meli_oerp`; no crea columnas ni requiere backfill. Convergencia byte-idéntica 16/17/18/19.
+
 ## 10 jul 2026 — humanización de errores de publicación (v17.0.26.71) [#532]
 
 - **Sin migración de datos ni de esquema.** Cambio de código puro en `models/warning.py`
