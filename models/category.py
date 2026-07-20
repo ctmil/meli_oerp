@@ -612,8 +612,20 @@ class mercadolibre_category(models.Model):
                 #_logger.info(cat_fields)
                 ml_cat_id = ml_cat_id.create((cat_fields))
                 if (ml_cat_id.id and is_branch==False):
-                  ml_cat_id._get_attributes(meli=meli)
-                  ml_cat_id.get_search_chart_filters(meli=meli)
+                  # [solsun-local->source] Savepoints: los except desnudos de _get_attributes /
+                  # get_search_chart_filters se tragan errores SQL y dejan la transaccion PG
+                  # abortada; sin savepoint el CREATE de la categoria se iba en el rollback pero
+                  # el id ya estaba cacheado -> FK violation posterior en meli_category (#410 BUG 3).
+                  try:
+                      with self.env.cr.savepoint():
+                          ml_cat_id._get_attributes(meli=meli)
+                  except Exception as e:
+                      _logger.error("_get_attributes failed for category %s: %s", category_id, e, exc_info=True)
+                  try:
+                      with self.env.cr.savepoint():
+                          ml_cat_id.get_search_chart_filters(meli=meli)
+                  except Exception as e:
+                      _logger.error("get_search_chart_filters failed for category %s: %s", category_id, e, exc_info=True)
 
             if (ml_cat_id):
                #_logger.info("MercadoLibre Category Ok: "+str(ml_cat_id)+" www_cats:"+str(www_cats))
@@ -647,8 +659,17 @@ class mercadolibre_category(models.Model):
                 ml_cat_id.write((cat_fields))
 
                 if (ml_cat_id.id and is_branch==False):
-                  ml_cat_id._get_attributes()
-                  ml_cat_id.get_search_chart_filters(meli=meli)
+                  # [solsun-local->source] Savepoints (2o call-site, camino write): idem create.
+                  try:
+                      with self.env.cr.savepoint():
+                          ml_cat_id._get_attributes()
+                  except Exception as e:
+                      _logger.error("_get_attributes failed for category %s: %s", category_id, e, exc_info=True)
+                  try:
+                      with self.env.cr.savepoint():
+                          ml_cat_id.get_search_chart_filters(meli=meli)
+                  except Exception as e:
+                      _logger.error("get_search_chart_filters failed for category %s: %s", category_id, e, exc_info=True)
 
             if not www_cat_id and create_missing_website and 'product.public.category' in self.env:
                 #_logger.info("Ecommerce category missing")

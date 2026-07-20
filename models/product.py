@@ -2453,7 +2453,13 @@ class product_product(models.Model):
         #    product._meli_set_images(product_template=product_template, pictures=pictures, rjson=rjson)
 
         #categories
-        product._meli_set_category( product_template, rjson['category_id'], meli=meli, config=config )
+        # [solsun-local->source] Savepoint: un fallo SQL en _meli_set_category abortaba la tx y
+        # TODO lo posterior de la sync (precio, posting.search, ...) caia con InFailedSqlTransaction.
+        try:
+            with self.env.cr.savepoint():
+                product._meli_set_category( product_template, rjson['category_id'], meli=meli, config=config )
+        except Exception as e:
+            _logger.error(e, exc_info=True)
 
         #prices
         force_price_for_variant = True
