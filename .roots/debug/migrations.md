@@ -4,9 +4,9 @@
 
 ---
 
-## 19 jul 2026 — comprador + zona del receiver buscables en sale.order (v18.0.26.82) [#404 Deco/KPI]
+## 19 jul 2026 — comprador + zona del receiver buscables en sale.order (v18.0.26.83) [#404 Deco/KPI]
 
-- **Campos nuevos stored/related → requieren `-u meli_oerp`** (el bump 26.82 lo dispara en Odoo.sh):
+- **Campos nuevos stored/related → requieren `-u meli_oerp`** (el bump 26.83 lo dispara en Odoo.sh):
   - `sale.order.meli_buyer_nickname` / `meli_buyer_id` (Char, computed+store+index desde `meli_buyer`):
     se **recomputan** en el upgrade a partir del comprador ya vinculado (retroactivos, sin script).
   - `sale.order.meli_receiver_state/city/neighborhood/zip_code` (Char, related+store+index desde
@@ -16,6 +16,11 @@
   - `mercadolibre.shipment.receiver_neighborhood` / `receiver_municipality` (Char): columnas nuevas,
     sin backfill (se llenan al re-consultar/procesar cada envío desde `receiver_address.neighborhood/municipality`).
 - **Sin script de migración** (el backfill lo hace el recompute/related del upgrade). Convergencia byte-idéntica 16/17/18/19.
+## 20 jul 2026 — savepoints anti-`InFailedSqlTransaction` (v18.0.26.83) [#410 SOLSUN]
+
+- **Sin migración de datos ni de esquema.** Cambio de código puro en `models/category.py` y
+  `models/product.py` (savepoints ORM alrededor de llamadas frágiles). El bump 26.83 sólo dispara
+  `-u meli_oerp`; no crea columnas ni requiere backfill. Convergencia byte-idéntica 16/17/18/19.
 
 ## 10 jul 2026 — humanización de errores de publicación (v18.0.26.71) [#532]
 
