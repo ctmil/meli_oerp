@@ -4,6 +4,12 @@
 
 ---
 
+**2026-07-21** `[19.0.26.84]` — fix: _meli_import_template_attributes escribe a TODAS las variantes de la publicacion [#424 Deco/KPI]
+
+Reporte del cliente: "Traer medidas solo toma las de la primera variante". Causa: el backfill pasa `template._meli_template_variant()` (= product_variant_ids.filtered('meli_id')[:1], la PRIMERA), y el metodo escribia solo a ese `self`. Los datos son item-level (mismas medidas/impuestos/paquete para todas las variantes-color; verificado en ML: las variaciones de Deco difieren solo por COLOR, dims a nivel item). Fix: el metodo ahora arma ml_prod_vals (valores que ML provee) y los escribe a TODAS las variantes con el mismo meli_id (`product_tmpl_id.product_variant_ids.filtered(meli_id==self.meli_id)`), con overwrite para dims/paquete/impuestos y fill-empty por-variante para marca/modelo/genero. Sin cambio de schema. Bump 26.83->26.84.
+
+---
+
 **2026-07-16** `[19.0.26.79]` — publish: envia WIDTH/HEIGHT/LENGTH + VALUE_ADDED_TAX/IMPORT_DUTY a ML [#424/#474 Deco/KPI]
 
 Cara de publicacion (bidireccional con el import de 26.78). En el builder de atributos del body (junto al bloque SELLER_PACKAGE_*): dimensiones del producto -> WIDTH/HEIGHT/LENGTH reconstruidas como "<%g> <unit>" desde meli_product_{width,height,length} + *_unit; e IVA/impuesto interno -> VALUE_ADDED_TAX/IMPORT_DUTY desde meli_vat/meli_import_duty. Solo agrega el atributo si no venia ya en attributes_ids (no pisa lo explicito). Enviar VALUE_ADDED_TAX/IMPORT_DUTY (obligatorios) cierra el error de publicacion de #474. Bump 26.78->26.79.
