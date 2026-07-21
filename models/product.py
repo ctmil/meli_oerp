@@ -1194,9 +1194,11 @@ class product_product(models.Model):
         dimensions, distinct from the package) go to the numeric
         meli_product_{width,height,length} + their *_unit Char via
         _MELI_PRODUCT_DIM_MAP (ML authoritative -> overwrite). [#424]
-        Writes both the template and the variant (self) when the field exists
-        on each. `self` may be an empty product.product recordset (then only
-        the template is written)."""
+        Writes the template and EVERY variant of the publication (all the
+        variants sharing `self.meli_id`), not just `self` -- the item-level
+        values (size/taxes/package) are common to all colour variants. `self`
+        may be an empty product.product recordset (then only the template is
+        written)."""
         if not rjson or not isinstance(rjson, dict):
             return
         attributes = rjson.get("attributes") or []
@@ -1204,8 +1206,14 @@ class product_product(models.Model):
             return
         primary = self._MELI_IMPORT_ATTR_MAP
         fallback = self._MELI_IMPORT_ATTR_FALLBACK
+        # ml_prod_vals collects every value ML provides for a product.product
+        # field, WITHOUT deciding overwrite/fill-empty yet -- that decision is
+        # per-record and is applied below to every variant of the publication.
         tmpl_vals = {}
-        prod_vals = {}
+        ml_prod_vals = {}
+        overwrite_variant_fields = set(self._MELI_IMPORT_OVERWRITE_FIELDS)
+        for _pair in self._MELI_PRODUCT_DIM_MAP.values():
+            overwrite_variant_fields.update(_pair)
         seen_primary = set()
         for att in attributes:
             if not isinstance(att, dict):
@@ -1225,15 +1233,14 @@ class product_product(models.Model):
                 continue
             if is_primary:
                 seen_primary.add(field)
-            # Package dims: ML is authoritative -> overwrite. Others
+            # Package dims/taxes: ML is authoritative -> overwrite. Others
             # (brand/model/gender): fill-empty (do not clobber manual input).
             overwrite = field in self._MELI_IMPORT_OVERWRITE_FIELDS
             if field in product_template._fields:
                 if overwrite or not product_template[field]:
                     tmpl_vals[field] = val
             if field in self._fields:
-                if overwrite or not (self and self[field]):
-                    prod_vals[field] = val
+                ml_prod_vals[field] = val
         # Product dimensions (WIDTH/HEIGHT/LENGTH) -> Float value + unit Char, on
         # BOTH template and variant. ML is authoritative -> overwrite when it
         # sends a numeric value; a missing/blank one is left untouched. [#424]
@@ -1252,13 +1259,24 @@ class product_product(models.Model):
                 tmpl_vals[value_field] = number
                 tmpl_vals[unit_field] = unit
             if value_field in self._fields:
-                prod_vals[value_field] = number
-                prod_vals[unit_field] = unit
+                ml_prod_vals[value_field] = number
+                ml_prod_vals[unit_field] = unit
         if tmpl_vals:
             product_template.write(tmpl_vals)
             _logger.info("MELI import: plantilla fields set on template %s: %s", product_template.id, list(tmpl_vals.keys()))
-        if prod_vals and self:
-            self.write(prod_vals)
+        # Write to EVERY variant of this publication, not just `self`. These are
+        # item-level fields (size/taxes/package are the same for all the colour
+        # variants), and the backfill used to pass only the first variant, so the
+        # rest stayed empty -- the "solo toma la primera variante" report. [#424]
+        if ml_prod_vals and self:
+            siblings = self.product_tmpl_id.product_variant_ids.filtered(
+                lambda v: v.meli_id and v.meli_id == self.meli_id
+            ) or self
+            for _v in siblings:
+                vals = {f: val for f, val in ml_prod_vals.items()
+                        if f in overwrite_variant_fields or not _v[f]}
+                if vals:
+                    _v.write(vals)
 
     def action_debug_supplierinfo(self):
         """Delegates to template. Kept so cached views don't break Odoo 19 validation."""
