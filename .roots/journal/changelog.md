@@ -20,7 +20,7 @@
 
 1. Al traer las medidas e impuestos de una publicación (con "Traer medidas" o al importar), los datos ahora se escriben en **todas las variantes** de esa publicación, no solo en la primera. Antes, en publicaciones con varias variantes (por ejemplo distintos colores), solo la primera quedaba con las medidas cargadas y el resto quedaba vacío.
 
-## Versión 19.0.26.83 — Comprador (nickname/ID) y zona del receiver buscables en el pedido de venta [#404 Deco/KPI]
+## Versión 19.0.26.82 — Comprador (nickname/ID) y zona del receiver buscables en el pedido de venta [#404 Deco/KPI]
 19 jul 2026
 
 **Cambios:**
