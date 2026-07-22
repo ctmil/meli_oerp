@@ -39,6 +39,7 @@
                   <field name="meli_update_forbidden" string="No actualizar desde ML"/>
 
                   <separator/>
+                  <filter string="Con mensajes del comprador sin leer" name="meli_unread_msgs" domain="[('meli_unread_messages','>',0)]" />
                   <filter string="MercadoLibre Quotations" name="sale_orders_ml" domain="[('meli_order_id','!=',False)]" />
                   <filter string='MercadoLibre Status' domain="[]"
         								context="{'group_by' : 'meli_status'}" name="meli_status_filter"/>
@@ -135,6 +136,10 @@
                               <field name="meli_update_forbidden" string="No actualizar desde ML"/>
                               <field name="meli_order_id" invisible="0"/>
                               <field name="meli_status" invisible="0"/>
+                              <field name="meli_unread_messages" readonly="1"
+                                     decoration-warning="meli_unread_messages > 0" widget="badge"/>
+                              <field name="meli_messages_link" widget="url" readonly="1"
+                                     invisible="meli_unread_messages == 0"/>
                               <!--field name="meli_status_brief" invisible="0"/-->
                               <field name="meli_shipment" invisible="0"/>
                               <field name="meli_receiver_state" readonly="1"/>

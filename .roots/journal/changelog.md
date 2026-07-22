@@ -4,6 +4,11 @@
 
 ---
 
+## Versión 17.0.26.85 — Aviso de mensajes del comprador sin leer en las órdenes de ML [#499 Deco/KPI]
+22 jul 2026
+
+**Cambios (backport de 19.0):** contador de mensajes del comprador sin responder (post-venta) en las órdenes ML + filtro "Con mensajes del comprador sin leer" + enlace a la conversación en ML + botón "Refrescar mensajes" en la cuenta + proceso automático cada 10 min.
+
 ## Versión %s.26.84 — "Traer medidas" completa TODAS las variantes, no solo la primera [#424 Deco/KPI]
 21 jul 2026
 
