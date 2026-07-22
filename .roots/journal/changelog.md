@@ -9,12 +9,12 @@
 
 **Cambios (backport de 19.0):** contador de mensajes del comprador sin responder (post-venta) en las órdenes ML + filtro "Con mensajes del comprador sin leer" + enlace a la conversación en ML + botón "Refrescar mensajes" en la cuenta + proceso automático cada 10 min.
 
-## Versión %s.26.84 — "Traer medidas" completa TODAS las variantes, no solo la primera [#424 Deco/KPI]
+## Versión 17.0.26.84 — "Traer medidas" completa TODAS las variantes, no solo la primera [#424 Deco/KPI]
 21 jul 2026
 
 **Cambios (backport de 19.0):** al traer medidas e impuestos de una publicación (con "Traer medidas" o al importar), los datos ahora se escriben en **todas las variantes** de esa publicación, no solo en la primera.
 
-## Versión 17.0.26.83 — Comprador (nickname/ID) y zona del receiver buscables en el pedido de venta [#404 Deco/KPI]
+## Versión 17.0.26.82 — Comprador (nickname/ID) y zona del receiver buscables en el pedido de venta [#404 Deco/KPI]
 19 jul 2026
 
 **Cambios:**
@@ -39,7 +39,7 @@ Feature genérica, promovida desde el cliente Deco/KPI (cuenta 526). Requiere ac
 2. Cierra además la **causa raíz** del error de clave foránea de categoría (`meli_category`) que
    aparecía al importar (#410): la categoría recién creada ya no se pierde en un rollback silencioso.
 
-## Versión %s.%s — Dimensiones e impuestos del producto: import + publish [#424/#474 Deco/KPI]
+## Versión 17.0.26.81 — Dimensiones e impuestos del producto: import + publish [#424/#474 Deco/KPI]
 16 jul 2026
 
 **Cambios (backport de 19.0):**
