@@ -4,6 +4,12 @@
 
 ---
 
+**2026-07-22** `[19.0.26.85 / multiple 26.81]` — feat: aviso de mensajes post-venta sin leer en las ordenes [#499 Deco/KPI]
+
+Version minima del pedido de SEBA/Deco (#499). Base meli_oerp: campo `meli_unread_messages` (Integer) + `meli_messages_link` (computed) en `mercadolibre.orders`; helper `_meli_apply_unread_results(results, orders_domain)` parsea `/messages/unread` (resources `/packs/<id>/...` + count), matchea por pack_id/order_id y resetea a 0 los que ya no estan. Related `meli_unread_messages`/`meli_messages_link` en sale.order (badge + filtro + link en la vista). meli_oerp_multiple: `mercadolibre.account._refresh_unread_messages()` (per-account, GET /messages/unread role=seller tag=post_sale, scope connection_account) + boton `action_refresh_unread_messages` + cron `cron_meli_refresh_unread` (ir_cron_meli_refresh_unread, 10min, activo). Verificado con la API de Deco (total=3). Fase 2 (leer/responder en Odoo) pendiente. Bump oerp 26.84->26.85, multiple 26.80->26.81.
+
+---
+
 **2026-07-21** `[19.0.26.84]` — fix: _meli_import_template_attributes escribe a TODAS las variantes de la publicacion [#424 Deco/KPI]
 
 Reporte del cliente: "Traer medidas solo toma las de la primera variante". Causa: el backfill pasa `template._meli_template_variant()` (= product_variant_ids.filtered('meli_id')[:1], la PRIMERA), y el metodo escribia solo a ese `self`. Los datos son item-level (mismas medidas/impuestos/paquete para todas las variantes-color; verificado en ML: las variaciones de Deco difieren solo por COLOR, dims a nivel item). Fix: el metodo ahora arma ml_prod_vals (valores que ML provee) y los escribe a TODAS las variantes con el mismo meli_id (`product_tmpl_id.product_variant_ids.filtered(meli_id==self.meli_id)`), con overwrite para dims/paquete/impuestos y fill-empty por-variante para marca/modelo/genero. Sin cambio de schema. Bump 26.83->26.84.

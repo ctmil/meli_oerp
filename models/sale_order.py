@@ -49,6 +49,12 @@ class SaleOrder(models.Model):
 
     meli_order_id = fields.Many2one('mercadolibre.orders', u'Meli Order Id',
         copy=False, readonly=True)
+    # Post-sale buyer messages sin leer, reflejado desde la orden ML. [#499]
+    meli_unread_messages = fields.Integer(
+        string="Mensajes ML sin leer", related="meli_order_id.meli_unread_messages",
+        store=True, readonly=True)
+    meli_messages_link = fields.Char(
+        string="Mensajes en ML", related="meli_order_id.meli_messages_link", readonly=True)
     meli_status = fields.Selection( [
         #Initial state of an order, and it has no payment yet.
                                         ("confirmed","Confirmado"),
