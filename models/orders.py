@@ -5083,6 +5083,56 @@ class mercadolibre_orders(models.Model):
     pack_id = fields.Char(string='Pack Id',index=True)
     sale_order = fields.Many2one('sale.order',string="Sale Order",help='Pedido de venta de Odoo')
 
+    # Post-sale buyer messages: how many UNREAD messages this order has in ML.
+    # Refreshed from GET /messages/unread (role=seller, tag=post_sale). A count
+    # > 0 means the buyer wrote and nobody answered yet. [#499 Deco/KPI]
+    meli_unread_messages = fields.Integer(
+        string="Mensajes sin leer", default=0, index=True, readonly=True,
+        help="Cantidad de mensajes del comprador sin responder en MercadoLibre. "
+             "Se actualiza periódicamente desde MercadoLibre.")
+    meli_messages_link = fields.Char(
+        string="Mensajes en ML", compute="_compute_meli_messages_link",
+        help="Enlace a la conversación de esta venta en MercadoLibre.")
+
+    @api.depends('pack_id', 'order_id')
+    def _compute_meli_messages_link(self):
+        # ML messaging center for a sale; pack_id when the order is part of a
+        # pack (carrito), otherwise the order id.
+        for o in self:
+            ref = o.pack_id or o.order_id
+            o.meli_messages_link = (
+                "https://www.mercadolibre.com.ar/mensajes/%s" % ref) if ref else False
+
+    @api.model
+    def _meli_apply_unread_results(self, results, orders_domain):
+        """Given the `results` array from /messages/unread (each item has a
+        `resource` like '/packs/<id>/sellers/<seller>' and a `count`), set
+        meli_unread_messages on the matching orders. `orders_domain` scopes the
+        reset+update to one account so other accounts are not touched. Orders no
+        longer in the unread list are reset to 0 (they were answered/read).
+        [#499]"""
+        import re as _re
+        by_ref = {}
+        for item in (results or []):
+            if not isinstance(item, dict):
+                continue
+            m = _re.search(r"/packs/([^/]+)/", item.get("resource") or "")
+            if not m:
+                continue
+            try:
+                by_ref[m.group(1)] = int(item.get("count") or 0)
+            except (TypeError, ValueError):
+                continue
+        Orders = self.search(orders_domain)
+        touched = 0
+        for o in Orders:
+            ref = o.pack_id or o.order_id
+            new = by_ref.get(str(ref), 0) if ref else 0
+            if o.meli_unread_messages != new:
+                o.meli_unread_messages = new
+                touched += 1
+        return touched
+
     status = fields.Selection( [
         #Initial state of an order, and it has no payment yet.
                                         ("confirmed","Confirmado"),

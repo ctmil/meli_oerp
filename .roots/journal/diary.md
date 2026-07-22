@@ -4,6 +4,12 @@
 
 ---
 
+**2026-07-22** — backport #499: aviso de mensajes post-venta sin leer en las ordenes [Deco/KPI]
+
+Backport de 19.0: campo meli_unread_messages + link en mercadolibre.orders + helper _meli_apply_unread_results; related en sale.order (badge+filtro+link). meli_oerp_multiple: account._refresh_unread_messages (GET /messages/unread) + boton + cron 10min. (16.0: view con attrs por sintaxis Odoo 16.)
+
+---
+
 **2026-07-21** `[18.0.26.84]` — backport: _meli_import_template_attributes escribe a TODAS las variantes de la publicacion [#424 Deco/KPI]
 
 Reporte cliente: "Traer medidas solo toma la primera variante". El metodo ahora arma ml_prod_vals y los escribe a todas las variantes con el mismo meli_id (overwrite dims/paquete/impuestos, fill-empty por-variante marca/modelo/genero). Backport de 19.0. Bump ->26.84.
