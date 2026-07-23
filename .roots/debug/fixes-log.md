@@ -754,3 +754,38 @@ Se agregó `access_token` a la URL del permalink API. Ahora la URL se construye 
 El token se obtiene directamente de `meli.access_token`.
 
 ---
+
+### 23 jul 2026 — `sale.order.meli_unread_messages` no se materializaba, `-u meli_oerp` abortaba en Odoo 19 (v19.0.26.85) [#499 Deco/KPI]
+
+**Causa raíz:** `models/sale_order.py` (que define `class SaleOrder(models.Model): _inherit = "sale.order"`
+con `meli_unread_messages`/`meli_messages_link`) **nunca fue importado** desde `models/__init__.py`
+(no hay `from . import sale_order`) — código muerto desde el port inicial a 13.0 (commit `ce55953c`,
+confirmado con `git log --follow`). La extensión de `sale.order` que Odoo **sí** carga para este módulo
+es la clase `sale_order` de `models/orders.py` (línea 113, ~1300 líneas), que ya define `meli_order_id`
+como `Char` (no como el `Many2one` que asumía el archivo muerto) y `meli_orders` como `Many2many` a
+`mercadolibre.orders`. El commit `f8967f08` (26.85) agregó los dos campos nuevos al archivo muerto en
+vez de a la clase activa → nunca se registraban → la vista `orders_view.xml` (filtro
+`meli_unread_msgs`, domain `[('meli_unread_messages','>',0)]`) fallaba con `ParseError: Unknown field`.
+Razón adicional por la que un simple "importar sale_order.py" NO hubiese sido el fix correcto: aun
+arreglando el import, el `related='meli_order_id.meli_unread_messages'` original no podía funcionar
+porque en la clase activa (`orders.py`) `meli_order_id` es un `Char`, no un `Many2one` — el path del
+related no existe ahí; y `meli_orders` (el m2m real hacia `mercadolibre.orders`) no es válido como
+paso intermedio de un `related` (Odoo exige Many2one en los pasos intermedios).
+
+**Fix:** en `models/orders.py` (clase activa), se reemplazó el enfoque `related` roto por un **compute**
+`_compute_meli_unread_messages` (mismo patrón que el ya existente `_meli_status_brief`: toma
+`order.meli_orders and order.meli_orders[0]`), con `@api.depends('meli_orders.meli_unread_messages',
+'meli_orders.meli_messages_link')` y `store=True` en `meli_unread_messages` (necesario para que el
+domain del filtro de búsqueda funcione). En `models/sale_order.py` (archivo muerto, sin tocar el resto)
+se quitaron las 2 líneas de campos `related` agregadas por `f8967f08` que nunca iban a funcionar, y se
+dejó una nota explicando por qué el archivo entero es inerte — **fuera de alcance** resolverlo del todo
+(reimportarlo arrastraría duplicados de `meli_status`/`meli_status_detail`/`shipping_status`/etc. ya
+definidos en `orders.py`; eso es refactor, no bugfix).
+
+**Archivos:** `models/orders.py`, `models/sale_order.py`.
+**Verificación:** `py_compile` OK + `-u meli_oerp --stop-after-init` en odoo19mint (Odoo 19.1a1),
+EXIT=0, sin `ParseError`; `sale.order.meli_unread_messages` presente en el registry (ver
+`.roots/state/meli-26-85-sale-order-field.md`). Branch `claude/fix-sale-order-meli-unread-messages`
+(push automático). Merge a `19.0` / promoción al deploy: a confirmar con el usuario.
+
+---

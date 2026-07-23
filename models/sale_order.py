@@ -49,12 +49,12 @@ class SaleOrder(models.Model):
 
     meli_order_id = fields.Many2one('mercadolibre.orders', u'Meli Order Id',
         copy=False, readonly=True)
-    # Post-sale buyer messages sin leer, reflejado desde la orden ML. [#499]
-    meli_unread_messages = fields.Integer(
-        string="Mensajes ML sin leer", related="meli_order_id.meli_unread_messages",
-        store=True, readonly=True)
-    meli_messages_link = fields.Char(
-        string="Mensajes en ML", related="meli_order_id.meli_messages_link", readonly=True)
+    # NOTA (#499): este archivo `sale_order.py` NUNCA se importa desde
+    # models/__init__.py (no hay `from . import sale_order`) — es código
+    # muerto desde el port inicial (13.0). La implementación real de
+    # meli_unread_messages/meli_messages_link vive en la clase `sale_order`
+    # de models/orders.py, que es la que Odoo efectivamente carga. Ver
+    # .roots/state/meli-26-85-sale-order-field.md.
     meli_status = fields.Selection( [
         #Initial state of an order, and it has no payment yet.
                                         ("confirmed","Confirmado"),
