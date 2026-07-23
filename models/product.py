@@ -4365,7 +4365,7 @@ class product_product(models.Model):
                 else:
                     body["pictures"] = multi_images_ids
 
-            if product.meli_imagen_logo:
+            if product.meli_imagen_logo and product.meli_imagen_logo not in ('None', 'False', False, ''):
                 if 'pictures' in body.keys():
                     body["pictures"]+= [ { 'source': product.meli_imagen_logo} ]
                 else:
@@ -5147,7 +5147,7 @@ class product_product(models.Model):
     meli_max_purchase_quantity = fields.Integer(string='Max Compra', help='Cantidad maxima por compra en ML')
     meli_manufacturing_time = fields.Char(string='Manufacturing time', help='Tiempo de fabricacion (30 días)')
 
-    meli_imagen_logo = fields.Char(string='Imagen Logo', default='None')
+    meli_imagen_logo = fields.Char(string='Imagen Logo', default=False)
     meli_imagen_id = fields.Char(string='Imagen Id', size=256)
     meli_imagen_link = fields.Char(string='Imagen Link', size=256)
     meli_imagen_hash = fields.Char(string='Imagen Hash')

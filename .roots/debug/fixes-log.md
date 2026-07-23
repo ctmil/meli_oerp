@@ -4,6 +4,19 @@
 
 ---
 
+### 23 jul 2026 — fix(publicación): foto fantasma `{'source':'None'}` en cada item ML (v16.0.26.86) `[flota/Koreautos]`
+
+El campo `meli_imagen_logo` tenía `default='None'` (el **string** `'None'`, truthy), así que la
+guarda `if product.meli_imagen_logo:` daba True y agregaba `{'source': 'None'}` como foto extra en
+**cada** publicación (verificado en Koreautos: 19.502 product.product con `meli_imagen_logo='None'` →
+2da foto basura "O-ES.jpg" que trababa la activación). Fix: (1) guarda ampliada
+`if product.meli_imagen_logo and product.meli_imagen_logo not in ('None','False',False,''):`; (2)
+`default=False` para que los registros nuevos no nazcan con `'None'` truthy. Sin migración obligatoria
+(la guarda neutraliza los `'None'` existentes al publicar; opción de limpiar `'None'→NULL` en post-init).
+
+**Archivos:** `models/product.py`. **Verificación:** py_compile OK. Convergencia 16≡17≡18≡19.
+Branch `claude/fix-meli-logo-extra-image-16.0` (push automático). Merge a deploy + prod: NO (a confirmar).
+
 ### 19 jul 2026 — feat(promoción cliente→source): comprador + zona del receiver buscables en sale.order (v16.0.26.83) [#404 Deco]
 
 Promoción cliente→source (grove meli) del feature implementado en Deco/KPI (cuenta 526, commit cliente
