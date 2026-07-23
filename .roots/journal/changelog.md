@@ -4,6 +4,13 @@
 
 ---
 
+## Versión 18.0.26.86 — Se elimina la foto fantasma que se agregaba en cada publicación
+23 jul 2026
+
+**Cambios:**
+
+1. Se corrige un problema por el cual el conector agregaba una **imagen extra inválida** en cada publicación de MercadoLibre (una segunda foto "basura"), lo que en algunos casos impedía activar la publicación. Ahora la imagen de logo sólo se agrega si realmente está configurada.
+
 ## Versión 18.0.26.85 — Aviso de mensajes del comprador sin leer en las órdenes de ML [#499 Deco/KPI]
 22 jul 2026
 
