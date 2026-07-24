@@ -4,6 +4,24 @@
 
 ---
 
+## Versión 16.0.26.92 — La fecha límite de despacho se mostraba un día antes
+10 ago 2026
+
+**Cambios:**
+
+1. **El problema:** en los envíos, la *fecha límite de despacho* (Buffering Date) aparecía con hora y
+   corrida **un día para atrás** — típicamente las 21:00 del día anterior en Argentina. MercadoLibre
+   informa ese dato como un **día de calendario**, sin hora; el conector lo guardaba como un momento
+   exacto y, al pasarlo al huso horario local, caía en el día previo. Ahora se guarda como fecha, sin
+   hora, y el estado de "límite de despacho" se compara contra el **fin de ese día**, que es lo que
+   MercadoLibre realmente exige.
+2. **Se corrige también el historial:** la actualización convierte los envíos ya existentes, así que las
+   fechas viejas quedan bien sin necesidad de volver a bajar los envíos de MercadoLibre.
+
+Requiere actualizar el módulo (`-u meli_oerp`).
+
+---
+
 ## Versión 16.0.26.90 — La devolución automática de ventas canceladas por ML vuelve a funcionar (y deja de llenar el historial de avisos repetidos)
 30 jul 2026
 
