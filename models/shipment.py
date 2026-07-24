@@ -517,7 +517,7 @@ class mercadolibre_shipment(models.Model):
     estimated_delivery_extended = fields.Datetime(string='Estimated Delivery Extended')
     estimated_delivery_limit = fields.Datetime(string='Estimated Delivery Limit')
     estimated_delivery_final = fields.Datetime(string='Estimated Delivery Final')
-    estimated_buffering_date = fields.Datetime(string='Buffering Date', help='Fecha límite para despachar (self_service: hasta cuándo llevar el paquete a la agencia)')
+    estimated_buffering_date = fields.Date(string='Buffering Date', help='Fecha límite para despachar (self_service: hasta cuándo llevar el paquete a la agencia). ML lo expresa como DÍA calendario.')
     estimated_schedule_limit = fields.Datetime(string='Estimated Schedule Limit', help='Límite de horario programado')
     estimated_pay_before = fields.Datetime(string='Pay Before', help='Pagar antes de esta fecha para asegurar la entrega estimada')
     pickup_promise_from = fields.Datetime(string='Pickup Promise From', help='Inicio del rango de retiro por el transportista')
@@ -568,7 +568,14 @@ class mercadolibre_shipment(models.Model):
     def _compute_handling_limit_status(self):
         now = fields.Datetime.now()
         for rec in self:
-            ehl = rec.estimated_handling_limit or rec.estimated_buffering_date
+            # estimated_buffering_date es un DÍA (fields.Date) → comparar al FIN
+            # del día para no romper el < contra 'now' (Datetime).
+            if rec.estimated_handling_limit:
+                ehl = rec.estimated_handling_limit
+            elif rec.estimated_buffering_date:
+                ehl = datetime.combine(rec.estimated_buffering_date, time.max)
+            else:
+                ehl = None
             if not ehl:
                 rec.handling_limit_status = 'none'
             elif ehl < now:
@@ -1368,7 +1375,7 @@ class mercadolibre_shipment(models.Model):
                         ship_fields["estimated_delivery_final"] = ml_datetime(so_edf["date"])
                     so_buf = shipping_option.get("buffering") or {}
                     if so_buf.get("date"):
-                        ship_fields["estimated_buffering_date"] = ml_datetime(so_buf["date"])
+                        ship_fields["estimated_buffering_date"] = ml_date(so_buf["date"])
                     so_esl = shipping_option.get("estimated_schedule_limit") or {}
                     if so_esl.get("date"):
                         ship_fields["estimated_schedule_limit"] = ml_datetime(so_esl["date"])

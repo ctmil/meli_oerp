@@ -84,6 +84,32 @@ dias** en una sola cuenta), reservar/desreservar, cancelar, editar cantidad.
 **Verificacion:** `ast.parse` OK en las 4 versiones. Convergencia 16=17=18=19 (16.0 conserva su
 `_sql_constraints` propio; el resto byte-identico). Branch `claude/stock-queue-invariant-2687-<ver>`.
 **Merge a la rama de deploy y deploy a clientes: NO - lo confirma FCA aparte.**
+### 24 jul 2026 — fix(tz): `estimated_buffering_date` Datetime→Date, self-service deadline mostraba día anterior (v16.0.26.92 — escrito el 24-jul, landeado el 10-ago) `[#420 Shoppy]`
+
+Diagnóstico en vivo (XMLRPC prod Shoppy): `estimated_buffering_date` era `fields.Datetime` poblado con
+`ml_datetime(shipping_option.buffering.date)`. ML manda el buffering como **día-calendario a medianoche-UTC**
+(`YYYY-MM-DD 00:00:00Z`) → se guardaba el timestamp y renderizaba **21:00 del día anterior** en AR (-03).
+Semánticamente es un DÍA (deadline de despacho self_service), no un instante → el campo pasa a `fields.Date`.
+
+**Cambios:**
+- `models/versions.py`: nuevo helper `ml_date(datestr)` (hermano de `ml_datetime`, devuelve `'%Y-%m-%d'`).
+- `models/shipment.py`: field `estimated_buffering_date` `fields.Datetime`→`fields.Date`; asignación del import
+  `ml_datetime(so_buf["date"])`→`ml_date(...)`; compute `_compute_handling_limit_status` compara el buffering
+  al **fin del día** (`datetime.combine(date, time.max)`) para no romper el `<` contra `now`.
+- `models/orders.py::_compute_so_handling_limit_status` y
+  `meli_oerp_stock/models/stock_location.py::_compute_picking_handling_limit_status`: misma corrección
+  fin-de-día (en stock_location se amplió el import a `datetime, time`).
+- Mirror `mercadolibre.bind_shipment` (meli_oerp_multiple): hereda el field de `mercadolibre.shipment`
+  (herencia por prototipo) → pasa a Date automáticamente; **no** hay override propio que tocar.
+- `views/shipment_view.xml`: `widget="date"` explícito (2 ocurrencias).
+- **Migraciones de datos** (arreglan el histórico sin re-pull, cast timestamp→date vía `::date`):
+  `meli_oerp/migrations/16.0.26.86/pre-migrate.py` (tabla `mercadolibre_shipment`) y
+  `meli_oerp_multiple/migrations/16.0.26.82/pre-migrate.py` (tabla espejo `mercadolibre_bind_shipment`).
+
+**Archivos:** `models/versions.py`, `models/shipment.py`, `models/orders.py`, `views/shipment_view.xml`,
+`migrations/16.0.26.86/pre-migrate.py`, `__manifest__.py` (+ `meli_oerp_stock`, `meli_oerp_multiple`).
+**Verificación:** `py_compile` + XML parse OK. Branch `claude/fix-buffering-date` (16.0, los 3 módulos).
+Merge a deploy + promoción al 17/18/19 + deploy a prod: **NO** (pendiente, ver meli-promotions-pending).
 
 ### 19 jul 2026 — feat(promoción cliente→source): comprador + zona del receiver buscables en sale.order (v16.0.26.83) [#404 Deco]
 

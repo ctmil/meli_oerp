@@ -419,11 +419,18 @@ class sale_order(models.Model):
 
     @api.depends('meli_shipment.estimated_handling_limit', 'meli_shipment.estimated_buffering_date')
     def _compute_so_handling_limit_status(self):
-        from datetime import timedelta
+        from datetime import timedelta, datetime, time
         now = fields.Datetime.now()
         for rec in self:
             ship = rec.meli_shipment
-            ehl = (ship.estimated_handling_limit or ship.estimated_buffering_date) if ship else False
+            # estimated_buffering_date es un DÍA (fields.Date) → comparar al FIN
+            # del día para no romper el < contra 'now' (Datetime).
+            if ship and ship.estimated_handling_limit:
+                ehl = ship.estimated_handling_limit
+            elif ship and ship.estimated_buffering_date:
+                ehl = datetime.combine(ship.estimated_buffering_date, time.max)
+            else:
+                ehl = False
             if not ehl:
                 rec.meli_handling_limit_status = 'none'
             elif ehl < now:
