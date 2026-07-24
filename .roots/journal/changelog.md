@@ -4,6 +4,11 @@
 
 ---
 
+## Versión 16.0.26.86 — "Buffering Date" (límite de despacho self-service) mostraba el día anterior [#420 Shoppy]
+24 jul 2026
+
+**Cambios:** el campo **Buffering Date** del envío (fecha límite para llevar el paquete a la agencia en envíos self-service) se guardaba como fecha+hora y, por diferencia de zona horaria, se veía **corrido al día anterior a las 21:00** en Argentina. MercadoLibre entrega ese dato como **día calendario**, no como horario, así que ahora se guarda y se muestra como **fecha** (sin hora), quedando el día correcto. Los envíos ya existentes se corrigen solos al actualizar (sin necesidad de re-importar).
+
 ## Versión 16.0.26.85 — Aviso de mensajes del comprador sin leer en las órdenes de ML [#499 Deco/KPI]
 22 jul 2026
 

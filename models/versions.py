@@ -490,6 +490,20 @@ def ml_datetime(datestr):
         #_logger.error(datestr)
         return None
 
+def ml_date(datestr):
+    """Como ml_datetime pero para campos que ML expresa como DÍA calendario
+    (deadlines self_service: buffering). Devuelve 'YYYY-MM-DD' sin hora → evita
+    el desfasaje de tz (00:00Z se veía 21:00 en -03)."""
+    try:
+        dt = parse(str(datestr))
+        if dt.tzinfo is not None:
+            dt = dt.astimezone(timezone.utc)
+        if dt.year < 1970:
+            return None
+        return dt.strftime('%Y-%m-%d')
+    except Exception:
+        return None
+
 def ml_tax_excluded(self, config=None ):
     #11.0
     #tax_excluded = self.env.user.has_group('sale.group_show_price_subtotal')

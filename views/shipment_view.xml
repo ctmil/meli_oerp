@@ -23,7 +23,7 @@
                   <field name="tracking_number"/>
                   <field name="logistic_type" optional="show"/>
                   <field name="estimated_handling_limit" optional="show"/>
-                  <field name="estimated_buffering_date" optional="show"/>
+                  <field name="estimated_buffering_date" optional="show" widget="date"/>
                   <field name="handling_limit_status" optional="show" widget="badge"
                          decoration-success="handling_limit_status == 'ok'"
                          decoration-warning="handling_limit_status == 'urgent'"
@@ -150,7 +150,7 @@
                         <field name="estimated_delivery_final"/>
                         <field name="estimated_handling_limit"/>
                         <field name="estimated_delivery_extended"/>
-                        <field name="estimated_buffering_date"/>
+                        <field name="estimated_buffering_date" widget="date"/>
                         <field name="estimated_schedule_limit"/>
                         <field name="estimated_pay_before"/>
                         <field name="pickup_promise_from"/>
