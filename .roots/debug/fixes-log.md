@@ -729,3 +729,35 @@ Se agregó `access_token` a la URL del permalink API. Ahora la URL se construye 
 El token se obtiene directamente de `meli.access_token`.
 
 ---
+
+### 24 jul 2026 — Backport: `sale.order.meli_unread_messages` no se materializaba, `-u meli_oerp` abortaba con ParseError (v17.0.26.86) [#499 Deco/KPI]
+
+**Backport idéntico del fix verificado en 19.0** (commits `2b9e9ca9` + `8f175a74`). El bug es
+byte-idéntico en 16/17/18/19: mismo `models/orders.py` (líneas 116-117: `meli_order_id` Char +
+`meli_orders` Many2many) y mismo `models/sale_order.py` huérfano con los `related` rotos.
+
+**Causa raíz:** `models/sale_order.py` (que define `class SaleOrder(models.Model): _inherit = "sale.order"`
+con `meli_unread_messages`/`meli_messages_link` como `related`) **nunca fue importado** desde
+`models/__init__.py` (no hay `from . import sale_order`) — código muerto desde el port inicial a 13.0.
+La extensión de `sale.order` que Odoo **sí** carga es la clase `sale_order` de `models/orders.py`, donde
+`meli_order_id` es `Char` (no `Many2one`) y el vínculo real a `mercadolibre.orders` es el Many2many
+`meli_orders` — por eso el `related` nunca podía funcionar (un related no atraviesa un x2many). La vista
+`orders_view.xml` (filtro `meli_unread_msgs`, domain `[('meli_unread_messages','>',0)]`) fallaba con
+`ParseError: Unknown field "sale.order.meli_unread_messages"`.
+
+**Fix:** en `models/orders.py` (clase activa) se agregaron los dos campos como **compute** (mismo patrón que
+el `_meli_status_brief` ya existente: `morder = order.meli_orders and order.meli_orders[0]`):
+`meli_unread_messages` (Integer, `store=True`, `_compute_meli_unread_messages`, depends
+`meli_orders.meli_unread_messages`) y `meli_messages_link` (Char, sin store, `_compute_meli_messages_link`,
+depends `meli_orders.meli_messages_link`). **Dos computes separados** (no uno compartido) porque difieren en
+`store` — evita el warning "inconsistent store". Los campos destino `meli_unread_messages`/`meli_messages_link`
+ya existen en `mercadolibre.orders` (misma `orders.py`, ~línea 5089). En `models/sale_order.py` (archivo muerto)
+se quitaron las 2 líneas `related` rotas y se dejó una nota de por qué el archivo es inerte — **NO** se reactivó
+el import (refactor fuera de alcance).
+
+**Archivos:** `models/orders.py`, `models/sale_order.py`, `__manifest__.py` (.85 → .86).
+**Verificación:** `py_compile` OK de los .py tocados. Instalación en instancia real: a cargo del usuario.
+Branch `claude/fix-sale-order-meli-unread-17.0` (push automático). Merge a `17.0` / promoción a deploy: a
+confirmar con el usuario.
+
+---
