@@ -4,6 +4,17 @@
 
 ---
 
+## Versión 19.0.26.86 — El flete de ML puede dejar de descontar del margen (opción de configuración) [#507 Score/WOD PRO]
+27 jul 2026
+
+**Cambios:**
+
+1. Acompaña a la opción **"Imputar el flete como coste del envío"** de la configuración de la cuenta (módulo `meli_oerp_multiple` 19.0.26.82). Con la opción **desactivada**, el conector ya no le asienta a la línea de envío el coste del flete que MercadoLibre le cobra al vendedor, ni al importar el envío ni al actualizarlo después (incluidas las órdenes ya bloqueadas/confirmadas, donde el flete suele llegar más tarde).
+2. Al desactivarla, además se **limpia el coste que hubiera quedado** en la línea de envío de los pedidos que se vuelvan a procesar, para que el margen quede parejo.
+3. Con la opción activada (default) no cambia nada respecto de la versión anterior.
+
+Requiere actualizar los módulos (`-u meli_oerp_multiple,meli_oerp`).
+
 ## Versión 19.0.26.85 — Aviso de mensajes del comprador sin leer en las órdenes de ML [#499 Deco/KPI]
 22 jul 2026
 

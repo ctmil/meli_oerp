@@ -582,6 +582,27 @@ def meli_resolve_coupon_invoice_mode(config):
     return "full"
 
 
+def meli_shipping_cost_as_purchase_price(config):
+    """True si el flete de ML debe imputarse como COSTE (purchase_price) en la linea de envio.
+
+    Campo: mercadolibre_shipping_cost_as_purchase_price (meli_oerp_multiple).
+    Default True = comportamiento historico (la linea de envio lleva como coste el flete que
+    ML le cobra al vendedor, shipping_seller_cost).
+
+    En False la linea de envio se sigue creando y facturando EXACTAMENTE igual, pero queda sin
+    coste -> el margen del pedido no descuenta el flete. Pedido de Score/WOD PRO (#507): con la
+    config en 'always' el margen de WOD PRO descontaba el flete real y el de SCORE (en 'never',
+    sin linea de envio) no, y los numeros no eran comparables entre cuentas. Pasar WOD PRO a
+    'never' no servia: ademas de ocultar un coste real, dejaba de facturar el envio.
+
+    Compat: si el campo no existe (meli_oerp_multiple viejo o config que no lo define) se
+    devuelve True, o sea, nada cambia.
+    """
+    if not config or "mercadolibre_shipping_cost_as_purchase_price" not in config._fields:
+        return True
+    return bool(config.mercadolibre_shipping_cost_as_purchase_price)
+
+
 def _meli_line_tax_field(rec):
     return "tax_ids" if "tax_ids" in rec._fields else "tax_id"
 

@@ -646,13 +646,20 @@ class mercadolibre_shipment(models.Model):
                 # delivery line.  shipping_seller_cost often arrives after the order is
                 # already confirmed, and without this the margin stays at 0.
                 try:
+                    # Config: el flete puede NO imputarse como coste (ver la funcion en versions.py).
+                    impute_ship_cost = meli_shipping_cost_as_purchase_price(config)
                     ship_cost_for_pp = (
                         shipment.shipping_seller_cost
                         or (sorder and sorder.meli_shipping_seller_cost)
                         or shipment.shipping_list_cost
                         or 0.0
-                    )
-                    if ship_cost_for_pp:
+                    ) if impute_ship_cost else 0.0
+                    if not impute_ship_cost:
+                        # Limpiar el coste que pudo haber quedado de antes de apagar el flag.
+                        delivery_line = get_delivery_line(sorder)
+                        if delivery_line and 'purchase_price' in delivery_line._fields and delivery_line.purchase_price:
+                            delivery_line.purchase_price = 0.0
+                    elif ship_cost_for_pp:
                         delivery_line = get_delivery_line(sorder)
                         if delivery_line and 'purchase_price' in delivery_line._fields:
                             product = delivery_line.product_id
@@ -984,13 +991,22 @@ class mercadolibre_shipment(models.Model):
                 # Priority: shipping_seller_cost (what ML charges the seller) > shipping_list_cost (fallback)
                 # Also check sorder.meli_shipping_seller_cost as it may have been set from payment processing
                 # before the shipment object got the value (timing issue).
+                # Config: el flete puede NO imputarse como coste (ver la funcion en versions.py).
+                # Con el flag apagado la linea de envio queda igual (se crea y se factura), pero
+                # sin coste, y el margen del pedido no descuenta el flete.
+                impute_ship_cost = meli_shipping_cost_as_purchase_price(config)
                 ship_cost_for_purchase_price = (
                     shipment.shipping_seller_cost
                     or (sorder and sorder.meli_shipping_seller_cost)
                     or shipment.shipping_list_cost
                     or 0.0
-                )
-                if ship_cost_for_purchase_price:
+                ) if impute_ship_cost else 0.0
+                if not impute_ship_cost:
+                    # Limpiar el coste que pudo haber quedado de antes de apagar el flag.
+                    delivery_line = get_delivery_line( sorder )
+                    if delivery_line and 'purchase_price' in delivery_line._fields and delivery_line.purchase_price:
+                        delivery_line.purchase_price = 0.0
+                elif ship_cost_for_purchase_price:
                     delivery_line = get_delivery_line( sorder )
                     if delivery_line and 'purchase_price' in delivery_line._fields:
                         new_purchase_price = sorder._ml_get_purchase_price_from_amount(
