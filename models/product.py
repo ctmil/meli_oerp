@@ -4909,16 +4909,19 @@ class product_product(models.Model):
                     product.product_meli_status_active(meli=meli)
 
         except Exception as e:
-            _logger.info("product_post_stock > exception error")
-            _logger.info(e, exc_info=True)
+            # 26.87 (H1): la excepcion se registraba en meli_stock_error pero la
+            # funcion devolvia {} = EXITO. El llamador marcaba el binding como
+            # publicado y la publicacion salia de la cola sin haberse actualizado.
+            # Ahora el error viaja en el return.
+            _logger.error("product_post_stock > exception error: %s", e, exc_info=True)
             error = { 'error': str(e) }
             product.meli_stock_error = str(error)
             product_tmpl.meli_stock_error = product.meli_stock_error
-            pass;
 
-        product.meli_stock_error = str(error)
+        product.meli_stock_error = str(error) if error else "Ok"
         product_tmpl.meli_stock_error = product.meli_stock_error
-        return {}
+        # 26.87 (H1): devolver el error si lo hubo (antes: siempre {}).
+        return error or {}
 
     #update internal product stock based on meli_default_stock_product
     def product_update_stock(self, stock=False, meli=False, config=None):
@@ -5209,15 +5212,112 @@ class product_product(models.Model):
     # NOTE: This field is NOT automatically recomputed on stock_move_ids changes
     # to avoid serialization errors during high-volume order processing.
     # Use process_meli_stock_moves_update() or cron to update this field.
+    # -------------------------------------------------------------------------
+    # 26.87 (F1) — "sello" de último movimiento de stock
+    #
+    # ANTES se usaba MAX(stock_move.create_date). Eso es un BUG: create_date es
+    # la fecha en que se CREO la fila, no en que el stock cambio. Consecuencias
+    # medidas en produccion (OrgVit 475, 28-jul-2026):
+    #
+    #   * El maximo SE CONGELA en cuanto deja de crearse movimientos nuevos.
+    #     Como `stock_update` se sella en CADA push, la condicion de cola
+    #     (meli_stock_moves_update > stock_update, ver mercadolibre.product
+    #     _meli_stock_status) deja de cumplirse PARA SIEMPRE: el binding queda
+    #     'updated', fuera de la cola, sin error y sin log. Drift silencioso.
+    #   * Todo cambio de stock que no crea una fila nueva queda invisible:
+    #     validar un move creado dias antes (209 casos en 60 dias en una sola
+    #     cuenta), reservar/desreservar, cancelar, editar la cantidad.
+    #
+    # AHORA el sello es GREATEST(date, write_date, create_date):
+    #   - `date`       : fecha efectiva del movimiento, solo si state='done'
+    #                    (en los no-'done' `date` es una fecha PREVISTA, futura,
+    #                    y adelantaria el sello a un evento que no ocurrio).
+    #   - `write_date` : capta transiciones de estado sobre movimientos ya
+    #                    existentes — validar, reservar/desreservar, cancelar —
+    #                    que es justo lo que create_date no veia.
+    #   - `create_date`: piso historico, para no perder el comportamiento viejo.
+    # GREATEST de Postgres ignora los NULL, asi que no hace falta COALESCE.
+    _MELI_MOVE_STAMP_SQL = (
+        "GREATEST("
+        " CASE WHEN state = 'done' THEN date ELSE NULL END,"
+        " write_date,"
+        " create_date"
+        ")"
+    )
+
+    def _meli_move_stamps_by_product(self, product_ids):
+        """Devuelve {product_id: sello} con el ultimo movimiento relevante de cada
+        producto. Una sola query agregada (antes se iteraba stock_move_ids en
+        Python, que en productos con miles de movimientos es carisimo)."""
+        stamps = {}
+        ids = tuple(pid for pid in set(product_ids or []) if pid)
+        if not ids:
+            return stamps
+        # Este metodo se llama desde los hooks de stock_move: si el ORM todavia
+        # tiene la escritura en cache, la SQL no la veria. Flusheamos SOLO
+        # stock.move (otro modelo: no puede recursar sobre el campo que estamos
+        # calculando). Defensivo por si cambia la API entre versiones de Odoo.
+        try:
+            self.env['stock.move'].flush_model(
+                ['product_id', 'state', 'date', 'write_date', 'create_date'])
+        except Exception:
+            pass
+        self.env.cr.execute(
+            "SELECT product_id, MAX(" + self._MELI_MOVE_STAMP_SQL + ") "
+            "FROM stock_move WHERE product_id IN %s GROUP BY product_id",
+            (ids,)
+        )
+        for pid, stamp in self.env.cr.fetchall():
+            if stamp:
+                stamps[pid] = stamp
+        return stamps
+
+    def _meli_stored_moves_stamps(self, product_ids):
+        """Lee el meli_stock_moves_update YA GUARDADO, por SQL.
+
+        Por SQL a proposito: este helper se usa DENTRO del compute del propio
+        campo, y leerlo por ORM ahi dispararia el recomputo del campo que estamos
+        calculando. El valor de la base es ademas justo el que necesitamos: el
+        anterior, contra el que comparamos para no retroceder."""
+        stored = {}
+        ids = tuple(pid for pid in set(product_ids or []) if pid)
+        if not ids:
+            return stored
+        self.env.cr.execute(
+            "SELECT id, meli_stock_moves_update FROM product_product WHERE id IN %s",
+            (ids,)
+        )
+        for pid, stamp in self.env.cr.fetchall():
+            stored[pid] = stamp
+        return stored
+
+    def _meli_write_moves_stamp(self, new_stamp, current=None):
+        """Escribe meli_stock_moves_update SIN RETROCEDER (F1b).
+
+        El campo tiene que ser monotono. Si no lo fuera, una pasada de
+        recomputo puede pisar hacia atras el NOW() que escriben por SQL los
+        hooks de cancel/unreserve (meli_oerp_multiple/models/stock_move.py) y
+        ANULAR una entrada de cola pendiente: el binding volveria a 'updated'
+        sin haberse publicado nunca. Es exactamente el bug que perseguimos, en
+        version sutil.
+
+        `current` se pasa desde afuera (leido por SQL): NO se puede leer el campo
+        por ORM aca, porque este helper corre dentro de su propio compute."""
+        self.ensure_one()
+        if new_stamp and current and current >= new_stamp:
+            return  # ya tenemos un sello igual o mas nuevo: no retroceder
+        if not new_stamp and current:
+            return  # sin candidato nuevo, conservamos el que hay
+        self.meli_stock_moves_update = new_stamp or False
+
     @api.depends()  # Empty depends - prevents automatic recompute on stock_move_ids
     def _meli_stock_moves_update( self ):
+        _stored = self._meli_stored_moves_stamps(self.ids)
         for var in self:
-            # Collect all relevant create_dates directly (more efficient than recordset operations)
-            move_dates = []
-
-            # Get direct product moves
-            if var.stock_move_ids:
-                move_dates.extend([m.create_date for m in var.stock_move_ids if m.create_date])
+            # Productos cuyo movimiento nos interesa: el propio + los componentes
+            # de sus BoM (un kit no tiene movimientos propios: su stock sale de
+            # los componentes, ver meli_oerp_stock._meli_available_quantity).
+            related_ids = {var.id}
 
             # Check KIT/BOM components for their moves
             if "mrp.bom" in self.env:
@@ -5233,12 +5333,12 @@ class product_product(models.Model):
                         continue
                     # Collect component moves
                     for bm_line_id in bom_id.bom_line_ids:
-                        bm_pr_id = bm_line_id.product_id
-                        if bm_pr_id and bm_pr_id.stock_move_ids:
-                            move_dates.extend([m.create_date for m in bm_pr_id.stock_move_ids if m.create_date])
+                        if bm_line_id.product_id:
+                            related_ids.add(bm_line_id.product_id.id)
 
-            # Use max() instead of sorted()[0] - O(n) vs O(n log n)
-            var.meli_stock_moves_update = max(move_dates) if move_dates else False
+            stamps = self._meli_move_stamps_by_product(related_ids)
+            var._meli_write_moves_stamp(max(stamps.values()) if stamps else False,
+                                        current=_stored.get(var.id))
 
     # Threshold for switching to SQL-only mode (skip ORM for large batches)
     MELI_LARGE_BATCH_THRESHOLD = 100
@@ -5328,31 +5428,17 @@ class product_product(models.Model):
 
         # Step 4: Pre-fetch ALL stock moves for all components in one query
         t2 = time.time()
-        component_latest_moves = {}
-        if component_ids:
-            self.env.cr.execute("""
-                SELECT product_id, MAX(create_date) as latest_date
-                FROM stock_move
-                WHERE product_id IN %s AND create_date IS NOT NULL
-                GROUP BY product_id
-            """, (tuple(component_ids),))
-            for row in self.env.cr.fetchall():
-                component_latest_moves[row[0]] = row[1]
+        # 26.87 (F1c): mismo sello que _meli_stock_moves_update
+        # (GREATEST(date si done, write_date, create_date)), no MAX(create_date).
+        component_latest_moves = self._meli_move_stamps_by_product(component_ids)
 
         # Step 5: Pre-fetch latest moves for direct products
-        product_latest_moves = {}
-        self.env.cr.execute("""
-            SELECT product_id, MAX(create_date) as latest_date
-            FROM stock_move
-            WHERE product_id IN %s AND create_date IS NOT NULL
-            GROUP BY product_id
-        """, (tuple(self.ids),))
-        for row in self.env.cr.fetchall():
-            product_latest_moves[row[0]] = row[1]
+        product_latest_moves = self._meli_move_stamps_by_product(self.ids)
         t2_end = time.time()
 
         # Step 6: Calculate meli_stock_moves_update for each product
         t3 = time.time()
+        _stored = self._meli_stored_moves_stamps(self.ids)
         for var in self:
             move_dates = []
 
@@ -5367,7 +5453,9 @@ class product_product(models.Model):
                     if line.product_id and line.product_id.id in component_latest_moves:
                         move_dates.append(component_latest_moves[line.product_id.id])
 
-            var.meli_stock_moves_update = max(move_dates) if move_dates else False
+            # 26.87 (F1b): monotono — nunca retroceder.
+            var._meli_write_moves_stamp(max(move_dates) if move_dates else False,
+                                        current=_stored.get(var.id))
         t3_end = time.time()
 
         _logger.info(
@@ -5405,9 +5493,13 @@ class product_product(models.Model):
             t_chunk = time.time()
 
             # SQL UPDATE for products - set meli_stock_moves_update to NOW()
+            # 26.87 (F1b): GREATEST(actual, NOW()) — el campo es monotono.
+            # NOW() ya es lo mas nuevo posible, pero dejarlo explicito evita que
+            # un reloj corrido o un valor futuro escrito por otra via retrocedan.
             self.env.cr.execute("""
                 UPDATE product_product
-                SET meli_stock_moves_update = NOW() AT TIME ZONE 'UTC'
+                SET meli_stock_moves_update = GREATEST(
+                        meli_stock_moves_update, NOW() AT TIME ZONE 'UTC')
                 WHERE id IN %s
             """, (tuple(chunk_ids),))
 
