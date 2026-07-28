@@ -4,6 +4,22 @@
 
 ---
 
+## Versión 16.0.26.88 — El stock vuelve a sincronizarse solo (se arregló una cola que se congelaba)
+28 jul 2026
+
+**Cambios:**
+
+1. **El problema:** una publicación podía quedar con el stock de MercadoLibre desactualizado **para siempre**, sin ningún aviso. El conector decide qué publicaciones re-enviar mirando la fecha del último movimiento de stock del producto; esa fecha se tomaba de *cuándo se creó* el movimiento y no de *cuándo cambió el stock*. Resultado: si el stock cambiaba sin crear un movimiento nuevo — validar un remito creado días antes, reservar o liberar mercadería, cancelar una entrega —, el conector no se enteraba. Peor: una vez enviado ese stock una primera vez, la publicación salía de la cola y **ningún proceso automático la volvía a mirar nunca**. Ahora la fecha considera la validación y las modificaciones posteriores del movimiento, y nunca puede "retroceder".
+2. **Red de seguridad nueva:** toda publicación cuyo último envío de stock a MercadoLibre supere los **7 días** vuelve a la cola por sí sola, haya habido movimientos o no. Es configurable en la cuenta (*Resincronización de stock*); poner 0 la desactiva. Así, si alguna vez se pierde un aviso, el desfase dura días y no meses.
+3. **Los kits (listas de materiales) entran en la cuenta:** un producto tipo kit no tiene movimientos propios — su stock sale de los componentes. Ahora los movimientos de los componentes también reactivan la publicación del kit.
+4. **Se detecta cuando MercadoLibre acepta el envío pero no aplica el stock.** Hasta ahora, si ML respondía "OK" y dejaba la cantidad vieja, el conector lo daba por publicado y la publicación quedaba desactualizada en silencio. Ahora se compara la cantidad enviada contra la que responde ML y, si no coinciden, la publicación queda marcada como **"ML aceptó el envío pero NO aplicó el stock"** y se reintenta.
+5. **Errores que se perdían:** si fallaba algo al publicar el stock, el error quedaba anotado pero la operación se informaba como exitosa. Ahora el fallo se propaga y la publicación no se marca como actualizada.
+6. El diagnóstico de stock ahora **guarda el estado real** que le responde MercadoLibre (activa/pausada). Antes lo consultaba y lo descartaba, así que el estado guardado quedaba viejo por meses y generaba avisos falsos de "publicación pausada con stock" sobre publicaciones que en realidad estaban activas.
+
+*Detectado en una cuenta MX con 3.700 publicaciones: 209 movimientos validados con demora en 60 días quedaban fuera de la sincronización, y publicaciones con la fecha congelada desde hacía semanas.*
+
+Requiere actualizar el módulo (`-u meli_oerp`).
+
 ## Versión 16.0.26.87 — El costo de envío ya no se pierde de la orden [Elvimarta #508]
 27 jul 2026
 
