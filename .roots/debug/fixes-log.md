@@ -4,6 +4,42 @@
 
 ---
 
+### 28 jul 2026 - fix(stock): el sello de movimientos se congelaba, drift permanente e invisible (v18.0.26.88) [OrgVit 475]
+
+**Causa raiz** (analisis completo en `.roots/debug/2026-07-28-stock-queue-invariant-y-kits.md`):
+`_meli_stock_moves_update()` calculaba el campo con `MAX(stock_move.create_date)`. `create_date` es
+cuando se creo la FILA, no cuando cambio el stock, y el maximo **se congela** en cuanto deja de crearse
+movimientos nuevos. Como `stock_update` se sella en cada push, la condicion de cola
+(`meli_stock_moves_update > stock_update`, en `mercadolibre.product._meli_stock_status`) deja de
+cumplirse **para siempre**: el binding queda `updated`, fuera de la cola, sin error y sin log. Quedaban
+invisibles todos los cambios que no crean fila nueva: validar un move creado dias antes (**209 en 60
+dias** en una sola cuenta), reservar/desreservar, cancelar, editar cantidad.
+
+**Fixes (F1 + F3 + H1):**
+- **F1a** el sello ahora es `GREATEST(date si state='done', write_date, create_date)`. `date` solo en
+  los `done` porque en los demas es una fecha PREVISTA (futura) y adelantaria el sello a un evento que
+  no ocurrio. `write_date` es lo que capta validar/reservar/cancelar sobre movimientos ya existentes.
+- **F1b** el campo es **monotono** (`_meli_write_moves_stamp`): nunca retrocede. Sin esto, un recomputo
+  pisaba hacia atras el `NOW()` que escriben por SQL los hooks de cancel/unreserve
+  (`meli_oerp_multiple/models/stock_move.py`) y **anulaba una entrada de cola pendiente**.
+- **F1c** mismo criterio en los caminos batch (`_process_stock_update_orm_batch`) y
+  `GREATEST(actual, NOW())` en `_process_stock_update_sql_only`. Nuevo helper
+  `_meli_move_stamps_by_product()`: una sola query agregada en vez de iterar `stock_move_ids` en Python
+  (en productos con miles de movimientos era carisimo).
+- **F3** `meli_stock_diagnostic` **persiste** el `status` que ML acaba de devolver
+  (`_meli_diag_persist_ml_status`). Antes lo leia, lo logueaba y lo tiraba: `meli_last_status` solo se
+  refrescaba en el push, y las publicaciones que nunca entran a la cola nunca se pushean, con lo cual el
+  campo quedaba congelado meses (**994 marcadas `paused` que en ML estaban activas** en una cuenta real),
+  ensuciando el propio diagnostico con falsos "pausada con stock = perdida de ventas" y quemando ~100
+  llamadas API cada 30 min. Costo: **0 llamadas extra**, la respuesta ya estaba en la mano.
+- **H1** `product_post_stock` devolvia un dict vacio (= exito) **despues de tragarse la excepcion**: el
+  llamador marcaba el binding como publicado. Ahora el error viaja en el `return`.
+
+**Archivos:** `models/product.py`, `models/company.py`, `__manifest__.py`.
+**Verificacion:** `ast.parse` OK en las 4 versiones. Convergencia 16=17=18=19 (16.0 conserva su
+`_sql_constraints` propio; el resto byte-identico). Branch `claude/stock-queue-invariant-2687-<ver>`.
+**Merge a la rama de deploy y deploy a clientes: NO - lo confirma FCA aparte.**
+
 ### 19 jul 2026 — feat(promoción cliente→source): comprador + zona del receiver buscables en sale.order (v18.0.26.83) [#404 Deco]
 
 Promoción cliente→source (grove meli) del feature implementado en Deco/KPI (cuenta 526, commit cliente
