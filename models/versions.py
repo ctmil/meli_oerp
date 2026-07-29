@@ -704,6 +704,22 @@ def set_delivery_line( sorder, delivery_price, delivery_message ):
     """
     #check version
     delivery_line = get_delivery_line(sorder)
+
+    # [#493 Shoppy] No tocar ventas YA FACTURADAS. Este es el punto por el que el
+    # conector dejaba el flete en 0 sobre ventas con factura posteada, y la venta
+    # quedaba por debajo de su propia factura. El guard vive acá porque es el unico
+    # lugar por el que pasan TODAS las reescrituras de la linea de envio.
+    try:
+        if hasattr(sorder, '_meli_guard_invoiced'):
+            _current = delivery_line and delivery_line.price_unit or 0.0
+            if abs(float(_current) - float(delivery_price or 0.0)) > 0.01:
+                _detail = "envío %s -> %s" % (_current, delivery_price)
+                if sorder._meli_guard_invoiced("la línea de envío", _detail):
+                    return delivery_line
+    except Exception as e:
+        _logger.warning("MELI set_delivery_line: falló el guard de venta facturada en %s: %s",
+                        getattr(sorder, 'name', '?'), e)
+
     carrier = sorder.carrier_id
 
     if not carrier:
