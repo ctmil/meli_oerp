@@ -7,7 +7,7 @@ import logging
 _logger = logging.getLogger(__name__)
 import json
 import re
-from markupsafe import Markup
+from markupsafe import Markup, escape as markup_escape
 # Odoo version 16.0
 
 # Odoo 18.0 -> type='json', Odoo 19.0 -> type='jsonrpc'
@@ -117,11 +117,57 @@ cl_vat_sep_million = "."
 order_message_type = "notification"
 product_message_type = "notification"
 
-def meli_message_post(record, body, config=None):
+def meli_once_marker(once_key):
+    """Marca HTML invisible que identifica un mensaje "postear una sola vez"."""
+    return "<!-- meli-once:%s -->" % once_key
+
+
+def meli_message_already_posted(record, once_key):
+    """True si el chatter de `record` ya tiene el mensaje marcado con `once_key`."""
+    if not record or not once_key:
+        return False
+    try:
+        # sudo: el cron corre con un usuario de permisos acotados y esto es sólo lectura.
+        return bool(record.env['mail.message'].sudo().search_count([
+            ('model', '=', record._name),
+            ('res_id', '=', record.id),
+            ('body', 'like', meli_once_marker(once_key)),
+        ]))
+    except Exception as e:
+        # Ante cualquier problema leyendo el chatter preferimos postear de más
+        # (perder un aviso es peor que repetirlo).
+        _logger.warning("meli_message_already_posted failed on %s(%s): %s", record._name, record.id, e)
+        return False
+
+
+def meli_message_body_with_marker(body, once_key):
+    """Devuelve `body` con la marca `once_key` pegada al final, invisible en el chatter.
+
+    Ojo con la diferencia entre versiones de Odoo (verificada en el core):
+      - 16.0: `message_post` NO escapa el body → un str plano se guarda como HTML.
+      - 17.0/18.0/19.0: `message_post` hace `escape(body)` salvo que sea `Markup`
+        (mail_thread.py: "escape if text, keep if markup") → un comentario HTML
+        en un str plano se vería literal, `<!-- meli-once:... -->`, en el chatter.
+    Por eso devolvemos un `Markup` con el body YA escapado + la marca cruda: el texto
+    se ve igual que siempre en las 4 versiones y la marca queda invisible.
+    Sólo se usa en los avisos con `once_key` (los demás callers no cambian).
+    """
+    return markup_escape(body) + Markup(meli_once_marker(once_key))
+
+
+def meli_message_post(record, body, config=None, once_key=None):
     """Post a message respecting the MeLi notification mode setting.
 
     config: res.company or connection_account record with mercadolibre_notification_mode field.
            If None, falls back to the record's company.
+
+    once_key: si viene, el mensaje se postea UNA SOLA VEZ por record. El body se
+           marca con `<!-- meli-once:<once_key> -->` y en las llamadas siguientes,
+           si esa marca ya está en el chatter, no se repostea (sí queda en el log).
+           Se usa en los avisos que nacen de un cron que reintenta indefinidamente
+           (orden ML cancelada que no se puede cancelar en Odoo): sin esto el mismo
+           aviso se repetía cada ~5 min para siempre — visto en prod con 1215 y 832
+           mensajes en el chatter de dos órdenes.
 
     Modes:
       - 'notification': standard notification (appears in user inbox)
@@ -140,7 +186,16 @@ def meli_message_post(record, body, config=None):
         _logger.info("MELI [%s] %s: %s", record._name, getattr(record, 'name', record.id), body)
         return
 
-    kwargs = {'body': str(body)}
+    if once_key:
+        if meli_message_already_posted(record, once_key):
+            _logger.info("MELI [%s] %s (ya posteado, once_key=%s): %s",
+                         record._name, getattr(record, 'name', record.id), once_key, body)
+            return
+        body = meli_message_body_with_marker(body, once_key)
+
+    # str() sólo para los bodies sin marca: `meli_message_body_with_marker` ya
+    # devuelve un Markup y pasarlo por str() lo degradaría a texto escapado.
+    kwargs = {'body': body if isinstance(body, Markup) else str(body)}
     if mode == 'internal_note':
         kwargs['message_type'] = 'comment'
         kwargs['subtype_xmlid'] = 'mail.mt_note'
