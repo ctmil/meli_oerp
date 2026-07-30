@@ -644,17 +644,21 @@ class sale_order(models.Model):
                         # No se pudo revertir: la orden NO debe cancelarse automáticamente.
                         # El usuario debe crear una Nota de Crédito manualmente desde la factura.
                         _has_unresolved_posted_invoice = True
-                        invoice.message_post(
-                        body=cancel_msg + " — ⚠️ ACCIÓN REQUERIDA: esta factura no pudo revertirse a borrador. "
+                        # once_key en los dos: el cron reintenta mientras la orden no se
+                        # pueda cancelar, así que sin marca este par se repostea por siempre.
+                        meli_message_post(
+                            invoice,
+                            cancel_msg + " — ⚠️ ACCIÓN REQUERIDA: esta factura no pudo revertirse a borrador. "
                             "Debe crear una NOTA DE CRÉDITO manualmente para reversarla. "
                             "La orden de venta NO fue cancelada automáticamente para permitir la gestión.",
-                        message_type=order_message_type
+                            once_key="cancel-inv-noretract-%s" % invoice.id,
                         )
-                        self.message_post(
-                        body="⚠️ Cancelación de ML pendiente: factura %s publicada no pudo revertirse. "
+                        meli_message_post(
+                            self,
+                            "⚠️ Cancelación de ML pendiente: factura %s publicada no pudo revertirse. "
                             "Crear nota de crédito desde la factura y luego cancelar la orden manualmente. "
                             "Motivo ML: %s" % (invoice.name, cancel_msg),
-                        message_type=order_message_type
+                            once_key="cancel-so-noretract-%s" % invoice.id,
                         )
                 elif invoice.state == 'draft':
                     try:
@@ -667,14 +671,19 @@ class sale_order(models.Model):
         posted_invoices = self.invoice_ids.filtered(lambda inv: inv.state == 'posted' and inv.move_type == 'out_invoice')
         if posted_invoices:
             _has_unresolved_posted_invoice = True
-            self.message_post(
-                body="⚠️ Cancelación de ML pendiente: %d factura(s) publicada(s) sin resolver (%s). "
-                     "Gestionar manualmente. Motivo ML: %s" % (
+            # once_key por juego de facturas: este aviso se emitía en CADA pasada del cron
+            # (que reintenta mientras la orden no se pueda cancelar) — era la otra mitad del
+            # spam del chatter. Con la marca se postea una vez; si después aparece otra
+            # factura publicada, la clave cambia y se vuelve a avisar.
+            meli_message_post(
+                self,
+                "⚠️ Cancelación de ML pendiente: %d factura(s) publicada(s) sin resolver (%s). "
+                "Gestionar manualmente. Motivo ML: %s" % (
                     len(posted_invoices),
                     ", ".join(posted_invoices.mapped('name')),
                     cancel_msg
                 ),
-                message_type=order_message_type
+                once_key="cancel-posted-inv-%s" % "_".join(str(i) for i in sorted(posted_invoices.ids)),
             )
 
         if _has_unresolved_posted_invoice:
@@ -794,6 +803,17 @@ class sale_order(models.Model):
                 continue
             try:
                 wiz = ReturnWiz.with_context(active_id=picking.id, active_ids=[picking.id], active_model="stock.picking").create({})
+                # --- Poblar las líneas del wizard (Odoo 16.0) -------------------------------
+                # En 16.0 `product_return_moves` se llena en @api.onchange('picking_id')
+                # (core stock/wizard/stock_picking_return.py) y los onchange NO corren en
+                # create() -> el wizard nace VACÍO y _create_returns() tira siempre
+                # "Please specify at least one non-zero quantity.". O sea: en 16.0 la
+                # devolución automática nunca funcionó, y el cron reintentaba para siempre.
+                # En 17.0+ el mismo campo es compute+store (depends='picking_id'), así que
+                # ya viene poblado y este bloque no hace nada.
+                if "product_return_moves" in wiz._fields and not wiz.product_return_moves:
+                    if hasattr(wiz, "_onchange_picking_id"):
+                        wiz._onchange_picking_id()
                 if hasattr(wiz, "action_create_returns_all"):
                     # Odoo 18+: el core ya NO precalcula product_return_moves.quantity
                     # (siempre nace en 0 — ver stock/wizard/stock_picking_return.py
@@ -811,25 +831,40 @@ class sale_order(models.Model):
                         continue
                     wiz.action_create_returns_all()
                 elif hasattr(wiz, "action_create_returns"):
-                    # Odoo <=17: product_return_moves.quantity ya viene precalculado
-                    # por el propio wizard (entregado - ya devuelto). Guard cantidad-cero:
-                    # si dio 0, no intentar (action_create_returns tiraría 'Especifique al
-                    # menos una cantidad diferente a cero' y el cron reintentaría en bucle).
-                    # Típico de pickings FULL cuyo stock vive en el fulfillment de ML.
+                    # RAMA MUERTA (dejada por compatibilidad si algún core la expone sola).
+                    # Verificado contra el core de las 4 versiones: 18.0/19.0 tienen
+                    # action_create_returns Y action_create_returns_all -> gana la rama de
+                    # arriba; 16.0/17.0 no tienen ninguna de las dos -> caen a create_returns.
+                    # Nadie pasa por acá. El guard queda igual que arriba por las dudas.
                     if "product_return_moves" in wiz._fields and not sum(wiz.product_return_moves.mapped("quantity")):
                         _logger.info("Return omitida para %s: sin cantidades a devolver (FULL).", picking.name)
                         continue
                     wiz.action_create_returns()
                 elif hasattr(wiz, "create_returns"):
+                    # Odoo 16.0/17.0: acá llegan de verdad. product_return_moves.quantity ya
+                    # viene precalculado (compute en 17.0, onchange forzado arriba en 16.0).
+                    # MISMO guard de cantidad-cero que las otras ramas: sin esto,
+                    # create_returns() tira 'Especifique al menos una cantidad diferente a
+                    # cero' y el cron reintenta cada ~5 min PARA SIEMPRE (visto en prod:
+                    # 514 ERROR/día y 2047 mensajes de spam en el chatter de 2 órdenes).
+                    # Típico de pickings FULL cuyo stock vive en el fulfillment de ML.
+                    if "product_return_moves" in wiz._fields and not sum(wiz.product_return_moves.mapped("quantity")):
+                        _logger.info("Return omitida para %s: sin cantidades a devolver (FULL).", picking.name)
+                        continue
                     wiz.create_returns()
                 else:
                     _logger.warning("stock.return.picking: no create_returns method found")
-                    meli_message_post(self, "No se pudo devolver el albarán %s automáticamente: método no encontrado. Gestionar manualmente." % picking.name)
+                    meli_message_post(self, "No se pudo devolver el albarán %s automáticamente: método no encontrado. Gestionar manualmente." % picking.name,
+                                      once_key="ret-nomethod-%s" % picking.id)
                     continue
                 meli_message_post(self, "Devolución creada automáticamente para albarán %s (orden cancelada por MeLi)." % picking.name)
             except Exception as e:
                 _logger.error("Error creating return for picking %s: %s", picking.name, e, exc_info=True)
-                meli_message_post(self, "No se pudo devolver el albarán %s automáticamente. Error: %s. Gestionar manualmente." % (picking.name, str(e)))
+                # once_key: este camino lo dispara un cron que reintenta indefinidamente
+                # mientras la orden no se pueda cancelar. Sin la marca, el mismo aviso se
+                # repostea en cada ciclo (era la mitad del spam del chatter).
+                meli_message_post(self, "No se pudo devolver el albarán %s automáticamente. Error: %s. Gestionar manualmente." % (picking.name, str(e)),
+                                  once_key="ret-error-%s" % picking.id)
 
     def meli_confirm_ready( self, meli=None, config=None ):
         """Evalúa, SIN efectos secundarios, si la venta ML está lista para confirmar.
