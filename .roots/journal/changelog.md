@@ -4,6 +4,17 @@
 
 ---
 
+## Versión 19.0.26.90 — La devolución automática de ventas canceladas por ML vuelve a funcionar (y deja de llenar el historial de avisos repetidos)
+30 jul 2026
+
+**Cambios:**
+
+1. **El problema principal:** cuando MercadoLibre cancelaba una venta que ya se había facturado y despachado, el conector intentaba generar la devolución del remito y **fallaba siempre** con *"Especifique al menos una cantidad diferente a cero"*. En Odoo 16 la ventana de devolución se abría **sin líneas** (el conector la creaba por código y las líneas sólo se completan al abrirla a mano), así que no había nada que devolver. Es decir: **en Odoo 16 la devolución automática nunca funcionó**. Ahora las líneas se completan también por código y la devolución se crea sola.
+2. **El proceso automático dejaba de reintentar nunca:** como la devolución fallaba, el proceso volvía a intentarlo **cada 5 minutos, para siempre**, por cada venta cancelada en esa situación. Se agregó el mismo control de "no hay nada que devolver" que ya existía en las otras variantes, así que las entregas sin cantidades reales (típico de las ventas FULL, cuyo stock vive en el depósito de ML) se saltean limpio en vez de reintentarse eternamente.
+3. **Se terminó el historial inundado de avisos repetidos:** los avisos *"No se pudo devolver el albarán…"* y *"Cancelación de ML pendiente: factura publicada sin resolver"* se volvían a escribir en el historial de la venta en **cada** reintento. Ahora se escriben **una sola vez**; si la situación cambia (otra factura, otro remito), se vuelve a avisar. *Medido en un cliente AR: 2.047 mensajes repetidos en el historial de dos ventas y 514 errores por día en el registro del servidor.*
+
+Requiere actualizar el módulo (`-u meli_oerp`).
+
 ## Versión 19.0.26.88 — El stock vuelve a sincronizarse solo (se arregló una cola que se congelaba)
 28 jul 2026
 

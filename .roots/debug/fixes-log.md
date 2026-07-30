@@ -4,6 +4,51 @@
 
 ---
 
+### 30 jul 2026 - fix(orders): Odoo 16/17 nunca ejecutaban el guard de devolucion -> bucle infinito en ventas ML canceladas (v19.0.26.90) [Just 148]
+
+**Sintoma** (prod Just, cuenta 148, Odoo 16.0): desde que una orden ML se cancela DESPUES de facturada
+y despachada, cada ciclo del cron (~5 min, 2 veces por ciclo) loguea
+`ERROR ... Error creating return for picking MELI/OUT/00548: Por favor, especifique al menos una
+cantidad que no sea cero` + `WARNING meli_cancel_with_detail: orden ML ... NO cancelada - factura
+publicada sin resolver`. Medido: **1 picking el 28-jul -> 2 el 29-jul**, **199 -> 514 ERROR/dia**,
+**407 -> 2047 mensajes** de spam en el chatter de 2 sale.order. Crece con cada cancelacion nueva.
+
+**Causa raiz** (contrastada contra `addons/stock/wizard/stock_picking_return.py` de los 4 cores):
+`_meli_return_done_pickings` bifurca por `hasattr` sobre `stock.return.picking`:
+
+| Core | `action_create_returns_all` | `action_create_returns` | `create_returns` | Rama real | Guard 0-qty |
+|------|------|------|------|------|------|
+| 16.0 | no | no | si (184) | **3a** | **NO** |
+| 17.0 | no | no | si (183) | **3a** | **NO** |
+| 18.0 | si (186) | si (174) | no | 1a | si |
+| 19.0 | si (221) | si (209) | no | 1a | si |
+
+- La 2a rama (`action_create_returns` sin `_all`) es **codigo muerto en las 4 versiones**, y es
+  justo donde vivia el guard de cantidad-cero del 13-jun-2026. **16.0/17.0 nunca lo ejecutaban.**
+- Ademas, en el core **16.0** `product_return_moves` se llena en `@api.onchange('picking_id')`, y los
+  onchange **no corren en `create()`** -> `ReturnWiz.create({})` deja el wizard VACIO -> `_create_returns()`
+  tira UserError siempre. En **17.0** el mismo campo es `compute=..., store=True` (depends `picking_id`),
+  o sea si se puebla. => **en 16.0 la devolucion automatica nunca funciono**; en 17.0 funcionaba pero sin guard.
+- El `except` posteaba al chatter en CADA reintento, y `meli_cancel_with_detail` volvia a postear el aviso
+  de "factura publicada sin resolver" en cada pasada. Como la orden nunca llega a cancelarse (la factura
+  posted corta el flujo con un `return`), el cron reentra por siempre: 2 mensajes por ciclo.
+
+**Fixes:**
+- **F1** poblar las lineas cuando el wizard nace vacio y existe el onchange (`wiz._onchange_picking_id()`).
+  No-op en 17.0+ (ya vienen por compute).
+- **F2** mismo guard de cantidad-cero en la rama `create_returns` (la que toman 16.0/17.0). La rama muerta
+  queda documentada como tal, sin cambiarle el comportamiento.
+- **F3** avisos idempotentes: `meli_message_post(..., once_key=...)` nuevo en `models/versions.py`. Marca el
+  body con un comentario HTML invisible `<!-- meli-once:<key> -->` y no repostea si ya esta en el chatter.
+  Ojo con el escape por version: 16.0 **no** escapa el body en `message_post`; 17.0/18.0/19.0 hacen
+  `escape(body)` salvo `Markup` -> el helper devuelve `markup_escape(body) + Markup(marker)`, asi el texto se
+  ve igual en las 4 y la marca queda invisible. `html_sanitize` **conserva** los comentarios
+  (`'comments': False` en el Cleaner, verificado en los 4 cores).
+
+**Alcance:** bug del source, no del cliente — pega a **todo cliente 16.0/17.0** con una venta ML cancelada
+despues del despacho. Caso de prueba real: picking `MELI/OUT/00548` (id 46749) y `MELI/OUT/00553` (id 47038),
+SOs `ML 2000014232660469` / `ML 2000014243455389`.
+
 ### 28 jul 2026 - fix(stock): el sello de movimientos se congelaba, drift permanente e invisible (v19.0.26.88) [OrgVit 475]
 
 **Causa raiz** (analisis completo en `.roots/debug/2026-07-28-stock-queue-invariant-y-kits.md`):
