@@ -582,6 +582,33 @@ def meli_resolve_coupon_invoice_mode(config):
     return "full"
 
 
+def meli_shipping_margin_mode(config):
+    """Cómo participa la línea de envío en el MARGEN del pedido. Devuelve uno de:
+
+    - 'impute'  : purchase_price = flete real que ML le cobra al vendedor (histórico).
+    - 'no_cost' : purchase_price = 0 -> el margen no descuenta el flete. Lo aplicado en
+                  Score/WOD PRO por el #507. OJO: el gasto sigue existiendo, queda fuera del margen.
+    - 'exclude' : purchase_price = price_unit -> la línea aporta margen CERO, o sea que el envío
+                  no participa del cálculo ni como ingreso ni como coste. Pedido de Score (#507,
+                  02-ago): "es un servicio y no debería ser parte del cálculo".
+
+    Campo: mercadolibre_shipping_margin_mode (meli_oerp_multiple).
+
+    Compat hacia atrás en DOS niveles, para no cambiarle la conducta a nadie:
+      1. Si existe el campo nuevo, manda ése.
+      2. Si no existe pero sí el booleano viejo (`mercadolibre_shipping_cost_as_purchase_price`),
+         se traduce: True -> 'impute', False -> 'no_cost'.
+      3. Si no existe ninguno (módulo viejo) -> 'impute', o sea nada cambia.
+    """
+    if not config:
+        return "impute"
+    if "mercadolibre_shipping_margin_mode" in config._fields:
+        return config.mercadolibre_shipping_margin_mode or "impute"
+    if "mercadolibre_shipping_cost_as_purchase_price" in config._fields:
+        return "impute" if config.mercadolibre_shipping_cost_as_purchase_price else "no_cost"
+    return "impute"
+
+
 def meli_shipping_cost_as_purchase_price(config):
     """True si el flete de ML debe imputarse como COSTE (purchase_price) en la linea de envio.
 
@@ -597,10 +624,13 @@ def meli_shipping_cost_as_purchase_price(config):
 
     Compat: si el campo no existe (meli_oerp_multiple viejo o config que no lo define) se
     devuelve True, o sea, nada cambia.
+
+    OBSOLETO desde 26.91: lo reemplaza `meli_shipping_margin_mode(config)`, que distingue tres
+    modos en vez de dos. Se conserva porque hay código deployado que lo llama (Score corre 26.50).
+    Devuelve True SOLO en modo 'impute', así que sigue siendo correcto como pregunta binaria
+    "¿hay que imputar el flete como coste?".
     """
-    if not config or "mercadolibre_shipping_cost_as_purchase_price" not in config._fields:
-        return True
-    return bool(config.mercadolibre_shipping_cost_as_purchase_price)
+    return meli_shipping_margin_mode(config) == "impute"
 
 
 def _meli_line_tax_field(rec):

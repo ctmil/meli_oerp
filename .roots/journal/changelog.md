@@ -4,6 +4,24 @@
 
 ---
 
+## Versión 19.0.26.91 — Soporte de los tres modos de envío en el margen [#507]
+2 ago 2026
+
+**Cambios:**
+
+1. Nuevo `meli_shipping_margin_mode(config)`: devuelve `impute`, `no_cost` o `exclude` según la opción
+   "Tratamiento del envío en el margen" de la configuración de la cuenta.
+2. Los dos puntos que escriben el costo de la línea de envío pasan a contemplar los tres modos. En
+   `exclude` el costo se iguala al precio, con lo cual la línea aporta margen cero **sin tocar el
+   cálculo de margen de Odoo y sin cambiar un centavo de lo facturado**.
+3. `meli_shipping_cost_as_purchase_price()` queda obsoleto pero **sigue funcionando**: ahora se apoya
+   en el helper nuevo y devuelve verdadero sólo en modo `impute`. Hay clientes con código deployado
+   que lo llaman.
+4. Compatibilidad en dos niveles: si no existe la opción nueva se lee la vieja, y si no existe ninguna
+   se asume el comportamiento histórico. **Ninguna instalación cambia de conducta al actualizar.**
+
+---
+
 ## Versión 19.0.26.86 — El flete de ML puede dejar de descontar del margen (opción de configuración) [#507 Score/WOD PRO]
 27 jul 2026
 
