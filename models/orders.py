@@ -4944,9 +4944,31 @@ class mercadolibre_orders(models.Model):
                     return {}
                 else:
                     if (orders_json["paging"]["total"]>=(offset+orders_json["paging"]["limit"])):
-                        # Don't paginate if explicit limit is set or no date filter
+                        # #427 - NO se pagina cuando hay un limite explicito. Esto NO es un bug:
+                        # `mercadolibre_cron_orders_limit` esta declarado como "cantidad maxima de
+                        # ordenes a procesar por ejecucion del cron", o sea un TOPE deliberado.
+                        # Si aca se paginara, un seller con miles de ordenes recorreria todo su
+                        # historial en paginas del tamano del limite en cada ciclo (con limit=10 y
+                        # 5.000 ordenes: 500 llamadas a la API por corrida) — se invertiria el
+                        # sentido del campo y reventaria el rate-limit y el tiempo del cron.
+                        #
+                        # El costo real de este tope es otro y esta cubierto por otra via: la venta
+                        # que queda FUERA de la ventana de las N mas nuevas ya no se vuelve a mirar,
+                        # asi que si su factura fallo, nadie la reintenta. Esa es la red de seguridad
+                        # que agrega `sale.order._meli_requeue_uninvoiced()` (meli_oerp_accounting):
+                        # barre las ventas ML pagadas sin factura posteada, con backoff y tope propio.
+                        # Se eligio la red de seguridad ANTES que tocar la paginacion porque el
+                        # reintento es acotado (N ventas concretas) y la paginacion no lo es.
                         if orders_limit or not order_date_filter:
                             offset_next = 0
+                            if orders_limit and orders_json["paging"]["total"] > (offset + orders_json["paging"]["limit"]):
+                                # Dejar CONSTANCIA del truncamiento: hasta ahora era invisible.
+                                _logger.warning(
+                                    "orders_query_iterate: ventana TRUNCADA por mercadolibre_cron_orders_limit=%s "
+                                    "(ML reporta %s ordenes, se procesan las %s mas nuevas). Las que quedan afuera "
+                                    "NO se reintentan por esta via; si alguna quedo sin facturar depende del cron "
+                                    "'MELI: reintentar facturas que quedaron sin emitir'.",
+                                    orders_limit, orders_json["paging"]["total"], orders_json["paging"]["limit"])
                         else:
                             offset_next = offset + orders_json["paging"]["limit"]
                         #_logger.info(offset_next:"+str(offset_next))
