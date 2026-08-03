@@ -4,6 +4,30 @@
 
 ---
 
+## Versión 19.0.26.88 — Queda constancia cuando la importación de pedidos corta por el tope configurado
+3 ago 2026
+
+**Cambios:**
+
+1. El proceso de importación de pedidos toma las ventas **de la más nueva a la más vieja** y, cuando
+   está configurado el *Límite de órdenes por cron*, procesa sólo esa cantidad y **no sigue** con el
+   resto. Eso es intencional —el parámetro está para acotar el trabajo por ciclo y no reventar los
+   límites de la API de MercadoLibre—, pero hasta ahora **no dejaba ningún rastro**: si una venta
+   quedaba fuera de esa ventana, nadie se enteraba. Ahora, cada vez que la ventana se corta, queda un
+   **aviso en el registro del servidor** con cuántas ventas informa MercadoLibre, cuántas se
+   procesaron, y el recordatorio de que las que quedan afuera dependen del proceso
+   *MELI: reintentar facturas que quedaron sin emitir*.
+2. **El comportamiento del proceso no cambia**: se documentó la decisión y se agregó la constancia.
+   La red de seguridad para las ventas que quedan afuera (y cuya factura falló) es el nuevo reintento
+   de facturación de `meli_oerp_accounting`.
+
+**Detalle técnico:** `mercadolibre.orders.orders_query_iterate` — cuando hay `orders_limit`,
+`offset_next` sigue en 0 (tope deliberado: paginar ahí invertiría el sentido del campo y haría que un
+seller con miles de órdenes recorriera todo su historial en páginas del tamaño del límite en cada
+ciclo). Se agrega un `_logger.warning` de truncamiento.
+
+---
+
 ## Versión 19.0.26.87 — El costo de envío ya no se pierde de la orden [Elvimarta #508]
 27 jul 2026
 
