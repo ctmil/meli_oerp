@@ -4,6 +4,26 @@
 
 ---
 
+### 3 ago 2026 — `orders_query_iterate`: el truncamiento de la ventana deja rastro (decisión sobre `offset_next`) — v18.0.26.91 `[#427]`
+
+`models/orders.py` (`mercadolibre.orders.orders_query_iterate`).
+
+- *Contexto:* con `mercadolibre_cron_orders_limit` seteado, `offset_next = 0` ⇒ **no se pagina** y sólo
+  se procesan las N ventas más nuevas (`sort=date_desc`). Con `limit=10` y 25-35 ventas/día la ventana
+  efectiva es de ~6-10 h; lo que cae afuera **no se vuelve a mirar nunca**. Es lo que dejaba sin
+  reintento a las ventas cuya factura falló (#427 Legión Extranjera).
+- *Decisión — NO se cambia:* el campo está declarado como *"cantidad máxima de órdenes a procesar por
+  ejecución del cron"*, o sea un **tope deliberado**. Paginar ahí invertiría el sentido del campo:
+  un seller con miles de órdenes recorrería su historial completo en páginas del tamaño del límite en
+  **cada ciclo** (con `limit=10` y 5.000 órdenes: 500 llamadas por corrida), reventando el rate-limit
+  y el tiempo del cron. Se eligió la **red de seguridad acotada** (reintento de N ventas concretas,
+  `meli_oerp_accounting` v26.45) antes que una paginación no acotada.
+- *Lo que sí cambia:* `_logger.warning` cuando la ventana se trunca (total que informa ML, cuántas se
+  procesan y de qué depende el rescate de las que quedan afuera). Antes el truncamiento era
+  **completamente invisible** en el log.
+
+---
+
 ### 30 jul 2026 - fix(orders): Odoo 16/17 nunca ejecutaban el guard de devolucion -> bucle infinito en ventas ML canceladas (v18.0.26.90) [Just 148]
 
 **Sintoma** (prod Just, cuenta 148, Odoo 16.0): desde que una orden ML se cancela DESPUES de facturada
