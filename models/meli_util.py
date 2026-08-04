@@ -36,6 +36,10 @@ class LoggingRetry(Retry):
 #  Configuraciones (siempre se crean ambas; se elige al final del módulo)
 # ---------------------------------------------------------------------------
 
+# Host por defecto de la API de ML. Cualquier otro valor = proxy de rescate de la cuenta/empresa.
+API_HOST_DEFAULT = "https://api.mercadolibre.com"
+
+
 # NoSDK: requests Session con retry
 class MeliConfiguration:
     def __init__(self, host="https://api.mercadolibre.com"):
@@ -209,11 +213,29 @@ class MeliApiNoSDK:
         return self.base_url.rstrip("/") + "/" + path.lstrip("/")
 
     def _parse_response(self, resp):
-        """Parsea la respuesta HTTP a JSON o texto"""
+        """Parsea la respuesta HTTP a JSON o texto.
+
+        FIX (RPM 532, 4-ago-2026) — UNA RESPUESTA VACÍA CON ERROR HTTP YA NO SE LEE COMO ÉXITO.
+        ML devuelve 429 (y a veces 5xx) con **body vacío**. Acá se devolvía `resp.text` == '', y
+        todos los llamadores hacen `if rjson and "error" in rjson` → con '' eso es False, así que
+        el push reportaba *updated/Ok* **sin haber escrito nada en ML**. Es la causa del
+        "figura Actualizado y no actualiza" que el cliente reportó durante semanas, y pasó
+        inadvertida porque no dejaba ni un log.
+        Ahora un status >= 400 con body vacío se convierte en un dict de error explícito.
+        """
         try:
             return resp.json()
         except Exception:
-            return resp.text
+            texto = resp.text
+            status = getattr(resp, "status_code", 200) or 200
+            if not texto and status >= 400:
+                _logger.warning("respuesta VACIA con status %s (%s) — se reporta como error, "
+                                "antes se interpretaba como exito",
+                                status, getattr(resp, "url", "?"))
+                return {"error": "http_%s" % status,
+                        "status": status,
+                        "message": "respuesta vacia con status %s" % status}
+            return texto
 
     def need_login(self):
         return self.needlogin_state
@@ -771,6 +793,9 @@ if _versions.MELI_SDK_AVAILABLE and _meli_sdk and _ApiClient:
         response = ""
         code = ""
         rjson = {}
+        # Host efectivo de ESTA instancia (proxy de rescate de la cuenta/empresa, o el default).
+        # Lo setea get_new_instance; lo necesitan post_mini/put_mini para no perder el proxy.
+        api_host = API_HOST_DEFAULT
         user = {}
 
         # Benchmarking support - class-level attributes (for compatibility with MeliApiNoSDK)
@@ -894,12 +919,33 @@ if _versions.MELI_SDK_AVAILABLE and _meli_sdk and _ApiClient:
                 pass
             return self
 
-        def post_mini(self, path, body=None, params={}, extra_headers=None, **kwargs):
-            """POST sin SDK (requests directo) - para compatibilidad"""
-            _nosdk = MeliApiNoSDK(config=configuration_nosdk)
+        def _nosdk_para_escritura(self):
+            """Cliente NoSDK que RESPETA el host de esta instancia (proxy de rescate).
+
+            FIX (RPM 532, 4-ago-2026): `post_mini`/`put_mini` armaban el cliente con
+            `configuration_nosdk` — o sea el host POR DEFECTO — descartando el `http_proxy` de la
+            cuenta/empresa. Como TODAS las escrituras del conector pasan por acá (precio, stock,
+            título, publicar), salían por la IP compartida del hosting y volvían 429 con body vacío.
+            Verificado en prod contra MLA1403883059: host default → 429 vacío; el mismo PUT por el
+            proxy → 200 y precio aplicado.
+            El host de rescate va **sin auto-retry**, igual que la rama SDK: reintentar contra el
+            proxy sólo amplifica el bloqueo (ver `get_new_instance`, fix 26.49 del 18-jun-2026).
+            """
+            host = getattr(self, "api_host", None) or API_HOST_DEFAULT
+            if host != API_HOST_DEFAULT:
+                config = MeliConfiguration(host=host)
+                config.retries = False
+            else:
+                config = configuration_nosdk
+            _nosdk = MeliApiNoSDK(config=config)
             _nosdk.__dict__.update({k: v for k, v in self.__dict__.items()
                                      if k in ('client_id', 'client_secret', 'access_token',
                                               'refresh_token', 'redirect_uri', 'seller_id')})
+            return _nosdk
+
+        def post_mini(self, path, body=None, params={}, extra_headers=None, **kwargs):
+            """POST sin SDK (requests directo) - para compatibilidad"""
+            _nosdk = self._nosdk_para_escritura()
             _nosdk.post(path, body, params, extra_headers=extra_headers)
             self.response = _nosdk.response
             self.rjson = _nosdk.rjson
@@ -922,10 +968,7 @@ if _versions.MELI_SDK_AVAILABLE and _meli_sdk and _ApiClient:
 
         def put_mini(self, path, body=None, params={}, extra_headers=None, **kwargs):
             """PUT sin SDK (requests directo) - para compatibilidad"""
-            _nosdk = MeliApiNoSDK(config=configuration_nosdk)
-            _nosdk.__dict__.update({k: v for k, v in self.__dict__.items()
-                                     if k in ('client_id', 'client_secret', 'access_token',
-                                              'refresh_token', 'redirect_uri', 'seller_id')})
+            _nosdk = self._nosdk_para_escritura()
             _nosdk.put(path, body, params, extra_headers=extra_headers)
             self.response = _nosdk.response
             self.rjson = _nosdk.rjson
@@ -1112,6 +1155,9 @@ class MeliUtil(models.AbstractModel):
             else:
                 config = configuration_nosdk
             api_rest_client = MeliApi(config=config)
+        # El host efectivo viaja con la instancia: post_mini/put_mini lo necesitan para no
+        # descartar el proxy de rescate al armar su cliente NoSDK interno.
+        api_rest_client.api_host = api_host
         api_rest_client.client_id = company.mercadolibre_client_id
         api_rest_client.client_secret = company.mercadolibre_secret_key
         api_rest_client.access_token = company.mercadolibre_access_token or ''
