@@ -93,6 +93,8 @@
                             <group string="Configuración básica" col="2">
                               <group>
                                 <field name="mercadolibre_pricelist" invisible="0"/>
+                                <field name="mercadolibre_product_invoice_policy" invisible="0"
+                                       placeholder="Usar el valor por defecto de Odoo"/>
                                 <field name="mercadolibre_tax_included" invisible="0" groups="base.group_no_one"/>
                                 <field name="mercadolibre_buying_mode" invisible="0"/>
                                 <field name="mercadolibre_currency" invisible="0"/>
