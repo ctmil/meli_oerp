@@ -62,6 +62,8 @@ from datetime import *
 
 from . import versions
 from .versions import *
+# `import *` no trae los nombres con guion bajo: este guard se importa explicito [#493]
+from .versions import _meli_guard_delivery_write
 
 #
 #     https://www.odoo.com/fr_FR/forum/aide-1/question/solved-call-report-and-save-result-to-attachment-133244
@@ -979,7 +981,11 @@ class mercadolibre_shipment(models.Model):
             if (sorder.carrier_id):
                 #activar para cuando no se quiere incluir en la factura? mejor setear para no ser facturado.. cuando es 0
                 if ((1==2 and delivery_price<=0.0) or including_shipping_cost=="never"):
-                    sorder._remove_delivery_line()
+                    # [#493 Shoppy] borrar la linea es la reescritura mas destructiva de
+                    # todas y era la unica sin guard: sobre una venta ya facturada dejaba
+                    # el pedido sin flete por debajo de su propia factura.
+                    if not _meli_guard_delivery_write(sorder, get_delivery_line(sorder), 0.0):
+                        sorder._remove_delivery_line()
 
                 #UPDATE PRICE
                 delivery_line = get_delivery_line(sorder)
@@ -1018,10 +1024,15 @@ class mercadolibre_shipment(models.Model):
                     if delivery_line:
                         #_logger.info("Procesar delivery_price == 0 setear qty_to_invoice en 0")
                         # Only write if value actually changed (avoid unnecessary triggers)
-                        if delivery_line.price_unit != 0.0:
-                            delivery_line.price_unit = 0.0
-                        if delivery_line.qty_to_invoice != 0:
-                            delivery_line.qty_to_invoice = 0
+                        # [#493 Shoppy] Estas dos escrituras van DIRECTO sobre la linea y
+                        # esquivaban el guard de set_delivery_line: la venta quedaba igual
+                        # por debajo de su factura y encima el chatter decia "cambio no
+                        # aplicado", que era falso. El guard va ANTES de escribir.
+                        if not _meli_guard_delivery_write(sorder, delivery_line, 0.0):
+                            if delivery_line.price_unit != 0.0:
+                                delivery_line.price_unit = 0.0
+                            if delivery_line.qty_to_invoice != 0:
+                                delivery_line.qty_to_invoice = 0
                     #_logger.info("Procesar delivery_price == 0 remover linea")
                     #sorder._remove_delivery_line()
                 elif delivery_price > 0.0:

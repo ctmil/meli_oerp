@@ -4,6 +4,31 @@
 
 ---
 
+### 10 ago 2026 — el guard de venta facturada tenia TRES bypass (y el aviso del chatter mentia) — v26.93 `[#493 Shoppy]`
+
+El fix `de715a23` (26.89) puso el guard **dentro de `set_delivery_line`**, con un comentario que
+afirmaba que ese era *"el unico lugar por el que pasan TODAS las reescrituras de la linea de envio"*.
+**No era cierto.** Medido en prod de Shoppy: 51/51 ventas con el aviso tenian la linea en 0.00, y 32
+quedaron por debajo de su factura por **$196.318,54** entre el 31/7 y el 6/8.
+
+Los tres caminos que lo esquivaban:
+1. `models/shipment.py` — tras llamar a `set_delivery_line()` (donde el guard aborta), el **mismo
+   bloque** escribia `delivery_line.price_unit = 0.0` y `qty_to_invoice = 0` **directo sobre la linea**.
+   Este era el culpable vivo.
+2. `models/shipment.py` — `sorder._remove_delivery_line()` con `including_shipping_cost == "never"`:
+   borra la linea entera, la reescritura mas destructiva, y era la unica sin guard.
+3. `meli_oerp_multiple/models/versions.py` — copia de `set_delivery_line` sin guard (ver su fixes-log).
+
+- *Fix:* el guard se extrajo a `versions.py::_meli_guard_delivery_write(sorder, line, price)` y lo
+  consultan **los tres** caminos antes de escribir. No levanta: ante error deja pasar la escritura
+  (comportamiento previo) y loguea.
+- ⚠️ *Ojo con el `import *`:* `shipment.py` hace `from .versions import *`, que **no trae nombres con
+  guion bajo** — el guard se importa explicito.
+- *Por que importa el aviso falso:* mientras el bypass existia, el chatter decia "Cambio no aplicado"
+  sobre un cambio que si se aplico. Es lo que el cliente nos marco el 5/8.
+
+---
+
 ### 30 jul 2026 - fix(orders): Odoo 16/17 nunca ejecutaban el guard de devolucion -> bucle infinito en ventas ML canceladas (v16.0.26.90) [Just 148]
 
 **Sintoma** (prod Just, cuenta 148, Odoo 16.0): desde que una orden ML se cancela DESPUES de facturada
