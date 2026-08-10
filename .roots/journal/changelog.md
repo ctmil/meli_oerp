@@ -4,6 +4,26 @@
 
 ---
 
+## Versión 16.0.26.93 — La protección de ventas ya facturadas ahora se cumple de verdad
+10 ago 2026
+
+**Cambios:**
+
+1. **El problema:** en la versión anterior se agregó una protección para que el conector no
+   reescribiera el flete de una venta que ya tenía factura emitida. La protección estaba puesta en un
+   solo lugar, y quedaron **tres caminos que la esquivaban**: dos que escribían el importe del envío
+   directamente sobre la línea, y uno que **borraba la línea entera**. Por esos caminos la venta seguía
+   quedando por debajo de su propia factura.
+2. **Y el aviso mentía:** el historial de la venta mostraba *"MercadoLibre quiso modificar esta venta,
+   pero ya está facturada — cambio no aplicado"*, cuando el cambio **sí se había aplicado**. Ahora el
+   aviso dice la verdad, porque la escritura efectivamente no ocurre.
+3. La protección pasó a un único punto que consultan **todos** los caminos que tocan la línea de envío,
+   para que no vuelva a haber uno que se olvide.
+
+Requiere actualizar el módulo (`-u meli_oerp`).
+
+---
+
 ## Versión 16.0.26.92 — La fecha límite de despacho se mostraba un día antes
 10 ago 2026
 
