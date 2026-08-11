@@ -4,6 +4,48 @@
 
 ---
 
+### 11 ago 2026 — fix(company): guard de DB neutralizada dejaba `mercadolibre_state` sin asignar -> rompía la vista Empresas (v17.0.26.91) [Aramid 447, SOLO 17.0]
+
+**Reportado por:** Camila (Aramid, cuenta 447, UY, Odoo 17.0), 10-ago 21:05 CEST, con traceback completo,
+en **staging** (copia neutralizada de Odoo.sh).
+
+**Síntoma:** Ajustes > Usuarios y empresas > Empresas rompía con
+`ValueError: Compute method failed to assign res.company(1,).mercadolibre_state`.
+
+**Causa raíz:** el fix del 1-jul-2026 (v17.0.26.56, ver entrada más abajo) agregó un guard en
+`res.company.get_meli_state` que hace `return` temprano cuando `_meli_is_neutralized()` es True, para
+no rotar el refresh_token de ML desde una copia (razón válida, no se toca). Pero `mercadolibre_state`
+es un campo `compute=get_meli_state` — Odoo exige que el compute asigne el campo en **todos** los
+registros de `self`, y el `return` temprano salía sin asignar nada. El guard nuevo introdujo esta
+regresión (no existía antes del 26.56).
+
+**Fix (`models/company.py`, `get_meli_state`):** dentro del guard, antes del `return`, se agregó
+`for company in self: company.mercadolibre_state = True` — `True` = "Desconectado", que es lo honesto
+en una copia neutralizada (no hay sesión viva con MeLi desde ahí). El guard sigue sin llamar a
+`get_new_instance` ni tocar el token; sólo se agregó la asignación que faltaba.
+
+**Alcance — SOLO 17.0:** el defecto es idéntico (mismo guard, mismo patrón) en 16.0/18.0/19.0, pero por
+`sin-precision-en-uno-no-se-masifica` se arregla y valida primero acá. **16.0/18.0/19.0 quedan
+pendientes**, con el mismo fix a portar una vez validado en 17.0.
+
+**Verificación:** no hay runtime local de Odoo disponible en este workspace (sin `odoo-bin`/paquete
+`odoo`) para instalar el módulo y abrir la vista de verdad. Se extrajo y ejecutó (`exec`, sin
+reimplementar) el **texto literal** del método `get_meli_state` del archivo fuente, con `self`/`env`
+mockeados para reproducir exactamente `_meli_is_neutralized() == True` sobre un recordset de 1 empresa
+(igual al `res.company(1,)` del traceback) y de 3. Se verificó que TODOS los registros terminan con
+`mercadolibre_state` asignado (el mismo chequeo que hace Odoo antes de levantar el ValueError), que
+sigue sin llamar a `get_new_instance` (no se toca el token), y que el camino no-neutralizado (prod)
+queda intacto. El mismo arnés corrido contra el código PRE-fix reproduce el `AssertionError` esperado
+(confirma que el test detecta el bug real, no un falso positivo). **No es una corrida dentro de Odoo
+real** — queda pendiente instalar/actualizar el módulo en una instancia neutralizada real y confirmar
+que la vista Empresas abre, antes de dar el fix por 100% cerrado en producción.
+
+**Archivos:** `models/company.py` (`get_meli_state`), `__manifest__.py` (26.90 → 26.91).
+**Branch:** `claude/fix-meli-state-neutralizada-17` (desde `17.0`, push automático). Merge a `17.0` y
+deploy a Aramid: a confirmar con FCA.
+
+---
+
 ### 30 jul 2026 - fix(orders): Odoo 16/17 nunca ejecutaban el guard de devolucion -> bucle infinito en ventas ML canceladas (v17.0.26.90) [Just 148]
 
 **Sintoma** (prod Just, cuenta 148, Odoo 16.0): desde que una orden ML se cancela DESPUES de facturada

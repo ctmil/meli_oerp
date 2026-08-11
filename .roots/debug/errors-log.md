@@ -6,6 +6,18 @@
 
 ## Errores Activos
 
+### ERROR-010: `get_meli_state` — guard de DB neutralizada no asigna `mercadolibre_state` → rompe la vista Empresas `[16.0/18.0/19.0 pendientes — RESUELTO en 17.0]`
+
+**Reportado:** 2026-08-10, Camila (Aramid, cuenta 447, UY, 17.0), traceback en staging neutralizada.
+**Severidad:** Alta en staging (bloquea Ajustes > Empresas). Producción no afectada (no está neutralizada).
+**Estado:** **Resuelto en 17.0** (v17.0.26.91, ver `fixes-log.md` 11-ago-2026). El mismo guard, byte-idéntico,
+sigue roto en **16.0, 18.0 y 19.0** — no se tocaron todavía por decisión explícita de FCA
+(`sin-precision-en-uno-no-se-masifica`: validar primero en un caso real antes de portar a las otras 3).
+**Pendiente:** portar el mismo fix (una línea: `for company in self: company.mercadolibre_state = True`
+dentro del guard, antes del `return`) a `models/company.py` de 16.0/18.0/19.0 una vez confirmado en 17.0.
+
+---
+
 ### ERROR-009: `get_billing_info()` — el gate `status_code==200` NUNCA es True → el endpoint v2 de billing nunca gana, siempre cae a legacy en silencio `[TODAS las versiones 16/17/18/19]`
 
 **Reportado:** 2026-07-14 (bug-hunter, hallazgo lateral durante el hardening ERROR-008).

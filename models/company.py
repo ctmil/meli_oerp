@@ -183,8 +183,14 @@ class res_company(models.Model):
 
     def get_meli_state( self ):
         if self.env['meli.util']._meli_is_neutralized():
-            # Cron "Get Meli State" en DB neutralizada: no-op. No leer ni refrescar,
-            # para no arriesgar la rotación del token de PRODUCCIÓN.
+            # Cron "Get Meli State" en DB neutralizada: no-op, no leer ni refrescar,
+            # para no arriesgar la rotación del token de PRODUCCIÓN. Pero el compute
+            # SI debe asignar el campo en todos los registros de self (lo exige Odoo,
+            # si no: "Compute method failed to assign res.company(x,).mercadolibre_state"
+            # y rompe la vista Empresas). True = "Desconectado": en una copia
+            # neutralizada no hay sesión viva con MeLi, decir lo contrario mentiría.
+            for company in self:
+                company.mercadolibre_state = True
             self.env['meli.util']._meli_log_neutralized_skip()
             return
         # recoger el estado y devolver True o False (meli)
