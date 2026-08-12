@@ -254,3 +254,43 @@ almacenado; hay que buscar también **sus `@api.depends`**.
 
 **Relacionado:** `ERROR-011` (`stock_inventory_action_done` dormido).
 Plan: `.roots/tasks/PLAN-2026-08-12-533-dttec-triage.md`.
+
+### ERROR-012 · AMPLIACIÓN (12-ago, 2ª medición) — **son 4 sitios, no 1**, y hay 2 defectos más
+La entrada original acotaba el fix a `UpdateProductType`. **Insuficiente.** Medido:
+
+**a) Otros 3 sitios escriben el tipo SIN NINGÚN guard** (`ProductType()` = `{"type":"consu","is_storable":True}`):
+`meli_oerp/models/product.py:2881` · `meli_oerp_multiple/models/product.py:1454` y `:1694`.
+Los usos dentro de `create` (`orders.py:4120`, `connection_account.py:5640/5708`, `sale.py:823`) **sí** son
+correctos: en creación no hay política previa que pisar.
+
+**b) `UpdateProductType` tiene además un `UPDATE` SQL crudo** —
+`UPDATE product_template SET type='consu', is_storable=True WHERE id=…` — que saltea compute, tracking
+y constraints. Se elimina.
+
+**c) Guard invertido:** `if (prod.is_storable): prod.write({'is_storable': True})` — sólo escribe `True`
+cuando **ya** es `True`. ⇒ **el objetivo real de la función nunca se cumple**: un producto no-almacenable
+jamás se corrige.
+
+**¿Hace falta forzar `type` en 18? Hoy no.** El bit que importa es `is_storable`; todo bien físico nace
+`consu`. En DT TEC, el **100%** de los templates ligados a publicaciones ML ya está `consu` + `is_storable`.
+Queda un caso legítimo: un producto dado de alta como `service` que se publica — ahí el cambio de tipo es
+real y el reset de política es consecuencia, no daño. Por eso el fix **preserva `invoice_policy`** alrededor
+del write en vez de sólo evitarlo.
+
+**Dos hechos que hay que decir juntos al planificar el deploy (medidos, no estimados):**
+1. **Deployar NO mueve datos del cliente.** `_compute_invoice_policy` no se re-dispara al actualizar el
+   módulo: la actualización del 27-jul escribió 4.226 productos y dejó **0 filas** de tracking en
+   `invoice_policy`. (Vale desde el 06-abr-2026, que es donde arranca el tracking.)
+2. **Y NO repara nada.** El compute **sólo asigna `'order'`, nunca `'delivery'`** ⇒ cero productos vuelven
+   solos. Los que ya están mal hay que setearlos aparte, de común acuerdo con el cliente.
+
+**Alcance real en DT TEC:** de **724** en `order` hoy, **674 son `service`** (normal) y **50 son bienes**
+(el problema). Con rastro de revert automático: **9 templates**. Y esos 9 tuvieron **2.616 pedidos NO-ML**
+en 2026 ⇒ **no pisamos productos ajenos a ML: pisamos productos de ML que el cliente vende mayormente
+FUERA de ML**. Por eso le rompe mostrador y almacén, tal como dijo.
+⚠️ Los otros 721 **no prueban decisión del cliente**: el core pone `order` en la **creación** de todo
+`consu` (`precompute=True`) y crear **no deja tracking**.
+
+**Escritor efectivo:** el **import de órdenes** (`orders.py:4171`), no el cron de productos — cada revert
+coincide **al segundo** con la importación de una orden ML que contiene ese producto. ⇒ apagar el cron de
+productos **no** protege al cliente; sólo el deploy.
