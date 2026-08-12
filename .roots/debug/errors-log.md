@@ -207,3 +207,50 @@ Arreglo trivial (`_stock` → `stock`), pero conviene decidir a la vez si ese ca
 **Cómo salió a la luz:** midiendo el stock negativo de **DT TEC (533)** para descartar que fuera
 nuestro. Se descartó — y con motivo verificable, no por confianza.
 Plan: `.roots/tasks/PLAN-2026-08-12-533-dttec-triage.md`.
+
+## ERROR-012 — 🔴 FLOTA: `UpdateProductType` fuerza `invoice_policy='order'` en Odoo 18 · 12-ago-2026
+**Severidad: alta.** Le pisa al cliente una decisión de negocio en **cada importación de orden ML**, y
+en silencio. Detectado en **DT TEC (533)**, pero afecta a **cualquier cliente en Odoo 18** con el suite.
+
+**Cadena (verificada eslabón por eslabón, no inferida):**
+1. **Core Odoo 18** — `addons/sale/models/product_template.py:169-171`:
+   ```python
+   @api.depends('type')
+   def _compute_invoice_policy(self):
+       self.filtered(lambda t: t.type == 'consu' or not t.invoice_policy).invoice_policy = 'order'
+   ```
+   `invoice_policy` es `compute=… store=True readonly=False precompute=True tracking=True`.
+   ⇒ **cualquier `write` que toque `type` en un template `consu` fuerza `order`**, pisando al usuario.
+2. **Nosotros** — `meli_oerp/models/versions.py:385-402`, `UpdateProductType()`:
+   ```python
+   if (prod and "type" in prod._fields and prod.type not in ['product']):
+       prod.write( { 'type': 'consu' } )     # ← 402
+   ```
+3. **El guard es de Odoo ≤16.** Ahí almacenable era `'product'`; **en Odoo 18 ese valor no existe**, así
+   que la condición **siempre** da verdadero y el `write` corre **en cada pasada aunque no cambie nada**.
+4. **Llamadores:** `meli_oerp/models/orders.py:4171` (dentro de `orders_update_order_json` = **cada
+   importación de orden ML**), `meli_oerp/models/product.py:2598`,
+   `meli_oerp_multiple/models/connection_account.py:6735` y `:6745`.
+
+**Prueba (audit trail, no razonamiento):** `invoice_policy` tiene `tracking=100` ⇒ `mail_tracking_value`.
+El cambio del usuario aparece en **es_MX** ("Cantidad ordenada"→"Cantidades entregadas") y el revert con
+etiquetas **en_US** (contexto de servidor, no de UI) **en el mismo segundo que se crea la SO de ML**:
+SO `ML 2000014490513871` 15:12:44 → revert del template 20435 15:12:47. Ídem 04:12:36/38 y 23:12:43/47.
+El write tocó **sólo** `invoice_policy`.
+
+**Impacto real medido:** la clienta corrigió 5 productos a mano entre 14:55 y 15:12 UTC y el conector le
+**pisó 3** en el día. Estaba peleando contra el bug en vivo sin saberlo.
+
+**Fix propuesto (sin implementar):** corregir el guard para que refleje los valores de Odoo 17/18
+(`'consu'`/`'combo'`/`is_storable`) y, sobre todo, **no escribir si no hay cambio** —
+`if prod.type != 'consu': prod.write(...)`. Con eso el `_compute` no se dispara.
+⚠️ Al tocarlo hay que revisar el **efecto colateral inverso**: productos que hoy quedan en `order` por
+este camino y cuyos clientes ya se acostumbraron.
+
+**Cómo salió a la luz:** midiendo `#537`/`#518` de DT TEC. La búsqueda previa concluyó *"el suite no
+escribe `invoice_policy`"* — **literalmente cierto y prácticamente falso**: no lo escribimos, lo
+**disparamos** vía `type`. Lección: buscar el campo por nombre **no alcanza** cuando es un `compute`
+almacenado; hay que buscar también **sus `@api.depends`**.
+
+**Relacionado:** `ERROR-011` (`stock_inventory_action_done` dormido).
+Plan: `.roots/tasks/PLAN-2026-08-12-533-dttec-triage.md`.
