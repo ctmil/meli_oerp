@@ -185,3 +185,25 @@ Agregado `csrf=False` a ambos decorators. La validación de origen se hace via
 `application_id` y `user_id` en el handler.
 
 ---
+
+## ERROR-011 — `stock_inventory_action_done` está roto (defecto DORMIDO, no activo) · 18.0 · 12-ago-2026
+**Dónde:** `meli_oerp/18.0/models/versions.py:527-543` (`stock_inventory_action_done`).
+**Qué:** la función recibe el parámetro `stock`, pero en la línea 537 usa **`_stock`**, que **no está
+definido en su ámbito** ni existe como global del módulo (única aparición en todo el archivo).
+Si se ejecuta, muere con `NameError` antes de escribir el quant.
+
+**Por qué no está causando daño hoy:** su único llamador
+(`meli_oerp/18.0/models/product.py:4948`) está detrás de **`if (1==2 and ...)`** — condición imposible
+por construcción, o sea desactivado a propósito. Nunca corre.
+Los otros dos llamadores (`meli_oerp_stock/18.0/models/product.py:532`,
+`meli_oerp_multiple/18.0/models/product.py:1852`) invocan `self.env['stock.inventory']`, **modelo que
+no existe desde Odoo 15**. También muertos.
+
+**Por qué se registra igual:** es la ÚNICA vía del suite que escribe cantidades de inventario
+(`stock_inv_model = "stock.quant"` + `inventory_quantity` + `_apply_inventory()`). El día que alguien
+reactive ese `1==2` para volver a sincronizar stock por ajuste, **revienta en la primera corrida**.
+Arreglo trivial (`_stock` → `stock`), pero conviene decidir a la vez si ese camino debe existir.
+
+**Cómo salió a la luz:** midiendo el stock negativo de **DT TEC (533)** para descartar que fuera
+nuestro. Se descartó — y con motivo verificable, no por confianza.
+Plan: `.roots/tasks/PLAN-2026-08-12-533-dttec-triage.md`.
