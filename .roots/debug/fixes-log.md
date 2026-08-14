@@ -878,3 +878,27 @@ Branch `claude/fix-sale-order-meli-unread-18.0` (push automático). Merge a `18.
 confirmar con el usuario.
 
 ---
+
+## 2026-08-14 — `mercadolibre_state` no se asignaba en DB neutralizada (18.0.26.90 → 18.0.26.91)
+
+**Síntoma en cliente real:** Bulones Coiro (cuenta 534, Odoo 18 en Odoo.sh). Al abrir
+**Ajustes > Empresas > Actualizar información** en su entorno de test:
+`ValueError: Compute method failed to assign res.company(1,).mercadolibre_state`.
+
+**Causa:** el guard de DB neutralizada en `get_meli_state` (`models/company.py`) hacía `return` **sin
+asignar el campo**. Odoo exige que un compute asigne en todos los registros de `self`. El guard lo
+introdujo el fix del 1-jul (no rotar el refresh_token de PRODUCCIÓN desde staging): es una regresión
+de ese fix, no un bug viejo.
+
+**Fix:** `for company in self: company.mercadolibre_state = True` dentro del guard, antes del `return`.
+`True` = "Desconectado" (en una copia neutralizada no hay sesión viva con MeLi). **El guard sigue sin
+llamar a MeLi ni tocar el token.**
+
+**Port literal de 17.0** (fix del 11-ago, v17.0.26.91), verificado con `diff`: el bloque es idéntico
+salvo fin de línea (17.0 es CRLF, 18.0 es LF).
+
+**Verificación:** `py_compile` OK + comparación literal con la línea 17.0 ya probada con arnés.
+**NO se instaló el módulo ni se abrió la vista** — no hay runtime Odoo en el workspace. Verificación
+**PARCIAL**, igual que en 17.0.
+
+**Sólo se dispara en bases neutralizadas** (copias de prueba de Odoo.sh), no en producción.
