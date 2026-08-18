@@ -4,6 +4,23 @@
 
 ---
 
+## 28 jul 2026 - sello de movimientos de stock: create_date -> GREATEST(date, write_date, create_date) (v19.0.26.88) [OrgVit 475]
+
+- **Sin migracion de datos ni de esquema.** Codigo puro en `models/product.py` y `models/company.py`.
+  No crea columnas. El bump dispara `-u meli_oerp`.
+- **Cambio de SEMANTICA de un campo YA existente (leer antes de deployar):**
+  `product_product.meli_stock_moves_update` pasa a calcularse con
+  `GREATEST(date si state='done', write_date, create_date)` y a ser **monotono**.
+  - Los valores viejos **no se reescriben**: no hay backfill. Se van corrigiendo solos a medida que
+    cada producto pasa por `process_meli_stock_moves_update()`.
+  - **Efecto esperado en el primer ciclo post-deploy:** en instalaciones con drift acumulado, muchos
+    bindings van a pasar de `updated` a `update` de golpe (el sello nuevo es >= al viejo y ademas entra
+    la red de seguridad por antiguedad de `meli_oerp_multiple`). **Es el comportamiento buscado**, pero
+    hay que vigilar el tamano de la primera tanda: con `meli_cron_stock_top_commit` bajo (25 en OrgVit)
+    y el cron cada 10 min, drena solo pero puede tardar horas en catalogos grandes.
+    Si hace falta escalonarlo, subir `mercadolibre_stock_resync_days` los primeros dias y bajarlo despues.
+- **Sin cambios de vistas** en este modulo.
+
 ## 19 jul 2026 — comprador + zona del receiver buscables en sale.order (v19.0.26.83) [#404 Deco/KPI]
 
 - **Campos nuevos stored/related → requieren `-u meli_oerp`** (el bump 26.83 lo dispara en Odoo.sh):

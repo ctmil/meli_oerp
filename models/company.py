@@ -1688,6 +1688,32 @@ class res_company(models.Model):
 
         return {}
 
+    def _meli_diag_persist_ml_status(self, pid, meli_id, ml_status, ml_qty):
+        """26.87 (F3): guarda el estado/cantidad que ML acaba de devolver.
+
+        Se escribe por SQL (no ORM) a proposito: esto corre dentro del loop del
+        diagnostico, sobre hasta 100 items por corrida, y no queremos disparar
+        recomputos de campos calculados ni invalidaciones caras por item. Es
+        defensivo de punta a punta: si el modelo de bindings no esta instalado
+        (meli_oerp solo, sin meli_oerp_multiple) o la escritura falla, el
+        diagnostico sigue — nunca puede romper el cron por un dato de telemetria.
+        """
+        if ml_status not in ('active', 'paused', 'closed', 'under_review', 'inactive'):
+            return
+        try:
+            if 'mercadolibre.product' in self.env and meli_id:
+                self.env.cr.execute("""
+                    UPDATE mercadolibre_product
+                    SET meli_last_status = %s
+                    WHERE conn_id = %s
+                      AND (meli_last_status IS DISTINCT FROM %s)
+                """, (ml_status, meli_id, ml_status))
+                if self.env.cr.rowcount:
+                    self.env['mercadolibre.product'].invalidate_model(['meli_last_status'])
+        except Exception as _st_err:
+            _logger.debug("MELI_STOCK_DIAG: no se pudo persistir meli_last_status de %s: %s",
+                          meli_id, _st_err)
+
     def meli_stock_diagnostic(self, meli=False):
         """
         Diagnostic safety check: compare Odoo stock vs ML stock for all published products.
@@ -1853,6 +1879,17 @@ class res_company(models.Model):
                     ml_user_product_id = rjson.get('user_product_id')
                     # fulfillment_user_product_id: logistic_type='fulfillment' AND user_product_id set
                     is_fulfillment_user = bool(ml_user_product_id and ml_logistic == 'fulfillment')
+
+                    # 26.87 (F3): PERSISTIR el estado que acabamos de leer de ML.
+                    # Antes se leia, se logueaba y se tiraba. Como meli_last_status
+                    # solo se refresca en el push de stock, y las publicaciones que
+                    # nunca entran a la cola nunca se pushean, el campo se quedaba
+                    # congelado por meses: en una cuenta real habia 994 marcadas
+                    # 'paused' que en ML estaban ACTIVAS. Eso ensucia este mismo
+                    # diagnostico (falsos "pausadas con stock = perdida de ventas")
+                    # y quema ~100 llamadas API cada 30 min sobre items sanos.
+                    # Costo: 0 llamadas extra — la respuesta ya la tenemos en la mano.
+                    self._meli_diag_persist_ml_status(pid, meli_id, ml_status, ml_qty)
 
                     if ml_status == 'paused' and odoo_qty > 0:
                         # Skip only pure ML-managed fulfillment (no user_product_id — ML controls stock)
