@@ -356,6 +356,29 @@ class res_company(models.Model):
     )
 
     mercadolibre_cron_refresh = fields.Boolean(string='Keep alive',help='Cron Automatic Token Refresh for keeping ML connection alive.')
+
+    # Politica de facturacion de los productos que CREA el conector.
+    # Hasta ahora el conector no definia este campo, asi que el producto nacia con el
+    # default del sistema (Ajustes > Ventas > Facturacion). Si ese default no es el que
+    # el cliente quiere, TODOS los productos que crea el conector nacen mal y no habia
+    # forma de decidirlo desde la configuracion del conector.
+    # Vacio = comportamiento de siempre (no se toca el campo, manda el default de Odoo).
+    mercadolibre_product_invoice_policy = fields.Selection(
+        [('order', 'Cantidad pedida'), ('delivery', 'Cantidad entregada')],
+        string='Politica de facturacion de productos nuevos',
+        help='Politica de facturacion con la que nacen los productos que crea el '
+             'conector de MercadoLibre. Vacio = usar el valor por defecto de Odoo.')
+
+    def meli_product_invoice_policy_fields(self):
+        """Campos extra de invoice_policy para el create() de productos del conector.
+
+        Devuelve {} cuando no hay politica elegida, para que prod_fields quede
+        EXACTAMENTE igual que antes (cero regresion en instalaciones existentes).
+        """
+        self.ensure_one()
+        policy = self.mercadolibre_product_invoice_policy
+        return {'invoice_policy': policy} if policy else {}
+
     mercadolibre_cron_mail = fields.Many2one(
         comodel_name="mail.template",
         string="Error E-mail Template",
@@ -990,6 +1013,8 @@ class res_company(models.Model):
                                 'meli_id': rjson3['id'],
                                 'meli_pub': False
                             }
+                            # Vacio devuelve {} => prod_fields queda igual que siempre.
+                            prod_fields.update(company.meli_product_invoice_policy_fields())
 
                             #prod_fields['default_code'] = rjson3['id']
                             productcreated = self.env['product.product'].create((prod_fields))

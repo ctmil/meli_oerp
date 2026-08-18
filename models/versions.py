@@ -326,50 +326,114 @@ def SaleOrderLineUomField(self):
     return 'product_uom_id'
 
 
-def UpdateProductType( product ):
+def MeliInvoicePolicy( prod, config=None ):
+    """Politica de facturacion a mandar JUNTO con un write de 'type'.
+
+    ERROR-012 -- POR QUE ESTA FUNCION EXISTE.
+    En Odoo 17/18/19 `product.template.invoice_policy` es un compute
+    `store=True, readonly=False` que **depende de `type`**
+    (`addons/sale/models/product_template.py`): cualquier write sobre `type` lo
+    recalcula y lo fuerza a `'order'`. Como el conector escribia `type='consu'` en
+    cada importacion de orden, le pisaba al cliente la politica que habia elegido,
+    en silencio y varias veces por dia.
+
+    Un valor EXPLICITO en el mismo write le gana al compute. Orden de precedencia:
+      1. la politica configurada en la CUENTA (`mercadolibre.configuration`),
+      2. si no, la configurada en la COMPANIA (`res.company`),
+      3. si no, **la que el producto ya tenia** -> se preserva y nada cambia,
+      4. si el campo no existe (sin modulo `sale`), no se manda nada.
+
+    El punto 3 es lo que implementa "dejarla vacia = accion predeterminada": sobre
+    un producto que ya existe, lo predeterminado es **no cambiarle nada**.
+    """
+    if not prod or "invoice_policy" not in prod._fields:
+        return {}
+
+    politica = False
+    for origen in (config, getattr(prod, "company_id", False)):
+        if not origen:
+            continue
+        if "mercadolibre_product_invoice_policy" in origen._fields:
+            politica = origen.mercadolibre_product_invoice_policy
+            if politica:
+                break
+
+    politica = politica or prod.invoice_policy
+    return {"invoice_policy": politica} if politica else {}
+
+
+def UpdateProductType( product, config=None ):
+    """Deja el producto como almacenable, SIN pisar la politica de facturacion.
+
+    ERROR-012: antes esta funcion escribia `type='consu'` **siempre**, porque su
+    guard (`prod.type not in ['product']`) era de Odoo <=16 -- en 17/18/19 el valor
+    `'product'` ya no existe, asi que la condicion daba verdadero incluso cuando
+    el producto YA era `consu`. Ese write inutil disparaba el recalculo de
+    `invoice_policy`. Ahora solo se escribe **si hay algo que cambiar**, y cuando
+    se escribe va la politica explicita para que el compute no gane.
+    """
     if not product:
         return
     for prod in product:
-        if (prod and "detailed_type" in prod._fields and prod.detailed_type not in ['product']):
-            failed = False
-            try:
-                prod.write( { 'detailed_type': 'consu' } )
-            except Exception as e:
-                _logger.info("Set detailed_type almacenable ('consu') not possible:")
-                _logger.error(e, exc_info=True)
-                failed = True
-                pass;
+        vals = {}
 
-        if (prod and "type" in prod._fields and prod.type not in ['product']):
-            failed = False
-            try:
-                prod.write( { 'type': 'consu' } )
-            except Exception as e:
-                _logger.info("Set type almacenable ('consu') not possible:")
-                _logger.error(e, exc_info=True)
-                failed = True
-                pass;
+        # Odoo <=16: detailed_type. Se mantiene por compatibilidad hacia atras.
+        if "detailed_type" in prod._fields and prod.detailed_type != 'consu':
+            vals['detailed_type'] = 'consu'
 
-        if (prod and "is_storable" in prod._fields and prod.is_storable):
-            failed = False
-            try:
-                prod.write( { 'is_storable': True } )
-            except Exception as e:
-                _logger.info("Set type is_storable ('is_storable') not possible:")
-                _logger.error(e, exc_info=True)
-                failed = True
-                pass;
+        if "type" in prod._fields and prod.type != 'consu':
+            vals['type'] = 'consu'
 
-            query = """UPDATE product_template SET type='consu', is_storable=True WHERE id=%i""" % (prod.id)
-            cr = prod.env.cr
-            respquery = cr.execute(query)
+        # Guard invertido (defecto historico): decia `if prod.is_storable`, o sea
+        # solo escribia cuando YA era True -- un no-op -- y nunca cumplia su objetivo.
+        if "is_storable" in prod._fields and not prod.is_storable:
+            vals['is_storable'] = True
+
+        # Nada que cambiar => NO se escribe. Este early-continue es el que elimina
+        # la enorme mayoria de los reverts de politica.
+        if not vals:
+            continue
+
+        vals.update( MeliInvoicePolicy( prod, config=config ) )
+
+        try:
+            prod.write( vals )
+        except Exception as e:
+            _logger.info("UpdateProductType: no se pudo actualizar el producto %s: %s",
+                         getattr(prod, 'id', '?'), vals)
+            _logger.error(e, exc_info=True)
+
 
 def ProductType():
+    """Valores de tipo para el ALTA de un producto creado por el conector.
+
+    Para escrituras sobre productos que YA existen no usar esto directamente:
+    usar `ProductTypeWrite(prod, config)`, que ademas preserva la politica.
+    """
     return {
         "type": "consu",
         "is_storable": True
         #"detailed_type": "consu"
     }
+
+
+def ProductTypeWrite( prod, config=None ):
+    """`ProductType()` + la politica de facturacion, para writes sobre productos existentes.
+
+    Devuelve **{}** si el producto ya esta como corresponde, para no disparar el
+    recalculo de `invoice_policy` con un write que no cambia nada (ERROR-012).
+    """
+    vals = {}
+    if not prod:
+        return vals
+    if "type" in prod._fields and prod.type != 'consu':
+        vals["type"] = "consu"
+    if "is_storable" in prod._fields and not prod.is_storable:
+        vals["is_storable"] = True
+    if not vals:
+        return {}
+    vals.update( MeliInvoicePolicy( prod, config=config ) )
+    return vals
 
 # Odoo 12.0 -> Odoo 13.0
 prod_att_line = "product.template.attribute.line"

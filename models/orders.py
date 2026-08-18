@@ -4133,7 +4133,9 @@ class mercadolibre_orders(models.Model):
                         post_related.product_id = product_related
 
                     if (product_related and product_related.product_tmpl_id):
-                        UpdateProductType(product=product_related.product_tmpl_id)
+                        # ERROR-012: se pasa `config` para respetar la politica de facturacion
+                        # elegida en la cuenta/compania (y preservar la existente si no hay ninguna).
+                        UpdateProductType(product=product_related.product_tmpl_id, config=config)
 
                 order_item_fields = {
                     'order_id': order.id,
