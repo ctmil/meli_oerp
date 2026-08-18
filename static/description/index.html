@@ -1,214 +1,118 @@
-<!--
-  meli_oerp — Odoo App Store description page.
-  Self-contained: scoped <style> under .o_meli_desc, no <script>, relative images.
-  Content mirrors the Folio landing (/portfolio/pub/meli) in the simplified
-  single-page format Odoo's app description requires.
--->
-<div class="o_meli_desc">
-  <style>
-    .o_meli_desc{max-width:980px;margin:0 auto;color:#2b2f38;font-size:15px;line-height:1.6;
-      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;}
-    .o_meli_desc *{box-sizing:border-box;}
-    .o_meli_desc h1,.o_meli_desc h2,.o_meli_desc h3{color:#1e2330;margin:0;font-weight:700;}
-    .o_meli_desc p{margin:0 0 1em;}
-    .o_meli_desc a{color:#1e38a0;text-decoration:none;}
-
-    /* ── header ── */
-    .o_meli_desc .md-head{display:flex;align-items:center;gap:24px;padding:36px 28px;
-      border:1px solid #eceef2;border-radius:16px;background:#fbfcfe;}
-    .o_meli_desc .md-head img.md-icon{width:88px;height:88px;flex:0 0 88px;}
-    .o_meli_desc .md-head h1{font-size:30px;line-height:1.15;}
-    .o_meli_desc .md-head .md-sub{font-size:17px;color:#5b6270;margin-top:6px;}
-    .o_meli_desc .md-badges{margin-top:14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
-    .o_meli_desc .md-badge{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.02em;
-      padding:4px 10px;border-radius:999px;background:#eef1fb;color:#1e38a0;}
-
-    /* ── trust line ── */
-    .o_meli_desc .md-trust{margin:18px 0 4px;text-align:center;font-size:14px;color:#6a7180;}
-    .o_meli_desc .md-trust b{color:#1e2330;font-weight:700;}
-
-    /* ── section ── */
-    .o_meli_desc .md-section{padding:32px 4px 8px;}
-    .o_meli_desc .md-section > h2{font-size:22px;margin-bottom:6px;}
-    .o_meli_desc .md-section > .md-lead{color:#5b6270;margin-bottom:20px;}
-
-    /* ── feature grid ── */
-    .o_meli_desc .md-feats{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-    .o_meli_desc .md-feat{border:1px solid #eceef2;border-radius:12px;padding:18px 20px;background:#fff;}
-    .o_meli_desc .md-feat h3{font-size:16px;margin-bottom:8px;}
-    .o_meli_desc .md-feat ul{margin:0;padding-left:0;list-style:none;}
-    .o_meli_desc .md-feat li{position:relative;padding-left:22px;margin:5px 0;color:#3a4150;font-size:14px;}
-    .o_meli_desc .md-feat li:before{content:"✓";position:absolute;left:0;top:0;color:#1e9e5a;font-weight:700;}
-
-    /* ── shots ── */
-    .o_meli_desc .md-shot{margin:22px 0;text-align:center;}
-    .o_meli_desc .md-shot img{max-width:100%;height:auto;border:1px solid #e8eaef;border-radius:10px;}
-    .o_meli_desc .md-cap{font-size:13px;color:#7a8190;margin-top:8px;}
-
-    /* ── guarantee ── */
-    .o_meli_desc .md-guarantee{border:1px solid #e6ecf8;background:#f6f8fe;border-radius:14px;padding:24px 26px;margin-top:8px;}
-    .o_meli_desc .md-guarantee h3{font-size:17px;margin-bottom:10px;}
-    .o_meli_desc .md-guarantee ul{margin:0;padding-left:0;list-style:none;}
-    .o_meli_desc .md-guarantee li{position:relative;padding-left:24px;margin:6px 0;color:#3a4150;}
-    .o_meli_desc .md-guarantee li:before{content:"✓";position:absolute;left:0;color:#1e38a0;font-weight:700;}
-
-    /* ── cta ── */
-    .o_meli_desc .md-cta{text-align:center;padding:36px 20px;margin-top:28px;
-      border:1px solid #eceef2;border-radius:16px;background:#fbfcfe;}
-    .o_meli_desc .md-cta h2{font-size:22px;margin-bottom:8px;}
-    .o_meli_desc .md-cta p{color:#5b6270;}
-    .o_meli_desc .md-btns{margin-top:18px;display:flex;flex-wrap:wrap;gap:10px;justify-content:center;}
-    .o_meli_desc .md-btn{display:inline-block;padding:11px 22px;border-radius:9px;font-weight:600;font-size:15px;border:1px solid transparent;}
-    .o_meli_desc .md-btn-primary{background:#1e38a0;color:#fff;}
-    .o_meli_desc .md-btn-wa{background:#25d366;color:#fff;}
-    .o_meli_desc .md-btn-ghost{background:#fff;color:#1e2330;border-color:#d4d9e2;}
-
-    /* ── footer ── */
-    .o_meli_desc .md-foot{margin-top:26px;text-align:center;color:#6a7180;font-size:14px;}
-    .o_meli_desc .md-foot .md-by{display:inline-flex;align-items:center;gap:8px;margin-bottom:14px;}
-    .o_meli_desc .md-foot .md-by img{width:34px;}
-    .o_meli_desc .md-social{padding:16px;background:#1e38a0;border-radius:12px;font-size:30px;}
-    .o_meli_desc .md-social a{color:#fff;margin:0 10px;}
-
-    @media (max-width:680px){
-      .o_meli_desc .md-head{flex-direction:column;text-align:center;}
-      .o_meli_desc .md-badges{justify-content:center;}
-      .o_meli_desc .md-feats{grid-template-columns:1fr;}
-    }
-  </style>
-
-  <!-- ── HEADER ── -->
-  <div class="md-head">
-    <img class="md-icon" src="icon.png" alt="MercadoLibre Publisher"/>
-    <div>
-      <h1>MercadoLibre Publisher</h1>
-      <div class="md-sub">MercadoLibre &#8596; Odoo connector — the core of the Moldeo MercadoLibre suite.</div>
-      <div class="md-badges">
-        <span class="md-badge">Odoo 17.0</span>
-        <span class="md-badge">Orders &amp; shipping</span>
-        <span class="md-badge">Stock &amp; price sync</span>
-        <span class="md-badge">by Moldeo Interactive</span>
-      </div>
+<section class="oe_container">
+    <div class="oe_row oe_spaced">
+        <h2 class="oe_slogan" style="color:#1e38a0;">MercadoLibre Publisher</h2>
+        <h3 class="oe_slogan">MercadoLibre Publisher / Connector for Odoo.</h3>
     </div>
-  </div>
+</section>
 
-  <!-- ── TRUST LINE ── -->
-  <div class="md-trust">
-    Trusted across <b>8 countries</b> &middot; <b>264</b> active customers &middot; <b>1.3M+</b> orders synchronized
-  </div>
-
-  <!-- ── WHAT IT IS ── -->
-  <div class="md-section">
-    <h2>Sell on one of the top marketplaces, straight from Odoo</h2>
-    <p class="md-lead">
-      MercadoLibre Publisher (<code>meli_oerp</code>) by Moldeo Interactive connects your Odoo
-      to MercadoLibre. It is the core module to start publishing products and importing sales
-      orders, and the base of a full suite of extensions (accounting, stock, multi-account and more).
+<section>
+    <h4 class="oe_slogan">What it is?</h4>
+    <p class="text-center">
+	     MercadoLibre Publisher (meli_oerp) by Moldeo Interactive is a MercadoLibre Connector for Odoo.<br/>
+       This is the core module to start importing sales order from one of the top 5 marketplaces.
     </p>
-  </div>
-
-  <!-- ── FEATURES ── -->
-  <div class="md-section">
-    <h2>What it does</h2>
-    <p class="md-lead">Everything you need to run your MercadoLibre channel from Odoo.</p>
-    <div class="md-feats">
-      <div class="md-feat">
-        <h3>Publish &amp; import products</h3>
-        <ul>
-          <li>Massive publication from Odoo to MercadoLibre</li>
-          <li>Import all products from MercadoLibre to Odoo</li>
-          <li>Images included</li>
-          <li>Variants with all attribute combinations</li>
-          <li>SKU options</li>
-        </ul>
+    <h4 class="oe_slogan">Features</h4>
+    <div class="row">
+      <div class="col-1">
       </div>
-      <div class="md-feat">
-        <h3>Orders, clients &amp; shipping</h3>
-        <ul>
-          <li>Get orders, clients and shipping info into Odoo</li>
-          <li>Import pack orders</li>
-          <li>Import fee cost and shipping cost</li>
-          <li>Match existing products by SKU</li>
-        </ul>
+    	<div class="col-10">
+        <div class="text-center mt-4 mb-4">
+          <ul class="text-left">
+            <li>
+              <b>Massive publication from Odoo to MercadoLibre / Import all products from MercadoLibre to Odoo</b>
+              <ul>
+                <li>Images included</li>
+                <li>Variations with all attributes combinations</li>
+                <li>SKU options</li>
+              </ul>
+            </li>
+            <li>
+              <b>Get Orders, Clients and Shipping information from MercadoLibre to Odoo</b>
+              <ul>
+                <li>Import pack orders</li>
+                <li>Import fee cost and shipping cost</li>
+                <li>Use SKU to find existent Product</li>
+              </ul>
+            </li>
+            <li>
+              <b>Massive and automatic synchronization</b>
+              <ul>
+                <li>Stock and Prices</li>
+                <li>Realtime for orders using mercadolibre notifications</li>
+                <li>Questions</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+        <br/>
+        <div class="text-center">
+          <img src="meli_oerp_configuration_1.png" class="img-fluid" />
+        </div>
+        <div class="text-left mt16 mb16" style="display: block;border-radius: 20px; border: solid 1px #999; background-color: #EEE; padding: 24px; color: #999;" >
+            Configure MercadoLibre access with your client application credentials.
+            You will receive a configuration guide document to complete this step.
+        </div>
+        <br/>
+        <div class="text-center">
+          <img src="meli_oerp_configuration_2.png" class="img-fluid" />
+        </div>
+        <div class="text-left mt16 mb16" style="display: block;border-radius: 20px; border: solid 1px #999; background-color: #EEE; padding: 24px; color: #999;" >
+            Configure basic template information for massive publications.
+        </div>
+        <br/>
+        <div class="text-center">
+          <img src="meli_oerp_configuration_3.png" class="img-fluid" />
+        </div>
+        <div class="text-left mt16 mb16" style="display: block;border-radius: 20px; border: solid 1px #999; background-color: #EEE; padding: 24px; color: #999;" >
+            Configure all the parameters to keep prices, stocks synchronized
+            in the best interest of your business model.
+        </div>
+        <br/>
+        <div class="text-center">
+          <img src="meli_oerp_configuration_4.png" class="img-fluid" />
+        </div>
+        <div class="text-left mt16 mb16" style="display: block;border-radius: 20px; border: solid 1px #999; background-color: #EEE; padding: 24px; color: #999;" >
+            MercadoLibre Publisher is the base core of a suite of MercadoLibre extensions.
+        </div>
+
+        <div class="text-center">
+          <img src="meli_oerp_screenshot.png" class="img-fluid" />
+        </div>
+        <div class="text-left mt16 mb16" style="display: block;border-radius: 20px; border: solid 1px #999; background-color: #EEE; padding: 24px; color: #999;" >
+          Sell online and diversify your business marketplace model
+        </div>
+
+        <div class="text-left mt-4 mb-4" >
+          <b>With the purchase of this module, MoldeoInteractive
+              guarantees:</b>
+            <ul>
+              <li>Full installation and configuration support</li>
+              <li>Access to the module full training support</li>
+              <li>MoldeoInteractive specialized and dedicated technical support, from test mode to production mode</li>
+              <li>Module updates are available via apps.odoo.com</li>
+              <li>Direct contact by email with our support team</li>
+            </ul>
+        </div>
+        <br/>
+        <div class="text-center">
+    			<img src="odoo_to_meli.png" class="img-fluid" />
+    		</div>
+    	</div>
+      <div class="col-1">
       </div>
-      <div class="md-feat">
-        <h3>Automatic synchronization</h3>
-        <ul>
-          <li>Massive and automatic stock and price sync</li>
-          <li>Real-time orders via MercadoLibre notifications</li>
-          <li>Questions synchronization</li>
-        </ul>
-      </div>
-      <div class="md-feat">
-        <h3>A suite, not just a module</h3>
-        <ul>
-          <li>Accounting &amp; invoicing extension</li>
-          <li>Advanced stock management</li>
-          <li>Multiple MercadoLibre accounts</li>
-          <li>Premium &amp; productive bundles</li>
-        </ul>
-      </div>
     </div>
-  </div>
 
-  <!-- ── SCREENSHOTS ── -->
-  <div class="md-section">
-    <h2>How it looks</h2>
-    <p class="md-lead">Guided configuration, from access credentials to publishing templates and sync rules.</p>
-    <div class="md-shot">
-      <img src="meli_oerp_configuration_1.png" alt="MercadoLibre access configuration"/>
-      <div class="md-cap">Configure MercadoLibre access with your client application credentials.</div>
-    </div>
-    <div class="md-shot">
-      <img src="meli_oerp_configuration_3.png" alt="Synchronization parameters"/>
-      <div class="md-cap">Tune the parameters that keep prices and stock synchronized for your business model.</div>
-    </div>
-    <div class="md-shot">
-      <img src="meli_oerp_screenshot.png" alt="MercadoLibre Publisher in Odoo"/>
-      <div class="md-cap">Sell online and diversify your marketplace business model.</div>
-    </div>
-  </div>
+    <h5 class="oe_slogan">by <img src="moldeo_interactive_logo.png" style="width:40px;margin-left:8px;" /> <span style="color:#1e38a0;">Moldeo Interactive</span></h5>
+    <h5 class="oe_slogan"><b>contact:</b> <a href="mailto:info@moldeointeractive.com.ar">info@moldeointeractive.com.ar</a></h5>
+</section>
 
-  <!-- ── GUARANTEE ── -->
-  <div class="md-section">
-    <div class="md-guarantee">
-      <h3>With the purchase of this module, Moldeo Interactive guarantees:</h3>
-      <ul>
-        <li>Full installation and configuration support</li>
-        <li>Access to the module full training support</li>
-        <li>Dedicated technical support, from test mode to production mode</li>
-        <li>Module updates available via apps.odoo.com</li>
-        <li>Direct contact by email with our support team</li>
-      </ul>
+<section>
+    <div style="padding:20px;background:#1e38a0;color:#fff;text-align:center;font-size:38px;">
+	    <a title="Youtube" style="color:#fff" href="https://www.youtube.com/moldeointeractive" target="blank"><i class="fa fa-youtube-play"/></a>
+	    <a title="Github" style="color:#fff" href="https://www.github.com/ctmil" target="blank"><i class="fa fa-github"/></a>
+	    <a title="Facebook" style="color:#fff" href="https://www.facebook.com/moldeointeractive" target="blank"><i class="fa fa-facebook"/></a>
+	    <a title="LinkedIn" style="color:#fff" href="https://www.linkedin.com/company/moldeointeractive" target="blank"><i class="fa fa-linkedin"/></a>
+	    <a title="Twitter" style="color:#fff" href="https://www.twitter.com/moldeointer" target="blank"><i class="fa fa-twitter"/></a>
+	    <a title="Instagram" style="color:#fff" href="https://www.instagram.com/moldeointeractive" target="blank"><i class="fa fa-instagram"/></a>
     </div>
-  </div>
-
-  <!-- ── CTA ── -->
-  <div class="md-cta">
-    <h2>Ready to integrate MercadoLibre with Odoo?</h2>
-    <p>Buy the module, request a demo, or talk to our team about your setup.</p>
-    <div class="md-btns">
-      <a class="md-btn md-btn-primary" href="https://apps.odoo.com/apps/modules/browse?author=Moldeo%20Interactive" target="_blank">Get the suite</a>
-      <a class="md-btn md-btn-wa" href="https://wa.me/+5491161244201?text=Me%20gustar%C3%ADa%20tener%20mas%20informaci%C3%B3n%20sobre%20el%20m%C3%B3dulo%20de%20Mercado%20Libre" target="_blank">WhatsApp</a>
-      <a class="md-btn md-btn-ghost" href="https://www.youtube.com/watch?v=FPwYIhE7DHk" target="_blank">Watch demo</a>
-    </div>
-  </div>
-
-  <!-- ── FOOTER ── -->
-  <div class="md-foot">
-    <div class="md-by">
-      <span>by</span>
-      <img src="moldeo_interactive_logo.png" alt="Moldeo Interactive"/>
-      <span style="color:#1e38a0;font-weight:700;">Moldeo Interactive</span>
-    </div>
-    <p><b>Contact:</b> <a href="mailto:info@moldeointeractive.com.ar">info@moldeointeractive.com.ar</a></p>
-    <div class="md-social">
-      <a title="Youtube" href="https://www.youtube.com/moldeointeractive" target="_blank"><i class="fa fa-youtube-play"></i></a>
-      <a title="Github" href="https://www.github.com/ctmil" target="_blank"><i class="fa fa-github"></i></a>
-      <a title="Facebook" href="https://www.facebook.com/moldeointeractive" target="_blank"><i class="fa fa-facebook"></i></a>
-      <a title="LinkedIn" href="https://www.linkedin.com/company/moldeointeractive" target="_blank"><i class="fa fa-linkedin"></i></a>
-      <a title="Twitter" href="https://www.twitter.com/moldeointer" target="_blank"><i class="fa fa-twitter"></i></a>
-      <a title="Instagram" href="https://www.instagram.com/moldeointeractive" target="_blank"><i class="fa fa-instagram"></i></a>
-    </div>
-  </div>
-</div>
+</section>
