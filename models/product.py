@@ -2595,7 +2595,8 @@ class product_product(models.Model):
         product._meli_import_template_attributes( product_template, rjson )
         meli_available_quantity = rjson.get('available_quantity', 0)
         if (meli_available_quantity >=0):
-            UpdateProductType(product_template)
+            # ERROR-012: `config` (= company aca) decide la politica de facturacion.
+            UpdateProductType(product_template, config=config)
             #TODO: agregar parametro para esto: ml_auto_website_published_if_available  default true
             if (1==1 and meli_available_quantity >0):
                 product_template.website_published = True
@@ -2878,7 +2879,11 @@ class product_product(models.Model):
                 product._meli_set_images_x(product_template=product_template, pictures=pictures, rjson=rjson)
 
         if (company.mercadolibre_update_local_stock):
-            product_template.write( ProductType() )
+            # ERROR-012: ProductTypeWrite devuelve {} si no hay nada que cambiar, para no
+            # disparar el recalculo de invoice_policy con un write inutil.
+            _vals_type = ProductTypeWrite( product_template, config=company )
+            if _vals_type:
+                product_template.write( _vals_type )
 
             if (len(product_template.product_variant_ids)):
                 for variant in product_template.product_variant_ids:
