@@ -185,3 +185,56 @@ Agregado `csrf=False` a ambos decorators. La validación de origen se hace via
 `application_id` y `user_id` en el handler.
 
 ---
+
+## ERROR-012 — ✅ RESUELTO 18-ago-2026 · `invoice_policy` se revertía sola en Odoo 18/19 (FLOTA)
+**Versiones:** `meli_oerp` **18.0.26.92** / **19.0.26.91** · `meli_oerp_multiple` **18.0.26.96**.
+Detectado en **DT TEC (533)**, pero afectaba a **cualquier** cliente en Odoo 18/19.
+
+**Cadena, verificada eslabón por eslabón:**
+1. **Core de Odoo** (`addons/sale/models/product_template.py`, idéntico en 18 y 19):
+   `invoice_policy` es un compute `store=True, readonly=False` con `@api.depends('type')`, y el
+   compute hace `...filtered(lambda t: t.type == 'consu' or not t.invoice_policy).invoice_policy = 'order'`.
+   ⇒ **cualquier write que toque `type` en un template `consu` fuerza `'order'`**, pisando al usuario.
+2. **Nosotros** (`models/versions.py`, `UpdateProductType`): el guard era
+   `if prod.type not in ['product']: prod.write({'type': 'consu'})`. Ese guard es de Odoo ≤16;
+   **en 18/19 el valor `'product'` ya no existe**, así que daba verdadero **siempre** y ejecutaba un
+   write **redundante** sobre un producto que ya era `consu`.
+3. **Resultado:** ese write "que no cambia nada" **sí** re-dispara el compute ⇒ la política elegida por
+   el cliente volvía a `'order'`, **en silencio y en cada importación de orden ML**. Sin error, sin log.
+
+**Por qué no se encontró antes:** buscar `invoice_policy` por nombre no lo encuentra — el conector
+**no lo escribe**, lo **dispara** vía `type`. Con un compute almacenado hay que buscar sus `@api.depends`.
+
+**Fix aplicado:** no escribir si no hay nada que cambiar (`vals` acumulado + early-continue); mandar la
+política **explícita** en el mismo write (`MeliInvoicePolicy`: cuenta → compañía → la que ya tenía);
+`ProductTypeWrite()` para productos existentes; corregido el **guard invertido** de `is_storable`
+(`if prod.is_storable: write(is_storable=True)` era un no-op que impedía que la función cumpliera su
+objetivo); eliminado el **`UPDATE` SQL crudo** que salteaba compute, tracking y constraints; y nuevo
+parámetro *"Política de facturación de productos nuevos"* (vacío = comportamiento de siempre).
+
+**Probado en producción ANTES de entrar al source.** Corrió en DT TEC desde el 15-ago 07:00 UTC.
+Medido el 17 y 18-ago en su base: **0** filas de `mail_tracking_value` sobre `invoice_policy`, con
+**control positivo** — **11 órdenes ML** importadas en esa ventana, o sea el camino que disparaba el
+bug se ejecutó 11 veces sin pisar nada; el template `20392` fue escrito por el conector y quedó en
+`delivery`; y la **guardia `ir.cron` que restituía la política fue retirada**, así que el cero no está
+enmascarado por un parche corrigiendo por detrás. El **AST** de `versions.py` en el source es
+**idéntico** al que corre allí.
+
+**⚠️ 16.0/17.0 NO se tocaron, a propósito:** ahí `'product'` sí existe y el guard viejo tenía sentido;
+`prod.type != 'consu'` convertiría **almacenables en consumibles**.
+
+**⚠️ PENDIENTE:** `meli_oerp_multiple` **19.0** no se mergeó (su rama estaba tomada por un worktree con
+cambios sin commitear de otra sesión, en los mismos archivos). El fix espera en
+`origin/claude/error-012-invoice-policy-19.0`.
+
+**⚠️ NO REPARA LO YA ROTO:** el compute **sólo asigna `'order'`, nunca `'delivery'`** ⇒ nada vuelve
+solo. Lo ya dañado se corrige aparte y **de común acuerdo con cada cliente** (es decisión de negocio).
+
+**⚠️ Deployar a cada cliente es decisión aparte:** no mueve datos, pero **cierra sesiones** y le cambia
+el comportamiento. Va con ventana y aviso, cliente por cliente.
+
+**Aprendizaje transversal:** *un write no-op deja de serlo cuando re-dispara un compute.*
+
+Plan: `.roots/tasks/PLAN-2026-08-18-error012-port-al-source-y-produccion.md`
+
+---
