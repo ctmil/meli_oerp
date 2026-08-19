@@ -4,6 +4,18 @@
 
 ---
 
+## Versión 17.0.26.95 — El diagnóstico de stock ya no puede decir "todo bien" cuando no revisó nada [#535 Score]
+19 ago 2026
+
+**Cambios:**
+
+1. **Cuando MercadoLibre rechaza una consulta, ahora se ve.** El diagnóstico de stock le pregunta a MercadoLibre por cada publicación sospechosa. Si ML respondía con un rechazo (por ejemplo *403: la publicación pertenece a otro vendedor*), esa respuesta **se leía como si fuera una publicación normal sin nada para corregir** y quedaba anotada como *"sin acción"*. Con varias cuentas de ML en la misma base eso significaba que **todas** las publicaciones de una cuenta podían ser rechazadas y la revisión terminaba informando **cero problemas**. Ahora cada rechazo se cuenta, se registra con su motivo y aparece en el resumen del historial de la cuenta.
+2. **Una revisión que no revisó nada deja de figurar como exitosa.** El resultado del diagnóstico ahora informa cuántas publicaciones se consultaron de verdad, cuántas rechazó MercadoLibre y con qué código, para que la página de **CRONs** de la cuenta pueda mostrarla como *advertencia* con el motivo escrito, en lugar de un tilde verde con 0 ítems procesados. *(La corrección que usa este dato para marcar la ejecución viaja en el módulo `meli_oerp_multiple`.)*
+
+*Medido en un cliente MX con dos cuentas de ML en la misma base: 134 publicaciones de la segunda cuenta se consultaban con el token de la primera y devolvían 403; el proceso terminaba en verde con 0 ítems procesados, así que el problema estuvo semanas a la vista sin verse.*
+
+Requiere actualizar el módulo (`-u meli_oerp`).
+
 ## Versión 17.0.26.90 — La devolución automática de ventas canceladas por ML vuelve a funcionar (y deja de llenar el historial de avisos repetidos)
 30 jul 2026
 

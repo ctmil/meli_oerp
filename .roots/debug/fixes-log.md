@@ -4,6 +4,56 @@
 
 ---
 
+### 19 ago 2026 - fix(stock-diag): una respuesta de ERROR de ML se leia como "sin accion" -> corrida VERDE que no reviso nada (17.0.26.95) [#535 Score 361/499]
+
+**Sintoma** (prod Score MX, Odoo 19, 2 cuentas ML + 3 companias en la misma base): el cron
+`ir_cron_meli_stock_diagnostic` terminaba `state=success` con `items_processed=0` corrida tras
+corrida, mientras 134 publicaciones de la cuenta WodPro seguian desactualizadas.
+
+**Causa raiz** (leida en el codigo, no inferida del changelog):
+1. `cron_meli_stock_diagnostic` (meli_oerp_multiple) itera cuenta por cuenta pero llamaba
+   `company.meli_stock_diagnostic()` **sin `meli=`** -> `meli_stock_diagnostic` caia a
+   `get_new_instance(company)`, y en multi-cuenta esa funcion **descarta la company** cuando no
+   recibe `account`: recorre `env.user.company_ids` y se queda con la **ultima** conectada (el
+   bucle no tiene `break`). Los items de una cuenta se consultan con el token de OTRA -> **403**.
+2. El 403 era **invisible**: `meli.get()` devuelve `self` (el objeto API), siempre truthy, asi que
+   el guard `if not response: continue` no se dispara nunca. El body de error de ML llega como
+   un dict con `error='forbidden'` y `status=403`, y `ml_status = rjson.get('status')` valia
+   **403 (int)**, que no matchea ninguna rama (`'paused'`/`'active'`) -> caia en el `else` final y
+   se anotaba `"sin accion (status=403)"`. Cero acciones, cero errores, `success`.
+
+**Fixes (este modulo):**
+- **F1** deteccion explicita del body de error de ML **antes** del arbol de `ml_status`: si `status`
+  es un `int` >= 400 o viene `error`, se cuenta en `api_errors` / `api_errors_by_status`, se loguea
+  `WARNING` con el motivo y se anota en el detalle del chatter con el codigo real. En una respuesta
+  buena `status` es un **string** (`active`/`paused`/`closed`/...), nunca numerico, por eso alcanza
+  con distinguir el tipo. Se normaliza tambien el caso en que ML manda el status como **string de
+  digitos** (`"403"`), que es lo que ya contemplaba `connection_binding` con `int(fetch_status)`.
+  **Verificado con la condicion real** contra 12 respuestas de ML (403 forbidden, 403
+  PA_UNAUTHORIZED sin clave `error`, 401, 404, 500, 429 con body vacio, y 5 respuestas sanas):
+  12/12, sin falsos positivos sobre items sanos.
+- **F2** `meli_stock_diagnostic` devuelve claves nuevas (aditivas, no rompen llamadores viejos):
+  `items_to_check`, `items_checked_ok`, `api_errors`, `api_errors_by_status`, `diag_state`
+  ('success'|'warning') y `diag_message` con el texto del motivo. El cron de `meli_oerp_multiple`
+  las usa para marcar la ejecucion.
+- **F3** comentario en el fallback `get_new_instance(company)` documentando la trampa multi-cuenta:
+  los llamadores multi-cuenta **deben** pasar `meli=` ya resuelto para SU cuenta.
+
+**Lo que este fix NO hace:** no toca el wizard de publicacion masiva (`mercadolibre.product.post`),
+que tiene el mismo defecto de familia por otro camino, ni desvara las publicaciones que ya quedaron
+en un estado de error.
+
+**Regla que aplica:** [[cero-resultados-no-distingue-falla-de-nada-que-hacer]] — un "0 procesados"
+tiene que decir **por que** es 0.
+
+**Numeracion:** las 4 versiones quedan en `.26.95` (convergencia horizontal, [[sources-align]]:
+el manifest toma el numero mas alto). Venian desalineadas: 16.0 en .94, 18.0 en .93, 17.0/19.0 en .92.
+
+**Archivos:** `models/company.py` (`meli_stock_diagnostic`).
+**Companero obligatorio:** `meli_oerp_multiple` (el cron que pasa la cuenta correcta y consume el reporte).
+
+---
+
 ### 11 ago 2026 — fix(company): guard de DB neutralizada dejaba `mercadolibre_state` sin asignar -> rompía la vista Empresas (v17.0.26.91) [Aramid 447, SOLO 17.0]
 
 **Reportado por:** Camila (Aramid, cuenta 447, UY, Odoo 17.0), 10-ago 21:05 CEST, con traceback completo,
