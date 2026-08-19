@@ -1762,6 +1762,12 @@ class res_company(models.Model):
         fulfillment_user_candidates = []  # fulfillment_user_product_id items with Odoo stock
         actions_taken = []                # human-readable lines for chatter summary
         checked_items_log = []            # per-item detail for chatter debug
+        # (A) #535 Score, 19-ago-2026 — contadores para que la corrida pueda DECIR por que
+        # no hizo nada. Antes el unico resultado observable era "0 acciones" y el cron lo
+        # reportaba como exito. [[cero-resultados-no-distingue-falla-de-nada-que-hacer]]
+        api_errors = 0                    # respuestas de ERROR de ML (403/401/404/5xx)
+        api_errors_by_status = {}         # {status_http: cantidad}
+        items_checked_ok = 0              # items que ML contesto de verdad
 
         for row in rows:
             pid, sku, meli_id, meli_qty, odoo_qty, logistic_type = row
@@ -1844,6 +1850,13 @@ class res_company(models.Model):
                 len(fulfillment_user_candidates)
             )
             if not meli:
+                # OJO (multi-cuenta): con meli_oerp_multiple instalado
+                # get_new_instance(company) IGNORA la company cuando no se le pasa `account`
+                # y resuelve por env.user.company_ids quedandose con la ULTIMA conectada.
+                # Es decir: este fallback puede consultar los items de esta company con el
+                # token de OTRA cuenta y devolver 403 en todo. Los llamadores multi-cuenta
+                # DEBEN pasar `meli=` ya resuelto para la cuenta correcta
+                # (ver cron_meli_stock_diagnostic en meli_oerp_multiple).
                 meli = self.env['meli.util'].get_new_instance(company)
 
             for pid, sku, meli_id, odoo_qty, meli_qty in all_to_check:
@@ -1854,6 +1867,39 @@ class res_company(models.Model):
                         checked_items_log.append(f"⚠️ {item_log} → sin respuesta ML")
                         continue
                     rjson = response.json()
+
+                    # (A) #535 Score, 19-ago-2026 — UNA RESPUESTA DE ERROR DE ML NO ES "SIN ACCION".
+                    # `meli.get()` devuelve SIEMPRE el objeto API (truthy), asi que el guard
+                    # `if not response` de arriba no se dispara nunca. El body de error de ML llega
+                    # como {'message':..., 'error':'forbidden', 'status':403, 'cause':[...]}: ml_status
+                    # valia 403 (int), no matcheaba ninguna rama ('paused'/'active') y caia en el
+                    # `else` final anotandose como "sin accion (status=403)". Con la cuenta equivocada
+                    # TODAS las publicaciones daban 403 y la corrida terminaba en success con 0
+                    # procesados -- verde que no hizo nada. En una respuesta buena `status` es un
+                    # STRING ('active'/'paused'/...), por eso alcanza con distinguir el tipo.
+                    _err_status = rjson.get('status') if isinstance(rjson, dict) else None
+                    # ML devuelve el status como int y, segun el endpoint, como string de digitos
+                    # (por eso connection_binding hace int(fetch_status) cuando isdigit()). En una
+                    # respuesta BUENA `status` es 'active'/'paused'/'closed'/... — nunca numerico,
+                    # asi que normalizar el string de digitos no puede confundir un item sano.
+                    if isinstance(_err_status, str) and _err_status.isdigit():
+                        _err_status = int(_err_status)
+                    _err_code = (isinstance(rjson, dict) and str(rjson.get('error') or '')) or ''
+                    if (isinstance(_err_status, int) and _err_status >= 400) or _err_code:
+                        api_errors += 1
+                        _st_key = _err_status if isinstance(_err_status, int) else 0
+                        api_errors_by_status[_st_key] = api_errors_by_status.get(_st_key, 0) + 1
+                        _msg_err = str(rjson.get('message') or '')[:120] if isinstance(rjson, dict) else ''
+                        _logger.warning(
+                            "MELI_STOCK_DIAG: [%s] %s -> ML respondio ERROR status=%s error=%s %s",
+                            sku, meli_id, _err_status, _err_code, _msg_err
+                        )
+                        checked_items_log.append(
+                            f"⛔ {item_log} → ML ERROR {_err_status} {_err_code} {_msg_err}"
+                        )
+                        continue
+
+                    items_checked_ok += 1
                     ml_status = rjson.get('status', 'unknown')
                     ml_qty = rjson.get('available_quantity', 0)
                     _logger.warning(
@@ -2015,10 +2061,36 @@ class res_company(models.Model):
 
         t_diag_elapsed = _time.time() - t_diag_start
         _logger.info(
-            "MELI_STOCK_DIAG: done in %.2fs — total=%d reactivate=%d paused_missed=%d fulfillment_user=%d drift=%d actions=%d checked=%d",
+            "MELI_STOCK_DIAG: done in %.2fs — total=%d reactivate=%d paused_missed=%d fulfillment_user=%d drift=%d actions=%d checked=%d ok=%d api_errors=%d",
             t_diag_elapsed, len(rows), len(reactivate_candidates), len(paused_with_stock_missed),
-            len(fulfillment_user_candidates), len(drift_candidates), len(actions_taken), len(checked_items_log)
+            len(fulfillment_user_candidates), len(drift_candidates), len(actions_taken), len(checked_items_log),
+            items_checked_ok, api_errors
         )
+
+        # (A) #535 Score — el resultado tiene que poder EXPLICARSE, no solo contarse.
+        # Si se consultaron items y ML rechazo todos (o casi), la corrida NO es exitosa:
+        # el llamador (cron_meli_stock_diagnostic) usa diag_state/diag_message para
+        # marcarla 'warning' con el motivo en vez de dejar un verde vacio.
+        _api_err_txt = ""
+        if api_errors_by_status:
+            _api_err_txt = " (" + ", ".join(
+                "%s×%d" % (_k or "sin status", _v)
+                for _k, _v in sorted(api_errors_by_status.items(), key=lambda kv: -kv[1])
+            ) + ")"
+        diag_state = 'success'
+        diag_message = None
+        if api_errors:
+            diag_state = 'warning'
+            _forbidden = api_errors_by_status.get(403, 0) + api_errors_by_status.get(401, 0)
+            diag_message = (
+                "%d de %d publicaciones consultadas fueron RECHAZADAS por MercadoLibre%s. "
+                "%sNo se hizo ninguna correccion sobre ellas."
+            ) % (
+                api_errors, api_errors + items_checked_ok, _api_err_txt,
+                ("403/401: la cuenta con la que se consulto no es la duena de esas publicaciones "
+                 "(revisar que cada cuenta se consulte con SU token). " if _forbidden else ""),
+            )
+            _logger.warning("MELI_STOCK_DIAG: %s", diag_message)
 
         if chatter_log and chatter_account:
             from datetime import datetime as _dt
@@ -2048,6 +2120,7 @@ class res_company(models.Model):
 <b>Fulfillment_user con stock (selling_addr check):</b> {len(fulfillment_user_candidates)} &nbsp;|&nbsp;
 <b>Drift:</b> {len(drift_candidates)} &nbsp;|&nbsp;
 <b>Revisadas via API ML:</b> {len(checked_items_log)} &nbsp;|&nbsp;
+<b>Rechazadas por ML:</b> {api_errors}{_api_err_txt} &nbsp;|&nbsp;
 <b>Acciones:</b> {len(actions_taken)}
 <hr/><b>Detalle items revisados via API:</b><ul>{checked_lines}</ul>
 {f'<hr/><b>Acciones ejecutadas:</b><ul>{actions_lines}</ul>' if actions_taken else ''}
@@ -2068,6 +2141,14 @@ class res_company(models.Model):
             'drift_candidates': len(drift_candidates),
             'actions_taken': len(actions_taken),
             'elapsed_seconds': round(t_diag_elapsed, 2),
+            # (A) #535 Score — claves NUEVAS (aditivas, no rompen llamadores viejos):
+            # con esto el cron puede reportar por que una corrida no hizo nada.
+            'items_to_check': len(all_to_check),
+            'items_checked_ok': items_checked_ok,
+            'api_errors': api_errors,
+            'api_errors_by_status': api_errors_by_status,
+            'diag_state': diag_state,
+            'diag_message': diag_message,
         }
 
     def meli_update_remote_price(self, meli=False):
