@@ -4,6 +4,28 @@
 
 ---
 
+### 21 ago 2026 — port a 18.0 del guard de venta facturada [#493 Shoppy] — reemplaza el guard ad-hoc de 18.0.26.94 (v18.0.26.95)
+
+**Por qué:** el fix de 18.0.26.94 (Elvimarta #508) resolvía el caso con un chequeo propio de `qty_invoiced`
+en `shipment.py`. Al portarlo a 16.0 apareció que **esa versión ya tenía resuelto el mecanismo entero**
+desde el #493 (Shoppy, jul-2026) — y que **nunca se forward-porteó a 17/18/19**. El guard del #493 es
+estrictamente mejor: cubre **los tres caminos** que escriben la línea de envío (`set_delivery_line`, el
+`price_unit = 0` directo y `_remove_delivery_line()`), es **configurable** por compañía/configuración
+(`mercadolibre_protect_invoiced_orders`, default **activado**) y **avisa en el chatter de la venta, una
+sola vez**, que MercadoLibre quiso modificar un pedido ya facturado y no se aplicó.
+
+**Qué entra:** `res.company.mercadolibre_protect_invoiced_orders`; en `sale.order`
+`_meli_posted_invoices()`, `_meli_protect_invoiced_enabled()`, `_meli_guard_invoiced()` y el flag
+`meli_invoiced_guard_notified`; en `versions.py` el helper `_meli_guard_delivery_write()` y su uso en
+`set_delivery_line`; en `shipment.py` los dos call sites restantes.
+**El código del guard queda byte a byte igual al de 16.0.**
+
+**Qué sale:** el chequeo ad-hoc de `qty_invoiced` que había agregado 18.0.26.94, ya redundante.
+
+**Requiere `-u meli_oerp`** (campos nuevos).
+
+---
+
 ### 21 ago 2026 — fix(shipment): el conector ponía en CERO la línea de envío de órdenes YA FACTURADAS (v18.0.26.94) [Elvimarta 158, ticket #508]
 
 **Reportado por:** Facundo Ambroa (InternationalHome / Elvimarta, cuenta 158, AR, Odoo 17.0), por
