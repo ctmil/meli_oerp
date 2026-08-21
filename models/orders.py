@@ -116,6 +116,97 @@ class sale_order(models.Model):
     meli_order_id =  fields.Char(string='Meli Order Id',index=True)
     meli_orders = fields.Many2many('mercadolibre.orders',string="ML Orders")
 
+    # [#493 Shoppy] Aviso "el conector quiso tocar una venta ya facturada" posteado una
+    # sola vez por venta: el cron re-procesa la orden cada pocos minutos y sin esto
+    # inundaría el chatter con el mismo mensaje.
+    meli_invoiced_guard_notified = fields.Boolean(
+        string="Aviso de venta facturada ya posteado", copy=False, readonly=True, default=False)
+
+    def _meli_posted_invoices(self):
+        """Facturas de cliente POSTEADAS de esta venta (hecho fiscal consumado)."""
+        self.ensure_one()
+        if 'invoice_ids' not in self._fields:
+            return self.env['account.move'].browse()
+        return self.invoice_ids.filtered(
+            lambda inv: inv.move_type == 'out_invoice' and inv.state == 'posted')
+
+    def _meli_protect_invoiced_enabled(self):
+        """¿Está activa la protección de ventas facturadas?
+
+        Se resuelve igual que el resto de las opciones del suite: manda la
+        `mercadolibre.configuration` de la compañía (multi-cuenta) y, si no existe,
+        el campo de `res.company`. Si no se puede resolver ninguna, **protege**
+        (default seguro: escribir sobre una venta facturada nunca es correcto).
+
+        Ojo: el campo se declara con el MISMO default en los dos modelos. Declararlo
+        con defaults distintos fue exactamente el bug del #453
+        (`mercadolibre_billing_force_on_main`: True en company, False en configuration
+        → la config efectiva quedaba apagada y el fix parecía no funcionar).
+        """
+        self.ensure_one()
+        company = self.company_id or self.env.company
+        try:
+            if 'mercadolibre.configuration' in self.env:
+                conf = self.env['mercadolibre.configuration'].sudo().search(
+                    [('company_id', '=', company.id)], limit=1)
+                if conf and 'mercadolibre_protect_invoiced_orders' in conf._fields:
+                    return bool(conf.mercadolibre_protect_invoiced_orders)
+        except Exception as e:
+            _logger.warning("MELI protect_invoiced: no se pudo leer la configuración (%s)", e)
+        if 'mercadolibre_protect_invoiced_orders' in company._fields:
+            return bool(company.mercadolibre_protect_invoiced_orders)
+        return True
+
+    def _meli_guard_invoiced(self, what, detail=""):
+        """True -> el conector NO debe reescribir esta venta (ya tiene factura posteada).
+
+        [#493 Shoppy, jul-2026] El conector emparejaba el total de la venta con lo
+        cobrable según ML **bajando la línea de envío a 0**, sin mirar si la venta ya
+        estaba facturada. Resultado: ventas por debajo de su propia factura (caso
+        probado: FA-B 00010-00212684 por 30.312,70 contra una venta que quedó en
+        15.224 dos días después). El descuadre no lo veía nadie hasta que el cliente
+        cruzaba pedido contra factura a mano.
+
+        Regla: si hay factura posteada, no se escribe; se deja constancia (log +
+        un aviso en el chatter, una sola vez) para que el cliente decida.
+        """
+        self.ensure_one()
+        invoices = self._meli_posted_invoices()
+        if not invoices:
+            return False
+        if not self._meli_protect_invoiced_enabled():
+            _logger.info(
+                "MELI protect_invoiced: venta %s ya facturada (%s) pero la protección está "
+                "DESACTIVADA — se reescribe %s.", self.name, ", ".join(invoices.mapped('name')), what)
+            return False
+
+        _logger.warning(
+            "MELI protect_invoiced: NO se reescribe %s de la venta %s — ya tiene factura(s) "
+            "posteada(s): %s. %s", what, self.name, ", ".join(invoices.mapped('name')), detail)
+
+        if not self.meli_invoiced_guard_notified:
+            try:
+                self.message_post(body=Markup(
+                    '<div style="border-left:3px solid #f0a500;padding-left:8px;">'
+                    '<p style="margin:0 0 6px 0;"><b>MercadoLibre quiso modificar esta venta, '
+                    'pero ya está facturada.</b></p>'
+                    '<p style="margin:0 0 6px 0;">Cambio no aplicado: {what}{detail}</p>'
+                    '<p style="margin:0 0 6px 0;">Factura(s) emitida(s): <b>{invs}</b></p>'
+                    '<p style="margin:0;font-size:12px;color:#555;">La venta se dejó como está para '
+                    'que no quede por debajo de lo facturado. Si el importe de MercadoLibre cambió '
+                    'de verdad, corresponde revisarlo desde la factura (nota de crédito o ajuste).</p>'
+                    '</div>'
+                ).format(
+                    what=html_escape(what),
+                    detail=Markup(' — {d}').format(d=html_escape(detail)) if detail else Markup(''),
+                    invs=html_escape(", ".join(invoices.mapped('name'))),
+                ))
+                self.sudo().meli_invoiced_guard_notified = True
+            except Exception as e:
+                _logger.warning("MELI protect_invoiced: no se pudo postear el aviso en %s: %s",
+                                self.name, e)
+        return True
+
     # Post-sale buyer messages sin leer, reflejado desde la orden ML. [#499]
     # NOTA: no puede ser `related` (meli_orders es Many2many, no Many2one; un
     # related no puede atravesar un x2many). Se computa igual que meli_status
