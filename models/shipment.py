@@ -1005,7 +1005,20 @@ class mercadolibre_shipment(models.Model):
                 if 1==1 and delivery_price<=0.0:
                     #_logger.info("Procesar delivery_price == 0")
                     delivery_line = get_delivery_line(sorder)
-                    if delivery_line:
+                    if delivery_line and delivery_line.qty_invoiced:
+                        # La linea de envio YA SE FACTURO: ponerla en 0 deja la venta desalineada de
+                        # una factura ya emitida (la orden sin flete, la factura con flete) y el
+                        # equipo del cliente termina rehaciendo la linea a mano. El core lo prohibe
+                        # en _remove_delivery_line(), pero este write directo no pasaba por ahi: no
+                        # tenia ni esa guarda ni el savepoint de set_delivery_line.
+                        # Caso que lo destapo (Elvimarta, ago-2026): 61 de 347 facturas ML con flete
+                        # quedaron desalineadas ($1.673.959,97), con la orden en cero.
+                        _logger.warning("MELI shipment: no se pone en 0 la linea de envio de %s: ya "
+                                        "esta facturada (qty_invoiced=%s, precio %s). ML informa "
+                                        "envio 0 pero la factura ya salio con flete.",
+                                        sorder.name, delivery_line.qty_invoiced,
+                                        delivery_line.price_unit)
+                    elif delivery_line:
                         #_logger.info("Procesar delivery_price == 0 setear qty_to_invoice en 0")
                         # Only write if value actually changed (avoid unnecessary triggers)
                         if delivery_line.price_unit != 0.0:
