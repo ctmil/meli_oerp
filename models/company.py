@@ -560,6 +560,17 @@ class res_company(models.Model):
              "Evita el contacto fiscal separado. Recomendado para personas físicas (AR/CL).",
     )
 
+    # [#493 Shoppy] Ver la nota gemela en meli_oerp_multiple/models/connection_configuration.py:
+    # este campo se declara en los DOS modelos y el default DEBE ser el mismo en ambos.
+    mercadolibre_protect_invoiced_orders = fields.Boolean(
+        string="No modificar pedidos ya facturados",
+        default=True,
+        help="Si el pedido ya tiene una factura POSTEADA, el conector no reescribe sus líneas "
+             "ni sus montos (en particular la línea de envío): deja el pedido como está y avisa "
+             "en el chatter que encontró una diferencia. Evita que el pedido quede por debajo "
+             "de lo que se facturó. Desactivar solo si se necesita el comportamiento anterior.",
+    )
+
     #mercadolibre_use_buyer_name = fields.Boolean(string="Use buyer name",default=True)
 
     #Toma y lista los ids de las publicaciones del sitio de MercadoLibre, filtrados por official_store_id
