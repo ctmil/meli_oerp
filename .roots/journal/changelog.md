@@ -4,6 +4,24 @@
 
 ---
 
+## Versión 17.0.26.94 — Los pedidos ya facturados quedan protegidos de punta a punta (y ahora avisan)
+21 ago 2026
+
+**Cambios:**
+
+1. **Se completa lo de la versión anterior.** Además de no poner el envío en cero, el conector **no
+   reescribe ninguna línea ni monto** de un pedido que ya tiene factura emitida — por **ninguno** de los
+   caminos posibles, incluido el borrado de la línea de envío. Cuando MercadoLibre informa un cambio
+   sobre un pedido ya facturado, el pedido **se deja como está** y queda **un aviso en su historial**
+   (una sola vez, no en cada reintento) explicando qué cambio no se aplicó y con qué factura choca, para
+   que se resuelva desde la factura (nota de crédito o ajuste) y no por debajo de ella.
+2. **Es configurable:** *No modificar pedidos ya facturados*, en la configuración de MercadoLibre de la
+   compañía. Viene **activado**; desactivarlo restaura el comportamiento anterior.
+
+*Esta protección ya existía en la versión 16 desde julio (caso Shoppy); esta versión la trae a Odoo 17.*
+
+Requiere actualizar el módulo (`-u meli_oerp`).
+
 ## Versión 17.0.26.93 — El envío ya facturado deja de quedar en cero en la orden
 21 ago 2026
 
