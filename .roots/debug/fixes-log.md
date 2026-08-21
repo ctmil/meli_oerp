@@ -4,6 +4,41 @@
 
 ---
 
+### 21 ago 2026 — fix(shipment): el conector ponía en CERO la línea de envío de órdenes YA FACTURADAS (v17.0.26.93) [Elvimarta 158, ticket #508]
+
+**Reportado por:** Facundo Ambroa (InternationalHome / Elvimarta, cuenta 158, AR, Odoo 17.0), por
+WhatsApp el 19-ago 16:39 CEST, con dos órdenes concretas: *"La orden entra con el envío correcto, la
+facturamos, y luego se sigue actualizando desde ML, y en algunos casos le saca el monto del envío y lo
+deja en 0, esto genera que haya diferencia entre la orden y la factura anteriormente creada."*
+
+**Síntoma:** venta ML con factura emitida que incluye el flete, y la orden con el flete en 0 → orden y
+factura descuadradas. El equipo del cliente lo reparaba a mano agregando una línea de envío nueva, que
+queda sin `is_delivery` y deja la orden en `to invoice`.
+
+**Causa raíz:** `models/shipment.py`, bloque `if 1==1 and delivery_price<=0.0:` — escribía
+`delivery_line.price_unit = 0.0` / `qty_to_invoice = 0` **directo sobre la línea**, sin mirar si ya
+estaba facturada. `delivery_price` llega en 0 desde `shipment_amount_cond_fix`
+(`amount_total - received_amount > 1`). Ese write **no pasa por `set_delivery_line`**, así que no tenía
+ni la guarda del core (`_remove_delivery_line()` levanta `UserError` si `qty_invoiced != 0`) ni el
+savepoint que agregó el fix de #508 (v26.48, 28-jul).
+
+**Por qué el fix de #508 no lo cubría:** aquel fix protege el camino de *borrar y recrear* la línea, y
+funciona — en producción de Elvimarta se ve disparando cada 20 min
+(`MELI set_delivery_line: no se pudo reescribir la linea de envio de ML … (ya se facturó)`). Este es un
+**camino distinto**: no borra la línea, la deja en cero.
+
+**Medición (Elvimarta, facturas ML `posted` desde el 1-jul):** 61 de 347 con la línea de envío
+desenganchada de la orden — **$1.673.959,97** —, 48 de ellas en órdenes creadas **después** del fix de
+#508. Caso vivo al momento del diagnóstico: `ML 2000018025413294`, línea `ME1 - zip` con
+`is_delivery=t`, `qty_invoiced=2`, `price_unit=0,00`.
+
+**Fix:** si la línea de envío tiene `qty_invoiced`, **no se toca** y se loguea un warning con la venta,
+la cantidad facturada y el precio. En órdenes no facturadas el comportamiento queda igual.
+
+**No repara** las órdenes ya dañadas: eso es una corrección de datos aparte, a decidir con el cliente.
+
+---
+
 ### 11 ago 2026 — fix(company): guard de DB neutralizada dejaba `mercadolibre_state` sin asignar -> rompía la vista Empresas (v17.0.26.91) [Aramid 447, SOLO 17.0]
 
 **Reportado por:** Camila (Aramid, cuenta 447, UY, Odoo 17.0), 10-ago 21:05 CEST, con traceback completo,
