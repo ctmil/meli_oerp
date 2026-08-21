@@ -4,6 +4,21 @@
 
 ---
 
+## Versión 19.0.26.93 — El envío ya facturado deja de quedar en cero en la orden
+21 ago 2026
+
+**Cambios:**
+
+1. **El problema:** una venta de MercadoLibre entraba con su costo de envío, se facturaba con el envío
+   incluido, y una actualización posterior de MercadoLibre **dejaba el envío en 0 en la orden**. La
+   factura ya emitida quedaba con el flete y la orden sin él: orden y factura descuadradas, y el flete
+   había que rehacerlo a mano. Ahora, si la línea de envío ya fue facturada, el conector **no la toca** y
+   deja constancia en el registro del servidor. En órdenes todavía no facturadas nada cambia.
+   *Medido en un cliente AR: 61 de 347 facturas de MercadoLibre con flete quedaron descuadradas en siete
+   semanas, por $1.673.959,97.*
+
+Requiere actualizar el módulo (`-u meli_oerp`).
+
 ## Versión 19.0.26.90 — La devolución automática de ventas canceladas por ML vuelve a funcionar (y deja de llenar el historial de avisos repetidos)
 30 jul 2026
 
