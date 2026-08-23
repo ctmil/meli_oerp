@@ -4,6 +4,32 @@
 
 ---
 
+## Versión 16.0.26.96 — La línea de MercadoEnvíos puede tomar el importe que informa ML
+23 ago 2026
+
+**Cambios:**
+
+1. **El problema:** cuando MercadoLibre informaba que el comprador **había pagado el envío**, la venta
+   podía entrar igual con la línea de MercadoEnvíos en **0,00**. No era falta de dato: el importe
+   estaba informado, pero el cálculo interno del conector lo bajaba a cero cuando el total de la venta
+   superaba lo que ML declaraba como cobrable.
+2. **La opción nueva:** *"Forzar envío con el importe informado por ML"*, en la configuración de la
+   cuenta. Con la opción encendida, la línea de MercadoEnvíos se carga con el importe que **ML informa
+   como pagado por el comprador**, aunque el cálculo interno no lo devuelva al crear la venta.
+3. **Viene APAGADA.** Cambia el total de la factura, así que se enciende por cuenta y a pedido. Con la
+   opción apagada el conector se comporta exactamente igual que antes.
+4. Sólo actúa si ML informa un flete **mayor a 0** (el envío gratis o bonificado sigue en 0), si hay
+   pago cargado, si el pedido no está cancelado y si el hueco de la venta coincide con el flete
+   informado. **Nunca reescribe una venta ya facturada** (se mantiene la protección de la 26.93).
+5. El importe entra por el mismo tratamiento impositivo que cualquier otro flete: no se puentea el IVA.
+
+⚠️ **Las ventas anteriores no se corrigen solas.** El cambio actúa sobre las ventas nuevas; las que ya
+entraron con el envío en 0 necesitan una corrida aparte.
+
+Requiere actualizar los módulos (`-u meli_oerp,meli_oerp_multiple`) y **encender la opción**.
+
+---
+
 ## Versión 16.0.26.95 — Las ventas que MercadoLibre cancela dejan de perderse de vista
 23 ago 2026
 

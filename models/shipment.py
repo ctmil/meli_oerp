@@ -893,6 +893,21 @@ class mercadolibre_shipment(models.Model):
             if not del_price and shipment.shipping_receiver_cost:
                 del_price = shipment.shipping_receiver_cost
 
+            # [#411 Shoppy] Criterio confirmado por el cliente el 20-ago-2026: la linea de
+            # MercadoEnvios lleva el importe que ML INFORMA como pagado por el comprador,
+            # aunque el calculo interno del conector no lo devuelva al crear la venta.
+            # Las 5 condiciones (opt-in, pedido no cancelado, informado > 0, pago cargado y
+            # hueco de la venta == flete informado) estan en
+            # versions.meli_informed_shipping_amount(). Devuelve 0.0 = 'no forzar' y todo
+            # el flujo de abajo sigue exactamente igual que hoy.
+            _ml_forced_ship = meli_informed_shipping_amount(sorder, config=config)
+            if _ml_forced_ship:
+                if abs(float(del_price or 0.0) - _ml_forced_ship) > 0.01:
+                    _logger.info(
+                        "MELI #411 %s: se usa el flete informado por ML %.2f en lugar del "
+                        "calculado %.2f.", sorder.name, _ml_forced_ship, float(del_price or 0.0))
+                del_price = _ml_forced_ship
+
             delivery_price = ml_product_price_conversion( self, product_related_obj=product_shipping_id, price=del_price, config=config ),
             if type(delivery_price)==tuple and len(delivery_price):
                 delivery_price = delivery_price[0]
@@ -943,6 +958,10 @@ class mercadolibre_shipment(models.Model):
                     _dp = _dp[0]
                 delivery_price = _dp
                 del_price = _ship_residual
+                # [#411] Si el cupon se imputa a la linea de ENVIO (modo product_discount,
+                # #391/#399) ese criterio manda: es una eleccion explicita del cliente y no
+                # se pisa con el flete bruto informado por ML.
+                _ml_forced_ship = 0.0
 
             shipment_amount_cond = abs(received_amount - sorder.amount_total)>1.0 and (delivery_price>0.0)
 
@@ -956,7 +975,19 @@ class mercadolibre_shipment(models.Model):
 
             #_logger.info("ship_carrier_id:"+str(ship_carrier_id)+" sorder.carrier_id:"+str(sorder.carrier_id))
 
-            if shipment_amount_cond_fix:
+            if shipment_amount_cond_fix and _ml_forced_ship:
+                # [#411 Shoppy] Esta valvula baja el flete a 0 cuando el total de la venta
+                # supera lo cobrable segun el calculo interno (meli_amount_to_invoice). En el
+                # caso del ticket se disparaba por un discount_seller_amount espurio
+                # (62.205,93 con coupon_amount 0, que no entra en el cap de orders.py) y
+                # pisaba un flete que ML SI informo y el comprador SI pago. Con el flag
+                # encendido y el hueco de la venta ya validado, la valvula no corre.
+                _logger.info(
+                    "MELI #411 %s: no se baja el flete a 0 — ML informa %.2f cobrado al "
+                    "comprador y el hueco de la venta coincide (cobrable interno %.2f, "
+                    "total %.2f).", sorder.name, _ml_forced_ship, received_amount,
+                    sorder.amount_total or 0.0)
+            elif shipment_amount_cond_fix:
                 #_logger.info("shipment_cond: "+str(shipment_amount_cond)+" paid: "+str(received_amount)+" vs total: "+str(sorder.amount_total))
                 if ( ship_carrier_id and sorder.carrier_id):
                     delivery_price = 0.0
@@ -1041,6 +1072,14 @@ class mercadolibre_shipment(models.Model):
                     # invoice_policy='delivery' which computes qty_to_invoice=0 until the
                     # picking is done — but for MeLi we invoice on payment, not on delivery.
                     delivery_line = get_delivery_line(sorder)
+                    # [#411] Este restore de qty_to_invoice escribe DIRECTO sobre la linea y
+                    # quedo sin guard en el #493 (que solo cubrio la rama de precio 0). Con el
+                    # flag del #411 esta rama pasa a alcanzar ventas que antes caian en la rama
+                    # de 0, algunas YA FACTURADAS: reabrirles el flete a facturar seria emitir
+                    # por fuera de lo que el cliente ya regularizo. El guard solo bloquea cuando
+                    # el precio cambia de verdad, asi que el restore normal sigue igual.
+                    if delivery_line and _meli_guard_delivery_write(sorder, delivery_line, delivery_price):
+                        delivery_line = None
                     if delivery_line and delivery_line.state not in ('cancel',):
                         _expected_qty = delivery_line.product_uom_qty or 1.0
                         if delivery_line.qty_to_invoice != _expected_qty:

@@ -4,6 +4,40 @@
 
 ---
 
+### 23 ago 2026 — el flete informado por ML se perdia: lo pisaba la valvula del cap de cobrable — v26.96 `[#411 Shoppy]`
+
+Criterio del cliente, textual (ticket #411, 20-ago-2026): *"confirmamos que queremos que el conector
+cargue la linea de envio con el importe correspondiente siempre que MercadoLibre informe que el
+comprador pago el envio, incluso si el calculo interno de MercadoLibre no lo devuelva en el momento de
+creacion de la venta."*
+
+**El cero NO era falta de dato.** Medido contra la instancia (XMLRPC read-only, 0 escrituras): el
+importe estaba (`payments_shipment_amount` 4.960,54). Lo pisaba la valvula `shipment_amount_cond_fix`
+de `shipment.py`, que baja el flete a 0 cuando el total de la venta supera lo cobrable segun
+`meli_amount_to_invoice` — y ese cobrable se derrumba porque resta un `discount_seller_amount` de
+62.205,93 con `coupon_amount` en 0, que **no entra en el cap de `orders.py`**.
+**No es un caso aislado:** 39 ventas desde el 1-ago, 36 de ellas cierran exacto.
+
+- *Fix:* flag **`mercadolibre_force_shipping_from_ml`** (Boolean, **default False**, opt-in por cuenta),
+  declarado con el MISMO default en `res.company` (`meli_oerp`) y en `mercadolibre.configuration`
+  (`meli_oerp_multiple`), visible en la vista de la cuenta.
+- `versions.meli_informed_shipping_amount(sorder, config)` devuelve el flete BRUTO informado por ML, o
+  **0.0 = no forzar**. Suma sobre TODAS las `meli_orders` de la venta (packs).
+- `shipment._update_sale_order_shipping_info` lo usa como `del_price` y, cuando esta validado, **no deja
+  correr** la valvula `shipment_amount_cond_fix`.
+- El importe pasa por `ml_product_price_conversion`: con `tax_included = tax_excluded` (como esta
+  Shoppy) el bruto se netea del IVA igual que cualquier otra fuente de flete. **No se puentea el
+  tratamiento impositivo.**
+
+⚠️ **Lo que este fix NO hace, y hay que decirlo antes de prometerlo:**
+1. **Sin encender el flag no cambia nada.** Instalar el modulo no alcanza.
+2. **Las ventas viejas no se corrigen solas.** 26 ventas `done` sin facturar de agosto quedan con el
+   envio en 0: el early-return para ventas `done`/locked **no se toco** (es deliberadamente
+   conservador). Corregirlas es una corrida aparte.
+3. **Las ya facturadas no se tocan** (guard #493).
+
+---
+
 ### 23 ago 2026 — la cancelacion de ML que no se podia aplicar salia de la cola PARA SIEMPRE — v26.95 `[#494 Shoppy]`
 
 `orders_resync_status` (el cron de re-sync de estado del #475) escribe `order.status = 'cancelled'` en
