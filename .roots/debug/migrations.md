@@ -4,6 +4,30 @@
 
 ---
 
+## 23 ago 2026 - flag buscable de cancelacion pendiente (v16.0.26.95) [#494 Shoppy]
+
+- **Campo NUEVO stored+index -> requiere `-u meli_oerp`** (el bump 26.95 lo dispara):
+  `sale.order.meli_cancel_pending` (Boolean, compute+store+index) = `meli_status == 'cancelled'
+  AND state != 'cancel'`.
+- **Migracion `migrations/16.0.26.95/post-migrate.py` (post, idempotente), en dos pasos:**
+  1. Propaga `meli_status = 'cancelled'` a la venta **desde `mercadolibre_orders.status`**.
+     ⚠️ Motivo: `sale_order.meli_status` es un campo **almacenado** que en la practica solo se
+     reescribe como efecto lateral del compute **NO almacenado** `_meli_status_brief`, o sea recien
+     cuando alguien **abre** la venta. La verdad vive en el pedido de ML. Sin este paso el filtro
+     nuevo arrancaria mostrando **de menos**, que es peor que no tenerlo.
+     **Acotado a `'cancelled'`**: no toca ningun otro estado.
+  2. Siembra `meli_cancel_pending` con la definicion exacta del compute.
+- **Campo de configuracion nuevo:** `res.company.mercadolibre_cron_orders_redrain_days` (Integer,
+  default **90**, `0` = desactivado). Ventana del re-intento LOCAL. No consume API.
+- **Vistas tocadas:** `views/orders_view.xml` (filtro "Cancelado en ML, vivo en Odoo" en las dos
+  vistas de busqueda de `sale.order`) y `views/company_view.xml` (el campo nuevo).
+- **Efecto esperado en el primer arranque post-deploy:** el WARNING
+  `#494: N venta(s) canceladas en MercadoLibre siguen VIVAS en Odoo` con el backlog historico
+  completo. **Es el numero real, no una regresion.** En Shoppy (502) se esperan del orden de 96.
+- **Sin borrado ni reescritura de facturas.** La migracion NO toca `account_move`.
+
+---
+
 ## 28 jul 2026 - sello de movimientos de stock: create_date -> GREATEST(date, write_date, create_date) (v16.0.26.88) [OrgVit 475]
 
 - **Sin migracion de datos ni de esquema.** Codigo puro en `models/product.py` y `models/company.py`.

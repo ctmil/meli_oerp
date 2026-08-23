@@ -141,6 +141,7 @@
                                 <field name="mercadolibre_cron_get_orders_status" invisible="0"/>
                                 <field name="mercadolibre_cron_orders_status_days" invisible="0"/>
                                 <field name="mercadolibre_cron_orders_status_limit" invisible="0"/>
+                                <field name="mercadolibre_cron_orders_redrain_days" invisible="0"/>
                                 <field name="mercadolibre_filter_order_datetime_start" invisible="0"/>
                                 <field name="mercadolibre_filter_order_datetime" invisible="0"/>
                                 <field name="mercadolibre_filter_order_datetime_to" invisible="0"/>

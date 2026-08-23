@@ -4,6 +4,51 @@
 
 ---
 
+### 23 ago 2026 — la cancelacion de ML que no se podia aplicar salia de la cola PARA SIEMPRE — v26.95 `[#494 Shoppy]`
+
+`orders_resync_status` (el cron de re-sync de estado del #475) escribe `order.status = 'cancelled'` en
+cuanto ML lo informa, y **su propio dominio de barrido excluye** `("status","not in",("cancelled","invalid"))`.
+Si en esa misma pasada `meli_cancel_with_detail()` abortaba — el caso normal cuando ya hay factura
+publicada sin resolver, que en Shoppy es el **100%** de los casos — la venta quedaba viva y el pedido
+ML **no volvia a entrar al barrido nunca**. Mismo patron que
+[[meli-estado-de-error-saca-la-publicacion-de-la-cola-para-siempre]].
+
+El unico rastro eran (a) un aviso en el chatter con `once_key`, o sea **una sola vez**, y (b) el banner
+del formulario, que exige abrir las ventas **de a una**. Con 96 ventas en esa situacion, eso no es
+observabilidad.
+
+- *Fix 1 (el limbo):* `mercadolibre.orders._orders_redrain_pending_cancels()`, segunda pasada **local**
+  al final de cada ciclo del cron: busca en la base los pedidos ML `status='cancelled'` cuya venta sigue
+  en `draft/sent/sale/done` y los vuelve a pasar por `meli_cancel_with_detail()`. **Cero llamadas a la
+  API.** Idempotente: si la factura sigue publicada el helper vuelve a abortar sin efectos (los avisos
+  ya estan protegidos por `once_key`). Ventana `mercadolibre_cron_orders_redrain_days` (default 90,
+  `0` = off). El backlog que sigue trabado se emite como **WARNING**, no como info — que es exactamente
+  el defecto que le costo meses a este mismo cliente en el #521.
+- *Fix 2 (paridad de estado):* `update_order_status()` escribia `sorder.meli_status = 'cancelled'`;
+  `orders_resync_status()` **no**. Como `meli_status` es stored y solo se refresca via el compute no
+  almacenado `_meli_status_brief` (o sea al abrir el registro), el banner
+  `meli_cancel_pending_banner` y cualquier filtro por `meli_status` **mentian** hasta que un humano
+  entrara a la venta. Ahora las dos rutas lo escriben.
+- *Fix 3 (que el cliente pueda auditarlo el):* campo `sale.order.meli_cancel_pending`
+  (compute+store+index) + filtro **"Cancelado en ML, vivo en Odoo"** en las dos vistas de busqueda de
+  ventas. Hasta ahora ese listado se armaba a mano en CSV (10/8, 19/8, 21/8) y **el numero cambiaba con
+  el criterio de quien lo armaba** (72 -> 80 -> 96). Con el campo, el criterio es uno solo y esta en el
+  codigo.
+- ⚠️ *Lo que este fix NO hace, a proposito:* **no** cambia el default de
+  `mercadolibre_invoice_cancel_mode` (sigue en `manual`) y **no** toca ninguna factura publicada. Que el
+  numero deje de **crecer** depende de esa configuracion, que es una decision fiscal del cliente. Ver
+  `.roots/tasks/PLAN-2026-08-23-494-cancelar-venta-al-cancelar-ml.md`.
+- 🔎 *Punto ciego conocido, NO corregido (falta medirlo):* el dominio de `orders_resync_status` excluye
+  `shipment_status = 'delivered'` con el argumento de que *"la cancelacion por el comprador es SIEMPRE
+  pre-entrega"*. Eso **no vale para mediaciones**: en Shoppy hay 9 canceladas por `mediations` que
+  pueden caer ahi y no ser re-consultadas nunca. Requiere medir en la instancia antes de tocar el
+  dominio (costo de API).
+- *Tests:* `tests/test_meli_cancel.py` (TransactionCase, tag `meli_cancel`) cubre los 5 bordes
+  (borrador / confirmada / entregada / facturada / con pago conciliado) + el re-drain.
+  ⚠️ **Escritos pero NO ejecutados** en esta sesion: no habia entorno Odoo 16 con base para correrlos.
+
+---
+
 ### 10 ago 2026 — el guard de venta facturada tenia TRES bypass (y el aviso del chatter mentia) — v26.93 `[#493 Shoppy]`
 
 El fix `de715a23` (26.89) puso el guard **dentro de `set_delivery_line`**, con un comentario que

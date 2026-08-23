@@ -4,6 +4,34 @@
 
 ---
 
+## Versión 16.0.26.95 — Las ventas que MercadoLibre cancela dejan de perderse de vista
+23 ago 2026
+
+**Cambios:**
+
+1. **El problema:** cuando MercadoLibre cancela un pedido que en Odoo ya tenía la factura emitida, el
+   conector — correctamente — **no** cancela la venta solo: reversar una factura es una nota de crédito
+   y esa decisión es de Administración, no del sistema. Pero el pedido quedaba marcado como cancelado y
+   **el conector no volvía a mirarlo nunca más**. La venta se quedaba viva y sin que nada la señalara,
+   salvo un aviso en el historial que se escribía una sola vez.
+2. **Ahora vuelve a intentarlo solo.** En cada ciclo, el conector repasa (sin consultar a MercadoLibre,
+   o sea sin costo ni demora) las ventas canceladas en ML que en Odoo siguen abiertas. Apenas se
+   resuelve la factura —normalmente emitiendo la nota de crédito— la venta se cancela sola en el ciclo
+   siguiente, sin que nadie tenga que acordarse de volver a esa venta.
+3. **Y ahora se pueden listar.** En Ventas hay un filtro nuevo, **"Cancelado en ML, vivo en Odoo"**, que
+   muestra de una todas las ventas en esa situación. Es el listado que hasta ahora había que pedir a
+   soporte. Al actualizar, el filtro ya arranca con el histórico cargado.
+4. Cuántas quedan pendientes se informa además en el log del servidor como **advertencia**, no como
+   información: es plata facturada contra ventas que no ocurrieron, y tiene que verse.
+
+**Lo que NO cambia:** el conector **sigue sin tocar facturas publicadas por su cuenta**. Qué hacer con
+ellas se define en *Configuración de MercadoLibre → "Acción sobre factura al cancelar pedido"*, que
+viene en **Manual** y solo cambia si ustedes lo cambian.
+
+Requiere actualizar el módulo (`-u meli_oerp`).
+
+---
+
 ## Versión 16.0.26.93 — La protección de ventas ya facturadas ahora se cumple de verdad
 10 ago 2026
 
