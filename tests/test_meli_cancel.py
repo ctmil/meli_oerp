@@ -52,33 +52,110 @@ class TestMeliCancelOnMlCancel(common.TransactionCase):
     # ------------------------------------------------------------------
     # Fixture: publicar la factura en instancias con localizacion latam
     # ------------------------------------------------------------------
-    def _post_invoice(self, invoice):
-        """Publica la factura resolviendo el tipo de documento de l10n_latam.
+    def _non_electronic_sale_journal(self, company):
+        """Diario de ventas que NO factura electronicamente.
 
-        POR QUE. En una instancia con la localizacion argentina instalada (Shoppy lo
-        es) `account.move` gana `l10n_latam_document_type_id`, el diario de ventas lo
-        exige y `action_post()` corta con *"El diario requiere un tipo de documento"*.
-        Tres de estos tests morian ahi: no fallaban por el producto, ni siquiera
-        llegaban a ejecutar `meli_cancel_with_detail()`. Un test que no llega al codigo
-        no prueba nada, y su ERROR se leia como si el #494 estuviera roto.
+        POR QUE ESTO IMPORTA MAS QUE UN DETALLE DE FIXTURE. En una instancia con la
+        localizacion AR de facturacion electronica (`l10n_ar_afipws_fe`), `action_post()`
+        llama a `do_pyafipws_request_cae()`: PIDE UN CAE REAL A AFIP. En el server de test
+        de Shoppy eso corta con "Not confirmed certificate for production", pero en una
+        instancia con el certificado cargado un test emitiria un comprobante fiscal de
+        verdad, y EL CAE NO SE DESHACE CON UN ROLLBACK. Un test nunca debe pasar por ahi.
 
-        En instancias sin l10n_latam (el core pelado) el `if` no aplica y esto es un
-        `action_post()` normal — el mismo test corre en las dos.
+        Se elige entonces un diario de venta de la compania SIN `afip_ws`, prefiriendo uno
+        que no use documentos latam: lo que estos tests necesitan es una factura PUBLICADA,
+        no un comprobante fiscal.
         """
-        if 'l10n_latam_document_type_id' in invoice._fields and not invoice.l10n_latam_document_type_id:
+        Journal = self.env['account.journal']
+        journals = Journal.search([('type', '=', 'sale'), ('company_id', '=', company.id)])
+        if 'afip_ws' in Journal._fields:
+            journals = journals.filtered(lambda j: not j.afip_ws)
+        if 'l10n_latam_use_documents' in Journal._fields:
+            simple = journals.filtered(lambda j: not j.l10n_latam_use_documents)
+            if simple:
+                return simple[0]
+        return journals[0] if journals else Journal
+
+    def _create_posted_invoice(self, order):
+        """Crea y PUBLICA la factura de la venta, sin tocar AFIP.
+
+        POR QUE EXISTE. Tres de estos tests morian en el fixture, dentro de
+        `action_post()`, y su ERROR se leia como si el codigo del #494 estuviera roto.
+        Eran DOS muros encadenados, y el segundo solo aparecio al correr el primero:
+
+        1. `l10n_latam_document_type_id`: con la localizacion latam instalada el diario lo
+           exige y `action_post()` corta con "El diario requiere un tipo de documento".
+        2. El diario por defecto de la compania es ELECTRONICO y `action_post()` dispara
+           el pedido de CAE a AFIP.
+
+        Un test que no llega al codigo no prueba nada. Este helper resuelve los dos y deja
+        una factura realmente publicada, no un `state` escrito a mano.
+        """
+        invoice = order._create_invoices()
+        if not invoice:
+            self.skipTest("El entorno no permite crear la factura de venta")
+
+        journal = self._non_electronic_sale_journal(invoice.company_id)
+        if not journal:
+            self.skipTest("Sin diario de ventas no electronico: el fixture no puede "
+                          "publicar la factura sin pedirle un CAE real a AFIP")
+        if invoice.journal_id != journal:
+            invoice.journal_id = journal.id
+
+        if 'l10n_latam_document_type_id' in invoice._fields:
             available = invoice.l10n_latam_available_document_type_ids
-            if not available:
-                self.skipTest(
-                    "Localizacion latam instalada pero el diario/partner no ofrece ningun "
-                    "tipo de documento disponible: el fixture no puede publicar la factura")
-            # Factura A/B/C segun corresponda: se toma el primero ofrecido por el core.
-            invoice.l10n_latam_document_type_id = available[0]
+            if available and not invoice.l10n_latam_document_type_id:
+                invoice.l10n_latam_document_type_id = available[0]
+
         invoice.action_post()
         self.assertEqual(
             invoice.state, 'posted',
-            "El fixture tiene que dejar la factura PUBLICADA; si no, el test de abajo "
-            "no estaria midiendo el caso que dice medir")
+            "El fixture tiene que dejar la factura PUBLICADA; si no, el test de abajo no "
+            "estaria midiendo el caso que dice medir")
         return invoice
+
+    def _deliver_order(self, order):
+        """Entrega la venta validando TODA la cadena de albaranes.
+
+        POR QUE. `order.picking_ids[:1]` sirve en un almacen de UN paso. En uno de 2 o 3
+        pasos (el de Shoppy) la cadena es PICK -> PACK -> OUT y el primero es INTERNO:
+        validarlo solo no deja la venta entregada, y `_meli_return_done_pickings()` -- que
+        filtra por `picking_type_code == 'outgoing'` -- no encuentra nada que devolver. El
+        test decia "venta ENTREGADA" y montaba otra cosa: su fallo no probaba un defecto
+        del conector, probaba que el fixture no armaba el escenario.
+
+        :return: los albaranes de SALIDA que quedaron en 'done'.
+        """
+        Quant = self.env['stock.quant']
+        for _vuelta in range(6):
+            pending = order.picking_ids.filtered(lambda p: p.state not in ('done', 'cancel'))
+            if not pending:
+                break
+            avanzo = False
+            for picking in pending.sorted('id'):
+                picking.action_assign()
+                if picking.state != 'assigned':
+                    for move in picking.move_ids:
+                        Quant._update_available_quantity(
+                            move.product_id, picking.location_id, move.product_uom_qty)
+                    picking.action_assign()
+                if picking.state != 'assigned':
+                    continue
+                for move in picking.move_ids:
+                    for line in move.move_line_ids:
+                        if 'qty_done' in line._fields:
+                            line.qty_done = line.reserved_uom_qty or move.product_uom_qty
+                        else:
+                            line.quantity = move.product_uom_qty
+                # skip_immediate/skip_backorder: button_validate() tambien puede devolver
+                # el dict de un wizard en vez de validar -- el mismo modo de falla del #494.
+                picking.with_context(skip_immediate=True, skip_backorder=True).button_validate()
+                if picking.state == 'done':
+                    avanzo = True
+            if not avanzo:
+                break
+        return order.picking_ids.filtered(
+            lambda p: p.state == 'done' and p.picking_type_code == 'outgoing')
 
     def _new_ml_order(self, meli_status='paid'):
         order = self.env['sale.order'].create({
@@ -157,20 +234,14 @@ class TestMeliCancelOnMlCancel(common.TransactionCase):
     def test_cancel_delivered_creates_return(self):
         order = self._new_ml_order(meli_status='cancelled')
         order.action_confirm()
-        picking = order.picking_ids[:1]
-        if not picking:
+        if not order.picking_ids:
             self.skipTest("Sin picking: la configuracion de stock del entorno no lo genera")
-        self.env['stock.quant']._update_available_quantity(
-            self.product, picking.location_id, 1.0)
-        picking.action_assign()
-        for move in picking.move_ids:
-            for line in move.move_line_ids:
-                if 'qty_done' in line._fields:
-                    line.qty_done = line.reserved_uom_qty or 1.0
-                else:
-                    line.quantity = 1.0
-        picking.button_validate()
-        self.assertEqual(picking.state, 'done')
+
+        entregados = self._deliver_order(order)
+        if not entregados:
+            self.skipTest(
+                "El entorno no dejo ningun albaran de SALIDA en 'done': sin eso este test "
+                "no monta el caso 'venta entregada' y no mediria nada")
 
         pickings_before = len(order.picking_ids)
         order.meli_cancel_with_detail("Orden cancelada por MercadoLibre. Motivo: test")
@@ -186,10 +257,7 @@ class TestMeliCancelOnMlCancel(common.TransactionCase):
     def test_posted_invoice_blocks_automatic_cancel(self):
         order = self._new_ml_order(meli_status='cancelled')
         order.action_confirm()
-        invoice = order._create_invoices()
-        if not invoice:
-            self.skipTest("El entorno no permite crear la factura de venta")
-        self._post_invoice(invoice)
+        invoice = self._create_posted_invoice(order)
 
         order.meli_cancel_with_detail("Orden cancelada por MercadoLibre. Motivo: test")
 
@@ -215,10 +283,7 @@ class TestMeliCancelOnMlCancel(common.TransactionCase):
     def test_reconciled_payment_blocks_automatic_cancel(self):
         order = self._new_ml_order(meli_status='cancelled')
         order.action_confirm()
-        invoice = order._create_invoices()
-        if not invoice:
-            self.skipTest("El entorno no permite crear la factura de venta")
-        self._post_invoice(invoice)
+        invoice = self._create_posted_invoice(order)
 
         journal = self.env['account.journal'].search(
             [('type', 'in', ('bank', 'cash')), ('company_id', '=', invoice.company_id.id)],
@@ -252,10 +317,7 @@ class TestMeliCancelOnMlCancel(common.TransactionCase):
     def test_redrain_retries_and_cancels_once_invoice_is_resolved(self):
         order = self._new_ml_order(meli_status='cancelled')
         order.action_confirm()
-        invoice = order._create_invoices()
-        if not invoice:
-            self.skipTest("El entorno no permite crear la factura de venta")
-        self._post_invoice(invoice)
+        invoice = self._create_posted_invoice(order)
 
         ml_order = self.env['mercadolibre.orders'].create({
             'order_id': '2000099900000001',
