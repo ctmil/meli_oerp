@@ -542,6 +542,22 @@ class res_company(models.Model):
              "de lo que se facturó. Desactivar solo si se necesita el comportamiento anterior.",
     )
 
+    # [#411 Shoppy] Ver la nota gemela en meli_oerp_multiple/models/connection_configuration.py:
+    # este campo se declara en los DOS modelos y el default DEBE ser el mismo en ambos.
+    mercadolibre_force_shipping_from_ml = fields.Boolean(
+        string="Forzar envío con el importe informado por ML",
+        default=False,
+        help="Criterio confirmado por el cliente en el ticket #411 (20-ago-2026): cuando "
+             "MercadoLibre informa que el comprador pagó el envío, la línea de MercadoEnvíos "
+             "se carga con ESE importe, aunque el cálculo interno del conector no lo devuelva "
+             "al crear la venta.\n\n"
+             "Sólo actúa si ML informa un flete mayor a 0 (envío gratis/bonificado queda en 0), "
+             "si hay pago cargado, si el pedido no está cancelado y si el hueco de la venta "
+             "coincide con el flete informado. Nunca reescribe una venta ya facturada.\n\n"
+             "APAGADO por default: cambia el total de la factura, así que se enciende por cuenta "
+             "y a pedido del cliente.",
+    )
+
     #mercadolibre_use_buyer_name = fields.Boolean(string="Use buyer name",default=True)
 
     #Toma y lista los ids de las publicaciones del sitio de MercadoLibre, filtrados por official_store_id

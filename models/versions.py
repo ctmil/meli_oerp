@@ -637,6 +637,105 @@ def meli_resolve_coupon_invoice_mode(config):
     return "full"
 
 
+def meli_force_shipping_from_ml(config):
+    """[#411 Shoppy] Flag: cargar la linea de envio con el importe que ML INFORMA.
+
+    Criterio confirmado por el cliente (Gonzalo, ticket #411, 20-ago-2026):
+        "confirmamos que queremos que el conector cargue la linea de envio con el importe
+         correspondiente siempre que MercadoLibre informe que el comprador pago el envio,
+         incluso si el calculo interno de MercadoLibre no lo devuelve en el momento de
+         creacion de la venta."
+
+    Es un CAMBIO DE CRITERIO de facturacion, no un bug: por eso es opt-in y viene APAGADO.
+    Campo: mercadolibre_force_shipping_from_ml (meli_oerp_multiple / res.company).
+    Sin el campo (modulo viejo) o sin config -> False = comportamiento historico.
+    """
+    if not config:
+        return False
+    try:
+        if "mercadolibre_force_shipping_from_ml" in config._fields:
+            return bool(config.mercadolibre_force_shipping_from_ml)
+    except Exception as e:
+        _logger.warning("MELI force_shipping_from_ml: no se pudo leer la config: %s", e)
+    return False
+
+
+def meli_informed_shipping_amount(sorder, config=None, tolerance=1.0):
+    """[#411] Importe BRUTO de flete que ML informa como pagado por el COMPRADOR, o 0.0.
+
+    Devuelve 0.0 = "no forzar nada" (el resto del flujo decide como siempre). Solo devuelve
+    un importe cuando estan dadas TODAS estas condiciones, que son las que separan el caso
+    del ticket de los casos que hoy funcionan bien:
+
+      1) el flag esta encendido (opt-in por cuenta);
+      2) hay orden(es) ML asociadas y NINGUNA cancelada (las canceladas van por el #494);
+      3) ML informa un flete > 0 -> ENVIO GRATIS / BONIFICADO (informado 0) queda intacto;
+      4) hay un pago cargado (paid_amount > 0) -> si el pago todavia no llego NO se inventa;
+      5) el hueco real de la venta coincide con el flete informado:
+             paid_amount(ML)  -  (amount_total - lo que ya cobra la linea de envio)  ==  informado
+         Esta es la condicion que evita el sobre-cargo: si el flete YA esta adentro del total
+         de la venta (o si los numeros no cierran por cualquier otro motivo) el hueco no da
+         y no se toca nada.
+
+    La suma es sobre TODAS las `meli_orders` de la venta, asi que un PEDIDO QUE AGRUPA VARIAS
+    VENTAS (pack) se evalua entero, con el mismo criterio con que `fetch_shipment` agrega los
+    totales del pack. Si el pack no cierra, no se fuerza.
+
+    El importe devuelto es BRUTO (como lo informa ML). El neteo de IVA lo sigue haciendo
+    `ml_product_price_conversion` aguas abajo, igual que con cualquier otra fuente de flete:
+    esta funcion NO puentea el tratamiento impositivo.
+
+    Medicion previa (Shoppy, ventas desde el 1-ago-2026): de 4.742 ordenes ML con la linea de
+    envio en 0, 4.703 tienen informado 0 (envio gratis, intactas) y 39 tienen informado > 0;
+    de esas 39 la regla del hueco acierta en 36 y descarta 3 correctamente (una sin pago
+    cargado, una con el flete ya incluido en el total, una con los numeros descuadrados).
+    """
+    if not meli_force_shipping_from_ml(config):
+        return 0.0
+    try:
+        meli_orders = sorder and sorder.meli_orders
+        if not meli_orders:
+            return 0.0
+        informed = 0.0
+        paid = 0.0
+        for mor in meli_orders:
+            if (mor.status or "") in ("cancelled", "invalid"):
+                return 0.0
+            _inf = mor.payments_shipment_amount or 0.0
+            if not _inf:
+                _inf = (mor.shipment and mor.shipment.shipping_receiver_cost) or 0.0
+            if not _inf:
+                _inf = mor.shipping_cost or 0.0
+            informed += float(_inf or 0.0)
+            paid += float(mor.paid_amount or 0.0)
+
+        if informed <= tolerance:
+            # ML no informa flete cobrado al comprador: el 0 es CORRECTO (envio bonificado).
+            return 0.0
+        if paid <= 0.0:
+            # El pago todavia no esta cargado: no hay contra que validar el hueco.
+            return 0.0
+
+        delivery_total = 0.0
+        for line in sorder.order_line:
+            if line.is_delivery:
+                delivery_total += float(line.price_total or 0.0)
+        gap = paid - (float(sorder.amount_total or 0.0) - delivery_total)
+
+        if abs(gap - informed) > tolerance:
+            _logger.info(
+                "MELI #411 %s: ML informa flete %.2f pero el hueco de la venta es %.2f "
+                "(pagado %.2f, total %.2f, envio actual %.2f) — no se fuerza la linea.",
+                sorder.name, informed, gap, paid, sorder.amount_total or 0.0, delivery_total)
+            return 0.0
+
+        return informed
+    except Exception as e:
+        _logger.warning("MELI #411 informed_shipping_amount: fallo en %s: %s",
+                        getattr(sorder, "name", "?"), e)
+    return 0.0
+
+
 def _meli_line_tax_field(rec):
     return "tax_ids" if "tax_ids" in rec._fields else "tax_id"
 
