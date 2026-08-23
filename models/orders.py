@@ -692,6 +692,64 @@ class sale_order(models.Model):
                     res = {'error': str(e)}
         return res
 
+    def _meli_action_cancel(self):
+        """Cancela la venta DE VERDAD y devuelve si lo logró. #494
+
+        POR QUE EXISTE. `sale.order.action_cancel()` del core tiene DOS retornos
+        distintos y ninguna excepción entre medio:
+
+          * un **bool** cuando canceló (camino `_action_cancel()`), o
+          * un **dict** — la acción de ventana del wizard `sale.order.cancel` —
+            cuando `_show_cancel_wizard()` da True, o sea siempre que la venta no
+            esté en borrador y el contexto no traiga `disable_cancel_warning`.
+
+        Ese dict es para que la INTERFAZ abra un formulario. Desde un cron nadie lo
+        abre: la venta queda como estaba, no se loguea nada, no salta ninguna
+        excepción. El llamador cree que canceló. Eso es exactamente lo que pasó
+        entre nov-2025 y hoy (ver `versions.disable_cancel_warning_enabled`).
+
+        Acá se fuerza la clave de contexto a True SIEMPRE — no se lee de la
+        constante, porque la corrección no puede depender de un global que
+        cualquiera puede volver a apagar — y además **se verifica el estado**, que
+        es la única prueba que no se puede falsificar: si un tercero pisa
+        `_show_cancel_wizard()` o `action_cancel()`, el dict vuelve igual y caemos
+        al camino interno `_action_cancel()`, que es el mismo que ejecuta el botón
+        del wizard.
+
+        EN ESTA VERSION (Odoo 19) el core ELIMINO el wizard y la clave: `action_cancel()`
+        llama siempre a `_action_cancel()` y devuelve un bool, asi que ACA NO HAY BUG y
+        `disable_cancel_warning` es inerte. El helper se porta igual porque la
+        verificacion de estado vale en cualquier version y porque deja las 4 ramas del
+        source con el mismo camino de codigo.
+
+        :return: True si la venta quedó en state == 'cancel'.
+        :rtype: bool
+        """
+        self.ensure_one()
+        if self.state == 'cancel':
+            return True
+
+        res = self.with_context(disable_cancel_warning=True).action_cancel()
+
+        if isinstance(res, dict):
+            # El wizard se filtró igual. No damos por cancelado un dict.
+            _logger.warning(
+                "_meli_action_cancel: action_cancel() devolvió el wizard %s en la venta %s "
+                "en vez de cancelar — se cancela por el camino interno _action_cancel()",
+                res.get('res_model') or res.get('type'), self.name,
+            )
+            if hasattr(self, '_action_cancel'):
+                self._action_cancel()
+
+        cancelled = self.state == 'cancel'
+        if not cancelled:
+            _logger.error(
+                "_meli_action_cancel: la venta %s NO quedó cancelada (state=%s, retorno=%s). "
+                "NO se va a informar como cancelada.",
+                self.name, self.state, type(res).__name__,
+            )
+        return cancelled
+
     def meli_cancel_with_detail(self, cancel_msg):
         """
         Cancela la orden forzando la cancelacion cuando Meli informa un cancel_detail.
@@ -703,6 +761,11 @@ class sale_order(models.Model):
           las facturas y postea en el chatter para gestión manual.
         - Cancela la orden de venta (desbloqueandola si hace falta) y postea
           el motivo en el chatter de la orden y de cada factura involucrada.
+
+        :return: True SOLO si la venta quedo en state == 'cancel'. #494 - antes no
+                 devolvia nada y posteaba el motivo en el chatter pasara lo que
+                 pasara, asi que una cancelacion que no ocurria dejaba escrito que si.
+        :rtype: bool
         """
         # 1. Devolver albaranes ya entregados
         # _meli_return_done_pickings usa hasattr para compatibilidad Odoo 16/17/18
@@ -779,7 +842,9 @@ class sale_order(models.Model):
 
         if _has_unresolved_posted_invoice:
             _logger.warning("meli_cancel_with_detail: orden %s NO cancelada — factura publicada sin resolver. Acción manual requerida.", self.name)
-            return
+            # False, no None: el contrato del método es "¿quedó cancelada?". Acá no, a
+            # propósito. Y NO se postea el cancel_msg: el chatter no afirma lo que no pasó.
+            return False
 
         # 3. Desbloquear si la orden esta bloqueada o en estado done
         is_locked = self.state == 'done' or ('locked' in self._fields and self.locked)
@@ -790,18 +855,42 @@ class sale_order(models.Model):
                 _logger.warning("meli_cancel_with_detail: no se pudo desbloquear la orden %s: %s", self.name, e)
 
         # 4. Cancelar la orden de venta
-        if self.state in ['draft', 'sale', 'sent', 'done']:
+        #    _meli_action_cancel() distingue el dict del wizard del bool de la cancelación
+        #    real y devuelve si la venta QUEDÓ en 'cancel'. Nunca se asume que canceló.
+        cancelled = False
+        if self.state == 'cancel':
+            cancelled = True
+        elif self.state in ['draft', 'sale', 'sent', 'done']:
             try:
-                self.with_context(disable_cancel_warning=disable_cancel_warning_enabled).action_cancel()
+                cancelled = self._meli_action_cancel()
             except Exception as e:
                 _logger.error("meli_cancel_with_detail: no se pudo cancelar la orden %s: %s", self.name, e, exc_info=True)
                 self.message_post(
                     body="No se pudo cancelar la orden automáticamente: %s. Gestionar manualmente." % str(e),
                     message_type=order_message_type
                 )
+        else:
+            _logger.warning(
+                "meli_cancel_with_detail: la orden %s está en state=%s — no es un estado cancelable.",
+                self.name, self.state,
+            )
 
-        # 5. Postear el motivo de cancelacion en el chatter de la orden
-        self.message_post(body=cancel_msg, message_type=order_message_type)
+        # 5. Postear el motivo de cancelacion en el chatter de la orden.
+        #    SÓLO si realmente se canceló: el defecto que motivó este cambio no era que
+        #    fallara, era que DEJABA ESCRITO que había cancelado una venta que seguía viva.
+        #    Un chatter que miente es peor que un error, porque cierra la investigación.
+        if cancelled:
+            self.message_post(body=cancel_msg, message_type=order_message_type)
+        else:
+            meli_message_post(
+                self,
+                "⚠️ MercadoLibre canceló este pedido y la venta en Odoo NO pudo cancelarse "
+                "(estado actual: %s). Requiere gestión manual. Motivo ML: %s"
+                % (self.state, cancel_msg),
+                once_key="cancel-so-notcancelled-%s" % self.id,
+            )
+
+        return cancelled
 
     def is_meli_order_fulfillment( self ):
         res = False
@@ -5666,14 +5755,13 @@ class sale_order_cancel_wiz_meli(models.TransientModel):
 
                 order = orders_obj.browse(order_id)
                 is_locked = (order and order.state in ["done"]) or ("locked" in order._fields and order.locked)
+                # #494: por _meli_action_cancel(), que fuerza disable_cancel_warning=True y
+                # verifica el estado. Con la constante en False este wizard tampoco cancelaba
+                # nada: devolvía el wizard del core y se lo comía el `for`.
                 if (is_locked and self.cancel_blocked):
-                    #asd
-                    #_logger.info("cancel_order: unblock")
                     order.action_unlock()
-                    order.with_context(disable_cancel_warning=disable_cancel_warning_enabled).action_cancel()
-
-                if (order and order.state in ["draft","sale","sent"]) and not is_locked:
-                    order.with_context(disable_cancel_warning=disable_cancel_warning_enabled).action_cancel()
+                    if not order._meli_action_cancel():
+                        _logger.warning("cancel_order: la venta %s no quedó cancelada", order.name)
 
         except Exception as e:
             #_logger.info("order_update > Error cancelando ordenes")
