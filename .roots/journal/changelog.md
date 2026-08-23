@@ -4,6 +4,32 @@
 
 ---
 
+## Versión 18.0.26.96 — La cancelación automática vuelve a cancelar de verdad
+23 ago 2026
+
+**Cambios:**
+
+1. **El problema, y es grave:** desde noviembre de 2025 el conector **no cancelaba ninguna venta ya
+   confirmada** cuando MercadoLibre cancelaba el pedido. No daba error, no dejaba nada en el log —
+   y encima escribía en el historial de la venta *"Orden cancelada por MercadoLibre"*. O sea:
+   **parecía que había funcionado**. Sólo se cancelaban las ventas que todavía estaban en presupuesto.
+2. **Por qué pasaba:** una opción interna quedó invertida y, con ese valor, la orden de cancelar
+   abría —internamente— la ventana de confirmación que Odoo le muestra a un usuario. Como del otro
+   lado no hay nadie (es un proceso automático), la ventana no se abría nunca y la venta quedaba
+   igual que antes.
+3. **Ahora la cancelación se verifica.** El conector ya no da por cancelada una venta: **comprueba
+   que haya quedado en estado Cancelado**. Si por cualquier motivo no lo consigue, lo dice: deja el
+   aviso explícito en el historial de la venta y un error en el log del servidor.
+4. **El historial deja de mentir.** El mensaje *"Orden cancelada por MercadoLibre"* se escribe
+   **sólo si la venta quedó realmente cancelada**. Si no, lo que queda escrito es el pedido de
+   gestión manual.
+5. Alcanza también a la acción manual **"Desbloquear y Cancelar"** del menú de MercadoLibre, que
+   tenía exactamente el mismo problema.
+
+Requiere actualizar el módulo (`-u meli_oerp`).
+
+---
+
 ## Versión 18.0.26.95 — Los pedidos ya facturados quedan protegidos de punta a punta (y ahora avisan)
 21 ago 2026
 
