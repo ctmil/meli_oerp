@@ -4,6 +4,54 @@
 
 ---
 
+### 23 ago 2026 — `disable_cancel_warning_enabled = False`: la cancelacion FINGIA cancelar — v17.0.26.96 `[#494 Shoppy 502]`
+
+Port del fix diagnosticado y **probado en 16.0** (server de TEST de Shoppy, 14/14 verdes, con control
+de mutacion). Aca: **bug ACTIVO en esta version**.
+
+**El defecto.** `models/versions.py` traia `disable_cancel_warning_enabled = False` y los cuatro call
+sites hacian `with_context(disable_cancel_warning=disable_cancel_warning_enabled).action_cancel()`.
+En el core de Odoo **16/17/18** `_show_cancel_wizard()` corta con
+`if self.env.context.get('disable_cancel_warning'): return False`. Con la clave en `False` el guard
+**no corta** y `action_cancel()` **devuelve el dict de la accion de ventana del wizard
+`sale.order.cancel`** en vez de cancelar. Desde un cron nadie abre esa ventana: **ninguna venta
+confirmada se cancelaba**. Solo las de borrador, que no pasan por el wizard.
+
+**Y es peor que un error, porque no lo parece:** no lanza excepcion, no loguea nada, y el paso 5 de
+`meli_cancel_with_detail()` posteaba el motivo en el chatter **pasara lo que pasara**. Quedaba escrito
+*"Orden cancelada por MercadoLibre"* sobre una venta viva. Es **independiente** de
+`mercadolibre_invoice_cancel_mode='manual'`: ocurre con cero facturas de por medio.
+
+**Por que estaba en `False` — averiguado, no supuesto.** Nacio en **`True`** (`3995cfe3`, *"Up 25.20
+cancel with disable_cancel_warning"*, 18-sep-2025). Lo invirtio `d96e0d27` *"Upgraded 18.0.25.29"*
+(7-nov-2025) y sus gemelos por rama: un commit grande que en el **mismo movimiento** (a) reemplazo los
+`disable_cancel_warning=True` literales de los 4 call sites por la constante y (b) puso la constante en
+`False`. **No fue una decision de comportamiento: fue un default puesto al reves en un refactor
+mecanico**, habilitado por un nombre que es doble negativo (`disable_cancel_warning_enabled` se lee
+natural como *"¿esta activo el aviso?"*, y `False` suena a "no avisar" cuando significa lo contrario).
+Prueba independiente: **`meli_oerp_multiple` nunca paso por ese refactor** y sigue con
+`disable_cancel_warning=True` literal.
+
+**El fix.**
+- *`versions.py`*: la constante vuelve a `True`, documentada con el doble negativo, la historia y el
+  efecto de cada valor. Se conserva el nombre porque `versions` se importa con `*`.
+- *`sale.order._meli_action_cancel()`* (nuevo): fuerza `disable_cancel_warning=True` **siempre**, sin
+  leer la constante — la correccion no puede depender de un global que cualquiera vuelve a apagar —,
+  **distingue dict de bool**, cae a `_action_cancel()` si el wizard se filtra igual, y **verifica
+  `state == 'cancel'`**. Devuelve bool.
+- *`meli_cancel_with_detail()`*: usa el helper, **devuelve bool**, y postea el `cancel_msg` **solo si
+  la venta quedo cancelada**; si no, aviso explicito con `once_key`. El camino de factura publicada sin
+  resolver devuelve `False` en vez de `None`.
+- *`sale.order.cancel.wiz.meli.cancel_order()`* ("Desbloquear y Cancelar"): mismo defecto, tampoco
+  cancelaba; pasa por el helper.
+
+**Tests:** viven en 16.0 (`tests/test_meli_cancel.py`, del #494). **No se portaron a esta version a
+proposito**: dependen de `meli_cancel_pending`, que es del #494, y el fixture usa
+`product.type = 'product'`, que en 18/19 ya no existe. Portarlos sin poder correrlos seria repetir
+exactamente lo que dejo pasar este defecto.
+
+---
+
 ### 21 ago 2026 — port a 17.0 del guard de venta facturada [#493 Shoppy] — reemplaza el guard ad-hoc de 26.93 (v17.0.26.94)
 
 **Por qué:** el fix de 26.93 (Elvimarta #508) resolvía el caso con un chequeo propio de `qty_invoiced`
