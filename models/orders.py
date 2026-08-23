@@ -5760,6 +5760,10 @@ class sale_order_cancel_wiz_meli(models.TransientModel):
                     if not order._meli_action_cancel():
                         _logger.warning("cancel_order: la venta %s no quedó cancelada", order.name)
 
+                if (order and order.state in ["draft","sale","sent"]) and not is_locked:
+                    if not order._meli_action_cancel():
+                        _logger.warning("cancel_order: la venta %s no quedó cancelada", order.name)
+
         except Exception as e:
             #_logger.info("order_update > Error cancelando ordenes")
             _logger.error(e, exc_info=True)
