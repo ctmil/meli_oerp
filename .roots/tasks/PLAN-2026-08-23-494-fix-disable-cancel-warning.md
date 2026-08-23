@@ -72,8 +72,54 @@ Máximos tomados hoy en `origin`: 16.0 → 26.96 (#411) · 17.0 → 26.95 · 18.
 - [x] Diagnóstico read-only: core 16/17/18/19, call sites, historia del flag.
 - [x] Averiguar **por qué** estaba en `False` (ver `.roots/debug/fixes-log.md`).
 - [x] Plan escrito (esto) y pusheado ANTES de la primera escritura de código.
-- [ ] Fix del flag + fix del llamador (dict vs bool) en 16.0.
-- [ ] Fix de los 3 fixtures de test + test de regresión del propio defecto.
-- [ ] Correr los tests en el TEST de Shoppy y anotar el número REAL.
-- [ ] Port a 17.0 y 18.0 (bug activo) y alineación de 19.0.
-- [ ] `.roots` (changelog, fixes-log) + liberar lock + avisar por `comms.md`.
+- [x] Fix del flag + fix del llamador (dict vs bool) en 16.0 — `3ebe1625`.
+- [x] Fix de los fixtures de test + tests de regresión del propio defecto — `66c9cb8b`, `3f0ffe43`.
+- [x] Tests corridos en el TEST de Shoppy. **ANTES 5/10 · DESPUÉS 14/14.**
+- [x] Port a 17.0 (`a1a2ac6f`) y 18.0 (`0c8fc4d7`); alineación de 19.0 (`156f10d2`).
+- [x] `.roots` (changelog, fixes-log) al día en las 4 versiones.
+- [ ] Liberar lock + avisar por `comms.md`.
+- [ ] **Lo confirma FCA:** merge a las ramas de deploy y deploy. NO hecho.
+
+## RESULTADO DE LOS TESTS (medido, no heredado)
+
+Todo en el server de TEST de Shoppy (`149.50.137.28`), db `test_2_9_2026`, **dentro de Odoo**
+(`-u meli_oerp --test-enable --test-tags meli_cancel`), contra el addon del `addons_path`
+(`/opt/odoo/sources/meli-staging-shoppy`). `meli_cancel` **sí** está en `@tagged`, así que el
+selector matchea: no es un "0 de 0".
+
+| corrida | código | tests | resultado |
+|---|---|---|---|
+| **ANTES** | integración #494+#411 (`ffafcdf`, 26.96) | 10 | **2 failed + 3 errors → 5 pasan** |
+| paso 1 | + fix del flag y del llamador | 14 | 1 failed + 3 errors → 10 pasan |
+| paso 2 | + fixture (diario no electrónico, cadena de albaranes) | 14 | 1 failed + 0 errors → 13 pasan |
+| **DESPUÉS** | + fixture del re-drain (`date_created`) | 14 | **0 failed, 0 errors → 14/14**, RC=0 |
+| **mutación** | código PRE-fix + tests NUEVOS | 14 | **4 failed + 2 errors → 8 pasan** |
+
+**14 tests distintos arrancaron y 0 se saltearon** (`skip` = 0 en el log): ninguno pasa por no
+ejercitar nada. La fila de **mutación** es la que lo prueba de verdad: con el código viejo y los
+tests nuevos la suite se pone en rojo ⇒ **detecta el defecto**, no lo esquiva.
+
+Y el dato más limpio: **`test_cancel_confirmed_not_delivered` no lo toqué** y pasó de FAIL a PASS
+sólo por el cambio de código.
+
+## LO QUE APARECIÓ AL ARREGLAR EL FIXTURE (y no estaba diagnosticado)
+
+1. **Segundo muro detrás del tipo de documento:** el diario de ventas por defecto es
+   **electrónico**, así que `action_post()` llama a `do_pyafipws_request_cae()` y **pide un CAE
+   real a AFIP**. En TEST corta por certificado; en una instancia con el certificado cargado
+   **un test emitiría un comprobante fiscal, y el CAE no se deshace con un rollback**. El fixture
+   ahora elige un diario **sin `afip_ws`**.
+2. **`test_cancel_delivered_creates_return` no era un defecto del producto:** el fixture validaba
+   `order.picking_ids[:1]`, que en el almacén multi-paso de Shoppy es el **PICK (interno)**;
+   `_meli_return_done_pickings()` filtra por `outgoing` y no tenía nada que devolver. Ahora se
+   valida **toda la cadena** hasta que el albarán de SALIDA queda en `done`.
+3. **`test_redrain_...` no seteaba `date_created`**, y el dominio del re-drain filtra por fecha ⇒
+   el pedido quedaba fuera del barrido y el test medía 0 creyendo que medía el re-drain.
+
+## ERROR PROPIO, ANOTADO
+
+El script con el que porté a 17/18/19 **truncó la segunda rama del wizard manual** ("Desbloquear y
+Cancelar"): cortaba en la primera línea de warning. Compilaba, y los chequeos agregados
+("helper definido", "cero usos del patrón viejo") daban **verde**. Lo agarró contar los call sites
+**uno por uno** contra 16.0 (3 esperados, había 2). Reparado en `a1a2ac6f` / `0c8fc4d7` / `156f10d2`.
+**Un chequeo que suma no distingue "está" de "está completo".**
