@@ -15,6 +15,7 @@ solo cuando la factura se resuelva (re-drain), en vez de caer en un limbo.
 """
 from unittest.mock import patch
 
+from odoo import fields
 from odoo.tests import common, tagged
 
 
@@ -323,6 +324,13 @@ class TestMeliCancelOnMlCancel(common.TransactionCase):
             'order_id': '2000099900000001',
             'status': 'cancelled',
             'sale_order': order.id,
+            # date_created NO es decorativo: _orders_redrain_pending_cancels() filtra por
+            # ("date_created", ">=", ahora - mercadolibre_cron_orders_redrain_days). Sin
+            # fecha el pedido queda FUERA del barrido y el test medía 0 pendientes creyendo
+            # que medía el re-drain. (Nota para el frente del #494: un pedido ML con
+            # date_created NULL nunca entraría al re-drain; en la base de test son 0 de 120,
+            # asi que hoy es un borde teorico, no un sintoma.)
+            'date_created': fields.Datetime.now(),
         })
 
         # 1a pasada: la factura publicada bloquea -> queda pendiente, NO cancelada.
