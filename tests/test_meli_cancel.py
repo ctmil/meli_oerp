@@ -13,6 +13,8 @@ con nota de credito y esa es una decision del cliente, no del conector. Lo que s
 exige es que el caso quede VISIBLE (flag buscable + WARNING) y que vuelva a intentarse
 solo cuando la factura se resuelva (re-drain), en vez de caer en un limbo.
 """
+from unittest.mock import patch
+
 from odoo.tests import common, tagged
 
 
@@ -22,13 +24,61 @@ class TestMeliCancelOnMlCancel(common.TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        cls.company = cls.env.company
+        # El chatter es parte de lo que estos tests verifican: si la instancia tiene el
+        # modo en "none", meli_message_post() sólo loguea y las aserciones de chatter
+        # medirían la CONFIGURACION en vez del código. Se fija explícitamente.
+        if 'mercadolibre_notification_mode' in cls.company._fields:
+            cls.company.mercadolibre_notification_mode = 'notification'
+
         cls.partner = cls.env['res.partner'].create({'name': '#494 Comprador ML'})
+        # Localizacion AR: sin responsabilidad AFIP en el partner, la factura no puede
+        # calcular su tipo de documento y action_post() muere en el FIXTURE, antes de
+        # llegar a una sola linea del codigo del #494.
+        if 'l10n_ar_afip_responsibility_type_id' in cls.partner._fields:
+            resp = cls.env.ref('l10n_ar.res_CF', raise_if_not_found=False)
+            if not resp:
+                resp = cls.env['l10n_ar.afip.responsibility.type'].search([], limit=1)
+            if resp:
+                cls.partner.l10n_ar_afip_responsibility_type_id = resp.id
+
         cls.product = cls.env['product.product'].create({
             'name': '#494 Producto ML',
             'type': 'product',
             'invoice_policy': 'order',
             'list_price': 1000.0,
         })
+
+    # ------------------------------------------------------------------
+    # Fixture: publicar la factura en instancias con localizacion latam
+    # ------------------------------------------------------------------
+    def _post_invoice(self, invoice):
+        """Publica la factura resolviendo el tipo de documento de l10n_latam.
+
+        POR QUE. En una instancia con la localizacion argentina instalada (Shoppy lo
+        es) `account.move` gana `l10n_latam_document_type_id`, el diario de ventas lo
+        exige y `action_post()` corta con *"El diario requiere un tipo de documento"*.
+        Tres de estos tests morian ahi: no fallaban por el producto, ni siquiera
+        llegaban a ejecutar `meli_cancel_with_detail()`. Un test que no llega al codigo
+        no prueba nada, y su ERROR se leia como si el #494 estuviera roto.
+
+        En instancias sin l10n_latam (el core pelado) el `if` no aplica y esto es un
+        `action_post()` normal — el mismo test corre en las dos.
+        """
+        if 'l10n_latam_document_type_id' in invoice._fields and not invoice.l10n_latam_document_type_id:
+            available = invoice.l10n_latam_available_document_type_ids
+            if not available:
+                self.skipTest(
+                    "Localizacion latam instalada pero el diario/partner no ofrece ningun "
+                    "tipo de documento disponible: el fixture no puede publicar la factura")
+            # Factura A/B/C segun corresponda: se toma el primero ofrecido por el core.
+            invoice.l10n_latam_document_type_id = available[0]
+        invoice.action_post()
+        self.assertEqual(
+            invoice.state, 'posted',
+            "El fixture tiene que dejar la factura PUBLICADA; si no, el test de abajo "
+            "no estaria midiendo el caso que dice medir")
+        return invoice
 
     def _new_ml_order(self, meli_status='paid'):
         order = self.env['sale.order'].create({
@@ -139,8 +189,7 @@ class TestMeliCancelOnMlCancel(common.TransactionCase):
         invoice = order._create_invoices()
         if not invoice:
             self.skipTest("El entorno no permite crear la factura de venta")
-        invoice.action_post()
-        self.assertEqual(invoice.state, 'posted')
+        self._post_invoice(invoice)
 
         order.meli_cancel_with_detail("Orden cancelada por MercadoLibre. Motivo: test")
 
@@ -169,7 +218,7 @@ class TestMeliCancelOnMlCancel(common.TransactionCase):
         invoice = order._create_invoices()
         if not invoice:
             self.skipTest("El entorno no permite crear la factura de venta")
-        invoice.action_post()
+        self._post_invoice(invoice)
 
         journal = self.env['account.journal'].search(
             [('type', 'in', ('bank', 'cash')), ('company_id', '=', invoice.company_id.id)],
@@ -206,7 +255,7 @@ class TestMeliCancelOnMlCancel(common.TransactionCase):
         invoice = order._create_invoices()
         if not invoice:
             self.skipTest("El entorno no permite crear la factura de venta")
-        invoice.action_post()
+        self._post_invoice(invoice)
 
         ml_order = self.env['mercadolibre.orders'].create({
             'order_id': '2000099900000001',
@@ -233,3 +282,83 @@ class TestMeliCancelOnMlCancel(common.TransactionCase):
         self.assertGreaterEqual(res2.get('cancelled', 0), 1)
         self.assertFalse(order.meli_cancel_pending)
         self.assertTrue(ml_order.exists())
+
+    # ------------------------------------------------------------------
+    # El defecto que hacia que el codigo FINGIERA trabajar (#494)
+    # ------------------------------------------------------------------
+    def test_action_cancel_sin_el_contexto_devuelve_el_wizard_y_no_cancela(self):
+        """Control NEGATIVO: reproduce el defecto contra el core, no contra nosotros.
+
+        Es la prueba de que el instrumento mide algo real: sin
+        `disable_cancel_warning`, `action_cancel()` de una venta confirmada devuelve un
+        dict (la accion de ventana del wizard `sale.order.cancel`), NO lanza excepcion y
+        deja la venta en 'sale'. Ese dict es lo que el conector se comia desde nov-2025.
+
+        En Odoo 19 el core elimino el wizard y la clave: alli `action_cancel()` cancela
+        igual. Por eso el test acepta las dos formas y afirma la INVARIANTE que importa:
+        si volvio un dict, la venta NO puede estar cancelada.
+        """
+        order = self._new_ml_order(meli_status='cancelled')
+        order.action_confirm()
+        self.assertEqual(order.state, 'sale')
+
+        res = order.action_cancel()
+        if isinstance(res, dict):
+            self.assertEqual(res.get('res_model'), 'sale.order.cancel')
+            self.assertNotEqual(
+                order.state, 'cancel',
+                "Si action_cancel() devolvio el wizard, la venta NO se cancelo: dar eso "
+                "por cancelado es exactamente el defecto del #494")
+        else:
+            self.assertEqual(order.state, 'cancel')
+
+    def test_meli_action_cancel_cancela_de_verdad_y_lo_informa(self):
+        """Control POSITIVO del helper: cancela y devuelve True, no un dict."""
+        order = self._new_ml_order(meli_status='cancelled')
+        order.action_confirm()
+        self.assertEqual(order.state, 'sale')
+
+        res = order._meli_action_cancel()
+        self.assertIs(res, True, "El helper tiene que devolver un bool, no el wizard")
+        self.assertEqual(order.state, 'cancel')
+
+        # Idempotente: sobre una venta ya cancelada devuelve True sin romper.
+        self.assertIs(order._meli_action_cancel(), True)
+
+    def test_meli_cancel_with_detail_devuelve_true_cuando_cancela(self):
+        order = self._new_ml_order(meli_status='cancelled')
+        order.action_confirm()
+        res = order.meli_cancel_with_detail("Orden cancelada por MercadoLibre. Motivo: test")
+        self.assertIs(res, True)
+        self.assertEqual(order.state, 'cancel')
+
+    def test_el_chatter_no_afirma_una_cancelacion_que_no_ocurrio(self):
+        """El corazon del #494: no fallaba, MENTIA.
+
+        Se fuerza el peor caso (la cancelacion no se puede aplicar) y se exige que el
+        chatter NO quede diciendo 'Orden cancelada por MercadoLibre' sobre una venta que
+        sigue viva. Antes ese mensaje se posteaba pasara lo que pasara, y era la razon de
+        que el defecto sobreviviera meses: dejaba rastro de haber hecho el trabajo.
+        """
+        order = self._new_ml_order(meli_status='cancelled')
+        order.action_confirm()
+        cancel_msg = "Orden cancelada por MercadoLibre. Motivo: test"
+
+        with patch.object(type(order), '_meli_action_cancel', lambda self: False):
+            res = order.meli_cancel_with_detail(cancel_msg)
+
+        self.assertIs(res, False, "No cancelo: el metodo tiene que decirlo")
+        self.assertNotEqual(order.state, 'cancel')
+
+        bodies = [b for b in order.message_ids.mapped('body') if b]
+        afirmaciones = [
+            b for b in bodies
+            if cancel_msg in b and 'NO pudo cancelarse' not in b
+        ]
+        self.assertFalse(
+            afirmaciones,
+            "El chatter afirma la cancelacion con la venta todavia en '%s': %s"
+            % (order.state, afirmaciones))
+        self.assertTrue(
+            [b for b in bodies if 'NO pudo cancelarse' in b],
+            "Tiene que quedar el aviso EXPLICITO de que no se pudo cancelar")

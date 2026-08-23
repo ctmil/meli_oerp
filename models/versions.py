@@ -206,7 +206,32 @@ def meli_message_post(record, body, config=None, once_key=None):
         record.message_post(**kwargs)
     except Exception as e:
         _logger.warning("meli_message_post failed on %s(%s): %s", record._name, record.id, e)
-disable_cancel_warning_enabled = False
+# ---------------------------------------------------------------------------
+# disable_cancel_warning: clave de CONTEXTO del core de Odoo (addon `sale`).
+#
+# ⚠️ LEER EL NOMBRE DESPACIO — es un doble negativo y ya nos costó caro.
+#   True  = "desactivá el aviso"  -> `_show_cancel_wizard()` corta y `action_cancel()`
+#           CANCELA de verdad y devuelve un bool.
+#   False = "dejá el aviso"       -> `action_cancel()` NO cancela: DEVUELVE el dict del
+#           wizard `sale.order.cancel` para que lo abra la interfaz. Sin excepción y sin
+#           log. Llamado desde un cron, no cancela absolutamente nada y parece que sí.
+#
+# Historia: nació en `True` (3995cfe3, 25.20, sep-2025). El commit d96e0d27 "Upgraded
+# 18.0.25.29" (nov-2025) reemplazó los `disable_cancel_warning=True` literales por esta
+# constante y en el mismo movimiento la puso en `False`, invirtiendo el sentido de los
+# CUATRO call sites de una sola vez. Desde entonces `meli_cancel_with_detail()` no cancela
+# ninguna venta confirmada. `meli_oerp_multiple` nunca pasó por ese refactor y sigue con
+# el `True` literal — o sea que la intención original está a la vista.
+#
+# YA NO SE USA COMO VALOR DE CONTEXTO: el valor efectivo lo fuerza
+# `sale.order._meli_action_cancel()`, que además VERIFICA que la venta haya quedado en
+# 'cancel'. Se conserva el nombre (y en `True`) porque `versions` se importa con `*` y
+# porque un `False` acá vuelve a ser una bomba silenciosa.
+#
+# Odoo 19 eliminó el wizard y la clave: `action_cancel()` cancela siempre. La clave es
+# inerte, no molesta, y mantenerla deja las 4 versiones del source idénticas.
+# ---------------------------------------------------------------------------
+disable_cancel_warning_enabled = True
 price_list_apply_tax = True
 search_partner_vat_match = False
 mercadolibre_shipment_print_guide_mode = "pdf"
