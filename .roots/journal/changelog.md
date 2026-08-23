@@ -4,29 +4,34 @@
 
 ---
 
-## Versión 16.0.26.96 — La línea de MercadoEnvíos puede tomar el importe que informa ML
+## Versión 16.0.26.97 — La cancelación automática vuelve a cancelar de verdad
 23 ago 2026
 
 **Cambios:**
 
-1. **El problema:** cuando MercadoLibre informaba que el comprador **había pagado el envío**, la venta
-   podía entrar igual con la línea de MercadoEnvíos en **0,00**. No era falta de dato: el importe
-   estaba informado, pero el cálculo interno del conector lo bajaba a cero cuando el total de la venta
-   superaba lo que ML declaraba como cobrable.
-2. **La opción nueva:** *"Forzar envío con el importe informado por ML"*, en la configuración de la
-   cuenta. Con la opción encendida, la línea de MercadoEnvíos se carga con el importe que **ML informa
-   como pagado por el comprador**, aunque el cálculo interno no lo devuelva al crear la venta.
-3. **Viene APAGADA.** Cambia el total de la factura, así que se enciende por cuenta y a pedido. Con la
-   opción apagada el conector se comporta exactamente igual que antes.
-4. Sólo actúa si ML informa un flete **mayor a 0** (el envío gratis o bonificado sigue en 0), si hay
-   pago cargado, si el pedido no está cancelado y si el hueco de la venta coincide con el flete
-   informado. **Nunca reescribe una venta ya facturada** (se mantiene la protección de la 26.93).
-5. El importe entra por el mismo tratamiento impositivo que cualquier otro flete: no se puentea el IVA.
+1. **El problema, y es grave:** desde noviembre de 2025 el conector **no cancelaba ninguna venta ya
+   confirmada** cuando MercadoLibre cancelaba el pedido. No daba error, no dejaba nada en el log —
+   y encima escribía en el historial de la venta *"Orden cancelada por MercadoLibre"*. O sea:
+   **parecía que había funcionado**. Sólo se cancelaban las ventas que todavía estaban en presupuesto.
+2. **Por qué pasaba:** una opción interna quedó invertida y, con ese valor, la orden de cancelar
+   abría —internamente— la ventana de confirmación que Odoo le muestra a un usuario. Como del otro
+   lado no hay nadie (es un proceso automático), la ventana no se abría nunca y la venta quedaba
+   igual que antes.
+3. **Ahora la cancelación se verifica.** El conector ya no da por cancelada una venta: **comprueba
+   que haya quedado en estado Cancelado**. Si por cualquier motivo no lo consigue, lo dice: deja el
+   aviso explícito en el historial de la venta y un error en el log del servidor.
+4. **El historial deja de mentir.** El mensaje *"Orden cancelada por MercadoLibre"* se escribe
+   **sólo si la venta quedó realmente cancelada**. Si no, lo que queda escrito es el pedido de
+   gestión manual.
+5. Alcanza también a la acción manual **"Desbloquear y Cancelar"** del menú de MercadoLibre, que
+   tenía exactamente el mismo problema.
 
-⚠️ **Las ventas anteriores no se corrigen solas.** El cambio actúa sobre las ventas nuevas; las que ya
-entraron con el envío en 0 necesitan una corrida aparte.
+**Qué van a notar:** las ventas de pedidos cancelados en MercadoLibre que hasta ahora quedaban
+abiertas empiezan a cancelarse solas (salvo las que tengan factura publicada sin resolver, que
+siguen requiriendo la nota de crédito y ahora quedan listadas en el filtro *"Cancelado en ML, vivo
+en Odoo"*).
 
-Requiere actualizar los módulos (`-u meli_oerp,meli_oerp_multiple`) y **encender la opción**.
+Requiere actualizar el módulo (`-u meli_oerp`).
 
 ---
 

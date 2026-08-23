@@ -4,37 +4,68 @@
 
 ---
 
-### 23 ago 2026 — el flete informado por ML se perdia: lo pisaba la valvula del cap de cobrable — v26.96 `[#411 Shoppy]`
+### 23 ago 2026 — `disable_cancel_warning_enabled = False`: la cancelacion FINGIA cancelar — v26.97 `[#494 Shoppy 502]`
 
-Criterio del cliente, textual (ticket #411, 20-ago-2026): *"confirmamos que queremos que el conector
-cargue la linea de envio con el importe correspondiente siempre que MercadoLibre informe que el
-comprador pago el envio, incluso si el calculo interno de MercadoLibre no lo devuelva en el momento de
-creacion de la venta."*
+**El defecto.** `models/versions.py` traia `disable_cancel_warning_enabled = False` y los cuatro call
+sites hacian `with_context(disable_cancel_warning=disable_cancel_warning_enabled).action_cancel()`.
+En el core de Odoo **16/17/18**:
 
-**El cero NO era falta de dato.** Medido contra la instancia (XMLRPC read-only, 0 escrituras): el
-importe estaba (`payments_shipment_amount` 4.960,54). Lo pisaba la valvula `shipment_amount_cond_fix`
-de `shipment.py`, que baja el flete a 0 cuando el total de la venta supera lo cobrable segun
-`meli_amount_to_invoice` — y ese cobrable se derrumba porque resta un `discount_seller_amount` de
-62.205,93 con `coupon_amount` en 0, que **no entra en el cap de `orders.py`**.
-**No es un caso aislado:** 39 ventas desde el 1-ago, 36 de ellas cierran exacto.
+```python
+def _show_cancel_wizard(self):
+    if self.env.context.get('disable_cancel_warning'):
+        return False
+    return any(so.state != 'draft' for so in self)
+```
 
-- *Fix:* flag **`mercadolibre_force_shipping_from_ml`** (Boolean, **default False**, opt-in por cuenta),
-  declarado con el MISMO default en `res.company` (`meli_oerp`) y en `mercadolibre.configuration`
-  (`meli_oerp_multiple`), visible en la vista de la cuenta.
-- `versions.meli_informed_shipping_amount(sorder, config)` devuelve el flete BRUTO informado por ML, o
-  **0.0 = no forzar**. Suma sobre TODAS las `meli_orders` de la venta (packs).
-- `shipment._update_sale_order_shipping_info` lo usa como `del_price` y, cuando esta validado, **no deja
-  correr** la valvula `shipment_amount_cond_fix`.
-- El importe pasa por `ml_product_price_conversion`: con `tax_included = tax_excluded` (como esta
-  Shoppy) el bruto se netea del IVA igual que cualquier otra fuente de flete. **No se puentea el
-  tratamiento impositivo.**
+Con la clave en `False` el guard **no corta** ⇒ `action_cancel()` **devuelve el dict de la accion de
+ventana del wizard `sale.order.cancel`** y **no cancela**. Desde un cron nadie abre esa ventana.
+**Ninguna venta confirmada se cancelaba.** Solo las de borrador, que no pasan por el wizard — por eso
+`test_cancel_draft_order` era el unico de su familia que pasaba.
 
-⚠️ **Lo que este fix NO hace, y hay que decirlo antes de prometerlo:**
-1. **Sin encender el flag no cambia nada.** Instalar el modulo no alcanza.
-2. **Las ventas viejas no se corrigen solas.** 26 ventas `done` sin facturar de agosto quedan con el
-   envio en 0: el early-return para ventas `done`/locked **no se toco** (es deliberadamente
-   conservador). Corregirlas es una corrida aparte.
-3. **Las ya facturadas no se tocan** (guard #493).
+**Y es peor que un error, porque no lo parece:** no lanza excepcion, no loguea nada, y el paso 5 de
+`meli_cancel_with_detail()` posteaba el motivo en el chatter **pasara lo que pasara**. Quedaba escrito
+*"Orden cancelada por MercadoLibre"* sobre una venta viva. Un rastro de haber hecho el trabajo es lo
+que hace que un defecto sobreviva meses. Es **independiente** de
+`mercadolibre_invoice_cancel_mode='manual'`: ocurre con cero facturas de por medio.
+
+**Por que estaba en `False` — averiguado, no supuesto.** Nacio en **`True`** en `3995cfe3` *"Up 25.20
+cancel with disable_cancel_warning"* (18-sep-2025). Lo invirtio `d96e0d27` *"Upgraded 18.0.25.29"*
+(7-nov-2025, y sus gemelos por rama `0e985d4a` en 16.0, `c143ba0d`, `d0eaffe6`, `7f39ceb2`, `63c6eda0`):
+un commit grande que en el **mismo movimiento** (a) reemplazo los `disable_cancel_warning=True`
+literales de los 4 call sites por la constante y (b) puso la constante en `False`, junto con
+`price_list_apply_tax = True`. O sea: **no fue una decision de comportamiento, fue un default puesto
+al reves en un refactor mecanico**, y el nombre lo habilito — `disable_cancel_warning_enabled` es un
+doble negativo que se lee natural como *"¿esta activo el aviso de cancelacion?"*, y `False` suena a
+"no avisar" cuando significa exactamente lo contrario.
+La prueba independiente: **`meli_oerp_multiple` nunca paso por ese refactor** y sigue con
+`disable_cancel_warning=True` literal (`wizard/wizard_orders_actions.py:724` y `:727`). La intencion
+original esta a la vista.
+
+**El fix.**
+- *`versions.py`*: la constante vuelve a `True`, **documentada** con el doble negativo, la historia y
+  el efecto de cada valor. Se conserva el nombre porque `versions` se importa con `*`.
+- *`sale.order._meli_action_cancel()`* (nuevo): fuerza `disable_cancel_warning=True` **siempre**, sin
+  leer la constante — la correccion no puede depender de un global que cualquiera vuelve a apagar —,
+  **distingue dict de bool**, y si vuelve un dict cae al camino interno `_action_cancel()` (el mismo
+  que ejecuta el boton del wizard) y **verifica `state == 'cancel'`**. Devuelve bool.
+- *`meli_cancel_with_detail()`*: usa el helper, **devuelve bool**, y postea el `cancel_msg` **solo si
+  la venta quedo cancelada**. Si no, deja un aviso explicito con `once_key`. El camino de factura
+  publicada sin resolver ahora devuelve `False` en vez de `None`.
+- *`sale.order.cancel.wiz.meli.cancel_order()`* (la accion manual "Desbloquear y Cancelar"): tenia el
+  mismo defecto y tampoco cancelaba nada; pasa por el helper.
+
+**Alcance por version.** 16.0 / 17.0 / 18.0: **bug activo**, mismo core. **19.0**: el core **elimino**
+el wizard y la clave (`action_cancel()` llama siempre a `_action_cancel()`), asi que ahi **no hay bug**;
+igual se alinea la constante y el helper, que en 19 es correcto y deja las 4 versiones identicas.
+
+**Tests.** `tests/test_meli_cancel.py` pasa de **5/10** a **14 tests**. Se arreglaron los **3 errores de
+fixture** que morian en `invoice.action_post()` con *"El diario requiere un tipo de documento"*: la
+localizacion AR exige `l10n_latam_document_type_id` y el test no lo seteaba, asi que **ni siquiera
+llegaban al codigo del #494** y su ERROR se leia como si el #494 estuviera roto. Helper `_post_invoice()`
+(resuelve el tipo de documento si l10n_latam esta instalado; en instancias sin la localizacion es un
+`action_post()` normal) + responsabilidad AFIP en el partner del fixture. Se agrego el **control
+negativo** que reproduce el defecto contra el core (`action_cancel()` sin contexto devuelve dict y la
+venta NO queda cancelada) y el test de que **el chatter no afirma una cancelacion que no ocurrio**.
 
 ---
 
