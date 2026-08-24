@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+
+        <!-- [#539] Mapeo campo de Odoo -> atributo de ML. Molde: carrier_mapping_view.xml -->
+
+        <record id="view_meli_attribute_mapping_tree" model="ir.ui.view">
+            <field name="name">meli_oerp.attribute.mapping.tree</field>
+            <field name="model">meli_oerp.attribute.mapping</field>
+            <field name="arch" type="xml">
+                <list editable="bottom">
+                    <field name="sequence" widget="handle"/>
+                    <field name="model_name"/>
+                    <field name="field_id" options="{'no_create': True}"/>
+                    <field name="meli_attribute_id" options="{'no_create': True}"/>
+                    <field name="meli_att_id"/>
+                    <field name="category_id" options="{'no_create': True}"/>
+                    <field name="value_mapping_count" string="Traducciones"/>
+                    <field name="active" invisible="1"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_meli_attribute_mapping_form" model="ir.ui.view">
+            <field name="name">meli_oerp.attribute.mapping.form</field>
+            <field name="model">meli_oerp.attribute.mapping</field>
+            <field name="arch" type="xml">
+                <form>
+                    <sheet>
+                        <div class="oe_title">
+                            <h1><field name="name" readonly="1"/></h1>
+                        </div>
+                        <group>
+                            <group string="De dónde sale el valor (Odoo)">
+                                <field name="model_name"/>
+                                <field name="field_id" options="{'no_create': True}"/>
+                                <field name="field_name" invisible="1"/>
+                            </group>
+                            <group string="A dónde va (MercadoLibre)">
+                                <field name="meli_attribute_id" options="{'no_create': True}"/>
+                                <field name="meli_att_id"/>
+                                <field name="category_id" options="{'no_create': True}"/>
+                                <field name="active"/>
+                                <field name="sequence"/>
+                            </group>
+                        </group>
+                        <group string="Qué acepta MercadoLibre">
+                            <field name="meli_allowed_values" nolabel="1" readonly="1"/>
+                        </group>
+                        <notebook>
+                            <page string="Traducción de valores">
+                                <p class="text-muted">
+                                    Cuando el valor que hay en Odoo no es el que espera Mercado Libre,
+                                    traducilo acá. Por ejemplo <i>Near Mint</i> a <i>Usado</i>, o
+                                    <i>Magic: The Gathering</i> a <i>Magic</i>.
+                                    Un valor sin traducción <b>se manda tal cual</b>; si el atributo
+                                    tiene lista cerrada y el valor no está en ella, Mercado Libre puede
+                                    rechazar la publicación entera.
+                                </p>
+                                <field name="value_mapping_ids">
+                                    <list editable="bottom">
+                                        <field name="odoo_value"/>
+                                        <field name="meli_value_name"/>
+                                    </list>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="view_meli_attribute_mapping_search" model="ir.ui.view">
+            <field name="name">meli_oerp.attribute.mapping.search</field>
+            <field name="model">meli_oerp.attribute.mapping</field>
+            <field name="arch" type="xml">
+                <search>
+                    <field name="field_id"/>
+                    <field name="meli_att_id"/>
+                    <field name="category_id"/>
+                    <filter string="Archivados" name="inactive" domain="[('active','=',False)]"/>
+                    <filter string="Sin traducción de valores" name="sin_traduccion"
+                            domain="[('value_mapping_ids','=',False)]"/>
+                    <filter string="Atributo de ML" name="group_att" domain="[]"
+                            context="{'group_by': 'meli_att_id'}"/>
+                    <filter string="Categoría" name="group_categ" domain="[]"
+                            context="{'group_by': 'category_id'}"/>
+                </search>
+            </field>
+        </record>
+
+        <record id="action_meli_attribute_mapping" model="ir.actions.act_window">
+            <field name="name">Mapeo de Atributos</field>
+            <field name="res_model">meli_oerp.attribute.mapping</field>
+            <field name="view_mode">list,form</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Mapear campos del producto a atributos de Mercado Libre
+                </p>
+                <p>
+                    Decí una sola vez que un campo del producto (incluidos los que creaste con Studio)
+                    se manda a un atributo de Mercado Libre, y vale para todos los productos.
+                    Sirve para cargar atributos masivamente sin tener que crear líneas de atributo
+                    producto por producto.
+                </p>
+            </field>
+        </record>
+
+        <menuitem id="menu_meli_attribute_mapping"
+            name="Mapeo de Atributos"
+            parent="meli_oerp.menu_meli"
+            action="action_meli_attribute_mapping"
+            sequence="91"/>
+
+    </data>
+</odoo>

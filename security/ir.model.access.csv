@@ -60,3 +60,7 @@ access_sale_mercadolibre_claim_ml,mercadolibre.claim meli manager,model_mercadol
 access_sale_mercadolibre_claim_reader,mercadolibre.claim reader,model_mercadolibre_claim,meli_oerp.group_mercadolibre_reader,1,0,0,0
 access_meli_channel_mkt_ml,meli.channel.mkt meli manager,model_meli_channel_mkt,meli_oerp.group_mercadolibre_manager,1,0,0,0
 access_meli_channel_mkt_reader,meli.channel.mkt reader,model_meli_channel_mkt,meli_oerp.group_mercadolibre_reader,1,0,0,0
+access_meli_attribute_mapping_sm,meli_oerp.attribute.mapping manager,model_meli_oerp_attribute_mapping,sales_team.group_sale_manager,1,1,1,1
+access_meli_attribute_mapping_ml,meli_oerp.attribute.mapping meli manager,model_meli_oerp_attribute_mapping,meli_oerp.group_mercadolibre_manager,1,1,1,1
+access_meli_attribute_value_mapping_sm,meli_oerp.attribute.value.mapping manager,model_meli_oerp_attribute_value_mapping,sales_team.group_sale_manager,1,1,1,1
+access_meli_attribute_value_mapping_ml,meli_oerp.attribute.value.mapping meli manager,model_meli_oerp_attribute_value_mapping,meli_oerp.group_mercadolibre_manager,1,1,1,1
