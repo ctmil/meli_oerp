@@ -167,7 +167,79 @@ class product_template(models.Model):
                         field_name, self.ids, cmds,
                     )
                     del vals[field_name]
-        return super().write(vals)
+
+        # [#539 DISELEC] Propagacion de la CATEGORIA de la plantilla a sus variantes.
+        # El body que se manda a ML se arma con product.meli_category (la VARIANTE), y el unico
+        # lugar que copiaba plantilla->variante lo hacia solo "si la variante estaba vacia". Con la
+        # variante ya cargada (el caso normal: la escribio el alta o la sync desde ML) cambiar la
+        # categoria en la plantilla NO llegaba nunca a la publicacion.
+        # Criterio: se propaga a las variantes que estaban ALINEADAS con la categoria anterior de la
+        # plantilla. Una variante con categoria propia distinta es una eleccion deliberada y se
+        # respeta -- eso es poder manejarlas por separado.
+        propagate_to = self.env['product.product']
+        if 'meli_category' in vals and not self.env.context.get('meli_category_sync'):
+            new_categ = vals.get('meli_category')
+            for tmpl in self:
+                old_categ = tmpl.meli_category.id or False
+                if new_categ == old_categ:
+                    continue
+                for variant in tmpl.product_variant_ids:
+                    if (not variant.meli_category) or (variant.meli_category.id == old_categ):
+                        propagate_to |= variant
+
+        res = super().write(vals)
+
+        if propagate_to:
+            new_categ = vals.get('meli_category')
+            propagate_to.with_context(meli_category_sync=True).write({'meli_category': new_categ})
+            # Las que YA estan publicadas quedan marcadas: ML todavia tiene la categoria vieja.
+            published = propagate_to.filtered(lambda v: v.meli_id)
+            if published:
+                published.with_context(meli_category_sync=True).write({'meli_category_pending_post': bool(new_categ)})
+                _logger.info("meli_category: propagada a %s variante(s), %s publicada(s) quedan "
+                             "pendientes de aplicar en ML: %s", len(propagate_to), len(published),
+                             published.mapped('meli_id'))
+        return res
+
+    @api.onchange('meli_category')
+    def _onchange_meli_category_meli(self):
+        # [#539 DISELEC] Aviso al cambiar la categoria en la plantilla. Un onchange de Odoo solo puede
+        # MOSTRAR un warning (no puede preguntar y esperar la respuesta), asi que el mensaje dice
+        # exactamente que hacer despues: la casilla "Actualizar Categoría" del wizard de Publicar,
+        # que aplica el cambio en ML publicacion por publicacion.
+        for tmpl in self:
+            published = tmpl.product_variant_ids.filtered(lambda v: v.meli_id)
+            if not published or not tmpl.meli_category:
+                continue
+            return {
+                'warning': {
+                    'title': "Categoría de Mercado Libre",
+                    'message': (
+                        "Este producto ya tiene %s publicación(es) en Mercado Libre: %s\n\n"
+                        "El cambio de categoría se aplica a las variantes al guardar, pero en Mercado "
+                        "Libre la publicación sigue con la categoría anterior hasta que la publiques.\n\n"
+                        "Para aplicarla: botón Publicar y marcar la casilla \"Actualizar Categoría\" "
+                        "(o Publicar/Actualizar completo, que ahora también la manda).\n\n"
+                        "Tené en cuenta que Mercado Libre puede rechazar el cambio: hay categorías que "
+                        "exigen atributos que la publicación no tiene (por ejemplo el código universal "
+                        "GTIN), y las publicaciones con ventas o de catálogo tienen restricciones "
+                        "propias. Si lo rechaza, te mostramos el motivo que devuelve Mercado Libre."
+                    ) % (len(published), ", ".join(published.mapped('meli_id')))
+                }
+            }
+
+    def product_template_post_category( self, context=None, meli=None ):
+        # [#539 DISELEC] Empuja SOLO la categoria de las publicaciones de la plantilla.
+        # Espejo de product_template_post_title: corta y devuelve el error del primer variant que
+        # falle (dict con 'error') para que el wizard muestre el motivo que dio ML.
+        _logger.info("base product.template: product_template_post_category")
+        context = context or self.env.context
+        for productT in self:
+            for variant in productT.product_variant_ids:
+                r = variant.product_post_category(meli=meli)
+                if r and isinstance(r, dict) and 'error' in r:
+                    return r
+        return {}
 
     def delete_image_product_now(self):
         for record in self:
@@ -953,6 +1025,12 @@ class product_template(models.Model):
     meli_family_id = fields.Char(string='ID de familia ML (user_product_seller)',size=128,index=True)
     meli_description = fields.Text(string='Descripción')
     meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre")
+    meli_category_pending_post = fields.Boolean(string='Categoría cambiada sin publicar',
+        help="Se marca sola cuando alguien cambia la categoría en Odoo y la publicación en Mercado "
+             "Libre todavía tiene la anterior. Mientras esté marcada, la sincronización desde ML NO "
+             "pisa la categoría elegida (antes la revertía y el cambio se perdía en silencio). "
+             "Se apaga sola cuando la categoría se aplica en ML.",
+        default=False, copy=False)
     meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
     meli_price = fields.Char(string='Precio de venta', size=128)
     meli_currency = fields.Selection([("ARS","Peso Argentino (ARS)"),
@@ -1494,8 +1572,18 @@ class product_product(models.Model):
         # realmente. Evita FK violation (meli_category=<id> not present) si meli_get_category
         # devolviera un id huerfano; un id invalido abortaria la transaccion de toda la sync.
         if (mlcatid and self.env["mercadolibre.category"].browse(mlcatid).exists()):
-            product.write( {'meli_category': mlcatid} )
-            product_template.write( {'meli_category': mlcatid} )
+            # [#539 DISELEC] La sync desde ML NO revierte una categoria que el usuario cambio en Odoo
+            # y todavia no publico. Antes escribia siempre en producto Y plantilla, asi que cualquier
+            # importacion desde ML (cron incluido) devolvia la categoria vieja y el cambio se perdia
+            # en silencio: es el "volvi a cambiarla y volvio a tomar la anterior" que reportan.
+            # Lo que ML tiene queda en el log; la eleccion del usuario manda hasta que se publique.
+            if (product.meli_category_pending_post and product.meli_category and product.meli_category.id != mlcatid):
+                _logger.info("_meli_set_category: NO piso la categoria de Odoo (%s) con la de ML (%s):"
+                             " hay un cambio sin publicar en el producto %s (meli_id %s)",
+                             product.meli_category.meli_category_id, category_id, product.id, product.meli_id)
+            else:
+                product.with_context(meli_category_sync=True).write( {'meli_category': mlcatid} )
+                product_template.with_context(meli_category_sync=True).write( {'meli_category': mlcatid} )
 
         if www_cat_id!=False:
             #assign
@@ -4292,6 +4380,21 @@ class product_product(models.Model):
                 "pictures": [],
                 "video_id": product.meli_video or '',
             }
+
+            # [#539 DISELEC] CATEGORIA en el update. Este body se reconstruye desde cero para el
+            # PUT y no incluia category_id (solo viajaba en el ALTA): cambiar la categoria en Odoo y
+            # apretar Publicar no cambiaba nada en ML, y no avisaba -- fallaba en silencio.
+            # Se manda SOLO cuando difiere de la que ML tiene hoy (productjson), para no tocar
+            # publicaciones sanas. Si ML la rechaza (categoria que exige atributos que faltan, item
+            # con ventas, catalogo...) el error sale por el camino de error de siempre, con el motivo
+            # textual de ML.
+            _odoo_categ = (product.meli_category and product.meli_category.meli_category_id) or ''
+            _ml_categ = (productjson and productjson.get("category_id")) or ''
+            if _odoo_categ and _odoo_categ != _ml_categ:
+                body["category_id"] = _odoo_categ
+                _logger.info("update post: CAMBIO DE CATEGORIA %s -> %s (item %s)",
+                             _ml_categ or "(desconocida)", _odoo_categ, product.meli_id)
+
             if (config and "mercadolibre_user_product_seller" in config._fields ):
                 if (config.mercadolibre_user_product_seller):
                     body["family_name"] = product.meli_family_name or product.meli_title or ''
@@ -4640,6 +4743,13 @@ class product_product(models.Model):
         #last modifications if response is OK
         if "id" in rjson:
             product.write( { 'meli_id': rjson["id"]} )
+            # [#539 DISELEC] Si el publicar/actualizar llevaba el cambio de categoria y ML no lo
+            # rechazo, la publicacion ya esta en la categoria nueva: se apaga la marca de pendiente
+            # y la sincronizacion desde ML vuelve a mandar sobre este campo.
+            if body.get("category_id"):
+                _logger.info("update post: categoria aplicada en ML (%s) para el item %s",
+                             body.get("category_id"), rjson.get("id"))
+                product.with_context(meli_category_sync=True).write({'meli_category_pending_post': False})
             if ("variations" in rjson):
                 for ix in range(len(rjson["variations"]) ):
                     _var = rjson["variations"][ix]
@@ -5105,11 +5215,71 @@ class product_product(models.Model):
             _logger.info("Posted title ok (single) /items/"+str(meli_id)+": "+str(title))
         return {}
 
+    def product_post_category(self, context=None, meli=None):
+        # [#539 DISELEC] Empuja SOLO la categoria de la publicacion a ML (no el producto completo).
+        # Espejo exacto de product_post_title: PUT /items/{meli_id} { 'category_id': <MLXNNNN> }.
+        #
+        # POR QUE EXISTE: el body de update de product_post() NO incluia category_id (solo viaja en el
+        # ALTA), asi que cambiar la categoria en Odoo y apretar Publicar no cambiaba nada en ML y no
+        # avisaba. Ver product_post(): ahora tambien la manda cuando difiere.
+        #
+        # ML PUEDE RECHAZARLO y es esperable: la categoria de un item publicado solo se puede cambiar
+        # bajo sus reglas (tipicamente sin ventas y fuera de catalogo) y la categoria destino puede
+        # exigir atributos que el item no tiene (p.ej. GTIN obligatorio en las hojas de cartas TCG).
+        # En ese caso devolvemos el rjson con 'error' para que el wizard lo muestre TAL CUAL: el
+        # motivo es de ML, no nuestro. Devuelve {} en OK.
+        context = context or self.env.context
+        company = get_company_selected( self, context=context )
+
+        product = self
+        product_tmpl = self.product_tmpl_id
+
+        if not product.meli_id:
+            return {}
+
+        category_id = (product.meli_category and product.meli_category.meli_category_id) or \
+                      (product_tmpl and product_tmpl.meli_category and product_tmpl.meli_category.meli_category_id)
+        if not category_id:
+            _logger.error("product_post_category: sin categoria en Odoo para meli_id:"+str(product.meli_id))
+            return {}
+
+        if not meli:
+            meli = self.env['meli.util'].get_new_instance(company)
+            if meli.need_login():
+                return meli.redirect_login()
+
+        meli_id = product.meli_id
+
+        _logger.info("product_post_category (single) /items/"+str(meli_id)+" category_id:"+str(category_id))
+        response = meli.put_mini("/items/"+str(meli_id), { 'category_id': category_id }, {'access_token':meli.access_token})
+        if response:
+            rjson = response.json()
+            if rjson and "error" in rjson:
+                _logger.error("product_post_category error /items/"+str(meli_id)+": "+str(rjson))
+                return rjson
+            _logger.info("Posted category ok (single) /items/"+str(meli_id)+": "+str(category_id))
+            # Aplicada en ML: se apaga la marca de "cambiada en Odoo y todavia sin publicar".
+            product.with_context(meli_category_sync=True).meli_category_pending_post = False
+        return {}
+
     def get_title_for_meli(self):
         return self.name
 
     def action_category_predictor(self):
         return self.product_tmpl_id.action_category_predictor()
+
+    def write(self, vals):
+        # [#539 DISELEC] Si alguien cambia la categoria de una publicacion ya publicada, se marca
+        # "cambiada sin publicar": ML todavia tiene la anterior. Esa marca es la que impide que la
+        # sincronizacion desde ML la revierta antes de que llegue a aplicarse (_meli_set_category).
+        # El contexto meli_category_sync distingue lo que escribe el conector de lo que cambia una
+        # persona: el conector nunca marca.
+        if 'meli_category' in vals and not self.env.context.get('meli_category_sync'):
+            for product in self:
+                if product.meli_id and vals.get('meli_category') != (product.meli_category.id or False):
+                    vals = dict(vals, meli_category_pending_post=bool(vals.get('meli_category')))
+                    break
+        return super().write(vals)
 
     @api.onchange('meli_id') # if these fields are changed, call method
     def change_meli_id(self):
