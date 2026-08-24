@@ -1025,12 +1025,6 @@ class product_template(models.Model):
     meli_family_id = fields.Char(string='ID de familia ML (user_product_seller)',size=128,index=True)
     meli_description = fields.Text(string='Descripción')
     meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre")
-    meli_category_pending_post = fields.Boolean(string='Categoría cambiada sin publicar',
-        help="Se marca sola cuando alguien cambia la categoría en Odoo y la publicación en Mercado "
-             "Libre todavía tiene la anterior. Mientras esté marcada, la sincronización desde ML NO "
-             "pisa la categoría elegida (antes la revertía y el cambio se perdía en silencio). "
-             "Se apaga sola cuando la categoría se aplica en ML.",
-        default=False, copy=False)
     meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
     meli_price = fields.Char(string='Precio de venta', size=128)
     meli_currency = fields.Selection([("ARS","Peso Argentino (ARS)"),
@@ -5288,6 +5282,12 @@ class product_product(models.Model):
                 p.product_tmpl_id.update_meli_ids()
 
     #typical values
+    meli_category_pending_post = fields.Boolean(string='Categoría cambiada sin publicar',
+        help="Se marca sola cuando alguien cambia la categoría en Odoo y la publicación en Mercado "
+             "Libre todavía tiene la anterior. Mientras esté marcada, la sincronización desde ML NO "
+             "pisa la categoría elegida (antes la revertía y el cambio se perdía en silencio). "
+             "Se apaga sola cuando la categoría se aplica en ML.",
+        default=False, copy=False)
     meli_title = fields.Char(string='Nombre del producto en Mercado Libre',size=256)
     meli_family_name = fields.Char(string='Nombre de la familia en el user product en Mercado Libre',size=256)
     meli_family_id = fields.Char(string='ID de familia ML (user_product_seller)',size=128,index=True)
