@@ -106,6 +106,37 @@ def _meli_is_valid_gtin(code):
     except Exception:
         return False
 
+def _meli_gtin_problem(code):
+    """[#539] Devuelve el MOTIVO por el que `code` no sirve como GTIN, o None si es válido.
+
+    Existe para poder decirle al usuario QUE esta mal, no solo que "no es valido". Distingue los dos
+    casos, que se confunden todo el tiempo:
+      - no parece un codigo de barras (no numerico, o largo que no es 8/12/13/14) -> tipico SKU interno
+      - parece uno pero el DIGITO DE CONTROL no cierra -> tipico tipeo, o codigo inventado a mano
+    En el segundo caso decimos cual seria el digito correcto: casi siempre revela el error de tipeo.
+    """
+    if not code:
+        return None
+    s_ = str(code).strip()
+    if not s_.isdigit():
+        return ("'%s' no es un código de barras: tiene caracteres que no son números. "
+                "Parece un SKU o código interno, y eso Mercado Libre no lo acepta como GTIN." % s_)
+    if len(s_) not in (8, 12, 13, 14):
+        return ("'%s' tiene %d dígitos y un código de barras válido tiene 8, 12, 13 o 14 "
+                "(GTIN-8, UPC-A, EAN-13 o GTIN-14). Parece un código interno." % (s_, len(s_)))
+    digits = [int(c) for c in s_]
+    total = 0
+    for i, d in enumerate(reversed(digits[:-1])):
+        total += d * (3 if i % 2 == 0 else 1)
+    expected = (10 - (total % 10)) % 10
+    if expected != digits[-1]:
+        return ("'%s' tiene el largo correcto pero el dígito verificador no cierra: termina en %d "
+                "y debería terminar en %d (el código correcto sería '%s'). Revisá si hay un error de "
+                "tipeo; un código inventado a mano casi nunca pasa esta cuenta."
+                % (s_, digits[-1], expected, s_[:-1] + str(expected)))
+    return None
+
+
 class MyHTMLParser(HTMLParser):
 
     full_text = ""
@@ -4292,6 +4323,22 @@ class product_product(models.Model):
 
         #_product_post_set_quantity
         product.meli_available_quantity = product._meli_available_quantity(meli=meli,config=config)
+
+        # [#539 DISELEC] GTIN inválido cargado como LÍNEA DE ATRIBUTO.
+        # `_meli_is_valid_gtin` protegía sólo el camino del campo `barcode`; un GTIN cargado como
+        # atributo ("Código universal de producto") viajaba a ML sin validar y volvía
+        # `item.attribute.product_identifier.invalid_format`, ilegible para el usuario. Y ese es el
+        # camino que usan los clientes a los que les enseñamos a cargar atributos a mano.
+        # Se frena ACA, con el motivo concreto, en vez de mandar basura a ML.
+        for _att in (attributes or []):
+            if isinstance(_att, dict) and _att.get("id") == "GTIN":
+                _problem = _meli_gtin_problem(_att.get("value_name"))
+                if _problem:
+                    _logger.warning("MELI GTIN invalido en linea de atributo: %s", _problem)
+                    return warningobj.info(
+                        title='MELI GTIN',
+                        message="El código universal de producto (GTIN) no es válido: " + _problem,
+                        message_html="" )
 
         #_product_post_set_body
         body = {
