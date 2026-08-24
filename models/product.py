@@ -30,6 +30,8 @@ import hashlib
 import math
 import requests
 import base64
+import json
+import ast   # [#539] para leer `meli_attributes_input` cuando viene como repr de Python
 import mimetypes
 from urllib.request import urlopen
 
@@ -105,6 +107,66 @@ def _meli_is_valid_gtin(code):
         return expected == check
     except Exception:
         return False
+
+def _meli_ean13_from_base(base):
+    """[#539] Completa `base` (dígitos) a un EAN-13 válido: recorta/rellena a 12 y calcula el control.
+
+    El dígito verificador NO es opcional: medido contra ML, un EAN de 13 dígitos con el control mal
+    vuelve `item.attribute.product_identifier.invalid_format`. Es exactamente lo que pasó con
+    7791234567895 (terminaba en 5 y correspondía 8).
+    """
+    digits = "".join(c for c in str(base or "") if c.isdigit())
+    if not digits:
+        return None
+    digits = digits[:12].ljust(12, "0")
+    total = 0
+    for i, d in enumerate(reversed(digits)):
+        total += int(d) * (3 if i % 2 == 0 else 1)
+    return digits + str((10 - (total % 10)) % 10)
+
+
+def _meli_parse_attributes_input(raw):
+    """[#539] Parsea el campo `meli_attributes_input` -> lista de dicts {'id':..., 'value_name':...}.
+
+    Acepta JSON **y** el `repr` de Python (comillas simples). No es un capricho: el campo hermano
+    `meli_attributes` se escribe con `str(attributes)` desde siempre, asi que TODAS las instalaciones
+    ya tienen ese formato guardado y la gente copia y pega de ahi. Un parser que solo entienda JSON
+    no puede releer lo que el propio conector escribio.
+
+    Devuelve (lista, error_legible). Si no parsea, lista vacia y el motivo -- nunca una excepcion:
+    un texto mal escrito no puede tumbar una publicacion sin decir por que.
+    """
+    if not raw or not str(raw).strip():
+        return [], None
+    text = str(raw).strip()
+    data = None
+    for parser in (json.loads, ast.literal_eval):
+        try:
+            data = parser(text)
+            break
+        except Exception:
+            continue
+    if data is None:
+        return [], ("No se pudo leer el campo de atributos: no es una lista válida. "
+                    "Tiene que verse así: [{'id': 'BRAND', 'value_name': 'Marca'}]")
+    if isinstance(data, dict):
+        data = [data]
+    if not isinstance(data, (list, tuple)):
+        return [], "El campo de atributos tiene que ser una lista de atributos, no un valor suelto."
+    out = []
+    for item in data:
+        if not isinstance(item, dict):
+            return [], ("Cada atributo tiene que ser un bloque con 'id' y 'value_name'. "
+                        "Encontré: %s" % (str(item)[:60],))
+        att_id = item.get("id") or item.get("att_id")
+        if not att_id:
+            return [], "Hay un atributo sin 'id' en la lista."
+        value = item.get("value_name", item.get("value"))
+        if value is None:
+            value = ""
+        out.append({"id": str(att_id).strip(), "value_name": str(value).strip()})
+    return out, None
+
 
 def _meli_gtin_problem(code):
     """[#539] Devuelve el MOTIVO por el que `code` no sirve como GTIN, o None si es válido.
@@ -1123,6 +1185,15 @@ class product_template(models.Model):
 
     meli_update_stock_blocked = fields.Boolean(string="Block Update stock",default=False)
     meli_mercadolibre_banner = fields.Many2one("mercadolibre.banner",string="Plantilla Descriptiva")
+    meli_autogenerate_gtin = fields.Boolean(
+        string="Generar código de barras",
+        help="Si el producto no tiene código de barras, el conector genera uno al publicar y lo "
+             "guarda en el campo Código de barras. Se puede tildar de a muchos desde la vista de "
+             "lista.\n\n"
+             "El prefijo y la secuencia se configuran en la configuración de MercadoLibre. Un código "
+             "generado NO queda registrado en GS1: sirve para cumplir el requisito de Mercado Libre "
+             "en las categorías que exigen GTIN, no es el código oficial del fabricante.\n\n"
+             "Nunca pisa un código ya cargado.")
 
     def product_template_permalink(self):
         company = self.env.user.company_id
@@ -3739,6 +3810,54 @@ class product_product(models.Model):
             _logger.exception("meli GTIN required check failed; assuming not required")
             return False
 
+    def _meli_generate_barcode(self, config=None):
+        """[#539] Genera y GUARDA un código de barras para esta variante, si corresponde.
+
+        Sólo actúa si: la plantilla tiene tildado "Generar código de barras", la variante NO tiene
+        barcode, y hay prefijo configurado. **Nunca pisa un barcode existente**: un código cargado a
+        mano es el real y el generado no vale más que ese.
+
+        Se GUARDA en `barcode` (no se calcula al vuelo en cada publicación) para que el código sea
+        estable: un GTIN que cambia entre publicaciones es peor que no tener ninguno.
+        """
+        self.ensure_one()
+        product_tmpl = self.product_tmpl_id
+        if self.barcode:
+            return self.barcode
+        if not (product_tmpl and product_tmpl.meli_autogenerate_gtin):
+            return False
+
+        company = self.env.user.company_id
+        config = config or company
+        prefix = (getattr(config, "mercadolibre_gtin_prefix", False)
+                  or getattr(company, "mercadolibre_gtin_prefix", False) or "")
+        prefix = "".join(c for c in str(prefix) if c.isdigit())
+        if not prefix:
+            _logger.warning("MELI GTIN: no hay prefijo configurado, no se genera para el producto %s", self.id)
+            return False
+
+        seq = getattr(config, "mercadolibre_gtin_sequence_id", False)
+        if seq:
+            correlativo = "".join(c for c in str(seq.next_by_id() or "") if c.isdigit())
+        else:
+            correlativo = str(self.id)
+
+        base = (prefix + correlativo.rjust(12 - len(prefix), "0"))[:12]
+        code = _meli_ean13_from_base(base)
+        if not code or not _meli_is_valid_gtin(code):
+            _logger.error("MELI GTIN: el código generado '%s' no es válido, no se guarda", code)
+            return False
+
+        # Un GTIN repetido en dos productos es peor que no tenerlo: se chequea antes de guardar.
+        if self.search_count([("barcode", "=", code), ("id", "!=", self.id)]):
+            _logger.error("MELI GTIN: el código generado '%s' ya está en otro producto, no se guarda "
+                          "(revisar el prefijo y la secuencia).", code)
+            return False
+
+        self.barcode = code
+        _logger.info("MELI GTIN: generado %s para el producto %s", code, self.id)
+        return code
+
     def _meli_gtin_attribute( self, barcode, meli_category=None ):
         """Decide, category-aware, si mandar el atributo GTIN a MercadoLibre.
 
@@ -4206,6 +4325,13 @@ class product_product(models.Model):
         if product.meli_model==False or len(product.meli_model)==0:
             product.meli_model = product_tmpl.meli_model
 
+        # [#539] Si la plantilla lo pide y el producto no tiene código de barras, se genera acá:
+        # justo antes de decidir si mandamos el GTIN, y sólo en ese caso. Guarda el código en
+        # `barcode`, así queda estable para las próximas publicaciones y visible para el usuario.
+        if (not product.barcode and product_tmpl.meli_autogenerate_gtin
+                and not product_tmpl.meli_pub_as_variant and "GTIN" not in attributes_ids):
+            product._meli_generate_barcode(config=config)
+
         if (product.barcode and not product_tmpl.meli_pub_as_variant and not "GTIN" in attributes_ids):
             # category-aware: solo mandar GTIN si el barcode es un EAN/GTIN válido
             # (evita el 400 'Product Identifier [GTIN] invalid format' cuando el
@@ -4323,6 +4449,23 @@ class product_product(models.Model):
 
         #_product_post_set_quantity
         product.meli_available_quantity = product._meli_available_quantity(meli=meli,config=config)
+
+        # [#539] Atributos cargados a mano en JSON, SOLO en la primera publicación.
+        # Es el camino para carga masiva desde Excel: `meli_attributes_input` es texto, así que se
+        # importa y se edita en lote, sin tener que crear un product.attribute.value por cada valor.
+        # Va ANTES del mapeo a propósito: lo que el usuario cargó para ESTE producto gana sobre la
+        # regla general. Y después de las líneas de atributo, que son lo más explícito de todo.
+        if not product.meli_id and getattr(product, "meli_attributes_input", False):
+            _input_atts, _input_error = _meli_parse_attributes_input(product.meli_attributes_input)
+            if _input_error:
+                # No se publica en silencio ignorando lo que el usuario cargó.
+                return warningobj.info(title='MELI ATRIBUTOS', message=_input_error, message_html="")
+            for _a in _input_atts:
+                if _a["id"] in attributes_ids:
+                    continue
+                attributes_ids[_a["id"]] = _a["value_name"]
+                attributes.append(_a)
+                _logger.info("MELI atributos (JSON): %s = %s", _a["id"], _a["value_name"])
 
         # [#539] Atributos que vienen del MAPEO campo de Odoo -> atributo de ML.
         # COMPLETA, no reemplaza: lo que ya resolvieron las líneas de atributo de Odoo manda, porque
@@ -5417,6 +5560,19 @@ class product_product(models.Model):
     meli_sub_status = fields.Char( compute=product_get_meli_update, size=128, string='Sub status',help="Sub Estado del producto en ML" )
 
     meli_attributes = fields.Text(string='Atributos')
+    meli_attributes_input = fields.Text(
+        string='Atributos a publicar (JSON)',
+        help="Atributos para mandar a Mercado Libre, en formato JSON. Pensado para carga MASIVA: "
+             "es un campo de texto, así que se importa desde un Excel y se edita en lote desde la "
+             "lista.\n\n"
+             "Ejemplo:\n"
+             "[{'id': 'BRAND', 'value_name': 'Magic: The Gathering'}, "
+             "{'id': 'EDITION', 'value_name': 'Marvel Super Heroes'}]\n\n"
+             "Sólo se usa en la PRIMERA publicación (mientras el producto no tenga publicación en "
+             "ML). Completa a los atributos que ya salen de las líneas de atributo y del mapeo, "
+             "sin pisarlos.\n\n"
+             "No confundir con 'Atributos' (el campo de al lado), que es de sólo lectura: refleja lo "
+             "que se mandó en la última publicación.")
 
     meli_model = fields.Char(string="Modelo",size=256)
     meli_brand = fields.Char(string="Marca",size=256)

@@ -207,6 +207,10 @@
                         <!--field name="meli_shipping_mode"/>
                         <field name="meli_shipping_method"/-->
                       </group>
+                      <separator string="Código de barras" colspan="1"/>
+                      <group name="gtin_gen">
+                        <field name="meli_autogenerate_gtin"/>
+                      </group>
                       <separator string="Variantes" colspan="1"/>
                       <group name="variantes">
                         <field name="meli_pub_as_variant" />
@@ -289,6 +293,9 @@
             <field name="arch" type="xml">
                 <field name="virtual_available" position="after">
                     <field name="meli_stock_update" groups="meli_oerp.group_mercadolibre_manager"/>
+                    <!-- [#539] En la LISTA a propósito: es lo que permite tildarlo de a muchos
+                         (seleccionar varias filas y editar), que es para lo que se pidió. -->
+                    <field name="meli_autogenerate_gtin" optional="hide" groups="meli_oerp.group_mercadolibre_manager"/>
                     <field name="meli_stock_error" invisible="0" groups="meli_oerp.group_mercadolibre_manager"/>
                     <field name="meli_permalink_edit" invisible="0" widget="url" groups="meli_oerp.group_mercadolibre_manager"/>
                 </field>
@@ -476,6 +483,8 @@
                               <field name="meli_category" options="{'no_create': True}"/>
                               <field name="meli_category_pending_post" readonly="1"
                                      invisible="meli_category_pending_post == False"/>
+                              <field name="meli_attributes_input" widget="text"
+                                     placeholder="[{'id': 'BRAND', 'value_name': 'Marca'}]"/>
                               <field name="meli_brand"/>
                               <field name="meli_model"/>
                               <field name="meli_listing_type" />
