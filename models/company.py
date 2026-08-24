@@ -501,6 +501,27 @@ class res_company(models.Model):
     mercadolibre_process_offset = fields.Char('Offset for pause all')
     mercadolibre_post_default_code = fields.Boolean(string='Post SKU',default=True,help='Post Odoo default_code field for templates or variants to seller_custom_field in ML')
     mercadolibre_post_barcode = fields.Boolean(string='Post Barcode',default=True,help='Post Odoo barcode as GTIN')
+
+    # [#539] Generación automática de código de barras (GTIN) para publicar.
+    # ⚠️ El PREFIJO importa y no lo controla Mercado Libre. Medido el 24-ago-2026 con
+    # POST /items/validate: ML acepta EAN-13 con prefijo 20, 02, 779 y 750 por igual, y rechaza
+    # cualquiera con el dígito verificador mal. O sea que ML valida el FORMATO, no el registro en GS1.
+    # Por eso el default es 20: GS1 reserva 02 y 20-29 para "distribución restringida / uso interno"
+    # y NUNCA se los asigna a un fabricante, así que un código generado con ese prefijo no puede
+    # pisar el de un producto real de otra empresa. Generar con 750 (México) o 779 (Argentina) usa
+    # un rango que le pertenece a GS1 y sí puede colisionar. La diferencia no la ve ML: la ve el
+    # mundo real, cuando dos productos distintos comparten código.
+    mercadolibre_gtin_prefix = fields.Char(
+        string='Prefijo para GTIN generado', default='20', size=6,
+        help="Prefijo de los códigos de barras que genere el conector. Recomendado: 20 a 29, o 02. "
+             "Son los rangos que GS1 reserva para uso interno y no le asigna a ningún fabricante, "
+             "así que un código generado nunca choca con el de un producto real. "
+             "Un código generado NO queda registrado en GS1: sirve para cumplir el requisito de "
+             "Mercado Libre, no es el código oficial del fabricante.")
+    mercadolibre_gtin_sequence_id = fields.Many2one(
+        'ir.sequence', string='Secuencia para GTIN generado',
+        help="Secuencia que da el número correlativo. Si está vacía se usa el id del producto, "
+             "que también es único y no necesita configuración.")
     mercadolibre_import_search_sku = fields.Boolean(string='Search SKU',default=True,help='Search product by default_code')
 
     mercadolibre_seller_user = fields.Many2one("res.users", string="Vendedor", help="Usuario con el que se registrarán las órdenes automáticamente")
