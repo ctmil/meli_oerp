@@ -4391,7 +4391,21 @@ class product_product(models.Model):
 
             if (config and "mercadolibre_user_product_seller" in config._fields ):
                 if (config.mercadolibre_user_product_seller):
-                    body["family_name"] = product.meli_family_name or product.meli_title or ''
+                    # [#539 DISELEC] Con la family YA creada, ML rechaza family_name en el
+                    # PUT /items/{id} aunque el item no tenga ventas:
+                    #   400 BODY_INVALID_FIELDS cause 374 "The field family name is invalid"
+                    # El nombre de la family se cambia en el USER PRODUCT (/user-products/{id}), no
+                    # en el item. Aca se mandaba SIEMPRE, sin mirar nada. Se mide contra productjson
+                    # (lo que dice ML), no contra product.meli_user_product_id: ese campo puede estar
+                    # vacio en Odoo teniendo ML el user product asignado.
+                    _up_id = (productjson and (productjson.get('user_product_id') or
+                                               productjson.get('family_id'))) or False
+                    if _up_id:
+                        _logger.info("update post: NO mando family_name -- el item %s ya pertenece al "
+                                     "user product %s. El nombre de la family se cambia en "
+                                     "/user-products, no en el item.", product.meli_id or "?", _up_id)
+                    else:
+                        body["family_name"] = product.meli_family_name or product.meli_title or ''
                 else:
                     body["title"] = product.meli_family_name or product.meli_title or ''
 
