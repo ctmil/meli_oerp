@@ -15,6 +15,7 @@
                         <field name="post_stock"/>
                         <field name="post_price"/>
                         <field name="post_title"/>
+                        <field name="post_category"/>
                         <field name="action_pause"/>
                       </group>
                     </group>
@@ -40,6 +41,7 @@
                         <field name="post_stock"/>
                         <field name="post_price"/>
                         <field name="post_title"/>
+                        <field name="post_category"/>
                         <field name="action_pause"/>
                       </group>
                     </group>

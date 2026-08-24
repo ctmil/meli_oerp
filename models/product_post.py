@@ -59,6 +59,12 @@ class product_template_post(models.TransientModel):
     post_stock = fields.Boolean(string="Actualizar Stock",help="No actualiza el producto completo, solo el stock",default=False)
     post_price = fields.Boolean(string="Actualizar Precio",help="No actualiza el producto completo, solo el precio",default=False)
     post_title = fields.Boolean(string="Actualizar Título",help="No actualiza el producto completo, solo el título",default=False)
+    post_category = fields.Boolean(string="Actualizar Categoría",
+        help="[#539] No actualiza el producto completo, sólo la categoría de Mercado Libre: manda a ML "
+             "la categoría que tiene el producto en Odoo. Mercado Libre puede rechazarlo (categorías "
+             "que exigen atributos que la publicación no tiene, como el GTIN; publicaciones con "
+             "ventas o de catálogo). Si lo rechaza, se muestra el motivo textual que devuelve ML.",
+        default=False)
     action_pause = fields.Boolean(string="Pausar producto",help="No actualiza el producto completo, sólo pausa el producto",default=False)
 
 
@@ -88,6 +94,7 @@ class product_template_post(models.TransientModel):
             'post_stock': self.post_stock,
             'post_price': self.post_price,
             'post_title': self.post_title,
+            'post_category': self.post_category,
             'action_pause': self.action_pause
         }
         posted_products = 0
@@ -110,9 +117,13 @@ class product_template_post(models.TransientModel):
                         res = product.with_context(custom_context).product_template_post_title(meli=meli)
                         if res and isinstance(res, dict) and 'error' in res:
                             return warningobj.info( title='MELI TITLE', message="No se pudo actualizar el título en Mercado Libre.", message_html=self.pretty_json(res) )
+                    if self.post_category:
+                        res = product.with_context(custom_context).product_template_post_category(meli=meli)
+                        if res and isinstance(res, dict) and 'error' in res:
+                            return warningobj.info( title='MELI CATEGORIA', message="Mercado Libre no aceptó el cambio de categoría. El motivo lo da Mercado Libre y está abajo.", message_html=self.pretty_json(res) )
                     if self.action_pause:
                         res = product.with_context(custom_context).action_meli_pause()
-                    if not self.post_stock and not self.post_price and not self.post_title and not self.action_pause:
+                    if not self.post_stock and not self.post_price and not self.post_title and not self.post_category and not self.action_pause:
                         res = product.with_context(custom_context).product_template_post()
 
                     if (res and 'name' in res):
@@ -190,6 +201,12 @@ class product_post(models.TransientModel):
     post_stock = fields.Boolean(string="Actualizar Stock",help="No actualiza el producto, solo el stock",default=False)
     post_price = fields.Boolean(string="Acutalizar Precio",help="No actualiza el producto, solo el precio",default=False)
     post_title = fields.Boolean(string="Actualizar Título",help="No actualiza el producto, solo el título",default=False)
+    post_category = fields.Boolean(string="Actualizar Categoría",
+        help="[#539] No actualiza el producto, sólo la categoría de ESTA publicación: manda a Mercado "
+             "Libre la categoría que tiene la variante en Odoo. Es el camino para mover una sola "
+             "publicación de categoría sin tocar las demás. Mercado Libre puede rechazarlo; en ese "
+             "caso se muestra el motivo textual que devuelve.",
+        default=False)
     action_pause = fields.Boolean(string="Pausar producto",help="No actualiza el producto completo, sólo pausa el producto",default=False)
 
 
@@ -225,9 +242,13 @@ class product_post(models.TransientModel):
                     res = product.product_post_title(meli=meli)
                     if res and isinstance(res, dict) and 'error' in res:
                         return warningobj.info( title='MELI TITLE', message="No se pudo actualizar el título en Mercado Libre.", message_html=self.pretty_json(res) )
+                if self.post_category:
+                    res = product.product_post_category(meli=meli)
+                    if res and isinstance(res, dict) and 'error' in res:
+                        return warningobj.info( title='MELI CATEGORIA', message="Mercado Libre no aceptó el cambio de categoría de esta publicación. El motivo lo da Mercado Libre y está abajo.", message_html=self.pretty_json(res) )
                 if self.action_pause:
                     res = product.action_meli_pause()
-                if not self.post_stock and not self.post_price and not self.post_title and not self.action_pause:
+                if not self.post_stock and not self.post_price and not self.post_title and not self.post_category and not self.action_pause:
                     res = product.product_post()
 
             #Pausa
