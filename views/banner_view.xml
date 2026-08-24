@@ -32,14 +32,29 @@
     											class="oe_stat_button"
     											icon="fa-user-circle"/>
                     </div-->
-                  <group name="gheader" string="Header">
-                    <field name="header"/>
+                  <div class="alert alert-info" role="alert">
+                    <b>Se puede escribir con formato y con datos del producto.</b><br/>
+                    Datos: <code>{p.campo}</code> del producto (incluye los campos de Studio, por
+                    ejemplo <code>{p.x_studio_set}</code>) &#183; <code>{ml.campo}</code> de la
+                    publicación (<code>{ml.meli_price}</code>) &#183; <code>{attr.ATRIBUTO}</code>
+                    para un atributo ya resuelto de Mercado Libre (<code>{attr.RARITY_TYPE}</code>).<br/>
+                    Formato: <code># Título</code>, <code>**negrita**</code>, <code>- viñeta</code>,
+                    <code>[texto](url)</code>.
+                    <b>Mercado Libre muestra la descripción como texto plano</b>, así que el formato
+                    se aplana al publicar: los títulos van en mayúsculas y las marcas no se ven.<br/>
+                    Si un dato está vacío, <b>esa línea completa no se publica</b>. Si el nombre del
+                    campo no existe, el texto queda a la vista tal cual — es la señal de que está mal
+                    escrito.
+                  </div>
+                  <group name="gheader" string="Encabezado">
+                    <field name="header" nolabel="1" placeholder="Ej.: # {p.name}"/>
                   </group>
-                  <group name="gdescription" string="Descprition">
-                    <field name="description"/>
+                  <group name="gdescription" string="Cuerpo">
+                    <field name="description" nolabel="1"
+                           placeholder="Ej.: **Set:** {p.x_studio_set}&#10;**Condición:** {attr.ITEM_CONDITION}&#10;&#10;Si se deja vacío se usa la descripción del producto."/>
                   </group>
-                  <group name="gfooter" string="Footer">
-                    <field name="footer"/>
+                  <group name="gfooter" string="Pie">
+                    <field name="footer" nolabel="1"/>
                   </group>
                   <group name="gimages" string="Images">
                     <!--field name="images"/>

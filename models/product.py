@@ -4324,6 +4324,20 @@ class product_product(models.Model):
         #_product_post_set_quantity
         product.meli_available_quantity = product._meli_available_quantity(meli=meli,config=config)
 
+        # [#539] Atributos que vienen del MAPEO campo de Odoo -> atributo de ML.
+        # COMPLETA, no reemplaza: lo que ya resolvieron las líneas de atributo de Odoo manda, porque
+        # es lo que el usuario cargó explícitamente en ESE producto; el mapeo es la regla general.
+        # Va ANTES del guard de GTIN a propósito: un GTIN que llegue por mapeo también se valida.
+        try:
+            _mapped = self.env["meli_oerp.attribute.mapping"]._meli_attributes_from_mapping(
+                product, meli_category=product.meli_category, already=list(attributes_ids.keys()))
+            for _m in _mapped:
+                attributes_ids[_m["id"]] = _m["value_name"]
+                attributes.append(_m)
+        except Exception:
+            # Defensivo: un mapeo mal cargado NO puede impedir publicar.
+            _logger.exception("MELI mapeo de atributos: falló, se publica sin los atributos mapeados")
+
         # [#539 DISELEC] GTIN inválido cargado como LÍNEA DE ATRIBUTO.
         # `_meli_is_valid_gtin` protegía sólo el camino del campo `barcode`; un GTIN cargado como
         # atributo ("Código universal de producto") viajaba a ML sin validar y volvía
@@ -4379,7 +4393,9 @@ class product_product(models.Model):
         mlbanner = product.meli_mercadolibre_banner or product_tmpl.meli_mercadolibre_banner
         mlbanner = mlbanner or (config and config.mercadolibre_banner)
         if (mlbanner):
-            bodydescription["plain_text"] = mlbanner.get_description(product=product)
+            # [#539] `attributes` va para que la plantilla pueda nombrar {attr.ATT_ID}: el valor
+            # YA resuelto por el mapeo, sin mantener una segunda traducción del mismo dato.
+            bodydescription["plain_text"] = mlbanner.get_description(product=product, attributes=attributes)
 
 
         # _logger.info( body )

@@ -28,5 +28,6 @@ from . import stock_warehouse
 from . import product_attribute
 from . import notification
 from . import carrier_mapping
+from . import attribute_mapping
 from . import product_template_attribute_line
 #from . import res_config_settings
