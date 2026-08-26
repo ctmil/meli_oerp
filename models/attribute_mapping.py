@@ -177,22 +177,27 @@ class MeliAttributeMapping(models.Model):
 
     @api.constrains("meli_att_id", "meli_attribute_id")
     def _check_tiene_destino(self):
-        """Un mapeo sin atributo de ML no manda nada y NO avisa.
+        """Frena guardar un mapeo sin atributo de ML, que no mandaria nada y no avisaria.
 
-        `_meli_attributes_from_mapping()` arranca con `if not m.meli_att_id: continue`, asi que un
-        mapeo sin destino se saltea EN SILENCIO: el registro se ve bien en la lista, no hay error ni
-        log, y el atributo simplemente no viaja. Medido el 26-ago-2026: FCA guardo dos mapeos
-        (`TCG`, `Set Abr`) sin elegir el atributo y nada se lo dijo.
-        Se frena aca, con el motivo concreto, en vez de dejar el registro inerte.
+        `_meli_attributes_from_mapping()` arranca con `if not m.meli_att_id: continue`: un mapeo sin
+        destino se saltea EN SILENCIO, se ve bien en la lista y el atributo no viaja. Medido el
+        26-ago-2026: FCA guardo dos mapeos (`TCG`, `Set Abr`) asi y nada se lo dijo.
+
+        Esta es UNA de cuatro capas, porque sola no alcanza — medido, no supuesto:
+        - `@api.constrains` solo dispara si los campos vigilados estan en el write, asi que NO
+          atrapa los registros que ya quedaron inertes ni las ediciones de otros campos;
+        - por eso ademas: alerta visible en la ficha, fila en rojo en la lista, y un WARNING en el
+          log cuando el publicador saltea un mapeo sin destino.
+        Verificado que NO rompe lo ya guardado: completar un mapeo inerte poniendole el atributo
+        funciona, y la lista sigue cargando (`web_search_read` OK).
         """
         for rec in self:
             if not rec.meli_att_id:
                 raise ValidationError(
-                    "El mapeo de «%s» no tiene atributo de MercadoLibre, asi que no mandaria nada.\n\n"
-                    "Eleg%s un atributo en «Atributo de MercadoLibre» (el «ID del atributo» se "
-                    "completa solo), o escrib%s el id a mano si el atributo todavia no fue importado "
-                    "de MercadoLibre." % (rec.field_id.field_description or rec.field_id.name or "?",
-                                          "\u00ed", "\u00ed")
+                    "El mapeo de «%s» no tiene atributo de MercadoLibre, así que no mandaría nada.\n\n"
+                    "Elegí un atributo en «Atributo de MercadoLibre» (el «ID del atributo» se "
+                    "completa solo), o escribí el id a mano si el atributo todavía no fue importado "
+                    "de MercadoLibre." % (rec.field_id.field_description or rec.field_id.name or "?")
                 )
 
     @api.onchange("model_name")
@@ -268,7 +273,15 @@ class MeliAttributeMapping(models.Model):
         domain = [("active", "=", True)]
         mappings = self.search(domain)
         for m in mappings:
-            if not m.meli_att_id or m.meli_att_id in already:
+            if not m.meli_att_id:
+                # Higiene, no seguridad: NO se bloquea el guardado (un @api.constrains rompe los
+                # registros preexistentes al recomputar, incluso con solo ABRIR la lista). Se avisa:
+                # en el log aca, y en la ficha/lista con un alerta y la fila en rojo.
+                _logger.warning(
+                    "MELI mapeo %s (%s): sin atributo de MercadoLibre, no se manda nada",
+                    m.id, m.field_id.name or "?")
+                continue
+            if m.meli_att_id in already:
                 continue
             if m.category_id and meli_category and m.category_id.id != meli_category.id:
                 continue
