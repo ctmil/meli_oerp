@@ -2635,6 +2635,10 @@ class product_product(models.Model):
             #publication specific banner
             mlbanner = product.meli_mercadolibre_banner or product_template.meli_mercadolibre_banner
             #configuration banner
+            # [#539] Paso por CATEGORIA, entre lo asignado a mano y el banner global de la config.
+            # Devuelve vacio si nadie cargo categorias en las plantillas => la cadena queda igual
+            # que antes. Pedido de FCA, 26-ago-2026.
+            mlbanner = mlbanner or self.env["mercadolibre.banner"]._meli_banner_for_product(product)
             mlbanner = mlbanner or (config and config.mercadolibre_banner)
             if (mlbanner):
                 #get the text, not the header nor the footer
@@ -4534,6 +4538,10 @@ class product_product(models.Model):
             "plain_text": product.meli_description or '',
         }
         mlbanner = product.meli_mercadolibre_banner or product_tmpl.meli_mercadolibre_banner
+        # [#539] Paso por CATEGORIA, entre lo asignado a mano y el banner global de la config.
+        # Devuelve vacio si nadie cargo categorias en las plantillas => la cadena queda igual
+        # que antes. Pedido de FCA, 26-ago-2026.
+        mlbanner = mlbanner or self.env["mercadolibre.banner"]._meli_banner_for_product(product)
         mlbanner = mlbanner or (config and config.mercadolibre_banner)
         if (mlbanner):
             # [#539] `attributes` va para que la plantilla pueda nombrar {attr.ATT_ID}: el valor
