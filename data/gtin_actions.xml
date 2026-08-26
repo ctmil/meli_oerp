@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+      [#539] Tildado MASIVO de "Generar código de barras" (meli_autogenerate_gtin).
+
+      Por qué una acción y no la lista: la lista de productos de MercadoLibre no es `editable`,
+      así que tildar la columna fila por fila no es posible; había que abrir cada producto.
+      Con esto se seleccionan N productos y se activa/desactiva de una. Medido el 26-ago-2026:
+      el `write` masivo sobre el campo ya funcionaba a nivel ORM, lo que faltaba era la puerta.
+    -->
+    <record id="action_meli_autogenerate_gtin_on" model="ir.actions.server">
+        <field name="name">MercadoLibre: activar generación de código de barras</field>
+        <field name="model_id" ref="product.model_product_template"/>
+        <field name="binding_model_id" ref="product.model_product_template"/>
+        <field name="binding_view_types">list</field>
+        <field name="groups_id" eval="[(4, ref('meli_oerp.group_mercadolibre_manager'))]"/>
+        <field name="state">code</field>
+        <field name="code">records.write({'meli_autogenerate_gtin': True})</field>
+    </record>
+
+    <record id="action_meli_autogenerate_gtin_off" model="ir.actions.server">
+        <field name="name">MercadoLibre: desactivar generación de código de barras</field>
+        <field name="model_id" ref="product.model_product_template"/>
+        <field name="binding_model_id" ref="product.model_product_template"/>
+        <field name="binding_view_types">list</field>
+        <field name="groups_id" eval="[(4, ref('meli_oerp.group_mercadolibre_manager'))]"/>
+        <field name="state">code</field>
+        <field name="code">records.write({'meli_autogenerate_gtin': False})</field>
+    </record>
+</odoo>

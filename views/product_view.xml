@@ -293,9 +293,12 @@
             <field name="arch" type="xml">
                 <field name="virtual_available" position="after">
                     <field name="meli_stock_update" groups="meli_oerp.group_mercadolibre_manager"/>
-                    <!-- [#539] En la LISTA a propósito: es lo que permite tildarlo de a muchos
-                         (seleccionar varias filas y editar), que es para lo que se pidió. -->
-                    <field name="meli_autogenerate_gtin" optional="hide" groups="meli_oerp.group_mercadolibre_manager"/>
+                    <!-- [#539] En la LISTA a propósito: es lo que permite tildarlo de a muchos.
+                         `optional="show"` (no "hide"): con la columna oculta por defecto había que
+                         ir a buscarla al selector de columnas, y como esta lista NO es `editable`
+                         tampoco se podía tildar desde acá. Para el tildado masivo de verdad está
+                         la acción del menú Acción (data/gtin_actions.xml). Medido 26-ago-2026. -->
+                    <field name="meli_autogenerate_gtin" optional="show" groups="meli_oerp.group_mercadolibre_manager"/>
                     <field name="meli_stock_error" invisible="0" groups="meli_oerp.group_mercadolibre_manager"/>
                     <field name="meli_permalink_edit" invisible="0" widget="url" groups="meli_oerp.group_mercadolibre_manager"/>
                 </field>
