@@ -8,7 +8,11 @@
             <field name="name">meli_oerp.attribute.mapping.tree</field>
             <field name="model">meli_oerp.attribute.mapping</field>
             <field name="arch" type="xml">
-                <list editable="bottom">
+                <!-- [#539] SIN `editable`: la traduccion de valores vive en la ficha (o2m
+                     `value_mapping_ids`), y con la lista editable en linea el click editaba la fila
+                     y no habia forma de entrar al formulario. La carga es manual: click en la fila
+                     = abrir la ficha. Pedido de FCA, 26-ago-2026. -->
+                <list decoration-danger="not meli_att_id">
                     <field name="sequence" widget="handle"/>
                     <field name="model_name"/>
                     <field name="field_id" options="{'no_create': True}"/>

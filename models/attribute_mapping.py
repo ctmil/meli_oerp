@@ -25,6 +25,7 @@ Sin traduccion de valores el mapeo no sirve para esa categoria.
 """
 
 from odoo import fields, models, api
+from odoo.exceptions import ValidationError
 from . import versions
 
 import json
@@ -173,6 +174,26 @@ class MeliAttributeMapping(models.Model):
                 rec.meli_att_id = rec.meli_attribute_id.att_id
             elif not rec.meli_att_id:
                 rec.meli_att_id = False
+
+    @api.constrains("meli_att_id", "meli_attribute_id")
+    def _check_tiene_destino(self):
+        """Un mapeo sin atributo de ML no manda nada y NO avisa.
+
+        `_meli_attributes_from_mapping()` arranca con `if not m.meli_att_id: continue`, asi que un
+        mapeo sin destino se saltea EN SILENCIO: el registro se ve bien en la lista, no hay error ni
+        log, y el atributo simplemente no viaja. Medido el 26-ago-2026: FCA guardo dos mapeos
+        (`TCG`, `Set Abr`) sin elegir el atributo y nada se lo dijo.
+        Se frena aca, con el motivo concreto, en vez de dejar el registro inerte.
+        """
+        for rec in self:
+            if not rec.meli_att_id:
+                raise ValidationError(
+                    "El mapeo de «%s» no tiene atributo de MercadoLibre, asi que no mandaria nada.\n\n"
+                    "Eleg%s un atributo en «Atributo de MercadoLibre» (el «ID del atributo» se "
+                    "completa solo), o escrib%s el id a mano si el atributo todavia no fue importado "
+                    "de MercadoLibre." % (rec.field_id.field_description or rec.field_id.name or "?",
+                                          "\u00ed", "\u00ed")
+                )
 
     @api.onchange("model_name")
     def _onchange_model_name(self):
