@@ -31,6 +31,15 @@
             <field name="arch" type="xml">
                 <form>
                     <sheet>
+                        <!-- [#539] Aviso NO bloqueante: un mapeo sin atributo de ML no manda nada y
+                             antes no lo decia nadie. Se avisa (no se bloquea con constrains: eso
+                             rompe los registros ya guardados al recomputar, incluso al abrir la
+                             lista). Medido en produccion el 26-ago-2026. -->
+                        <div class="alert alert-warning" role="alert" invisible="meli_att_id">
+                            Este mapeo <b>todavía no manda nada</b>: falta elegir el
+                            <b>Atributo de MercadoLibre</b>. Mientras esté así, el campo de Odoo no
+                            viaja a la publicación.
+                        </div>
                         <div class="oe_title">
                             <h1><field name="name" readonly="1"/></h1>
                         </div>
