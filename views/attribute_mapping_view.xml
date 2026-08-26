@@ -19,7 +19,10 @@
                     <field name="meli_attribute_id" options="{'no_create': True}"/>
                     <field name="meli_att_id"/>
                     <field name="category_id" options="{'no_create': True}"/>
-                    <field name="value_mapping_count" string="Traducciones"/>
+                    <field name="value_mapping_count" string="Trad." optional="show"/>
+                    <!-- [#539] El resumen de las traducciones EN LA LISTA: el contador solo decia
+                         cuantas, no cuales. Pedido de FCA, 26-ago-2026. -->
+                    <field name="value_mapping_summary" string="Valores mapeados"/>
                     <field name="active" invisible="1"/>
                 </list>
             </field>
@@ -59,6 +62,9 @@
                         </group>
                         <group string="Qué acepta MercadoLibre">
                             <field name="meli_allowed_values" nolabel="1" readonly="1"/>
+                        </group>
+                        <group string="Cómo quedó el mapeo">
+                            <field name="value_mapping_summary" nolabel="1" readonly="1"/>
                         </group>
                         <notebook>
                             <page string="Traducción de valores">

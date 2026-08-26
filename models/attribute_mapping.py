@@ -82,6 +82,13 @@ class MeliAttributeMapping(models.Model):
     value_mapping_ids = fields.One2many(
         "meli_oerp.attribute.value.mapping", "mapping_id", string="Traducción de valores")
     value_mapping_count = fields.Integer(compute="_compute_value_mapping_count")
+    value_mapping_summary = fields.Char(
+        string="Valores mapeados", compute="_compute_value_mapping_summary",
+        help="Resumen de las traducciones cargadas, para ver en la lista si el mapeo está completo "
+             "y cómo quedó, sin entrar a la ficha. El ⚠ marca los valores que NO figuran entre los "
+             "que MercadoLibre lista para este atributo: puede que igual los acepte (varios "
+             "atributos admiten texto libre), pero conviene mirarlos dos veces.",
+    )
     meli_allowed_values = fields.Text(
         string="Valores que acepta ML", compute="_compute_meli_allowed_values",
         help="Valores permitidos por MercadoLibre para este atributo, tal como los importamos. "
@@ -112,6 +119,46 @@ class MeliAttributeMapping(models.Model):
     def _compute_meli_allowed_values(self):
         for rec in self:
             rec.meli_allowed_values = rec._meli_allowed_values_text()
+
+    @api.depends("meli_att_id", "value_mapping_ids.odoo_value",
+                 "value_mapping_ids.meli_value_name", "meli_attribute_id")
+    def _compute_value_mapping_summary(self):
+        """Resumen legible de las traducciones, para verlo en la LISTA.
+
+        Pedido de FCA el 26-ago-2026: la lista mostraba `Traducciones = 0/3`, un numero que no dice
+        QUE se tradujo. El texto dice ademas en que punto esta el mapeo, porque los tres estados son
+        distintos y se confunden:
+          - sin atributo   -> no manda nada (coherente con la fila en rojo);
+          - sin traducciones -> manda el valor de Odoo TAL CUAL (esa es la regla real, no un "vacio");
+          - con traducciones -> las lista, recortadas.
+        El ⚠ marca los destinos que NO figuran entre los valores que ML LISTA para el atributo.
+        ⚠ dice "miralo", no "esto falla": medido el 26-ago-2026 contra `/items/validate` con el body
+        real, ML NO rechazo ninguno de los valores fuera de lista que se le mandaron — ni siquiera
+        ITEM_CONDITION='Inventado', que tiene value_type='list'. Con ese instrumento NO se puede
+        distinguir "ML acepta texto libre" de "/items/validate no valida valores de atributo": no
+        hubo ningun caso que diera error de atributo, o sea que falta el control positivo. Por eso
+        el campo NO afirma rechazo, solo senala la diferencia contra la lista, que si es un hecho.
+        """
+        MAX = 3
+        for rec in self:
+            if not rec.meli_att_id:
+                rec.value_mapping_summary = "Falta el atributo de MercadoLibre — no manda nada"
+                continue
+            lineas = rec.value_mapping_ids
+            if not lineas:
+                rec.value_mapping_summary = "Sin traducciones — manda el valor de Odoo tal cual"
+                continue
+            permitidos = rec._meli_allowed_value_names()
+            partes = []
+            for l in lineas[:MAX]:
+                destino = l.meli_value_name or ""
+                # `permitidos` vacio = texto libre; None = no se pudo leer -> no se marca nada.
+                aviso = " ⚠" if (permitidos and destino and destino not in permitidos) else ""
+                partes.append("%s → %s%s" % (l.odoo_value or "?", destino or "?", aviso))
+            resto = len(lineas) - MAX
+            if resto > 0:
+                partes.append("(+%s)" % resto)
+            rec.value_mapping_summary = " · ".join(partes)
 
     def _meli_allowed_values_text(self):
         """Texto legible con los valores que ML acepta, leidos de lo que ya importamos.
