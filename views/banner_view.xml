@@ -46,6 +46,12 @@
                     campo no existe, el texto queda a la vista tal cual — es la señal de que está mal
                     escrito.
                   </div>
+                  <!-- [#539] Asignacion automatica: la plantilla declara a que categorias
+                       aplica. Vacio = se asigna a mano en el producto, como hasta ahora. -->
+                  <group name="gcategorias" string="Se asigna sola a estas categorias">
+                    <field name="meli_category_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                    <field name="odoo_categ_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                  </group>
                   <group name="gheader" string="Encabezado">
                     <field name="header" nolabel="1" placeholder="Ej.: # {p.name}"/>
                   </group>

@@ -20,6 +20,8 @@
 ##############################################################################
 
 from odoo import fields, models, api
+import logging
+_logger = logging.getLogger(__name__)
 
 class MercadolibreBanner(models.Model):
     _name = "mercadolibre.banner"
@@ -30,6 +32,21 @@ class MercadolibreBanner(models.Model):
     header = fields.Text(string='Encabezado')
     footer = fields.Text(string='Pie')
     images = fields.Text(string='Imagenes (links)')
+    # [#539] Asignacion AUTOMATICA por categoria. La plantilla declara a que categorias aplica,
+    # en vez de una tabla de reglas aparte: se ve en el mismo lugar donde se escribe el texto.
+    # Nacen VACIOS a proposito -> mientras nadie los complete, la resolucion se comporta igual
+    # que antes para todos los clientes. Pedido de FCA, 26-ago-2026.
+    odoo_categ_ids = fields.Many2many(
+        "product.category", "meli_banner_odoo_categ_rel", "banner_id", "categ_id",
+        string="Categorias de Odoo",
+        help="Si el producto pertenece a alguna de estas categorias de Odoo, se usa esta plantilla. "
+             "Dejalo vacio si esta plantilla se asigna a mano.")
+    meli_category_ids = fields.Many2many(
+        "mercadolibre.category", "meli_banner_meli_categ_rel", "banner_id", "meli_categ_id",
+        string="Categorias de MercadoLibre",
+        help="Si el producto se publica en alguna de estas categorias de MercadoLibre, se usa esta "
+             "plantilla. Gana sobre las categorias de Odoo, porque es la categoria con la que se publica.")
+
     images_id = fields.Many2many("mercadolibre.image",string="Imagenes Meli")
 
     # ------------------------------------------------------------------ [#539]
@@ -49,6 +66,52 @@ class MercadolibreBanner(models.Model):
     # el crudo ("Set: {p.x_studio_set}"), no coinciden, el replace no borra nada y la descripcion se
     # ensucia un poco mas en CADA ida y vuelta. No se ve el dia uno; se ve a las 32 publicaciones.
     MELI_DESC_SEP = "\u2014\u2014\u2014"
+
+    @api.model
+    def _meli_banner_for_product(self, product):
+        """Plantilla que corresponde a `product` por CATEGORIA, o un recordset vacio.
+
+        Se usa como paso intermedio de la cadena de resolucion, DESPUES de lo asignado a mano en la
+        variante/plantilla y ANTES del banner global de la configuracion. Devolver vacio deja la
+        cadena como estaba, asi que un cliente que no cargue estas categorias no cambia de
+        comportamiento.
+
+        Desempate DECLARADO (si no, el resultado depende del orden de la base):
+        - la categoria de MercadoLibre gana sobre la de Odoo: es la categoria con la que se publica;
+        - si matchean varias, se toma la de menor id y se LOGUEA cual se eligio y cuales quedaron
+          afuera. Un conflicto silencioso aca se ve recien en la publicacion, y como texto raro.
+        """
+        Banner = self.env["mercadolibre.banner"]
+        if not product:
+            return Banner
+        tmpl = getattr(product, "product_tmpl_id", None) or product
+
+        # 1) por categoria de MercadoLibre
+        meli_cat = ("meli_category" in product._fields and product.meli_category) or \
+                   ("meli_category" in tmpl._fields and tmpl.meli_category) or False
+        if meli_cat:
+            cands = Banner.search([("meli_category_ids", "in", meli_cat.id)], order="id asc")
+            if cands:
+                if len(cands) > 1:
+                    _logger.warning(
+                        "MELI plantilla descriptiva: %s plantillas matchean la categoria de ML %s; "
+                        "se usa %r y quedan afuera %s",
+                        len(cands), meli_cat.display_name, cands[0].name, cands[1:].mapped("name"))
+                return cands[0]
+
+        # 2) por categoria de Odoo
+        categ = ("categ_id" in tmpl._fields and tmpl.categ_id) or False
+        if categ:
+            cands = Banner.search([("odoo_categ_ids", "in", categ.id)], order="id asc")
+            if cands:
+                if len(cands) > 1:
+                    _logger.warning(
+                        "MELI plantilla descriptiva: %s plantillas matchean la categoria de Odoo %s; "
+                        "se usa %r y quedan afuera %s",
+                        len(cands), categ.display_name, cands[0].name, cands[1:].mapped("name"))
+                return cands[0]
+
+        return Banner
 
     def _meli_template_context(self, product, attributes=None):
         """Diccionario de lo que la plantilla puede nombrar. WHITELIST: no se evalua codigo.

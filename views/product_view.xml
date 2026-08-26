@@ -166,6 +166,11 @@
                         <field name="meli_family_name" />
                         <field name="meli_family_id" string="Family Id (ML)" readonly="1"/>
                         <field name="meli_description" />
+                        <!-- [#539] La plantilla descriptiva se elige ACA, como el resto de la
+                             configuracion basica. El campo ya existia y la cadena de resolucion
+                             (variante > plantilla > configuracion > compania) tambien: solo
+                             faltaba poder verlo. Pedido de FCA, 26-ago-2026. -->
+                        <field name="meli_mercadolibre_banner" options="{'no_create': True}"/>
                         <field name="meli_category" />
                         <field name="meli_price" />
                         <field name="meli_dimensions" />
