@@ -67,6 +67,7 @@ class MeliAttributeMapping(models.Model):
     )
     meli_att_id = fields.Char(
         string="ID del atributo", index=True,
+        compute="_compute_meli_att_id", store=True, readonly=False,
         help="Id del atributo en MercadoLibre (BRAND, EDITION, ITEM_CONDITION...). Se completa solo "
              "al elegir el atributo; se puede escribir a mano si el atributo todavía no fue importado.",
     )
@@ -154,11 +155,24 @@ class MeliAttributeMapping(models.Model):
         except Exception:
             return None
 
-    @api.onchange("meli_attribute_id")
-    def _onchange_meli_attribute_id(self):
+    @api.depends("meli_attribute_id")
+    def _compute_meli_att_id(self):
+        """Completa el id del atributo desde el atributo elegido.
+
+        Es `compute` + `store` + `readonly=False` (computed editable) y NO un `onchange` a
+        proposito: el onchange corre SOLO en el formulario, asi que un mapeo cargado por
+        import/carga masiva o por `create()` quedaba con `meli_att_id` vacio y
+        `_meli_attributes_from_mapping()` lo salteaba EN SILENCIO (`if not m.meli_att_id`).
+        Medido el 26-ago-2026 en la instancia de DISELEC (539): el mapeo creado por `create()`
+        no aportaba ningun atributo al body y no habia error ni log.
+        Se sigue pudiendo escribir a mano (`readonly=False`), como promete el `help`, para
+        atributos que todavia no fueron importados de ML.
+        """
         for rec in self:
             if rec.meli_attribute_id:
                 rec.meli_att_id = rec.meli_attribute_id.att_id
+            elif not rec.meli_att_id:
+                rec.meli_att_id = False
 
     @api.onchange("model_name")
     def _onchange_model_name(self):
