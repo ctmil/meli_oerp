@@ -45,6 +45,11 @@
                     Si un dato está vacío, <b>esa línea completa no se publica</b>. Si el nombre del
                     campo no existe, el texto queda a la vista tal cual — es la señal de que está mal
                     escrito.
+                    <br/>Para incluir la descripción que ya tiene cargada el producto: 
+                    <code>{p.meli_description}</code>. <b>Ojo:</b> si esa descripción repite los 
+                    mismos datos que ya arma la plantilla (set, año, ilustrador), van a salir 
+                    <b>duplicados</b>. Conviene sólo cuando ahí hay un texto propio, distinto de 
+                    los campos.
                   </div>
                   <!-- [#539] Asignacion automatica: la plantilla declara a que categorias
                        aplica. Vacio = se asigna a mano en el producto, como hasta ahora. -->
