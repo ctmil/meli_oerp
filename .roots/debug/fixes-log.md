@@ -4,6 +4,53 @@
 
 ---
 
+### 8 sep 2026 — el tracking de ML no llegaba al picking con la orden bloqueada [#530 R&D Metabolismo] (v18.0.26.96)
+
+**Síntoma:** la columna "Número de rastreo" del listado de cotizaciones sale vacía, aunque el
+`mercadolibre.shipment` **sí** tiene `tracking_number`. Reportado en capacitación (cuenta 530, Odoo 18).
+
+**Medición (QA del cliente, `ns-18-qa`, 120 órdenes ML, XML-RPC read-only):**
+
+| `sale.order.locked` | picking con `carrier_tracking_ref` | N |
+|---|---|---|
+| True | vacío | **118** |
+| False | **poblado** | **2** |
+
+Separación perfecta, 120/120. `meli_update_forbidden` era `False` en las 120 ⇒ no era ese gate.
+
+**Causa:** en `shipment.py _update_sale_order_shipping_info()`, la rama de orden `locked`/`done`
+ajusta `purchase_price` y termina en `continue` **antes** de llegar al bloque que escribe
+`carrier_tracking_ref` en el `stock.picking`. El guard es correcto en su intención (no tocar la
+estructura de una orden bloqueada) pero **se llevaba puesto un efecto que no es estructural**: el
+picking no está bloqueado. Y `tracking_number` llega **después** de confirmar la orden — el mismo
+patrón que `shipping_seller_cost`, que esa rama sí contempla.
+
+**Fix:** se extrae la escritura a `_meli_sync_picking_tracking(sorder)` y se la llama en **las dos**
+ramas: en la de orden bloqueada (junto al `purchase_price`) y en el camino normal.
+
+**De paso:** el `search` usaba `('name','like','OUT')`, que depende de la secuencia del picking.
+Reemplazado por `('picking_type_id.code','=','outgoing')`. En esta QA no era la causa (120/120 se
+llamaban `PICK/OUT/…`), pero **falla en silencio** con cualquier secuencia renombrada o localizada.
+
+**Dos hipótesis descartadas antes de llegar acá, y cómo:**
+- *el filtro `like OUT`* — refutada midiendo: 120/120 matcheaban.
+- *el método de envío / logistic_type* — refutada por conteo de valores distintos: los 2 que
+  funcionaban eran `MEL Distribution / fulfillment`, **la misma combinación** que 69 que fallaban.
+
+**Lo que destrabó el caso:** que **2 de 120 sí funcionaran**. Sin ese control positivo el diagnóstico
+apuntaba a "el código está roto", y no lo estaba: escribía el valor correcto, casi nunca llegaba.
+
+**Alcance:** afecta a **toda la flota**. El bloque es idéntico en 16.0/17.0/19.0. Bloquear las
+órdenes ML al confirmarlas es lo normal ⇒ cualquier cliente que lo haga pierde el rastreo en la
+entrega, sin un solo error en el log.
+
+**⚠️ Pendiente de verificación en instancia:** el fix está razonado y compila, pero **todavía no se
+corrió contra datos reales**. Control positivo a exigir antes de portar a 16/17/19: una orden
+**bloqueada** con `tracking_number` en el shipment debe terminar con `carrier_tracking_ref` poblado.
+Las 118 de la QA de 530 son el corpus.
+
+---
+
 ### 21 ago 2026 — port a 18.0 del guard de venta facturada [#493 Shoppy] — reemplaza el guard ad-hoc de 18.0.26.94 (v18.0.26.95)
 
 **Por qué:** el fix de 18.0.26.94 (Elvimarta #508) resolvía el caso con un chequeo propio de `qty_invoiced`
