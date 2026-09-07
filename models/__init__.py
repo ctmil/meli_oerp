@@ -12,6 +12,7 @@ from . import meli_util
 from . import company
 from . import product_image
 from . import product
+from . import product_pricelist
 from . import category
 from . import banner
 from . import posting

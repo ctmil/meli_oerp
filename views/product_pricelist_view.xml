@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- El criterio de impuestos se define donde se define la lista. La configuracion de MeLi lo
+         muestra tambien (campo related), pero el dato vive aca.
+
+         Los anclajes son el grupo `pricelist_settings` y el campo `name`: los dos existen sin
+         `groups=`. Anclar a `currency_id` seria fragil, porque en la vista estandar viene con
+         groups="base.group_multi_currency". -->
+
+    <record id="view_product_pricelist_form_meli" model="ir.ui.view">
+        <field name="name">product.pricelist.form.meli</field>
+        <field name="model">product.pricelist</field>
+        <field name="inherit_id" ref="product.product_pricelist_view"/>
+        <field name="arch" type="xml">
+            <group name="pricelist_settings" position="inside">
+                <field name="meli_include_taxes"/>
+            </group>
+        </field>
+    </record>
+
+    <record id="view_product_pricelist_tree_meli" model="ir.ui.view">
+        <field name="name">product.pricelist.tree.meli</field>
+        <field name="model">product.pricelist</field>
+        <field name="inherit_id" ref="product.product_pricelist_view_tree"/>
+        <field name="arch" type="xml">
+            <field name="name" position="after">
+                <field name="meli_include_taxes" optional="hide"/>
+            </field>
+        </field>
+    </record>
+
+</odoo>

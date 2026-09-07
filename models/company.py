@@ -384,6 +384,15 @@ class res_company(models.Model):
         "when published from Odoo to ML")
     mercadolibre_pricelist_usd = fields.Many2one( "product.pricelist", "Product Pricelist default USD", help="USD Select price list for ML product"
         "when published from Odoo to ML")
+    # Espejo editable del criterio de impuestos de la lista elegida arriba. Es `related` a
+    # proposito: el dato NO se duplica, vive en la lista. Esta aca solamente para que se vea y se
+    # pueda cambiar en la misma pantalla donde se elige la lista, que es donde se lo busca.
+    mercadolibre_pricelist_include_taxes = fields.Boolean(
+        related="mercadolibre_pricelist.meli_include_taxes",
+        readonly=False,
+        string="Al publicar en MeLi, incluir impuestos",
+        help="Propiedad de la lista de precios seleccionada arriba. Apagalo si los precios de esa "
+             "lista ya tienen los impuestos incluidos.")
 
     mercadolibre_order_total_config = fields.Selection( [('manual','Manual'),
                                                         ('manual_conflict','Manual conflict'),

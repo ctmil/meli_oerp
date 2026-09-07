@@ -9,7 +9,7 @@
 {
     'name': 'MercadoLibre Publisher / Mercado Libre Odoo Connector',
     'summary': 'MercadoLibre Publisher / Mercado Libre Odoo Connector',
-    'version': '17.0.26.94',
+    'version': '17.0.26.95',
     'author': 'Moldeo Interactive',
     'website': 'https://www.moldeointeractive.com',
     "category": "Sales",
@@ -21,6 +21,7 @@
         'views/product_post.xml',
         'views/company_view.xml',
         'views/product_view.xml',
+        'views/product_pricelist_view.xml',
     	'views/category_view.xml',
     	'views/banner_view.xml',
         'views/warning_view.xml',

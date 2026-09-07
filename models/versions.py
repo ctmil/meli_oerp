@@ -214,6 +214,27 @@ def meli_message_post(record, body, config=None, once_key=None):
         _logger.warning("meli_message_post failed on %s(%s): %s", record._name, record.id, e)
 disable_cancel_warning_enabled = False
 price_list_apply_tax = True
+
+
+def ml_apply_taxes(pricelist=None):
+    """Si al publicar a MercadoLibre hay que sumarle los impuestos al precio.
+
+    La decision vive en la LISTA DE PRECIOS (`product.pricelist.meli_include_taxes`), porque
+    "estos precios ya llevan el impuesto adentro" es una propiedad de la lista y una instancia
+    puede publicar desde mas de una.
+
+    Cae a la constante de modulo `price_list_apply_tax` en dos casos, y los dos son reales:
+      - no hay lista de precios en juego (se publica `lst_price`), o
+      - el campo todavia no existe en esta base porque el modulo no se actualizo aun.
+    Esto ultimo importa: sin el respaldo, una base a medio actualizar dejaria de aplicar
+    impuestos en silencio.
+
+    Existe como funcion y no como un `if` repetido porque el mismo bloque estaba copiado en tres
+    lugares del suite, que es como se desincronizan.
+    """
+    if pricelist and "meli_include_taxes" in pricelist._fields:
+        return bool(pricelist.meli_include_taxes)
+    return price_list_apply_tax
 search_partner_vat_match = False
 mercadolibre_shipment_print_guide_mode = "pdf"
 
