@@ -4,6 +4,35 @@
 
 ---
 
+## Versión 19.0.26.109 — Vincular publicaciones por CÓDIGO DE BARRAS, sin depender del SKU
+8 sep 2026
+
+**Cambios:**
+
+1. **El problema:** al importar publicaciones, el conector sólo reconocía un producto por su
+   **Referencia interna** (`default_code`). Si el aviso de MercadoLibre no traía SKU, o si el código
+   del catálogo estaba cargado en el **código de barras** y no en la referencia interna, la
+   publicación **no se vinculaba con ningún producto** y había que cargar SKUs sólo para eso.
+2. **Ahora hay un parámetro nuevo:** *Search Barcode*, en la configuración de MercadoLibre de la
+   compañía. Con él encendido, cuando la búsqueda por SKU no encuentra exactamente un producto, el
+   conector reintenta **por código de barras**, en dos casos:
+   - el aviso **sí** trae SKU, pero ese código en Odoo vive en el campo *Código de barras*;
+   - el aviso **no** trae SKU y sí trae **GTIN/EAN**: se busca ese GTIN contra el código de barras.
+   Funciona tanto para la publicación como para cada **variación**.
+3. **Sólo vincula si la coincidencia es única.** Si el código de barras aparece en dos o más
+   productos, **no vincula ninguno** y lo deja anotado en el log. Es a propósito: el código de barras
+   no es único por construcción, y hay catálogos donde ese campo guarda en realidad un código interno
+   — vincular "el primero" asociaría la publicación al producto equivocado, y eso se arrastraría al
+   stock y a las ventas.
+4. **Viene DESACTIVADO.** Al actualizar, el comportamiento no cambia para nadie: hay que encenderlo a
+   propósito en la compañía que lo necesite.
+
+*Este camino ya existía para las **ventas** (una venta de MercadoLibre cuyo SKU no aparecía como
+referencia interna se buscaba por código de barras); esta versión lo lleva también a la
+**vinculación de publicaciones**, que era donde faltaba.*
+
+Requiere actualizar el módulo (`-u meli_oerp`).
+
 ## Versión 19.0.26.94 — Los pedidos ya facturados quedan protegidos de punta a punta (y ahora avisan)
 21 ago 2026
 

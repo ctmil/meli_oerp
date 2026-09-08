@@ -523,6 +523,18 @@ class res_company(models.Model):
         help="Secuencia que da el número correlativo. Si está vacía se usa el id del producto, "
              "que también es único y no necesita configuración.")
     mercadolibre_import_search_sku = fields.Boolean(string='Search SKU',default=True,help='Search product by default_code')
+    mercadolibre_import_search_barcode = fields.Boolean(
+        string='Search Barcode',
+        default=False,
+        help="Vincular publicaciones usando el CODIGO DE BARRAS del producto, sin exigir SKU.\n"
+             "Solo actua como respaldo, DESPUES de que la busqueda por SKU (default_code) no encontro "
+             "exactamente un producto. Cubre dos casos:\n"
+             "- el aviso trae SKU, pero en Odoo ese codigo esta cargado en 'barcode' y no en "
+             "'Referencia interna';\n"
+             "- el aviso NO trae SKU y si trae GTIN/EAN: se busca ese GTIN contra el barcode.\n"
+             "Vincula UNICAMENTE si el resultado es un solo producto: con 0 o con varios deja la "
+             "publicacion sin vincular y lo registra en el log. Viene desactivado a proposito, porque "
+             "hay catalogos donde el barcode no es unico o guarda un SKU interno.")
 
     mercadolibre_seller_user = fields.Many2one("res.users", string="Vendedor", help="Usuario con el que se registrarán las órdenes automáticamente")
     mercadolibre_seller_team = fields.Many2one("crm.team", string="Equipo de ventas", help="Equipo de ventas asociado a las ventas de ML")
@@ -818,6 +830,44 @@ class res_company(models.Model):
         self.product_meli_get_products()
         return {}
 
+    def _meli_item_gtin( self, item_json ):
+        """Devuelve el GTIN/EAN declarado en los atributos de un aviso (o de una variacion).
+
+        Es la llave del caso "el aviso NO trae SKU": ahi no hay nada contra que buscar
+        `default_code`, y lo unico que identifica al producto es el codigo de barras.
+        El camino inverso ya existe en el modulo (`product.py::_meli_gtin_attribute`
+        publica `product.barcode` como atributo GTIN), asi que esto cierra el puente
+        en el sentido ML -> Odoo."""
+        if not item_json or "attributes" not in item_json:
+            return None
+        for att in (item_json["attributes"] or []):
+            if att.get("id") != "GTIN":
+                continue
+            if att.get("value_name"):
+                return att["value_name"]
+            values = att.get("values") or []
+            if values and values[0].get("name"):
+                return values[0]["name"]
+        return None
+
+    def _meli_search_by_barcode( self, code, company_domain ):
+        """Busca UN producto por codigo de barras. Devuelve el recordset solo si hay
+        exactamente una coincidencia.
+
+        El `len()==1` no es prolijidad: `barcode` no es unico por construccion en
+        catalogos reales, y hay clientes que cargan el SKU interno ahi (lo dice el
+        propio modulo en `models/warning.py`). Vincular "el primero" asociaria la
+        publicacion al producto equivocado, y eso se propaga a stock y a ventas."""
+        if not code:
+            return self.env['product.product']
+        found = self.env['product.product'].search([('barcode','=ilike',code)] + company_domain)
+        if len(found) == 1:
+            return found
+        if len(found) > 1:
+            _logger.error("Search Barcode: %s coincidencias para barcode '%s' (%s) -> NO se vincula",
+                          len(found), code, found.mapped('default_code'))
+        return self.env['product.product']
+
     def product_meli_get_products( self, context=None, import_images=True ):
         context = context or self.env.context
         #_logger.info('company.product_meli_get_products() context: '+str(context))
@@ -929,7 +979,9 @@ class res_company(models.Model):
                     response = meli.get("/items/"+item_id, {'access_token':meli.access_token})
                     rjson3 = response.json()
                     seller_sku = None
-                    if ( ( not posting_id or len(posting_id)==0 ) and company.mercadolibre_import_search_sku ):
+                    if ( ( not posting_id or len(posting_id)==0 )
+                         and ( company.mercadolibre_import_search_sku
+                               or company.mercadolibre_import_search_barcode ) ):
                         seller_sku = None
                         if ('seller_custom_field' in rjson3 and rjson3['seller_custom_field'] and len(rjson3['seller_custom_field'])):
                             seller_sku = rjson3['seller_custom_field']
@@ -938,7 +990,7 @@ class res_company(models.Model):
                                 if att["id"] == "SELLER_SKU":
                                     seller_sku = att["values"][0]["name"]
                                     break;
-                        if (seller_sku):
+                        if (seller_sku and company.mercadolibre_import_search_sku):
                             posting_id = self.env['product.product'].search([('default_code','=ilike',seller_sku)]
                                                                             + company_domain)
                             if (not posting_id or len(posting_id)==0):
@@ -957,24 +1009,45 @@ class res_company(models.Model):
                                 if (len(posting_id)>1):
                                     _logger.error("Founded templates more than 2 default code: seller_sku: "+str(seller_sku)+" template: "+str(posting_id.mapped('name')))
 
+                        # Respaldo por CODIGO DE BARRAS (mercadolibre_import_search_barcode).
+                        # Solo corre si la busqueda por SKU no dejo exactamente UN product.product:
+                        # asi, con el parametro apagado el comportamiento es identico al anterior.
+                        # Dos llaves posibles, en este orden:
+                        #   (a) el SKU del aviso, cuando en Odoo ese codigo vive en `barcode`;
+                        #   (b) el GTIN del aviso, cuando el aviso directamente no trae SKU.
+                        if ( company.mercadolibre_import_search_barcode
+                             and not ( posting_id
+                                       and posting_id._name == 'product.product'
+                                       and len(posting_id) == 1 ) ):
+                            barcode_key = seller_sku or self._meli_item_gtin( rjson3 )
+                            barcode_id = self._meli_search_by_barcode( barcode_key, company_domain )
+                            if barcode_id:
+                                posting_id = barcode_id
+                                posting_id.meli_id = item_id
+                                _logger.info("Search Barcode: item %s vinculado por barcode '%s' -> %s",
+                                             item_id, barcode_key, posting_id.display_name)
+
                         #Set or and search  using variation id
                         if ('variations' in rjson3):
                             for var in rjson3['variations']:
-                                if ('seller_custom_field' in var and var['seller_custom_field'] and len(var['seller_custom_field'])):
+                                if (company.mercadolibre_import_search_sku
+                                    and 'seller_custom_field' in var and var['seller_custom_field'] and len(var['seller_custom_field'])):
                                     posting_id = self.env['product.product'].search([('default_code','=',var['seller_custom_field'])]
                                                                                     + company_domain)
                                     if (posting_id and len(posting_id)==1):
                                         posting_id.meli_id = item_id
                                         if (len(posting_id.product_tmpl_id.product_variant_ids)>1):
                                             posting_id.meli_id_variation = var['id']
-                                if (not posting_id  and 'seller_sku' in var and var['seller_sku'] and len(var['seller_sku'])):
+                                if (company.mercadolibre_import_search_sku
+                                    and not posting_id  and 'seller_sku' in var and var['seller_sku'] and len(var['seller_sku'])):
                                     posting_id = self.env['product.product'].search([('default_code','=',var['seller_sku'])]
                                                                                     + company_domain)
                                     if (posting_id and len(posting_id)==1):
                                         posting_id.meli_id = item_id
                                         if (len(posting_id.product_tmpl_id.product_variant_ids)>1):
                                             posting_id.meli_id_variation = var['id']
-                                if not posting_id  and not seller_sku and "attributes" in var:
+                                if (company.mercadolibre_import_search_sku
+                                    and not posting_id and not seller_sku and "attributes" in var):
                                     for att in var['attributes']:
                                         if att["id"] == "SELLER_SKU":
                                             seller_sku = att["values"][0]["name"]
@@ -985,6 +1058,23 @@ class res_company(models.Model):
                                         posting_id.meli_id = item_id
                                         if (len(posting_id.product_tmpl_id.product_variant_ids)>1):
                                             posting_id.meli_id_variation = var['id']
+
+                                # Respaldo por CODIGO DE BARRAS de la VARIACION.
+                                # Misma regla que a nivel item: SKU de la variacion primero, GTIN
+                                # de la variacion despues, y solo se vincula con UNA coincidencia.
+                                if ( company.mercadolibre_import_search_barcode
+                                     and not ( posting_id and len(posting_id)==1 ) ):
+                                    var_key = ( var.get('seller_custom_field')
+                                                or var.get('seller_sku')
+                                                or self._meli_item_gtin( var ) )
+                                    var_id = self._meli_search_by_barcode( var_key, company_domain )
+                                    if var_id:
+                                        posting_id = var_id
+                                        posting_id.meli_id = item_id
+                                        if (len(posting_id.product_tmpl_id.product_variant_ids)>1):
+                                            posting_id.meli_id_variation = var['id']
+                                        _logger.info("Search Barcode: variacion %s de %s vinculada por barcode '%s' -> %s",
+                                                     var.get('id'), item_id, var_key, posting_id.display_name)
 
                     if (posting_id or force_dont_create):
                         if posting_id:

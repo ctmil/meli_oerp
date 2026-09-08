@@ -4,6 +4,52 @@
 
 ---
 
+### 8 sep 2026 — vinculación de publicaciones por barcode, sin exigir SKU [acct 535 The 3 Letters] (v19.0.26.109)
+
+**Pedido (FCA, 8-sep 15:45Z):** *"que no necesiten vincular obligatoriamente SKU sino que puedan usar
+solo BARCODE para las vinculaciones, eso sería un nuevo parámetro para la conf de meli"*.
+
+**Dónde estaba el límite:** `models/company.py::product_meli_get_products`. Las **4** búsquedas de
+vinculación miraban únicamente `default_code` (item: `seller_custom_field` / atributo `SELLER_SKU`;
+variación: `seller_custom_field`, `seller_sku`, atributo `SELLER_SKU`). Sin SKU en el aviso, o con el
+código cargado en `barcode`, la publicación quedaba sin vincular.
+
+**El molde ya existía en el propio suite, en otro camino:** `models/orders.py::search_meli_product`
+busca `default_code` y **reintenta contra `barcode`** si no encuentra uno solo. Este fix lleva ese
+mismo idioma a la vinculación; no inventa un mecanismo nuevo.
+
+**Qué se agregó:**
+- `mercadolibre_import_search_barcode` (Boolean, **default `False`**, opt-in) + campo en la vista.
+- `_meli_item_gtin(item_json)` — saca el GTIN de los atributos del aviso o de la variación. Cubre las
+  **dos formas** en que ML lo devuelve (`value_name` y `values[0]['name']`). Es la llave del caso
+  "aviso sin SKU". El camino inverso ya existía (`product.py::_meli_gtin_attribute` publica
+  `product.barcode` como GTIN), así que esto cierra el puente ML → Odoo.
+- `_meli_search_by_barcode(code, company_domain)` — **devuelve producto sólo si la coincidencia es
+  única**; con >1 loguea y devuelve vacío.
+- Respaldo por barcode a nivel **item** y a nivel **variación**, corriendo sólo si la búsqueda por SKU
+  no dejó exactamente un `product.product`.
+- El gate del bloque pasó a `search_sku or search_barcode`, y **cada** búsqueda por SKU quedó
+  condicionada a `search_sku`: así se puede usar barcode con SKU apagado, y con ambos en su default el
+  comportamiento es idéntico al anterior.
+
+**Por qué el `len()==1` es la regla y no un detalle:** `barcode` no es único por construcción, y el
+propio módulo documenta el caso *"barcode = SKU interno, no un EAN real"* (`models/warning.py:47`).
+Un respaldo mal acotado vincula la publicación al producto **equivocado**, y eso se propaga a stock y
+a ventas — un daño peor que el que se venía a arreglar.
+
+**Control (`.roots/workbench/leaves/2026-09-08-535-barcode/control.py`, en el workspace):** extrae los
+dos métodos nuevos del archivo real y los corre contra dobles del ORM que imitan el recordset vacío de
+Odoo (falsy, `len` 0, iterable). 11 casos, **con controles que pueden fallar**: aviso sin GTIN, sin
+`attributes`, GTIN vacío, 0 coincidencias, llave vacía, y **el catálogo con barcode duplicado**, donde
+se muestra explícitamente que una implementación que devolviera "el primero" daría un producto y la
+nuestra da vacío. Todos en verde.
+
+⚠️ **Límite declarado:** el control **NO** ejercita el `product_meli_get_products` completo (necesita
+una instancia Odoo con datos). Lo verificado son los dos métodos nuevos y la regla de unicidad; el
+cableado de los respaldos se revisó por lectura, no por corrida. **Falta prueba en instancia.**
+
+---
+
 ### 21 ago 2026 — port a 19.0 del guard de venta facturada [#493 Shoppy] — reemplaza el guard ad-hoc de 19.0.26.93 (v19.0.26.94)
 
 **Por qué:** el fix de 19.0.26.93 (Elvimarta #508) resolvía el caso con un chequeo propio de `qty_invoiced`
