@@ -41,12 +41,36 @@
                   <separator/>
                   <filter string="Con mensajes del comprador sin leer" name="meli_unread_msgs" domain="[('meli_unread_messages','>',0)]" />
                   <filter string="MercadoLibre Quotations" name="sale_orders_ml" domain="[('meli_order_id','!=',False)]" />
+                  <!-- Canceladas en ML. Incluye los tres estados que en la practica
+                       significan "esta venta no va": cancelled, pending_cancel (ML ya
+                       la cancelo pero queda una accion pendiente) e invalid (compra
+                       maliciosa). Filtrar solo por 'cancelled' deja afuera las otras
+                       dos y da un conteo optimista. -->
+                  <filter string="MercadoLibre Canceladas" name="sale_orders_ml_cancelled"
+                          domain="[('meli_order_id','!=',False),
+                                   ('meli_status','in',['cancelled','pending_cancel','invalid'])]" />
+                  <!-- EL ACCIONABLE: canceladas en ML que en Odoo NO estan canceladas.
+                       Son las que hay que revisar a mano, porque en Odoo siguen vivas
+                       (y pueden facturarse o despacharse) mientras en ML ya no existen.
+                       Las que ya estan 'cancel' en Odoo no requieren accion: quedan
+                       fuera a proposito para que este filtro sea una LISTA DE TAREAS
+                       y no un informe. -->
+                  <filter string="MercadoLibre Canceladas a Revisar" name="sale_orders_ml_cancelled_todo"
+                          domain="[('meli_order_id','!=',False),
+                                   ('meli_status','in',['cancelled','pending_cancel','invalid']),
+                                   ('state','!=','cancel')]" />
                   <filter string='MercadoLibre Status' domain="[]"
         								context="{'group_by' : 'meli_status'}" name="meli_status_filter"/>
                   <!--filter string='MercadoLibre Status Brief' domain="[]"
         								context="{'group_by' : 'meli_status_brief'}" name="meli_status_brief_filter"/-->
                   <filter string='MercadoLibre Logistic Type' domain="[]"
                         context="{'group_by' : 'meli_shipment_logistic_type'}" name="meli_shipment_logistic_type_filter"/>
+                  <!-- Estado de Odoo, para cruzarlo con el de ML: aplicando los dos
+                       agrupados queda "Estado MELI > Estado Odoo" y se ven de un
+                       vistazo los desalineados (p.ej. cancelada en ML y confirmada
+                       en Odoo). -->
+                  <filter string='Estado de Odoo' domain="[]"
+                        context="{'group_by' : 'state'}" name="meli_odoo_state_filter"/>
                 </xpath>
             </field>
         </record>
