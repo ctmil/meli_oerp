@@ -4,6 +4,31 @@
 
 ---
 
+## Versión 18.0.26.97 — Filtros para encontrar las ventas canceladas en ML que siguen vivas en Odoo
+10 sep 2026
+
+**Cambios:**
+
+1. **Nuevo filtro "MercadoLibre Canceladas pendientes en Odoo".** Lista exactamente las ventas
+   que muestran el banner naranja *"Cancelada en MercadoLibre - pendiente en Odoo"* (ACCION
+   REQUERIDA): en Odoo siguen vivas y pueden facturarse o despacharse, mientras en MercadoLibre ya
+   no existen. Hasta ahora ese aviso **solo se veia abriendo la orden de a una**; con el filtro se
+   ven todas juntas. Las que ya estan canceladas de los dos lados quedan fuera: el filtro es una
+   **lista de tareas**, no un informe.
+   *Medido en un cliente al agregarlo: **7 ventas** por **$4.352,91**, y **5 de ellas esperando
+   facturacion**. Ninguna facturada todavia.*
+
+2. **Nuevo filtro "MercadoLibre Canceladas"**, con el panorama completo. Incluye los **tres**
+   estados que en la practica significan que la venta no va: cancelada, pendiente de cancelar
+   (MercadoLibre ya la cancelo pero queda una accion) e invalida (compra maliciosa). Filtrar solo
+   por "cancelada" deja afuera las otras dos y da un conteo optimista.
+
+3. **Los filtros estan en las DOS pantallas: Cotizaciones y Ordenes de venta.** Hacen falta en
+   ambas, y sobre todo en Ordenes de venta: una orden confirmada es justamente la que puede
+   facturarse o despacharse aunque MercadoLibre ya la haya cancelado.
+
+4. **Nuevo agrupado "Estado de Odoo".** Junto con el de "MercadoLibre Status" que ya existia,
+   permite cruzar los dos estados y ver de un vistazo los desalineados.
 ## Versión 18.0.26.96 — El número de rastreo ahora llega a la entrega, aunque el pedido esté bloqueado
 8 sep 2026
 
