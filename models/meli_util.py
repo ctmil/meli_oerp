@@ -1250,17 +1250,23 @@ class MeliUtil(models.AbstractModel):
                                     refresh = api_rest_client.get_refresh_token()
                                     _logger.info("Refresh result: "+str(refresh))
                                     if (refresh):
-                                        #refjson = refresh.json()
-                                        refjson = refresh
-                                        logs+= str(refjson)+"\n"
-                                        if "access_token" in refjson:
-                                            api_rest_client.access_token = refjson["access_token"]
-                                            api_rest_client.refresh_token = refjson["refresh_token"]
+                                        logs+= str(refresh)+"\n"
+                                        # NO preguntar `if "access_token" in refresh`: get_refresh_token()
+                                        # devolvia el access_token (un str) y eso era un test de SUBCADENA
+                                        # que daba False SIEMPRE -> el token nuevo se pedia a ML y NUNCA se
+                                        # guardaba. Se persiste desde los atributos del cliente SDK, que
+                                        # quedan seteados en las dos formas de respuesta (dict o str).
+                                        new_token = api_rest_client.access_token
+                                        new_refresh = api_rest_client.refresh_token
+                                        if new_token:
                                             api_rest_client.code = ''
-                                            company.write({ 'mercadolibre_access_token': api_rest_client.access_token,
-                                                            'mercadolibre_refresh_token': api_rest_client.refresh_token,
+                                            company.write({ 'mercadolibre_access_token': new_token,
+                                                            'mercadolibre_refresh_token': new_refresh,
                                                             'mercadolibre_code': '' } )
                                             api_rest_client.needlogin_state = False
+                                            _logger.info("Refresh PERSISTIDO para %s (token nuevo guardado en la compania)", company.name)
+                                        else:
+                                            _logger.error("Refresh devolvio %s pero el cliente SDK quedo sin access_token: NO se guarda nada", type(refresh).__name__)
                                 except Exception as e:
                                     errors += str(e)
                                     logs += str(e)
