@@ -23,7 +23,11 @@
    (MercadoLibre ya la cancelo pero queda una accion) e invalida (compra maliciosa). Filtrar solo
    por "cancelada" deja afuera las otras dos y da un conteo optimista.
 
-3. **Nuevo agrupado "Estado de Odoo".** Junto con el de "MercadoLibre Status" que ya existia,
+3. **Los filtros estan en las DOS pantallas: Cotizaciones y Ordenes de venta.** Hacen falta en
+   ambas, y sobre todo en Ordenes de venta: una orden confirmada es justamente la que puede
+   facturarse o despacharse aunque MercadoLibre ya la haya cancelado.
+
+4. **Nuevo agrupado "Estado de Odoo".** Junto con el de "MercadoLibre Status" que ya existia,
    permite cruzar los dos estados y ver de un vistazo los desalineados.
 
 ---

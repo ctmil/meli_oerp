@@ -17,6 +17,22 @@
                   <field name="meli_receiver_zip_code" string="ML CP"/>
                   <separator/>
                   <filter string="MercadoLibre Orders" name="sale_orders_ml" domain="[('meli_order_id','!=',False)]" />
+                  <!-- Mismos filtros que en la vista de Cotizaciones: el aviso de
+                       cancelacion pendiente hace falta en las DOS pantallas, y de
+                       hecho aca mas, porque una orden de venta confirmada es la que
+                       puede facturarse o despacharse. Los dominios son identicos:
+                       si se toca uno, tocar el otro. -->
+                  <filter string="MercadoLibre Canceladas" name="sale_orders_ml_cancelled"
+                          domain="[('meli_order_id','!=',False),
+                                   ('meli_status','in',['cancelled','pending_cancel','invalid'])]" />
+                  <filter string="MercadoLibre Canceladas pendientes en Odoo" name="sale_orders_ml_cancel_pending"
+                          domain="[('meli_order_id','!=',False),
+                                   ('meli_status','=','cancelled'),
+                                   ('state','!=','cancel')]" />
+                  <filter string='MercadoLibre Status' domain="[]"
+                          context="{'group_by' : 'meli_status'}" name="meli_status_filter"/>
+                  <filter string='Estado de Odoo' domain="[]"
+                          context="{'group_by' : 'state'}" name="meli_odoo_state_filter"/>
                 </xpath>
             </field>
         </record>
