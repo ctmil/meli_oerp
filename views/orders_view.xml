@@ -49,15 +49,19 @@
                   <filter string="MercadoLibre Canceladas" name="sale_orders_ml_cancelled"
                           domain="[('meli_order_id','!=',False),
                                    ('meli_status','in',['cancelled','pending_cancel','invalid'])]" />
-                  <!-- EL ACCIONABLE: canceladas en ML que en Odoo NO estan canceladas.
-                       Son las que hay que revisar a mano, porque en Odoo siguen vivas
-                       (y pueden facturarse o despacharse) mientras en ML ya no existen.
-                       Las que ya estan 'cancel' en Odoo no requieren accion: quedan
-                       fuera a proposito para que este filtro sea una LISTA DE TAREAS
-                       y no un informe. -->
-                  <filter string="MercadoLibre Canceladas a Revisar" name="sale_orders_ml_cancelled_todo"
+                  <!-- EL ACCIONABLE: las que muestran el banner naranja "Cancelada en
+                       MercadoLibre - pendiente en Odoo" (ACCION REQUERIDA). En Odoo
+                       siguen vivas y pueden facturarse o despacharse, mientras en ML
+                       ya no existen.
+                       ⚠️ El dominio replica EXACTAMENTE la condicion de
+                       _compute_meli_cancel_pending_banner (meli_status == 'cancelled'
+                       y state != 'cancel'). El campo del banner es compute store=False,
+                       asi que no se puede filtrar por el: hay que duplicar la condicion.
+                       Si esa condicion cambia, ESTE DOMINIO TAMBIEN, o el filtro va a
+                       listar ordenes sin banner y el usuario no va a entender por que. -->
+                  <filter string="MercadoLibre Canceladas pendientes en Odoo" name="sale_orders_ml_cancel_pending"
                           domain="[('meli_order_id','!=',False),
-                                   ('meli_status','in',['cancelled','pending_cancel','invalid']),
+                                   ('meli_status','=','cancelled'),
                                    ('state','!=','cancel')]" />
                   <filter string='MercadoLibre Status' domain="[]"
         								context="{'group_by' : 'meli_status'}" name="meli_status_filter"/>

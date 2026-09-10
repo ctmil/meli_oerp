@@ -9,11 +9,12 @@
 
 **Cambios:**
 
-1. **Nuevo filtro "MercadoLibre Canceladas a Revisar".** Muestra las ventas que MercadoLibre
-   cancelo pero que en Odoo **siguen sin cancelar**. Son las unicas que requieren accion: en Odoo
-   pueden facturarse o despacharse aunque en MercadoLibre ya no existan. Las que ya estan
-   canceladas de los dos lados quedan fuera a proposito, para que el filtro sea una **lista de
-   tareas** y no un informe.
+1. **Nuevo filtro "MercadoLibre Canceladas pendientes en Odoo".** Lista exactamente las ventas
+   que muestran el banner naranja *"Cancelada en MercadoLibre - pendiente en Odoo"* (ACCION
+   REQUERIDA): en Odoo siguen vivas y pueden facturarse o despacharse, mientras en MercadoLibre ya
+   no existen. Hasta ahora ese aviso **solo se veia abriendo la orden de a una**; con el filtro se
+   ven todas juntas. Las que ya estan canceladas de los dos lados quedan fuera: el filtro es una
+   **lista de tareas**, no un informe.
    *Medido en un cliente al agregarlo: **7 ventas** por **$4.352,91**, y **5 de ellas esperando
    facturacion**. Ninguna facturada todavia.*
 
