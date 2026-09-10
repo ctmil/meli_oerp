@@ -17,6 +17,10 @@
                   <field name="meli_receiver_zip_code" string="ML CP"/>
                   <separator/>
                   <filter string="MercadoLibre Orders" name="sale_orders_ml" domain="[('meli_order_id','!=',False)]" />
+                  <!-- #494: las ventas que ML canceló y en Odoo siguen vivas. Es donde caen
+                       las facturas emitidas contra una venta que no ocurrió. -->
+                  <filter string="Cancelado en ML, vivo en Odoo" name="meli_cancel_pending"
+                          domain="[('meli_cancel_pending','=',True)]" />
                 </xpath>
             </field>
         </record>
@@ -39,6 +43,8 @@
                   <field name="meli_update_forbidden" string="No actualizar desde ML"/>
 
                   <separator/>
+                  <filter string="Cancelado en ML, vivo en Odoo" name="meli_cancel_pending"
+                          domain="[('meli_cancel_pending','=',True)]" />
                   <filter string="Con mensajes del comprador sin leer" name="meli_unread_msgs" domain="[('meli_unread_messages','>',0)]" />
                   <filter string="MercadoLibre Quotations" name="sale_orders_ml" domain="[('meli_order_id','!=',False)]" />
                   <filter string='MercadoLibre Status' domain="[]"

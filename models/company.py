@@ -368,6 +368,7 @@ class res_company(models.Model):
     mercadolibre_cron_get_orders_status = fields.Boolean(string='Re-sincronizar estado de pedidos',help='#475 Cron dedicado: re-consulta por ID a MercadoLibre los pedidos abiertos recientes y refleja cancelaciones/cambios de estado que la ventana date_desc del cron de importacion no alcanza.',default=True)
     mercadolibre_cron_orders_status_days = fields.Integer(string='Dias re-sync de estado',help='Ventana en dias hacia atras (por fecha de creacion) de pedidos abiertos a re-consultar en el cron de re-sync de estado.',default=7)
     mercadolibre_cron_orders_status_limit = fields.Integer(string='Max pedidos por ciclo (re-sync estado)',help='Tope de pedidos a re-consultar por ciclo del cron de re-sync de estado, para acotar el uso de API (rate-limit).',default=100)
+    mercadolibre_cron_orders_redrain_days = fields.Integer(string='Dias re-intento de cancelaciones trabadas',help='#494 Ventana en dias del re-intento LOCAL (sin llamadas a la API) de las cancelaciones de MercadoLibre que quedaron a medio aplicar: pedidos ML ya cancelados cuya venta en Odoo sigue viva (tipicamente porque hay una factura publicada sin resolver). En cuanto se resuelve la factura, la venta se cancela sola en el ciclo siguiente. 0 = desactivado.',default=90)
     mercadolibre_cron_get_questions = fields.Boolean(string='Importar preguntas',help='Cron Get Questions')
     mercadolibre_cron_get_update_products = fields.Boolean(string='Actualizar productos en Odoo',help='Cron Update Products already imported')
     mercadolibre_cron_post_update_products = fields.Boolean(string='Actualizar productos en ML',help='Cron Update Posted Products, Product Templates or Variants with Meli Publication field checked')
@@ -540,6 +541,22 @@ class res_company(models.Model):
              "ni sus montos (en particular la línea de envío): deja el pedido como está y avisa "
              "en el chatter que encontró una diferencia. Evita que el pedido quede por debajo "
              "de lo que se facturó. Desactivar solo si se necesita el comportamiento anterior.",
+    )
+
+    # [#411 Shoppy] Ver la nota gemela en meli_oerp_multiple/models/connection_configuration.py:
+    # este campo se declara en los DOS modelos y el default DEBE ser el mismo en ambos.
+    mercadolibre_force_shipping_from_ml = fields.Boolean(
+        string="Forzar envío con el importe informado por ML",
+        default=False,
+        help="Criterio confirmado por el cliente en el ticket #411 (20-ago-2026): cuando "
+             "MercadoLibre informa que el comprador pagó el envío, la línea de MercadoEnvíos "
+             "se carga con ESE importe, aunque el cálculo interno del conector no lo devuelva "
+             "al crear la venta.\n\n"
+             "Sólo actúa si ML informa un flete mayor a 0 (envío gratis/bonificado queda en 0), "
+             "si hay pago cargado, si el pedido no está cancelado y si el hueco de la venta "
+             "coincide con el flete informado. Nunca reescribe una venta ya facturada.\n\n"
+             "APAGADO por default: cambia el total de la factura, así que se enciende por cuenta "
+             "y a pedido del cliente.",
     )
 
     #mercadolibre_use_buyer_name = fields.Boolean(string="Use buyer name",default=True)

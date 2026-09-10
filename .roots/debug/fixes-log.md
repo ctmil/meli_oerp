@@ -4,6 +4,116 @@
 
 ---
 
+### 23 ago 2026 — `disable_cancel_warning_enabled = False`: la cancelacion FINGIA cancelar — v26.97 `[#494 Shoppy 502]`
+
+**El defecto.** `models/versions.py` traia `disable_cancel_warning_enabled = False` y los cuatro call
+sites hacian `with_context(disable_cancel_warning=disable_cancel_warning_enabled).action_cancel()`.
+En el core de Odoo **16/17/18**:
+
+```python
+def _show_cancel_wizard(self):
+    if self.env.context.get('disable_cancel_warning'):
+        return False
+    return any(so.state != 'draft' for so in self)
+```
+
+Con la clave en `False` el guard **no corta** ⇒ `action_cancel()` **devuelve el dict de la accion de
+ventana del wizard `sale.order.cancel`** y **no cancela**. Desde un cron nadie abre esa ventana.
+**Ninguna venta confirmada se cancelaba.** Solo las de borrador, que no pasan por el wizard — por eso
+`test_cancel_draft_order` era el unico de su familia que pasaba.
+
+**Y es peor que un error, porque no lo parece:** no lanza excepcion, no loguea nada, y el paso 5 de
+`meli_cancel_with_detail()` posteaba el motivo en el chatter **pasara lo que pasara**. Quedaba escrito
+*"Orden cancelada por MercadoLibre"* sobre una venta viva. Un rastro de haber hecho el trabajo es lo
+que hace que un defecto sobreviva meses. Es **independiente** de
+`mercadolibre_invoice_cancel_mode='manual'`: ocurre con cero facturas de por medio.
+
+**Por que estaba en `False` — averiguado, no supuesto.** Nacio en **`True`** en `3995cfe3` *"Up 25.20
+cancel with disable_cancel_warning"* (18-sep-2025). Lo invirtio `d96e0d27` *"Upgraded 18.0.25.29"*
+(7-nov-2025, y sus gemelos por rama `0e985d4a` en 16.0, `c143ba0d`, `d0eaffe6`, `7f39ceb2`, `63c6eda0`):
+un commit grande que en el **mismo movimiento** (a) reemplazo los `disable_cancel_warning=True`
+literales de los 4 call sites por la constante y (b) puso la constante en `False`, junto con
+`price_list_apply_tax = True`. O sea: **no fue una decision de comportamiento, fue un default puesto
+al reves en un refactor mecanico**, y el nombre lo habilito — `disable_cancel_warning_enabled` es un
+doble negativo que se lee natural como *"¿esta activo el aviso de cancelacion?"*, y `False` suena a
+"no avisar" cuando significa exactamente lo contrario.
+La prueba independiente: **`meli_oerp_multiple` nunca paso por ese refactor** y sigue con
+`disable_cancel_warning=True` literal (`wizard/wizard_orders_actions.py:724` y `:727`). La intencion
+original esta a la vista.
+
+**El fix.**
+- *`versions.py`*: la constante vuelve a `True`, **documentada** con el doble negativo, la historia y
+  el efecto de cada valor. Se conserva el nombre porque `versions` se importa con `*`.
+- *`sale.order._meli_action_cancel()`* (nuevo): fuerza `disable_cancel_warning=True` **siempre**, sin
+  leer la constante — la correccion no puede depender de un global que cualquiera vuelve a apagar —,
+  **distingue dict de bool**, y si vuelve un dict cae al camino interno `_action_cancel()` (el mismo
+  que ejecuta el boton del wizard) y **verifica `state == 'cancel'`**. Devuelve bool.
+- *`meli_cancel_with_detail()`*: usa el helper, **devuelve bool**, y postea el `cancel_msg` **solo si
+  la venta quedo cancelada**. Si no, deja un aviso explicito con `once_key`. El camino de factura
+  publicada sin resolver ahora devuelve `False` en vez de `None`.
+- *`sale.order.cancel.wiz.meli.cancel_order()`* (la accion manual "Desbloquear y Cancelar"): tenia el
+  mismo defecto y tampoco cancelaba nada; pasa por el helper.
+
+**Alcance por version.** 16.0 / 17.0 / 18.0: **bug activo**, mismo core. **19.0**: el core **elimino**
+el wizard y la clave (`action_cancel()` llama siempre a `_action_cancel()`), asi que ahi **no hay bug**;
+igual se alinea la constante y el helper, que en 19 es correcto y deja las 4 versiones identicas.
+
+**Tests.** `tests/test_meli_cancel.py` pasa de **5/10** a **14 tests**. Se arreglaron los **3 errores de
+fixture** que morian en `invoice.action_post()` con *"El diario requiere un tipo de documento"*: la
+localizacion AR exige `l10n_latam_document_type_id` y el test no lo seteaba, asi que **ni siquiera
+llegaban al codigo del #494** y su ERROR se leia como si el #494 estuviera roto. Helper `_post_invoice()`
+(resuelve el tipo de documento si l10n_latam esta instalado; en instancias sin la localizacion es un
+`action_post()` normal) + responsabilidad AFIP en el partner del fixture. Se agrego el **control
+negativo** que reproduce el defecto contra el core (`action_cancel()` sin contexto devuelve dict y la
+venta NO queda cancelada) y el test de que **el chatter no afirma una cancelacion que no ocurrio**.
+
+---
+
+### 23 ago 2026 — la cancelacion de ML que no se podia aplicar salia de la cola PARA SIEMPRE — v26.95 `[#494 Shoppy]`
+
+`orders_resync_status` (el cron de re-sync de estado del #475) escribe `order.status = 'cancelled'` en
+cuanto ML lo informa, y **su propio dominio de barrido excluye** `("status","not in",("cancelled","invalid"))`.
+Si en esa misma pasada `meli_cancel_with_detail()` abortaba — el caso normal cuando ya hay factura
+publicada sin resolver, que en Shoppy es el **100%** de los casos — la venta quedaba viva y el pedido
+ML **no volvia a entrar al barrido nunca**. Mismo patron que
+[[meli-estado-de-error-saca-la-publicacion-de-la-cola-para-siempre]].
+
+El unico rastro eran (a) un aviso en el chatter con `once_key`, o sea **una sola vez**, y (b) el banner
+del formulario, que exige abrir las ventas **de a una**. Con 96 ventas en esa situacion, eso no es
+observabilidad.
+
+- *Fix 1 (el limbo):* `mercadolibre.orders._orders_redrain_pending_cancels()`, segunda pasada **local**
+  al final de cada ciclo del cron: busca en la base los pedidos ML `status='cancelled'` cuya venta sigue
+  en `draft/sent/sale/done` y los vuelve a pasar por `meli_cancel_with_detail()`. **Cero llamadas a la
+  API.** Idempotente: si la factura sigue publicada el helper vuelve a abortar sin efectos (los avisos
+  ya estan protegidos por `once_key`). Ventana `mercadolibre_cron_orders_redrain_days` (default 90,
+  `0` = off). El backlog que sigue trabado se emite como **WARNING**, no como info — que es exactamente
+  el defecto que le costo meses a este mismo cliente en el #521.
+- *Fix 2 (paridad de estado):* `update_order_status()` escribia `sorder.meli_status = 'cancelled'`;
+  `orders_resync_status()` **no**. Como `meli_status` es stored y solo se refresca via el compute no
+  almacenado `_meli_status_brief` (o sea al abrir el registro), el banner
+  `meli_cancel_pending_banner` y cualquier filtro por `meli_status` **mentian** hasta que un humano
+  entrara a la venta. Ahora las dos rutas lo escriben.
+- *Fix 3 (que el cliente pueda auditarlo el):* campo `sale.order.meli_cancel_pending`
+  (compute+store+index) + filtro **"Cancelado en ML, vivo en Odoo"** en las dos vistas de busqueda de
+  ventas. Hasta ahora ese listado se armaba a mano en CSV (10/8, 19/8, 21/8) y **el numero cambiaba con
+  el criterio de quien lo armaba** (72 -> 80 -> 96). Con el campo, el criterio es uno solo y esta en el
+  codigo.
+- ⚠️ *Lo que este fix NO hace, a proposito:* **no** cambia el default de
+  `mercadolibre_invoice_cancel_mode` (sigue en `manual`) y **no** toca ninguna factura publicada. Que el
+  numero deje de **crecer** depende de esa configuracion, que es una decision fiscal del cliente. Ver
+  `.roots/tasks/PLAN-2026-08-23-494-cancelar-venta-al-cancelar-ml.md`.
+- 🔎 *Punto ciego conocido, NO corregido (falta medirlo):* el dominio de `orders_resync_status` excluye
+  `shipment_status = 'delivered'` con el argumento de que *"la cancelacion por el comprador es SIEMPRE
+  pre-entrega"*. Eso **no vale para mediaciones**: en Shoppy hay 9 canceladas por `mediations` que
+  pueden caer ahi y no ser re-consultadas nunca. Requiere medir en la instancia antes de tocar el
+  dominio (costo de API).
+- *Tests:* `tests/test_meli_cancel.py` (TransactionCase, tag `meli_cancel`) cubre los 5 bordes
+  (borrador / confirmada / entregada / facturada / con pago conciliado) + el re-drain.
+  ⚠️ **Escritos pero NO ejecutados** en esta sesion: no habia entorno Odoo 16 con base para correrlos.
+
+---
+
 ### 10 ago 2026 — el guard de venta facturada tenia TRES bypass (y el aviso del chatter mentia) — v26.93 `[#493 Shoppy]`
 
 El fix `de715a23` (26.89) puso el guard **dentro de `set_delivery_line`**, con un comentario que

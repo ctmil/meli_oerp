@@ -699,6 +699,61 @@ class sale_order(models.Model):
                     res = {'error': str(e)}
         return res
 
+    def _meli_action_cancel(self):
+        """Cancela la venta DE VERDAD y devuelve si lo logró. #494
+
+        POR QUE EXISTE. `sale.order.action_cancel()` del core tiene DOS retornos
+        distintos y ninguna excepción entre medio:
+
+          * un **bool** cuando canceló (camino `_action_cancel()`), o
+          * un **dict** — la acción de ventana del wizard `sale.order.cancel` —
+            cuando `_show_cancel_wizard()` da True, o sea siempre que la venta no
+            esté en borrador y el contexto no traiga `disable_cancel_warning`.
+
+        Ese dict es para que la INTERFAZ abra un formulario. Desde un cron nadie lo
+        abre: la venta queda como estaba, no se loguea nada, no salta ninguna
+        excepción. El llamador cree que canceló. Eso es exactamente lo que pasó
+        entre nov-2025 y hoy (ver `versions.disable_cancel_warning_enabled`).
+
+        Acá se fuerza la clave de contexto a True SIEMPRE — no se lee de la
+        constante, porque la corrección no puede depender de un global que
+        cualquiera puede volver a apagar — y además **se verifica el estado**, que
+        es la única prueba que no se puede falsificar: si un tercero pisa
+        `_show_cancel_wizard()` o `action_cancel()`, el dict vuelve igual y caemos
+        al camino interno `_action_cancel()`, que es el mismo que ejecuta el botón
+        del wizard.
+
+        Odoo 19 ya no tiene wizard ni clave: `action_cancel()` cancela siempre y
+        `disable_cancel_warning` es inerte. Este helper sigue siendo correcto ahí.
+
+        :return: True si la venta quedó en state == 'cancel'.
+        :rtype: bool
+        """
+        self.ensure_one()
+        if self.state == 'cancel':
+            return True
+
+        res = self.with_context(disable_cancel_warning=True).action_cancel()
+
+        if isinstance(res, dict):
+            # El wizard se filtró igual. No damos por cancelado un dict.
+            _logger.warning(
+                "_meli_action_cancel: action_cancel() devolvió el wizard %s en la venta %s "
+                "en vez de cancelar — se cancela por el camino interno _action_cancel()",
+                res.get('res_model') or res.get('type'), self.name,
+            )
+            if hasattr(self, '_action_cancel'):
+                self._action_cancel()
+
+        cancelled = self.state == 'cancel'
+        if not cancelled:
+            _logger.error(
+                "_meli_action_cancel: la venta %s NO quedó cancelada (state=%s, retorno=%s). "
+                "NO se va a informar como cancelada.",
+                self.name, self.state, type(res).__name__,
+            )
+        return cancelled
+
     def meli_cancel_with_detail(self, cancel_msg):
         """
         Cancela la orden forzando la cancelacion cuando Meli informa un cancel_detail.
@@ -710,6 +765,11 @@ class sale_order(models.Model):
           las facturas y postea en el chatter para gestión manual.
         - Cancela la orden de venta (desbloqueandola si hace falta) y postea
           el motivo en el chatter de la orden y de cada factura involucrada.
+
+        :return: True SOLO si la venta quedó en state == 'cancel'. #494 — antes no
+                 devolvía nada y posteaba el motivo en el chatter pasara lo que
+                 pasara, así que una cancelación que no ocurría dejaba escrito que sí.
+        :rtype: bool
         """
         # 1. Devolver albaranes ya entregados
         # _meli_return_done_pickings usa hasattr para compatibilidad Odoo 16/17/18
@@ -786,7 +846,9 @@ class sale_order(models.Model):
 
         if _has_unresolved_posted_invoice:
             _logger.warning("meli_cancel_with_detail: orden %s NO cancelada — factura publicada sin resolver. Acción manual requerida.", self.name)
-            return
+            # False, no None: el contrato del método es "¿quedó cancelada?". Acá no, a
+            # propósito. Y NO se postea el cancel_msg: el chatter no afirma lo que no pasó.
+            return False
 
         # 3. Desbloquear si la orden esta bloqueada o en estado done
         is_locked = self.state == 'done' or ('locked' in self._fields and self.locked)
@@ -797,18 +859,42 @@ class sale_order(models.Model):
                 _logger.warning("meli_cancel_with_detail: no se pudo desbloquear la orden %s: %s", self.name, e)
 
         # 4. Cancelar la orden de venta
-        if self.state in ['draft', 'sale', 'sent', 'done']:
+        #    _meli_action_cancel() distingue el dict del wizard del bool de la cancelación
+        #    real y devuelve si la venta QUEDÓ en 'cancel'. Nunca se asume que canceló.
+        cancelled = False
+        if self.state == 'cancel':
+            cancelled = True
+        elif self.state in ['draft', 'sale', 'sent', 'done']:
             try:
-                self.with_context(disable_cancel_warning=disable_cancel_warning_enabled).action_cancel()
+                cancelled = self._meli_action_cancel()
             except Exception as e:
                 _logger.error("meli_cancel_with_detail: no se pudo cancelar la orden %s: %s", self.name, e, exc_info=True)
                 self.message_post(
                     body="No se pudo cancelar la orden automáticamente: %s. Gestionar manualmente." % str(e),
                     message_type=order_message_type
                 )
+        else:
+            _logger.warning(
+                "meli_cancel_with_detail: la orden %s está en state=%s — no es un estado cancelable.",
+                self.name, self.state,
+            )
 
-        # 5. Postear el motivo de cancelacion en el chatter de la orden
-        self.message_post(body=cancel_msg, message_type=order_message_type)
+        # 5. Postear el motivo de cancelacion en el chatter de la orden.
+        #    SÓLO si realmente se canceló: el defecto que motivó este cambio no era que
+        #    fallara, era que DEJABA ESCRITO que había cancelado una venta que seguía viva.
+        #    Un chatter que miente es peor que un error, porque cierra la investigación.
+        if cancelled:
+            self.message_post(body=cancel_msg, message_type=order_message_type)
+        else:
+            meli_message_post(
+                self,
+                "⚠️ MercadoLibre canceló este pedido y la venta en Odoo NO pudo cancelarse "
+                "(estado actual: %s). Requiere gestión manual. Motivo ML: %s"
+                % (self.state, cancel_msg),
+                once_key="cancel-so-notcancelled-%s" % self.id,
+            )
+
+        return cancelled
 
     def is_meli_order_fulfillment( self ):
         res = False
@@ -1424,6 +1510,27 @@ class sale_order(models.Model):
         string='Alerta: cancelación ML pendiente en Odoo',
         sanitize=False,
     )
+
+    # #494: el banner de arriba sirve para UNA venta abierta a mano. Esto es lo mismo pero
+    # BUSCABLE: almacenado e indexado, para que Administración pueda LISTAR de una las
+    # ventas que MercadoLibre canceló y en Odoo siguen vivas (y por lo tanto facturadas y
+    # sin cobrar). Hasta ahora ese listado se armaba a mano por soporte, y el número
+    # cambiaba con el criterio de quien lo armaba.
+    meli_cancel_pending = fields.Boolean(
+        string='Cancelado en ML, vivo en Odoo',
+        compute='_compute_meli_cancel_pending',
+        store=True, index=True, readonly=True,
+        help='Verdadero cuando MercadoLibre informó el pedido como CANCELADO y la venta en '
+             'Odoo NO está cancelada. Suele significar que hay una factura publicada sin '
+             'resolver: revisar si corresponde nota de crédito.',
+    )
+
+    @api.depends('meli_status', 'state')
+    def _compute_meli_cancel_pending(self):
+        for order in self:
+            order.meli_cancel_pending = bool(
+                order.meli_status == 'cancelled' and order.state != 'cancel'
+            )
 
     @api.depends('meli_status', 'state', 'meli_status_detail',
                  'invoice_ids.state', 'picking_ids.state')
@@ -5180,6 +5287,14 @@ class mercadolibre_orders(models.Model):
                 if sorder:
                     sorder.meli_status_detail = order.status_detail
                     if new_status == "cancelled" and sorder.state in ("draft", "sent", "sale", "done"):
+                        # #494: paridad con update_order_status(), que SI escribe meli_status.
+                        # Sin esto el campo (stored) de la venta solo se refresca como efecto
+                        # lateral del compute NO almacenado _meli_status_brief, o sea recien
+                        # cuando alguien ABRE el registro. Consecuencia: el banner
+                        # meli_cancel_pending_banner y cualquier filtro por meli_status mienten
+                        # hasta que un humano entra a la venta una por una.
+                        if sorder.meli_status != "cancelled":
+                            sorder.meli_status = "cancelled"
                         cancel_msg = "Orden cancelada por MercadoLibre."
                         if sorder.meli_status_detail:
                             cancel_msg += " Motivo: %s" % sorder.meli_status_detail
@@ -5192,8 +5307,132 @@ class mercadolibre_orders(models.Model):
             except Exception as e:
                 _logger.error("orders_resync_status > error en orden %s: %s", order.order_id, e, exc_info=True)
                 MeliRollback(self)
-        _logger.info("orders_resync_status: cuenta=%s checked=%s changed=%s cancelled=%s (days=%s limit=%s)", (account and account.name) or "-", checked, changed, cancelled, days, query_limit)
-        return {"checked": checked, "changed": changed, "cancelled": cancelled}
+        # #494: segunda pasada LOCAL (0 llamadas a la API) para las cancelaciones que
+        # quedaron a medio aplicar. Ver _orders_redrain_pending_cancels().
+        redrain = self._orders_redrain_pending_cancels(config=config, account=account)
+
+        _logger.info("orders_resync_status: cuenta=%s checked=%s changed=%s cancelled=%s redrained=%s pendientes=%s (days=%s limit=%s)",
+                     (account and account.name) or "-", checked, changed, cancelled,
+                     redrain.get("cancelled", 0), redrain.get("pending", 0), days, query_limit)
+        return {"checked": checked, "changed": changed, "cancelled": cancelled,
+                "redrained": redrain.get("cancelled", 0), "pending": redrain.get("pending", 0)}
+
+    def _orders_redrain_pending_cancels( self, config=None, account=None ):
+        """#494 - Re-intenta las cancelaciones de ML que quedaron A MEDIO APLICAR.
+
+        POR QUE EXISTE. `orders_resync_status` escribe `order.status = 'cancelled'` en
+        cuanto ML lo informa, y su propio dominio de barrido excluye
+        `("status", "not in", ("cancelled", "invalid"))`. Si en esa misma pasada
+        `meli_cancel_with_detail()` abortó — el caso normal cuando ya hay una factura
+        publicada sin resolver, que es el 100% de los casos de SHOPPY (#494) — la venta
+        queda VIVA y el pedido ML **nunca vuelve a entrar al barrido**: sale de la cola
+        para siempre. Es el mismo patrón que ya nos costó meses en las publicaciones en
+        estado de error. El único rastro era un aviso en el chatter (con `once_key`, o sea
+        una sola vez) y el banner del formulario, que exige abrir las ventas de a una.
+
+        QUE HACE. Busca en la BASE (sin una sola llamada a MercadoLibre) los pedidos ML ya
+        marcados `cancelled` cuya venta sigue sin cancelar, y los vuelve a pasar por
+        `meli_cancel_with_detail()`. Es idempotente y barato: si la factura sigue publicada,
+        el helper vuelve a abortar sin efectos (los avisos del chatter están protegidos por
+        `once_key`, así que no re-spamea). En cambio, en cuanto el usuario resuelve la
+        factura — típicamente emitiendo la nota de crédito, que es la decisión que le
+        corresponde a él y no a nosotros — la venta se cancela sola en el ciclo siguiente,
+        sin que nadie tenga que acordarse de volver.
+
+        Devuelve {"cancelled": n, "pending": n}: `pending` es el backlog que sigue trabado y
+        se emite como WARNING (no como info) para que sea visible en el log."""
+        company = self.env.user.company_id
+        if not config:
+            config = company
+        if config is not None and "company_id" in config._fields and config.company_id:
+            company = config.company_id
+
+        # Ventana propia, mas ancha que la del barrido con API: acá no hay costo por pedido,
+        # el limite es el trabajo local. Configurable; default 90 días.
+        redrain_days = 90
+        if ("mercadolibre_cron_orders_redrain_days" in config._fields
+                and config.mercadolibre_cron_orders_redrain_days):
+            redrain_days = config.mercadolibre_cron_orders_redrain_days
+        if redrain_days <= 0:
+            # 0 = desactivado explícitamente por configuración.
+            return {"cancelled": 0, "pending": 0}
+
+        cutoff = fields.Datetime.now() - timedelta(days=redrain_days)
+        domain = [
+            ("date_created", ">=", cutoff),
+            ("status", "=", "cancelled"),
+            ("sale_order", "!=", False),
+            ("sale_order.state", "in", ("draft", "sent", "sale", "done")),
+        ]
+        if "company_id" in self._fields:
+            domain.append(("company_id", "in", (company.id, False)))
+        if account is not None and "connection_account" in self._fields:
+            domain.append(("connection_account", "=", account.id))
+
+        # Tope de trabajo por ciclo. El barrido no gasta API, pero cada pedido implica
+        # recorrer facturas y albaranes de su venta: sin tope, un cliente con miles de
+        # canceladas trabadas haria que el cron cada 30 min muela indefinidamente.
+        redrain_limit = 500
+        if ("mercadolibre_cron_orders_status_limit" in config._fields
+                and config.mercadolibre_cron_orders_status_limit):
+            redrain_limit = max(500, config.mercadolibre_cron_orders_status_limit)
+
+        total = self.search_count(domain)
+        if not total:
+            return {"cancelled": 0, "pending": 0}
+        if total > redrain_limit:
+            # Explicito, no silencioso: si se trunca hay que poder saberlo mirando el log,
+            # y no confundir "procesamos 500" con "habia 500".
+            _logger.warning(
+                "MELI #494: %s cancelaciones trabadas superan el tope de %s por ciclo — "
+                "se procesan las %s mas antiguas; el resto entra en los ciclos siguientes.",
+                total, redrain_limit, redrain_limit,
+            )
+        stuck = self.search(domain, order="date_created asc", limit=redrain_limit)
+        if not stuck:
+            return {"cancelled": 0, "pending": 0}
+
+        Autocommit(self, False)
+        redrained = 0
+        for order in stuck:
+            sorder = order.sale_order
+            if not sorder:
+                continue
+            try:
+                # Paridad de estado: si el pedido ML está cancelado, la venta tiene que
+                # decirlo, aunque después no se pueda cancelar. Es lo que alimenta el
+                # banner y el filtro "Cancelado en ML, vivo en Odoo".
+                if sorder.meli_status != "cancelled":
+                    sorder.meli_status = "cancelled"
+                cancel_msg = "Orden cancelada por MercadoLibre."
+                if sorder.meli_status_detail:
+                    cancel_msg += " Motivo: %s" % sorder.meli_status_detail
+                sorder.meli_cancel_with_detail(cancel_msg)
+                if sorder.state == "cancel":
+                    redrained += 1
+                MeliCommit(self)
+            except Exception as e:
+                _logger.error("_orders_redrain_pending_cancels > error en orden %s: %s",
+                              order.order_id, e, exc_info=True)
+                MeliRollback(self)
+
+        # `pending` cuenta el backlog COMPLETO (total), no solo la tanda de este ciclo:
+        # el numero que le importa a Administracion es cuantas ventas hay en esa situacion,
+        # no cuantas alcanzo a mirar el cron.
+        pending = total - redrained
+        if pending:
+            # WARNING, no info: esto es plata facturada contra ventas que MercadoLibre
+            # anuló. Si se loguea como información nadie lo mira (nos pasó en el #521).
+            _logger.warning(
+                "MELI #494: %s venta(s) canceladas en MercadoLibre siguen VIVAS en Odoo "
+                "(cuenta=%s, ventana=%s dias). Requieren resolver la factura publicada "
+                "(habitualmente nota de credito) o configurar "
+                "'Accion sobre factura al cancelar pedido'. Filtro en Ventas: "
+                "'Cancelado en ML, vivo en Odoo'.",
+                pending, (account and account.name) or (company and company.name) or "-",
+                redrain_days,
+            )
+        return {"cancelled": redrained, "pending": pending}
 
     def _get_config( self, config=None ):
         
@@ -5680,14 +5919,17 @@ class sale_order_cancel_wiz_meli(models.TransientModel):
 
                 order = orders_obj.browse(order_id)
                 is_locked = (order and order.state in ["done"]) or ("locked" in order._fields and order.locked)
+                # #494: por _meli_action_cancel(), que fuerza disable_cancel_warning=True y
+                # verifica el estado. Con la constante en False este wizard tampoco cancelaba
+                # nada: devolvía el wizard del core y se lo comía el `for`.
                 if (is_locked and self.cancel_blocked):
-                    #asd
-                    #_logger.info("cancel_order: unblock")
                     order.action_unlock()
-                    order.with_context(disable_cancel_warning=disable_cancel_warning_enabled).action_cancel()
+                    if not order._meli_action_cancel():
+                        _logger.warning("cancel_order: la venta %s no quedó cancelada", order.name)
 
                 if (order and order.state in ["draft","sale","sent"]) and not is_locked:
-                    order.with_context(disable_cancel_warning=disable_cancel_warning_enabled).action_cancel()
+                    if not order._meli_action_cancel():
+                        _logger.warning("cancel_order: la venta %s no quedó cancelada", order.name)
 
         except Exception as e:
             #_logger.info("order_update > Error cancelando ordenes")
