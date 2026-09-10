@@ -4,6 +4,26 @@
 
 ---
 
+## Versión 18.0.26.96 — El número de rastreo ahora llega a la entrega, aunque el pedido esté bloqueado
+8 sep 2026
+
+**Cambios:**
+
+1. **El número de seguimiento de MercadoLibre ya se copia al "Número de rastreo" de la entrega.**
+   Antes se copiaba sólo mientras el pedido seguía editable. Como MercadoLibre asigna el
+   seguimiento **después** de confirmar el pedido —y al confirmarlo suele quedar bloqueado—, en la
+   práctica casi nunca llegaba: en un cliente medimos **118 de 120 pedidos** con la entrega sin
+   número de rastreo, mientras el dato **sí estaba** en la pantalla del envío. Las 2 que lo tenían
+   eran justamente las 2 que no estaban bloqueadas.
+   Efecto visible: la columna **"Número de rastreo"** del listado de pedidos deja de salir vacía.
+
+2. **Las entregas se buscan por su tipo de operación, no por el nombre.** Antes se buscaban los
+   albaranes cuyo nombre contuviera `OUT`. Con secuencias renombradas, traducidas o con almacenes
+   propios, esa búsqueda no encontraba nada **y no daba ningún error**: simplemente no se escribía
+   el rastreo. Ahora se filtra por tipo de operación *salida*, que no depende del nombre.
+
+---
+
 ## Versión 18.0.26.95 — Los pedidos ya facturados quedan protegidos de punta a punta (y ahora avisan)
 21 ago 2026
 
