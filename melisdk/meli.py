@@ -20,7 +20,6 @@ class Meli(object):
         self.client_id = client_id
         self.client_secret = client_secret
         self.access_token = access_token
-        self.expires_in = None   # segundos que dura el access_token, tal como los informa ML
         self.refresh_token = refresh_token
 
         parser = SafeConfigParser()
@@ -55,9 +54,6 @@ class Meli(object):
         if response.status_code == requests.codes.ok:
             response_info = response.json()
             self.access_token = response_info['access_token']
-            # ML informa expires_in (tipicamente 21600s = 6h). Antes se descartaba, y por eso
-            # el login nunca podia guardar el vencimiento del token.
-            self.expires_in = response_info.get('expires_in')
             if 'refresh_token' in response_info:
                 self.refresh_token = response_info['refresh_token']
             else:
@@ -80,13 +76,7 @@ class Meli(object):
                 response_info = response.json()
                 self.access_token = response_info['access_token']
                 self.refresh_token = response_info['refresh_token']
-                self.expires_in = response_info.get('expires_in')
-                # Devuelve el JSON COMPLETO, no el access_token.
-                # Antes devolvia el string y quien lo llamaba hacia `if "access_token" in refjson`,
-                # que sobre un str es un test de SUBCADENA: daba False siempre (un token ML es
-                # "APP_USR-8241-...") y el bloque que GUARDA el token nuevo no se ejecutaba nunca.
-                # Resultado: el refresh se pedia a ML y se perdia en memoria.
-                return response_info
+                return self.access_token
             else:
                 # response code isn't a 200; raise an exception
                 response.raise_for_status()
