@@ -628,6 +628,39 @@ class mercadolibre_shipment(models.Model):
     def create_shipment( self ):
         return {}
 
+    def _meli_sync_picking_tracking( self, sorder ):
+        """Copia el nro de seguimiento de ML al 'Numero de rastreo' de las entregas.
+
+        Vive aparte porque tiene que correr TAMBIEN con la orden bloqueada. El
+        tracking lo asigna MercadoLibre DESPUES de que la orden se confirma (igual
+        que shipping_seller_cost), asi que si solo se escribe en el camino de orden
+        editable, en la practica no se escribe casi nunca: medido en un cliente,
+        118 de 120 ordenes ML quedaron con el picking sin tracking, y las 2 que si
+        lo tenian eran justo las unicas con locked=False.
+
+        Escribir carrier_tracking_ref en el stock.picking NO es un cambio
+        estructural de la orden: el picking no esta bloqueado.
+
+        El filtro va por picking_type_id.code, no por el nombre: buscar 'OUT' en
+        el name depende de la secuencia y se rompe con secuencias renombradas o
+        localizadas.
+        """
+        if not sorder or not sorder.id:
+            return 0
+        tracking = self.tracking_number
+        if not tracking:
+            return 0
+        pickings = self.env["stock.picking"].search([
+            ('sale_id', '=', sorder.id),
+            ('picking_type_id.code', '=', 'outgoing'),
+        ])
+        updated = 0
+        for st_pick in pickings:
+            if st_pick.carrier_tracking_ref != tracking:
+                st_pick.carrier_tracking_ref = tracking
+                updated += 1
+        return updated
+
     def _update_sale_order_shipping_info( self, order, meli=None, config=None ):
 
         company = (config and 'company_id' in config._fields and config.company_id) or ("company_id" in self._fields and self.company_id) or self.env.user.company_id
@@ -667,6 +700,13 @@ class mercadolibre_shipment(models.Model):
                                 delivery_line.purchase_price = new_pp
                 except Exception as e:
                     _logger.warning("purchase_price update on locked order %s failed: %s", sorder.name, e)
+                # El tracking de ML llega despues de confirmar la orden. No es un cambio
+                # estructural de la orden (se escribe en el picking), asi que se sincroniza
+                # igual que purchase_price aunque el pedido este bloqueado.
+                try:
+                    shipment._meli_sync_picking_tracking(sorder)
+                except Exception as e:
+                    _logger.warning("tracking sync on locked order %s failed: %s", sorder.name, e)
                 continue;
 
             if (not sorder or not order):
@@ -831,12 +871,7 @@ class mercadolibre_shipment(models.Model):
 
 
 
-            stock_pickings = self.env["stock.picking"].search([('sale_id','=',sorder.id),('name','like','OUT')])
-            #carrier_id = self.env["delivery.carrier"].search([('name','=',)])
-            for st_pick in stock_pickings:
-                #if ( 1==2 and ship_carrier_id ):
-                #    st_pick.carrier_id = ship_carrier_id
-                st_pick.carrier_tracking_ref = shipment.tracking_number
+            shipment._meli_sync_picking_tracking(sorder)
 
             # Actualizar nombre del sale.order con nro de seguimiento o ID envío
             # Solo si la cuenta tiene mercadolibre_so_name_tracking activado.

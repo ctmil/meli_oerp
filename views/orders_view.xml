@@ -17,6 +17,20 @@
                   <field name="meli_receiver_zip_code" string="ML CP"/>
                   <separator/>
                   <filter string="MercadoLibre Orders" name="sale_orders_ml" domain="[('meli_order_id','!=',False)]" />
+                  <!-- Canceladas en ML. Los TRES estados que significan "esta venta no va". -->
+                  <filter string="MercadoLibre Canceladas" name="sale_orders_ml_cancelled"
+                          domain="[('meli_order_id','!=',False),
+                                   ('meli_status','in',['cancelled','pending_cancel','invalid'])]" />
+                  <!-- EL ACCIONABLE: replica EXACTO la condicion de
+                       _compute_meli_cancel_pending_banner (el banner naranja "Cancelada en
+                       MercadoLibre - pendiente en Odoo"). Ese campo es compute store=False y
+                       no se puede filtrar por el: si cambia el compute, cambiar este dominio. -->
+                  <filter string="MercadoLibre Canceladas pendientes en Odoo" name="sale_orders_ml_cancel_pending"
+                          domain="[('meli_order_id','!=',False),
+                                   ('meli_status','=','cancelled'),
+                                   ('state','!=','cancel')]" />
+                  <filter string='Estado de Odoo' domain="[]"
+                          context="{'group_by' : 'state'}" name="meli_odoo_state_filter"/>
                 </xpath>
             </field>
         </record>
@@ -41,6 +55,20 @@
                   <separator/>
                   <filter string="Con mensajes del comprador sin leer" name="meli_unread_msgs" domain="[('meli_unread_messages','>',0)]" />
                   <filter string="MercadoLibre Quotations" name="sale_orders_ml" domain="[('meli_order_id','!=',False)]" />
+                  <!-- Canceladas en ML. Los TRES estados que significan "esta venta no va". -->
+                  <filter string="MercadoLibre Canceladas" name="sale_orders_ml_cancelled"
+                          domain="[('meli_order_id','!=',False),
+                                   ('meli_status','in',['cancelled','pending_cancel','invalid'])]" />
+                  <!-- EL ACCIONABLE: replica EXACTO la condicion de
+                       _compute_meli_cancel_pending_banner (el banner naranja "Cancelada en
+                       MercadoLibre - pendiente en Odoo"). Ese campo es compute store=False y
+                       no se puede filtrar por el: si cambia el compute, cambiar este dominio. -->
+                  <filter string="MercadoLibre Canceladas pendientes en Odoo" name="sale_orders_ml_cancel_pending"
+                          domain="[('meli_order_id','!=',False),
+                                   ('meli_status','=','cancelled'),
+                                   ('state','!=','cancel')]" />
+                  <filter string='Estado de Odoo' domain="[]"
+                          context="{'group_by' : 'state'}" name="meli_odoo_state_filter"/>
                   <filter string='MercadoLibre Status' domain="[]"
         								context="{'group_by' : 'meli_status'}" name="meli_status_filter"/>
                   <!--filter string='MercadoLibre Status Brief' domain="[]"
