@@ -4426,7 +4426,18 @@ class mercadolibre_orders(models.Model):
                         if sorder.meli_paid_amount==0.0 or 1.1<abs((sorder.meli_paid_amount-(sorder.meli_discount_seller_amount or 0))-sorder.amount_total):
                             saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
                     
-                    if saleorderline_item_ids:
+                    # [#486 Enerpoint] El chequeo de orden bloqueada va ARRIBA de todo el bloque.
+                    # Motivo: mas abajo hay tres asignaciones saleorderline_item_ids[tax_field] = [(3|4, ...)]
+                    # y en Odoo `record[campo] = valor` llama a write() EN EL ACTO, antes de llegar al
+                    # guard que estaba al final. Sobre una sale.order bloqueada eso levanta
+                    # "Esta prohibido modificar los siguientes campos en una orden bloqueada: Taxes"
+                    # y aborta el procesamiento de la notificacion, que despues se reintenta para siempre.
+                    # No cambia la politica: el write final YA salteaba las bloqueadas; esto completa
+                    # ese mismo criterio, igual que orders.py:3996 y orders.py:4641.
+                    _so_tax_locked = bool(sorder.state and sorder.state in ['done','sale']) or ("locked" in sorder._fields and sorder.locked)
+                    if saleorderline_item_ids and _so_tax_locked:
+                        _logger.info("MELI_TAX_SKIP: orden bloqueada/confirmada, no se tocan impuestos de linea (sale.order id=%s state=%s)" % (sorder.id, sorder.state,))
+                    if saleorderline_item_ids and not _so_tax_locked:
                         #_logger.info(saleorderline_item_ids:"+str(saleorderline_item_ids))
                         #_logger.info(product_related_obj taxes_id:"+str(product_related_obj.taxes_id))
                         #_logger.info(product_related_obj taxes_id:"+str(product_related_obj.taxes_id and product_related_obj.taxes_id.company_id))
