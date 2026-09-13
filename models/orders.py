@@ -2658,8 +2658,18 @@ class mercadolibre_orders(models.Model):
             if company and company.id and set_client_company:
                 meli_buyer_fields["company_id"] = company.id
             meli_buyer_fields.update(self.fix_locals(Receiver=Receiver,Buyer=Buyer))
-            if company:
-                meli_buyer_fields["lang"] =  company.partner_id.lang
+            # El idioma se hereda del partner de la compania. Sin este guard, una compania
+            # con el campo vacio escribia lang=False en el comprador y la factura terminaba
+            # saliendo en el idioma por defecto de la base. Mismo criterio que
+            # shipment.py::partner_delivery_id (linea ~1154), que ya guardaba contra el vacio.
+            if company and company.partner_id.lang:
+                meli_buyer_fields["lang"] = company.partner_id.lang
+            elif company:
+                _logger.warning(
+                    "MELI LANG: la compania '%s' no tiene idioma definido en su contacto "
+                    "(res.partner id:%s) => el comprador se crea SIN idioma y sus facturas "
+                    "saldran en el idioma por defecto de la base.",
+                    company.name, company.partner_id.id)
 
             buyer_fields = {
                 'buyer_id': Buyer['id'],
@@ -3303,6 +3313,18 @@ class mercadolibre_orders(models.Model):
                 if _bf in BILLING_ONLY_FIELDS or _bf.startswith('fe_'):
                     billing_child_fields[_bf] = meli_buyer_fields.pop(_bf)
             billing_child_fields['name'] = billing_full_name
+            # El idioma NO es un dato fiscal: no se MUEVE al hijo (por eso no esta en
+            # BILLING_ONLY_FIELDS, que hace pop), se COPIA. Hace falta en los dos:
+            # la factura se emite contra el hijo (partner_invoice_id, ver mas abajo
+            # meli_order_fields), asi que un hijo sin lang imprime en el idioma por
+            # defecto de la base aunque el padre tenga el idioma correcto.
+            if meli_buyer_fields.get("lang"):
+                billing_child_fields["lang"] = meli_buyer_fields["lang"]
+            else:
+                _logger.warning(
+                    "MELI LANG: el contacto de facturacion de '%s' se crea SIN idioma "
+                    "(el comprador tampoco lo tiene) => su factura saldra en el idioma "
+                    "por defecto de la base.", billing_full_name)
             _logger.info("BILLING_SPLIT: billing_child_fields=%s | buyer_fields_remaining=%s",
                          list(billing_child_fields.keys()), list(meli_buyer_fields.keys()))
 
@@ -3563,6 +3585,13 @@ class mercadolibre_orders(models.Model):
                                 and partner_invoice_id[_fp]):
                             _protected_skipped.append(_fp)
                             del invoice_update[_fp]
+                    # El idioma tampoco se pisa: si el operador ya lo corrigio a mano en
+                    # el contacto de facturacion, el valor heredado de la compania no tiene
+                    # por que ganarle. Solo se completa cuando esta vacio, que es el caso
+                    # que produce las facturas en el idioma por defecto.
+                    if invoice_update.get('lang') and partner_invoice_id.lang:
+                        del invoice_update['lang']
+
                     if _protected_skipped:
                         _logger.info(
                             "FISCAL_PROTECT: contacto id:%s ya tiene valores para %s "
