@@ -222,3 +222,18 @@ Para que los pedidos se puedan facturar hay que **activar "Importar clientes"**
 en la configuracion de la cuenta MeLi, **o** dejar configurado un
 `mercadolibre_contact_partner` que actue como contacto generico cuando la
 importacion de clientes esta desactivada.
+
+## El idioma (`lang`) en el split padre/hijo — no es un dato fiscal
+
+**El `lang` se COPIA al hijo de facturación, no se MUEVE.** Es la única excepción explícita al
+criterio del split, y está puesta a propósito **fuera** de `BILLING_ONLY_FIELDS`.
+
+El bucle que arma el hijo hace `meli_buyer_fields.pop(_bf)`: todo lo que entra en
+`BILLING_ONLY_FIELDS` **deja de existir en el padre**. Eso es correcto para el VAT, el tipo de
+documento o la posición fiscal —que no tienen por qué estar en el contacto de identidad— pero es
+**incorrecto para el idioma**, que hace falta en los dos: la **factura** se emite contra el hijo
+(`partner_invoice_id`) y los **correos y el portal** salen contra el padre.
+
+⚠️ Si alguna vez aparece un ticket de *"la factura sale en el idioma equivocado"*, el contacto a
+mirar es el **hijo `type='invoice'`**, no el que se ve en la pantalla del comprador. Corregir el
+padre no cambia la factura. Ver `.roots/debug/fixes-log.md`, 15 sep 2026 (`#393 / 158`).

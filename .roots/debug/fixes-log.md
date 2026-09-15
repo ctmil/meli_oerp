@@ -4,6 +4,70 @@
 
 ---
 
+### 15 sep 2026 — El contacto de facturación nacía sin `lang` y es el que emite la factura — v26.101 `[#393 / 158 Elvimarta]`
+
+**Port literal de 17.0** (commit `15898c43`, `17.0.26.96`). Los tres bloques de contexto de esta
+versión son **byte-idénticos** a los de 17.0: el diff de `models/orders.py` entró **sin adaptación**.
+
+**El defecto que produce el síntoma (B).** El módulo separa dos contactos por comprador: el padre con
+la identidad MeLi y un hijo `type='invoice'` con los datos fiscales. El hijo se arma copiando del
+padre **sólo** `BILLING_ONLY_FIELDS`, y ese bucle hace **`pop`**:
+
+```python
+for _bf in list(meli_buyer_fields.keys()):
+    if _bf in BILLING_ONLY_FIELDS or _bf.startswith('fe_'):
+        billing_child_fields[_bf] = meli_buyer_fields.pop(_bf)
+```
+
+`'lang'` no está en esa lista ⇒ **el hijo nacía SIEMPRE sin idioma**. Y ese hijo es el
+`partner_invoice_id` de la orden, o sea el partner con el que Odoo emite la factura: sin `lang`, la
+factura cae al idioma por defecto de la base.
+
+⚠️ **La corrección NO es agregar `'lang'` a `BILLING_ONLY_FIELDS`** — el bucle hace `pop`, así que
+eso se lo **sacaría al padre**. El idioma no es un dato fiscal: **se COPIA, no se MUEVE**. Hace falta
+en los dos contactos.
+
+**Por qué ninguna otra hipótesis cerraba.** Cuando el cliente le corrige el idioma al contacto desde
+la UI corrige el **padre**, y la factura la emite el **hijo**: con ese cambio la factura no podía
+cambiar. Y explica por qué la corrección de junio no aguantó — se completaron ~13.000 contactos
+existentes (el **stock**) y el **flujo** siguió creando hijos sin idioma.
+
+**El defecto que estaba a la vista (A).** `meli_buyer_fields["lang"] = company.partner_id.lang` sin
+guard: una compañía con el campo vacío escribía `False`. Ahora guarda contra el vacío, mismo criterio
+que `shipment.py::partner_delivery_id`, que ya lo hacía bien en el camino del envío.
+
+**Y no se pisa una corrección manual (C).** En el bloque de `invoice_update`/`_protected_skipped`:
+si `partner_invoice_id.lang` ya tiene valor, el `lang` sale del update. El valor heredado de la
+compañía no tiene por qué ganarle a lo que el operador cargó a mano — que es justo lo que este
+cliente hizo.
+
+Los dos casos en que no se puede determinar el idioma quedan con `_logger.warning`: **el fallback no
+puede ser mudo o el arreglo no se puede medir después.**
+
+**La precondición del port, cumplida sobre el EFECTO y no sobre el código.** El commit de 17.0 dejó
+escrito *"Port a 16/18/19: DESPUES de verificar este. No se masifica un fix sin precision en uno."*
+Verificado el 15-sep en producción del cliente **158 Elvimarta** (`Gussy72/elvimarta`, Odoo.sh,
+`main` = Production), con `meli_oerp` deployado el 14-sep e `installed_version = latest_version` en
+`ir.module.module`. Medido con `call_kw` read-only sobre `res.partner`, corte 14-sep 13:50Z:
+
+| contactos `type='invoice'` con `meli_buyer_partner_id` | total | sin `lang` |
+|---|---|---|
+| creados **antes** del deploy | 14.551 | **14.438 (99,2 %)** |
+| creados **después** | 1.174 | **0** |
+| sólo Argentina (`company_id=4`), antes | 701 | 625 |
+| sólo Argentina, después | 67 | **0** |
+
+Los 14.438 vacíos son el **control positivo** de la sonda: sin ellos, un "0 vacíos" no probaría nada.
+
+**Alcance.** El fix arregla el **flujo**, no el **stock**: los contactos de facturación ya creados sin
+idioma siguen sin idioma. Completarlos es una corrección de datos aparte, por cliente.
+
+**Verificación en esta versión.** `py_compile` OK; los 3 puntos de inserción presentes (guard A,
+copia B, guard C) y `'lang'` **fuera** de `BILLING_ONLY_FIELDS` (0 hits), que es justo lo que no hay
+que hacer.
+
+---
+
 ### 23 ago 2026 — `disable_cancel_warning_enabled = False`: la cancelacion FINGIA cancelar — v26.97 `[#494 Shoppy 502]`
 
 **El defecto.** `models/versions.py` traia `disable_cancel_warning_enabled = False` y los cuatro call
