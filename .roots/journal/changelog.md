@@ -4,6 +4,33 @@
 
 ---
 
+## Versión 18.0.26.101 — Las facturas de MercadoLibre vuelven a salir en el idioma correcto
+15 sep 2026
+
+**Cambios:**
+
+1. **El síntoma:** las facturas de las ventas de MercadoLibre salían en el idioma por defecto de la
+   base, aunque el contacto del comprador tuviera el idioma bien puesto. Y si alguien se lo corregía
+   a mano desde la pantalla del contacto, **la factura seguía saliendo igual**.
+2. **Por qué pasaba:** el conector crea **dos contactos** por comprador — el principal, con la
+   identidad de MercadoLibre, y uno hijo de tipo *Dirección de factura*, con los datos fiscales. La
+   factura se emite contra el **hijo**, y el hijo nacía **siempre sin idioma**. Por eso corregirlo a
+   mano no servía: se corregía el contacto principal, que no es el que factura.
+3. **Ahora el idioma se copia al contacto de facturación** cuando se crea. No se mueve: queda en los
+   dos, porque también hace falta en el principal (correos, portal).
+4. **Una corrección manual ya no se pisa.** Si el contacto de facturación ya tiene idioma cargado,
+   el conector no lo sobreescribe con el de la compañía.
+5. **Si no hay idioma que copiar, queda dicho en el log** (compañía sin idioma en su contacto, o
+   comprador sin idioma). Antes era un vacío mudo y no se podía medir.
+
+**Qué van a notar:** las facturas nuevas salen en el idioma del comprador. ⚠️ **Los contactos de
+facturación que ya existen no se tocan solos** — los que quedaron sin idioma siguen sin idioma hasta
+que se completen (desde la vista de lista de Contactos, filtrando los de tipo factura sin idioma).
+
+Requiere actualizar el módulo (`-u meli_oerp`).
+
+---
+
 ## Versión 18.0.26.97 — Filtros para encontrar las ventas canceladas en ML que siguen vivas en Odoo
 10 sep 2026
 
