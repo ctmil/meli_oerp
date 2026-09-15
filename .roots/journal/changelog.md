@@ -113,6 +113,12 @@ Requiere actualizar el módulo (`-u meli_oerp`).
 27 jul 2026
 
 **Cambios:** al recalcular el flete, el conector reescribía la línea de envío con el mecanismo de Odoo, que primero **borra** la línea y recién después la vuelve a crear. Si en ese momento la venta no tenía transportista asignado, o la recreación fallaba (compañía incompatible, orden ya facturada, impuestos), el borrado quedaba hecho y la venta se quedaba **sin flete y sin transportista**: el costo de envío no llegaba nunca a la factura, y el error se descartaba en silencio. Ahora, sin transportista válido no se toca la línea (solo se actualiza su precio) y la reescritura va dentro de un punto de guardado, de modo que si algo falla se deshace el borrado y la línea original sobrevive; los fallos quedan registrados en el log con la venta involucrada. *Detectado en un cliente AR: 47 órdenes sin flete en 7 semanas, 20 de ellas facturadas por debajo de lo cobrado al comprador.*
+## Versión 18.0.26.86 — Se elimina la foto fantasma que se agregaba en cada publicación
+23 jul 2026
+
+**Cambios:**
+
+1. Se corrige un problema por el cual el conector agregaba una **imagen extra inválida** en cada publicación de MercadoLibre (una segunda foto "basura"), lo que en algunos casos impedía activar la publicación. Ahora la imagen de logo sólo se agrega si realmente está configurada.
 
 ## Versión 18.0.26.85 — Aviso de mensajes del comprador sin leer en las órdenes de ML [#499 Deco/KPI]
 22 jul 2026
