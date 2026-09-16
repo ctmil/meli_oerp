@@ -30,5 +30,13 @@ class ProductAttribute(models.Model):
             if meli_attribute["variation_attribute"] and not meli_attribute["hidden"]:
                 create_variant = default_create_variant
 
+        # Lista negra: GTIN/SELLER_SKU nunca generan variantes (ver
+        # meli_attributes_never_variant en versions.py). En Odoo son el barcode
+        # y el default_code de la VARIANTE, no una caracteristica: tomarlos como
+        # generadores abre una variante por cada codigo.
+        if create_variant == default_create_variant and meli_attribute:
+            att_id = meli_attribute.get("att_id") or meli_attribute.get("id")
+            if meli_attribute_is_never_variant( att_id ):
+                create_variant = default_no_create_variant
 
         return create_variant
