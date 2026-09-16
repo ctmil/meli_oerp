@@ -1770,6 +1770,38 @@ class product_product(models.Model):
 
     # set images in a variant from meli json
     # odoo product must already being synchronized: product.meli_id and product.meli_id_variation set if variations are present
+    def _meli_best_picture_url( self, picture_id, meli=None, fallback_url=None ):
+        """#532 (foto máxima resolución): GET /pictures/{picture_id} → elige la variación de MAYOR
+        área (ancho×alto) del array `variations` y devuelve su secure_url (o url). Devuelve
+        `fallback_url` ante cualquier fallo o si no hay variaciones (defensivo, nunca rompe el import).
+
+        El truco de reescribir el sufijo de la URL (-O→-F) NO sirve (prefijo/formato distintos): la
+        única fuente confiable de la máxima resolución es /pictures/{id} → variations."""
+        if not picture_id:
+            return fallback_url
+        try:
+            resp = meli.get("/pictures/" + str(picture_id), {'access_token': meli.access_token})
+            imgjson = resp.json()
+            if not isinstance(imgjson, dict) or 'error' in imgjson:
+                return fallback_url
+            variations = imgjson.get('variations') or []
+            if not variations:
+                return fallback_url
+
+            def _area(v):
+                s = (v.get('size') or v.get('max_size') or '0x0')
+                try:
+                    w, h = str(s).lower().split('x')
+                    return int(w) * int(h)
+                except Exception:
+                    return 0
+
+            best = max(variations, key=_area)
+            return best.get('secure_url') or best.get('url') or fallback_url
+        except Exception:
+            _logger.exception("_meli_best_picture_url: fallo GET /pictures/%s (uso fallback)", picture_id)
+            return fallback_url
+
     def _meli_set_image_xy( self, pic_id=None, picture_hash=None, variations_hash=None, config=None, meli=None, rjson=None ):
 
         _logger.info("_meli_set_image_xy")
@@ -1813,6 +1845,10 @@ class product_product(models.Model):
             ix_start = 1
             first_pic_id = pic_ids and pic_ids[0]
             thumbnail_url = first_pic_id and first_pic_id in picture_hash and picture_hash[first_pic_id]['url']
+            # #532: la imagen PRINCIPAL venía del 'url' de /items (chica, ej. 292x500). Pedimos la
+            # variación de máxima resolución vía /pictures/{id} (ej. 526x900). Fallback al url chico.
+            if first_pic_id:
+                thumbnail_url = self._meli_best_picture_url(first_pic_id, meli=meli, fallback_url=thumbnail_url)
             if thumbnail_url:
                 _logger.info( "Setting principal IMAGE for product: " + str(product.display_name) + " thumbnail_url: " + str(thumbnail_url) )
                 image = urlopen(thumbnail_url).read()
@@ -1827,16 +1863,8 @@ class product_product(models.Model):
                 pic = picture_hash[ vpic_id ]
 
                 #MORE MEDIAS
-                resimage = meli.get("/pictures/"+str(pic['id']), {'access_token':meli.access_token})
-                imgjson = resimage.json()
-
-                thumbnail_url = pic['secure_url']
-                #_logger.info(imgjson)
-                if 'error' in imgjson:
-                    pass;
-                else:
-                    if (len(imgjson['variations'])>0):
-                        thumbnail_url = imgjson['variations'][0]['secure_url']
+                # #532: usar la variación de MÁXIMA resolución (mayor área), no variations[0].
+                thumbnail_url = self._meli_best_picture_url(pic['id'], meli=meli, fallback_url=pic['secure_url'])
 
                 image = urlopen(thumbnail_url).read()
                 image_base64 = base64.b64encode(image)
