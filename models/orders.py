@@ -556,6 +556,45 @@ class sale_order(models.Model):
             return invoices[0]
         return None
 
+    def _meli_shipping_to_subtract( self, seller_discount=0.0 ):
+        """Importe de envio a restar de meli_paid_amount, decidido POR ORDEN.
+
+        `mercadolibre_including_shipping_cost = "never"` venia restando
+        `meli_shipping_amount` SIEMPRE, y eso es correcto solo cuando el comprador
+        pago el envio. Cuando el envio lo absorbe el vendedor, `meli_paid_amount`
+        NO lo incluye, asi que restarlo deja el monto a facturar corto por
+        exactamente el importe del envio -- y con envios caros sobre productos
+        baratos, en negativo.
+
+        Medido el 8-sep-2026 en la produccion de Tus Refacciones (431), septiembre:
+          - 51 ventas con envio. En 15 el comprador pago el envio (paid = total + envio)
+            y cuadran. En 36 no lo pago (paid = total) y fallan; en 35 de esas 36 la
+            diferencia es EXACTAMENTE el envio, y 12 dan monto negativo.
+          - Sin envio fallan 2 de 1.791 => el envio es la variable.
+        Simulado sobre jul-sep, fallas del guard: 'never' 112/193/38, 'always'
+        166/156/16, esta regla 112/88/3. (Julio no se mueve: ese residuo es otra causa.)
+
+        La decision NO usa el tipo de logistica: se mira el propio pago, que es el
+        dato que manda ML. Devuelve 0.0 cuando el pago no incluye el envio.
+        """
+        self.ensure_one()
+        ship = self.meli_shipping_amount or 0.0
+        if ship <= 0.0:
+            return 0.0
+
+        paid = self.meli_paid_amount or 0.0
+        total = self.amount_total or 0.0
+        if paid <= 0.0 or total <= 0.0:
+            # Sin datos para decidir: se conserva el comportamiento historico.
+            return ship
+
+        # ¿A que se parece mas lo que pago el comprador: al total con envio, o sin el?
+        con_envio = abs(paid - seller_discount - (total + ship))
+        sin_envio = abs(paid - seller_discount - total)
+        if con_envio < sin_envio:
+            return ship        # lo pago el comprador -> se resta
+        return 0.0             # lo absorbe el vendedor -> no se resta
+
     def meli_amount_to_invoice( self, meli=None, config=None ):
 
         total_config = (config and "mercadolibre_order_total_config" in config._fields) and config.mercadolibre_order_total_config
@@ -609,7 +648,8 @@ class sale_order(models.Model):
         if total_config in ['paid_amount','transaction_amount']:
 
             if (including_shipping_cost=="never"):
-                return (self.meli_paid_amount - seller_discount - self.meli_shipping_amount)
+                return (self.meli_paid_amount - seller_discount
+                        - self._meli_shipping_to_subtract(seller_discount=seller_discount))
 
             return (self.meli_paid_amount - seller_discount)
 
