@@ -4,6 +4,31 @@
 
 ---
 
+## Versión 18.0.26.101 — El envío ya no se resta cuando lo pagás vos
+9 sep 2026
+
+**Cambios:**
+
+1. **El aviso de "los montos no coinciden" deja de aparecer en las ventas con envío gratis.** Cuando
+   la configuración de total está en *Paid Amount* con el envío en *Nunca*, el conector le restaba el
+   importe del envío a **todas** las ventas. Eso es correcto sólo si el envío **lo pagó el comprador**:
+   si el envío lo absorbés vos, lo que pagó el comprador nunca lo incluyó, así que restarlo dejaba el
+   monto a facturar **corto por exactamente el importe del envío** — y con envíos caros sobre productos
+   baratos, en **negativo**. Ahora la decisión se toma **venta por venta**, mirando el propio pago que
+   informa MercadoLibre: se resta el envío sólo si el pago lo incluye.
+
+**Qué esperar:** las ventas con envío que antes quedaban con el aviso de diferencia ahora cuadran.
+Las que ya cuadraban **siguen igual**: la corrección no cambia ninguna venta que estuviera bien.
+
+**Medido antes de publicarlo,** sobre 13.456 ventas reales de una tienda con este caso (julio a
+septiembre de 2026): corrige **104** ventas de agosto y **43** de septiembre, y **no rompe ninguna**
+de las que ya cuadraban. En septiembre las ventas con diferencia bajan de 47 a 4.
+
+**Lo que NO cubre:** las diferencias de julio (112) no se mueven, porque en ese mes casi no había
+ventas con envío — ese resto responde a **otra causa** y se sigue por separado.
+
+---
+
 ## Versión 18.0.26.97 — Filtros para encontrar las ventas canceladas en ML que siguen vivas en Odoo
 10 sep 2026
 
