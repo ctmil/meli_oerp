@@ -4,6 +4,32 @@
 
 ---
 
+## Versión 18.0.26.104 — El descuento de vendedor puede tener un tope que no dependa del cupón [#504 / #520 Dannok]
+17 sep 2026
+
+**Cambios:**
+
+1. **El problema:** cuando MercadoLibre informa un descuento de vendedor, el conector se lo resta al
+   importe a facturar. Ese descuento tiene un tope —el importe del cupón— **pero el tope sólo se
+   aplica si el cupón quedó registrado en la orden de venta**. Y hay pedidos donde no queda: el
+   cupón llega por los **cargos del cobro** y no en el pedido, y ahí se guarda en un campo distinto
+   del que mira el tope. En esos pedidos el descuento se resta **sin límite** y el importe a
+   facturar queda por debajo de lo que el comprador pagó, así que la venta **no se confirma ni se
+   factura sola** y hay que completarla a mano. *Medido en un cliente AR: total de la venta
+   60.793,78, importe a facturar 56.697,56, diferencia 4.096,22 — exactamente el descuento.*
+2. **Y el importe del cupón tampoco es el tope correcto.** Cuando el comprador pagó el total de la
+   venta, la deducción que deja el número en su lugar es **cero**, no el cupón.
+3. **Nuevo campo `meli_seller_discount_cap_mode`** (en la compañía): *Tope = importe del cupón*
+   —**por defecto, el comportamiento de siempre**— o *Nunca por debajo del total de la venta*, que
+   resta el descuento **sólo hasta** dejar el importe a facturar igual al total de la orden.
+4. **Alcance acotado, y medible:** la opción sólo puede actuar sobre pedidos donde hoy el importe a
+   facturar queda **por debajo** del total de la venta. Un pedido que hoy cierra bien no cambia, y
+   con la opción por defecto el cálculo es **idéntico** al anterior, línea por línea.
+
+Requiere actualizar el módulo (`-u meli_oerp`).
+
+---
+
 ## Versión 18.0.26.103 — El código universal de producto (GTIN) ya no genera variantes
 17 sep 2026
 

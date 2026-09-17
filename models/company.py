@@ -413,6 +413,29 @@ class res_company(models.Model):
                                                         ('paid_amount','Paid Amount'),
                                                         ('total_amount','Total Amount')] , string="Total Config.", help='Order Total Config, stategy to calculate order/invoice total amount.' )
 
+    meli_seller_discount_cap_mode = fields.Selection(
+        selection=[
+            ("coupon", "Tope = importe del cupón (comportamiento actual)"),
+            ("never_below_total", "Nunca por debajo del total de la venta"),
+        ],
+        string="Tope del descuento de vendedor",
+        default="coupon",
+        help="Hasta dónde se puede restar el descuento de vendedor al calcular el importe a "
+             "facturar de un pedido de MercadoLibre.\n\n"
+             "• Tope = importe del cupón (por defecto): es el comportamiento de siempre. El "
+             "descuento se acota al importe del cupón, y sólo cuando el pedido tiene cupón "
+             "registrado en la venta.\n"
+             "• Nunca por debajo del total de la venta: el descuento se resta sólo hasta donde el "
+             "importe a facturar queda igual al total de la orden de venta, nunca por debajo.\n\n"
+             "Cuándo hace falta la segunda opción: MercadoLibre informa el descuento del vendedor "
+             "en un pedido cuyo cupón llegó por los cargos del cobro y no en el pedido mismo. En "
+             "ese caso el tope por cupón no se aplica, el descuento se resta sin límite y la venta "
+             "queda por debajo de lo que el comprador pagó: no se confirma ni se factura sola, y "
+             "hay que completarla a mano.\n\n"
+             "Sólo afecta pedidos donde hoy el importe a facturar queda POR DEBAJO del total de la "
+             "venta. Los pedidos que hoy cierran bien no cambian."
+    )
+
     mercadolibre_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),
                                                   ("classified","Clasificado")],
                                                   string='Método de compra predeterminado')

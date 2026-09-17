@@ -627,10 +627,37 @@ class sale_order(models.Model):
         #     (meli_paid_amount - seller_discount) is ABOVE or near so.amount_total.
         #     No cap needed; the tolerance in confirm_ml/meli_create_invoice covers the rest.
         # Distinguish by result: cap only when uncapped amount_to_invoice < so.amount_total.
-        if _coupon_cap > 0 and self.amount_total > 0:
+        if self.amount_total > 0:
             _uncapped = (self.meli_paid_amount or 0.0) - seller_discount
             if _uncapped < self.amount_total:
-                seller_discount = min(seller_discount, _coupon_cap)
+                _cap_mode = (config and "meli_seller_discount_cap_mode" in config._fields
+                             and config.meli_seller_discount_cap_mode) or "coupon"
+                if _cap_mode == "never_below_total":
+                    # [#504/#520 Dannok] El tope por CUPON no alcanza, y a veces no existe.
+                    #
+                    # Medido en este mismo archivo:
+                    #   - El descuento de vendedor SOLO se busca si hay cupon
+                    #     (`if order and order.coupon_amount > 0: order._fetch_order_discounts(...)`).
+                    #   - `mercadolibre.orders.coupon_amount` se puede escribir TARDE, desde los
+                    #     cargos del cobro (`if not order.coupon_amount: order.coupon_amount =
+                    #     coupon_fee_amount`), cuando el JSON del pedido vino sin `coupon`.
+                    #   - `sale.order.meli_coupon_amount` se puebla SOLO del JSON del pedido y
+                    #     nunca se actualiza con ese valor.
+                    # Son dos campos distintos: el que gatea la busqueda NO es el que pone el tope.
+                    # En esos pedidos hay `seller_discount > 0` con `_coupon_cap == 0`, el tope no
+                    # liga, y el importe a facturar queda corto EXACTAMENTE en el descuento: la
+                    # venta no confirma ni factura sola.
+                    #
+                    # Y aun resolviendo el cupon, el importe del cupon no es el tope correcto:
+                    # cuando el comprador pago el total de la venta, la deduccion que deja el
+                    # numero en su lugar es CERO. El tope que corresponde es "lo que no haga caer
+                    # el importe a facturar por debajo del total de la venta".
+                    _max_deduct = max(0.0, (self.meli_paid_amount or 0.0) - self.amount_total)
+                    if _coupon_cap > 0:
+                        _max_deduct = min(_max_deduct, _coupon_cap)
+                    seller_discount = min(seller_discount, _max_deduct)
+                elif _coupon_cap > 0:
+                    seller_discount = min(seller_discount, _coupon_cap)
 
         if total_config in ['manual_conflict']:
 
