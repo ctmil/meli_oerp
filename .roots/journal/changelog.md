@@ -4,6 +4,32 @@
 
 ---
 
+## Versión 19.0.26.115 — El código universal de producto (GTIN) ya no genera variantes
+17 sep 2026
+
+**Cambios:**
+
+1. **El problema:** Mercado Libre declara el **GTIN** (código universal de producto) como atributo
+   "de variación", porque del lado de ML cada variación puede llevar su propio código. El conector
+   le hacía caso y marcaba ese atributo en Odoo como generador de variantes. Pero en Odoo el GTIN es
+   el **código de barras de la variante**, no una característica del producto: el resultado era
+   **una variante nueva por cada código**, justo lo contrario de para lo que se usan las variantes.
+2. **Ahora** el GTIN y el SKU del vendedor (`SELLER_SKU`) **nunca** quedan marcados como generadores
+   de variantes, aunque Mercado Libre los declare así. Vale tanto al traer los atributos de una
+   categoría como al usar el botón *Fix attribute*.
+
+3. **Además, en esta versión:** el botón *Fix attribute* ganó el camino inverso. Hasta ahora sólo
+   podía **subir** un atributo a "genera variantes"; ahora también puede **bajarlo**, que es lo que
+   hace falta para reparar un catálogo donde el GTIN ya quedó cargado como característica.
+   Si alguna variante de un producto ya tiene movimientos de stock o ventas, ese producto **se
+   saltea** y queda anotado en el log: no se borra nada que ya haya operado.
+
+**A quién le importa esto:** a cualquier cuenta que publique en categorías donde ML declara el GTIN
+de variación. Un caso medido: la categoría de **Cables Eléctricos** (`MLA455454`) declara de
+variación exactamente dos atributos, y el GTIN es uno de ellos.
+
+---
+
 ## Versión 19.0.26.109 — Vincular publicaciones por CÓDIGO DE BARRAS, sin depender del SKU
 8 sep 2026
 
