@@ -393,9 +393,15 @@ class res_company(models.Model):
     mercadolibre_cron_orders_status_limit = fields.Integer(string='Max pedidos por ciclo (re-sync estado)',help='Tope de pedidos a re-consultar por ciclo del cron de re-sync de estado, para acotar el uso de API (rate-limit).',default=100)
     mercadolibre_cron_get_questions = fields.Boolean(string='Importar preguntas',help='Cron Get Questions')
     mercadolibre_cron_get_update_products = fields.Boolean(string='Actualizar productos en Odoo',help='Cron Update Products already imported')
-    mercadolibre_cron_post_update_products = fields.Boolean(string='Actualizar productos en ML',help='Cron Update Posted Products, Product Templates or Variants with Meli Publication field checked')
-    mercadolibre_cron_post_update_stock = fields.Boolean(string='Publicar Stock',help='Cron Post Updated Stock')
-    mercadolibre_cron_post_update_price = fields.Boolean(string='Publicar Precio',help='Cron Post Updated Price')
+    mercadolibre_cron_post_update_products = fields.Boolean(
+        string='Actualizar productos en ML',
+        help="Actualiza en Mercado Libre la FICHA de las publicaciones que YA existen: titulo, descripcion, atributos e imagenes. Solo toma los productos que tengan tildado 'Publicacion Meli'. NO crea publicaciones nuevas (para eso es 'Incluir nuevos productos') y NO toca el precio ni el stock, que tienen su propia casilla.")
+    mercadolibre_cron_post_update_stock = fields.Boolean(
+        string='Publicar Stock',
+        help="Mantiene al dia la cantidad disponible en las publicaciones que ya existen. No modifica la ficha del producto ni crea publicaciones nuevas.")
+    mercadolibre_cron_post_update_price = fields.Boolean(
+        string='Publicar Precio',
+        help="Mantiene al dia el precio en las publicaciones que ya existen, tomandolo de la lista de precios configurada. No modifica la ficha del producto ni crea publicaciones nuevas.")
     mercadolibre_create_website_categories = fields.Boolean(string='Crear categorías',help='Create Website eCommerce Categories from imported products ML categories')
     mercadolibre_pricelist = fields.Many2one( "product.pricelist", "Product Pricelist default", help="Select price list for ML product"
         "when published from Odoo to ML")
@@ -495,7 +501,9 @@ class res_company(models.Model):
                                                               ('tax_excluded','Impuestos excluídos del precio de lista') ] )
 
     mercadolibre_do_not_use_first_image = fields.Boolean(string="Do not use first image",default=False)
-    mercadolibre_cron_post_new_products = fields.Boolean(string='Incluir nuevos productos',help='Cron Post New Products, Product Templates or Variants with Meli Publication field checked')
+    mercadolibre_cron_post_new_products = fields.Boolean(
+        string='Incluir nuevos productos',
+        help="Ademas de actualizar las publicaciones existentes, CREA en Mercado Libre la publicacion de los productos con 'Publicacion Meli' tildado que todavia no tienen una. ATENCION: es la opcion mas fuerte de esta seccion. Antes de activarla conviene revisar que productos estan marcados, porque va a publicar TODOS los que no tengan publicacion.")
     mercadolibre_cron_get_new_products = fields.Boolean(string='Importar nuevos productos',help='Cron Import New Products, Product Templates or Variants')
 
     mercadolibre_process_offset = fields.Char('Offset for pause all')
