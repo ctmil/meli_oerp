@@ -451,6 +451,24 @@ stock_inv_model = "stock.quant"
 default_no_create_variant = "no_variant"
 default_create_variant = "always"
 
+# Atributos de ML que NUNCA deben generar variantes en Odoo, aunque ML los
+# declare variation_attribute y no hidden.
+#
+# ML los marca "de variacion" porque del lado de ML cada variacion puede llevar
+# su propio codigo/SKU. Pero en Odoo eso NO es una caracteristica del producto:
+# el GTIN es el campo `barcode` de la variante y el SELLER_SKU su `default_code`.
+# Tomarlos como generadores abre UNA VARIANTE POR CADA CODIGO, que es justo lo
+# contrario de para lo que se usan las variantes.
+#
+# SELLER_SKU hoy se salva solo porque ML lo manda hidden=true; si ML cambiara
+# ese flag rompe igual. Por eso va en la lista y no se deja librado al flag.
+meli_attributes_never_variant = ("GTIN", "SELLER_SKU")
+
+
+def meli_attribute_is_never_variant( att_id ):
+    """True si ese att_id de ML no debe generar variantes nunca."""
+    return bool(att_id) and str(att_id).strip().upper() in meli_attributes_never_variant
+
 #'unique(product_tmpl_id,meli_imagen_id)'
 unique_meli_imagen_id_fields = 'unique(product_tmpl_id,product_variant_id,meli_imagen_id)'
 
