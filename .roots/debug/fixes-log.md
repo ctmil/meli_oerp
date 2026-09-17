@@ -4,6 +4,48 @@
 
 ---
 
+### 17 sep 2026 — GTIN/SELLER_SKU nunca generan variantes [acct 409 Home I Cuadrado] (v16.0.26.102)
+
+**Origen:** consulta del cliente 409 sobre variantes (ticket #599), trabajada en vivo con FCA el
+16-sep. Su categoría de cables **`MLA455454`** declara de variación **exactamente dos** atributos:
+`CABLE_JACKET_COLOR` y **`GTIN`**. Esa instancia tenía **197 plantillas** con el GTIN como línea de
+atributo.
+
+**La causa:** `meli_default_create_variant()` (`models/product_attribute.py`) decide con la regla de
+ML — `not hidden and variation_attribute`. ML manda el GTIN con `variation_attribute=True` y
+`hidden=False`, así que el módulo lo promovía a `create_variant='always'`. **En Odoo el GTIN es el
+`barcode` de la VARIANTE**, no una característica: cada código distinto abre una variante.
+
+`SELLER_SKU` se salvaba **de casualidad**: ML lo manda `hidden=true`. Si ML cambiara ese flag rompe
+igual, así que entra a la lista y no se deja librado al flag.
+
+**Qué se hizo:**
+- `meli_attributes_never_variant = ("GTIN","SELLER_SKU")` + `meli_attribute_is_never_variant()` en
+  `models/versions.py` — **una sola definición compartida**.
+- Se aplica en **los DOS lugares** donde vivía la misma regla: `meli_default_create_variant()` (el
+  importador) y `fix_attribute_create_variant()` (`models/category.py`, el botón). Parchar uno solo
+  hace que el botón vuelva a promover lo que el importador ya dejó bien.
+- El caller de `category.py` pasa ahora el `att_id` de ML **explícito**: `attrs_field` sólo lo trae
+  en la rama de `create`, y sin él la lista negra no puede decidir.
+
+**La rama inversa del botón NO está en esta rama.** Vive sólo en 19.0 y está en prueba; se
+backportea cuando tenga uno o dos días de uso real (regla de FCA, 17-sep). Se trae con un
+cherry-pick del commit de 19.0.
+
+⚠️ **AL ACTUALIZAR UN CLIENTE, MIRAR ESTO:** el fix evita que el problema se **cree**, pero **no
+cambia solo** los atributos que ya quedaron en modo variante. Para saber si una instancia está
+afectada:
+```sql
+select pa.id, pa.name, pa.create_variant, mca.att_id
+  from product_attribute pa
+  join mercadolibre_category_attribute mca on mca.id = pa.meli_default_id_attribute
+ where mca.att_id in ('GTIN','SELLER_SKU') and pa.create_variant = 'always';
+```
+Si aparece algo, **no se toca sin hablarlo con el cliente**: cambiar una línea de atributo **borra y
+recrea las variantes** de esas plantillas.
+
+---
+
 ### 23 ago 2026 — `disable_cancel_warning_enabled = False`: la cancelacion FINGIA cancelar — v26.97 `[#494 Shoppy 502]`
 
 **El defecto.** `models/versions.py` traia `disable_cancel_warning_enabled = False` y los cuatro call
