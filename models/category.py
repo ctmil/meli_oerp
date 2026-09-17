@@ -148,6 +148,11 @@ class mercadolibre_category_attribute(models.Model):
         #_logger.info("fix_attribute_create_variant, convierte de no crear variant a instantaneo")
         #Solo borra las lineas de valores de atributos de todos los productos si el atributo esta en modo create_variant
         meli_att_creates_variant = not self.hidden and self.variation_attribute
+        # misma lista negra que meli_default_create_variant: la regla de "esto es
+        # de variacion" vive en DOS lugares y tienen que coincidir, o el boton
+        # vuelve a promover lo que el importador ya dejo bien.
+        if meli_attribute_is_never_variant( self.att_id ):
+            meli_att_creates_variant = False
         #_logger.info("fix_attribute_create_variant, CONVERTIR SE DEBE")
 
         if meli_att_creates_variant:
@@ -174,6 +179,64 @@ class mercadolibre_category_attribute(models.Model):
                         except Exception as E:
                             _logger.error("Error intentando convertir: "+str(E))
                             pass;
+        else:
+            # RAMA INVERSA (always -> no_variant).
+            # Hasta aca el boton solo SUBIA. Si un atributo quedo generando
+            # variantes y no correspondia -- el caso tipico es el GTIN, que ML
+            # declara de variacion porque alla cada variacion lleva su codigo --
+            # no habia forma de bajarlo: a mano Odoo rechaza el cambio mientras
+            # el atributo este en uso.
+            #
+            # Se reusa el MISMO orden que la rama de subida, que no es estilo
+            # sino la unica manera de que funcione: primero se vacian las lineas
+            # de las plantillas, y recien cuando no queda ninguna se baja el modo.
+            for att in self.product_attributes:
+                if (att.create_variant==default_create_variant):
+                    for product_tmpl in att.product_tmpl_ids:
+                        # FRENO: quitar la linea borra y recrea las variantes de
+                        # esa plantilla. Si alguna ya opero (stock o ventas) no se
+                        # toca: se avisa y se sigue con las demas.
+                        if self._attribute_variants_have_movements( product_tmpl, att ):
+                            _logger.warning(
+                                "fix_attribute_create_variant: %s se saltea, tiene "
+                                "variantes con movimientos (atributo %s)",
+                                product_tmpl.display_name, att.display_name )
+                            continue;
+                        for att_line in product_tmpl.attribute_line_ids:
+                            if att_line.attribute_id.id==att.id:
+                                try:
+                                    att_line.unlink()
+                                    self.products_to_fix = [(4,product_tmpl.id)]
+                                    MeliCommit( self );
+                                except Exception as E:
+                                    # a diferencia de la rama de subida, aca el
+                                    # motivo se loguea: un except mudo deja la
+                                    # plantilla encolada y sin explicacion.
+                                    _logger.error(
+                                        "fix_attribute_create_variant: no se pudo quitar la "
+                                        "linea de %s en %s: %s",
+                                        att.display_name, product_tmpl.display_name, E )
+                                break;
+                    if "number_related_products" in att._fields and att.number_related_products==0:
+                        try:
+                            att.create_variant = default_no_create_variant
+                        except Exception as E:
+                            _logger.error("Error intentando convertir a no_variant: "+str(E))
+                            pass;
+
+    def _attribute_variants_have_movements( self, product_tmpl, att ):
+        """True si alguna variante de `product_tmpl` que usa `att` tiene
+        movimientos de stock o lineas de venta. Es el freno de la rama inversa:
+        sin esto, bajar el atributo borraria variantes que ya operaron."""
+        variants = product_tmpl.product_variant_ids.filtered(
+            lambda v: att.id in v.product_template_attribute_value_ids.mapped("attribute_id").ids )
+        if not variants:
+            return False
+        if self.env["stock.move.line"].sudo().search_count( [("product_id","in",variants.ids)] ):
+            return True
+        if self.env["sale.order.line"].sudo().search_count( [("product_id","in",variants.ids)] ):
+            return True
+        return False
 
 
     def fix_products_reimport( self ):
@@ -470,7 +533,10 @@ class mercadolibre_category(models.Model):
 
                                 prod_att = {
                                     'name': att['name'],
-                                    'create_variant': self.env["product.attribute"].meli_default_create_variant(meli_attribute=attrs_field),
+                                    # att_id explicito: attrs_field solo lo trae en la rama
+                                    # de create, y sin el la lista negra no puede decidir.
+                                    'create_variant': self.env["product.attribute"].meli_default_create_variant(
+                                        meli_attribute=dict(attrs_field, att_id=att['id'])),
                                     'meli_default_id_attribute': attrs[0].id,
                                     #'meli_id': attrs[0].att_id
                                 }
