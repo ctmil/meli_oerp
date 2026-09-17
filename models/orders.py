@@ -917,7 +917,7 @@ class sale_order(models.Model):
                     # ENTREGADA en los moves originales (no product_return_moves, que acá
                     # siempre es 0) para seguir saltando limpio los casos sin nada real
                     # que devolver.
-                    if not sum(picking.move_ids.filtered(lambda m: m.state != "cancel" and not m.scrapped).mapped("quantity")):
+                    if not sum(picking.move_ids.filtered(lambda m: m.state != "cancel" and not m.scrap_id).mapped("quantity")):
                         _logger.info("Return omitida para %s: sin cantidades entregadas a devolver.", picking.name)
                         continue
                     wiz.action_create_returns_all()
