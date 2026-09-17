@@ -395,7 +395,7 @@ class res_company(models.Model):
     mercadolibre_cron_get_update_products = fields.Boolean(string='Actualizar productos en Odoo',help='Cron Update Products already imported')
     mercadolibre_cron_post_update_products = fields.Boolean(
         string='Actualizar productos en ML',
-        help="Actualiza en Mercado Libre la FICHA de las publicaciones que YA existen: titulo, descripcion, atributos e imagenes. Solo toma los productos que tengan tildado 'Publicacion Meli'. NO crea publicaciones nuevas (para eso es 'Incluir nuevos productos') y NO toca el precio ni el stock, que tienen su propia casilla.")
+        help="Actualiza en Mercado Libre la FICHA de las publicaciones que YA existen: titulo, descripcion, atributos e imagenes. Solo toma los productos que tengan tildado 'Publicacion Meli'. NO crea publicaciones nuevas y NO toca el precio ni el stock, que tienen su propia casilla. NO ACTIVAR sin consultar con Moldeo Interactive: reescribe fichas ya publicadas y no hay vuelta atras automatica.")
     mercadolibre_cron_post_update_stock = fields.Boolean(
         string='Publicar Stock',
         help="Mantiene al dia la cantidad disponible en las publicaciones que ya existen. No modifica la ficha del producto ni crea publicaciones nuevas.")
@@ -503,7 +503,7 @@ class res_company(models.Model):
     mercadolibre_do_not_use_first_image = fields.Boolean(string="Do not use first image",default=False)
     mercadolibre_cron_post_new_products = fields.Boolean(
         string='Incluir nuevos productos',
-        help="Ademas de actualizar las publicaciones existentes, CREA en Mercado Libre la publicacion de los productos con 'Publicacion Meli' tildado que todavia no tienen una. ATENCION: es la opcion mas fuerte de esta seccion. Antes de activarla conviene revisar que productos estan marcados, porque va a publicar TODOS los que no tengan publicacion.")
+        help="Ademas de actualizar las publicaciones existentes, CREA en Mercado Libre la publicacion de los productos con 'Publicacion Meli' tildado que todavia no tienen una. NO ACTIVAR. Es la opcion mas peligrosa de esta seccion: publica de una sola pasada TODOS los productos marcados que no tengan publicacion, y una publicacion creada por error ya quedo hecha en Mercado Libre. Se habilita solo en un escenario acordado con Moldeo Interactive.")
     mercadolibre_cron_get_new_products = fields.Boolean(string='Importar nuevos productos',help='Cron Import New Products, Product Templates or Variants')
 
     mercadolibre_process_offset = fields.Char('Offset for pause all')
