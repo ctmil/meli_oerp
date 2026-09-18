@@ -1399,6 +1399,32 @@ class product_product(models.Model):
                 _logger.info("_meli_set_product_price lst_price<1.0: "+str(ml_price_converted))
                 product_template.write({'lst_price': ml_price_converted})
 
+    def _meli_price_decimals( self, meli_currency, config=None ):
+        """Decimales con los que se publica un precio en MercadoLibre (#601 P5).
+
+        Sale de res.currency.decimal_places, que es el dato del sistema — no de una
+        constante nuestra. Orden de resolucion:
+          1. la moneda que el producto declara para ML (meli_currency, ej. 'ARS'),
+          2. la de la lista de precios de ML configurada,
+          3. la de la compania.
+        Si ninguna resuelve, 2 decimales (el round(new_price, 2) que ya se aplico
+        aguas arriba). Devolver 0 significa "moneda sin decimales" y conserva el
+        redondeo hacia arriba historico.
+        """
+        currency = False
+        if meli_currency:
+            currency = self.env['res.currency'].with_context(active_test=False).search(
+                [('name', '=', meli_currency)], limit=1)
+        if not currency and config:
+            pl = ('mercadolibre_pricelist' in config._fields and config.mercadolibre_pricelist) or False
+            currency = (pl and pl.currency_id) or False
+        if not currency:
+            company = (config and 'company_id' in config._fields and config.company_id) or self.env.user.company_id
+            currency = company and company.currency_id
+        if not currency:
+            return 2
+        return currency.decimal_places
+
     def set_meli_price( self, meli=None, config=None, plist=None ):
         company = self.env.user.company_id
         config = config or company
@@ -1434,7 +1460,10 @@ class product_product(models.Model):
         else:
             #_logger.info( "new_price: " +str(new_price))
             if ( product.meli_price_fixed and product.meli_price):
-                new_price = int(float(product.meli_price)) or int(float(product_tmpl_id.meli_price)) or 0
+                # #601 P5: era int(float(...)) -> un precio fijo de 495.69 se publicaba 495.
+                # Ademas `product_tmpl_id` no existe en este ambito (la local es `product_tmpl`):
+                # con meli_price fijo == 0 esta linea levantaba NameError.
+                new_price = float(product.meli_price) or float(product_tmpl.meli_price or 0.0) or 0.0
             else:
                 if ( product.lst_price ):
                     new_price = product.lst_price
@@ -1464,8 +1493,18 @@ class product_product(models.Model):
         elif (product_tmpl.meli_currency and product_tmpl.meli_currency == 'CLP'):
             new_price = str( int( int( math.floor(int(new_price) / 100 ) * 100 + 90 ) ) )
         else:
-            new_price = math.ceil(new_price)
-            new_price = str(int(float(new_price)))
+            # #601 P5: antes esta rama hacia SIEMPRE math.ceil() -> entero. Alcanzaba a
+            # toda moneda distinta de MXN/USD/CLP y, sobre todo, al caso de
+            # meli_currency VACIO, que es por donde caen los productos sin moneda
+            # cargada: un precio de 495.69 se publicaba como 496.
+            # Ahora los decimales salen de la moneda (res.currency.decimal_places).
+            # Las monedas SIN decimales conservan el redondeo hacia arriba de siempre.
+            _decimals = product._meli_price_decimals(product_tmpl.meli_currency, config=config)
+            if _decimals > 0:
+                new_price = str(float(round(new_price, _decimals)))
+            else:
+                new_price = math.ceil(new_price)
+                new_price = str(int(float(new_price)))
 
         product_tmpl.meli_price = new_price
         product.meli_price = product_tmpl.meli_price
