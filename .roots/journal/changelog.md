@@ -33,6 +33,10 @@
    que antes.
 6. **El precio fijo también se truncaba.** Cuando el producto tenía un precio fijo para
    MercadoLibre, se guardaba sin decimales (495,69 quedaba en 495).
+7. **Los módulos propios vuelven a poder ajustar el indicador de conexión.** El campo
+   *Desconectado* de la empresa se calculaba de una forma que **ignoraba cualquier adaptación
+   hecha en un módulo propio del cliente**: el ajuste quedaba escrito pero nunca se ejecutaba, sin
+   dar error. Ahora se respeta, como en cualquier otro campo calculado de Odoo.
 
 Requiere actualizar el módulo (`-u meli_oerp`).
 
