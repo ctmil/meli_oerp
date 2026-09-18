@@ -4,6 +4,40 @@
 
 ---
 
+## Versión 18.0.26.105 — La cancelación automática vuelve a cancelar, y el precio publicado respeta los decimales
+18 sep 2026
+
+**Cambios:**
+
+1. **La cancelación automática no cancelaba.** Desde noviembre de 2025, cuando MercadoLibre cancelaba
+   un pedido ya confirmado, el conector **no cancelaba la venta en Odoo**. No daba error y no dejaba
+   nada en el log — y encima escribía en el historial de la venta *"Orden cancelada por
+   MercadoLibre"*. O sea: **parecía que había funcionado**. Sólo se cancelaban las ventas que
+   todavía estaban en presupuesto.
+2. **Por qué pasaba:** una opción interna quedó invertida y, con ese valor, la orden de cancelar
+   abría —internamente— la ventana de confirmación que Odoo le muestra a un usuario. Como del otro
+   lado no hay nadie (es un proceso automático), la ventana no se abría nunca y la venta quedaba
+   igual que antes.
+3. **Ahora la cancelación se verifica.** El conector ya no da por cancelada una venta: **comprueba
+   que haya quedado en estado Cancelado**. Si por cualquier motivo no lo consigue, lo dice: deja el
+   aviso explícito en el historial de la venta y un error en el log del servidor.
+4. **El historial deja de mentir.** El mensaje *"Orden cancelada por MercadoLibre"* se escribe
+   **sólo si la venta quedó realmente cancelada**. Si no, lo que queda escrito es el pedido de
+   gestión manual. Alcanza también a la acción manual **"Desbloquear y Cancelar"** del menú de
+   MercadoLibre, que tenía exactamente el mismo problema.
+5. **El precio publicado respeta los decimales de la moneda.** Un producto de **495,69** se publicaba
+   en **496**: al preparar el precio para MercadoLibre se redondeaba hacia arriba al entero más
+   cercano. Pasaba con toda moneda distinta de peso mexicano, dólar y peso chileno, y sobre todo
+   **cuando el producto no tenía la moneda cargada**. Ahora la cantidad de decimales sale de la
+   moneda configurada en Odoo. Las monedas que no usan decimales siguen publicando enteros, igual
+   que antes.
+6. **El precio fijo también se truncaba.** Cuando el producto tenía un precio fijo para
+   MercadoLibre, se guardaba sin decimales (495,69 quedaba en 495).
+
+Requiere actualizar el módulo (`-u meli_oerp`).
+
+---
+
 ## Versión 18.0.26.104 — El descuento de vendedor puede tener un tope que no dependa del cupón [#504 / #520 Dannok]
 17 sep 2026
 
@@ -25,9 +59,6 @@
 4. **Alcance acotado, y medible:** la opción sólo puede actuar sobre pedidos donde hoy el importe a
    facturar queda **por debajo** del total de la venta. Un pedido que hoy cierra bien no cambia, y
    con la opción por defecto el cálculo es **idéntico** al anterior, línea por línea.
-
-Requiere actualizar el módulo (`-u meli_oerp`).
-
 ---
 
 ## Versión 18.0.26.103 — El código universal de producto (GTIN) ya no genera variantes
