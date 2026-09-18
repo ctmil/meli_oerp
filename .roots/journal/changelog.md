@@ -8,6 +8,28 @@
   `scrapped`/`scrap_id` resuelto contra `_fields` (26.129), ports del #494.
 - Sin cambios de datos ni vistas: el salto de build es para que las cuatro series designen el mismo release.
 
+## Versión 18.0.26.142 — El precio publicado respeta los decimales de la moneda
+24 sep 2026
+
+**Cambios:**
+
+1. **El precio publicado respeta los decimales de la moneda.** Un producto de **495,69** se publicaba
+   en **496**: al preparar el precio para MercadoLibre se redondeaba hacia arriba al entero más
+   cercano. Pasaba con toda moneda distinta de peso mexicano, dólar y peso chileno, y sobre todo
+   **cuando el producto no tenía la moneda cargada**. Ahora la cantidad de decimales sale de la
+   moneda configurada en Odoo. Las monedas que no usan decimales siguen publicando enteros.
+2. **El precio fijo también se truncaba.** Con precio fijo para MercadoLibre se guardaba sin
+   decimales (495,69 quedaba en 495).
+3. **Los módulos propios vuelven a poder ajustar el indicador de conexión.** El campo *Desconectado*
+   de la empresa se calculaba de una forma que **ignoraba cualquier adaptación hecha en un módulo
+   propio del cliente**: el ajuste quedaba escrito pero nunca se ejecutaba, sin dar error.
+
+Reportado por R&D Metabolismo (tickets 601 y 514).
+
+Requiere actualizar el módulo (`-u meli_oerp`).
+
+---
+
 ## Versión 18.0.26.134 — Los reclamos de MercadoLibre vuelven a verse en Odoo, y el link de mensajes lleva al país de la cuenta
 23 sep 2026
 
