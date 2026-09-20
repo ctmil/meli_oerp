@@ -4,6 +4,26 @@
 
 ---
 
+## Versión 16.0.26.124 — Alineación del número de versión en todo el conector
+21 sep 2026
+
+**Cambios:**
+
+1. **No hay cambios de código en esta versión.** El módulo en 16.0 ya tenía la corrección de las
+   cancelaciones de MercadoLibre (#494) desde antes; lo que hoy entró en 17.0, 18.0 y 19.0 fue esa
+   misma corrección, que en esas versiones faltaba.
+2. **Qué cambia entonces: el número de versión.** A partir de este build usamos **el mismo número
+   en las cuatro versiones de Odoo y en los módulos del conector** — 16.0.26.124, 17.0.26.124,
+   18.0.26.124, 19.0.26.124, y el mismo 26.124 en MercadoLibre Multiple. Antes cada módulo y cada
+   versión llevaban su propia numeración, y no había forma de decir "estás en la 124" sin aclarar
+   de cuál.
+3. **Para qué sirve:** para poder nombrar una versión del conector y que signifique lo mismo para
+   todos — en el changelog, en el aviso de actualización y al reportar un problema.
+
+Requiere actualizar el módulo (`-u meli_oerp`).
+
+---
+
 ## Versión 16.0.26.102 — El código universal de producto (GTIN) ya no genera variantes
 17 sep 2026
 
