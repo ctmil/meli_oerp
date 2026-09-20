@@ -4,6 +4,24 @@
 
 ---
 
+## Versión 19.0.26.124 — La cancelación automática verifica que la venta haya quedado cancelada [#494]
+20 sep 2026
+
+**Cambios:**
+
+1. **Esta versión de Odoo NO tenía el problema** que sí afectaba a 16, 17 y 18 (ahí la cancelación
+   automática no cancelaba ninguna venta confirmada). Se alinea igual el código para que las cuatro
+   versiones del conector se comporten y se lean igual.
+2. **La cancelación ahora se verifica.** El conector ya no da por cancelada una venta: comprueba
+   que haya quedado en estado Cancelado. Si no lo consigue, lo dice — aviso explícito en el
+   historial de la venta y error en el registro — en vez de seguir de largo.
+3. **El historial deja de poder mentir.** El mensaje *"Orden cancelada por MercadoLibre"* se
+   escribe **sólo si la venta quedó realmente cancelada**.
+
+Requiere actualizar el módulo (`-u meli_oerp`).
+
+---
+
 ## Versión 19.0.26.115 — El código universal de producto (GTIN) ya no genera variantes
 17 sep 2026
 
@@ -58,7 +76,23 @@ referencia interna se buscaba por código de barras); esta versión lo lleva tam
 **vinculación de publicaciones**, que era donde faltaba.*
 
 Requiere actualizar el módulo (`-u meli_oerp`).
+## Versión 19.0.26.96 — La cancelación automática verifica que la venta haya quedado cancelada
+23 ago 2026
 
+**Cambios:**
+
+1. **Esta versión de Odoo NO tenía el problema** que sí afectaba a 16, 17 y 18 (ahí la cancelación
+   automática no cancelaba ninguna venta confirmada). Se alinea igual el código para que las cuatro
+   versiones del conector se comporten y se lean igual.
+2. **La cancelación ahora se verifica.** El conector ya no da por cancelada una venta: comprueba que
+   haya quedado en estado Cancelado. Si no lo consigue, lo dice — aviso explícito en el historial de
+   la venta y error en el log — en vez de seguir de largo.
+3. **El historial deja de poder mentir.** El mensaje *"Orden cancelada por MercadoLibre"* se escribe
+   **sólo si la venta quedó realmente cancelada**.
+
+Requiere actualizar el módulo (`-u meli_oerp`).
+
+---
 ## Versión 19.0.26.94 — Los pedidos ya facturados quedan protegidos de punta a punta (y ahora avisan)
 21 ago 2026
 
