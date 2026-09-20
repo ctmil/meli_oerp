@@ -4,6 +4,28 @@
 
 ---
 
+## Versión 17.0.26.124 — Las cancelaciones de MercadoLibre ahora se aplican de verdad [#494]
+20 sep 2026
+
+**Cambios:**
+
+1. **El problema:** cuando MercadoLibre cancelaba un pedido **ya confirmado**, el conector
+   **no cancelaba la venta en Odoo** — y aun así dejaba escrito en el seguimiento
+   *"Orden cancelada por MercadoLibre"*. La venta quedaba **figurando cancelada y viva al mismo
+   tiempo**: podía facturarse o despacharse. No aparecía ningún error ni quedaba nada en el
+   registro. Activo desde noviembre de 2025.
+2. **La causa:** la cancelación de una venta en Odoo abre un formulario de confirmación cuando el
+   pedido no está en borrador. Desde un proceso automático **nadie abre ese formulario**, así que
+   la cancelación no llegaba a ejecutarse y el conector la daba por hecha igual.
+3. **La corrección:** la cancelación se pide siempre saltando ese formulario y, sobre todo,
+   **se verifica el estado de la venta después de pedirla**. Si la venta no quedó cancelada, el
+   conector **no lo informa como cancelada** y lo deja registrado para poder revisarlo.
+4. **Para encontrar las que quedaron mal:** en Ventas hay dos filtros —*MercadoLibre Canceladas* y
+   *MercadoLibre Canceladas pendientes en Odoo*—; el segundo es la lista de las que hay que
+   revisar a mano.
+
+---
+
 ## Versión 17.0.26.99 — El código universal de producto (GTIN) ya no genera variantes
 17 sep 2026
 
@@ -24,6 +46,29 @@
 **A quién le importa esto:** a cualquier cuenta que publique en categorías donde ML declara el GTIN
 de variación. Un caso medido: la categoría de **Cables Eléctricos** (`MLA455454`) declara de
 variación exactamente dos atributos, y el GTIN es uno de ellos.
+## Versión 17.0.26.96 — La cancelación automática vuelve a cancelar de verdad
+23 ago 2026
+
+**Cambios:**
+
+1. **El problema, y es grave:** desde noviembre de 2025 el conector **no cancelaba ninguna venta ya
+   confirmada** cuando MercadoLibre cancelaba el pedido. No daba error, no dejaba nada en el log —
+   y encima escribía en el historial de la venta *"Orden cancelada por MercadoLibre"*. O sea:
+   **parecía que había funcionado**. Sólo se cancelaban las ventas que todavía estaban en presupuesto.
+2. **Por qué pasaba:** una opción interna quedó invertida y, con ese valor, la orden de cancelar
+   abría —internamente— la ventana de confirmación que Odoo le muestra a un usuario. Como del otro
+   lado no hay nadie (es un proceso automático), la ventana no se abría nunca y la venta quedaba
+   igual que antes.
+3. **Ahora la cancelación se verifica.** El conector ya no da por cancelada una venta: **comprueba
+   que haya quedado en estado Cancelado**. Si por cualquier motivo no lo consigue, lo dice: deja el
+   aviso explícito en el historial de la venta y un error en el log del servidor.
+4. **El historial deja de mentir.** El mensaje *"Orden cancelada por MercadoLibre"* se escribe
+   **sólo si la venta quedó realmente cancelada**. Si no, lo que queda escrito es el pedido de
+   gestión manual.
+5. Alcanza también a la acción manual **"Desbloquear y Cancelar"** del menú de MercadoLibre, que
+   tenía exactamente el mismo problema.
+
+Requiere actualizar el módulo (`-u meli_oerp`).
 
 ---
 
