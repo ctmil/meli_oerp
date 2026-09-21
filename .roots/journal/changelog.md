@@ -3,7 +3,27 @@
 > Historial de versiones y cambios orientado al cliente.
 
 ---
+## Versión 16.0.26.127 — Las publicaciones sin video vuelven a subir a MercadoLibre [#492 / #577]
+21 sep 2026
 
+**Cambios:**
+
+1. **El problema:** al publicar un producto que **no tiene un video cargado**, MercadoLibre
+   rechazaba la publicación con el mensaje *"The field video_id must have at least 3 characters"*
+   (*el campo video_id debe tener al menos 3 caracteres*). El producto no llegaba a publicarse.
+2. **La causa:** el conector enviaba **siempre** el campo del video, incluso cuando estaba vacío.
+   Hasta hace poco MercadoLibre **descartaba** ese campo vacío con un simple aviso
+   (`item.video_id.dropped`) y la publicación seguía adelante; **ahora lo rechaza**. El envío del
+   campo vacío existe desde 2018: lo que cambió fue la validación de MercadoLibre, no el conector.
+3. **La corrección:** el campo del video **ya no se envía cuando está vacío**. Sólo viaja si el
+   producto tiene un video cargado. Aplica tanto al **alta** de una publicación como a su
+   **actualización**.
+4. **Efecto lateral que conviene conocer:** al actualizar una publicación, el conector **ya no pisa
+   el video** que se haya cargado directamente desde el panel de MercadoLibre. Antes lo intentaba
+   borrar en cada actualización.
+5. **Qué hay que hacer:** nada. No requiere cargar ningún video ni tocar los productos.
+
+---
 ## Versión 16.0.26.124 — Alineación del número de versión en todo el conector
 21 sep 2026
 
