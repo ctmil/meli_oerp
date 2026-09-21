@@ -4513,8 +4513,12 @@ class product_product(models.Model):
             #"warranty": product.meli_warranty or '',
             "sale_terms": product._update_sale_terms( meli=meli, productjson=productjson, config=config ),
             #"pictures": [ { 'source': product.meli_imagen_logo} ] ,
-            "video_id": product.meli_video  or '',
         }
+        # video_id: solo si tiene valor. ML rechaza la cadena vacia
+        # ('The field video_id must have at least 3 characters') y omitir la
+        # clave ademas evita pisar un video cargado desde el panel de ML.
+        if product.meli_video and product.meli_video.strip():
+            body["video_id"] = product.meli_video.strip()
         if (config and "mercadolibre_user_product_seller" in config._fields ):
             if (config.mercadolibre_user_product_seller):
                 body["family_name"] = product.meli_family_name or product.meli_title or ''
@@ -4586,8 +4590,12 @@ class product_product(models.Model):
                 "sale_terms": product._update_sale_terms( meli=meli, productjson=productjson, config=config ),
 
                 "pictures": [],
-                "video_id": product.meli_video or '',
             }
+            # video_id: solo si tiene valor. ML rechaza la cadena vacia
+            # ('The field video_id must have at least 3 characters') y omitir la
+            # clave ademas evita pisar un video cargado desde el panel de ML.
+            if product.meli_video and product.meli_video.strip():
+                body["video_id"] = product.meli_video.strip()
 
             # [#539 DISELEC] CATEGORIA en el update. Este body se reconstruye desde cero para el
             # PUT y no incluia category_id (solo viajaba en el ALTA): cambiar la categoria en Odoo y
