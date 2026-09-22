@@ -339,6 +339,16 @@ class warning(models.TransientModel):
                             _prefix = "Falta:" if ecatype == "error" else "Advertencia:"
                             _cause_messages.append("%s %s" % (_prefix, _hmess))
                         ecacodemess_html = "<strong>"+str(ecacodemess)+"</strong><br/>"+str(_hmess)
+                        # Atributos obligatorios faltantes: en vez de un párrafo con los
+                        # nombres separados por comas, una TABLA con el nombre Y el código
+                        # interno de ML. El código es lo que permite ubicar el campo en la
+                        # ficha y referenciarlo ante soporte de ML; sin él hay que adivinar
+                        # a qué campo corresponde cada nombre.
+                        # (Pedido de FCA, 22-sep-2026, viéndolo en vivo con la cuenta 409.)
+                        _missing_rows = isinstance(eca, dict) and eca.get("missing") or []
+                        if ecacode == "item.attributes.missing_required" and _missing_rows:
+                            ecacodemess_html = self._meli_missing_attributes_html(
+                                _missing_rows, title=str(ecacodemess) )
                         message_html += '<div role="alert" class="alert alert-'+str(ecaalertstatus)+'" title="Meli Message, Code: '+str(ecacode)+'"><i class="fa fa-'+str(ecatypeicon)+'" role="img" aria-label="Meli Message"/> %s </div>' % ecacodemess_html
                     if _cause_messages:
                         message = "\n".join(_cause_messages)
@@ -422,6 +432,35 @@ class warning(models.TransientModel):
         except Exception:
             _logger.exception("meli resolve attribute ids: fallo inesperado; uso texto original")
             return text
+
+    def _meli_missing_attributes_html(self, rows, title=""):
+        """Tabla de atributos obligatorios faltantes: nombre + código interno de ML.
+
+        `rows` son dicts {"id": "BRAND", "name": "Marca"}; se tolera que vengan
+        strings sueltos (forma vieja), en cuyo caso el código queda vacío.
+        Se escapa todo: los nombres vienen de la API de ML, no de nuestro código."""
+        from odoo.tools import html_escape as _esc
+        _trs = []
+        for r in rows:
+            if isinstance(r, dict):
+                _name = str(r.get("name") or r.get("id") or "")
+                _code = str(r.get("id") or "")
+            else:
+                _name, _code = str(r), ""
+            _trs.append(
+                '<tr><td style="padding:2px 10px 2px 0;">%s</td>'
+                '<td style="padding:2px 0;"><code>%s</code></td></tr>'
+                % (_esc(_name), _esc(_code)) )
+        return (
+            '<strong>%s</strong>'
+            '<table style="margin:6px 0 4px 0;border-collapse:collapse;">'
+            '<thead><tr>'
+            '<th style="text-align:left;padding:2px 10px 4px 0;">Atributo</th>'
+            '<th style="text-align:left;padding:2px 0 4px 0;">Código en MercadoLibre</th>'
+            '</tr></thead><tbody>%s</tbody></table>'
+            '<div>Completá estos datos en la <strong>pestaña MercadoLibre</strong> del '
+            'producto y volvé a publicar.</div>'
+            % (_esc(title or "Faltan atributos obligatorios de la categoría"), "".join(_trs)) )
 
     def _get_view_id(self ):
         """Get the view id
