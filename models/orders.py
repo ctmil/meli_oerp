@@ -984,7 +984,19 @@ class sale_order(models.Model):
                     # ENTREGADA en los moves originales (no product_return_moves, que acá
                     # siempre es 0) para seguir saltando limpio los casos sin nada real
                     # que devolver.
-                    if not sum(picking.move_ids.filtered(lambda m: m.state != "cancel" and not m.scrapped).mapped("quantity")):
+                    # stock.move.scrapped NO existe en el core de Odoo 19 (medido:
+                    # 16.0 tiene scrapped y NO scrap_id; 17.0 y 18.0 tienen los dos;
+                    # 19.0 tiene solo scrap_id). Leerlo por nombre fijo levantaba
+                    # AttributeError dentro del except de mas abajo, que lo loguea como
+                    # "Error creating return" y deja el cron REINTENTANDO PARA SIEMPRE
+                    # (409 Mocoroa: 428 ocurrencias en un dia sobre un unico picking).
+                    # El guard se resuelve contra _fields para servir a las 4 versiones.
+                    _scrap_field = False
+                    for _f in ("scrapped", "scrap_id"):
+                        if _f in picking.move_ids._fields:
+                            _scrap_field = _f
+                            break
+                    if not sum(picking.move_ids.filtered(lambda m: m.state != "cancel" and not (_scrap_field and m[_scrap_field])).mapped("quantity")):
                         _logger.info("Return omitida para %s: sin cantidades entregadas a devolver.", picking.name)
                         continue
                     wiz.action_create_returns_all()
