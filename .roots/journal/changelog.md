@@ -4,6 +4,34 @@
 
 ---
 
+## Versión 16.0.26.130 — El descuento de cupón que financia el vendedor ya se refleja en los pedidos agrupados
+22 sep 2026
+
+**Cambios:**
+
+1. **El problema:** cuando Mercado Libre aplica un cupón, a veces lo financia ML y a veces lo
+   financia el vendedor. Si lo financia el vendedor, el conector tiene que descontarlo del precio
+   del pedido, porque el vendedor cobra menos de lo que dice el precio de lista. Eso funcionaba
+   bien en las ventas sueltas, pero **no en los pedidos agrupados** (los "packs", varias compras
+   del mismo comprador en un solo envío): ahí el descuento quedaba sin registrar y el pedido —y su
+   factura— salían a precio pleno. El resultado es una diferencia entre lo facturado y lo cobrado.
+
+2. **Qué cambia:** el conector ahora busca el dato del descuento también a nivel del pedido
+   agrupado y, si Mercado Libre no lo expone por esa vía, lo calcula con los cargos del pago que ya
+   están guardados en la base. El pedido queda con el descuento correcto y la factura coincide con
+   lo cobrado.
+
+3. **Además:** en un pedido agrupado, cada venta toma **su propio** descuento. Antes, el cálculo de
+   respaldo sumaba el descuento de todas las ventas del grupo y se lo asignaba a cada una, así que
+   en un grupo de dos el descuento se aplicaba por duplicado.
+
+4. **Qué NO cambia:** los cupones que financia Mercado Libre siguen sin afectar el precio, que es lo
+   correcto: ahí el vendedor cobra el importe completo. Y el modo de facturación del cupón
+   (precio pleno / descuento en producto / línea separada) sigue siendo una opción de configuración
+   y no se toca.
+
+---
+
 ## Versión 16.0.26.124 — Alineación del número de versión en todo el conector
 21 sep 2026
 

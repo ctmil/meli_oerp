@@ -4,6 +4,60 @@
 
 ---
 
+### 22 sep 2026 — El descuento de cupón del vendedor nunca se registraba en packs [acct 502 Shoppy] (v16.0.26.130)
+
+**Origen:** ticket **#603** de Shoppy (502), 14-sep: *"se aplican cupones en la transacción que no
+impactan en el detalle del pedido, generando una discrepancia entre lo facturado y lo cobrado"*.
+Cuatro de los cinco pedidos de ejemplo que dio el cliente eran **packs**.
+
+**La causa:** `_fetch_order_discounts()` (`models/orders.py`) pedía
+`/orders/<order_id>/discounts` y, si la respuesta no traía `details`, hacía **`return` en
+silencio** — sin llamar al fallback, que sólo corría dentro del `except`. Para una orden que es
+**miembro de un pack**, ML no publica el detalle en el endpoint de la orden: lo publica a nivel del
+**pack**. Resultado: `discount_seller_amount` quedaba en `0`, `_set_product_unit_price()` no
+restaba nada, y el pedido salía a precio pleno aunque el vendedor hubiera financiado el cupón.
+El call-site (`orders.py`, `if order and order.coupon_amount > 0`) **no** tiene guarda de pack:
+entra igual para las dos formas, así que la diferencia estaba en la respuesta de ML.
+
+**Medido en producción de 502 ANTES del fix** (XMLRPC read-only):
+
+| | en PACK | orden simple |
+|---|---|---|
+| `discount_seller_amount = 0` | **2.937** | 116 |
+| `discount_seller_amount > 0` | **0** | **1.771** |
+
+Corte perfecto: **ninguna** orden de pack registraba el descuento y **ninguna** orden simple
+fallaba por esta vía. Universo: 30.813 órdenes, 4.204 con cupón, 4.867 cargos
+`coupon`/`account_from=collector` (el vendedor financia) contra 5.722 `account_from=ml`.
+
+**El fix:**
+1. `_seller_discount_from_discounts_endpoint()` nuevo — aísla la lectura del endpoint y devuelve
+   **`None`** cuando ML responde sin `details`. `None` ≠ `0.0`: uno es *"no hay dato acá"* y el otro
+   *"lo financia ML entero"*. Confundirlos era el bug.
+2. `_fetch_order_discounts()` resuelve en cascada, de la fuente más fuerte a la más débil:
+   endpoint de la **orden** → endpoint del **pack** (si `pack_id`) → **cargos guardados en la base**.
+3. `_estimate_seller_discount_from_charges()` pasa a recorrer `self.payments` (los pagos de **esta**
+   orden) en vez de `self.sale_order.meli_orders`. La versión anterior sumaba los cargos de **todas**
+   las órdenes del pedido y asignaba el total a cada una: en un pack de 2, `_set_product_unit_price`
+   lo restaba dos veces. También deja de exigir `sale_order`, que no hace falta: el cargo cuelga del
+   pago de la orden.
+
+**Verificación previa al deploy** (simulación contra los datos reales de 502, sin escribir nada):
+sobre 300 órdenes de pack con el descuento en `0`, el camino nuevo calcula un monto **> 0 en las
+300**. En los ejemplos revisados el monto coincide exactamente con `coupon_amount` (el vendedor
+financia el cupón entero). Y dos órdenes del mismo pack `2000013939596479` dan **317,49** y
+**711,39** por separado — con el fallback viejo cada una se habría quedado con **1.028,88**.
+
+**Lo que NO cambia:** el tri-estado `meli_coupon_invoice_mode` (`full` / `product_discount` /
+`separate_line`) sigue gobernando **sólo** la parte del cupón que financia ML, y no se toca. Los
+cupones financiados por ML siguen sin afectar el precio, que es lo correcto (vendedor *made-whole*,
+caso #433 Elvimarta).
+
+**Alcance:** el defecto está en el source de las cuatro versiones. Se escribe primero en **16.0**
+(la versión de quien lo reportó) y el port a 17/18/19 va **después** de verificarlo en producción.
+
+---
+
 ### 17 sep 2026 — GTIN/SELLER_SKU nunca generan variantes [acct 409 Home I Cuadrado] (v16.0.26.102)
 
 **Origen:** consulta del cliente 409 sobre variantes (ticket #599), trabajada en vivo con FCA el

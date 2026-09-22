@@ -2138,46 +2138,91 @@ class mercadolibre_orders(models.Model):
 
         return full_phone
 
+    def _seller_discount_from_discounts_endpoint(self, ml_id, meli=None):
+        """[#603] Lee /orders|packs/<ml_id>/discounts y devuelve el monto financiado por el VENDEDOR.
+
+        Devuelve None cuando ML responde pero SIN 'details' -- que es lo que hace para una orden
+        que pertenece a un pack, porque ahi el descuento se expone a nivel del PACK. None significa
+        "no hay dato en este endpoint", y NO es lo mismo que 0.0 ("ML lo financia entero").
+        """
+        if not meli or not ml_id:
+            return None
+        response = meli.get("/orders/"+str(ml_id)+"/discounts", {'access_token': meli.access_token})
+        rjson = response.json()
+        if not rjson or 'details' not in rjson:
+            return None
+        seller_total = 0.0
+        for detail in rjson.get('details', []):
+            for item in detail.get('items', []):
+                amounts = item.get('amounts', {})
+                seller_total += float(amounts.get('seller', 0) or 0)
+        return seller_total
+
     def _fetch_order_discounts(self, meli=None):
         """Fetch /orders/{order_id}/discounts to determine seller-funded discount amount.
         Sets discount_seller_amount = sum of amounts.seller from all discount items.
-        If seller=0 for all items, the discount is fully ML-funded and doesn't affect the SO price."""
+        If seller=0 for all items, the discount is fully ML-funded and doesn't affect the SO price.
+
+        [#603 Shoppy 502] Una orden que es miembro de un PACK no trae 'details' en su endpoint:
+        ML publica el descuento a nivel del pack. La version anterior hacia `return` en silencio,
+        dejaba discount_seller_amount en 0 y la factura salia a PRECIO PLENO aunque el vendedor
+        hubiera financiado parte del cupon -- la "discrepancia entre lo facturado y lo cobrado"
+        del ticket. Medido en la base de 502 antes del fix: de 4.822 ordenes donde ML informa
+        cupon financiado por el vendedor (charge coupon/account_from=collector), las 2.937 que
+        estaban dentro de un pack tenian discount_seller_amount=0 y las 1.771 sueltas no. Corte
+        perfecto: 0 packs bien, 0 sueltas mal.
+
+        Orden de resolucion, de la fuente mas fuerte a la mas debil:
+          1) /orders/<order_id>/discounts  -- la orden misma;
+          2) /orders/<pack_id>/discounts   -- si es miembro de un pack;
+          3) los charges ya guardados en la base (no depende de la API).
+        """
         if not meli or not self.order_id:
             return
         try:
-            response = meli.get("/orders/"+str(self.order_id)+"/discounts", {'access_token': meli.access_token})
-            rjson = response.json()
-            if not rjson or 'details' not in rjson:
+            seller_total = self._seller_discount_from_discounts_endpoint(self.order_id, meli=meli)
+            _src = "order"
+            if seller_total is None and self.pack_id:
+                seller_total = self._seller_discount_from_discounts_endpoint(self.pack_id, meli=meli)
+                _src = "pack"
+            if seller_total is None:
+                # ML no expuso el detalle por ninguno de los dos caminos: el dato ya esta en los
+                # charges de la base. Antes se retornaba aca sin tocar nada (el bug de #603).
+                _logger.info("MELI #603 order %s (pack=%s): /discounts sin 'details' -> "
+                             "calculando desde los charges guardados.",
+                             self.order_id, self.pack_id or "-")
+                self._estimate_seller_discount_from_charges()
                 return
-            seller_total = 0.0
-            for detail in rjson.get('details', []):
-                for item in detail.get('items', []):
-                    amounts = item.get('amounts', {})
-                    seller_total += float(amounts.get('seller', 0) or 0)
             self.discount_seller_amount = seller_total
-            _logger.info("MELI discounts for order %s: seller_amount=%.2f (coupon_amount=%.2f)",
-                         self.order_id, seller_total, self.coupon_amount)
+            _logger.info("MELI discounts for order %s: seller_amount=%.2f (coupon_amount=%.2f) [via %s]",
+                         self.order_id, seller_total, self.coupon_amount, _src)
         except Exception as e:
             _logger.info("MELI: Could not fetch /orders/%s/discounts: %s", self.order_id, e)
             self._estimate_seller_discount_from_charges()
 
     def _estimate_seller_discount_from_charges(self):
         """Fallback: estimate seller discount from payment charges (mercadolibre.payment.charge).
-        If coupon account_from='collector' -> seller pays; from='ml' -> ML pays."""
-        if not self.sale_order:
-            return
+        If coupon account_from='collector' -> seller pays; from='ml' -> ML pays.
+
+        [#603] Recorre los pagos de ESTA orden, no los de todas las ordenes del pedido de venta.
+        La version anterior iteraba self.sale_order.meli_orders y asignaba la suma a self: en un
+        PACK de N ordenes cada una se quedaba con el descuento de las N, y _set_product_unit_price
+        lo resta por orden => se descontaba N veces. Con packs de 2 (el caso de 502) eso duplica.
+        Tambien deja de exigir sale_order: el charge cuelga del pago de la orden, no del pedido.
+        """
         seller_total = 0.0
         charge_model = self.env.get('mercadolibre.payment.charge')
         if not charge_model:
             return
-        for meli_order in self.sale_order.meli_orders:
-            for payment in meli_order.payments:
-                if not hasattr(payment, 'charge_ids'):
-                    continue
-                for charge in payment.charge_ids:
-                    if charge.charge_type == 'coupon' and charge.account_from == 'collector':
-                        seller_total += float(charge.amount_original or 0)
+        for payment in self.payments:
+            if not hasattr(payment, 'charge_ids'):
+                continue
+            for charge in payment.charge_ids:
+                if charge.charge_type == 'coupon' and charge.account_from == 'collector':
+                    seller_total += float(charge.amount_original or 0)
         self.discount_seller_amount = seller_total
+        _logger.info("MELI #603 order %s: seller_amount=%.2f calculado desde %d pago(s) locales.",
+                     self.order_id, seller_total, len(self.payments))
 
     def _set_product_unit_price( self, product_related_obj, Item, config=None ):
         order = self
