@@ -2087,20 +2087,27 @@ class mercadolibre_orders(models.Model):
 
         return full_phone
 
-    def meli_order_phone( self, Buyer=None, Receiver=None ):
+    def meli_order_phone( self, Buyer=None ):
         """[#158 Elvimarta] Telefono del comprador por el camino de la ORDEN.
 
-        Sin shipment el telefono nunca se completaba por este camino: el unico
-        lugar que lo escribia con filtro era shipment.py (receiver_address_phone),
-        que exige Receiver. Aca se arma desde el buyer de la orden:
-          full_phone(Buyer) -> full_alt_phone(Buyer) -> full_phone(Receiver)
+        Se arma SOLO con datos del buyer de la orden:
+          full_phone(Buyer) -> full_alt_phone(Buyer)
         descartando los valores enmascarados por ML ("XXXX"), mismo filtro que
-        ya usa shipment.py. Devuelve '' si no hay nada usable: el llamador NO
-        debe escribir '' (borraria un telefono cargado a mano).
+        ya usa shipment.py. El alternative_phone se capturaba en
+        mercadolibre.buyers y no se usaba nunca para el contacto.
+
+        NO se usa el telefono del receptor del envio como tercer candidato a
+        proposito: ese camino ya lo cubre shipment.py, y meterlo aca tocaria
+        miles de ordenes que hoy funcionan para resolver un sintoma que se
+        resuelve solo al corregir el contacto de entrega (BUG 1). Si aparece un
+        caso real de buyer sin telefono y receptor con telefono, se agrega con
+        ese caso en la mano.
+
+        Devuelve '' si no hay nada usable: el llamador NO debe escribir ''
+        (borraria un telefono cargado a mano).
         """
         for _cand in (self.full_phone( Buyer or {} ),
-                      self.full_alt_phone( Buyer or {} ),
-                      (Receiver and self.full_phone( Receiver )) or ''):
+                      self.full_alt_phone( Buyer or {} )):
             _cand = (_cand or '').strip()
             if _cand and "XXXX" not in _cand.upper():
                 return _cand
@@ -2749,12 +2756,11 @@ class mercadolibre_orders(models.Model):
             #_logger.info("Buyer:"+str(Buyer) )
             #_logger.info("Receiver:"+str(Receiver) )
             # [#158 Elvimarta] El telefono se resuelve con meli_order_phone():
-            # buyer.phone -> buyer.alternative_phone -> receiver_phone, filtrando
-            # los enmascarados "XXXX". NO se pone la clave cuando queda vacio:
-            # meli_buyer_fields se vuelca entero sobre el contacto en
-            # update_partner_billing_info(), y un 'phone': '' BORRARIA el telefono
-            # que ya tuviera cargado.
-            _meli_buyer_phone = self.meli_order_phone( Buyer=Buyer, Receiver=Receiver )
+            # buyer.phone -> buyer.alternative_phone, filtrando los enmascarados
+            # "XXXX". NO se pone la clave cuando queda vacio: meli_buyer_fields se
+            # vuelca ENTERO sobre el contacto en update_partner_billing_info(), y
+            # un 'phone': '' BORRARIA el telefono que ya tuviera cargado a mano.
+            _meli_buyer_phone = self.meli_order_phone( Buyer=Buyer )
             meli_buyer_fields = {
                 'name': self.buyer_full_name(Buyer),
                 'street': self.street(Receiver,Buyer),

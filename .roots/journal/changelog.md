@@ -25,8 +25,25 @@
    real del comprador. **Nunca se pisa** una entrega ya cargada ni la dirección creada desde el
    envío.
 4. **Teléfono:** ahora se completa también por el camino del pedido, usando el teléfono del
-   comprador y, si no hay, el alternativo, descartando los que MercadoLibre enmascara. **Sólo se
-   completa si está vacío**, y ya no puede borrar un teléfono cargado a mano.
+   comprador y, si no hay, el alternativo (que se guardaba y no se usaba nunca), descartando los
+   que MercadoLibre enmascara con `XXXX`. **Sólo se completa si está vacío.**
+5. ⚠️ **Además se corrigió un borrado de datos que afecta a TODA la flota, no sólo a este caso.**
+   Cuando MercadoLibre no devolvía teléfono del comprador, el conector escribía el teléfono
+   **vacío** sobre el contacto: los datos del comprador se vuelcan enteros sobre la ficha al
+   actualizar los datos de facturación, así que **un teléfono cargado a mano en Odoo podía
+   quedar borrado en la siguiente sincronización del pedido**. No dejaba error ni aviso: el dato
+   simplemente desaparecía. Ahora, si MercadoLibre no manda teléfono, **el campo no se toca**.
+   Esto no dependía de que el pedido tuviera envío ni de la configuración: le podía pasar a
+   cualquier cliente del conector.
+
+**Nota sobre el diagnóstico:** el teléfono faltante **no era un problema aparte**. El conector sí
+escribía el teléfono, pero en el contacto real del comprador; lo que se veía sin teléfono era el
+contacto genérico, porque la venta apuntaba al genérico. Corregido el punto 3, el teléfono aparece
+solo. Los puntos 4 y 5 son mejoras y una corrección de otro orden, no la causa de lo reportado.
+
+**Alcance deliberadamente acotado:** no se usa el teléfono del destinatario del envío como tercera
+opción. Ese camino ya está cubierto y tocarlo alcanzaría miles de pedidos que hoy funcionan bien
+para resolver algo que se resuelve solo con el punto 3.
 
 **Pendiente:** verificación en el staging del cliente y port a 16.0 / 18.0 / 19.0.
 
