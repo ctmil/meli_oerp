@@ -4,6 +4,22 @@
 
 ---
 
+## Versión 16.0.26.131 — El descuento de cupón en pedidos agrupados: ahora sí se aplica
+23 sep 2026
+
+**Cambios:**
+
+1. **Qué pasó:** la versión anterior tenía el arreglo en el lugar equivocado. El conector nunca
+   llegaba a consultar el descuento de los pedidos agrupados, porque Mercado Libre informa el cupón
+   de esos pedidos junto con el pago y no junto con la venta, y la consulta sólo se disparaba cuando
+   el cupón ya se conocía.
+
+2. **Qué cambia:** ahora la consulta se hace también para los pedidos agrupados, y en el momento
+   correcto: antes de que se arme el precio de las líneas. Con eso el descuento que financia el
+   vendedor entra en el pedido desde la primera vez, y la factura coincide con lo cobrado.
+
+---
+
 ## Versión 16.0.26.130 — El descuento de cupón que financia el vendedor ya se refleja en los pedidos agrupados
 22 sep 2026
 

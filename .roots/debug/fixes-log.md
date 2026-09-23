@@ -4,6 +4,36 @@
 
 ---
 
+### 23 sep 2026 — CORRECCIÓN del anterior: la llamada no ocurría, la función no fallaba [acct 502] (v16.0.26.131)
+
+**Qué pasó.** La 26.130 se deployó a producción de 502 y **no arregló el caso**. Medido tras el
+reinicio: de 13 órdenes nuevas, las **5** que eran pack con cupón quedaron en
+`discount_seller_amount = 0`; las simples resolvieron bien (3.415 a 88.494). Y las de pack **no
+dejaron ni una línea en el log** — ni la de éxito ni la del fix nuevo.
+
+**La causa del error de diagnóstico.** La 26.130 arregló el **interior** de
+`_fetch_order_discounts()` suponiendo que ML respondía sin `details` para los miembros de pack. Eso
+era **inferido del corte perfecto 2.937/0, no leído de la API** — y era falso. La verdad es que a
+los packs **nunca se les llamaba la función**: el call-site está guardado por
+`if order and order.coupon_amount > 0`, y para un miembro de pack ML **no manda `coupon` en el JSON
+de la orden**: llega como **fee del pago** y se escribe ~600 líneas más abajo. Al pasar por el
+guard, `coupon_amount` valía 0.
+
+🔑 **La lección: un patrón perfecto en los datos prueba que HAY un mecanismo, no CUÁL es.**
+
+**El fix.** El guard pasa a admitir el pack aunque el cupón siga en 0:
+`if order and (order.coupon_amount > 0 or (order.pack_id and not order.discount_seller_amount))`.
+Tiene que ser **ahí y no después**: `_set_product_unit_price()` arma el precio de la línea más abajo
+pero **antes** de que el bucle de pagos cargue el cupón, así que resolverlo al final deja el pedido
+a precio pleno en esa pasada. Se agrega además una **red de seguridad** en el bloque del cupón: si el
+importe se conoció recién en el bucle de pagos y el descuento quedó en 0, se resuelve con los cargos
+ya escritos, para que la siguiente sincronización lo aplique.
+
+**Lo que la 26.130 sí dejó bien** (se conserva): el fallback ya no multiplica el descuento por la
+cantidad de órdenes del pack, y hay red si ML deja de mandar `details`.
+
+---
+
 ### 22 sep 2026 — El descuento de cupón del vendedor nunca se registraba en packs [acct 502 Shoppy] (v16.0.26.130)
 
 **Origen:** ticket **#603** de Shoppy (502), 14-sep: *"se aplican cupones en la transacción que no

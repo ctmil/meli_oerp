@@ -4148,8 +4148,23 @@ class mercadolibre_orders(models.Model):
             #_logger.info(order_fields)
             order = order_obj.create( (order_fields))
 
-        # Fetch discount details from ML API to determine seller-funded portion
-        if order and order.coupon_amount > 0:
+        # Fetch discount details from ML API to determine seller-funded portion.
+        #
+        # [#603 Shoppy 502] El PACK entra tambien cuando coupon_amount sigue en 0, y eso es el fix:
+        # para una orden miembro de un pack, ML NO manda 'coupon' en el JSON de la orden. El cupon
+        # llega como FEE DEL PAGO y se escribe ~600 lineas mas abajo (`if not order.coupon_amount:
+        # order.coupon_amount = coupon_fee_amount`). Con el guard viejo, al pasar por aca
+        # coupon_amount valia 0, la llamada NO OCURRIA NUNCA, y discount_seller_amount se quedaba
+        # en 0 para siempre. Medido en 502: de 4.822 ordenes con cupon financiado por el vendedor,
+        # las 2.937 que estaban en un pack quedaban en 0 y las 1.771 sueltas no -- corte perfecto,
+        # y ninguna de las de pack dejaba UNA SOLA linea en el log: no es que fallara la funcion,
+        # es que no se la llamaba.
+        #
+        # Y tiene que resolverse ACA, no despues: `_set_product_unit_price()` arma el precio de la
+        # linea mas abajo pero ANTES de que el bucle de pagos cargue el cupon. Si esto se dejara
+        # para el final, el pedido ya salio a precio pleno en esta pasada.
+        if order and (order.coupon_amount > 0
+                      or (order.pack_id and not order.discount_seller_amount)):
             order._fetch_order_discounts(meli=meli)
             meli_order_fields['meli_discount_seller_amount'] = order.discount_seller_amount or 0.0
 
@@ -4786,6 +4801,17 @@ class mercadolibre_orders(models.Model):
         #         → factura queda exactamente en (total_bruto - coupon_amount).
         # En ningún caso se tocan descuentos del vendedor ni descuentos manuales preexistentes.
         if order and order.coupon_amount and sorder:
+            # [#603] Red de seguridad: si el cupon se conocio recien en el bucle de pagos (el caso
+            # del pack) y el descuento del vendedor siguio en 0, resolverlo ahora que los cargos SI
+            # estan escritos. El precio de la linea de ESTA pasada ya salio, asi que esto no la
+            # corrige: deja el dato listo para que la proxima sincronizacion de la orden lo aplique.
+            if not order.discount_seller_amount:
+                order._estimate_seller_discount_from_charges()
+                if order.discount_seller_amount:
+                    _logger.info("MELI #603 order %s (pack=%s): descuento del vendedor %.2f "
+                                 "resuelto tarde desde los cargos; se aplica en la proxima pasada.",
+                                 order.order_id, order.pack_id or "-",
+                                 order.discount_seller_amount)
             if not sorder.meli_coupon_amount:
                 sorder.meli_coupon_amount = order.coupon_amount
             # Modo de facturación del cupón ML (tri-estado meli_coupon_invoice_mode):
