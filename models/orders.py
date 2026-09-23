@@ -5269,14 +5269,21 @@ class mercadolibre_orders(models.Model):
         string="Mensajes en ML", compute="_compute_meli_messages_link",
         help="Enlace a la conversación de esta venta en MercadoLibre.")
 
-    @api.depends('pack_id', 'order_id')
+    @api.depends('pack_id', 'order_id', 'company_id')
     def _compute_meli_messages_link(self):
-        # ML messaging center for a sale; pack_id when the order is part of a
-        # pack (carrito), otherwise the order id.
+        # [#615 ROEN] Centro de mensajes del VENDEDOR, en el dominio del pais de la cuenta.
+        # Antes: dominio .com.ar FIJO + path del lado comprador => fuera de Argentina el link
+        # llevaba a otro pais y a una pantalla que no es la del vendedor.
+        # Formato aportado por el cliente (MLM): vendedores.<dominio>/ventas/nueva/mensajeria/<pack|orden>
+        # pack_id cuando la orden es parte de un pack (carrito), si no el order id.
         for o in self:
             ref = o.pack_id or o.order_id
-            o.meli_messages_link = (
-                "https://www.mercadolibre.com.ar/mensajes/%s" % ref) if ref else False
+            if not ref:
+                o.meli_messages_link = False
+                continue
+            company = o.company_id or self.env.company
+            o.meli_messages_link = "https://vendedores.%s/ventas/nueva/mensajeria/%s" % (
+                company._meli_site_domain(), ref)
 
     @api.model
     def _meli_apply_unread_results(self, results, orders_domain):
