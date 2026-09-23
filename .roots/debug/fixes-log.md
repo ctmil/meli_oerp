@@ -4,6 +4,37 @@
 
 ---
 
+### 23 sep 2026 — Landing de la tanda 26.127 + 26.129 sobre 26.133 [#492/#577, #409, #615] (v18.0.26.134)
+
+**Qué entró.** Tres fixes que estaban listos en ramas `claude/*` sin mergear, más el #615 que ya
+estaba en `origin/18.0`:
+
+| build de origen | qué | ticket |
+|---|---|---|
+| 26.127 | `video_id` vacío ya no viaja en el body del alta ni del update: ML pasó a rechazarlo (*"The field video_id must have at least 3 characters"*) | #492 Enerpoint / #577 ROEN |
+| 26.129 | el guard de devoluciones resolvía `stock.move.scrapped` por nombre fijo; ahora lo resuelve contra `_fields` (`scrapped` en 16/17/18, `scrap_id` en 19) | #409 Mocoroa |
+| 26.133 | reclamos ML no sincronizaban (selection con valores supuestos) + `_compute_meli_messages_link` con `.com.ar` fijo | #615 ROEN |
+
+**Numeración.** 26.134 = max(todas las series de todos los módulos `meli_oerp*`, ramas locales y
+`origin/*`) + 1. El máximo medido era **26.133** (`meli_oerp origin/{16,17,18,19}.0` y las cuatro
+`claude/615-reclamos-links-*`); el segundo, `meli_oerp_multiple origin/19.0` en 26.132. Mismo número
+en las cuatro series por ser release de flota. Los conflictos de `__manifest__.py` de cada merge se
+resolvieron **conservando el más alto** y el número final lo pone este commit: bajarlo habría dejado
+el `-u` sin correr, sin error y sin log.
+
+**Duplicado resuelto.** `claude/535-scrapped-19.0` (26.118) arreglaba el MISMO bug que
+`claude/409-return-scrap-id-*` (26.129), reemplazando `m.scrapped` por `m.scrap_id` a pelo. Se
+descartó: sirve a 19.0 y sólo a 19.0 — en 16.0 `scrap_id` no existe, así que forward-portarla
+rompía. La rama no se borró.
+
+**No se mergeó `claude/video-id-omitir-vacio-19.0`** (48b236d8): es el mismo parche que 23d39322,
+que ya venía en `origin/19.0`. Verificado comparando los dos diffs sobre `models/product.py`.
+
+**Sin migración.** Ninguno de los tres fixes toca esquema ni datos persistidos: son cambios de
+código y un `Selection` que amplía valores. No hace falta script en `migrations/`.
+
+---
+
 ### 17 sep 2026 — GTIN/SELLER_SKU nunca generan variantes [acct 409 Home I Cuadrado] (v18.0.26.103)
 
 **Origen:** consulta del cliente 409 sobre variantes (ticket #599), trabajada en vivo con FCA el
