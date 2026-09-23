@@ -3,6 +3,36 @@
 > Historial de versiones y cambios orientado al cliente.
 
 ---
+## Versión 16.0.26.134 — Los reclamos de MercadoLibre vuelven a verse en Odoo, y el link de mensajes lleva al país de la cuenta
+23 sep 2026
+
+**Cambios:**
+
+1. **Los reclamos de MercadoLibre vuelven a aparecer en Odoo [#615].** La pantalla de reclamos
+   quedaba **vacía y sin ningún aviso**: MercadoLibre informa tipos de reclamo que el conector no
+   tenía previstos (`returns`, `mediations`, `cancel_purchase`, `cancel_sale`) y la sincronización
+   se cortaba en silencio, empresa por empresa. Ahora esos tipos están contemplados y, si en el
+   futuro aparece uno nuevo, el reclamo **igual se guarda**: queda sin tipo, con un aviso en el
+   registro técnico y el dato original completo. Verificado sobre una base real: los **17** reclamos
+   abiertos entraron, los **17** con su venta asociada.
+
+2. **El link para ver los mensajes lleva al sitio del país de la cuenta [#615].** Antes apuntaba
+   siempre a `mercadolibre.com.ar` y al lado del **comprador**, así que desde una cuenta de México,
+   Colombia, Chile, Perú, Uruguay o Brasil no llevaba a ninguna parte útil. Ahora abre el centro de
+   mensajes **del vendedor**, en el dominio que le corresponde a la cuenta.
+
+3. **Devoluciones automáticas: el control que decide si hay algo para devolver se unificó [#409].**
+   En esta versión de Odoo **no había falla** — el campo que se leía existe y funcionaba. El cambio
+   es preventivo y de alineación: ese mismo control **sí rompía en Odoo 19**, donde el campo
+   desapareció, y dejaba la tarea programada reintentando para siempre. Ahora el código es idéntico
+   en las cuatro versiones y resuelve solo qué campo usar, así que no puede volver a divergir.
+
+4. **Qué versión mirar.** Este build es **26.134** y es el mismo número en las cuatro versiones de
+   Odoo (16, 17, 18 y 19): nombrarlo alcanza para saber qué trae, sin aclarar de cuál.
+
+Requiere actualizar el módulo (`-u meli_oerp`).
+
+---
 ## Versión 16.0.26.131 — El descuento de cupón en pedidos agrupados: ahora sí se aplica
 23 sep 2026
 
