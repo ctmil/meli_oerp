@@ -3,6 +3,44 @@
 > Historial de versiones y cambios orientado al cliente.
 
 ---
+## Versión 19.0.26.127 — Las publicaciones sin video vuelven a subir a MercadoLibre [#492 / #577]
+21 sep 2026
+
+**Cambios:**
+
+1. **El problema:** al publicar un producto que **no tiene un video cargado**, MercadoLibre
+   rechazaba la publicación con el mensaje *"The field video_id must have at least 3 characters"*
+   (*el campo video_id debe tener al menos 3 caracteres*). El producto no llegaba a publicarse.
+2. **La causa:** el conector enviaba **siempre** el campo del video, incluso cuando estaba vacío.
+   Hasta hace poco MercadoLibre **descartaba** ese campo vacío con un simple aviso
+   (`item.video_id.dropped`) y la publicación seguía adelante; **ahora lo rechaza**. El envío del
+   campo vacío existe desde 2018: lo que cambió fue la validación de MercadoLibre, no el conector.
+3. **La corrección:** el campo del video **ya no se envía cuando está vacío**. Sólo viaja si el
+   producto tiene un video cargado. Aplica tanto al **alta** de una publicación como a su
+   **actualización**.
+4. **Efecto lateral que conviene conocer:** al actualizar una publicación, el conector **ya no pisa
+   el video** que se haya cargado directamente desde el panel de MercadoLibre. Antes lo intentaba
+   borrar en cada actualización.
+5. **Qué hay que hacer:** nada. No requiere cargar ningún video ni tocar los productos.
+
+---
+## Versión 19.0.26.124 — La cancelación automática verifica que la venta haya quedado cancelada [#494]
+20 sep 2026
+
+**Cambios:**
+
+1. **Esta versión de Odoo NO tenía el problema** que sí afectaba a 16, 17 y 18 (ahí la cancelación
+   automática no cancelaba ninguna venta confirmada). Se alinea igual el código para que las cuatro
+   versiones del conector se comporten y se lean igual.
+2. **La cancelación ahora se verifica.** El conector ya no da por cancelada una venta: comprueba
+   que haya quedado en estado Cancelado. Si no lo consigue, lo dice — aviso explícito en el
+   historial de la venta y error en el registro — en vez de seguir de largo.
+3. **El historial deja de poder mentir.** El mensaje *"Orden cancelada por MercadoLibre"* se
+   escribe **sólo si la venta quedó realmente cancelada**.
+
+Requiere actualizar el módulo (`-u meli_oerp`).
+
+---
 
 ## Versión 19.0.26.124 — La cancelación automática verifica que la venta haya quedado cancelada [#494]
 20 sep 2026
