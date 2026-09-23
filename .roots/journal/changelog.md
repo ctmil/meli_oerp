@@ -4,6 +4,34 @@
 
 ---
 
+## (sin versión asignada aún) — Contacto de ENTREGA y TELÉFONO en pedidos sin envío de MercadoLibre [#158]
+23 sep 2026 · rama `claude/158-contacto-entrega-y-telefono-17.0` (17.0) · **sin mergear**
+
+> La versión se asigna al mergear: la rama de deploy se mueve rápido y un número escrito antes
+> queda por debajo, con lo cual la actualización no corre y el cambio entra sin efecto.
+
+**Cambios:**
+
+1. **El problema:** en los pedidos de MercadoLibre **sin envío** (los que se coordinan con
+   transporte propio), la venta quedaba con el **contacto de entrega genérico**
+   *"Mercado Libre Marketplace"* aunque el contacto real del comprador existiera y estuviera
+   puesto en la factura. Sin nombre y sin teléfono justo en los pedidos que hay que coordinar
+   por teléfono. Medido en la base del cliente: de 2.720 ventas desde el 1-sep, las 2.611 con
+   envío nunca fallaron; los casos afectados fueron 4.
+2. **La causa:** cuando no hay envío, el conector **no llega a escribir el contacto de entrega**
+   (lo toma de los datos del envío, que no existen) y Odoo lo completa solo con el contacto de la
+   venta, que es el genérico de la configuración.
+3. **La corrección:** si la entrega quedaría vacía o en el genérico, se completa con el contacto
+   real del comprador. **Nunca se pisa** una entrega ya cargada ni la dirección creada desde el
+   envío.
+4. **Teléfono:** ahora se completa también por el camino del pedido, usando el teléfono del
+   comprador y, si no hay, el alternativo, descartando los que MercadoLibre enmascara. **Sólo se
+   completa si está vacío**, y ya no puede borrar un teléfono cargado a mano.
+
+**Pendiente:** verificación en el staging del cliente y port a 16.0 / 18.0 / 19.0.
+
+---
+
 ## Versión 17.0.26.124 — Las cancelaciones de MercadoLibre ahora se aplican de verdad [#494]
 20 sep 2026
 
