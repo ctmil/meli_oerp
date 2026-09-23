@@ -69,6 +69,28 @@ class res_company(models.Model):
 
         return AUTH_URL+"/authorization"
 
+    # [#615 ROEN] Dominio de MercadoLibre por SITIO, sin llamar a la API.
+    # get_ML_LINK_URL() consulta /sites en cada llamada: no sirve para un campo computado
+    # que se evalua sobre miles de filas. Aca: site_id explicito (ej. el que trae el reclamo)
+    # o, si no hay, el pais de la compania.
+    MELI_SITE_DOMAINS = {
+        "MLA": "mercadolibre.com.ar", "MLM": "mercadolibre.com.mx", "MCO": "mercadolibre.com.co",
+        "MPE": "mercadolibre.com.pe", "MLC": "mercadolibre.cl", "MLU": "mercadolibre.com.uy",
+        "MLB": "mercadolivre.com.br", "MEC": "mercadolibre.com.ec", "MBO": "mercadolibre.com.bo",
+        "MCR": "mercadolibre.co.cr", "MLV": "mercadolibre.com.ve", "MRD": "mercadolibre.com.do",
+        "MPA": "mercadolibre.com.pa", "MPY": "mercadolibre.com.py",
+    }
+    MELI_COUNTRY_SITE = {
+        "AR": "MLA", "MX": "MLM", "CO": "MCO", "PE": "MPE", "CL": "MLC", "UY": "MLU", "BR": "MLB",
+        "EC": "MEC", "BO": "MBO", "CR": "MCR", "VE": "MLV", "DO": "MRD", "PA": "MPA", "PY": "MPY",
+    }
+
+    def _meli_site_domain(self, site_id=False):
+        company = self[:1] or self.env.company
+        code = (company.country_id.code or "").upper()
+        site = site_id or self.MELI_COUNTRY_SITE.get(code) or "MLA"
+        return self.MELI_SITE_DOMAINS.get(site, "mercadolibre.com.ar")
+
     def get_ML_LINK_URL(self,meli=False):
 
         LINK_URL = "https://www.mercadolibre.com.ar"

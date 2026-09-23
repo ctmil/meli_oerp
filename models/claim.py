@@ -59,7 +59,13 @@ class mercadolibre_claim(models.Model):
 
     # Clasificacion del reclamo
     type = fields.Selection([
+        # [#615 ROEN] Valores REALES de /post-purchase/v1/claims (medidos sobre 67 reclamos
+        # de una cuenta MLM el 23-sep-2026): returns, mediations, cancel_purchase, cancel_sale.
+        # Los de mas abajo eran supuestos de la Fase 1; se dejan para no romper datos existentes.
+        ("returns", "Devolucion"),
         ("mediations", "Mediacion"),
+        ("cancel_purchase", "Cancelacion de compra"),
+        ("cancel_sale", "Cancelacion de venta"),
         ("cancellations", "Cancelacion"),
         ("return", "Devolucion"),
         ("fulfillment", "Fulfillment"),
@@ -93,11 +99,15 @@ class mercadolibre_claim(models.Model):
         ('unique_claim_id', 'claim_id', 'Claim id already exists!'),
     ])
 
+    site_id = fields.Char(string="Site", help="Sitio de MercadoLibre del reclamo (MLA, MLM, ...).")
+
     def compute_claim_link(self):
-        company = self.env.user.company_id
+        # [#615 ROEN] Dominio por el site del reclamo, sin API (get_ML_LINK_URL consultaba
+        # /sites por cada registro) y sin dejar el campo sin asignar cuando no hay claim_id.
+        company = self.env.company
         for c in self:
-            if c.claim_id:
-                c.claim_link = company.get_ML_LINK_URL() + "reclamos/" + str(c.claim_id)
+            c.claim_link = ("https://www.%s/reclamos/%s" % (
+                company._meli_site_domain(c.site_id), c.claim_id)) if c.claim_id else False
 
     claim_link = fields.Char(string="Claim Link", compute=compute_claim_link)
 
@@ -122,7 +132,18 @@ class mercadolibre_claim(models.Model):
             'players_json': _json.dumps(Claim.get("players")) if Claim.get("players") else False,
             'resolution_json': _json.dumps(Claim.get("resolution")) if Claim.get("resolution") else False,
             'raw_json': _json.dumps(Claim),
+            'site_id': Claim.get("site_id") or False,
         }
+        # [#615 ROEN] Un valor que ML agregue y el selection no conozca NO puede tirar el sync
+        # entero: antes 'returns' daba ValueError, el cron se lo tragaba por compania y la
+        # pantalla de reclamos quedaba VACIA sin un aviso. Se guarda vacio + WARNING; el valor
+        # original sigue en raw_json.
+        for fname in ('type', 'stage', 'status'):
+            val = claim_fields.get(fname)
+            if val and val not in dict(self._fields[fname].selection):
+                _logger.warning("mercadolibre.claim %s: valor '%s' no reconocido en '%s', se guarda vacio",
+                                claim_fields.get('claim_id'), val, fname)
+                claim_fields[fname] = False
         # Intentar vincular con la orden ML por resource_id (cuando resource=order)
         if resource_id and resource in ("order", "purchase", ""):
             order = self.env['mercadolibre.orders'].search(
