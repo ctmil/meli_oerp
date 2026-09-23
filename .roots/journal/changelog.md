@@ -3,6 +3,38 @@
 > Historial de versiones y cambios orientado al cliente.
 
 ---
+## Versión 19.0.26.134 — Los reclamos de MercadoLibre vuelven a verse en Odoo, y el link de mensajes lleva al país de la cuenta
+23 sep 2026
+
+**Cambios:**
+
+1. **Los reclamos de MercadoLibre vuelven a aparecer en Odoo [#615].** La pantalla de reclamos
+   quedaba **vacía y sin ningún aviso**: MercadoLibre informa tipos de reclamo que el conector no
+   tenía previstos (`returns`, `mediations`, `cancel_purchase`, `cancel_sale`) y la sincronización
+   se cortaba en silencio, empresa por empresa. Ahora esos tipos están contemplados y, si en el
+   futuro aparece uno nuevo, el reclamo **igual se guarda**: queda sin tipo, con un aviso en el
+   registro técnico y el dato original completo. Verificado sobre una base real: los **17** reclamos
+   abiertos entraron, los **17** con su venta asociada.
+
+2. **El link para ver los mensajes lleva al sitio del país de la cuenta [#615].** Antes apuntaba
+   siempre a `mercadolibre.com.ar` y al lado del **comprador**, así que desde una cuenta de México,
+   Colombia, Chile, Perú, Uruguay o Brasil no llevaba a ninguna parte útil. Ahora abre el centro de
+   mensajes **del vendedor**, en el dominio que le corresponde a la cuenta.
+
+3. **Las devoluciones automáticas dejan de reintentar para siempre [#409].** En esta versión de
+   Odoo, el control que decide si hay algo real para devolver leía un campo del albarán que ya no
+   existe. El error quedaba tapado: se registraba como *"Error creating return"* y la tarea
+   programada volvía a intentarlo cada pocos minutos, indefinidamente, sobre el mismo remito
+   (medido en una instancia real: **428** intentos en un día sobre un único albarán). Ahora el
+   control usa el campo que corresponde a cada versión de Odoo y la devolución se procesa o se
+   saltea, pero no vuelve en bucle.
+
+4. **Qué versión mirar.** Este build es **26.134** y es el mismo número en las cuatro versiones de
+   Odoo (16, 17, 18 y 19): nombrarlo alcanza para saber qué trae, sin aclarar de cuál.
+
+Requiere actualizar el módulo (`-u meli_oerp`).
+
+---
 ## Versión 19.0.26.127 — Las publicaciones sin video vuelven a subir a MercadoLibre [#492 / #577]
 21 sep 2026
 
@@ -24,24 +56,6 @@
 5. **Qué hay que hacer:** nada. No requiere cargar ningún video ni tocar los productos.
 
 ---
-## Versión 19.0.26.124 — La cancelación automática verifica que la venta haya quedado cancelada [#494]
-20 sep 2026
-
-**Cambios:**
-
-1. **Esta versión de Odoo NO tenía el problema** que sí afectaba a 16, 17 y 18 (ahí la cancelación
-   automática no cancelaba ninguna venta confirmada). Se alinea igual el código para que las cuatro
-   versiones del conector se comporten y se lean igual.
-2. **La cancelación ahora se verifica.** El conector ya no da por cancelada una venta: comprueba
-   que haya quedado en estado Cancelado. Si no lo consigue, lo dice — aviso explícito en el
-   historial de la venta y error en el registro — en vez de seguir de largo.
-3. **El historial deja de poder mentir.** El mensaje *"Orden cancelada por MercadoLibre"* se
-   escribe **sólo si la venta quedó realmente cancelada**.
-
-Requiere actualizar el módulo (`-u meli_oerp`).
-
----
-
 ## Versión 19.0.26.124 — La cancelación automática verifica que la venta haya quedado cancelada [#494]
 20 sep 2026
 
