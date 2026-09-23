@@ -4163,8 +4163,17 @@ class mercadolibre_orders(models.Model):
         # Y tiene que resolverse ACA, no despues: `_set_product_unit_price()` arma el precio de la
         # linea mas abajo pero ANTES de que el bucle de pagos cargue el cupon. Si esto se dejara
         # para el final, el pedido ya salio a precio pleno en esta pasada.
-        if order and (order.coupon_amount > 0
-                      or (order.pack_id and not order.discount_seller_amount)):
+        # [#603 REVERTIDO 24-sep] La guarda ampliada al pack PRODUJO PRECIOS NEGATIVOS en 502:
+        # discount_seller_amount es el descuento del PACK COMPLETO, y _set_product_unit_price() lo
+        # resta del precio unitario de CADA linea (seller_discount / quantity). En un pack con un
+        # descuento de 50.170,70 eso deja la linea en negativo. Medido: 46 lineas con price_unit<0,
+        # 37 ventas con total<0, contra CERO en los 7 dias previos.
+        # Se vuelve a la guarda original. El bug de #603 queda vivo (el descuento del vendedor no se
+        # registra en packs) pero eso NO factura de menos: deja la factura a precio pleno. Romper el
+        # precio es peor que no aplicar el descuento.
+        # Para reabrirlo hace falta PRORRATEAR el descuento del pack entre sus ordenes/lineas, y
+        # medir el resultado antes de deployar.
+        if order and order.coupon_amount > 0:
             order._fetch_order_discounts(meli=meli)
             meli_order_fields['meli_discount_seller_amount'] = order.discount_seller_amount or 0.0
 
@@ -4805,13 +4814,9 @@ class mercadolibre_orders(models.Model):
             # del pack) y el descuento del vendedor siguio en 0, resolverlo ahora que los cargos SI
             # estan escritos. El precio de la linea de ESTA pasada ya salio, asi que esto no la
             # corrige: deja el dato listo para que la proxima sincronizacion de la orden lo aplique.
-            if not order.discount_seller_amount:
-                order._estimate_seller_discount_from_charges()
-                if order.discount_seller_amount:
-                    _logger.info("MELI #603 order %s (pack=%s): descuento del vendedor %.2f "
-                                 "resuelto tarde desde los cargos; se aplica en la proxima pasada.",
-                                 order.order_id, order.pack_id or "-",
-                                 order.discount_seller_amount)
+            # [#603 REVERTIDO 24-sep] Esta red tambien cargaba discount_seller_amount en packs y
+            # alimentaba el mismo precio negativo en la pasada siguiente. Queda desactivada hasta
+            # que el descuento del pack se prorratee por linea.
             if not sorder.meli_coupon_amount:
                 sorder.meli_coupon_amount = order.coupon_amount
             # Modo de facturación del cupón ML (tri-estado meli_coupon_invoice_mode):
