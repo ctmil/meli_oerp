@@ -31,6 +31,12 @@
                                    ('state','!=','cancel')]" />
                   <filter string='Estado de Odoo' domain="[]"
                           context="{'group_by' : 'state'}" name="meli_odoo_state_filter"/>
+                  <!-- OLA 3 del mapeo de cancelaciones: el MOTIVO como eje de lectura.
+                       Antes el codigo de ML vivia concatenado dentro de meli_status_detail
+                       (un Text) y no se podia agrupar ni filtrar por el. -->
+                  <field name="meli_cancel_reason_code" string="ML Motivo de cancelación"/>
+                  <filter string='ML Motivo de cancelación' domain="[]"
+                          context="{'group_by' : 'meli_cancel_reason_code'}" name="meli_cancel_reason_code_filter"/>
                   <!-- #494: las ventas que ML canceló y en Odoo siguen vivas. Es donde caen
                        las facturas emitidas contra una venta que no ocurrió. -->
                   <filter string="Cancelado en ML, vivo en Odoo" name="meli_cancel_pending"
@@ -75,6 +81,12 @@
                                    ('state','!=','cancel')]" />
                   <filter string='Estado de Odoo' domain="[]"
                           context="{'group_by' : 'state'}" name="meli_odoo_state_filter"/>
+                  <!-- OLA 3 del mapeo de cancelaciones: el MOTIVO como eje de lectura.
+                       Antes el codigo de ML vivia concatenado dentro de meli_status_detail
+                       (un Text) y no se podia agrupar ni filtrar por el. -->
+                  <field name="meli_cancel_reason_code" string="ML Motivo de cancelación"/>
+                  <filter string='ML Motivo de cancelación' domain="[]"
+                          context="{'group_by' : 'meli_cancel_reason_code'}" name="meli_cancel_reason_code_filter"/>
                   <filter string='MercadoLibre Status' domain="[]"
         								context="{'group_by' : 'meli_status'}" name="meli_status_filter"/>
                   <!--filter string='MercadoLibre Status Brief' domain="[]"
@@ -177,6 +189,7 @@
                                      decoration-warning="meli_handling_limit_status == 'urgent'"
                                      decoration-danger="meli_handling_limit_status == 'overdue'"
                                      decoration-muted="meli_handling_limit_status == 'none'"/>
+                              <field name="meli_cancel_reason_code" readonly="1" invisible="0"/>
                               <field name="meli_status_detail" invisible="0"/>
                               <field name="meli_total_amount" widget="monetary" invisible="0"/>
                               <field name="meli_shipping_amount" widget="monetary" invisible="0"/>
