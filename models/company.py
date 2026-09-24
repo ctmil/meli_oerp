@@ -617,6 +617,32 @@ class res_company(models.Model):
              "Evita el contacto fiscal separado. Recomendado para personas físicas (AR/CL).",
     )
 
+    # ------------------------------------------------------------------ #
+    #  OLA 2 del mapeo de cancelaciones -- el eje MERCADERIA.              #
+    #  Espejo exacto del patron de `mercadolibre_invoice_cancel_mode`      #
+    #  (meli_oerp_accounting/models/company.py), que cubre el eje CONTABLE.#
+    #  Ver la nota gemela en                                               #
+    #  meli_oerp_multiple/models/connection_configuration.py: este campo   #
+    #  se declara en los DOS modelos y el default DEBE ser el mismo en     #
+    #  ambos (bug del #453 y del #587).                                    #
+    # ------------------------------------------------------------------ #
+    mercadolibre_return_mode = fields.Selection([
+        ("none", "No crear devolucion"),
+        ("draft", "Crear sin validar (queda reservada)"),
+        ("done", "Crear y validar (el stock vuelve)"),
+    ], string="Devolucion de mercaderia al cancelar pedido",
+       default="done",
+       help="Que hacer con la mercaderia ya entregada cuando MercadoLibre cancela un pedido:\n"
+            "- No crear devolucion: no se toca el stock, se gestiona a mano.\n"
+            "- Crear sin validar: genera el albaran de devolucion reservado. OJO: al cancelar "
+            "la orden, Odoo cancela los albaranes que no esten en Hecho, asi que esa devolucion "
+            "queda cancelada y el stock NO vuelve.\n"
+            "- Crear y validar (por defecto): genera el albaran de devolucion y lo valida ANTES "
+            "de cancelar la orden, de modo que el stock vuelve al deposito y la devolucion "
+            "sobrevive a la cancelacion.\n\n"
+            "No aplica a los envios FULL, donde el stock vive en el fulfillment de MercadoLibre: "
+            "esos albaranes se saltean solos por no tener cantidades que devolver.")
+
     # [#493 Shoppy] Ver la nota gemela en meli_oerp_multiple/models/connection_configuration.py:
     # este campo se declara en los DOS modelos y el default DEBE ser el mismo en ambos.
     mercadolibre_protect_invoiced_orders = fields.Boolean(
