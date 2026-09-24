@@ -371,6 +371,24 @@ class sale_order(models.Model):
     meli_status_brief = fields.Char(string="Meli Status Brief", compute="_meli_status_brief", search=search_meli_status_brief, store=False, index=True)
 
     meli_status_detail = fields.Text(string='Status detail, in case the order was cancelled.')
+    # ---------------------------------------------------------------------- #
+    #  OLA 3 del mapeo de cancelaciones: el eje MOTIVO, ESTRUCTURADO          #
+    # ---------------------------------------------------------------------- #
+    # `cancel_detail.code` tal cual lo informa la API de MercadoLibre
+    # (pack_splitted, buyer_regretted, fraud, seller_cancelled_...). Hasta el
+    # build 26.138 ese codigo se CONCATENABA como texto adentro de
+    # meli_status_detail -- que es un fields.Text -- asi que el motivo de la
+    # cancelacion no se podia filtrar, ni agrupar, ni usar en una regla.
+    # meli_status_detail se sigue escribiendo EXACTAMENTE IGUAL: este campo es
+    # ADITIVO, no reemplaza nada.
+    # Es Char y no Selection A PROPOSITO: el catalogo de codigos lo define ML y
+    # cambia sin avisar; un Selection convertiria un codigo nuevo en un
+    # ValidationError en medio del cron de importacion.
+    meli_cancel_reason_code = fields.Char(
+        string='ML Motivo de cancelación (código)', index=True,
+        help="Codigo crudo de `cancel_detail.code` que informa MercadoLibre al cancelar "
+             "el pedido. Sirve para filtrar y agrupar las cancelaciones por motivo desde "
+             "Ventas. El texto legible completo sigue en 'Status detail'.")
     meli_date_created = fields.Datetime('Meli Creation date')
     meli_date_closed = fields.Datetime('Meli Closing date')
 
@@ -706,6 +724,66 @@ class sale_order(models.Model):
             self.action_invoice_create()
         return res
 
+    def _meli_validate_picking(self, spick, cancel_backorder=False):
+        """Valida UN picking hasta `done`, resolviendo los wizards que devuelve
+        `button_validate()` segun la version del core.
+
+        Es el cuerpo que vivia DENTRO de meli_deliver(), extraido tal cual (de
+        ahi viene probado en produccion) para que lo compartan dos caminos:
+          * la ENTREGA automatica (meli_deliver), y
+          * la VALIDACION DE LA DEVOLUCION que se crea al cancelar
+            (_meli_return_done_pickings -- OLA 1.2 del mapeo de cancelaciones).
+        Una sola copia del manejo de stock.immediate.transfer /
+        stock.backorder.confirmation: si un core cambia el wizard, se arregla
+        aca y sirve a las dos.
+
+        NO atrapa excepciones a proposito: el llamador decide que hacer con el
+        error (meli_deliver lo guarda en `res`, la devolucion lo postea en el
+        chatter). Devuelve True si el picking quedo en `done`.
+        """
+        #Confirmar el picking si aún no está confirmado
+        if spick.state == 'draft':
+            spick.action_confirm()
+
+        #Asignar existencias (reserva y crea move_line_ids)
+        if (spick.state in ['confirmed','partially_available','waiting','draft']):
+            spick.action_assign()
+
+        #Marcar qty_done = product_uom_qty en todas las líneas
+        if spick.move_line_ids:
+            stock_picking_set_quantities(picking=spick)
+
+        #Validar el picking para mover físicamente y generar valoración
+        if spick.state == 'assigned':
+            action = spick.button_validate()
+
+            # Wizard de transferencia inmediata (stock.immediate.transfer)
+            if isinstance(action, dict) and action.get('res_model') == 'stock.immediate.transfer':
+                Immediate = self.env['stock.immediate.transfer'].sudo()
+                wiz = action.get('res_id') and Immediate.browse(action['res_id']).exists()
+                if not wiz:
+                    # Fallback: crear wizard si por alguna razón no vino res_id
+                    wiz = Immediate.create({'pick_ids': [(6, 0, [spick.id])]})
+                # En v15+ process() mira button_validate_picking_ids en el contexto
+                wiz.with_context(button_validate_picking_ids=spick.ids).process()
+
+            # Wizard de backorder (stock.backorder.confirmation)
+            if isinstance(action, dict) and action.get('res_model') == 'stock.backorder.confirmation':
+                Backorder = self.env['stock.backorder.confirmation'].sudo()
+                wiz = action.get('res_id') and Backorder.browse(action['res_id']).exists()
+                if not wiz:
+                    wiz = Backorder.create({'pick_ids': [(6, 0, [spick.id])]})
+                if cancel_backorder:
+                    # Algunas versiones traen process_cancel_backorder, otras usan process() + contexto
+                    if hasattr(wiz, 'process_cancel_backorder'):
+                        wiz.process_cancel_backorder()
+                    else:
+                        wiz.with_context(cancel_backorder=True).process()
+                else:
+                    wiz.process()
+
+        return spick.state == 'done'
+
     def meli_deliver(self, meli=None, config=None, data=None):
         res = {}
         cancel_backorder = False
@@ -713,46 +791,7 @@ class sale_order(models.Model):
         if self.state in ('sale', 'done') and self.picking_ids:
             for spick in self.picking_ids:
                 try:
-                    #Confirmar el picking si aún no está confirmado
-                    if spick.state == 'draft':
-                        spick.action_confirm()
-
-                    #Asignar existencias (reserva y crea move_line_ids)
-                    if (spick.state in ['confirmed','partially_available','waiting','draft']):
-                        spick.action_assign()
-
-                    #Marcar qty_done = product_uom_qty en todas las líneas
-                    if spick.move_line_ids:
-                        stock_picking_set_quantities(picking=spick)
-
-                    #Validar el picking para mover físicamente y generar valoración
-                    if spick.state == 'assigned':
-                        action = spick.button_validate()
-
-                        # Wizard de transferencia inmediata (stock.immediate.transfer)
-                        if isinstance(action, dict) and action.get('res_model') == 'stock.immediate.transfer':
-                            Immediate = self.env['stock.immediate.transfer'].sudo()
-                            wiz = action.get('res_id') and Immediate.browse(action['res_id']).exists()
-                            if not wiz:
-                                # Fallback: crear wizard si por alguna razón no vino res_id
-                                wiz = Immediate.create({'pick_ids': [(6, 0, [spick.id])]})
-                            # En v15+ process() mira button_validate_picking_ids en el contexto
-                            wiz.with_context(button_validate_picking_ids=spick.ids).process()
-
-                        # Wizard de backorder (stock.backorder.confirmation)
-                        if isinstance(action, dict) and action.get('res_model') == 'stock.backorder.confirmation':
-                            Backorder = self.env['stock.backorder.confirmation'].sudo()
-                            wiz = action.get('res_id') and Backorder.browse(action['res_id']).exists()
-                            if not wiz:
-                                wiz = Backorder.create({'pick_ids': [(6, 0, [spick.id])]})
-                            if cancel_backorder:
-                                # Algunas versiones traen process_cancel_backorder, otras usan process() + contexto
-                                if hasattr(wiz, 'process_cancel_backorder'):
-                                    wiz.process_cancel_backorder()
-                                else:
-                                    wiz.with_context(cancel_backorder=True).process()
-                            else:
-                                wiz.process()
+                    self._meli_validate_picking(spick, cancel_backorder=cancel_backorder)
 
                 except Exception as e:
                     _logger.error(f"Error validando picking {spick.id}: {e}")
@@ -1029,8 +1068,49 @@ class sale_order(models.Model):
             },
         }
 
-    def _meli_return_done_pickings(self):
+    def _meli_return_done_pickings(self, config=None):
         """Create return pickings for done outgoing pickings when MeLi cancels the order."""
+        # ------------------------------------------------------------------ #
+        #  OLA 2 del mapeo de cancelaciones: el eje MERCADERIA como POLITICA  #
+        # ------------------------------------------------------------------ #
+        # `mercadolibre_return_mode`:
+        #   none  -> no crear la devolucion
+        #   draft -> crearla y dejarla reservada (el comportamiento historico)
+        #   done  -> crearla Y VALIDARLA  <-- DEFAULT
+        #
+        # POR QUE EL DEFAULT ES 'done', Y POR QUE EL ORDEN ES EL FIX (OLA 1.2):
+        # meli_cancel_with_detail() llama a este metodo en el PASO 1 y a
+        # _meli_action_cancel() en el PASO 4. El action_cancel() del core
+        # (sale_stock/models/sale_order.py) cancela
+        # picking_ids.filtered(lambda p: p.state != 'done'), asi que una
+        # devolucion que queda en 'assigned' NACE Y MUERE EN EL MISMO SEGUNDO
+        # mientras el chatter le dice al cliente "Devolucion creada
+        # automaticamente". Validandola ACA -- dentro del paso 1, antes del
+        # paso 4 -- queda en 'done' y la cascada ya no la toca. Si se validara
+        # DESPUES del action_cancel, la cascada la agarra igual: no alcanza con
+        # validar, hay que validar ANTES.
+        # El estado destino lo zanjo el cliente: PetMarkt (393), ticket #607
+        # ("que pasen automaticamente a estado Hecho al procesarse la
+        # cancelacion"). Medido antes del fix: de 4 devoluciones automaticas
+        # sobrevivio UNA (MLF/IN/00973), y solo porque su orden NO se cancelo.
+        #
+        # OJO MULTI-CUENTA (bug del #453, y otra vez el #587 en Dannok):
+        # _get_config() devuelve `mercadolibre.configuration` cuando hay cuenta
+        # de conexion, NO res.company. Un campo declarado solo en res.company
+        # cae al `in config._fields` -> False y la opcion queda APAGADA EN
+        # SILENCIO. El gemelo vive en
+        # meli_oerp_multiple/models/connection_configuration.py y DEBE declarar
+        # el MISMO default.
+        config = config or (self.meli_order and self.meli_order._get_config()) or self.company_id
+        return_mode = 'done'
+        if config and 'mercadolibre_return_mode' in config._fields:
+            return_mode = config.mercadolibre_return_mode or 'done'
+        if return_mode == 'none':
+            _logger.info(
+                "_meli_return_done_pickings: mercadolibre_return_mode='none' -> no se crean devoluciones para %s",
+                self.name)
+            return
+
         ReturnWiz = self.env["stock.return.picking"]
         for picking in self.picking_ids.filtered(
             lambda p: p.state == "done" and p.picking_type_code == "outgoing"
@@ -1113,7 +1193,35 @@ class sale_order(models.Model):
                     meli_message_post(self, "No se pudo devolver el albarán %s automáticamente: método no encontrado. Gestionar manualmente." % picking.name,
                                       once_key="ret-nomethod-%s" % picking.id)
                     continue
-                meli_message_post(self, "Devolución creada automáticamente para albarán %s (orden cancelada por MeLi)." % picking.name)
+                # La devolucion recien creada se busca por los moves que apuntan a los
+                # del picking original -- el MISMO criterio que el guard de duplicados
+                # de mas arriba. No se usa el res_id de la accion que devuelve el
+                # wizard porque su forma cambia entre 16.0 y 19.0.
+                _ret_pickings = self.env['stock.move'].search([
+                    ('origin_returned_move_id', 'in', picking.move_ids.ids),
+                    ('state', '!=', 'cancel'),
+                ]).mapped('picking_id')
+                _validated = False
+                if return_mode == 'done' and _ret_pickings:
+                    for _rp in _ret_pickings:
+                        try:
+                            self._meli_validate_picking(_rp)
+                        except Exception as ve:
+                            _logger.error("Error validando la devolucion %s del albaran %s: %s",
+                                          _rp.name, picking.name, ve, exc_info=True)
+                    _validated = all(_rp.state == 'done' for _rp in _ret_pickings)
+                # El chatter dice el estado REAL. El mensaje viejo ("Devolucion creada
+                # automaticamente") era verdadero por un segundo y falso despues, porque
+                # el paso 4 la cancelaba: le mentia al cliente sobre stock que nunca se
+                # movio.
+                _ret_names = ", ".join(_ret_pickings.mapped("name")) or "-"
+                if _validated:
+                    meli_message_post(self, "Devolución creada y VALIDADA automáticamente para albarán %s (orden cancelada por MeLi): %s." % (picking.name, _ret_names))
+                elif return_mode == 'done':
+                    meli_message_post(self, "Devolución creada para albarán %s (%s) pero NO se pudo validar: al cancelar la orden puede quedar cancelada y el stock NO vuelve. Revisar manualmente." % (picking.name, _ret_names),
+                                      once_key="ret-notdone-%s" % picking.id)
+                else:
+                    meli_message_post(self, "Devolución creada automáticamente para albarán %s (%s). Queda SIN validar por configuración (Devolución al cancelar = 'Crear sin validar'): la cancelación de la orden la va a cancelar." % (picking.name, _ret_names))
             except Exception as e:
                 _logger.error("Error creating return for picking %s: %s", picking.name, e, exc_info=True)
                 # once_key: este camino lo dispara un cron que reintenta indefinidamente
@@ -2375,6 +2483,8 @@ class mercadolibre_orders(models.Model):
             'meli_order_id': '%s' % (str(order_json["id"])),
             'meli_status': ("status" in order_json and order_json["status"]) or '',
             'meli_status_detail': (order_json.get("status_detail") or '') + cancel_detail_text,
+            # OLA 3 -- el motivo, estructurado. El texto de arriba NO cambia.
+            'meli_cancel_reason_code': (cancel_detail.get("code") or ''),
             'meli_total_amount': ("total_amount" in order_json and order_json["total_amount"]),
             'meli_paid_amount': ("paid_amount" in order_json and order_json["paid_amount"]),
             'meli_coupon_amount': ("coupon" in order_json and order_json["coupon"] and "amount" in order_json["coupon"] and order_json["coupon"]["amount"]) or 0.0,
@@ -5266,6 +5376,8 @@ class mercadolibre_orders(models.Model):
                 order.status_detail = (order_json.get("status_detail") or '') + cancel_detail_text
                 if order.sale_order:
                     order.sale_order.meli_status_detail = order.status_detail
+                    # OLA 3 -- el motivo, estructurado (ver meli_cancel_reason_code).
+                    order.sale_order.meli_cancel_reason_code = cancel_detail.get("code") or ''
                     if order_json["status"] in ("cancelled",):
                         sorder = order.sale_order
                         if sorder.meli_status != "cancelled":
@@ -5369,6 +5481,8 @@ class mercadolibre_orders(models.Model):
                 sorder = order.sale_order
                 if sorder:
                     sorder.meli_status_detail = order.status_detail
+                    # OLA 3 -- el motivo, estructurado (ver meli_cancel_reason_code).
+                    sorder.meli_cancel_reason_code = cancel_detail.get("code") or ''
                     if new_status == "cancelled" and sorder.state in ("draft", "sent", "sale", "done"):
                         cancel_msg = "Orden cancelada por MercadoLibre."
                         if sorder.meli_status_detail:
