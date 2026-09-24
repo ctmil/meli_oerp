@@ -3,6 +3,11 @@
 > Historial de versiones y cambios orientado al cliente.
 
 ---
+## 19.0.26.138 — 24-sep-2026 · build de flota: alineación local↔origin
+- Integra en la rama de deploy lo que estaba sólo en local: video_id vacío (26.127), guard de devoluciones
+  `scrapped`/`scrap_id` resuelto contra `_fields` (26.129), ports del #494.
+- Sin cambios de datos ni vistas: el salto de build es para que las cuatro series designen el mismo release.
+
 ## Versión 19.0.26.134 — Los reclamos de MercadoLibre vuelven a verse en Odoo, y el link de mensajes lleva al país de la cuenta
 23 sep 2026
 
