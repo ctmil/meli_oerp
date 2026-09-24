@@ -4,6 +4,27 @@
 
 ---
 
+## 24 sep 2026 - motivo de cancelacion estructurado (v17.0.26.142) [#607 PetMarkt]
+
+- **Campo NUEVO stored+index -> requiere `-u meli_oerp`** (el bump a 26.142 lo dispara):
+  `sale.order.meli_cancel_reason_code` (Char, index) = el `cancel_detail.code` que informa ML.
+- **Campo de configuracion nuevo (sin migracion de datos):**
+  `res.company.mercadolibre_return_mode` (Selection `none`/`draft`/`done`, default **`done`**).
+  Su GEMELO `mercadolibre.configuration.mercadolibre_return_mode` vive en `meli_oerp_multiple`
+  con el MISMO default: si los defaults difieren, en multi-cuenta la opcion queda apagada sin
+  que se note (bug del #453 / #587).
+  ⚠️ **Cambia el comportamiento por defecto:** hasta 26.138 la devolucion se creaba y quedaba
+  `assigned` (y la cancelacion de la orden la cancelaba). Desde 26.142 se crea Y SE VALIDA. Quien
+  quiera el comportamiento viejo tiene que poner el modo en `draft` **explicitamente**.
+- **Migracion `migrations/17.0.26.142/post-migrate.py` (post, idempotente):** siembra
+  `meli_cancel_reason_code` parseando el texto de `meli_status_detail`, donde el codigo venia
+  concatenado con el formato `" | <code>: <desc> (solicitado por: <x>, fecha: <y>)"`. Toma el
+  ULTIMO `" | "` (el texto se appendea al final) y valida el token contra
+  `^[A-Za-z0-9_.\-]{2,64}:\s`. Si `cancel_detail` venia sin `code`, no escribe nada.
+  **Solo toca filas con el campo NULL o vacio; no toca `meli_status_detail`.**
+
+---
+
 ## 28 jul 2026 - sello de movimientos de stock: create_date -> GREATEST(date, write_date, create_date) (v17.0.26.88) [OrgVit 475]
 
 - **Sin migracion de datos ni de esquema.** Codigo puro en `models/product.py` y `models/company.py`.
