@@ -84,7 +84,8 @@ MELI_PUBLISH_ERROR_PATTERNS = [
     # --- Medidas/peso del paquete requeridas (seller_package_*) ---
     (r"attributes?\s*\[[^\]]*seller_package[^\]]*\].*?(?:are|is)\s+(?:all\s+)?required",
      "Faltan las medidas y el peso del paquete (alto, ancho, largo y peso). Cargalos en el producto "
-     "(pestaña Inventario/Envío, dimensiones del paquete) para poder publicar."),
+     "(pestaña MercadoLibre Plantilla, bloque \"Dimensiones del paquete\"; en la variante, pestaña "
+     "MercadoLibre), con unidad: por ejemplo \"30 cm\" y \"500 g\"."),
     # --- Atributos obligatorios que ML ya devuelve en español (según locale) ---
     # Marca
     (r'El campo\s*"?Marca"?\s+es obligatorio',

@@ -4,6 +4,13 @@
 
 ---
 
+### 25 sep 2026 — El aviso de medidas del paquete mandaba a la pestaña equivocada [#333 Acotron] (v18.0.26.145)
+
+`models/warning.py` (humanizador de `seller_package ... required`) decía *"pestaña Inventario/Envío"*;
+el bloque `meli_seller_package_*` vive en **MercadoLibre Plantilla** (plantilla) y **MercadoLibre**
+(variante), `views/product_view.xml`. Texto corregido + ejemplo con unidad (cm/g). Mismo texto en
+16/17/19: pendiente de portar. Va junto con el fix de `meli_oerp_multiple` 26.145 (SELLER_PACKAGE_* por binding).
+
 ### 23 sep 2026 — Landing de la tanda 26.127 + 26.129 sobre 26.133 [#492/#577, #409, #615] (v18.0.26.134)
 
 **Qué entró.** Tres fixes que estaban listos en ramas `claude/*` sin mergear, más el #615 que ya
