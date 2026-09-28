@@ -1135,8 +1135,9 @@ class sale_order(models.Model):
                     continue
                 # La devolucion recien creada se busca por los moves que apuntan a los
                 # del picking original -- el MISMO criterio que el guard de duplicados
-                # de mas arriba. No se usa el res_id de la accion que devuelve el
-                # wizard porque su forma cambia entre 16.0 y 19.0.
+                # de mas arriba. (Las 4 versiones del core devuelven act_window con el
+                # res_id del picking nuevo -- medido por meli-keeper 28-sep --; se busca
+                # por los moves para usar el mismo criterio que el guard de duplicados.)
                 _ret_pickings = self.env['stock.move'].search([
                     ('origin_returned_move_id', 'in', picking.move_ids.ids),
                     ('state', '!=', 'cancel'),
@@ -1145,11 +1146,16 @@ class sale_order(models.Model):
                 if return_mode == 'done' and _ret_pickings:
                     for _rp in _ret_pickings:
                         try:
-                            self._meli_validate_picking(_rp)
+                            # SAVEPOINT (patron del #328): button_validate() escribe quants
+                            # ANTES de que pueda saltar un ValidationError (p.ej.
+                            # stock_no_negative). Sin savepoint la escritura PARCIAL queda
+                            # persistida y la transaccion envenenada. Aviso de meli-keeper, 28-sep.
+                            with self.env.cr.savepoint():
+                                self._meli_validate_picking(_rp)
                         except Exception as ve:
                             _logger.error("Error validando la devolucion %s del albaran %s: %s",
                                           _rp.name, picking.name, ve, exc_info=True)
-                    _validated = all(_rp.state == 'done' for _rp in _ret_pickings)
+                    _validated = bool(_ret_pickings) and all(_rp.state == 'done' for _rp in _ret_pickings)
                 # El chatter dice el estado REAL. El mensaje viejo ("Devolucion creada
                 # automaticamente") era verdadero por un segundo y falso despues, porque
                 # el paso 4 la cancelaba: le mentia al cliente sobre stock que nunca se
