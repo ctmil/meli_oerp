@@ -4,6 +4,77 @@
 
 ---
 
+### 28 sep 2026 — la devolución de una orden cancelada en ML se VALIDA (nace en "Hecho") [#607 PetMarkt 393] (v17.0.26.147)
+
+**Qué cambió.** `models/orders.py`:
+1. Se extrae `_meli_validate_picking(spick, cancel_backorder=False)` del cuerpo de `meli_deliver()`
+   —**tal cual**, sin cambiarle una línea: de ahí viene probado en producción— para que lo compartan
+   la entrega automática y la validación de la devolución. Una sola copia del manejo de
+   `stock.immediate.transfer` / `stock.backorder.confirmation`.
+2. `_meli_return_done_pickings()`: después de crear la devolución, la **busca** (por
+   `origin_returned_move_id`, el mismo criterio que el guard de duplicados) y la **valida**.
+
+**Por qué, y por qué el ORDEN es el fix.** `meli_cancel_with_detail()` llama a
+`_meli_return_done_pickings()` en el paso 1 y a `_meli_action_cancel()` en el paso 4, y el
+`action_cancel()` del core cancela `picking_ids.filtered(lambda p: p.state != 'done')`
+(`sale_stock/models/sale_order.py:257`) ⇒ una devolución que quedaba en `assigned` **nacía y moría en
+el mismo segundo**, con el chatter afirmando "Devolución creada automáticamente" y el stock sin volver
+al inventario. Medido en PetMarkt: **11 devoluciones regeneradas a mano en 4 días** (5 el 14-sep, 4 el
+16, 2 el 17). Validarla DENTRO del paso 1 la deja en `done` y la cascada ya no la toca: **no alcanza
+con validar, hay que validar ANTES de cancelar la venta.** Lo pidió el cliente en #607 el 14-sep
+("que pasen automáticamente a estado 'Hecho' al momento de procesarse la cancelación").
+
+**Lo medido en el core de las 4 versiones (nada se resolvió por número de versión):**
+- `stock.return.picking`: 16/17 `create_returns()`, 18/19 `action_create_returns_all()`. **Las cuatro**
+  devuelven una `act_window` con el `res_id` del picking nuevo — así que el `res_id` también servía;
+  se usa la búsqueda por `origin_returned_move_id` para no depender de la forma de la acción.
+- `stock.immediate.transfer` **existe sólo en 16.0**: `_check_immediate()` desaparece del
+  `_pre_action_done_hook` en 17.0. La rama del wizard inmediato es inerte en 17/18/19.
+- `_check_backorder()` está en las 4 y sólo dispara si `picking_type_id.create_backorder == 'ask'`.
+- `_sanity_check()` está en las 4 y es el que levanta `UserError` por lote/serie faltante.
+- `stock.move.quantity_done` es de 16.0; desde 17.0 es `quantity` + `picked`.
+  ⚠️ **Deuda detectada (NO tocada acá):** `stock_picking_set_quantities()` (`models/versions.py`)
+  filtra por `"qty_done" in pop._fields` y `stock.move.line.qty_done` **no existe desde 17.0** ⇒ el
+  helper es un **no-op en 17/18/19**. Funciona sólo en 16.0.
+- `meli_oerp_stock` **sobreescribe `meli_deliver()` sin `super()`** y excluye las devoluciones
+  (`_is_return`) ⇒ extraer el helper acá no le cambia nada.
+
+**El fallo es DEGRADADO por diseño (tres capas):**
+1. `try/except` propio alrededor de la validación: si no se puede validar, se loguea y **la devolución
+   queda creada en "Listo"** = el comportamiento anterior a este fix. **Nunca** una excepción que
+   aborte la cancelación de la orden.
+2. **No se lee el retorno de `button_validate()`, se relee `picking.state`.** `button_validate()` puede
+   devolver el **dict de un wizard** (backorder, transferencia inmediata en 16.0, o el pedido de
+   lote/serie de un producto con `tracking`) y dejar el picking **sin validar, sin excepción y sin una
+   línea de log**. El estado es la única prueba que no se puede falsificar.
+3. El aviso al chatter va con **`once_key="ret-notdone-<picking_id>"`**: este camino lo dispara un cron
+   que reintenta indefinidamente mientras la orden no se pueda cancelar (p. ej. factura publicada sin
+   resolver). Sin la marca, el mismo aviso se repostea en cada ciclo — la mitad del spam histórico.
+   (En la práctica no se revalida: la segunda pasada corta antes, en el guard `already_returned`.)
+
+**`with self.env.cr.savepoint()` alrededor de la validación — no es adorno.** `button_validate()`
+escribe quants y move lines **antes** de que pueda saltar un `ValidationError` (p. ej.
+`stock_no_negative`). Sin savepoint, el `except` se come el error y la **escritura parcial queda
+persistida** — es exactamente el daño medido del **#328** en `meli_oerp_stock` (una serie bajando de a
+poco en cada corrida del cron, con el log diciendo `errores=0`). Con savepoint: o queda `done`, o no
+pasó nada. Y además deja el cursor usable: sin él, un error de PG envenena la transacción y lo que
+sigue muere con *"current transaction is aborted"* en un lugar que no tiene nada que ver.
+
+**Convergencia (leer antes de mergear).** El mismo fix vive, con más envoltorio, en
+`claude/mapeo-cancelaciones-{16,17,18,19}.0` (config `mercadolibre_return_mode` = none/draft/**done**,
+vistas, gemelo en `meli_oerp_multiple`, `tests/test_meli_cancel.py`). Esta rama adopta **el mismo
+helper, la misma búsqueda y el mismo `once_key`** a propósito, para que los dos caminos converjan
+textualmente en vez de divergir; **no** trae la config (valida siempre = el default `'done'` del
+mapeo). Lo que esta rama **suma** sobre el mapeo es el **savepoint**. Si landea el mapeo completo, esta
+rama queda redundante: **la decisión de cuál landea es de FCA.**
+
+**Numeración.** v17.0.26.147 = max(todas las series de todos los módulos `meli_oerp*`, refs locales y
+`origin/*`) + 1. Máximo medido el 28-sep: **26.146** (`meli_oerp` y `meli_oerp_campaign` en
+`claude/olpa-462-publicacion-18.0`). Mismo build en las 4 series.
+
+---
+
+
 ### 23 sep 2026 — Landing de la tanda 26.127 + 26.129 sobre 26.133 [#492/#577, #409, #615] (v17.0.26.134)
 
 **Qué entró.** Tres fixes que estaban listos en ramas `claude/*` sin mergear, más el #615 que ya
