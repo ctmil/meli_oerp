@@ -3,6 +3,20 @@
 > Historial de versiones y cambios orientado al cliente.
 
 ---
+## 19.0.26.147 — 28-sep-2026 · la devolución automática de una orden cancelada en ML nace en **"Hecho"**
+Cuando MercadoLibre cancela una orden ya entregada, el conector crea la devolución del albarán.
+Hasta este build la dejaba en **"Listo"**, y entonces pasaban dos cosas: había que entrar a validarla
+a mano, y —peor— la propia cancelación de la venta la alcanzaba y la cancelaba, así que **el stock no
+volvía nunca al inventario** aunque el chatter dijera "Devolución creada automáticamente".
+Desde este build la devolución se **valida** en el mismo paso: queda en **"Hecho"**, el stock vuelve, y
+la cancelación de la venta ya no la toca (el core sólo cancela albaranes que no están en "Hecho").
+- Si por algún motivo no se puede validar (falta un lote/serie, un backorder, stock negativo
+  bloqueado), **no se aborta nada**: la devolución queda creada en "Listo" igual que antes y el chatter
+  lo dice explícitamente, **una sola vez**, con el nombre del albarán a revisar.
+- El mensaje del chatter ahora nombra la devolución y dice si quedó validada o no: antes afirmaba un
+  movimiento de stock que podía no haber ocurrido.
+- Pedido por PetMarkt (ticket #607).
+
 ## 19.0.26.138 — 24-sep-2026 · build de flota: alineación local↔origin
 - Integra en la rama de deploy lo que estaba sólo en local: video_id vacío (26.127), guard de devoluciones
   `scrapped`/`scrap_id` resuelto contra `_fields` (26.129), ports del #494.
