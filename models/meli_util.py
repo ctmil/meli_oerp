@@ -166,6 +166,58 @@ class MeliApi( meli.RestClientApi ):
             pass;
         return self
 
+    # ---------------------------------------------------------------------
+    # user-products (backport de 16.0 para Lenceria 131)
+    # ML exige el header x-version para escribir el stock de un user-product
+    # (optimistic locking). El SDK de 13.0 no expone los headers de la
+    # respuesta, asi que estos dos metodos usan requests directo. NO se toca
+    # el camino del SDK, que es el que usa todo el resto del modulo.
+    # ---------------------------------------------------------------------
+    def _user_product_url(self, up_id):
+        host = getattr(configuration, "host", None) or "https://api.mercadolibre.com"
+        return host.rstrip("/") + "/user-products/" + str(up_id) + "/stock"
+
+    def user_product_stock_get(self, up_id, access_token):
+        """Devuelve (data, x_version) del stock de un user-product."""
+        headers = {
+            "Accept": "application/json",
+            "Authorization": "Bearer " + str(access_token),
+        }
+        try:
+            resp = requests.get(self._user_product_url(up_id), headers=headers, timeout=20)
+            xver = resp.headers.get("x-version") or resp.headers.get("X-Version")
+            try:
+                data = resp.json()
+            except ValueError:
+                data = {"error": "invalid json", "status": resp.status_code}
+            return data, xver
+        except requests.RequestException as e:
+            _logger.warning("user_product_stock_get error: %s", str(e))
+            return {"error": str(e)}, None
+
+    def user_product_stock_put(self, up_id, access_token, body, x_version=None):
+        """Escribe el stock de un user-product. Sin x_version NO se envia:
+        ML rechaza la escritura y es preferible el rechazo a pisar a ciegas."""
+        if not x_version:
+            _logger.warning("user_product_stock_put: sin x-version, no se envia (up_id=%s)", str(up_id))
+            return {"error": "missing x-version", "status": 0}
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + str(access_token),
+            "x-version": str(x_version),
+        }
+        try:
+            resp = requests.put(self._user_product_url(up_id), headers=headers,
+                                data=json.dumps(body), timeout=20)
+            try:
+                return resp.json()
+            except ValueError:
+                return {"status": resp.status_code, "text": resp.text[:200]}
+        except requests.RequestException as e:
+            _logger.warning("user_product_stock_put error: %s", str(e))
+            return {"error": str(e), "status": 0}
+
     def upload(self, path, files, params={}):
         try:
             atok = ("access_token" in params and params["access_token"]) or ""
