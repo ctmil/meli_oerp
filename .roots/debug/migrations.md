@@ -4,6 +4,22 @@
 
 ---
 
+## 28 sep 2026 — la devolución automática nace en "Hecho" (v16.0.26.147) [#607 PetMarkt 393]
+
+- **Sin migración de datos ni de esquema.** Código puro en `models/orders.py`: ningún campo nuevo,
+  ninguna vista, ningún `data/`. El bump de versión dispara el `-u meli_oerp` y con eso alcanza.
+- **Cambio de COMPORTAMIENTO en producción (leer antes de deployar):** al procesar una cancelación de
+  ML de una orden ya entregada, la devolución que antes quedaba en "Listo" ahora se **valida** ⇒
+  **mueve inventario real** (reingresa el stock a la ubicación destino de la devolución) y genera
+  valoración. Es lo que el cliente pidió, pero conviene avisarle: los movimientos aparecen con fecha
+  del día en que corre el cron, no de la venta.
+- **Nada retroactivo.** Las devoluciones ya creadas en "Listo" (o ya canceladas por el paso 4) **no se
+  tocan**: no hay backfill. Las que quedaron canceladas se vuelven a crear solas en la próxima pasada
+  del cron (el guard `already_returned` no cuenta los moves en `cancel`); las que quedaron en "Listo"
+  **siguen en "Listo"** y hay que validarlas a mano una vez.
+- **Sin cambios de vistas** en este módulo.
+
+
 ## 23 ago 2026 - flag buscable de cancelacion pendiente (v16.0.26.95) [#494 Shoppy]
 
 - **Campo NUEVO stored+index -> requiere `-u meli_oerp`** (el bump 26.95 lo dispara):
