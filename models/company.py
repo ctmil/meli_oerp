@@ -368,7 +368,13 @@ class res_company(models.Model):
     mercadolibre_user_product_seller = fields.Boolean( string='User Product Seller',index=True)
     mercadolibre_multiwarehouse = fields.Boolean( string='Multi Warehouse Seller', index=True,
         help='Seller uses multiple warehouses in MercadoLibre. Stock updates require warehouse-specific API.')
-    mercadolibre_state = fields.Boolean( compute=get_meli_state, string='Desconectado', help="Se requiere Iniciar Sesión con MLA", store=False )
+    # #514-6: el compute va por NOMBRE, no por referencia a la función.
+    # Odoo resuelve un compute de tipo str con getattr() sobre el recordset
+    # (odoo/fields.py, determine() y Field.get_depends), o sea por la MRO del
+    # modelo: un módulo que herede res.company y redefina get_meli_state() manda.
+    # Pasando la FUNCIÓN se llamaba siempre la de este módulo y cualquier
+    # override quedaba inerte, sin error y sin log.
+    mercadolibre_state = fields.Boolean( compute='get_meli_state', string='Desconectado', help="Se requiere Iniciar Sesión con MLA", store=False )
     mercadolibre_category_import = fields.Char( string='Category to import', help='Category Code to Import, check Recursive Import to import the full tree', size=256)
     mercadolibre_recursive_import = fields.Boolean( string='Recursive import', help='Import all the category tree from Category Code')
 
