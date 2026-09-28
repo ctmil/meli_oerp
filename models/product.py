@@ -486,6 +486,7 @@ class product_template(models.Model):
                                         'Condición del producto')
     meli_dimensions = fields.Char( string="Dimensiones del producto", size=128)
     meli_pub = fields.Boolean('Meli Publication',help='MELI Product',index=True)
+    meli_user_product_id = fields.Char(string='Product User Id')
     meli_master = fields.Boolean('Meli Producto Maestro', help='MELI Product Maestro',index=True)
     meli_warranty = fields.Char(string='Garantía', size=256, help='Garantía del producto. Es obligatorio y debe ser un número seguido por una unidad temporal. Ej. 2 meses, 3 años.')
     meli_listing_type = fields.Selection([("free","Libre"),("bronze","Bronce"),("silver","Plata"),("gold","Oro"),("gold_premium","Gold Premium"),("gold_special","Gold Special/Clásica"),("gold_pro","Oro Pro")], string='Tipo de lista')
@@ -1453,6 +1454,46 @@ class product_product(models.Model):
         return
 
 
+    def _fetch_meli_user_product_id( self, meli_id=None, meli_id_variation=None, meli=False, config=False, item_json=None ):
+        """Backport de 16.0 (26.x) para Lenceria 131: resuelve el user_product_id de
+        una publicacion o de su variacion. ML lo exige desde el cambio de dic-2025,
+        cuando las publicaciones pasaron a ser variantes."""
+        upid = None
+        upids = []
+
+        if not meli_id:
+            return upid
+
+        if not item_json:
+            return upid
+
+        if ( item_json and "user_product_id" in item_json and item_json["user_product_id"] ):
+            upid = item_json["user_product_id"]
+
+        if ( "variations" in item_json and len(item_json["variations"]) ):
+
+            for var in item_json["variations"]:
+                vupid = var.get("user_product_id") if isinstance(var, dict) else None
+                if (meli_id_variation and str(var["id"])==str(meli_id_variation)):
+                    if vupid:
+                        upid = vupid
+                        return upid
+                else:
+                    if vupid:
+                        upid = vupid
+                        if vupid not in upids:
+                            upids.append(vupid)
+
+            if (not meli_id_variation):
+                # NO devolver el str() de la lista: se persistia verbatim en
+                # meli_user_product_id y rompia el push por user-products.
+                if len(upids) == 1:
+                    return upids[0]
+                item_upid = item_json.get("user_product_id")
+                return item_upid or None
+
+        return upid
+
     def product_meli_get_product( self, context=None, meli_id=None, import_images=True ):
         company = self.env.user.company_id
 
@@ -1650,6 +1691,11 @@ class product_product(models.Model):
                 meli_fields["meli_catalog_item_relations"] = rjson["item_relations"]
                 if (meli_fields["meli_catalog_listing"]==True):
                     tmpl_fields["meli_catalog_item_relations"] = rjson["item_relations"]
+
+        has_user_product_id = product._fetch_meli_user_product_id( meli_id=meli_id, meli_id_variation=None, meli=meli, config=config, item_json=rjson )
+        if (has_user_product_id):
+            meli_fields["meli_user_product_id"] = has_user_product_id
+            tmpl_fields["meli_user_product_id"] = has_user_product_id
 
         product.write( meli_fields )
         product_template.write( tmpl_fields )
@@ -3969,6 +4015,7 @@ class product_product(models.Model):
     #post only fields
     meli_post_required = fields.Boolean(string='Publicable', help='Este producto es publicable en Mercado Libre')
     meli_id = fields.Char(string='ML Id', help='Id del item asignado por Meli', size=256, index=True)
+    meli_user_product_id = fields.Char(string='Product User Id')
     #meli_description_banner_id = fields.Many2one("mercadolibre.banner",string="Description Banner")
     meli_buying_mode = fields.Selection(string='Método',help='Método de compra',selection=[("buy_it_now","Compre ahora"),("classified","Clasificado")])
     meli_price_fixed = fields.Boolean(string='Price is fixed')
