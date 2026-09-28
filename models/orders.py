@@ -706,6 +706,66 @@ class sale_order(models.Model):
             self.action_invoice_create()
         return res
 
+    def _meli_validate_picking(self, spick, cancel_backorder=False):
+        """Valida UN picking hasta `done`, resolviendo los wizards que devuelve
+        `button_validate()` segun la version del core.
+
+        Es el cuerpo que vivia DENTRO de meli_deliver(), extraido tal cual (de
+        ahi viene probado en produccion) para que lo compartan dos caminos:
+          * la ENTREGA automatica (meli_deliver), y
+          * la VALIDACION DE LA DEVOLUCION que se crea al cancelar
+            (_meli_return_done_pickings -- OLA 1.2 del mapeo de cancelaciones).
+        Una sola copia del manejo de stock.immediate.transfer /
+        stock.backorder.confirmation: si un core cambia el wizard, se arregla
+        aca y sirve a las dos.
+
+        NO atrapa excepciones a proposito: el llamador decide que hacer con el
+        error (meli_deliver lo guarda en `res`, la devolucion lo postea en el
+        chatter). Devuelve True si el picking quedo en `done`.
+        """
+        #Confirmar el picking si aún no está confirmado
+        if spick.state == 'draft':
+            spick.action_confirm()
+
+        #Asignar existencias (reserva y crea move_line_ids)
+        if (spick.state in ['confirmed','partially_available','waiting','draft']):
+            spick.action_assign()
+
+        #Marcar qty_done = product_uom_qty en todas las líneas
+        if spick.move_line_ids:
+            stock_picking_set_quantities(picking=spick)
+
+        #Validar el picking para mover físicamente y generar valoración
+        if spick.state == 'assigned':
+            action = spick.button_validate()
+
+            # Wizard de transferencia inmediata (stock.immediate.transfer)
+            if isinstance(action, dict) and action.get('res_model') == 'stock.immediate.transfer':
+                Immediate = self.env['stock.immediate.transfer'].sudo()
+                wiz = action.get('res_id') and Immediate.browse(action['res_id']).exists()
+                if not wiz:
+                    # Fallback: crear wizard si por alguna razón no vino res_id
+                    wiz = Immediate.create({'pick_ids': [(6, 0, [spick.id])]})
+                # En v15+ process() mira button_validate_picking_ids en el contexto
+                wiz.with_context(button_validate_picking_ids=spick.ids).process()
+
+            # Wizard de backorder (stock.backorder.confirmation)
+            if isinstance(action, dict) and action.get('res_model') == 'stock.backorder.confirmation':
+                Backorder = self.env['stock.backorder.confirmation'].sudo()
+                wiz = action.get('res_id') and Backorder.browse(action['res_id']).exists()
+                if not wiz:
+                    wiz = Backorder.create({'pick_ids': [(6, 0, [spick.id])]})
+                if cancel_backorder:
+                    # Algunas versiones traen process_cancel_backorder, otras usan process() + contexto
+                    if hasattr(wiz, 'process_cancel_backorder'):
+                        wiz.process_cancel_backorder()
+                    else:
+                        wiz.with_context(cancel_backorder=True).process()
+                else:
+                    wiz.process()
+
+        return spick.state == 'done'
+
     def meli_deliver(self, meli=None, config=None, data=None):
         res = {}
         cancel_backorder = False
@@ -713,46 +773,7 @@ class sale_order(models.Model):
         if self.state in ('sale', 'done') and self.picking_ids:
             for spick in self.picking_ids:
                 try:
-                    #Confirmar el picking si aún no está confirmado
-                    if spick.state == 'draft':
-                        spick.action_confirm()
-
-                    #Asignar existencias (reserva y crea move_line_ids)
-                    if (spick.state in ['confirmed','partially_available','waiting','draft']):
-                        spick.action_assign()
-
-                    #Marcar qty_done = product_uom_qty en todas las líneas
-                    if spick.move_line_ids:
-                        stock_picking_set_quantities(picking=spick)
-
-                    #Validar el picking para mover físicamente y generar valoración
-                    if spick.state == 'assigned':
-                        action = spick.button_validate()
-
-                        # Wizard de transferencia inmediata (stock.immediate.transfer)
-                        if isinstance(action, dict) and action.get('res_model') == 'stock.immediate.transfer':
-                            Immediate = self.env['stock.immediate.transfer'].sudo()
-                            wiz = action.get('res_id') and Immediate.browse(action['res_id']).exists()
-                            if not wiz:
-                                # Fallback: crear wizard si por alguna razón no vino res_id
-                                wiz = Immediate.create({'pick_ids': [(6, 0, [spick.id])]})
-                            # En v15+ process() mira button_validate_picking_ids en el contexto
-                            wiz.with_context(button_validate_picking_ids=spick.ids).process()
-
-                        # Wizard de backorder (stock.backorder.confirmation)
-                        if isinstance(action, dict) and action.get('res_model') == 'stock.backorder.confirmation':
-                            Backorder = self.env['stock.backorder.confirmation'].sudo()
-                            wiz = action.get('res_id') and Backorder.browse(action['res_id']).exists()
-                            if not wiz:
-                                wiz = Backorder.create({'pick_ids': [(6, 0, [spick.id])]})
-                            if cancel_backorder:
-                                # Algunas versiones traen process_cancel_backorder, otras usan process() + contexto
-                                if hasattr(wiz, 'process_cancel_backorder'):
-                                    wiz.process_cancel_backorder()
-                                else:
-                                    wiz.with_context(cancel_backorder=True).process()
-                            else:
-                                wiz.process()
+                    self._meli_validate_picking(spick, cancel_backorder=cancel_backorder)
 
                 except Exception as e:
                     _logger.error(f"Error validando picking {spick.id}: {e}")
@@ -1113,7 +1134,74 @@ class sale_order(models.Model):
                     meli_message_post(self, "No se pudo devolver el albarán %s automáticamente: método no encontrado. Gestionar manualmente." % picking.name,
                                       once_key="ret-nomethod-%s" % picking.id)
                     continue
-                meli_message_post(self, "Devolución creada automáticamente para albarán %s (orden cancelada por MeLi)." % picking.name)
+                # La devolución recién creada se busca por los moves que apuntan a los del
+                # picking original: el MISMO criterio que el guard de duplicados de más
+                # arriba, así lo que se valida acá es exactamente lo que la próxima pasada
+                # del cron va a ver como "ya devuelto". (Medido en el core de las 4
+                # versiones: todas devuelven una act_window con el res_id del picking
+                # nuevo, así que el res_id también servía; se usa la búsqueda para no
+                # depender de la forma de la acción ni de quién la sobreescriba.)
+                _ret_pickings = self.env['stock.move'].search([
+                    ('origin_returned_move_id', 'in', picking.move_ids.ids),
+                    ('state', '!=', 'cancel'),
+                ]).mapped('picking_id')
+                # ---------------------------------------------------------------- #
+                #  La devolución tiene que nacer en "Hecho", no en "Listo" (#607)   #
+                # ---------------------------------------------------------------- #
+                # POR QUÉ. meli_cancel_with_detail() llama a este método en el PASO 1 y a
+                # _meli_action_cancel() en el PASO 4, y el action_cancel() del core cancela
+                # picking_ids.filtered(lambda p: p.state != 'done')
+                # (sale_stock/models/sale_order.py) ⇒ una devolución que queda en
+                # 'assigned' NACE Y MUERE EN EL MISMO SEGUNDO mientras el chatter le dice al
+                # cliente "Devolución creada automáticamente": el stock NO vuelve al
+                # inventario y nada avisa. Medido en PetMarkt (393): 11 devoluciones
+                # regeneradas a mano en 4 días. Validarla ACÁ -- dentro del paso 1, ANTES
+                # del paso 4 -- la deja en 'done' y la cascada ya no la toca: no alcanza con
+                # validar, hay que validar ANTES de cancelar la venta.
+                # El estado destino lo pidió el cliente: PetMarkt, ticket #607 ("que pasen
+                # automáticamente a estado 'Hecho' al momento de procesarse la cancelación
+                # en mercadolibre").
+                _validated = bool(_ret_pickings)
+                for _rp in _ret_pickings:
+                    if _rp.state == 'done':
+                        continue
+                    # SAVEPOINT POR DEVOLUCIÓN, y no es adorno: button_validate() escribe
+                    # quants y move lines ANTES de que pueda saltar un ValidationError (p.
+                    # ej. stock_no_negative). Sin savepoint, el except se come el error y la
+                    # escritura PARCIAL queda PERSISTIDA -- es el daño medido del #328 en
+                    # meli_oerp_stock (una serie bajando de a poco en cada corrida del cron,
+                    # con el log diciendo "errores=0"). Con savepoint: o queda 'done', o no
+                    # pasó nada. Y además deja el cursor usable -- sin él un error de PG
+                    # envenena la transacción y lo que sigue muere con "current transaction
+                    # is aborted" en un lugar que no tiene nada que ver.
+                    try:
+                        with self.env.cr.savepoint():
+                            self._meli_validate_picking(_rp)
+                    except Exception as ve:
+                        # DEGRADADO a propósito: NUNCA una excepción que aborte la
+                        # cancelación de la orden. Si no se puede validar, la devolución
+                        # queda creada en "Listo" (el comportamiento anterior a este fix).
+                        _logger.error("No se pudo validar la devolución %s del albarán %s: %s",
+                                      _rp.name, picking.name, ve, exc_info=True)
+                    # El ESTADO es la única prueba que no se puede falsificar:
+                    # button_validate() puede devolver el dict de un wizard -- backorder,
+                    # transferencia inmediata (sólo 16.0), o el pedido de lote/serie de un
+                    # producto con tracking -- y dejar el picking SIN validar, sin excepción
+                    # y sin una línea de log. Por eso no se lee el retorno: se relee state.
+                    if _rp.state != 'done':
+                        _validated = False
+                # El chatter dice el estado REAL. El mensaje viejo ("Devolución creada
+                # automáticamente") era verdadero por un segundo y falso después, porque el
+                # paso 4 la cancelaba: le afirmaba al cliente un stock que nunca volvió.
+                _ret_names = ", ".join(_ret_pickings.mapped("name")) or "-"
+                if _validated:
+                    meli_message_post(self, "Devolución creada y VALIDADA automáticamente para albarán %s (orden cancelada por MeLi): %s." % (picking.name, _ret_names))
+                else:
+                    # once_key: este camino lo dispara un cron que reintenta indefinidamente
+                    # mientras la orden no se pueda cancelar. Sin la marca, el mismo aviso se
+                    # repostea en cada ciclo (medido: 2047 mensajes de spam en 2 órdenes).
+                    meli_message_post(self, "Devolución creada para el albarán %s (%s) pero NO se pudo dejar en \"Hecho\": al cancelarse la orden puede quedar cancelada y el stock NO vuelve al inventario. Revisarla y validarla manualmente." % (picking.name, _ret_names),
+                                      once_key="ret-notdone-%s" % picking.id)
             except Exception as e:
                 _logger.error("Error creating return for picking %s: %s", picking.name, e, exc_info=True)
                 # once_key: este camino lo dispara un cron que reintenta indefinidamente
