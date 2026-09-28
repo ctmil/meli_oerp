@@ -1473,8 +1473,13 @@ class product_product(models.Model):
         if ( "variations" in item_json and len(item_json["variations"]) ):
 
             for var in item_json["variations"]:
-                vupid = var.get("user_product_id") if isinstance(var, dict) else None
-                if (meli_id_variation and str(var["id"])==str(meli_id_variation)):
+                # la guarda va al principio del cuerpo: en 16.0 el isinstance()
+                # protegia solo la linea del .get() y dos lineas mas abajo se hacia
+                # var["id"] sin proteger -> TypeError si ML devuelve algo que no es dict.
+                if not isinstance(var, dict):
+                    continue
+                vupid = var.get("user_product_id")
+                if (meli_id_variation and str(var.get("id"))==str(meli_id_variation)):
                     if vupid:
                         upid = vupid
                         return upid
