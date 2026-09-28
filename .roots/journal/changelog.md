@@ -3,6 +3,13 @@
 > Historial de versiones y cambios orientado al cliente.
 
 ---
+## Versión 18.0.26.146 — Mensaje claro cuando el código de barras (GTIN) no es válido
+28 sep 2026
+
+**Cambios:**
+
+1. Si el GTIN (cargado en el código de barras **o como atributo** "Código universal de producto") no es válido, la publicación se frena **antes** de enviarse a Mercado Libre y el mensaje dice **qué está mal**: si no es numérico o tiene un largo que no corresponde (parece un código interno), o si el dígito verificador no cierra — en ese caso indica cuál sería el código correcto. Traído de 19.0 (#539).
+
 ## 18.0.26.138 — 24-sep-2026 · build de flota: alineación local↔origin
 - Integra en la rama de deploy lo que estaba sólo en local: video_id vacío (26.127), guard de devoluciones
   `scrapped`/`scrap_id` resuelto contra `_fields` (26.129), ports del #494.
