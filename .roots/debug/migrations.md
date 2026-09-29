@@ -4,6 +4,12 @@
 
 ---
 
+### 16.0.26.164 — `migrations/16.0.26.164/post-migrate.py` (29-sep-2026, ola de cancelaciones integrada)
+La siembra OLA3 (antes `16.0.26.149` → `16.0.26.162`) se renombra otra vez a **`16.0.26.164`**, el build de la ola integrada
+(cancel-v2 26.162 + #585 26.163). Odoo corre las carpetas con `instalada < carpeta <= nueva`: con 26.164 corre desde una base
+en 26.159 (origin) **y** desde una que ya haya quedado en 26.162/26.163 por un ensayo de las ramas sueltas. Idempotente.
+#585 (26.163) no trae migración: sólo métodos y una `ir.actions.server` (la crea el `-u`).
+
 ### 16.0.26.162 — `migrations/16.0.26.162/post-migrate.py` (29-sep-2026)
 Es la siembra OLA3 de `meli_cancel_reason_code` que estaba en `16.0.26.149`, **renombrada**: origin/16.0 ya estaba en 26.159, así que
 una base en 26.150–26.159 nunca habría corrido una carpeta 26.149. Idempotente (sólo escribe filas vacías). Campos nuevos de 26.162
