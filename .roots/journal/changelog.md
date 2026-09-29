@@ -3,6 +3,16 @@
 > Historial de versiones y cambios orientado al cliente.
 
 ---
+## 17.0.26.159 — 29-sep-2026 · build de flota
+- Sin cambios de código en esta serie: el número se alinea con 18.0.26.159 (#504/#520, descuento de vendedor y
+  envío decididos juntos — la opción de tope existe sólo en 18.0).
+
+---
+## 17.0.26.158 — 29-sep-2026 · build de flota
+- Sin cambios de código en esta serie: el número se alinea con 18.0.26.158 (#504/#520, lectura del tope del
+  descuento de vendedor con cuentas de conexión — la opción existe sólo en 18.0).
+
+---
 ## 17.0.26.138 — 24-sep-2026 · build de flota: alineación local↔origin
 - Integra en la rama de deploy lo que estaba sólo en local: video_id vacío (26.127), guard de devoluciones
   `scrapped`/`scrap_id` resuelto contra `_fields` (26.129), ports del #494.
