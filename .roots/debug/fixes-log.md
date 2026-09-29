@@ -4,6 +4,31 @@
 
 ---
 
+### 29 sep 2026 — La confirmación ML ya no deja ventas confirmadas sin entrega [#585 Tus Refacciones 431] (v18.0.26.163)
+
+**Síntoma.** Ventas ML en `sale` con el `stock.move` en `draft` y sin albarán, sin aviso (431: 271 ventas en 21 días).
+
+**Causa.** `action_confirm()` escribe `state='sale'` y después lanza el abastecimiento. Con la regla `mts_else_mto` sin
+existencia pasa a COMPRAR; sin precio de proveedor válido la compra lanza `UserError` ("No existe un precio de proveedor
+coincidente…"). `confirm_ml` la atrapaba en su `except Exception` **sin savepoint** ⇒ quedaba la mitad escrita. El post-check
+"confirmada sin albarán" filtraba `state not in ('cancel','draft')` ⇒ tampoco avisaba.
+
+**Fix.** `meli_confirm_order` → `_meli_action_confirm_safe`: `action_confirm()` dentro de `with self.env.cr.savepoint():`.
+Si falla: la venta vuelve a cotización, aviso UNA vez en el chatter (`meli_message_post` once_key
+`confirm-fail-<so>-<hash del error>`) nombrando el/los producto(s) sin existencia y sin proveedor seleccionable
+(`free_qty` del almacén + `_select_seller`), y se devuelve `{'error': <motivo>}`; `confirm_ml` corta ahí (no entrega ni
+factura). Errores de concurrencia (40001/40P01/55P03) sin aviso: el cron reintenta. Compatible con `MeliCommit`
+(= `flush_all`, no commitea) y `Autocommit` (no-op); sin red dentro del savepoint. Post-check: moves `draft` sin albarán
+⇒ aviso once (`confirm-draft-moves-<so>`), sin autorreparar (relanzar puede generar una compra).
+Nueva acción de servidor **"MELI: Relanzar abastecimiento"** (`action_meli_relaunch_procurement`): por venta, en savepoint,
+`_action_confirm()` + `_action_assign()` de los moves draft sin albarán; resultado en el chatter. No se corrió en ningún cliente.
+
+**Tests.** Odoo 18 local (base propia, `purchase_stock`, ruta `mts_else_mto` + Comprar), llamando `confirm_ml` como el cron. ANTES (origin/18.0 26.159): venta sin stock y sin proveedor ⇒ `ret={'error': ...}`, `state=sale`, 1 move `draft`, 0 albaranes, 0 avisos; 2ª pasada `ret={}` y sigue sin aviso. DESPUÉS: `state=draft`, 0 moves, 0 albaranes, 1 aviso (2ª pasada: sigue 1). Con stock ⇒ `sale` + 1 albarán `assigned` (igual que antes). Sin stock CON proveedor ⇒ `sale` + 1 albarán + 1 compra. Venta ya rota: post-check 1 aviso en 2 pasadas; relanzar sin stock ⇒ queda igual + aviso; con stock ⇒ 1 albarán, 0 draft.
+
+**Ojo al deployar.** El post-check avisa una vez en cada venta ya afectada que vuelva a pasar por `confirm_ml`.
+
+---
+
 ### 29 sep 2026 — Descuento de vendedor y envío se deciden JUNTOS [#504/#520 Dannok] (v18.0.26.159)
 
 **Síntoma.** 26.158 no resolvía el caso real. PROD Dannok SO 28789 (ML 2000018486811198), cuenta en
