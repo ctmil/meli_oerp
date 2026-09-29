@@ -4,6 +4,37 @@
 
 ---
 
+### 29 sep 2026 — Descuento de vendedor y envío se deciden JUNTOS [#504/#520 Dannok] (v18.0.26.159)
+
+**Síntoma.** 26.158 no resolvía el caso real. PROD Dannok SO 28789 (ML 2000018486811198), cuenta en
+`paid_amount` + `including_shipping_cost=never`: total 60.793,78 · pagado 66.738,78 (= total + envío) ·
+descuento vendedor 4.096,22 · cupón 1.627,08 · envío 5.945. Instalado 26.76.2 ⇒ 56.697,56; 26.158 ⇒ 62.642,56.
+
+**Causa.** Dos decisiones independientes que se suponían una a la otra: el tope mira `pagado − descuento`
+(62.642,56 ≥ total ⇒ no entra, y su `_max_deduct = pagado − total` sería el envío), y
+`_meli_shipping_to_subtract(seller_discount=descuento)` compara 62.642,56 contra total/total+envío y elige
+"sin envío". El test_03 de 26.158 pasó porque no modelaba envío.
+
+**Fix.** `_meli_amount_joint_discount_shipping` (sólo con opt-in `never_below_total`, leído con
+`_meli_order_setting`): candidatos `pagado − d − s`, d∈{0, descuento}, s∈{0, envío} (s sólo con `never`);
+gana el más cercano a `amount_total` + retenciones en líneas (`_meli_amount_total_before_retentions`,
+extraído de `meli_confirm_ready`) si |diff| < 1.0 (base de confirm_ml / meli_create_invoice; la ampliada por
+cupón es red de seguridad legacy). Si ninguno cuadra ⇒ cálculo de 26.158 (el control marca el conflicto).
+
+**Tests.** `tests/test_discount_shipping_joint.py` (7) + los 6 de 26.158: 13/13 en Odoo 18 local. Control
+origin/18.0: (a) `62642.56 != 60793.78`, (f) `1170 != 1250`. 16.0: los 3 FAIL preexistentes de
+`test_meli_cancel` (#494), idénticos a origin; 17.0 instala limpio; 19.0 no corrido (core local 19.1a1).
+
+**Refutación en corpus real** (PROD Dannok, read-only, rollback; `partners/Argentina/delbre/.roots/scripts/
+corpus-504-joint.py`): 4.229 ventas ML de 90 días con pago > 0, todas `paid_amount`/`never`. Cuadran
+(|diff| < 1): instalado 3.277 · 26.158 4.182 · 26.159 4.210. **Regresiones: 0** (tampoco con el criterio
+de `meli_confirm_ready`: 3.422 → 4.210). Con descuento > 0: 151 ventas, instalado 0 cuadran, 26.159 150.
+Siguen sin cuadrar 19 (ninguna explicable por descuento/envío). El descuento restado no ganó en ninguna.
+
+**Build.** 26.159 = max del suite (26.158) + 1, en 16/17/18/19 (16/17/19 sólo bump).
+
+---
+
 ### 29 sep 2026 — El tope del descuento de vendedor no se leía con cuentas de conexión [#504/#520 Dannok] (v18.0.26.158)
 
 **Síntoma.** Dannok (420) tenía la compañía en `meli_seller_discount_cap_mode = never_below_total`
