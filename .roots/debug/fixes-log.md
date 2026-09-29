@@ -4,6 +4,11 @@
 
 ---
 
+### 29 sep 2026 — Build de flota 26.165 (v17.0.26.165)
+
+Sin cambios de codigo en meli_oerp. El build 26.165 es el fix de la migracion `19.0.26.111` de meli_oerp_multiple
+(relleno `conn_id` chocaba con los UNIQUE de bindings, Score 361). Sube por la regla del build unico de flota.
+
 ### 29 sep 2026 — Ola de cancelaciones integrada: cancel-v2 + #585 en una sola rama [#431 TusRefacciones] (v17.0.26.164)
 
 **Qué.** `claude/ola-cancelaciones-17.0` = `origin/17.0` + merge de `claude/mapeo-cancelaciones-v2-17.0` (26.162) + merge de
