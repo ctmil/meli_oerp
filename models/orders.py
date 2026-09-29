@@ -595,6 +595,35 @@ class sale_order(models.Model):
             return ship        # lo pago el comprador -> se resta
         return 0.0             # lo absorbe el vendedor -> no se resta
 
+    def _meli_order_setting(self, field, default=None, config=None):
+        """Lee un ajuste de la venta de DONDE ESTE CONFIGURADO en esta instancia.
+
+        [#504/#520 Dannok] `meli_seller_discount_cap_mode` se agrego solo en `res.company`,
+        pero cuando la instancia tiene cuentas de conexion (`meli_oerp_multiple`) el flujo
+        recibe la `mercadolibre.configuration` de la CUENTA -otro modelo, con sus propios
+        campos-. Ahi el campo no existe, el chequeo `in _fields` daba False y el calculo
+        caia a "coupon" EN SILENCIO: la opcion estaba puesta en la compania y no movia nada.
+        Mismo defecto y mismo molde que `_meli_fee_setting` de meli_oerp_accounting (#587).
+
+        Orden de resolucion, del mas especifico al mas general:
+          1. la configuracion que recibio el flujo (la de la CUENTA si hay cuenta),
+          2. la compania de esa configuracion,
+          3. la compania de la venta,
+          4. la compania del entorno.
+        El primero que TENGA el campo y un valor no vacio gana; si ninguno, `default`.
+        """
+        sources = [config,
+                   config and "company_id" in config._fields and config.company_id]
+        for so in self[:1]:
+            sources.append(so.company_id)
+        sources.append(self.env.company)
+        for source in sources:
+            if source and field in source._fields:
+                value = source[field]
+                if value:
+                    return value
+        return default
+
     def meli_amount_to_invoice( self, meli=None, config=None ):
 
         total_config = (config and "mercadolibre_order_total_config" in config._fields) and config.mercadolibre_order_total_config
@@ -630,8 +659,10 @@ class sale_order(models.Model):
         if self.amount_total > 0:
             _uncapped = (self.meli_paid_amount or 0.0) - seller_discount
             if _uncapped < self.amount_total:
-                _cap_mode = (config and "meli_seller_discount_cap_mode" in config._fields
-                             and config.meli_seller_discount_cap_mode) or "coupon"
+                # [#504/#520] Con config de CUENTA (meli_oerp_multiple) el campo no existe
+                # ahi: se resuelve por la compania, no se cae a "coupon" en silencio.
+                _cap_mode = self._meli_order_setting(
+                    "meli_seller_discount_cap_mode", "coupon", config=config)
                 if _cap_mode == "never_below_total":
                     # [#504/#520 Dannok] El tope por CUPON no alcanza, y a veces no existe.
                     #

@@ -3,6 +3,19 @@
 > Historial de versiones y cambios orientado al cliente.
 
 ---
+## 18.0.26.158 — 29-sep-2026 · el tope del descuento de vendedor se lee también con cuentas de conexión [#504 / #520 Dannok]
+- **El problema:** la opción *Tope del descuento de vendedor* (26.104) se configura en la **compañía**, pero en
+  las instancias con cuentas de conexión (`meli_oerp_multiple`) el cálculo del importe a facturar recibe la
+  configuración **de la cuenta**, que no tiene esa opción. El conector la daba por no configurada y usaba
+  siempre el tope por cupón: la opción estaba puesta y no cambiaba nada, y la venta seguía quedando en
+  presupuesto con *"Condition not met"*.
+- **Ahora** el ajuste se busca en este orden: configuración de la cuenta → compañía de esa configuración →
+  compañía de la venta → compañía activa. Mismo criterio que el pago de comisión de `meli_oerp_accounting` 26.141.
+- **Sin cambios para quien no la usa:** con la opción en su valor por defecto el cálculo es idéntico.
+- Tests: `tests/test_cap_mode_fallback.py` (6 casos).
+- Requiere actualizar el módulo (`-u meli_oerp`); no agrega campos ni migraciones.
+
+---
 ## 18.0.26.138 — 24-sep-2026 · build de flota: alineación local↔origin
 - Integra en la rama de deploy lo que estaba sólo en local: video_id vacío (26.127), guard de devoluciones
   `scrapped`/`scrap_id` resuelto contra `_fields` (26.129), ports del #494.
