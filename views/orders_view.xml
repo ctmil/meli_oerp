@@ -614,5 +614,16 @@
                 target="new"/-->
 
 
+        <!-- #585: reparación de ventas confirmadas con moves en borrador sin entrega
+             (abastecimiento fallido). Re-lanza dentro de un savepoint; resultado en el chatter. -->
+        <record id="action_meli_relaunch_procurement_server" model="ir.actions.server">
+            <field name="name">MELI: Relanzar abastecimiento</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="binding_model_id" ref="sale.model_sale_order"/>
+            <field name="binding_view_types">list,form</field>
+            <field name="state">code</field>
+            <field name="code">action = records.action_meli_relaunch_procurement()</field>
+        </record>
+
     </data>
 </odoo>

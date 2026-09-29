@@ -21,6 +21,7 @@
 
 from odoo import fields, models, api
 from odoo.tools import html_escape
+from odoo.exceptions import UserError
 from markupsafe import Markup
 import logging
 import re
@@ -676,9 +677,120 @@ class sale_order(models.Model):
 
             if (self.is_pricelist_meli( meli=meli, config=config)):
                 #_logger.info("Action confirm!!")
-                self.action_confirm()
+                res = self._meli_action_confirm_safe( config=config ) or {}
 
         return res
+
+    # ------------------------------------------------------------------
+    # #585 (Tus Refacciones 431): confirmación atómica.
+    # action_confirm() escribe state='sale' y DESPUÉS lanza el abastecimiento.
+    # Si el abastecimiento falla (p.ej. regla "mts_else_mto" sin existencia que
+    # pasa a COMPRAR y la compra no encuentra precio de proveedor), la excepción
+    # la atrapaba confirm_ml SIN rollback: la venta quedaba 'sale' con el
+    # stock.move en 'draft' y SIN albarán, en silencio (sólo log).
+    # Ahora la confirmación va dentro de un savepoint: si falla, vuelve a
+    # cotización, se avisa UNA vez en el chatter con el motivo y el producto, y
+    # se devuelve {'error': ...} como antes. Es compatible con MeliCommit
+    # (flush_all, no commitea) y el reintento del cron vuelve a entrar acá.
+    # Nada de red adentro del savepoint: sólo ORM local.
+    # ------------------------------------------------------------------
+    _MELI_PG_CONCURRENCY_CODES = ('40001', '40P01', '55P03')
+
+    def _meli_action_confirm_safe(self, config=None):
+        self.ensure_one()
+        try:
+            with self.env.cr.savepoint():
+                self.action_confirm()
+        except Exception as e:
+            if getattr(e, 'pgcode', None) in self._MELI_PG_CONCURRENCY_CODES:
+                # Transitorio (lock/serialización): sin aviso al usuario, el cron reintenta.
+                _logger.warning("MELI confirm (savepoint) concurrency error on SO id=%s: %s", self.id, e)
+                return {'error': str(e)}
+            detail = self._meli_exception_text(e)
+            reason = self._meli_confirm_failure_message(detail)
+            _logger.warning("MELI confirm (savepoint) FAILED on SO %s (id=%s), queda cotizacion: %s",
+                            self.name, self.id, detail)
+            try:
+                meli_message_post(self, reason, config=config,
+                                  once_key="confirm-fail-%s-%s" % (self.id, self._meli_short_hash(detail)))
+            except Exception as post_err:
+                _logger.error("MELI confirm: no se pudo postear el aviso en SO id=%s: %s", self.id, post_err)
+            return {'error': reason}
+        return {}
+
+    @staticmethod
+    def _meli_exception_text(e):
+        args = getattr(e, 'args', None)
+        if args and isinstance(args[0], str):
+            return args[0]
+        return str(e)
+
+    @staticmethod
+    def _meli_short_hash(text):
+        import hashlib
+        return hashlib.md5((text or '').encode('utf-8')).hexdigest()[:10]
+
+    def _meli_product_is_storable(self, product):
+        if 'is_storable' in product._fields:
+            return bool(product.is_storable)
+        return product.type == 'product'
+
+    def _meli_confirm_problem_products(self):
+        """Lee (sin escribir) qué productos de la venta no tienen existencia libre
+        en el almacén de la venta, y cuáles de ésos tampoco tienen un proveedor
+        seleccionable para la cantidad pedida. Devuelve (sin_stock, sin_proveedor)."""
+        sin_stock, sin_proveedor = [], []
+        wh = self.warehouse_id
+        for line in self.order_line:
+            product = line.product_id
+            if not product or getattr(line, 'display_type', False) or getattr(line, 'is_delivery', False):
+                continue
+            if not self._meli_product_is_storable(product):
+                continue
+            # 19.0 renombró sale.order.line.product_uom -> product_uom_id
+            line_uom = ('product_uom_id' in line._fields and line.product_uom_id) or \
+                       ('product_uom' in line._fields and line.product_uom) or product.uom_id
+            try:
+                qty = line_uom._compute_quantity(line.product_uom_qty, product.uom_id)
+            except Exception:
+                qty = line.product_uom_qty
+            ctx = {}
+            if wh:
+                ctx = {'warehouse': wh.id, 'warehouse_id': wh.id}
+            free = product.with_context(**ctx).free_qty
+            if free >= qty:
+                continue
+            sin_stock.append(product)
+            if 'seller_ids' in product._fields:
+                seller = False
+                try:
+                    seller = product.with_company(self.company_id)._select_seller(
+                        quantity=qty, uom_id=product.uom_id, date=fields.Date.context_today(self))
+                except Exception:
+                    seller = product.seller_ids[:1]
+                if not seller:
+                    sin_proveedor.append(product)
+        return sin_stock, sin_proveedor
+
+    def _meli_confirm_failure_message(self, detail, prefix="No se pudo confirmar la venta",
+                                      suffix=" La venta queda como cotización; para confirmarla hace falta existencia o un precio de proveedor válido (o una ruta que no compre)."):
+        try:
+            sin_stock, sin_proveedor = self._meli_confirm_problem_products()
+        except Exception as e:
+            _logger.warning("MELI confirm: no se pudieron leer los productos de SO id=%s: %s", self.id, e)
+            sin_stock, sin_proveedor = [], []
+        names = lambda prods: ", ".join(p.display_name for p in prods)
+        if sin_proveedor:
+            if len(sin_proveedor) == 1:
+                msg = "%s: el producto %s no tiene existencia y no tiene un precio de proveedor válido para generar la compra." % (prefix, names(sin_proveedor))
+            else:
+                msg = "%s: los productos %s no tienen existencia y no tienen un precio de proveedor válido para generar la compra." % (prefix, names(sin_proveedor))
+        elif sin_stock:
+            msg = "%s: falló el abastecimiento de %s (sin existencia en el almacén de la venta)." % (prefix, names(sin_stock))
+        else:
+            msg = "%s." % prefix
+        msg += "%s Detalle: %s" % (suffix or "", detail or '-')
+        return msg
 
     def meli_create_invoice( self, meli=None, config=None):
         _logger.info("Meli Base meli_create_invoice")
@@ -1576,11 +1688,17 @@ class sale_order(models.Model):
             if (self.is_meli_order_fulfillment()):
 
                 if ( config.mercadolibre_order_confirmation_full and "paid_confirm" in config.mercadolibre_order_confirmation_full):
-                    self.meli_confirm_order( meli=meli, config=config )
+                    _cres = self.meli_confirm_order( meli=meli, config=config )
+                    if _cres and _cres.get('error'):
+                        # #585: la confirmación falló y se revirtió (sigue cotización); no entregar ni facturar.
+                        return _cres
 
                 if (config.mercadolibre_order_confirmation_full and "paid_delivered" in config.mercadolibre_order_confirmation_full):
 
-                    self.meli_confirm_order( meli=meli, config=config )
+                    _cres = self.meli_confirm_order( meli=meli, config=config )
+                    if _cres and _cres.get('error'):
+                        # #585: la confirmación falló y se revirtió (sigue cotización); no entregar ni facturar.
+                        return _cres
 
                     res = self.meli_deliver( meli=meli, config=config )
 
@@ -1591,11 +1709,17 @@ class sale_order(models.Model):
             else:
 
                 if (config.mercadolibre_order_confirmation and "paid_confirm" in config.mercadolibre_order_confirmation):
-                    self.meli_confirm_order( meli=meli, config=config )
+                    _cres = self.meli_confirm_order( meli=meli, config=config )
+                    if _cres and _cres.get('error'):
+                        # #585: la confirmación falló y se revirtió (sigue cotización); no entregar ni facturar.
+                        return _cres
 
                 if (config.mercadolibre_order_confirmation and "paid_delivered" in config.mercadolibre_order_confirmation):
 
-                    self.meli_confirm_order( meli=meli, config=config )
+                    _cres = self.meli_confirm_order( meli=meli, config=config )
+                    if _cres and _cres.get('error'):
+                        # #585: la confirmación falló y se revirtió (sigue cotización); no entregar ni facturar.
+                        return _cres
 
                     res = self.meli_deliver( meli=meli, config=config )
 
@@ -1636,7 +1760,88 @@ class sale_order(models.Model):
                     _logger.error("meli_repair_missing_pickings failed for SO %s: %s",
                                   self.name, repair_err, exc_info=True)
 
+        # #585: el chequeo de arriba excluye los moves en 'draft', que son justamente
+        # los que deja un abastecimiento fallido (venta confirmada, move sin confirmar,
+        # sin albarán). No se autorrepara acá — relanzar puede generar una COMPRA —:
+        # se avisa UNA vez por venta y se deja la acción "MELI: Relanzar abastecimiento".
+        if self.state in ('sale', 'done'):
+            try:
+                draft_orphan = self._meli_draft_moves_without_picking()
+                if draft_orphan:
+                    _logger.warning(
+                        "MELI confirm_ml POST-CHECK: SO '%s' (id=%d) confirmed with %d draft "
+                        "moves without picking (failed procurement)",
+                        self.name, self.id, len(draft_orphan))
+                    meli_message_post(
+                        self,
+                        "Venta confirmada pero %d línea(s) sin entrega: el abastecimiento no se completó "
+                        "(%s). Revisar existencia / precio de proveedor y usar la acción "
+                        "\"MELI: Relanzar abastecimiento\"." % (
+                            len(draft_orphan), ", ".join(draft_orphan.mapped('product_id.display_name'))),
+                        config=config, once_key="confirm-draft-moves-%s" % self.id)
+            except Exception as chk_err:
+                _logger.error("MELI confirm_ml POST-CHECK draft moves failed for SO id=%s: %s",
+                              self.id, chk_err)
+
         return res
+
+    def _meli_draft_moves_without_picking(self):
+        self.ensure_one()
+        return self.env['stock.move'].search([
+            ('picking_id', '=', False),
+            ('state', '=', 'draft'),
+            ('sale_line_id.order_id', '=', self.id),
+        ])
+
+    def action_meli_relaunch_procurement(self):
+        """#585 — Reparación de ventas ya afectadas: confirmadas con moves en 'draft'
+        sin albarán. Por venta, dentro de un savepoint: _action_confirm() de esos moves
+        (re-evalúa la regla: si ahora hay existencia sale de stock; si no, intenta
+        comprar) + _action_assign(). Resultado en el chatter. Si vuelve a fallar, la
+        venta queda exactamente como estaba. Sin llamadas de red."""
+        ok, fail, skip = 0, 0, 0
+        for so in self:
+            if so.state not in ('sale', 'done'):
+                skip += 1
+                continue
+            moves = so._meli_draft_moves_without_picking()
+            if not moves:
+                skip += 1
+                continue
+            prods = ", ".join(moves.mapped('product_id.display_name'))
+            try:
+                with self.env.cr.savepoint():
+                    confirmed = moves._action_confirm()
+                    confirmed._action_assign()
+                    left = so._meli_draft_moves_without_picking()
+                    if left:
+                        raise UserError("quedan %d movimiento(s) sin confirmar" % len(left))
+                ok += 1
+                pickings = so.picking_ids.filtered(lambda p: p.state != 'cancel')
+                meli_message_post(
+                    so, "Abastecimiento relanzado para %s. Entrega(s): %s." % (
+                        prods, ", ".join(pickings.mapped('name')) or '-'))
+            except Exception as e:
+                fail += 1
+                detail = so._meli_exception_text(e)
+                _logger.warning("MELI relaunch procurement FAILED on SO %s (id=%s): %s", so.name, so.id, detail)
+                meli_message_post(
+                    so, so._meli_confirm_failure_message(
+                        detail, prefix="No se pudo relanzar el abastecimiento",
+                        suffix=" La venta queda como estaba."),
+                    once_key="relaunch-fail-%s-%s" % (so.id, so._meli_short_hash(detail)))
+        msg = "Relanzadas: %d · Fallaron: %d · Sin nada que relanzar: %d" % (ok, fail, skip)
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': 'MELI: Relanzar abastecimiento',
+                'message': msg,
+                'type': 'success' if (ok and not fail) else 'warning',
+                'sticky': bool(fail),
+                'next': {'type': 'ir.actions.act_window_close'},
+            },
+        }
 
     def meli_fix_team( self, meli=None, config=None ):
         so = self
