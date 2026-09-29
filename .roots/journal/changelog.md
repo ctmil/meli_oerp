@@ -3,6 +3,11 @@
 > Historial de versiones y cambios orientado al cliente.
 
 ---
+## 16.0.26.158 — 29-sep-2026 · build de flota
+- Sin cambios de código en esta serie: el número se alinea con 18.0.26.158 (#504/#520, lectura del tope del
+  descuento de vendedor con cuentas de conexión — la opción existe sólo en 18.0).
+
+---
 ## 16.0.26.138 — 24-sep-2026 · build de flota: alineación local↔origin
 - Integra en la rama de deploy lo que estaba sólo en local: video_id vacío (26.127), guard de devoluciones
   `scrapped`/`scrap_id` resuelto contra `_fields` (26.129), y el **revert de #603** (26.135: la guarda del pack producía precios negativos en Shoppy — es lo que corre en su producción).
