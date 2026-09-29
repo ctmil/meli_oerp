@@ -559,6 +559,51 @@ class res_company(models.Model):
              "Evita el contacto fiscal separado. Recomendado para personas físicas (AR/CL).",
     )
 
+    # ------------------------------------------------------------------ #
+    #  OLA 2 del mapeo de cancelaciones -- el eje MERCADERIA.              #
+    #  Espejo exacto del patron de `mercadolibre_invoice_cancel_mode`      #
+    #  (meli_oerp_accounting/models/company.py), que cubre el eje CONTABLE.#
+    #  Ver la nota gemela en                                               #
+    #  meli_oerp_multiple/models/connection_configuration.py: este campo   #
+    #  se declara en los DOS modelos y el default DEBE ser el mismo en     #
+    #  ambos (bug del #453 y del #587).                                    #
+    # ------------------------------------------------------------------ #
+    mercadolibre_return_mode = fields.Selection([
+        ("none", "No crear devolucion"),
+        ("draft", "Crear sin validar (queda reservada)"),
+        ("done", "Crear y validar (el stock vuelve)"),
+    ], string="Devolucion de mercaderia al cancelar pedido",
+       default="done",
+       help="Que hacer con la mercaderia ya entregada cuando MercadoLibre cancela un pedido:\n"
+            "- No crear devolucion: no se toca el stock, se gestiona a mano.\n"
+            "- Crear sin validar: genera el albaran de devolucion reservado. OJO: al cancelar "
+            "la orden, Odoo cancela los albaranes que no esten en Hecho, asi que esa devolucion "
+            "queda cancelada y el stock NO vuelve.\n"
+            "- Crear y validar (por defecto): genera el albaran de devolucion y lo valida ANTES "
+            "de cancelar la orden, de modo que el stock vuelve al deposito y la devolucion "
+            "sobrevive a la cancelacion.\n\n"
+            "No aplica a los envios FULL, donde el stock vive en el fulfillment de MercadoLibre: "
+            "esos albaranes se saltean solos por no tener cantidades que devolver.")
+
+    # Cancelaciones decididas con la FOTO FRESCA de ML (29-sep-2026, frente 431).
+    # GEMELO en meli_oerp_multiple/models/connection_configuration.py con el MISMO
+    # default (bug del #453): con cuenta de conexion manda el de la cuenta.
+    mercadolibre_cancel_mode = fields.Selection([
+        ("legacy", "Según configuración (histórico)"),
+        ("por_estado_ml", "Según el estado actualizado de ML (orden, pagos y envío)"),
+    ], string="Decisión al cancelar pedido",
+       default="legacy",
+       help="Cómo se decide qué hacer cuando MercadoLibre cancela un pedido:\n"
+            "- Según configuración (por defecto): se aplican siempre 'Devolución al cancelar' y "
+            "'Acción sobre factura', sin mirar el estado del envío ni de los pagos.\n"
+            "- Según el estado actualizado de ML: antes de accionar se consulta en ML la orden, "
+            "los pagos y el envío. Si el envío nunca salió o volvió, se devuelve la mercadería; "
+            "si está en tránsito, se ESPERA a que vuelva (filtro 'Cancelación esperando "
+            "retorno'); si se entregó o es FULL, no se mueve stock. La nota de crédito se emite "
+            "por lo REINTEGRADO (reintegro total = NC total; parcial = a mano). Un pago que sigue "
+            "acreditado sin reintegro (p. ej. pack dividido) se deja para revisar a mano. Si ML "
+            "no responde, no se toca nada y se reintenta. Cada decisión queda en el chatter.")
+
     # [#493 Shoppy] Ver la nota gemela en meli_oerp_multiple/models/connection_configuration.py:
     # este campo se declara en los DOS modelos y el default DEBE ser el mismo en ambos.
     mercadolibre_protect_invoiced_orders = fields.Boolean(

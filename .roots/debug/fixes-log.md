@@ -4,6 +4,96 @@
 
 ---
 
+### 29 sep 2026 — Cancelaciones decididas con la FOTO FRESCA de ML (opt-in `por_estado_ml`) + parte 2 [#431 TusRefacciones] (v17.0.26.162)
+
+**Pedido.** FCA, 29-sep 11:16Z: *"basar el mapeo de cada tipo de cancelación a parámetros fundamentales, consultando los
+status actualizados de la orden y pagos y envíos de meli ANTES de accionar"*. Decisiones del mismo día: a) NC por lo
+REINTEGRADO; b) en tránsito ESPERAR el retorno; c) v1 sin claims. Plan: `.roots/tasks/PLAN-2026-09-28-431-test-y-revision-mapeo-cancelaciones-18.md` (workspace).
+
+**Opt-in.** `mercadolibre_cancel_mode` = `legacy` (default, comportamiento histórico) | `por_estado_ml`, en `res.company` y GEMELO
+en `mercadolibre.configuration` (meli_oerp_multiple, bug #453): con cuenta de conexión manda el de la CUENTA.
+
+**Diseño.** `models/cancel_decision.py` es PURO (sin Odoo, sin red): `build_cancel_context()` normaliza GET /orders (una por orden
+del pack) + GET /shipments; `meli_cancel_decide(ctx, odoo_state, config)` devuelve mercadería / factura / monto NC / venta / texto.
+`sale.order._meli_cancel_context()` hace la red ANTES de escribir (timeout 10 s, reusa el `order_json` fresco del llamador, caché
+60 s en `cr.cache` porque confirm_ml + import llaman 2 veces por pasada). **Foto incompleta ⇒ no se acciona** (aviso once_key).
+Filas: envío nunca salió/volvió ⇒ devolución si el OUT está done · en tránsito ⇒ ESPERAR (`meli_cancel_waiting_return`, filtro
+"Cancelación esperando retorno"; `orders_resync_status` las re-decide) · entregado/FULL ⇒ sin stock · sin envío o desconocido ⇒
+config · pago reintegrado ⇒ NC total si reintegro ≥ facturado − 1, **parcial ⇒ a mano** (el core sólo revierte la factura entera) ·
+aprobado sin reintegro (pack_splitted) ⇒ manual + aviso, venta abierta si hay entrega/factura · nunca acreditado ⇒ cancelar
+borrador / NC · pago no reconocido ⇒ `mercadolibre_invoice_cancel_mode` · ML ya no dice `cancelled` ⇒ no se acciona.
+Chatter: la foto y la fila, una vez por decisión distinta; `meli_cancel_decision` guarda la última.
+
+**Parte 2 (los DOS modos).** `_meli_unresolved_posted_invoices()` excluye la factura ya revertida por NC publicada ⇒ la venta pasa a
+`cancel` en vez de quedar eterna con un aviso falso. Refactor sin cambio: pasos 3-5 → `_meli_cancel_finish()`.
+
+**Migración.** La siembra OLA3 se renombra `17.0.26.149` → `17.0.26.162`: bases ya en 26.150–26.159 (origin) nunca la habrían corrido. Idempotente.
+
+**Tests.** `tests/test_cancel_decision_pure.py` (20 filas + 4, sin Odoo) · integración en meli_oerp_accounting (14 casos, red mockeada).
+Odoo 18 local: 14/14 + 13/13 existentes, 27/27 con multiple instalado; control mutante (en tránsito→devolver) ⇒ FAIL como debe;
+11 casos legacy: 8 idénticos a 26.149, d/e/k cambian sólo por NC idempotente (3→1) + parte 2 (sale→cancel). Odoo 17 local: 14/14 y
+los 11 legacy iguales a 18. 16.0 y 19.0: sólo py_compile + tabla pura (sin core local usable).
+
+### 24 sep 2026 — Mapeo de cancelaciones: la devolucion sobrevive a la cancelacion + el motivo se vuelve un dato [#607 PetMarkt, #530 R&D] (v17.0.26.142)
+
+**Pedido.** FCA, 24-sep: *"cerremos la implementacion nueva de Mapeo de cancelaciones a acciones"*.
+Diseno: `.roots/tasks/PLAN-2026-09-15-meli-cancelaciones-mapeo-casos-vs-acciones.md` (3 olas).
+
+**OLA 1.2 — EL ORDEN ERA EL BUG.** `meli_cancel_with_detail()` creaba la devolucion en el paso 1 y
+llamaba a `_meli_action_cancel()` en el paso 4. El `action_cancel()` del core
+(`sale_stock/models/sale_order.py`) cancela `picking_ids.filtered(lambda p: p.state != 'done')`
+⇒ **la devolucion nacia y moria en el mismo segundo**, y el chatter le decia al cliente
+*"Devolucion creada automaticamente"* sobre stock que nunca se movio. De 4 devoluciones automaticas
+observadas sobrevivio **una** (`MLF/IN/00973`), y solo porque su orden **no** se cancelo: no habia
+ningun camino en el que las dos cosas salieran bien.
+**El fix es validarla DENTRO del paso 1**, antes del paso 4. Validar despues no sirve: la cascada la
+agarra igual. El estado destino lo zanjo el cliente (PetMarkt 393, ticket #607): *"que pasen
+automaticamente a estado Hecho al momento de procesarse la cancelacion"*.
+
+**OLA 2 — `mercadolibre_return_mode`, el eje MERCADERIA como politica.** Espejo del patron de
+`mercadolibre_invoice_cancel_mode` (que cubria el eje CONTABLE y era **el unico eje modelado**):
+`none` (no crear) · `draft` (crear sin validar = el comportamiento historico) · `done` (crear y
+validar) — **default `done`**, para no repetir el defecto actual.
+⚠️ **Declarado en los DOS modelos**: `res.company` (aca) y `mercadolibre.configuration`
+(`meli_oerp_multiple`), con el MISMO default. Cuando hay cuenta de conexion, `_get_config()` devuelve
+la `mercadolibre.configuration`, y un campo que solo vive en `res.company` cae al
+`in config._fields` → False y **la opcion queda apagada en silencio**. Es el bug del #453, y el
+mismo que se volvio a medir el 24-sep en Dannok (#587).
+
+**OLA 3 (mitad estructural) — `meli_cancel_reason_code`.** El `cancel_detail.code` de ML se
+concatenaba como TEXTO dentro de `meli_status_detail` (un `fields.Text`), asi que el motivo de la
+cancelacion **no se podia filtrar, ni agrupar, ni usar en una regla**. Ahora hay un `Char` indexado
+poblado en los 3 sitios que escriben `meli_status_detail` desde un `cancel_detail`
+(`prepare_sale_order_vals`, `update_order_status`, `orders_resync_status`), + agrupado y campo de
+busqueda en las dos search views de Ventas. **`meli_status_detail` se sigue escribiendo igual**: el
+campo es ADITIVO.
+⛔ **La MATRIZ motivo x tipo logistico x estado de factura → accion NO se implemento**: cambia el
+comportamiento por defecto de toda la flota y la decide FCA. Va propuesta en
+`.roots/tasks/PLAN-2026-09-24-meli-keeper-cerrar-mapeo-cancelaciones.md`.
+
+**Refactor sin cambio de comportamiento.** El bloque de validacion de pickings salio de
+`meli_deliver()` a `_meli_validate_picking()` **verbatim** (incluye los wizards
+`stock.immediate.transfer` y `stock.backorder.confirmation`), para que la entrega automatica y la
+validacion de la devolucion usen **un solo** camino probado.
+
+**Numeracion.** 26.142 = max(todo el suite) + 1. Medido contra `origin` el 24-sep: `meli_oerp`
+**26.138** en las 4 series, `meli_oerp_multiple` **26.140** en las 4, y ya habia `origin/claude/*`
+declarando **26.141** (`olpa-462-import-vincula-clones-*`, `factura-al-confirmar-19.0`). Mismo numero
+en `meli_oerp` y `meli_oerp_multiple` por ser release de flota.
+
+**Migracion SI.** `migrations/17.0.26.142/post-migrate.py` siembra `meli_cancel_reason_code` sobre el
+historico parseandolo del texto de `meli_status_detail`. Sin esa siembra el agrupado nuevo arrancaria
+casi todo en "None" y se leeria como que el dato no existe — el mismo modo de falla documentado en la
+migracion 26.95 del #494. Idempotente, no toca `meli_status_detail`.
+
+**Lo que NO entro y por que.** La OLA 1.1 (`m.scrapped`) **ya estaba landeada desde el 22-sep**
+(26.129, #409 Mocoroa) y resuelta mejor de lo que pedia el plan: el guard se resuelve contra
+`_fields` (`scrapped` en 16/17/18, `scrap_id` en 19) en vez de renombrar. El fix #494
+(`_meli_action_cancel`) **ya estaba en `origin`** en las 4 series. Los dos figuraban como pendientes
+en la medicion del 23-sep porque se buscaron por una cadena que ya no era el objeto.
+
+---
+
 ### 23 sep 2026 — Landing de la tanda 26.127 + 26.129 sobre 26.133 [#492/#577, #409, #615] (v17.0.26.134)
 
 **Qué entró.** Tres fixes que estaban listos en ramas `claude/*` sin mergear, más el #615 que ya
