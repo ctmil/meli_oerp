@@ -4,6 +4,12 @@
 
 ---
 
+### 16.0.26.162 — `migrations/16.0.26.162/post-migrate.py` (29-sep-2026)
+Es la siembra OLA3 de `meli_cancel_reason_code` que estaba en `16.0.26.149`, **renombrada**: origin/16.0 ya estaba en 26.159, así que
+una base en 26.150–26.159 nunca habría corrido una carpeta 26.149. Idempotente (sólo escribe filas vacías). Campos nuevos de 26.162
+(`mercadolibre_cancel_mode`, `meli_cancel_waiting_return`, `meli_cancel_decision`) los crea el ORM con default; sin migración.
+
+
 ## 24 sep 2026 - motivo de cancelacion estructurado (v16.0.26.142) [#607 PetMarkt]
 
 - **Campo NUEVO stored+index -> requiere `-u meli_oerp`** (el bump a 26.142 lo dispara):

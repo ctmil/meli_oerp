@@ -4,6 +4,38 @@
 
 ---
 
+### 29 sep 2026 — Cancelaciones decididas con la FOTO FRESCA de ML (opt-in `por_estado_ml`) + parte 2 [#431 TusRefacciones] (v16.0.26.162)
+
+**Pedido.** FCA, 29-sep 11:16Z: *"basar el mapeo de cada tipo de cancelación a parámetros fundamentales, consultando los
+status actualizados de la orden y pagos y envíos de meli ANTES de accionar"*. Decisiones del mismo día: a) NC por lo
+REINTEGRADO; b) en tránsito ESPERAR el retorno; c) v1 sin claims. Plan: `.roots/tasks/PLAN-2026-09-28-431-test-y-revision-mapeo-cancelaciones-18.md` (workspace).
+
+**Opt-in.** `mercadolibre_cancel_mode` = `legacy` (default, comportamiento histórico) | `por_estado_ml`, en `res.company` y GEMELO
+en `mercadolibre.configuration` (meli_oerp_multiple, bug #453): con cuenta de conexión manda el de la CUENTA.
+
+**Diseño.** `models/cancel_decision.py` es PURO (sin Odoo, sin red): `build_cancel_context()` normaliza GET /orders (una por orden
+del pack) + GET /shipments; `meli_cancel_decide(ctx, odoo_state, config)` devuelve mercadería / factura / monto NC / venta / texto.
+`sale.order._meli_cancel_context()` hace la red ANTES de escribir (timeout 10 s, reusa el `order_json` fresco del llamador, caché
+60 s en `cr.cache` porque confirm_ml + import llaman 2 veces por pasada). **Foto incompleta ⇒ no se acciona** (aviso once_key).
+Filas: envío nunca salió/volvió ⇒ devolución si el OUT está done · en tránsito ⇒ ESPERAR (`meli_cancel_waiting_return`, filtro
+"Cancelación esperando retorno"; `orders_resync_status` las re-decide) · entregado/FULL ⇒ sin stock · sin envío o desconocido ⇒
+config · pago reintegrado ⇒ NC total si reintegro ≥ facturado − 1, **parcial ⇒ a mano** (el core sólo revierte la factura entera) ·
+aprobado sin reintegro (pack_splitted) ⇒ manual + aviso, venta abierta si hay entrega/factura · nunca acreditado ⇒ cancelar
+borrador / NC · pago no reconocido ⇒ `mercadolibre_invoice_cancel_mode` · ML ya no dice `cancelled` ⇒ no se acciona.
+Chatter: la foto y la fila, una vez por decisión distinta; `meli_cancel_decision` guarda la última.
+
+**Parte 2 (los DOS modos).** `_meli_unresolved_posted_invoices()` excluye la factura ya revertida por NC publicada ⇒ la venta pasa a
+`cancel` en vez de quedar eterna con un aviso falso. Refactor sin cambio: pasos 3-5 → `_meli_cancel_finish()`.
+
+**Migración.** La siembra OLA3 se renombra `16.0.26.149` → `16.0.26.162`: bases ya en 26.150–26.159 (origin) nunca la habrían corrido. Idempotente.
+
+**Tests.** `tests/test_cancel_decision_pure.py` (20 filas + 4, sin Odoo) · integración en meli_oerp_accounting (14 casos, red mockeada).
+Odoo 18 local: 14/14 + 13/13 existentes, 27/27 con multiple instalado; control mutante (en tránsito→devolver) ⇒ FAIL como debe;
+11 casos legacy: 8 idénticos a 26.149, d/e/k cambian sólo por NC idempotente (3→1) + parte 2 (sale→cancel). Odoo 17 local: 14/14 y
+los 11 legacy iguales a 18. 16.0 y 19.0: sólo py_compile + tabla pura (sin core local usable).
+**Sólo 16.0.** El redrain local #494 (`_orders_redrain_pending_cancels`, "0 llamadas a la API") llama con
+`meli_cancel_offline=True`: con `por_estado_ml` la venta no se decide ahí (sin foto no hay decisión); con `legacy`, igual que antes.
+
 ### 24 sep 2026 — Mapeo de cancelaciones: la devolucion sobrevive a la cancelacion + el motivo se vuelve un dato [#607 PetMarkt, #530 R&D] (v16.0.26.142)
 
 **Pedido.** FCA, 24-sep: *"cerremos la implementacion nueva de Mapeo de cancelaciones a acciones"*.
