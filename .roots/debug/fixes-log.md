@@ -4,6 +4,30 @@
 
 ---
 
+### 29 sep 2026 — El tope del descuento de vendedor no se leía con cuentas de conexión [#504/#520 Dannok] (v18.0.26.158)
+
+**Síntoma.** Dannok (420) tenía la compañía en `meli_seller_discount_cap_mode = never_below_total`
+(26.104, c79ee06b) y la venta ML 2000018486811198 (SO 28789) seguía en presupuesto con
+*"Condition not met"*: `amount_to_invoice` 56.697,56 contra `amount_total` 60.793,78.
+
+**Causa.** El campo existe sólo en `res.company`; con `meli_oerp_multiple` el flujo pasa la
+`mercadolibre.configuration` de la cuenta, sin ese campo, y `"campo" in config._fields` daba False ⇒
+"coupon" en silencio. Mismo defecto que el #587 de `meli_oerp_accounting` (26.141).
+
+**Fix.** `sale.order._meli_order_setting(field, default, config)`: config → `config.company_id` →
+compañía de la venta → `env.company`. Usado en `meli_amount_to_invoice`. Resto de la familia medido:
+`mercadolibre_order_total_config` / `mercadolibre_including_shipping_cost` existen en la config de la
+cuenta; el envío por orden (29e15b2d) no es opt-in ⇒ sin cambio.
+
+**Tests.** `tests/test_cap_mode_fallback.py`, 6 casos, Odoo 18 local: 6/6. Control sobre origin/18.0
+con el mismo test: `56697.56 != 60793.78` (reproduce el caso). Verificación en la base del cliente:
+`partners/Argentina/delbre/.roots/scripts/verify-504-so28789-cap-mode.py` (read-only, rollback).
+
+**Build.** 26.158 = max del suite (26.157, `meli_oerp_campaign`) + 1, en 16/17/18/19 (16/17/19 sólo bump:
+el código de 26.104 existe únicamente en 18.0).
+
+---
+
 ### 23 sep 2026 — Landing de la tanda 26.127 + 26.129 sobre 26.133 [#492/#577, #409, #615] (v18.0.26.134)
 
 **Qué entró.** Tres fixes que estaban listos en ramas `claude/*` sin mergear, más el #615 que ya
