@@ -3,6 +3,20 @@
 > Historial de versiones y cambios orientado al cliente.
 
 ---
+## 18.0.26.159 — 29-sep-2026 · descuento de vendedor y envío se deciden juntos [#504 / #520]
+- **El problema:** con la opción *Tope del descuento de vendedor = nunca por debajo del total*, el importe a
+  facturar decidía el descuento de vendedor y el envío **por separado**, y cada decisión rompía a la otra.
+  Una venta pagada por *total + envío* con un descuento que ya estaba en el precio quedaba con el envío
+  sumado de más, y no confirmaba.
+- **Ahora** se prueban juntas las interpretaciones posibles del pago — descuento ya reflejado en el precio o
+  no, envío pagado por el comprador o no (este último sólo con *incluir costo de envío = nunca*) — y se usa la
+  que deja el importe igual al total de la venta (diferencia menor a 1). Si ninguna coincide, el cálculo es el
+  de antes y la venta queda marcada para revisión, como siempre: no se fuerza al total.
+- **Sin cambios para quien no usa la opción:** con el tope en su valor por defecto el cálculo es idéntico.
+- Tests: `tests/test_discount_shipping_joint.py` (7 casos).
+- Requiere actualizar el módulo (`-u meli_oerp`); no agrega campos ni migraciones.
+
+---
 ## 18.0.26.158 — 29-sep-2026 · el tope del descuento de vendedor se lee también con cuentas de conexión [#504 / #520 Dannok]
 - **El problema:** la opción *Tope del descuento de vendedor* (26.104) se configura en la **compañía**, pero en
   las instancias con cuentas de conexión (`meli_oerp_multiple`) el cálculo del importe a facturar recibe la

@@ -624,6 +624,98 @@ class sale_order(models.Model):
                     return value
         return default
 
+    # Tolerancia para ELEGIR la interpretacion del pago. Es la BASE de los dos controles
+    # que despues juzgan el importe: meli_confirm_ready (1.1) y meli_create_invoice de
+    # meli_oerp_accounting (1.0). Se usa la menor para que el valor elegido pase los dos.
+    # La tolerancia ampliada por cupon (coupon * 1.3) NO se usa aca: el propio codigo la
+    # describe como red de seguridad para ventas viejas con el descuento en las lineas,
+    # no como criterio de igualdad; con ella un importe errado en 1.848,78 "cuadraria".
+    MELI_JOINT_TOLERANCE = 1.0
+
+    def _meli_amount_total_before_retentions(self):
+        """amount_total + retenciones cargadas en las lineas (legacy, sin modulo de
+        retenciones en el pago), para comparar lo mismo contra lo que pago ML.
+        Se saltean los impuestos de retencion-en-el-pago: van al pago, no a la venta."""
+        self.ensure_one()
+        tax_field = SaleOrderLineTaxField(self)
+        _has_wth = 'is_withholding_tax_on_payment' in self.env['account.tax']._fields
+        _retention_total = 0.0
+        for line in self.order_line:
+            if line.price_unit <= 0:
+                continue
+            for tax in line[tax_field]:
+                if tax.amount < 0:
+                    if _has_wth and tax.is_withholding_tax_on_payment:
+                        continue
+                    _retention_total += abs(line.price_subtotal * tax.amount / 100.0)
+        return self.amount_total + _retention_total
+
+    def _meli_amount_joint_discount_shipping(self, including_shipping_cost, config=None):
+        """[#504/#520] Importe a facturar decidiendo descuento de vendedor y envio JUNTOS.
+
+        Solo actua con el opt-in `meli_seller_discount_cap_mode = never_below_total`
+        (leido con `_meli_order_setting`: cuenta -> compania). Sin opt-in devuelve None
+        y `meli_amount_to_invoice` sigue exactamente como antes.
+
+        POR QUE. Hasta 26.158 las dos deducciones se decidian por separado, cada una
+        suponiendo la otra, y cada decision rompia a la otra. Caso real, PROD Dannok (420),
+        SO 28789 / ML 2000018486811198, cuenta en paid_amount + including_shipping_cost=never:
+            amount_total 60.793,78 · pagado 66.738,78 · descuento vendedor 4.096,22
+            cupon 1.627,08 · envio 5.945,00
+        El pago es EXACTAMENTE total + envio: el descuento ya estaba reflejado en el precio
+        (no se resta) y el envio lo pago el comprador (si se resta). Correcto: 60.793,78.
+          - 26.76.2 (instalado): resta todo -> 56.697,56 (corto en el descuento).
+          - 26.158: el tope mira `pagado - descuento` = 62.642,56 >= total y no entra; y
+            `_meli_shipping_to_subtract(seller_discount=4.096,22)` compara 62.642,56 contra
+            total (dif. 1.848,78) y total+envio (dif. 4.096,22) y elige "sin envio"
+            -> 62.642,56 (sobra el envio menos el descuento).
+
+        LA REGLA. Las interpretaciones legitimas del pago son
+            {descuento reflejado en el precio, o no} x {envio pagado por el comprador, o no}
+        es decir `pagado - d - s` con d en {0, descuento} y s en {0, envio}. El envio solo
+        es candidato a restarse con `including_shipping_cost = never` (con `always` nunca se
+        restaba y no se empieza a restar). Gana la que deja el importe mas cerca del total
+        de la venta (+ retenciones en lineas, como meli_confirm_ready); con `always` cuenta
+        tambien la comparacion "el total no trae el envio", igual que meli_confirm_ready.
+        Solo se acepta si queda a menos de MELI_JOINT_TOLERANCE. Empates: el orden de la
+        lista (primero no restar el descuento). Si NINGUNA cuadra devuelve None: sigue el
+        calculo de siempre y el control de confirmacion marca el conflicto -- no se fuerza
+        el importe al total.
+        """
+        self.ensure_one()
+        _cap_mode = self._meli_order_setting(
+            "meli_seller_discount_cap_mode", "coupon", config=config)
+        if _cap_mode != "never_below_total":
+            return None
+
+        paid = self.meli_paid_amount or 0.0
+        if paid <= 0.0 or (self.amount_total or 0.0) <= 0.0:
+            return None
+
+        disc = self.meli_discount_seller_amount or 0.0
+        ship = self.meli_shipping_amount or 0.0
+        target = self._meli_amount_total_before_retentions()
+
+        discounts = [0.0] + ([disc] if disc > 0.0 else [])
+        if including_shipping_cost == "never" and ship > 0.0:
+            ships = [0.0, ship]
+        else:
+            ships = [0.0]
+
+        best = None
+        for d in discounts:
+            for s in ships:
+                value = paid - d - s
+                score = abs(value - target)
+                if including_shipping_cost != "never" and ship > 0.0:
+                    score = min(score, abs(value - ship - target))
+                if best is None or score < best[0]:
+                    best = (score, value)
+
+        if best and best[0] < self.MELI_JOINT_TOLERANCE:
+            return best[1]
+        return None
+
     def meli_amount_to_invoice( self, meli=None, config=None ):
 
         total_config = (config and "mercadolibre_order_total_config" in config._fields) and config.mercadolibre_order_total_config
@@ -647,6 +739,15 @@ class sale_order(models.Model):
             return 0
 
         seller_discount = self.meli_discount_seller_amount or 0.0
+
+        # [#504/#520] Con el opt-in, descuento de vendedor y envio se deciden JUNTOS.
+        # Si ninguna interpretacion explica el pago, sigue el calculo de siempre (abajo).
+        if total_config in ['paid_amount', 'transaction_amount']:
+            _joint = self._meli_amount_joint_discount_shipping(
+                including_shipping_cost, config=config)
+            if _joint is not None:
+                return _joint
+
         _coupon_cap = self.meli_coupon_amount or 0.0
         # /orders/{id}/discounts amounts.seller has two meanings depending on the order:
         # (A) List-price reduction already reflected in SO unit_price → over-deduction:
@@ -1186,21 +1287,7 @@ class sale_order(models.Model):
         _coupon = abs(self.meli_coupon_amount or 0.0)
         if _coupon > 0:
             _tolerance = max(_tolerance, _coupon * 1.3)
-        # If retention taxes are on SO lines (legacy, without withholding module),
-        # add back their amounts so the check compares like-for-like.
-        # Skip withholding-on-payment taxes — they belong on the payment, not SO lines.
-        tax_field = SaleOrderLineTaxField(self)
-        _has_wth = 'is_withholding_tax_on_payment' in self.env['account.tax']._fields
-        _retention_total = 0.0
-        for line in self.order_line:
-            if line.price_unit <= 0:
-                continue
-            for tax in line[tax_field]:
-                if tax.amount < 0:
-                    if _has_wth and tax.is_withholding_tax_on_payment:
-                        continue
-                    _retention_total += abs(line.price_subtotal * tax.amount / 100.0)
-        _amount_total_before_retentions = self.amount_total + _retention_total
+        _amount_total_before_retentions = self._meli_amount_total_before_retentions()
         _diff_direct = abs( float(amount_to_invoice) - _amount_total_before_retentions )
         # For self_service logistics the SO has no shipping line, but
         # meli_paid_amount (and thus amount_to_invoice) includes the shipping
