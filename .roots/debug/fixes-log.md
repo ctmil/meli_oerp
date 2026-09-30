@@ -4,6 +4,12 @@
 
 ---
 
+### 30 sep 2026 — Build de flota 26.166 (v17.0.26.166)
+
+Sin cambios de codigo en meli_oerp. El build 26.166 es el fix de meli_oerp_multiple `_process_notification_order`
+(la notificacion reasignada a su cuenta duena se procesaba con la compania/config de OTRA cuenta => "You must set a
+warehouse on your sale order to proceed"; Score 361). Sube por la regla del build unico de flota.
+
 ### 29 sep 2026 — Build de flota 26.165 (v17.0.26.165)
 
 Sin cambios de codigo en meli_oerp. El build 26.165 es el fix de la migracion `19.0.26.111` de meli_oerp_multiple
