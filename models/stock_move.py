@@ -252,3 +252,39 @@ class StockMove(models.Model):
                 len(self), t_total, t_super_end - t_start, t_meli_end - t_super_end
             )
         return res
+
+    # ------------------------------------------------------------------
+    # #645 (Tus Refacciones 431): modo 'waiting' de "Venta sin existencia al confirmar".
+    # Con el contexto `meli_force_mts_product_ids` (lo pone SOLO
+    # sale.order._meli_confirm_waiting_retry, dentro de un savepoint), los moves de
+    # esos productos que nacen de una regla "mts_else_mto" NO disparan la regla
+    # siguiente (la COMPRA que no puede generarse): quedan make_to_stock, en espera
+    # de existencia. Sin el contexto no cambia nada.
+    #   16/17: _run_pull decide 'make_to_order' al crear el move -> se corrige en create.
+    #   18/19: el move nace make_to_stock y _action_confirm pide el faltante vía
+    #          _prepare_procurement_qty -> se devuelve 0 (procurement.group lo saltea).
+    # ------------------------------------------------------------------
+    def _meli_forced_mts_product_ids(self):
+        return set(self.env.context.get('meli_force_mts_product_ids') or ())
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        forced = self._meli_forced_mts_product_ids()
+        if forced:
+            Rule = self.env['stock.rule']
+            for vals in vals_list:
+                if (vals.get('procure_method') == 'make_to_order' and vals.get('rule_id')
+                        and vals.get('product_id') in forced
+                        and Rule.browse(vals['rule_id']).procure_method == 'mts_else_mto'):
+                    vals['procure_method'] = 'make_to_stock'
+        return super(StockMove, self).create(vals_list)
+
+    def _prepare_procurement_qty(self):
+        parent = getattr(super(StockMove, self), '_prepare_procurement_qty', None)
+        quantities = parent() if parent else [m.product_uom_qty for m in self]
+        forced = self._meli_forced_mts_product_ids()
+        if not forced:
+            return quantities
+        return [0.0 if (move.product_id.id in forced and move.rule_id
+                        and move.rule_id.procure_method == 'mts_else_mto') else qty
+                for move, qty in zip(self, quantities)]
