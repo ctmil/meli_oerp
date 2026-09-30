@@ -4,6 +4,10 @@
 
 ---
 
+### 19.0.26.170 — sin script (30-sep-2026, #645)
+`mercadolibre_order_confirm_no_stock_mode` (Selection, default `confirm`) en `res.company` (meli_oerp) y en
+`mercadolibre.configuration` (meli_oerp_multiple). El ORM crea la columna con el default ⇒ comportamiento idéntico al anterior.
+
 ### 19.0.26.164 — `migrations/19.0.26.164/post-migrate.py` (29-sep-2026, ola de cancelaciones integrada)
 La siembra OLA3 (antes `19.0.26.149` → `19.0.26.162`) se renombra otra vez a **`19.0.26.164`**, el build de la ola integrada
 (cancel-v2 26.162 + #585 26.163). Odoo corre las carpetas con `instalada < carpeta <= nueva`: con 26.164 corre desde una base
