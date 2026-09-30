@@ -1340,6 +1340,42 @@ class sale_order(models.Model):
         res = res and ( config.mercadolibre_pricelist.id == self.pricelist_id.id )
         return res
 
+    def _meli_confirmed_without_moves(self):
+        """[#158 Elvimarta] Ventas confirmadas con productos físicos y CERO stock.move.
+
+        Es el estado que dejaban las versiones anteriores al #585 cuando el depósito no
+        tenía regla de entrega (ruta archivada/ausente): action_confirm() escribía
+        state='sale', el abastecimiento fallaba y la excepción se tragaba sin rollback.
+        Ni "Reparar entrega" (busca moves huérfanos) ni "Relanzar abastecimiento" (busca
+        moves en draft) tienen nada sobre qué actuar, y su aviso genérico confundía.
+        Sólo DETECTA: no relanza el abastecimiento (podría generar compras)."""
+        res = self.browse()
+        for so in self:
+            if so.state not in ('sale', 'done'):
+                continue
+            lines = so.order_line.filtered(
+                lambda l: not l.display_type and l.product_id
+                and l.product_id.type in ('product', 'consu'))
+            if not lines:
+                continue
+            if not self.env['stock.move'].search_count([('sale_line_id', 'in', lines.ids)]):
+                res |= so
+        return res
+
+    def _meli_no_moves_hint(self):
+        """Texto del aviso para las ventas de _meli_confirmed_without_moves() ('' si no hay)."""
+        no_moves = self._meli_confirmed_without_moves()
+        for so in no_moves:
+            _logger.warning(
+                "MELI NO MOVES [#158]: SO %s (id=%s) confirmada sin movimientos de stock; "
+                "revisar ruta/regla de entrega del deposito %s",
+                so.name, so.id, so.warehouse_id.display_name)
+        return " ".join(
+            "La venta %s no tiene movimientos de stock: revisá la ruta/regla de entrega "
+            "del depósito %s (no se relanza el abastecimiento automáticamente)." % (
+                so.name, so.warehouse_id.display_name or "(sin depósito)")
+            for so in no_moves)
+
     def meli_repair_missing_pickings(self):
         """Repair sale orders that are confirmed (state='sale') but have stock.move
         records with picking_id=NULL.  This can happen when an exception inside
@@ -1388,6 +1424,12 @@ class sale_order(models.Model):
         else:
             msg = "No se encontraron movimientos de stock huérfanos para reparar."
             msg_type = 'warning'
+        # [#158] Ventas confirmadas con CERO movimientos: no hay huérfanos que reparar
+        # y el aviso genérico no decía por qué. Se nombra la venta y el depósito.
+        no_moves_hint = self._meli_no_moves_hint()
+        if no_moves_hint:
+            msg = (msg + " " + no_moves_hint) if repaired else no_moves_hint
+            msg_type = 'warning'
         return {
             'type': 'ir.actions.client',
             'tag': 'display_notification',
@@ -1395,7 +1437,7 @@ class sale_order(models.Model):
                 'title': 'Reparar entrega',
                 'message': msg,
                 'type': msg_type,
-                'sticky': False,
+                'sticky': bool(no_moves_hint),
                 'next': {'type': 'ir.actions.act_window_close'},
             },
         }
@@ -1831,14 +1873,18 @@ class sale_order(models.Model):
                         suffix=" La venta queda como estaba."),
                     once_key="relaunch-fail-%s-%s" % (so.id, so._meli_short_hash(detail)))
         msg = "Relanzadas: %d · Fallaron: %d · Sin nada que relanzar: %d" % (ok, fail, skip)
+        # [#158] Mismo hueco que "Reparar entrega": sin movimientos no hay nada que relanzar.
+        no_moves_hint = self._meli_no_moves_hint()
+        if no_moves_hint:
+            msg += ". " + no_moves_hint
         return {
             'type': 'ir.actions.client',
             'tag': 'display_notification',
             'params': {
                 'title': 'MELI: Relanzar abastecimiento',
                 'message': msg,
-                'type': 'success' if (ok and not fail) else 'warning',
-                'sticky': bool(fail),
+                'type': 'success' if (ok and not fail and not no_moves_hint) else 'warning',
+                'sticky': bool(fail or no_moves_hint),
                 'next': {'type': 'ir.actions.act_window_close'},
             },
         }
