@@ -4,6 +4,31 @@
 
 ---
 
+### 30 sep 2026 — Venta ML sin existencia: opción por cuenta "Venta sin existencia al confirmar" [#645 Tus Refacciones 431] (v16.0.26.170)
+
+**Pedido.** Mario (431), tras la call del 30-sep: la venta ML sin existencia NO debe quedar en cotización (lo que hacía
+26.163/#585 cuando la compra fallaba): quiere lo estándar — venta confirmada y salida "En espera" aunque la compra no se pueda
+generar (sin precio de proveedor, regla `mts_else_mto` de SC_NL).
+**Qué.** Selection `mercadolibre_order_confirm_no_stock_mode` en `res.company` y GEMELO en `mercadolibre.configuration`
+(meli_oerp_multiple), mismo default `confirm` (bug #453). Leída con `_meli_cancel_setting` (la cuenta manda).
+- `confirm` (default): camino 26.165 sin cambios (control origin 26.166 = mismos conteos).
+- `waiting`: si `action_confirm` falla, `_meli_confirm_waiting_retry` reintenta en savepoint con contexto
+  `meli_force_mts_product_ids` (productos sin proveedor, o sin stock si no hay sin proveedor): `stock_move.py` hace que los moves
+  de reglas `mts_else_mto` de esos productos queden make_to_stock (16/17: `create` corrige el `make_to_order` de `_run_pull`;
+  18/19: `_prepare_procurement_qty` devuelve 0 y `procurement.group` lo saltea). Venta `sale` + OUT confirmado/en espera + aviso
+  once (`confirm-waiting-<so>-<hash>`). Si el reintento deja moves draft sin albarán o falla ⇒ vuelve al camino #585 (cotización).
+  Los productos con proveedor siguen comprando (venta mixta: compra sólo del que tiene proveedor).
+- `quotation`: `_meli_confirm_block_no_stock` antes de `action_confirm`: faltantes de `free_qty` en el almacén de la venta
+  (UdM del producto, líneas agregadas por producto) ⇒ no confirma, `{'error': ...}`, aviso once (`confirm-nostock-<so>-<hash>`)
+  con producto, pedido, disponible y faltante. La próxima pasada confirma sola si ya hay existencia.
+**Decisiones.** No se consideran: servicios, consumibles no almacenables (`is_storable`/`type=='product'` según `_fields`),
+triangulación (referencia `DSTR_` o ruta con regla destino cliente `buy`/origen proveedor = dropship). Kits (BoM phantom): se
+miran los COMPONENTES (`_bom_find` + `explode`); si no se puede explotar, el kit se mide como producto.
+**Test (Odoo 18 local, base t18_645).** confirm A/B/D = control origin · waiting W1 sin stock/sin prov ⇒ sale + OUT confirmed + 1
+aviso + 0 compras (3 pasadas = 1 aviso) · W2 con prov ⇒ sale + OUT + 1 compra · W3 con stock ⇒ OUT assigned · quotation Q1 ⇒ draft
++ 1 aviso (2 pasadas), llega stock ⇒ sale · dropship/DSTR_ ⇒ sale · UoM docena ⇒ faltan 2 · kit ⇒ faltante del componente.
+16/17/19: mismo código (py_compile), no corridos en Odoo.
+
 ### 30 sep 2026 — Build de flota 26.166 (v16.0.26.166)
 
 Sin cambios de codigo en meli_oerp. El build 26.166 es el fix de meli_oerp_multiple `_process_notification_order`
