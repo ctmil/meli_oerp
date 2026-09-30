@@ -2734,6 +2734,32 @@ class mercadolibre_orders(models.Model):
 
         return full_phone
 
+    def meli_order_phone( self, Buyer=None ):
+        """[#158 Elvimarta] Telefono del comprador por el camino de la ORDEN.
+
+        Se arma SOLO con datos del buyer de la orden:
+          full_phone(Buyer) -> full_alt_phone(Buyer)
+        descartando los valores enmascarados por ML ("XXXX"), mismo filtro que
+        ya usa shipment.py. El alternative_phone se capturaba en
+        mercadolibre.buyers y no se usaba nunca para el contacto.
+
+        NO se usa el telefono del receptor del envio como tercer candidato a
+        proposito: ese camino ya lo cubre shipment.py, y meterlo aca tocaria
+        miles de ordenes que hoy funcionan para resolver un sintoma que se
+        resuelve solo al corregir el contacto de entrega (BUG 1). Si aparece un
+        caso real de buyer sin telefono y receptor con telefono, se agrega con
+        ese caso en la mano.
+
+        Devuelve '' si no hay nada usable: el llamador NO debe escribir ''
+        (borraria un telefono cargado a mano).
+        """
+        for _cand in (self.full_phone( Buyer or {} ),
+                      self.full_alt_phone( Buyer or {} )):
+            _cand = (_cand or '').strip()
+            if _cand and "XXXX" not in _cand.upper():
+                return _cand
+        return ''
+
     def full_alt_phone( self, buyer_json, context=None ):
         full_phone = ''
         if buyer_json:
@@ -3423,6 +3449,12 @@ class mercadolibre_orders(models.Model):
             #_logger.info(order_json)
             #_logger.info("Buyer:"+str(Buyer) )
             #_logger.info("Receiver:"+str(Receiver) )
+            # [#158 Elvimarta] El telefono se resuelve con meli_order_phone():
+            # buyer.phone -> buyer.alternative_phone, filtrando los enmascarados
+            # "XXXX". NO se pone la clave cuando queda vacio: meli_buyer_fields se
+            # vuelca ENTERO sobre el contacto en update_partner_billing_info(), y
+            # un 'phone': '' BORRARIA el telefono que ya tuviera cargado a mano.
+            _meli_buyer_phone = self.meli_order_phone( Buyer=Buyer )
             meli_buyer_fields = {
                 'name': self.buyer_full_name(Buyer),
                 'street': self.street(Receiver,Buyer),
@@ -3430,10 +3462,11 @@ class mercadolibre_orders(models.Model):
                 'country_id': self.country(Receiver,Buyer),
                 'state_id': self.state(self.country(Receiver,Buyer),Receiver,Buyer),
                 'zip': self.zip_code(Receiver,Buyer),
-                'phone': self.full_phone( Buyer ),
                 #'email': Buyer['email'],
                 'meli_buyer_id': Buyer['id'],
             }
+            if _meli_buyer_phone:
+                meli_buyer_fields['phone'] = _meli_buyer_phone
             set_client_company = "mercadolibre_cron_get_orders_client_set_company" in config._fields and config.mercadolibre_cron_get_orders_client_set_company
             if company and company.id and set_client_company:
                 meli_buyer_fields["company_id"] = company.id
@@ -4201,8 +4234,12 @@ class mercadolibre_orders(models.Model):
                     parent_update['street'] = self.street(Receiver, Buyer)
                 if not partner_id.city or partner_id.city == "":
                     parent_update['city'] = self.city(Receiver, Buyer)
-                if not partner_id.phone and 'phone' in meli_buyer_fields and meli_buyer_fields['phone']:
-                    parent_update['phone'] = meli_buyer_fields['phone']
+                # [#158 Elvimarta] Completar el telefono tambien en contactos ya
+                # existentes (la orden sin shipment es justo la que el cliente
+                # coordina con transporte propio y necesita llamar). Solo se
+                # completa si esta VACIO: nunca se pisa un telefono cargado.
+                if not partner_id.phone and _meli_buyer_phone:
+                    parent_update['phone'] = _meli_buyer_phone
                 if partner_id.email and (partner_id.email == buyer_fields.get("email", "") or "mercadolibre.com" in str(partner_id.email)):
                     parent_update['email'] = ''
 
@@ -4636,6 +4673,52 @@ class mercadolibre_orders(models.Model):
         partner_id =  mercadolibre_contact_partner_id or partner_id
         partner_invoice_id = mercadolibre_invoice_partner_id or partner_invoice_id
         partner_shipping_id = mercadolibre_shipping_partner_id or partner_shipping_id
+
+        # --- [#158 Elvimarta] ENTREGA en el contacto GENERICO cuando la orden no tiene shipment ---
+        # Sin shipment no hay Receiver, y partner_delivery_id() devuelve None
+        # (shipment.py: "no Partner or no Receiver"), asi que partner_shipping_id
+        # queda en False: el conector NO escribe la entrega y Odoo la deriva de
+        # partner_id, que unas lineas mas arriba fue reemplazado por el contacto
+        # generico de la config (mercadolibre_contact_partner). Resultado: la
+        # factura va al contacto REAL del comprador y la entrega queda en
+        # "Mercado Libre Marketplace", sin nombre ni telefono para coordinar.
+        # Aca se completa la entrega con el contacto real del comprador.
+        # GUARDA (mismo criterio que el fix de idioma): solo se completa lo que
+        # esta VACIO o es el generico; nunca se pisa una entrega real ya cargada,
+        # ni la direccion de entrega creada desde el shipment, ni un
+        # mercadolibre_shipping_partner elegido explicitamente en la config.
+        if not mercadolibre_shipping_partner_id:
+            _generic_partner_ids = set()
+            for _gp in (mercadolibre_contact_partner_id, mercadolibre_invoice_partner_id):
+                if _gp:
+                    _generic_partner_ids.add(_gp.id)
+
+            _current_shipping = partner_shipping_id or (sorder and sorder.partner_shipping_id) or False
+            _shipping_is_generic = bool(_current_shipping) and _current_shipping.id in _generic_partner_ids
+
+            if (not _current_shipping) or _shipping_is_generic:
+                # Candidatos, en orden: el contacto REAL del comprador (el que
+                # tiene nombre, direccion y telefono del buyer) y, si no hay,
+                # la entidad de facturacion (en modo "estrategia B" son el mismo
+                # registro: partner_invoice_id = partner_id).
+                _real_shipping = False
+                for _cand in (original_contact_partner_id, partner_invoice_id):
+                    if _cand and _cand.id not in _generic_partner_ids:
+                        _real_shipping = _cand
+                        break
+                if _real_shipping:
+                    partner_shipping_id = _real_shipping
+                    _logger.info(
+                        "SHIPPING_FALLBACK [#158]: orden sin shipment, entrega %s -> contacto real '%s' (id:%s)",
+                        (_current_shipping and ("generico id:%s" % _current_shipping.id)) or "vacia",
+                        _real_shipping.name, _real_shipping.id,
+                    )
+                else:
+                    _logger.info(
+                        "SHIPPING_FALLBACK [#158]: orden sin shipment y sin contacto real del comprador; "
+                        "la entrega queda como estaba (%s)",
+                        (_current_shipping and _current_shipping.id) or "vacia",
+                    )
 
         # Unificar los 3 contactos cuando todos comparten el mismo nombre (modo Brasil)
         _merge_flag = ('mercadolibre_merge_same_name_contacts' in config._fields
