@@ -47,6 +47,22 @@ def Autocommit( self, act=False ):
     self._cr.autocommit(act)
     return False
 
+# Backport 16.0 (meli_oerp models/versions.py:368-380) -> 13.0
+def MeliCr( self ):
+    return self.env.cr
+    #or return self._cr
+
+def MeliCommit( self ):
+    # 16.0 usa env.flush_all() en vez de cr.commit(): fuerza los writes ORM a la DB
+    # dentro de la transaccion actual SIN hacer COMMIT (un cr.commit() destruiria
+    # savepoints activos -> "savepoint does not exist" y aborto en cascada).
+    # Odoo 13: no existe env.flush_all(); Model.flush() sin fnames flushea TODOS
+    # los modelos (recompute + towrite), que es el equivalente.
+    return self.env['base'].flush()
+
+def MeliRollback( self ):
+    return self.env.cr.rollback()
+
 def UpdateProductType( product ):
     if not product:
         return

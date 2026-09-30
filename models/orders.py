@@ -1276,7 +1276,35 @@ class mercadolibre_orders(models.Model):
             if ( not buyer_ids ):
                 _logger.info( "creating buyer "+str(buyer_fields['buyer_id'])+" order id:" + str(order and order.name))
                 #_logger.info(buyer_fields)
-                buyer_id = buyers_obj.sudo().create(( buyer_fields ))
+                # Backport 16.0 (meli_oerp orders.py:3472-3489): savepoint para la carrera de dos
+                # transacciones creando el mismo buyer (unique_buyer_id).
+                # Desvios 13.0:
+                #  - MeliCommit (= flush en 13.0, NO commit) antes del SAVEPOINT: en 13 el ORM difiere
+                #    escrituras; si se flushearan DENTRO del savepoint y este se revierte, el cache
+                #    quedaria creyendo que estan escritas.
+                #  - En 13.0 el cursor es REPEATABLE READ: tras el unique violation la re-busqueda
+                #    NO ve el buyer que commiteo la otra transaccion (es posterior a nuestro snapshot).
+                #    Si no aparece, la orden SIGUE sin meli_buyer (no se relanza): se completa en la
+                #    proxima actualizacion de la orden, que ya lo encuentra.
+                MeliCommit(self)
+                try:
+                    self.env.cr.execute("SAVEPOINT buyer_create")
+                    buyer_id = buyers_obj.sudo().create(( buyer_fields ))
+                    self.env.cr.execute("RELEASE SAVEPOINT buyer_create")
+                except Exception as e:
+                    # Handle race condition: another transaction may have created the buyer
+                    if 'unique' in str(e).lower() or 'duplicate' in str(e).lower():
+                        self.env.cr.execute("ROLLBACK TO SAVEPOINT buyer_create")
+                        buyers_obj.invalidate_cache()
+                        _logger.info("Buyer %s created by concurrent transaction, fetching...", buyer_fields['buyer_id'])
+                        buyer_id = buyers_obj.sudo().search([('buyer_id', '=', buyer_fields['buyer_id'])], limit=1)
+                        if buyer_id:
+                            buyer_id.sudo().write(buyer_fields)
+                        else:
+                            _logger.warning("Buyer %s creado por otra transaccion pero no visible (REPEATABLE READ); la orden sigue sin meli_buyer.", buyer_fields['buyer_id'])
+                    else:
+                        self.env.cr.execute("ROLLBACK TO SAVEPOINT buyer_create")
+                        raise
             else:
                 buyer_id = buyers_obj.sudo().browse(buyer_ids and buyer_ids[0])
                 if buyer_id:
