@@ -3,6 +3,74 @@
 > Historial de versiones y cambios orientado al cliente.
 
 ---
+## Versión 17.0.26.169 — 30-sep-2026 · Facturas en el idioma del comprador, entrega y teléfono en pedidos sin envío, y aviso de ventas sin movimientos [#158 Elvimarta]
+Release único de flota **26.169** en 16.0 · 17.0 · 18.0 · 19.0 (26.167 reservado, 26.168 = línea 13.0).
+Requiere actualizar el módulo (`-u meli_oerp`). Sin cambios de datos, vistas ni migraciones.
+
+### 1. Las facturas de MercadoLibre vuelven a salir en el idioma correcto [#393]
+1. **El síntoma:** las facturas de las ventas de MercadoLibre salían en el idioma por defecto de la
+   base, aunque el contacto del comprador tuviera el idioma bien puesto. Y si alguien se lo corregía
+   a mano desde la pantalla del contacto, **la factura seguía saliendo igual**.
+2. **Por qué pasaba:** el conector crea **dos contactos** por comprador — el principal, con la
+   identidad de MercadoLibre, y uno hijo de tipo *Dirección de factura*, con los datos fiscales. La
+   factura se emite contra el **hijo**, y el hijo nacía **siempre sin idioma**. Por eso corregirlo a
+   mano no servía: se corregía el contacto principal, que no es el que factura.
+3. **Ahora el idioma se copia al contacto de facturación** cuando se crea. No se mueve: queda en los
+   dos, porque también hace falta en el principal (correos, portal).
+4. **Una corrección manual ya no se pisa.** Si el contacto de facturación ya tiene idioma cargado,
+   el conector no lo sobreescribe con el de la compañía.
+5. **Si no hay idioma que copiar, queda dicho en el log** (compañía sin idioma en su contacto, o
+   comprador sin idioma). Antes era un vacío mudo y no se podía medir.
+
+**Qué van a notar:** las facturas nuevas salen en el idioma del comprador. ⚠️ **Los contactos de
+facturación que ya existen no se tocan solos** — los que quedaron sin idioma siguen sin idioma hasta
+que se completen (desde la vista de lista de Contactos, filtrando los de tipo factura sin idioma).
+
+### 2. Contacto de ENTREGA y TELÉFONO en pedidos sin envío de MercadoLibre [#622]
+1. **El problema:** en los pedidos de MercadoLibre **sin envío** (los que se coordinan con
+   transporte propio), la venta quedaba con el **contacto de entrega genérico**
+   *"Mercado Libre Marketplace"* aunque el contacto real del comprador existiera y estuviera
+   puesto en la factura. Sin nombre y sin teléfono justo en los pedidos que hay que coordinar
+   por teléfono. Medido en la base del cliente: de 2.720 ventas desde el 1-sep, las 2.611 con
+   envío nunca fallaron; los casos afectados fueron 4.
+2. **La causa:** cuando no hay envío, el conector **no llega a escribir el contacto de entrega**
+   (lo toma de los datos del envío, que no existen) y Odoo lo completa solo con el contacto de la
+   venta, que es el genérico de la configuración.
+3. **La corrección:** si la entrega quedaría vacía o en el genérico, se completa con el contacto
+   real del comprador. **Nunca se pisa** una entrega ya cargada ni la dirección creada desde el
+   envío.
+4. **Teléfono:** ahora se completa también por el camino del pedido, usando el teléfono del
+   comprador y, si no hay, el alternativo (que se guardaba y no se usaba nunca), descartando los
+   que MercadoLibre enmascara con `XXXX`. **Sólo se completa si está vacío.**
+5. ⚠️ **Además se corrigió un borrado de datos que afecta a TODA la flota, no sólo a este caso.**
+   Cuando MercadoLibre no devolvía teléfono del comprador, el conector escribía el teléfono
+   **vacío** sobre el contacto: los datos del comprador se vuelcan enteros sobre la ficha al
+   actualizar los datos de facturación, así que **un teléfono cargado a mano en Odoo podía
+   quedar borrado en la siguiente sincronización del pedido**. No dejaba error ni aviso: el dato
+   simplemente desaparecía. Ahora, si MercadoLibre no manda teléfono, **el campo no se toca**.
+   Esto no dependía de que el pedido tuviera envío ni de la configuración: le podía pasar a
+   cualquier cliente del conector.
+
+**Nota sobre el diagnóstico:** el teléfono faltante **no era un problema aparte**. El conector sí
+escribía el teléfono, pero en el contacto real del comprador; lo que se veía sin teléfono era el
+contacto genérico, porque la venta apuntaba al genérico. Corregido el punto 3, el teléfono aparece
+solo. Los puntos 4 y 5 son mejoras y una corrección de otro orden, no la causa de lo reportado.
+
+**Alcance deliberadamente acotado:** no se usa el teléfono del destinatario del envío como tercera
+opción. Ese camino ya está cubierto y tocarlo alcanzaría miles de pedidos que hoy funcionan bien
+para resolver algo que se resuelve solo con el punto 3.
+
+### 3. "Reparar entrega" y "Relanzar abastecimiento" explican las ventas sin movimientos
+1. **El problema:** una venta confirmada que **no tiene ningún movimiento de stock** (lo que dejaban
+   versiones anteriores cuando al depósito le faltaba la regla de entrega) no tiene nada que reparar
+   ni que relanzar, y el aviso decía solamente *"No se encontraron movimientos de stock huérfanos
+   para reparar"*, sin decir por qué.
+2. **Ahora** el aviso nombra la venta y el depósito: *"La venta X no tiene movimientos de stock:
+   revisá la ruta/regla de entrega del depósito W"*. El aviso queda fijo en pantalla.
+3. **No se relanza nada automáticamente:** relanzar el abastecimiento puede generar compras. Una vez
+   corregida la ruta del depósito, la entrega se regenera desde la venta.
+
+---
 ## 17.0.26.159 — 29-sep-2026 · build de flota
 - Sin cambios de código en esta serie: el número se alinea con 18.0.26.159 (#504/#520, descuento de vendedor y
   envío decididos juntos — la opción de tope existe sólo en 18.0).
@@ -69,51 +137,6 @@ Requiere actualizar el módulo (`-u meli_oerp`).
 5. **Qué hay que hacer:** nada. No requiere cargar ningún video ni tocar los productos.
 
 ---
-## (sin versión asignada aún) — Contacto de ENTREGA y TELÉFONO en pedidos sin envío de MercadoLibre [#158]
-23 sep 2026 · rama `claude/158-contacto-entrega-y-telefono-17.0` (17.0) · **sin mergear**
-
-> La versión se asigna al mergear: la rama de deploy se mueve rápido y un número escrito antes
-> queda por debajo, con lo cual la actualización no corre y el cambio entra sin efecto.
-
-**Cambios:**
-
-1. **El problema:** en los pedidos de MercadoLibre **sin envío** (los que se coordinan con
-   transporte propio), la venta quedaba con el **contacto de entrega genérico**
-   *"Mercado Libre Marketplace"* aunque el contacto real del comprador existiera y estuviera
-   puesto en la factura. Sin nombre y sin teléfono justo en los pedidos que hay que coordinar
-   por teléfono. Medido en la base del cliente: de 2.720 ventas desde el 1-sep, las 2.611 con
-   envío nunca fallaron; los casos afectados fueron 4.
-2. **La causa:** cuando no hay envío, el conector **no llega a escribir el contacto de entrega**
-   (lo toma de los datos del envío, que no existen) y Odoo lo completa solo con el contacto de la
-   venta, que es el genérico de la configuración.
-3. **La corrección:** si la entrega quedaría vacía o en el genérico, se completa con el contacto
-   real del comprador. **Nunca se pisa** una entrega ya cargada ni la dirección creada desde el
-   envío.
-4. **Teléfono:** ahora se completa también por el camino del pedido, usando el teléfono del
-   comprador y, si no hay, el alternativo (que se guardaba y no se usaba nunca), descartando los
-   que MercadoLibre enmascara con `XXXX`. **Sólo se completa si está vacío.**
-5. ⚠️ **Además se corrigió un borrado de datos que afecta a TODA la flota, no sólo a este caso.**
-   Cuando MercadoLibre no devolvía teléfono del comprador, el conector escribía el teléfono
-   **vacío** sobre el contacto: los datos del comprador se vuelcan enteros sobre la ficha al
-   actualizar los datos de facturación, así que **un teléfono cargado a mano en Odoo podía
-   quedar borrado en la siguiente sincronización del pedido**. No dejaba error ni aviso: el dato
-   simplemente desaparecía. Ahora, si MercadoLibre no manda teléfono, **el campo no se toca**.
-   Esto no dependía de que el pedido tuviera envío ni de la configuración: le podía pasar a
-   cualquier cliente del conector.
-
-**Nota sobre el diagnóstico:** el teléfono faltante **no era un problema aparte**. El conector sí
-escribía el teléfono, pero en el contacto real del comprador; lo que se veía sin teléfono era el
-contacto genérico, porque la venta apuntaba al genérico. Corregido el punto 3, el teléfono aparece
-solo. Los puntos 4 y 5 son mejoras y una corrección de otro orden, no la causa de lo reportado.
-
-**Alcance deliberadamente acotado:** no se usa el teléfono del destinatario del envío como tercera
-opción. Ese camino ya está cubierto y tocarlo alcanzaría miles de pedidos que hoy funcionan bien
-para resolver algo que se resuelve solo con el punto 3.
-
-**Pendiente:** verificación en el staging del cliente y port a 16.0 / 18.0 / 19.0.
-
----
-
 ## Versión 17.0.26.124 — Las cancelaciones de MercadoLibre ahora se aplican de verdad [#494]
 20 sep 2026
 
