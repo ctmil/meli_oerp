@@ -4,6 +4,22 @@
 
 ---
 
+### 30 sep 2026 — Release 26.169 del frente #158 Elvimarta: #393 + #622 + ventas sin movimientos (v19.0.26.169)
+
+**Qué entra.** (a) **#393** idioma del contacto de facturación (rama `claude/158-lang-contacto-facturacion-19.0`,
+cherry-pick SIN su bump viejo; detalle abajo). (b) **#622** entrega en el contacto genérico + teléfono sin shipment:
+`meli_order_phone()` (buyer.phone → buyer.alternative_phone, filtro `XXXX`, nunca escribe `phone=''`) y
+`SHIPPING_FALLBACK [#158]` en `orders_update_order_json` (sólo si la entrega está vacía o es el genérico de la config).
+Origen 17.0: 3fa6522c + ea16ee41; port: el diff aplica sin conflicto y el bloque usa las mismas variables locales (verificado por AST).
+(c) **Ventas confirmadas con CERO `stock.move`** — `_meli_confirmed_without_moves()` / `_meli_no_moves_hint()`:
+`meli_repair_missing_pickings()` y `action_meli_relaunch_procurement()` ahora dicen "La venta X no tiene movimientos
+de stock: revisá la ruta/regla de entrega del depósito W" (sticky + `MELI NO MOVES [#158]` en log). **Sólo detecta: no
+relanza abastecimiento** (podría generar compras). Origen: caso Full de Elvimarta 30-sep (ruta/regla del depósito
+archivadas, cliente en 26.51 sin #585 ⇒ venta `sale` con 0 movimientos; con #585 ya no pasa, esto cubre las heredadas).
+
+**Build.** 26.169 en las 4 series: 26.166 era el max de 16-19 del suite, 26.167 reservado para Deco
+(`claude/facturacion-cola-19.0`), 26.168 tomado por la línea 13.0. Sin merge a la rama de deploy (FCA: staging primero).
+
 ### 30 sep 2026 — Build de flota 26.166 (v19.0.26.166)
 
 Sin cambios de codigo en meli_oerp. El build 26.166 es el fix de meli_oerp_multiple `_process_notification_order`
@@ -212,7 +228,7 @@ select pa.id, pa.name, pa.create_variant, mca.att_id
 ```
 Si aparece algo, **no se toca sin hablarlo con el cliente**: cambiar una línea de atributo **borra y
 recrea las variantes** de esas plantillas.
-### 15 sep 2026 — El contacto de facturación nacía sin `lang` y es el que emite la factura — v26.115 `[#393 / 158 Elvimarta]`
+### 15 sep 2026 — El contacto de facturación nacía sin `lang` y es el que emite la factura — entra en v19.0.26.169 (número original 26.115 descartado: nunca se mergeó) `[#393 / 158 Elvimarta]`
 
 **Port literal de 17.0** (commit `15898c43`, `17.0.26.96`). Los tres bloques de contexto de esta
 versión son **byte-idénticos** a los de 17.0: el diff de `models/orders.py` entró **sin adaptación**.
