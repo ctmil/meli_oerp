@@ -656,6 +656,32 @@ class res_company(models.Model):
             "acreditado sin reintegro (p. ej. pack dividido) se deja para revisar a mano. Si ML "
             "no responde, no se toca nada y se reintenta. Cada decisión queda en el chatter.")
 
+    # Venta ML sin existencia al confirmar (#645, Tus Refacciones 431, 30-sep-2026).
+    # GEMELO en meli_oerp_multiple/models/connection_configuration.py con el MISMO
+    # default (bug del #453): con cuenta de conexion manda el de la CUENTA.
+    mercadolibre_order_confirm_no_stock_mode = fields.Selection([
+        ("confirm", "Confirmar; si el abastecimiento falla, queda en cotización"),
+        ("waiting", "Confirmar siempre: la salida queda en espera de existencia"),
+        ("quotation", "No confirmar sin existencia: queda en cotización hasta que haya"),
+    ], string="Venta sin existencia al confirmar",
+       default="confirm",
+       help="Qué hacer al confirmar una venta de MercadoLibre cuando algún producto no tiene "
+            "existencia libre en el almacén de la venta:\n"
+            "- Confirmar; si el abastecimiento falla, queda en cotización (por defecto): se "
+            "confirma como siempre. Si Odoo no puede abastecerla (p. ej. la ruta intenta COMPRAR "
+            "y el producto no tiene un precio de proveedor válido), la venta queda como "
+            "cotización con un aviso que nombra el producto.\n"
+            "- Confirmar siempre, la salida queda en espera: la venta se confirma y el albarán de "
+            "salida se crea en 'En espera' aunque no haya existencia. Si el producto tiene "
+            "proveedor, se genera la compra como siempre; si no se puede generar la compra (sin "
+            "precio de proveedor), la salida igual se crea en espera y se avisa UNA vez en la "
+            "venta qué productos no se pudieron comprar.\n"
+            "- No confirmar sin existencia: la venta queda en cotización con un aviso de los "
+            "productos y las cantidades que faltan, y se confirma sola en la próxima "
+            "sincronización cuando haya existencia en el almacén de la venta.\n"
+            "Los servicios, los consumibles sin control de inventario y los productos de "
+            "triangulación (dropship o referencia DSTR_) no se consideran.")
+
     # [#493 Shoppy] Ver la nota gemela en meli_oerp_multiple/models/connection_configuration.py:
     # este campo se declara en los DOS modelos y el default DEBE ser el mismo en ambos.
     mercadolibre_protect_invoiced_orders = fields.Boolean(

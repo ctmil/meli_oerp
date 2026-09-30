@@ -897,6 +897,13 @@ class sale_order(models.Model):
 
     def _meli_action_confirm_safe(self, config=None):
         self.ensure_one()
+        # #645 (431): modo "Venta sin existencia al confirmar". 'confirm' (default) = el
+        # camino de siempre (26.165), sin ninguna lectura extra de stock.
+        no_stock_mode = self._meli_no_stock_mode(config=config)
+        if no_stock_mode == 'quotation':
+            blocked = self._meli_confirm_block_no_stock(config=config)
+            if blocked:
+                return blocked
         try:
             with self.env.cr.savepoint():
                 self.action_confirm()
@@ -905,6 +912,10 @@ class sale_order(models.Model):
                 # Transitorio (lock/serialización): sin aviso al usuario, el cron reintenta.
                 _logger.warning("MELI confirm (savepoint) concurrency error on SO id=%s: %s", self.id, e)
                 return {'error': str(e)}
+            if no_stock_mode == 'waiting':
+                waiting_res = self._meli_confirm_waiting_retry(e, config=config)
+                if waiting_res is not None:
+                    return waiting_res
             detail = self._meli_exception_text(e)
             reason = self._meli_confirm_failure_message(detail)
             _logger.warning("MELI confirm (savepoint) FAILED on SO %s (id=%s), queda cotizacion: %s",
@@ -990,6 +1001,183 @@ class sale_order(models.Model):
             msg = "%s." % prefix
         msg += "%s Detalle: %s" % (suffix or "", detail or '-')
         return msg
+
+    # ------------------------------------------------------------------
+    # #645 (Tus Refacciones 431, 30-sep-2026): venta ML sin existencia.
+    # `mercadolibre_order_confirm_no_stock_mode` (cuenta + gemelo en compañía,
+    # mismo default 'confirm'):
+    #   confirm   -> camino 26.165 (#585): si el abastecimiento falla, cotización + aviso.
+    #   waiting   -> confirma SIEMPRE con albarán: si falla la COMPRA (mts_else_mto sin
+    #                proveedor), reintenta en savepoint con los moves de salida de esos
+    #                productos en make_to_stock (contexto `meli_force_mts_product_ids`,
+    #                ver stock_move.py) => salida "En espera" + aviso UNA vez.
+    #   quotation -> sin existencia libre no llama a action_confirm: queda cotización
+    #                + aviso UNA vez con producto y faltante; la próxima pasada confirma.
+    # Sólo ORM local, nada de red. Lo que no es almacenable (servicios, consumibles),
+    # la triangulación (ruta dropship o referencia DSTR_) no se considera; los kits se
+    # miran por sus componentes.
+    # ------------------------------------------------------------------
+    _MELI_NO_STOCK_MODES = ('confirm', 'waiting', 'quotation')
+
+    def _meli_no_stock_mode(self, config=None):
+        try:
+            mode = self._meli_cancel_setting('mercadolibre_order_confirm_no_stock_mode', 'confirm',
+                                             config=self._meli_cancel_config(config))
+        except Exception as e:
+            _logger.warning("MELI confirm: no se pudo leer mercadolibre_order_confirm_no_stock_mode (SO id=%s): %s",
+                            self.id, e)
+            mode = 'confirm'
+        return mode if mode in self._MELI_NO_STOCK_MODES else 'confirm'
+
+    def _meli_is_dropship_line(self, line, product):
+        """Triangulación: referencia DSTR_ (convención de 431) o una ruta de la línea /
+        producto / categoría con una regla que entrega directo al cliente desde el
+        proveedor (la ruta Dropship estándar: action 'buy' con destino cliente)."""
+        if (product.default_code or '').upper().startswith('DSTR_'):
+            return True
+        routes = product.route_ids
+        if 'route_id' in line._fields and line.route_id:
+            routes = routes | line.route_id
+        if product.categ_id and 'total_route_ids' in product.categ_id._fields:
+            routes = routes | product.categ_id.total_route_ids
+        for rule in routes.rule_ids:
+            if rule.location_dest_id.usage == 'customer' and (
+                    rule.action == 'buy' or rule.location_src_id.usage == 'supplier'):
+                return True
+        return False
+
+    def _meli_kit_components(self, product, qty):
+        """Si `product` es un kit (mrp, BoM tipo phantom) devuelve [(componente, cantidad en
+        su UdM)] para `qty` (UdM del producto). None si no es kit o no se pudo explotar."""
+        if 'is_kits' not in product._fields or not product.is_kits or 'mrp.bom' not in self.env:
+            return None
+        try:
+            boms = self.env['mrp.bom']._bom_find(product, company_id=self.company_id.id, bom_type='phantom')
+            bom = boms.get(product) if isinstance(boms, dict) else boms[:1]
+            if not bom:
+                return None
+            factor = product.uom_id._compute_quantity(qty, bom.product_uom_id) / (bom.product_qty or 1.0)
+            _boms, lines = bom.explode(product, factor)
+            return [(bl.product_id, bl.product_uom_id._compute_quantity(data['qty'], bl.product_id.uom_id))
+                    for bl, data in lines]
+        except Exception as e:
+            _logger.warning("MELI confirm: no se pudo explotar el kit %s (SO id=%s): %s", product.display_name, self.id, e)
+            return None
+
+    def _meli_confirm_stock_shortages(self):
+        """Lee (sin escribir) los faltantes de existencia LIBRE en el almacén de la venta.
+        Devuelve [(product, necesario, libre, faltante)] en la UdM del producto, agregando
+        las líneas del mismo producto."""
+        needed = {}
+        order = []
+        for line in self.order_line:
+            product = line.product_id
+            if not product or getattr(line, 'display_type', False) or getattr(line, 'is_delivery', False):
+                continue
+            if self._meli_is_dropship_line(line, product):
+                continue
+            line_uom = ('product_uom_id' in line._fields and line.product_uom_id) or \
+                       ('product_uom' in line._fields and line.product_uom) or product.uom_id
+            try:
+                qty = line_uom._compute_quantity(line.product_uom_qty, product.uom_id)
+            except Exception:
+                qty = line.product_uom_qty
+            items = self._meli_kit_components(product, qty)
+            if items is None:
+                items = [(product, qty)]
+            for comp, comp_qty in items:
+                if not comp or not self._meli_product_is_storable(comp):
+                    continue
+                if comp.id not in needed:
+                    needed[comp.id] = [comp, 0.0]
+                    order.append(comp.id)
+                needed[comp.id][1] += comp_qty
+        ctx = {}
+        wh = self.warehouse_id
+        if wh:
+            ctx = {'warehouse': wh.id, 'warehouse_id': wh.id}
+        from odoo.tools import float_compare as _meli_float_compare
+        shortages = []
+        for pid in order:
+            comp, qty = needed[pid]
+            free = comp.with_context(**ctx).free_qty
+            rounding = comp.uom_id.rounding or 0.01
+            if _meli_float_compare(free, qty, precision_rounding=rounding) >= 0:
+                continue
+            missing = qty - max(free, 0.0)
+            shortages.append((comp, qty, free, missing))
+        return shortages
+
+    @staticmethod
+    def _meli_fmt_qty(qty):
+        return ("%.4f" % qty).rstrip('0').rstrip('.')
+
+    def _meli_confirm_block_no_stock(self, config=None):
+        """Modo 'quotation': si falta existencia, NO confirma. Devuelve {'error': ...} o {}."""
+        try:
+            shortages = self._meli_confirm_stock_shortages()
+        except Exception as e:
+            # Si no se puede medir, no se bloquea: se sigue con la confirmación de siempre.
+            _logger.warning("MELI confirm: no se pudo medir la existencia de SO id=%s: %s", self.id, e)
+            return {}
+        if not shortages:
+            return {}
+        parts = ["%s (pedido %s %s, disponible %s, faltan %s)" % (
+            p.display_name, self._meli_fmt_qty(need), p.uom_id.name,
+            self._meli_fmt_qty(max(free, 0.0)), self._meli_fmt_qty(missing))
+            for p, need, free, missing in shortages]
+        msg = ("Venta no confirmada: sin existencia suficiente en el almacén %s para %s. "
+               "Queda como cotización y se confirma sola en la próxima sincronización cuando haya "
+               "existencia (opción de la cuenta 'Venta sin existencia al confirmar').") % (
+            self.warehouse_id.display_name or '-', "; ".join(parts))
+        key_src = "|".join("%s:%s" % (p.id, self._meli_fmt_qty(missing)) for p, _n, _f, missing in shortages)
+        _logger.info("MELI confirm: SO %s (id=%s) sin existencia, queda cotizacion: %s", self.name, self.id, key_src)
+        try:
+            meli_message_post(self, msg, config=config,
+                              once_key="confirm-nostock-%s-%s" % (self.id, self._meli_short_hash(key_src)))
+        except Exception as post_err:
+            _logger.error("MELI confirm: no se pudo postear el aviso sin existencia en SO id=%s: %s", self.id, post_err)
+        return {'error': msg}
+
+    def _meli_confirm_waiting_retry(self, first_error, config=None):
+        """Modo 'waiting': la confirmación normal falló. Reintenta con los productos sin
+        existencia en make_to_stock (no dispara la compra imposible) => la salida queda
+        'En espera'. Devuelve {} si confirmó, None si tampoco pudo (sigue el camino #585)."""
+        try:
+            sin_stock, sin_proveedor = self._meli_confirm_problem_products()
+        except Exception as e:
+            _logger.warning("MELI confirm waiting: no se pudieron leer los productos de SO id=%s: %s", self.id, e)
+            return None
+        forced = sin_proveedor or sin_stock
+        if not forced:
+            return None
+        forced_ids = tuple(sorted(set(p.id for p in forced)))
+        try:
+            with self.env.cr.savepoint():
+                self.with_context(meli_force_mts_product_ids=forced_ids).action_confirm()
+                # Nunca venta confirmada SIN albarán.
+                if self._meli_draft_moves_without_picking():
+                    raise UserError("quedaron movimientos sin albarán")
+        except Exception as e2:
+            _logger.warning("MELI confirm waiting: reintento en make_to_stock FALLÓ en SO %s (id=%s): %s",
+                            self.name, self.id, self._meli_exception_text(e2))
+            return None
+        names = ", ".join(p.display_name for p in forced)
+        if sin_proveedor:
+            msg = ("Venta confirmada sin generar la compra de %s (no tiene un precio de proveedor válido): "
+                   "la salida queda en espera de existencia.") % names
+        else:
+            msg = ("Venta confirmada: no se pudo abastecer %s, la salida queda en espera de existencia. "
+                   "Detalle: %s") % (names, self._meli_exception_text(first_error) or '-')
+        _logger.info("MELI confirm waiting: SO %s (id=%s) confirmada con salida en espera (%s)",
+                     self.name, self.id, names)
+        try:
+            meli_message_post(self, msg, config=config,
+                              once_key="confirm-waiting-%s-%s" % (self.id, self._meli_short_hash(
+                                  ",".join(str(i) for i in forced_ids))))
+        except Exception as post_err:
+            _logger.error("MELI confirm waiting: no se pudo postear el aviso en SO id=%s: %s", self.id, post_err)
+        return {}
 
     def meli_create_invoice( self, meli=None, config=None):
         _logger.info("Meli Base meli_create_invoice")
