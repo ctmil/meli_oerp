@@ -64,6 +64,7 @@ from . import versions
 from .versions import *
 # `import *` no trae los nombres con guion bajo: este guard se importa explicito [#493]
 from .versions import _meli_guard_delivery_write
+from .receiver_cost import receiver_buyer_cost
 
 #
 #     https://www.odoo.com/fr_FR/forum/aide-1/question/solved-call-report-and-save-result-to-attachment-133244
@@ -1387,8 +1388,9 @@ class mercadolibre_shipment(models.Model):
                     # Costo del envío a cargo del COMPRADOR (receiver.cost). En órdenes
                     # pack/ME2 el flete no viene en payment.shipping_amount ni en
                     # shipping_option.cost — sí acá, en /costs → receiver.cost.
-                    _receiver = (isinstance(rcosts, dict) and rcosts.get('receiver')) or {}
-                    ship_json['receiver_cost'] = (isinstance(_receiver, dict) and _receiver.get('cost')) or 0.0
+                    # Descontando lo que cubre el vendedor (receiver.cost_details): con envío
+                    # gratis subsidiado, receiver.cost viene lleno y el comprador pagó 0.
+                    ship_json['receiver_cost'] = receiver_buyer_cost(rcosts)
 
                 seller_id = None
                 if config.mercadolibre_seller_user:
