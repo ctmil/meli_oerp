@@ -45,6 +45,9 @@
                        meli_oerp.cancel_return_reasons => la mercaderia NO se devolvio sola. -->
                   <filter string='ML: cancelada sin devolución de stock' name="meli_cancel_return_skipped_filter"
                           domain="[('meli_cancel_return_skipped', '=', True)]"/>
+                  <!-- 26.171 (E2): canceladas en ML antes de 'Cancelaciones automáticas desde'. -->
+                  <filter string="MercadoLibre Cancelaciones retenidas (anteriores al corte)" name="meli_cancel_held_filter"
+                          domain="[('meli_cancel_held', '=', True), ('state', '!=', 'cancel')]"/>
                 </xpath>
             </field>
         </record>
@@ -115,6 +118,9 @@
                        meli_oerp.cancel_return_reasons => la mercaderia NO se devolvio sola. -->
                   <filter string='ML: cancelada sin devolución de stock' name="meli_cancel_return_skipped_filter"
                           domain="[('meli_cancel_return_skipped', '=', True)]"/>
+                  <!-- 26.171 (E2): canceladas en ML antes de 'Cancelaciones automáticas desde'. -->
+                  <filter string="MercadoLibre Cancelaciones retenidas (anteriores al corte)" name="meli_cancel_held_filter"
+                          domain="[('meli_cancel_held', '=', True), ('state', '!=', 'cancel')]"/>
                 </xpath>
             </field>
         </record>
@@ -644,6 +650,17 @@
             <field name="binding_view_types">list,form</field>
             <field name="state">code</field>
             <field name="code">action = records.action_meli_relaunch_procurement()</field>
+        </record>
+
+        <!-- 26.171 (E2, 431): procesar a mano las cancelaciones RETENIDAS por la fecha de
+             corte ('Cancelaciones automáticas desde'), como lo haría el cron. -->
+        <record id="action_meli_cancel_process_held_server" model="ir.actions.server">
+            <field name="name">MercadoLibre: procesar cancelación ignorando la fecha de corte</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="binding_model_id" ref="sale.model_sale_order"/>
+            <field name="binding_view_types">list,form</field>
+            <field name="state">code</field>
+            <field name="code">records.action_meli_cancel_process_held()</field>
         </record>
 
     </data>
