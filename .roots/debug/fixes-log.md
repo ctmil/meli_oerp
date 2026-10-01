@@ -4,6 +4,43 @@
 
 ---
 
+### 1 oct 2026 — Casos especiales de confirmación y cancelación ML: E1-E4 [Tus Refacciones 431] (v16.0.26.171)
+
+**Pedido.** FCA (1-oct, tras el pase de 431 a 26.170): "hacé los fixes necesarios para los casos especiales agregando las
+opciones necesarias". Casos vistos en PROD/demo el 30-sep. Plan: `.roots/tasks/PLAN-2026-09-28-431-test-y-revision-mapeo-cancelaciones-18.md` (workspace).
+- **E1 — "Confirmar siempre" (`waiting`) con ruta MTO PURA.** El hook de `stock.move.create`/`_prepare_procurement_qty`
+  (contexto `meli_force_mts_product_ids`) sólo forzaba make_to_stock en reglas `mts_else_mto`; con `make_to_order` puro (la ruta
+  MTO estándar de Odoo) la venta volvía a cotización. Ahora `_MELI_FORCEABLE_PROCURE = ('mts_else_mto', 'make_to_order')`.
+  Y si no hay productos sin existencia/sin proveedor (MTO puro CON existencia y sin proveedor: compra igual y falla),
+  `_meli_storable_products_without_seller` da los que se fuerzan (aviso: "la salida se abastece de la existencia del almacén").
+  Sin opción nueva. Límite: en almacenes de varios pasos (pick+ship) la salida forzada espera existencia en Salida.
+- **E2 — "Cancelaciones automáticas desde"** (`mercadolibre_cancel_auto_from`, Datetime, `res.company` + GEMELO en
+  `mercadolibre.configuration`, default vacío = como antes). `meli_cancel_with_detail` llama primero a
+  `_meli_cancel_hold_by_cutoff` (antes de los dos modos y de cualquier red): si ML canceló antes de la fecha ⇒ NO devolución,
+  NO factura, NO cancelación; `meli_cancel_held=True` + aviso once (`cancel-held-<so>-<corte>`). Fecha comparada:
+  `meli_cancel_date` nuevo (= `cancel_detail.date`, se escribe donde ya se escribía `meli_cancel_reason_code` y desde el
+  `order_json` fresco) → la "fecha:" que `meli_status_detail` trae en el texto → fecha de la venta en ML
+  (`meli_date_closed`/`meli_date_created`) → `date_order` (que `action_confirm` reescribe: último recurso). Respaldo conservador:
+  la cancelación nunca es anterior a la venta. Filtro nuevo "MercadoLibre Cancelaciones retenidas (anteriores al corte)" (las
+  retenidas también salen en "Canceladas pendientes en Odoo"). Acción de servidor "MercadoLibre: procesar cancelación ignorando
+  la fecha de corte" (`action_meli_cancel_process_held`, contexto `meli_cancel_ignore_cutoff`).
+- **E3 — excepciones por motivo en el modo `legacy`.** La ola 26.164 ya las cubría SÓLO en `por_estado_ml` (FULL ⇒ no mueve stock;
+  pago acreditado sin reintegro, típico `pack_splitted` ⇒ sin devolución ni NC, retiene). En `legacy` (default) no: FULL validaba
+  la devolución (en 18/19 el guard "sin cantidades" mira la cantidad ENTREGADA, > 0) y `pack_splitted` devolvía + NC. Corrección
+  por default (sin opción): FULL ⇒ `_meli_return_done_pickings` no crea devolución (aviso once `ret-full-<so>`), en los dos modos;
+  `pack_splitted` (código o texto) en legacy ⇒ `_meli_cancel_pack_splitted_legacy`: sin devolución ni NC; cancela sólo si no hay
+  salida hecha ni factura publicada, si no queda abierta con aviso "ACCIÓN REQUERIDA … buscar la venta gemela" (once).
+- **E4 — "Monto correcto, listo para confirmar venta."** se posteaba en cada reintento del cron (prod 431: 4 veces en 25 min).
+  Ahora once (`confirm-ready-<so>`) y no se repite si la venta ya tiene el texto viejo sin marca.
+**Test (Odoo 18 local, bases t18_431ce = 26.171 / t18_431ce_ctl = 26.170, mismo script).** E1 MTO puro waiting sin stock/sin prov
+⇒ sale + OUT confirmed + 0 compras + 1 aviso (ctl: cotización) · con stock/sin prov ⇒ OUT assigned (ctl: cotización) · con prov,
+confirm default y mts_else_mto = ctl. E4 4 pasadas ⇒ 1 aviso (ctl 4). E2 corte 30-sep 22:06Z: cancelada 10-sep (texto, order_json
+o venta) ⇒ retenida, 0 devoluciones, 1 aviso en 2 pasadas; por_estado_ml retenida sin red; cancelada 1-oct y sin corte = ctl;
+acción manual ⇒ cancela + devolución; cuenta vacía + compañía con corte ⇒ retenida. E3 FULL ⇒ 0 devoluciones (ctl 1);
+pack_splitted salida hecha ⇒ abierta, 0 devoluciones (ctl devolución + cancela); con factura ⇒ 0 NC (ctl 1); sin salida y
+buyer_cancel_express = ctl.
+**Port.** Mismo delta que 18.0 (md5 idéntico del diff de models/ y views/). py_compile + XML OK. NO corrido en Odoo 16.0: 18.0 sí (ver fixes-log 18.0). Odoo 17 local no instala desde cero ni en el control 26.170 (wizard_sales.xml de meli_oerp_multiple: campo 'name' inexistente en mercadolibre.orders.import, preexistente).
+
 ### 30 sep 2026 — Venta ML sin existencia: opción por cuenta "Venta sin existencia al confirmar" [#645 Tus Refacciones 431] (v16.0.26.170)
 
 **Pedido.** Mario (431), tras la call del 30-sep: la venta ML sin existencia NO debe quedar en cotización (lo que hacía
