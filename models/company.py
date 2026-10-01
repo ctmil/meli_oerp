@@ -400,6 +400,14 @@ class res_company(models.Model):
     mercadolibre_cron_get_update_products = fields.Boolean(string='Actualizar productos en Odoo',help='Cron Update Products already imported')
     mercadolibre_cron_post_update_products = fields.Boolean(string='Actualizar productos en ML',help='Cron Update Posted Products, Product Templates or Variants with Meli Publication field checked')
     mercadolibre_cron_post_update_stock = fields.Boolean(string='Publicar Stock',help='Cron Post Updated Stock')
+    mercadolibre_stock_diag_reactivate = fields.Selection(
+        [('all', 'Todas (comportamiento anterior)'),
+         ('out_of_stock', 'Sólo las pausadas por falta de stock'),
+         ('never', 'Nunca')],
+        string='Diagnóstico: reactivar pausadas', default='all',
+        help="Qué hace el diagnóstico de stock con una publicación PAUSADA en MercadoLibre que tiene stock en Odoo. "
+             "'Todas' la reactiva siempre (también una pausa hecha a mano). "
+             "'Sólo falta de stock' la reactiva sólo si ML la pausó por quedarse sin stock. 'Nunca' no la toca.")
     mercadolibre_cron_post_update_price = fields.Boolean(string='Publicar Precio',help='Cron Post Updated Price')
     mercadolibre_create_website_categories = fields.Boolean(string='Crear categorías',help='Create Website eCommerce Categories from imported products ML categories')
     mercadolibre_pricelist = fields.Many2one( "product.pricelist", "Product Pricelist default", help="Select price list for ML product"
@@ -1773,7 +1781,7 @@ class res_company(models.Model):
             _logger.debug("MELI_STOCK_DIAG: no se pudo persistir meli_last_status de %s: %s",
                           meli_id, _st_err)
 
-    def meli_stock_diagnostic(self, meli=False):
+    def meli_stock_diagnostic(self, meli=False, reactivate=None):
         """
         Diagnostic safety check: compare Odoo stock vs ML stock for all published products.
         Runs at the end of each stock cron cycle. Detects and corrects:
@@ -1788,6 +1796,8 @@ class res_company(models.Model):
         t_diag_start = _time.time()
 
         company = self if self and self._name == 'res.company' and self.id else self.env.user.company_id
+        # #601 P7: pausar/despausar es decisión comercial — el modo lo elige la cuenta (multiple lo pasa) o la compañía.
+        reactivate = reactivate or company.mercadolibre_stock_diag_reactivate or 'all'
         if not company.mercadolibre_cron_post_update_stock:
             return {}
 
@@ -2000,6 +2010,12 @@ class res_company(models.Model):
                         # Skip only pure ML-managed fulfillment (no user_product_id — ML controls stock)
                         if ml_logistic == 'fulfillment' and not ml_user_product_id:
                             checked_items_log.append(f"⏭ {item_log} → paused pero FULFILLMENT ML puro (skip)")
+                            continue
+                        _ml_sub = rjson.get('sub_status') or []
+                        if reactivate == 'never' or (reactivate == 'out_of_stock' and 'out_of_stock' not in _ml_sub):
+                            _logger.info("MELI_STOCK_DIAG: NO reactiva [%s] %s (paused, sub_status=%s, modo=%s)", sku, meli_id, _ml_sub, reactivate)
+                            actions_taken.append(f"⏭ NO REACTIVA [{sku}] {meli_id} — pausada (sub_status={_ml_sub}), modo={reactivate}")
+                            checked_items_log.append(f"⏭ {item_log} → paused, NO se reactiva (modo={reactivate}, sub_status={_ml_sub})")
                             continue
                         product = self.env['product.product'].browse(pid)
                         if not product.meli_update_stock_blocked and not product.product_tmpl_id.meli_update_stock_blocked:
