@@ -630,6 +630,21 @@ class res_company(models.Model):
             "Los servicios, los consumibles sin control de inventario y los productos de "
             "triangulación (dropship o referencia DSTR_) no se consideran.")
 
+    # 26.171 (E2, Tus Refacciones 431): fecha de corte de las cancelaciones automáticas.
+    # GEMELO en meli_oerp_multiple/models/connection_configuration.py con el MISMO default
+    # (vacío; bug del #453): con cuenta de conexion manda el de la CUENTA.
+    mercadolibre_cancel_auto_from = fields.Datetime(
+       string="Cancelaciones automáticas desde",
+       help="Fecha y hora desde la que las cancelaciones de MercadoLibre se procesan "
+            "automáticamente (devolución, factura y cancelación de la venta, según 'Devolución "
+            "de mercadería al cancelar pedido' y 'Decisión al cancelar pedido').\n"
+            "Un pedido que ML canceló ANTES de esta fecha no se toca: queda retenido, marcado "
+            "'ML Cancelación retenida' y visible en los filtros 'MercadoLibre Cancelaciones "
+            "retenidas' y 'MercadoLibre Canceladas pendientes en Odoo', para tratarlo a mano. "
+            "Se compara con la fecha de cancelación que informa ML; si no se tiene, con la fecha "
+            "de la venta.\n"
+            "Vacío (por defecto): se procesan todas, como hasta ahora.")
+
     # [#493 Shoppy] Ver la nota gemela en meli_oerp_multiple/models/connection_configuration.py:
     # este campo se declara en los DOS modelos y el default DEBE ser el mismo en ambos.
     mercadolibre_protect_invoiced_orders = fields.Boolean(
