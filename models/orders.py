@@ -4843,7 +4843,6 @@ class mercadolibre_orders(models.Model):
             if ("logistic_type" in order_json["shipping"]):
                 order_fields['shipment_logistic_type'] = order_json["shipping"]["logistic_type"]
                 meli_order_fields["meli_shipment_logistic_type"] = order_json["shipping"]["logistic_type"]
-                meli_order_fields["meli_shipment_free"] = order_json["shipping"]["free_shipping"]
 
             if ("cost" in order_json["shipping"]):
                 order_fields["shipping_cost"] = float(order_json["shipping"]["cost"])
@@ -4886,6 +4885,9 @@ class mercadolibre_orders(models.Model):
                 del meli_order_fields["pricelist_id"]
             #_logger.info(meli_order_fields)
             sorder.meli_fix_team( meli=meli, config=config )
+            for k in [k for k in meli_order_fields if k not in sorder._fields]:
+                _logger.warning("MELI: sale.order sin campo '%s', se descarta", k)
+                del meli_order_fields[k]
             sorder.write( meli_order_fields )
             sorder.meli_fix_team( meli=meli, config=config )
         else:
@@ -4929,6 +4931,9 @@ class mercadolibre_orders(models.Model):
                 # Sanitize vals for compatibility with auditlog (copy.deepcopy)
                 safe_meli_fields = {}
                 for k, v in meli_order_fields.items():
+                    if k not in saleorder_obj._fields:
+                        _logger.warning("MELI: sale.order sin campo '%s', se descarta", k)
+                        continue
                     if hasattr(v, '_ids'):
                         safe_meli_fields[k] = v.id if len(v) == 1 else v.ids
                     else:
