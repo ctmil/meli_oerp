@@ -172,7 +172,7 @@
                       <group>
                         <field name="pdf_file" filename="pdf_filename"/>
                         <field name="pdf_filename"/>
-                        <field name="pdf_link" widget="url"/>
+                        <field name="pdf_link"/>
                       </group>
                       <group>
                         <field name="pdfimage_file" filename="pdfimage_filename"/>

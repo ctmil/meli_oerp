@@ -62,6 +62,13 @@ from datetime import *
 
 from . import versions
 from .versions import *
+
+
+def _meli_label_download(url, access_token, timeout=60):
+    """Descarga la etiqueta con el token en el header (no en la URL) y con timeout (#601 P3)."""
+    resp = requests.get(url, headers={'Authorization': 'Bearer %s' % access_token}, timeout=timeout)
+    resp.raise_for_status()
+    return resp.content
 # `import *` no trae los nombres con guion bajo: este guard se importa explicito [#493]
 from .versions import _meli_guard_delivery_write
 
@@ -2066,15 +2073,15 @@ class mercadolibre_shipment(models.Model):
         print_mode = "pdf"
         if (config and "mercadolibre_shipment_print_guide" in config._fields):
             if (config and "mercadolibre_shipment_print_guide_mode" in config._fields):
-                print_mode = config["mercadolibre_shipment_print_guide_mode"]        
+                print_mode = config["mercadolibre_shipment_print_guide_mode"] or "pdf"        
 
         if (shipment and shipment.status=="ready_to_ship"):
 
             #full_str_ids = full_str_ids + comma + shipment
             if (print_mode=='pdf'):
-                download_url = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+shipment.shipping_id+"&response_type=pdf&access_token="+meli.access_token
+                download_url = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+shipment.shipping_id+"&response_type=pdf"
             if (print_mode in ('zpl','zpl_txt')):
-                download_url = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+shipment.shipping_id+"&response_type=zpl2&access_token="+meli.access_token
+                download_url = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+shipment.shipping_id+"&response_type=zpl2"
     
             shipment.pdf_link = download_url
 
@@ -2082,7 +2089,7 @@ class mercadolibre_shipment(models.Model):
 
                 try:
                     if print_mode == 'pdf':
-                        data = urlopen(shipment.pdf_link).read()
+                        data = _meli_label_download(shipment.pdf_link, meli.access_token)
                         shipment.pdf_filename = "Shipment_" + shipment.shipping_id + ".pdf"
                         shipment.pdf_file = base64.b64encode(data)
                         # Generar preview JPG (solo si pdf2image está disponible)
@@ -2101,7 +2108,7 @@ class mercadolibre_shipment(models.Model):
                                 _logger.debug("Error generating PDF preview: %s", str(img_e))
 
                     if print_mode in ('zpl', 'zpl_txt'):
-                        data = urlopen(shipment.pdf_link).read()
+                        data = _meli_label_download(shipment.pdf_link, meli.access_token)
                         is_zip = data[:2] == b'PK'
                         if print_mode == 'zpl_txt':
                             # ML entrega la etiqueta ZPL2 dentro de un ZIP. En modo
