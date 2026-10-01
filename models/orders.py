@@ -3251,6 +3251,7 @@ class mercadolibre_orders(models.Model):
 
         partner_id = False
         partner_shipping_id = False
+        partner_invoice_id = False  # #601: si la orden llega sin buyer no se asignaba y abortaba en la asignación de contactos
 
         if not 'buyer' in order_json or not 'name' in order_json['buyer'] or not 'first_name' in order_json['buyer']:
             #_logger.info("Buyer not present, fetch order")
@@ -5152,6 +5153,7 @@ class mercadolibre_orders(models.Model):
                                 if ( tax_names_equivalent(txid.name,tax_iva_name) ):
                                     tax_iva_id = txid
 
+                        tid = None  # #601: si la línea no trae impuestos el for no corre y abajo se usaba tid sin definir
                         for tid in saleorderline_item_ids[tax_field]:
 
                             if (tid.company_id.id!=sorder.company_id.id 
