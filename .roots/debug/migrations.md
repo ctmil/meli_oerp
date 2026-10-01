@@ -10,6 +10,12 @@
 - Parámetro `meli_oerp.cancel_return_reasons` = `buyer_cancel_express,fraud` en `data/parameters_data.xml`
   (`noupdate=1`): se crea en el `-u` si no existe; si el cliente lo cambió, se respeta. Verificado en 19 borrando
   param + xmlid y corriendo `-u meli_oerp`.
+### 16.0.26.171 — sin script (1-oct-2026, 431 E1-E4)
+Campos nuevos: `mercadolibre_cancel_auto_from` (Datetime, vacío) en `res.company` (y gemelo en `mercadolibre.configuration`,
+meli_oerp_multiple); `sale.order.meli_cancel_date` (Datetime) y `sale.order.meli_cancel_held` (Boolean). El ORM crea las
+columnas vacías ⇒ comportamiento idéntico al anterior hasta cargar la fecha de corte. Sin backfill: para las ventas viejas la
+fecha de cancelación se lee del texto de `meli_status_detail`.
+
 ### 16.0.26.170 — sin script (30-sep-2026, #645)
 `mercadolibre_order_confirm_no_stock_mode` (Selection, default `confirm`) en `res.company` (meli_oerp) y en
 `mercadolibre.configuration` (meli_oerp_multiple). El ORM crea la columna con el default ⇒ comportamiento idéntico al anterior.
