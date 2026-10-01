@@ -1624,7 +1624,8 @@ class res_company(models.Model):
                     icommit+= 1
                     icount+= 1
                     try:
-                        resjson = obj.product_post_stock(meli=meli)
+                        with self.env.cr.savepoint():  # #601 P6: un ítem que falla no deshace a los demás
+                            resjson = obj.product_post_stock(meli=meli)
                         logs_list.append(f"{obj.default_code} {obj.meli_id}: {obj.meli_available_quantity}")
 
                         if "error" in resjson:
@@ -1642,12 +1643,13 @@ class res_company(models.Model):
                                 MeliCommit( self )
 
                     except Exception as e:
+                        if getattr(e, 'pgcode', '') in ('40001', '40P01'):
+                            raise  # serialización/deadlock: que lo maneje el reintento del cron
                         _logger.info("meli_update_remote_stock > Exception founded!")
                         _logger.info(e, exc_info=True)
                         logs_list.append(f"{obj.default_code} {obj.meli_id}: {obj.meli_available_quantity}")
                         errors_list.append(f"{obj.default_code} {obj.meli_id} >> {e}")
-                        if auto_commit:
-                            self.env.cr.rollback()
+                        # #601 P6: el savepoint del ítem ya deshizo SÓLO este ítem; los anteriores quedan registrados
 
             noti.resource = "meli_update_remote_stock #"+str(icount) +'/'+str(maxcommits)
             noti.stop_internal_notification(errors="\n".join(errors_list), logs="\n".join(logs_list))
@@ -1727,7 +1729,8 @@ class res_company(models.Model):
                     icommit+= 1
                     icount+= 1
                     try:
-                        resjson = obj.product_post_stock(meli=meli)
+                        with self.env.cr.savepoint():  # #601 P6: un ítem que falla no deshace a los demás
+                            resjson = obj.product_post_stock(meli=meli)
                         logs_list.append(f"{obj.default_code} {obj.meli_id}: {obj.meli_available_quantity}")
 
                         if "error" in resjson:
@@ -1745,12 +1748,13 @@ class res_company(models.Model):
                                 MeliCommit( self )
 
                     except Exception as e:
+                        if getattr(e, 'pgcode', '') in ('40001', '40P01'):
+                            raise  # serialización/deadlock: que lo maneje el reintento del cron
                         _logger.info("meli_update_remote_stock_rt > Exception founded!")
                         _logger.info(e, exc_info=True)
                         logs_list.append(f"{obj.default_code} {obj.meli_id}: {obj.meli_available_quantity}")
                         errors_list.append(f"{obj.default_code} {obj.meli_id} >> {e}")
-                        if auto_commit:
-                            self.env.cr.rollback()
+                        # #601 P6: el savepoint del ítem ya deshizo SÓLO este ítem; los anteriores quedan registrados
 
             noti.resource = "meli_update_remote_stock_rt #"+str(icount) +'/'+str(maxcommits)
             noti.stop_internal_notification(errors="\n".join(errors_list), logs="\n".join(logs_list))
@@ -2323,7 +2327,8 @@ class res_company(models.Model):
                         if (obj.meli_id and icount<=topcommits):
                             try:
                                 #_logger.info( "Update Price: #" + str(icount) +'/'+str(maxcommits)+ ' meli_id:'+str(obj.meli_id)  )
-                                resjson = obj.product_post_price(meli=meli)
+                                with self.env.cr.savepoint():  # #601 P6: un ítem que falla no deshace a los demás
+                                    resjson = obj.product_post_price(meli=meli)
                                 logs+= str(obj.default_code)+" "+str(obj.meli_id)+": "+str(obj.meli_price)+"\n"
                                 if "error" in resjson:
                                     errors+= str(obj.default_code)+" "+str(obj.meli_id)+" >> "+str(resjson)+"\n"
@@ -2338,13 +2343,14 @@ class res_company(models.Model):
                                         MeliCommit( self )
 
                             except Exception as e:
+                                if getattr(e, 'pgcode', '') in ('40001', '40P01'):
+                                    raise  # serialización/deadlock: que lo maneje el reintento del cron
                                 _logger.info("meli_update_remote_price > Exception founded!")
                                 _logger.info(e, exc_info=True)
                                 logs+= str(obj.default_code)+" "+str(obj.meli_id)+": "+str(obj.meli_price)+", "
                                 #errors+= str(obj.default_code)+" "+str(obj.meli_id)+" >> "+str(e.args[0])+str(", ")
                                 errors+= str(obj.default_code)+" "+str(obj.meli_id)+" >> "+str(e)+"\n"
-                                if auto_commit:
-                                    self.env.cr.rollback()
+                                # #601 P6: el savepoint del ítem ya deshizo SÓLO este ítem; los anteriores quedan registrados
                                 pass;
 
                     noti.resource = "meli_update_remote_price #"+str(icount) +'/'+str(maxcommits)
