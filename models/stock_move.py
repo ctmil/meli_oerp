@@ -260,10 +260,15 @@ class StockMove(models.Model):
     # esos productos que nacen de una regla "mts_else_mto" NO disparan la regla
     # siguiente (la COMPRA que no puede generarse): quedan make_to_stock, en espera
     # de existencia. Sin el contexto no cambia nada.
+    # 26.171 (E1, 431): también las reglas "make_to_order" PURAS (la ruta MTO estándar
+    # de Odoo). Antes sólo se miraba mts_else_mto y con MTO puro el modo 'waiting'
+    # volvía a cotización (medido en Odoo 18 demo, 30-sep).
     #   16/17: _run_pull decide 'make_to_order' al crear el move -> se corrige en create.
     #   18/19: el move nace make_to_stock y _action_confirm pide el faltante vía
     #          _prepare_procurement_qty -> se devuelve 0 (procurement.group lo saltea).
     # ------------------------------------------------------------------
+    _MELI_FORCEABLE_PROCURE = ('mts_else_mto', 'make_to_order')
+
     def _meli_forced_mts_product_ids(self):
         return set(self.env.context.get('meli_force_mts_product_ids') or ())
 
@@ -275,7 +280,7 @@ class StockMove(models.Model):
             for vals in vals_list:
                 if (vals.get('procure_method') == 'make_to_order' and vals.get('rule_id')
                         and vals.get('product_id') in forced
-                        and Rule.browse(vals['rule_id']).procure_method == 'mts_else_mto'):
+                        and Rule.browse(vals['rule_id']).procure_method in self._MELI_FORCEABLE_PROCURE):
                     vals['procure_method'] = 'make_to_stock'
         return super(StockMove, self).create(vals_list)
 
@@ -286,5 +291,5 @@ class StockMove(models.Model):
         if not forced:
             return quantities
         return [0.0 if (move.product_id.id in forced and move.rule_id
-                        and move.rule_id.procure_method == 'mts_else_mto') else qty
+                        and move.rule_id.procure_method in self._MELI_FORCEABLE_PROCURE) else qty
                 for move, qty in zip(self, quantities)]

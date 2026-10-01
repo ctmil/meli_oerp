@@ -3,6 +3,22 @@
 > Historial de versiones y cambios orientado al cliente.
 
 ---
+
+## 18.0.26.171 — 1-oct-2026 · casos especiales de confirmación y cancelación [Tus Refacciones 431]
+- **"Venta sin existencia al confirmar = Confirmar siempre" ahora también funciona con la ruta "Obtener bajo
+  pedido (MTO)" estándar de Odoo** (antes sólo con la variante "Tomar del stock, si no disponible, ordenar"). La
+  venta se confirma y la salida queda en espera aunque la compra no se pueda generar.
+- **Nueva opción "Cancelaciones automáticas desde"** (cuenta de MercadoLibre y compañía): lo que MercadoLibre
+  canceló antes de esa fecha no se procesa solo — queda marcado ("ML Cancelación retenida") y en el filtro
+  *MercadoLibre Cancelaciones retenidas (anteriores al corte)* para revisarlo a mano, o procesarlo con la acción
+  *MercadoLibre: procesar cancelación ignorando la fecha de corte*. Vacía = como hasta ahora.
+- **Envíos FULL:** al cancelarse, ya no se crea una devolución al almacén propio (el stock lo maneja
+  MercadoLibre).
+- **Pack dividido por MercadoLibre (pack_splitted):** no se crea devolución ni nota de crédito; si la venta ya
+  tenía la salida hecha o una factura publicada, queda abierta con un aviso para revisar la venta gemela.
+- El aviso *"Monto correcto, listo para confirmar venta."* se publica una sola vez por venta.
+
+---
 ## 18.0.26.159 — 29-sep-2026 · descuento de vendedor y envío se deciden juntos [#504 / #520]
 - **El problema:** con la opción *Tope del descuento de vendedor = nunca por debajo del total*, el importe a
   facturar decidía el descuento de vendedor y el envío **por separado**, y cada decisión rompía a la otra.
