@@ -1972,6 +1972,63 @@ class mercadolibre_shipment(models.Model):
             sitem = self.env["mercadolibre.shipment.item"].create(ifields)
         return sitem
 
+    # #618 (T3LC) -- estados del ENVIO que ya no cambian: no se vuelven a consultar.
+    # not_delivered NO es terminal en general (returning_to_sender -> returned), salvo
+    # con los substatus de cierre.
+    _MELI_SHIP_TERMINAL = ("delivered", "cancelled")
+    _MELI_SHIP_NOT_DELIVERED_CLOSED = ("returned", "returned_to_warehouse", "returned_and_destroyed")
+
+    def _meli_ship_status_is_open(self):
+        """#618 - True si el estado del envio todavia puede cambiar en ML."""
+        self.ensure_one()
+        st = self.status or ""
+        if st in self._MELI_SHIP_TERMINAL:
+            return False
+        if st == "not_delivered" and (self.substatus or "") in self._MELI_SHIP_NOT_DELIVERED_CLOSED:
+            return False
+        return True
+
+    def _meli_resync_status_vals(self, meli):
+        """#618 - UN GET /shipments/<id> y devuelve los vals de ESTADO si cambio ({} si no).
+
+        No escribe nada: quien llama aplica los vals en un cursor corto aparte (ver
+        mercadolibre.orders._meli_apply_shipment_refresh). Es la parte de estado de
+        fetch_shipment (status, substatus, fechas de status_history, last_updated,
+        tracking) sin el resto (costos, items, direccion, venta), que no cambia con el
+        avance del envio y que ya refresca fetch_shipment cuando la ORDEN cambia."""
+        self.ensure_one()
+        if not self.shipping_id or not meli or meli.access_token == "PASIVA":
+            return {}
+        response = meli.get("/shipments/" + str(self.shipping_id), {'access_token': meli.access_token})
+        ship_json = response and response.json() or {}
+        if not isinstance(ship_json, dict) or "error" in ship_json or not ship_json.get("status"):
+            return {}
+        new_status = ship_json.get("status") or ""
+        new_substatus = ship_json.get("substatus") or ""
+        if new_status == (self.status or "") and new_substatus == (self.substatus or ""):
+            return {}
+        vals = {
+            "status": new_status,
+            "substatus": new_substatus,
+            "name": "MSO [" + str(self.shipping_id) + "] " + str(new_status) + "/" + str(new_substatus or None),
+        }
+        if ship_json.get("last_updated"):
+            vals["last_updated"] = ml_datetime(ship_json["last_updated"])
+        if ship_json.get("tracking_number") and not self.tracking_number:
+            vals["tracking_number"] = ship_json["tracking_number"]
+        sh = ship_json.get("status_history") or {}
+        if isinstance(sh, dict) and sh:
+            if "status_history_json" in self._fields:
+                try:
+                    vals["status_history_json"] = json.dumps(sh)
+                except Exception:
+                    pass
+            for key in ("date_handling", "date_ready_to_ship", "date_shipped", "date_delivered",
+                        "date_first_visit", "date_not_delivered", "date_returned", "date_cancelled"):
+                if sh.get(key) and key in self._fields:
+                    vals[key] = ml_datetime(sh[key])
+        return vals
+
     def update( self, context=None, meli=None, config=None ):
 
         #_logger.info( "update: context: "+str(context)+ " meli: "+str(meli)+ " config: " +str(config) )
