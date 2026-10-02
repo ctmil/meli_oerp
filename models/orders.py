@@ -613,6 +613,32 @@ class sale_order(models.Model):
             return invoices[0]
         return None
 
+    def _meli_shipping_missing_in_paid(self, config=None):
+        """#620 (T3LC 535) - Flete del comprador que NO esta dentro de meli_paid_amount.
+
+        En ordenes ME2 donde el pago no trae shipping_amount, ML informa paid_amount SIN el
+        envio (medido: 138 + 51 de 343 ventas con envio a cargo del comprador), mientras
+        el camino de carrito ya le suma receiver.cost. La linea de envio lleva el flete
+        del comprador; esto hace que el importe a facturar lo lleve tambien.
+        - 0 si el pago aprobado trae shipping_amount (paid_amount ya lo incluye).
+        - 0 si paid_amount ya cubre el flete: paid - total + cupon >= flete (carrito, o
+          ML que si lo incluyo) — nunca se suma dos veces.
+        - 0 si el comprador no paga envio (subsidiado por el vendedor)."""
+        self.ensure_one()
+        shipment = "meli_shipment" in self._fields and self.meli_shipment
+        morder = self.meli_orders[:1]
+        if not shipment or not morder:
+            return 0.0
+        if morder.payments_shipment_amount:
+            return 0.0
+        buyer = shipment._meli_buyer_shipping_amount(morder, config=config)
+        if buyer <= 0.0:
+            return 0.0
+        in_paid = (self.meli_paid_amount or 0.0) - (self.meli_total_amount or 0.0) + abs(self.meli_coupon_amount or 0.0)
+        if in_paid >= buyer - 1.0:
+            return 0.0
+        return buyer
+
     def meli_amount_to_invoice( self, meli=None, config=None ):
 
         total_config = (config and "mercadolibre_order_total_config" in config._fields) and config.mercadolibre_order_total_config
@@ -668,7 +694,10 @@ class sale_order(models.Model):
             if (including_shipping_cost=="never"):
                 return (self.meli_paid_amount - seller_discount - self.meli_shipping_amount)
 
-            return (self.meli_paid_amount - seller_discount)
+            # #620: si ML no incluyo el envio que pago el comprador en paid_amount, se suma
+            # (la linea de envio lo lleva, ver mercadolibre.shipment._meli_buyer_shipping_amount).
+            return (self.meli_paid_amount - seller_discount
+                    + self._meli_shipping_missing_in_paid(config=config))
 
         if total_config in ['total_amount']:
             return self.meli_total_amount
