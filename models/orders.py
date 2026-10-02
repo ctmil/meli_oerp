@@ -5879,6 +5879,12 @@ class mercadolibre_orders(models.Model):
         # #638: ids revisados SIN cambios (o que ML no devuelve) -> se sellan al final
         # en una transaccion corta aparte (ver _meli_mark_status_checked).
         unchanged_ids = []
+        # #618: envios NO terminales de las ordenes sin cambios -> GET /shipments y, si el
+        # estado cambio, se aplica al final en un cursor corto aparte (como el sello).
+        ship_enabled = self._meli_resync_shipment_enabled()
+        ship_updates = {}
+        ship_checked = 0
+        ship_seen = set()  # carrito: varias ordenes comparten envio -> 1 GET por envio
         for order in candidates:
             try:
                 response = meli.get("/orders/"+str(order.order_id), {'access_token': meli.access_token})
@@ -5891,6 +5897,21 @@ class mercadolibre_orders(models.Model):
                 if str(order.status) == str(new_status):
                     # sin cambios -> sin side effects (idempotente, barato: 1 GET)
                     unchanged_ids.append(order.id)
+                    # #618: el estado del ENVIO avanza aunque la orden siga `paid`
+                    # (ready_to_ship -> shipped -> delivered). Si la orden CAMBIA, el
+                    # resync completo (orders_update_order -> fetch_shipment) ya lo trae.
+                    if (ship_enabled and order.shipment and order.shipment.id not in ship_seen
+                            and order.shipment._meli_ship_status_is_open()):
+                        ship_seen.add(order.shipment.id)
+                        try:
+                            ship_checked += 1
+                            svals = order.shipment._meli_resync_status_vals(meli)
+                            if svals:
+                                ship_updates[order.shipment.id] = svals
+                        except Exception as e:
+                            # nunca rompe el barrido de ordenes: se reintenta en la proxima vuelta
+                            _logger.warning("orders_resync_status #618 > no se pudo consultar el envio %s de la orden %s: %s",
+                                            order.shipment.shipping_id, order.order_id, e)
                     continue
                 changed += 1
                 # las que cambian se sellan en la transaccion del cron: si se revierte,
@@ -5951,6 +5972,10 @@ class mercadolibre_orders(models.Model):
                 except Exception as e:
                     _logger.error("orders_resync_status > error re-decidiendo la cancelacion de %s: %s", sorder.name, e, exc_info=True)
                     MeliRollback(self)
+        ship_applied = self._meli_apply_shipment_refresh(ship_updates)
+        if ship_enabled:
+            _logger.info("orders_resync_status #618: cuenta=%s envios consultados=%s cambiados=%s aplicados=%s",
+                         (account and account.name) or "-", ship_checked, len(ship_updates), ship_applied)
         marked = self._meli_mark_status_checked(unchanged_ids)
         _logger.info("orders_resync_status: cuenta=%s checked=%s changed=%s cancelled=%s waiting_return=%s marked=%s (days=%s limit=%s)", (account and account.name) or "-", checked, changed, cancelled, waiting, marked, days, query_limit)
         return {"checked": checked, "changed": changed, "cancelled": cancelled, "waiting_return": waiting, "marked": marked}
@@ -5981,6 +6006,49 @@ class mercadolibre_orders(models.Model):
         except Exception as e:
             _logger.warning("orders_resync_status > no se pudo sellar meli_status_checked_at (%s ordenes): %s", len(order_ids), e)
             return 0
+
+    _MELI_RESYNC_SHIPMENT_PARAM = "meli_oerp.resync_shipment_status"
+
+    def _meli_resync_shipment_enabled(self):
+        """#618 - el refresco del estado del envio en orders_resync_status esta prendido
+        por defecto; se apaga sin -u con ir.config_parameter
+        meli_oerp.resync_shipment_status = 0 (p.ej. si el rate-limit de ML aprieta: suma
+        hasta 1 GET /shipments por orden revisada, solo para envios NO terminales)."""
+        raw = self.env["ir.config_parameter"].sudo().get_param(self._MELI_RESYNC_SHIPMENT_PARAM, "1")
+        return str(raw).strip().lower() not in ("0", "false", "no", "off", "")
+
+    def _meli_apply_shipment_refresh(self, updates):
+        """#618 - Escribe el estado nuevo de los envios ({shipment_id: vals}).
+
+        Mismo criterio que _meli_mark_status_checked: cursor PROPIO y corto, no la
+        transaccion del cron (MeliCommit es flush: la del cron dura todo el barrido con
+        la red adentro). FOR UPDATE SKIP LOCKED + lock_timeout: nunca espera a la
+        transaccion del cron ni al import; lo que esta tomado se saltea y se vuelve a
+        consultar en la proxima vuelta de la rotacion. Si falla, solo se pierde el
+        refresco de este ciclo (se loguea), nunca el cron."""
+        if not updates:
+            return 0
+        applied = 0
+        try:
+            self.env.flush_all()
+            with self.env.registry.cursor() as ship_cr:
+                ship_cr.execute("SET LOCAL lock_timeout = '5s'")
+                ship_cr.execute(
+                    """SELECT id FROM mercadolibre_shipment
+                        WHERE id = ANY(%s) FOR UPDATE SKIP LOCKED""",
+                    (list(updates),),
+                )
+                free_ids = [row[0] for row in ship_cr.fetchall()]
+                ship_env = api.Environment(ship_cr, self.env.uid, dict(self.env.context, tracking_disable=True))
+                Shipment = ship_env["mercadolibre.shipment"]
+                for sid in free_ids:
+                    Shipment.browse(sid).write(updates[sid])
+                    applied += 1
+                ship_env.flush_all()
+        except Exception as e:
+            _logger.warning("orders_resync_status #618 > no se pudo aplicar el estado de %s envios: %s", len(updates), e)
+            return 0
+        return applied
 
     def _meli_cancel_api(self, config=None):
         """Cliente de la API de ML para leer la foto de una cancelacion (solo GET).
