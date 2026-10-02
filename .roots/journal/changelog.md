@@ -3,6 +3,13 @@
 > Historial de versiones y cambios orientado al cliente.
 
 ---
+
+## 18.0.26.180 — 3-oct-2026 · La línea de envío lleva lo que pagó el comprador [#620]
+- La línea de envío de la venta toma el costo que MercadoLibre informa como pagado por el comprador. Ya no queda en
+  $0 en unas ventas y con monto en otras, y el importe a facturar incluye ese envío.
+- Si el envío es gratis para el comprador (lo cubre el vendedor), la línea queda en 0 y no se factura.
+- El ajuste "Usar Monto de envío de Pagos" de la cuenta se sigue respetando.
+
 ## 18.0.26.159 — 29-sep-2026 · descuento de vendedor y envío se deciden juntos [#504 / #520]
 - **El problema:** con la opción *Tope del descuento de vendedor = nunca por debajo del total*, el importe a
   facturar decidía el descuento de vendedor y el envío **por separado**, y cada decisión rompía a la otra.
