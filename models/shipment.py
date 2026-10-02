@@ -662,6 +662,31 @@ class mercadolibre_shipment(models.Model):
                 updated += 1
         return updated
 
+    def _meli_buyer_shipping_amount(self, order=None, config=None):
+        """#620 - Flete que paga el COMPRADOR segun MercadoLibre (>= 0). Sin red.
+
+        Es el monto de la linea de envio de la venta, y el mismo numero que usa
+        sale.order._meli_shipping_missing_in_paid para el importe a facturar.
+        - mercadolibre_use_payment_shipping_amount = True (default): el shipping_amount
+          de los pagos aprobados (MercadoPago) — lo efectivamente cobrado como envio.
+        - = False: shipping_option.cost del envio (costo para el comprador; list_cost es
+          el costo lleno).
+        - En ambos, si eso da 0: receiver.cost de /shipments/{id}/costs NETO de lo que
+          cubre el vendedor (receiver_buyer_cost: envio gratis subsidiado => 0, Olpa 462).
+        Nunca se deduce comparando contra paid_amount."""
+        self.ensure_one()
+        use_payment = True
+        if config and "mercadolibre_use_payment_shipping_amount" in config._fields:
+            use_payment = config.mercadolibre_use_payment_shipping_amount
+        amount = 0.0
+        if use_payment:
+            amount = (order and order.payments_shipment_amount) or 0.0
+        else:
+            amount = self.shipping_cost or 0.0
+        if not amount and self.shipping_receiver_cost:
+            amount = self.shipping_receiver_cost
+        return max(float(amount or 0.0), 0.0)
+
     def _update_sale_order_shipping_info( self, order, meli=None, config=None ):
 
         company = (config and 'company_id' in config._fields and config.company_id) or ("company_id" in self._fields and self.company_id) or self.env.user.company_id
@@ -908,16 +933,10 @@ class mercadolibre_shipment(models.Model):
                 order._ensure_payment_shipping_amounts(meli=meli, config=config)
                 order.invalidate_recordset(['payments_shipment_amount'])
 
-            del_price = order.payments_shipment_amount;
-
-            if not mercadolibre_use_payment_shipping_amount:
-                del_price = shipment.shipping_cost
-
-            # Fallback órdenes pack/ME2: si ni el pago (payment.shipping_amount) ni
-            # shipping_option.cost traen el flete (queda 0), usar el costo del envío a
-            # cargo del comprador (receiver.cost de /shipments/{id}/costs).
-            if not del_price and shipment.shipping_receiver_cost:
-                del_price = shipment.shipping_receiver_cost
+            # #620: el flete de la linea = lo que PAGA EL COMPRADOR segun ML (ver
+            # _meli_buyer_shipping_amount). Mismo origen que antes, ahora en un solo lugar
+            # para que meli_amount_to_invoice use exactamente el mismo numero.
+            del_price = shipment._meli_buyer_shipping_amount(order, config=config)
 
             delivery_price = ml_product_price_conversion( self, product_related_obj=product_shipping_id, price=del_price, config=config ),
             if type(delivery_price)==tuple and len(delivery_price):
@@ -983,13 +1002,17 @@ class mercadolibre_shipment(models.Model):
             #_logger.info("ship_carrier_id:"+str(ship_carrier_id)+" sorder.carrier_id:"+str(sorder.carrier_id))
 
             if shipment_amount_cond_fix:
-                #_logger.info("shipment_cond: "+str(shipment_amount_cond)+" paid: "+str(received_amount)+" vs total: "+str(sorder.amount_total))
-                if ( ship_carrier_id and sorder.carrier_id):
-                    delivery_price = 0.0
-                    #_logger.info("set_delivery_line:"+str(delivery_price))
-                    if (not including_shipping_cost=="never"):
-                        set_delivery_line( sorder, delivery_price, "Defined by MELI" )
-                delivery_price = 0.0
+                # #620 (T3LC 535): esta valvula ponia la linea de envio en 0 cuando el total
+                # de la venta superaba lo cobrable (meli_amount_to_invoice). En las ordenes
+                # donde ML no incluye el envio en paid_amount eso borraba un flete que el
+                # comprador SI pago (medido 15-16 sep: 138 de 343 en $0). El flete ya NO se
+                # infiere comparando contra lo pagado: la linea lleva lo que el envio de ML
+                # dice que paga el comprador (0 si el vendedor lo subsidia). Si igual no
+                # cierra, la diferencia la marca el control de confirmacion/factura.
+                _logger.info(
+                    "MELI #620 %s: total %.2f > cobrable %.2f; la linea de envio queda en el "
+                    "flete del comprador %.2f (no se baja a 0).", sorder.name,
+                    sorder.amount_total or 0.0, received_amount or 0.0, delivery_price or 0.0)
 
             if shipment_amount_cond_fix2 and ship_carrier_id and sorder.carrier_id:
                 #_logger.info("set_delivery_line (fix2):"+str(delivery_price))
