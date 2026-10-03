@@ -4893,6 +4893,11 @@ class mercadolibre_orders(models.Model):
             #_logger.info("Updating sale.order: %s" % (sorder.id))
             if (sorder.state in ['sale','done']) or ("locked" in sorder._fields and sorder.locked):
                 del meli_order_fields["pricelist_id"]
+            elif meli_order_fields.get("pricelist_id") == sorder.pricelist_id.id:
+                # [#462 OLPA] No reescribir la lista con el MISMO valor: un modulo con
+                # @api.depends('order_id.pricelist_id') en el compute de price_unit (Olpa:
+                # website_sale_pricelist_rules) recomputa todas las lineas aun asi (SO 6212).
+                del meli_order_fields["pricelist_id"]
             #_logger.info(meli_order_fields)
             sorder.meli_fix_team( meli=meli, config=config )
             sorder.write( meli_order_fields )
