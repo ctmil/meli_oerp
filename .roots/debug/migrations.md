@@ -4,6 +4,14 @@
 
 ---
 
+## 5 oct 2026 — `sale.order.meli_handling_limit` almacenado (v18.0.26.188) [#431]
+
+- El related `meli_shipment.estimated_handling_limit` pasa a `store=True, index=True`.
+- `migrations/18.0.26.188/pre-migrate.py`: crea la columna (`ADD COLUMN IF NOT EXISTS`) y la llena por SQL desde
+  `mercadolibre_shipment` **antes** de cargar el modelo ⇒ Odoo no recomputa pedido por pedido.
+- Los envíos viejos siguen sin fecha hasta que se re-sincronicen (sólo se consulta `/sla` para envíos por despachar).
+
+
 ### 18.0.26.164 — `migrations/18.0.26.164/post-migrate.py` (29-sep-2026, ola de cancelaciones integrada)
 La siembra OLA3 (antes `18.0.26.149` → `18.0.26.162`) se renombra otra vez a **`18.0.26.164`**, el build de la ola integrada
 (cancel-v2 26.162 + #585 26.163). Odoo corre las carpetas con `instalada < carpeta <= nueva`: con 26.164 corre desde una base
