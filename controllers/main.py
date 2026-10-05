@@ -23,6 +23,7 @@ _logger = logging.getLogger(__name__)
 
 
 from ..models.versions import *
+from ..models.meli_util import _meli_mask
 
 def _get_headers(filename, filetype, content):
     return [
@@ -134,7 +135,7 @@ class MercadoLibreLogin(http.Controller):
                              'mercadolibre_refresh_token': meli.refresh_token,
                              'mercadolibre_code': codes['code'],
                              'mercadolibre_cron_refresh': True } )
-            return 'LOGGED WITH CODE: %s <br>ACCESS_TOKEN: %s <br>REFRESH_TOKEN: %s <br>MercadoLibre Publisher for Odoo - Copyright Moldeo Interactive <br><a href="javascript:window.history.go(-2);">Volver a Odoo</a> <script>window.history.go(-2)</script>' % ( codes['code'], meli.access_token, meli.refresh_token )
+            return 'LOGGED WITH CODE: %s <br>ACCESS_TOKEN: %s <br>REFRESH_TOKEN: %s <br>MercadoLibre Publisher for Odoo - Copyright Moldeo Interactive <br><a href="javascript:window.history.go(-2);">Volver a Odoo</a> <script>window.history.go(-2)</script>' % ( _meli_mask(codes['code']), _meli_mask(meli.access_token), _meli_mask(meli.refresh_token) )
         else:
             return "<a href='"+meli.auth_url()+"'>Try to Login Again Please</a>"
 

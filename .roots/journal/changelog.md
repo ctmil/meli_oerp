@@ -3,6 +3,14 @@
 > Historial de versiones y cambios orientado al cliente.
 
 ---
+## 18.0.26.182 — 5-oct-2026 · Las credenciales de MercadoLibre ya no se muestran en el historial
+- Al conectar o renovar la sesión con MercadoLibre, el historial (chatter) de la cuenta, el registro del
+  servidor y los logs de notificaciones muestran los tokens y la clave secreta enmascarados (`APP_…1234`),
+  en lugar de completos. Sólo código Python: no requiere actualizar el módulo, pero el número se sube
+  igual por convención del suite.
+
+---
+
 ## 18.0.26.159 — 29-sep-2026 · descuento de vendedor y envío se deciden juntos [#504 / #520]
 - **El problema:** con la opción *Tope del descuento de vendedor = nunca por debajo del total*, el importe a
   facturar decidía el descuento de vendedor y el envío **por separado**, y cada decisión rompía a la otra.
