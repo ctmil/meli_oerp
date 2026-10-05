@@ -2956,6 +2956,15 @@ class mercadolibre_orders(models.Model):
         upd_line = {
             "price_unit": ml_product_price_conversion( self, product_related_obj=product_related_obj, price=unit_price, config=config )
         }
+        # [#462 OLPA, SO 6212] Odoo 17.2+/18: una linea creada con price_unit en los vals queda con
+        # technical_price_unit == price_unit, y Odoo lo lee como "precio NO fijado a mano": cualquier
+        # write posterior de product_id / product_uom_qty / product_uom (aunque sea el mismo valor)
+        # recomputa price_unit a la tarifa/list_price (SO 6212: 133.881 -> 183.912 s/IVA). El precio
+        # viene de ML y no debe recomputarse: se arma la marca de "fijado a mano"
+        # (technical_price_unit != price_unit). -1.0 no es un precio computable. Reproducido en Odoo 18
+        # core; donde el campo no existe (16.0) no se agrega.
+        if "technical_price_unit" in self.env["sale.order.line"]._fields:
+            upd_line["technical_price_unit"] = -1.0
         #else:
         #    if ( float(Item['unit_price']) == product_template.lst_price and not self.env.user.has_group('sale.group_show_price_subtotal')):
         #        upd_line[tax_field] = None
@@ -4883,6 +4892,11 @@ class mercadolibre_orders(models.Model):
         if (sorder and sorder.id):
             #_logger.info("Updating sale.order: %s" % (sorder.id))
             if (sorder.state in ['sale','done']) or ("locked" in sorder._fields and sorder.locked):
+                del meli_order_fields["pricelist_id"]
+            elif meli_order_fields.get("pricelist_id") == sorder.pricelist_id.id:
+                # [#462 OLPA] No reescribir la lista con el MISMO valor: un modulo con
+                # @api.depends('order_id.pricelist_id') en el compute de price_unit (Olpa:
+                # website_sale_pricelist_rules) recomputa todas las lineas aun asi (SO 6212).
                 del meli_order_fields["pricelist_id"]
             #_logger.info(meli_order_fields)
             sorder.meli_fix_team( meli=meli, config=config )
