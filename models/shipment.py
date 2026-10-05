@@ -1470,6 +1470,28 @@ class mercadolibre_shipment(models.Model):
                     if delays:
                         ship_fields["delay"] = ",".join(str(d) for d in delays)
 
+                # Fecha límite de despacho (#431, 5-oct-2026): ML dejó de mandar
+                # estimated_handling_limit en /shipments/{id} (ni lead_time ni
+                # shipping_option). La fecha que el vendedor ve en ML sale de
+                # GET /shipments/{id}/sla -> expected_date. Sólo para envíos todavía
+                # por despachar, con timeout corto, y cualquier falla deja el campo
+                # como estaba: nunca rompe el fetch.
+                if (not ship_fields.get("estimated_handling_limit")
+                        and meli.access_token != "PASIVA"
+                        and ship_json.get("status") in ("pending", "handling", "ready_to_ship")):
+                    try:
+                        ressla = meli.get("/shipments/" + str(ship_id) + "/sla",
+                                          {'access_token': meli.access_token, 'timeout': 5})
+                        sla_json = ressla and ressla.json()
+                        sla_date = isinstance(sla_json, dict) and sla_json.get("expected_date")
+                        sla_ehl = sla_date and ml_datetime(sla_date)
+                        if sla_ehl:
+                            ship_fields["estimated_handling_limit"] = sla_ehl
+                        else:
+                            _logger.info("Shipment %s: /sla sin expected_date: %s", ship_id, str(sla_json)[:200])
+                    except Exception as e:
+                        _logger.warning("Shipment %s: /sla error: %s", ship_id, e)
+
                 if "receiver_address" in ship_json and ship_json["receiver_address"]:
                     ship_fields.update({
                         "receiver_address_id": ship_json["receiver_address"]["id"],

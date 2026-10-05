@@ -457,6 +457,7 @@ class sale_order(models.Model):
 
     meli_handling_limit = fields.Datetime(
         related='meli_shipment.estimated_handling_limit',
+        store=True, index=True,
         readonly=True, string="Límite despacho ML")
 
     meli_handling_limit_status = fields.Selection([
