@@ -618,5 +618,29 @@
             <field name="code">action = records.action_meli_relaunch_procurement()</field>
         </record>
 
+        <!-- Columna opcional "Límite despacho ML" en la lista de pedidos (#431) -->
+        <record id="view_order_tree_meli_handling_limit" model="ir.ui.view">
+            <field name="name">sale.order.list.meli.handling.limit.view_order_tree</field>
+            <field name="model">sale.order</field>
+            <field name="inherit_id" ref="sale.view_order_tree"/>
+            <field name="arch" type="xml">
+                <field name="commitment_date" position="after">
+                    <field name="meli_handling_limit" optional="hide"/>
+                </field>
+            </field>
+        </record>
+
+        <!-- Columna opcional "Límite despacho ML" en la lista de pedidos (#431) -->
+        <record id="view_quotation_tree_meli_handling_limit" model="ir.ui.view">
+            <field name="name">sale.order.list.meli.handling.limit.view_quotation_tree</field>
+            <field name="model">sale.order</field>
+            <field name="inherit_id" ref="sale.view_quotation_tree"/>
+            <field name="arch" type="xml">
+                <field name="commitment_date" position="after">
+                    <field name="meli_handling_limit" optional="hide"/>
+                </field>
+            </field>
+        </record>
+
     </data>
 </odoo>
