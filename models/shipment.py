@@ -1864,6 +1864,9 @@ class mercadolibre_shipment(models.Model):
                             is_locked = (sorder_pack and sorder_pack.state in ["done"]) or ("locked" in sorder_pack._fields and sorder_pack.locked)
                             if (sorder_pack.state in ['sale','done']) or is_locked:
                                 del meli_order_fields["pricelist_id"]
+                            elif meli_order_fields.get("pricelist_id") == sorder_pack.pricelist_id.id:
+                                # [#462 OLPA] misma lista: no reescribir (recompute de lineas, ver orders.py)
+                                del meli_order_fields["pricelist_id"]
 
                             #sorder_pack.meli_fix_team( meli=meli, config=config )
                             if (sorder_pack.state in ['draft']):
