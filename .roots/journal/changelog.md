@@ -4,6 +4,16 @@
 
 ---
 
+## 19.0.26.183 — 5-oct-2026 · Integración de #638 + #618 + #620
+- Reúne en una sola versión el barrido rotativo del estado de las ventas (#638, 26.176), la re-consulta del estado
+  del envío (#618, 26.179) y la línea de envío con lo que pagó el comprador (#620, 26.180). Sin cambios de código propios.
+
+## 19.0.26.180 — 3-oct-2026 · La línea de envío lleva lo que pagó el comprador [#620]
+- La línea de envío de la venta toma el costo que MercadoLibre informa como pagado por el comprador. Ya no queda en
+  $0 en unas ventas y con monto en otras, y el importe a facturar incluye ese envío.
+- Si el envío es gratis para el comprador (lo cubre el vendedor), la línea queda en 0 y no se factura.
+- El ajuste "Usar Monto de envío de Pagos" de la cuenta se sigue respetando.
+
 ## 19.0.26.179 — 3-oct-2026 · El estado del envío se mantiene al día [#618]
 - Las ventas de MercadoLibre ya no quedan en "Listo para enviar" para siempre: el barrido periódico de estados
   vuelve a consultar también el **envío** (enviado, entregado, no entregado) de las órdenes abiertas, por turnos.
