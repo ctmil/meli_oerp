@@ -23,6 +23,27 @@ from datetime import datetime
 from .versions import *
 from . import versions as _versions
 
+# Seguridad (comms 2026-10-05T15:22:47Z, 542): los tokens/secretos NUNCA van en claro al chatter,
+# al log ni a mercadolibre.notification.logs.
+_MELI_SECRET_KEYS = ('access_token', 'refresh_token', 'client_secret', 'secret_key', 'code')
+
+
+def _meli_mask(value):
+    """Enmascara un secreto: primeros 4 + '…' + ultimos 4 (o '***' si es corto)."""
+    if not value:
+        return str(value)
+    s = str(value)
+    if len(s) <= 12:
+        return '***'
+    return s[:4] + '…' + s[-4:]
+
+
+def _meli_redact(data):
+    """Copia de un dict (respuesta OAuth, login_data) con los secretos enmascarados."""
+    if isinstance(data, dict):
+        return {k: (_meli_mask(v) if k in _MELI_SECRET_KEYS else v) for k, v in data.items()}
+    return data
+
 
 class LoggingRetry(Retry):
     def increment(self, *args, **kwargs):
@@ -1248,11 +1269,11 @@ class MeliUtil(models.AbstractModel):
                                 try:
                                     #refresh = meli.get_refresh_token()
                                     refresh = api_rest_client.get_refresh_token()
-                                    _logger.info("Refresh result: "+str(refresh))
+                                    _logger.info("Refresh result: "+str(_meli_redact(refresh)))
                                     if (refresh):
                                         #refjson = refresh.json()
                                         refjson = refresh
-                                        logs+= str(refjson)+"\n"
+                                        logs+= str(_meli_redact(refjson))+"\n"
                                         if "access_token" in refjson:
                                             api_rest_client.access_token = refjson["access_token"]
                                             api_rest_client.refresh_token = refjson["refresh_token"]
