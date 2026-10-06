@@ -5096,6 +5096,26 @@ class mercadolibre_orders(models.Model):
                         )
                         if not _missing_seen:
                             meli_message_post(sorder, _missing_html, config=config)
+                            # 26.190 (#598 OrgVit 475): el aviso en el chatter no lo ve nadie; la
+                            # venta quedaba en presupuesto sin alerta (3 ventas en 3 semanas). Una
+                            # actividad "Por hacer" aparece en el reloj de actividades del vendedor
+                            # y se filtra en Presupuestos ("ML: producto no encontrado").
+                            try:
+                                _act_user = ((config and config.mercadolibre_seller_user) or sorder.user_id
+                                             or self.env.ref('base.user_admin', raise_if_not_found=False))
+                                if _act_user:
+                                    sorder.sudo().activity_schedule(
+                                        'mail.mail_activity_data_todo',
+                                        summary='ML: producto no encontrado %s' % (_item_sku or _item_meli_id),
+                                        note=Markup(
+                                            '<p>La venta de MercadoLibre no tiene producto en Odoo para la '
+                                            'publicaci&oacute;n %s (SKU %s). Vincule la publicaci&oacute;n o cree '
+                                            'el producto con ese SKU como referencia interna y vuelva a '
+                                            'actualizar la orden.</p>') % (_item_meli_id, _item_sku or 'SIN SKU'),
+                                        user_id=_act_user.id)
+                            except Exception as _act_err:
+                                _logger.warning("PRODUCTO NO ENCONTRADO: no se pudo crear la actividad en %s: %s",
+                                                sorder.name, _act_err)
 
                 #Short cut to meli id and sku
                 order._order_product_sku()

@@ -63,6 +63,12 @@
                   <separator/>
                   <filter string="Con mensajes del comprador sin leer" name="meli_unread_msgs" domain="[('meli_unread_messages','>',0)]" />
                   <filter string="MercadoLibre Quotations" name="sale_orders_ml" domain="[('meli_order_id','!=',False)]" />
+                  <!-- 26.190 (#598 OrgVit 475): venta ML que entro sin producto (SKU sin cargar).
+                       Actividad abierta, o presupuesto ML sin ninguna linea. -->
+                  <filter string="ML: producto no encontrado" name="meli_product_not_found"
+                          domain="[('meli_order_id','!=',False), '|',
+                                   ('activity_ids.summary','ilike','ML: producto no encontrado'),
+                                   '&amp;', ('state','in',['draft','sent']), ('order_line','=',False)]" />
                   <!-- Canceladas en ML. Los TRES estados que significan "esta venta no va". -->
                   <filter string="MercadoLibre Canceladas" name="sale_orders_ml_cancelled"
                           domain="[('meli_order_id','!=',False),
