@@ -4,6 +4,23 @@
 
 ---
 
+### 6 oct 2026 — Meli Stock Diagnostic con presupuesto por corrida + venta ML sin producto visible [#598 OrgVit 475] (v16.0.26.190)
+
+**Sintoma:** el cron "Meli Stock Diagnostic" (reactiva pausadas con stock) termino "Interrumpido" 144 veces por dia
+desde el 12-ago y Odoo lo desactivo solo el 30-ago, sin aviso. Las publicaciones pausadas con stock no volvian solas.
+**Causa:** `meli_stock_diagnostic` hacia un GET a ML por cada candidato, sin limite (129 en 475), todo en UNA transaccion
+(`MeliCommit` solo hace `flush_all`). Al morir el worker se perdia todo, incluido el estado que F3 persiste para curar
+los candidatos con estado local viejo => la corrida siguiente tenia los mismos 129 y volvia a morir.
+**Fix:** multiget `/items?ids=` de a 20 (`_meli_diag_multiget`), tope de items `meli_stock_diag_max_items` (def 100) y de
+segundos `meli_stock_diag_time_budget` (def 45), cursor `meli_stock_diag_cursor.<company>.<seller>` que retoma y da la
+vuelta, commit por lote con `commit_batches=True` (lo pasa el cron dedicado de meli_oerp_multiple). Devuelve
+`items_processed`/`items_deferred`. Venta ML sin producto: actividad Por hacer al vendedor ML (una por item, mismo
+dedupe que el chatter) + filtro "ML: producto no encontrado" en Presupuestos. Sin campos nuevos ni migracion.
+**Prueba:** Odoo 19.0 local, red simulada, 25/25: 45 candidatos con tope 20 => 1 multiget, cursor commiteado, retoma en
+el 21.o; worker muerto en el 3er lote => 40 curadas commiteadas (control con origin/19.0: 0); corte por tiempo; cron con
+"pendientes proxima corrida: 25"; actividad unica tras 2 importaciones. 16/17/18: py_compile + XML.
+**Activar en un cliente:** el cron es `noupdate`: si Odoo lo desactivo, reactivarlo a mano despues del `-u`.
+
 ### 30 sep 2026 — Build de flota 26.166 (v16.0.26.166)
 
 Sin cambios de codigo en meli_oerp. El build 26.166 es el fix de meli_oerp_multiple `_process_notification_order`
