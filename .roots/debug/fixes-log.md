@@ -4,6 +4,15 @@
 
 ---
 
+### 6 oct 2026 — Precisión "Product Price" a 6 dígitos ahora es opcional [#542 SteelTiger / #659] (v19.0.26.193)
+
+`__init__.py` `post_init_hook`: forzaba 'Product Price' a 6 dígitos al instalar. Ahora lee el parámetro de sistema
+`meli_oerp.product_price_digits`: ausente/vacío ⇒ 6 (como antes); `0`/`false`/`no`/`off`/`keep` ⇒ no toca; entero
+1..10 ⇒ sube hasta ese valor. Nunca BAJA una precisión ya configurada. El hook corre sólo al INSTALAR (no en `-u`),
+así que las instalaciones existentes no cambian; un cliente que ya tiene 6 y quiere 2 la baja a mano en
+Ajustes > Técnico > Precisión decimal (nada del módulo la vuelve a subir). Mismo hook en 16/17/18: port pendiente.
+Rama `claude/542-get-meli-state-multicompania`, SIN merge/deploy.
+
 ### 30 sep 2026 — Build de flota 26.166 (v19.0.26.166)
 
 Sin cambios de codigo en meli_oerp. El build 26.166 es el fix de meli_oerp_multiple `_process_notification_order`
