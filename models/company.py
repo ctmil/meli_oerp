@@ -1827,7 +1827,55 @@ class res_company(models.Model):
             _logger.debug("MELI_STOCK_DIAG: no se pudo persistir meli_last_status de %s: %s",
                           meli_id, _st_err)
 
-    def meli_stock_diagnostic(self, meli=False):
+    # 26.190 (#598 OrgVit 475): presupuesto por corrida del diagnostico.
+    # Antes consultaba ML item por item, sin limite, y todo dentro de UNA transaccion
+    # (MeliCommit solo hace flush). Con 129 candidatos de estado local viejo la corrida
+    # superaba el limite del worker, el proceso moria, se perdia TODO lo leido (incluido
+    # el estado que F3 persiste para curar esos candidatos) y la siguiente volvia a morir:
+    # 144 "Interrumpido" por dia desde el 12-ago, hasta que Odoo desactivo el cron solo.
+    # Ahora: multiget de a 20, tope de items y de segundos por corrida (ir.config_parameter),
+    # cursor que retoma donde quedo, y commit por lote cuando el llamador lo pide.
+    MELI_STOCK_DIAG_MULTIGET = 20
+    MELI_STOCK_DIAG_MAX_ITEMS_DEFAULT = 100
+    MELI_STOCK_DIAG_TIME_BUDGET_DEFAULT = 45
+    MELI_STOCK_DIAG_ATTRIBUTES = 'id,status,available_quantity,shipping,user_product_id'
+
+    def _meli_diag_multiget(self, meli, meli_ids):
+        """GET /items?ids= de a MELI_STOCK_DIAG_MULTIGET. Devuelve {meli_id: rjson}.
+        Un item que ML rechaza (o un lote que falla entero) vuelve como dict de error
+        {'status': <http>, 'error': ..., 'message': ...}: el diagnostico lo cuenta como
+        rechazo de ML, no como "sin accion" (ver (A) #535)."""
+        out = {}
+        ids = list(dict.fromkeys([m for m in meli_ids if m]))
+        for i in range(0, len(ids), self.MELI_STOCK_DIAG_MULTIGET):
+            chunk = ids[i:i + self.MELI_STOCK_DIAG_MULTIGET]
+            try:
+                response = meli.get("/items?ids=%s&attributes=%s" % (','.join(chunk), self.MELI_STOCK_DIAG_ATTRIBUTES),
+                                    {'access_token': meli.access_token})
+                data = response.json() if response else None
+            except Exception as _mg_err:
+                _logger.warning("MELI_STOCK_DIAG: multiget fallo (%s): %s", ','.join(chunk), _mg_err)
+                data = {'status': 0, 'error': 'multiget_exception', 'message': str(_mg_err)[:120]}
+            if isinstance(data, list):
+                for mid, entry in zip(chunk, data):
+                    entry = entry if isinstance(entry, dict) else {}
+                    body = entry.get('body') if isinstance(entry.get('body'), dict) else {}
+                    code = entry.get('code')
+                    if code == 200 and body:
+                        out[mid] = body
+                    else:
+                        out[mid] = {'status': int(code) if str(code or '').isdigit() else 0,
+                                    'error': str(body.get('error') or 'http_%s' % code),
+                                    'message': str(body.get('message') or '')[:120]}
+            else:
+                err = data if isinstance(data, dict) else {}
+                for mid in chunk:
+                    out[mid] = {'status': err.get('status') or 0,
+                                'error': str(err.get('error') or 'multiget_sin_respuesta'),
+                                'message': str(err.get('message') or '')[:120]}
+        return out
+
+    def meli_stock_diagnostic(self, meli=False, commit_batches=False):
         """
         Diagnostic safety check: compare Odoo stock vs ML stock for all published products.
         Runs at the end of each stock cron cycle. Detects and corrects:
@@ -1970,6 +2018,7 @@ class res_company(models.Model):
             for pid, sku, meli_id, odoo_qty, meli_qty in paused_with_stock_missed
         ] + fulfillment_user_candidates
 
+        diag_run = {'done': 0, 'last': '', 'stopped': False}  # 26.190 presupuesto
         if all_to_check:
             _logger.warning(
                 "MELI_STOCK_DIAG: %d products to check (reactivate_candidates=%d, paused_missed=%d, fulfillment_user=%d)",
@@ -1986,14 +2035,63 @@ class res_company(models.Model):
                 # (ver cron_meli_stock_diagnostic en meli_oerp_multiple).
                 meli = self.env['meli.util'].get_new_instance(company)
 
-            for pid, sku, meli_id, odoo_qty, meli_qty in all_to_check:
+            # 26.190 — cola ordenada por meli_id que arranca DESPUES del cursor de la
+            # corrida anterior (y da la vuelta), acotada por items y por segundos.
+            _ICP = self.env['ir.config_parameter'].sudo()
+            def _diag_int_param(key, default):
+                try:
+                    return int(_ICP.get_param(key) or default)
+                except (TypeError, ValueError):
+                    return default
+            _diag_max_items = _diag_int_param('meli_stock_diag_max_items', self.MELI_STOCK_DIAG_MAX_ITEMS_DEFAULT)
+            _diag_budget = _diag_int_param('meli_stock_diag_time_budget', self.MELI_STOCK_DIAG_TIME_BUDGET_DEFAULT)
+            _diag_cursor_key = 'meli_stock_diag_cursor.%s.%s' % (company.id, getattr(meli, 'seller_id', '') or '')
+            _diag_cursor = _ICP.get_param(_diag_cursor_key) or ''
+            _diag_sorted = sorted(all_to_check, key=lambda r: (str(r[2]), r[0]))
+            _diag_queue = ([r for r in _diag_sorted if str(r[2]) > _diag_cursor]
+                           + [r for r in _diag_sorted if str(r[2]) <= _diag_cursor])
+
+            def _diag_checkpoint(finished):
+                # Guarda el avance. Con commit_batches el lote queda COMMITEADO: si el
+                # worker muere despues, lo leido (F3) y lo corregido no se pierde y la
+                # proxima corrida retoma desde aca. Sin commit_batches: flush, como antes.
+                _ICP.set_param(_diag_cursor_key, '' if finished else diag_run['last'])
+                if commit_batches and auto_commit:
+                    self.env.cr.commit()
+                elif auto_commit:
+                    MeliCommit(self)
+
+            def _diag_iter_batches():
+                pos = 0
+                while pos < len(_diag_queue):
+                    room = _diag_max_items - diag_run['done']
+                    if room <= 0 or (diag_run['done'] and (_time.time() - t_diag_start) >= _diag_budget):
+                        diag_run['stopped'] = True
+                        break
+                    batch = _diag_queue[pos:pos + min(self.MELI_STOCK_DIAG_MULTIGET, room)]
+                    bodies = self._meli_diag_multiget(meli, [r[2] for r in batch])
+                    for r in batch:
+                        # Corte por tiempo tambien dentro del lote (las reactivaciones hacen
+                        # PUTs), nunca partiendo en dos un mismo meli_id.
+                        if (str(r[2]) != diag_run['last'] and diag_run['done']
+                                and (_time.time() - t_diag_start) >= _diag_budget):
+                            diag_run['stopped'] = True
+                            break
+                        yield r + (bodies.get(r[2]),)
+                        diag_run['done'] += 1
+                        diag_run['last'] = str(r[2])
+                        pos += 1
+                    if diag_run['stopped']:
+                        break
+                    _diag_checkpoint(False)
+                _diag_checkpoint(not diag_run['stopped'] and pos >= len(_diag_queue))
+
+            for pid, sku, meli_id, odoo_qty, meli_qty, rjson in _diag_iter_batches():
                 item_log = f"[{sku}] {meli_id} Odoo={odoo_qty:.0f} stored_qty={meli_qty}"
                 try:
-                    response = meli.get("/items/%s" % meli_id, {'access_token': meli.access_token})
-                    if not response:
+                    if not rjson:
                         checked_items_log.append(f"⚠️ {item_log} → sin respuesta ML")
                         continue
-                    rjson = response.json()
 
                     # (A) #535 Score, 19-ago-2026 — UNA RESPUESTA DE ERROR DE ML NO ES "SIN ACCION".
                     # `meli.get()` devuelve SIEMPRE el objeto API (truthy), asi que el guard
@@ -2205,6 +2303,12 @@ class res_company(models.Model):
                     actions_taken.append(f"❌ ERROR [{sku}] {meli_id}: {e}")
                     checked_items_log.append(f"❌ {item_log} → error: {e}")
 
+        _diag_done = diag_run['done']
+        _diag_deferred = len(all_to_check) - _diag_done if all_to_check else 0
+        if _diag_deferred:
+            _logger.warning(
+                "MELI_STOCK_DIAG: presupuesto agotado — revisadas %d de %d, %d quedan para la proxima corrida (cursor=%s)",
+                _diag_done, len(all_to_check), _diag_deferred, diag_run['last'])
         t_diag_elapsed = _time.time() - t_diag_start
         _logger.info(
             "MELI_STOCK_DIAG: done in %.2fs — total=%d reactivate=%d paused_missed=%d fulfillment_user=%d drift=%d actions=%d checked=%d ok=%d api_errors=%d",
@@ -2267,7 +2371,8 @@ class res_company(models.Model):
 <b>Drift:</b> {len(drift_candidates)} &nbsp;|&nbsp;
 <b>Revisadas via API ML:</b> {len(checked_items_log)} &nbsp;|&nbsp;
 <b>Rechazadas por ML:</b> {api_errors}{_api_err_txt} &nbsp;|&nbsp;
-<b>Acciones:</b> {len(actions_taken)}
+<b>Acciones:</b> {len(actions_taken)} &nbsp;|&nbsp;
+<b>Pendientes para la próxima corrida:</b> {_diag_deferred}
 <hr/><b>Detalle items revisados via API:</b><ul>{checked_lines}</ul>
 {f'<hr/><b>Acciones ejecutadas:</b><ul>{actions_lines}</ul>' if actions_taken else ''}
 {f'<hr/><b>Drift (Odoo stored ≠ Odoo actual):</b><ul>{drift_lines}</ul>' if drift_candidates else ''}
@@ -2290,6 +2395,9 @@ class res_company(models.Model):
             # (A) #535 Score — claves NUEVAS (aditivas, no rompen llamadores viejos):
             # con esto el cron puede reportar por que una corrida no hizo nada.
             'items_to_check': len(all_to_check),
+            # 26.190 — presupuesto por corrida: cuantas se revisaron y cuantas quedan.
+            'items_processed': _diag_done,
+            'items_deferred': _diag_deferred,
             'items_checked_ok': items_checked_ok,
             'api_errors': api_errors,
             'api_errors_by_status': api_errors_by_status,
