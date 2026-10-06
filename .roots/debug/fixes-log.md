@@ -4,6 +4,16 @@
 
 ---
 
+### 6 oct 2026 — Precisión "Product Price" a 6 dígitos ahora es opcional [#542 SteelTiger / #659] (v19.0.26.193)
+
+`__init__.py` `post_init_hook`: forzaba 'Product Price' a 6 dígitos al instalar. Ahora lee el parámetro de sistema
+`meli_oerp.product_price_digits`: ausente/vacío ⇒ 6 (como antes); `0`/`false`/`no`/`off`/`keep` ⇒ no toca; entero
+1..10 ⇒ sube hasta ese valor. Nunca BAJA una precisión ya configurada. El hook corre sólo al INSTALAR (no en `-u`),
+así que las instalaciones existentes no cambian; un cliente que ya tiene 6 y quiere 2 la baja a mano en
+Ajustes > Técnico > Precisión decimal (nada del módulo la vuelve a subir). Mismo hook en 16/17/18: port pendiente.
+Rama `claude/542-get-meli-state-multicompania`, SIN merge/deploy.
+
+### 30 sep 2026 — Build de flota 26.166 (v19.0.26.166)
 ## 13 oct 2026 — #638 T3LC: la cancelación automática devolvía stock con CUALQUIER motivo (v18.0.26.221)
 **Síntoma:** el barrido rotativo de estados (#638, 26.218) cancelaba y **devolvía** (IN validado) las ventas canceladas
 en ML de los últimos 15 días sin mirar el motivo: `pack_splitted` (los ítems salen en las órdenes nuevas del split),
