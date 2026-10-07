@@ -4,6 +4,12 @@
 
 ---
 
+## 19.0.26.194 — 7-oct-2026 · La línea de envío deja de ir y venir [#158]
+- En ventas donde MercadoLibre informa el envío en el pago pero no en el total pagado, el importe a facturar ahora
+  incluye ese envío. La línea de envío y lo que se factura usan el mismo monto: la línea ya no pasa de $0 al
+  envío y vuelta en cada actualización, y la factura sale con el envío.
+- Incluye el cambio #620 (26.180).
+
 ## 19.0.26.180 — 3-oct-2026 · La línea de envío lleva lo que pagó el comprador [#620]
 - La línea de envío de la venta toma el costo que MercadoLibre informa como pagado por el comprador. Ya no queda en
   $0 en unas ventas y con monto en otras, y el importe a facturar incluye ese envío.
