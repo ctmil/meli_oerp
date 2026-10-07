@@ -50,5 +50,44 @@ class TestReceiverBuyerCost(unittest.TestCase):
             self.assertEqual(rc.receiver_buyer_cost(bad), 0.0)
 
 
+
+class TestShippingMissingInPaid(unittest.TestCase):
+    f = staticmethod(rc.shipping_missing_in_paid)
+
+    def test_158_elvimarta_me1_pago_con_envio_paid_sin_envio(self):
+        # ML 2000015003762179 (158, IHSA): total == paid == 3.138.200, pago con envio 205.570
+        self.assertEqual(self.f(205570, 3138200, 3138200, 0, 205570, 1), 205570)
+
+    def test_pago_con_envio_y_paid_que_ya_lo_trae_no_suma(self):
+        self.assertEqual(self.f(205570, 3343770, 3138200, 0, 205570, 1), 0.0)
+
+    def test_pago_con_envio_en_pack_no_mezcla_niveles(self):
+        self.assertEqual(self.f(205570, 3138200, 3138200, 0, 205570, 2), 0.0)
+
+    def test_pago_con_envio_y_paid_ambiguo_no_suma(self):
+        # paid por encima de los items pero no por el flete entero (financiacion, etc.)
+        self.assertEqual(self.f(205570, 3150000, 3138200, 0, 205570, 1), 0.0)
+
+    def test_pago_con_envio_con_cupon(self):
+        # paid = total - cupon, sin envio
+        self.assertEqual(self.f(5000, 95000, 100000, 5000, 5000, 1), 5000)
+
+    def test_620_pago_sin_envio_paid_sin_envio_suma(self):
+        self.assertEqual(self.f(8000, 100000, 100000, 0, 0, 1), 8000)
+
+    def test_620_pago_sin_envio_paid_con_envio_no_suma(self):
+        self.assertEqual(self.f(8000, 108000, 100000, 0, 0, 1), 0.0)
+
+    def test_comprador_no_paga_envio(self):
+        self.assertEqual(self.f(0, 100000, 100000, 0, 0, 1), 0.0)
+        self.assertEqual(self.f(0, 100000, 100000, 0, 5000, 1), 0.0)
+
+    def test_idempotente_sobre_el_estado_de_la_linea(self):
+        # El criterio no mira amount_total ni la linea: mismo resultado en cada pasada.
+        a = self.f(205570, 3138200, 3138200, 0, 205570, 1)
+        b = self.f(205570, 3138200, 3138200, 0, 205570, 1)
+        self.assertEqual(a, b)
+
+
 if __name__ == "__main__":
     unittest.main()
