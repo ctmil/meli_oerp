@@ -4,6 +4,23 @@
 
 ---
 
+### 7 oct 2026 — #158 Elvimarta: vaiven de la linea de envio ENVIO-ME1 — mismo flete en la linea y en lo cobrable (v17.0.26.194)
+
+Apilado sobre #620 (26.180). Medido en 158 (IHSA, config total=paid_amount): la linea ENVIO-ME1 oscilaba
+(ML 2000015003762179: 72 cambios de total 12-15 sep) y la factura automatica del cliente salia en un minuto
+con el envio en 0 (5 casos 2..7-oct). Mecanismo en origin/16-19 (26.166): `shipment_amount_cond_fix` comparaba
+`amount_total` (que INCLUYE la linea actual) contra `meli_amount_to_invoice` (= paid_amount, SIN envio en ME1)
+=> con linea = flete bajaba a 0; con linea = 0 el "UPDATE PRICE" reponia el flete. Cada pasada invertia.
+- #620 ya saca la valvula (solo loguea). Pero `_meli_shipping_missing_in_paid` devolvia 0 si el pago trae
+  `shipping_amount` — justo el caso 158: total == paid == 3.138.200 y el pago trae 205.570 de envio.
+  Sin esto, lo cobrable quedaba sin el flete que la linea si lleva ("Condition not met" en confirmacion/factura).
+- Criterio unico y puro: `receiver_cost.shipping_missing_in_paid` (test en tests/test_receiver_cost_pure.py).
+  Con pago CON envio suma el flete solo si `|paid - total + cupon| <= 1` y la venta tiene UNA orden ML
+  (pack: no se mezcla el flete de una orden con paid/total del pack). Nunca suma dos veces. Sin red.
+- shipment.py sin cambios. No repara ventas ya facturadas (guard #493/#508 sigue).
+- Riesgo residual sin caso medido: el tope de descuento del vendedor en meli_amount_to_invoice compara contra
+  amount_total con la linea incluida.
+
 ### 3 oct 2026 — #620 T3LC: la linea de envio lleva lo que paga el COMPRADOR, no se infiere contra paid_amount (v17.0.26.180)
 
 Medido en T3LC (config: total=paid_amount, incluir envio=always, use_payment_shipping_amount=True, cupon=full),
