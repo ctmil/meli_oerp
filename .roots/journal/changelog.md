@@ -3,6 +3,15 @@
 > Historial de versiones y cambios orientado al cliente.
 
 ---
+## (sin build asignado) — 7-oct-2026 · diagnóstico de stock: un choque ya no arrastra la corrida [#525]
+- `meli_stock_diagnostic`: savepoint por publicación. Si choca con otra transacción (actualización
+  concurrente, deadlock, o transacción abortada por un error tragado aguas abajo) se revierte sólo esa
+  publicación, se corta la corrida y el resto queda para la siguiente. La corrida se reporta `warning`.
+- `_meli_diag_persist_ml_status`: el UPDATE de telemetría va en su propio savepoint (antes, un choque ahí
+  dejaba el cursor abortado y todo lo que seguía fallaba de a uno).
+- Sólo Python: no toca datos, vistas ni migraciones. El build de flota lo asigna quien arme el release.
+
+---
 ## 19.0.26.159 — 29-sep-2026 · build de flota
 - Sin cambios de código en esta serie: el número se alinea con 18.0.26.159 (#504/#520, descuento de vendedor y
   envío decididos juntos — la opción de tope existe sólo en 18.0).

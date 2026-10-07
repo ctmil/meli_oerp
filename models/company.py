@@ -1897,8 +1897,16 @@ class res_company(models.Model):
         """
         if ml_status not in ('active', 'paused', 'closed', 'under_review', 'inactive'):
             return
+        if 'mercadolibre.product' not in self.env or not meli_id:
+            return
+        # #525 ROEN, 7-oct-2026 — "defensivo" SIN savepoint no es defensivo: si el UPDATE
+        # choca con otra transaccion (40001 could not serialize access) el except se
+        # tragaba el error con un debug y dejaba el CURSOR ABORTADO. Todo lo que seguia en
+        # el loop del diagnostico fallaba con 25P02 (current transaction is aborted) y se
+        # logueaba de a uno: cientos de lineas por corrida. Con el savepoint el choque
+        # revierte SOLO este UPDATE de telemetria y la transaccion queda sana.
         try:
-            if 'mercadolibre.product' in self.env and meli_id:
+            with self.env.cr.savepoint(flush=False):
                 self.env.cr.execute("""
                     UPDATE mercadolibre_product
                     SET meli_last_status = %s
@@ -1908,8 +1916,44 @@ class res_company(models.Model):
                 if self.env.cr.rowcount:
                     self.env['mercadolibre.product'].invalidate_model(['meli_last_status'])
         except Exception as _st_err:
-            _logger.debug("MELI_STOCK_DIAG: no se pudo persistir meli_last_status de %s: %s",
-                          meli_id, _st_err)
+            _logger.warning("MELI_STOCK_DIAG: no se pudo persistir meli_last_status de %s: %s",
+                            meli_id, _st_err)
+
+    # #525 ROEN, 7-oct-2026 — codigos de Postgres que significan "esta transaccion ya no
+    # sirve para seguir": choque de serializacion, deadlock, y transaccion abortada (lo que
+    # ve el codigo que corre DESPUES de que alguien se trago uno de los dos primeros).
+    _MELI_DIAG_TX_FATAL_PGCODES = ('40001', '40P01', '25P02')
+
+    @classmethod
+    def _meli_diag_is_tx_fatal(cls, err):
+        return getattr(err, 'pgcode', None) in cls._MELI_DIAG_TX_FATAL_PGCODES
+
+    def _meli_diag_close_item_savepoint(self, sp, rollback=False):
+        """#525: cierra el savepoint de UN item del diagnostico.
+
+        `product_post_stock` captura TODA excepcion (incluido el 40001) y devuelve un
+        dict, asi que el loop no se entera de que el cursor quedo abortado. Por eso no
+        alcanza con mirar la excepcion: se PRUEBA el cursor (flush + SELECT 1). Si esta
+        abortado se vuelve al savepoint — se pierde solo lo de este item — y se devuelve
+        False para que el llamador corte el loop en vez de seguir sobre un cursor muerto.
+        """
+        if not rollback:
+            try:
+                self.env.flush_all()
+                self.env.cr.execute("SELECT 1")
+            except Exception as _probe_err:
+                if not self._meli_diag_is_tx_fatal(_probe_err):
+                    _logger.warning("MELI_STOCK_DIAG: probe del cursor fallo: %s", _probe_err)
+                rollback = True
+        try:
+            sp.close(rollback=rollback)
+        except Exception as _sp_err:
+            # El flush del cierre puede fallar con el cursor abortado: reintentar rollback.
+            _logger.warning("MELI_STOCK_DIAG: cierre de savepoint fallo (%s) — rollback", _sp_err)
+            if not sp.closed:
+                sp.close(rollback=True)
+            rollback = True
+        return not rollback
 
     def meli_stock_diagnostic(self, meli=False):
         """
@@ -1979,6 +2023,9 @@ class res_company(models.Model):
         api_errors = 0                    # respuestas de ERROR de ML (403/401/404/5xx)
         api_errors_by_status = {}         # {status_http: cantidad}
         items_checked_ok = 0              # items que ML contesto de verdad
+        # #525 ROEN — corte por choque de transacciones (40001/40P01/25P02).
+        tx_conflict_abort = None          # texto del error que corto el loop, o None
+        items_skipped_by_conflict = 0     # items no revisados porque el loop se corto
 
         for row in rows:
             pid, sku, meli_id, meli_qty, odoo_qty, logistic_type = row
@@ -2071,7 +2118,16 @@ class res_company(models.Model):
                 meli = self.env['meli.util'].get_new_instance(company)
 
             for pid, sku, meli_id, odoo_qty, meli_qty in all_to_check:
+                # #525: un choque con otra transaccion corta el loop. Seguir era iterar sobre
+                # un cursor abortado (cientos de 25P02 por corrida) y empujar a ML stock que
+                # Odoo despues revertia. Lo que falto revisar lo toma la proxima corrida.
+                if tx_conflict_abort:
+                    items_skipped_by_conflict += 1
+                    continue
                 item_log = f"[{sku}] {meli_id} Odoo={odoo_qty:.0f} stored_qty={meli_qty}"
+                # #525: savepoint POR ITEM — un item que falla revierte solo lo suyo.
+                _item_sp = self.env.cr.savepoint()
+                _item_rollback = False
                 try:
                     response = meli.get("/items/%s" % meli_id, {'access_token': meli.access_token})
                     if not response:
@@ -2159,7 +2215,7 @@ class res_company(models.Model):
                                 actions_taken.append(f"✅ REACTIVADA [{sku}] {meli_id} — paused + Odoo={odoo_qty:.0f} (status=active explícito)")
                                 checked_items_log.append(f"✅ {item_log} → REACTIVADA (status=active explícito)")
                             except Exception as _act_err:
-                                if getattr(_act_err, 'pgcode', '') in ('40001', '40P01'):
+                                if self._meli_diag_is_tx_fatal(_act_err):
                                     raise
                                 _logger.warning(
                                     "MELI_STOCK_DIAG: explicit activate failed [%s] %s: %s — stock pushed anyway",
@@ -2193,6 +2249,8 @@ class res_company(models.Model):
                             if auto_commit:
                                 MeliCommit(self)
                         except Exception as _upd_err:
+                            if self._meli_diag_is_tx_fatal(_upd_err):
+                                raise  # #525: cursor abortado — lo maneja el except del item
                             _logger.warning("MELI_STOCK_DIAG: error updating stale qty [%s]: %s", sku, _upd_err)
                             actions_taken.append(f"❌ ERROR stale qty [{sku}] {meli_id}: {_upd_err}")
                             checked_items_log.append(f"❌ {item_log} → error stale qty")
@@ -2270,7 +2328,7 @@ class res_company(models.Model):
                                     f"ℹ️ {item_log} → fulfillment_user {loc_str} pushable={pushable_qty} (ok)"
                                 )
                         except Exception as _sa_err:
-                            if getattr(_sa_err, 'pgcode', '') in ('40001', '40P01'):
+                            if self._meli_diag_is_tx_fatal(_sa_err):
                                 raise  # serialization error — propagate to outer handler
                             _logger.warning("MELI_STOCK_DIAG: error checking fulfillment_user stock [%s] %s: %s", sku, meli_id, _sa_err)
                             checked_items_log.append(f"❌ {item_log} → error fulfillment_user stock: {_sa_err}")
@@ -2279,15 +2337,41 @@ class res_company(models.Model):
                         checked_items_log.append(f"ℹ️ {item_log} → sin acción (status={ml_status})")
 
                 except Exception as e:
-                    if getattr(e, 'pgcode', '') in ('40001', '40P01'):
+                    _item_rollback = True
+                    if self._meli_diag_is_tx_fatal(e):
+                        # #525: antes se re-lanzaba solo 40001/40P01. Pero el 40001 casi
+                        # nunca llega hasta aca (product_post_stock y persist_ml_status se lo
+                        # tragan) y lo que llega es el 25P02 del item SIGUIENTE, que caia en
+                        # el log generico de abajo y el loop seguia. Ahora cualquiera de los
+                        # tres corta: se revierte este item y se dejan los demas para la
+                        # proxima corrida.
+                        tx_conflict_abort = str(e).strip().splitlines()[0][:200] if str(e) else repr(e)
                         _logger.warning(
-                            "MELI_STOCK_DIAG: serialization error on [%s] %s — aborting loop: %s",
-                            sku, meli_id, e
+                            "MELI_STOCK_DIAG: transaction conflict on [%s] %s — aborting loop: %s",
+                            sku, meli_id, tx_conflict_abort
                         )
-                        raise  # propagate to cron_meli_stock_diagnostic's savepoint handler
-                    _logger.warning("MELI_STOCK_DIAG: error checking [%s] %s: %s", sku, meli_id, e)
-                    actions_taken.append(f"❌ ERROR [{sku}] {meli_id}: {e}")
-                    checked_items_log.append(f"❌ {item_log} → error: {e}")
+                        checked_items_log.append(f"⛔ {item_log} → choque con otra transacción, loop cortado")
+                    else:
+                        _logger.warning("MELI_STOCK_DIAG: error checking [%s] %s: %s", sku, meli_id, e)
+                        actions_taken.append(f"❌ ERROR [{sku}] {meli_id}: {e}")
+                        checked_items_log.append(f"❌ {item_log} → error: {e}")
+                finally:
+                    # Corre tambien en los `continue` del cuerpo. Si el cursor quedo abortado
+                    # por un error que alguien se trago, el probe lo detecta y se revierte.
+                    if not self._meli_diag_close_item_savepoint(_item_sp, rollback=_item_rollback):
+                        if not _item_rollback and not tx_conflict_abort:
+                            tx_conflict_abort = "cursor abortado tras procesar [%s] %s" % (sku, meli_id)
+                            _logger.warning(
+                                "MELI_STOCK_DIAG: %s (error tragado aguas abajo) — item revertido, aborting loop",
+                                tx_conflict_abort
+                            )
+                            checked_items_log.append(f"⛔ {item_log} → cursor abortado, item revertido, loop cortado")
+
+            if tx_conflict_abort and items_skipped_by_conflict:
+                _logger.warning(
+                    "MELI_STOCK_DIAG: %d items sin revisar por el corte — quedan para la proxima corrida",
+                    items_skipped_by_conflict
+                )
 
         t_diag_elapsed = _time.time() - t_diag_start
         _logger.info(
@@ -2321,6 +2405,14 @@ class res_company(models.Model):
                  "(revisar que cada cuenta se consulte con SU token). " if _forbidden else ""),
             )
             _logger.warning("MELI_STOCK_DIAG: %s", diag_message)
+        if tx_conflict_abort:
+            # #525: la corrida se corto por un choque con otra transaccion. No es 'success'.
+            diag_state = 'warning'
+            _conflict_msg = (
+                "Corrida cortada por actualizacion concurrente (%s); %d publicaciones quedaron "
+                "para la proxima corrida."
+            ) % (tx_conflict_abort, items_skipped_by_conflict)
+            diag_message = (diag_message + " " + _conflict_msg) if diag_message else _conflict_msg
 
         if chatter_log and chatter_account:
             from datetime import datetime as _dt
@@ -2379,6 +2471,9 @@ class res_company(models.Model):
             'api_errors_by_status': api_errors_by_status,
             'diag_state': diag_state,
             'diag_message': diag_message,
+            # #525 — aditivas
+            'tx_conflict_abort': tx_conflict_abort,
+            'items_skipped_by_conflict': items_skipped_by_conflict,
         }
 
     def meli_update_remote_price(self, meli=False):
