@@ -27,6 +27,7 @@ import logging
 import re
 from .meli_oerp_config import *
 from . import cancel_decision as _meli_cd
+from .receiver_cost import shipping_missing_in_paid as _meli_shipping_missing_in_paid_pure
 from time import monotonic as _mono
 
 # Traducción de códigos de cancelación ML → español
@@ -614,30 +615,28 @@ class sale_order(models.Model):
         return None
 
     def _meli_shipping_missing_in_paid(self, config=None):
-        """#620 (T3LC 535) - Flete del comprador que NO esta dentro de meli_paid_amount.
+        """#620 (T3LC 535) + #158 (Elvimarta) - Flete del comprador que NO esta dentro de
+        meli_paid_amount, con el MISMO numero que lleva la linea de envio.
 
-        En ordenes ME2 donde el pago no trae shipping_amount, ML informa paid_amount SIN el
-        envio (medido: 138 + 51 de 343 ventas con envio a cargo del comprador), mientras
-        el camino de carrito ya le suma receiver.cost. La linea de envio lleva el flete
-        del comprador; esto hace que el importe a facturar lo lleve tambien.
-        - 0 si el pago aprobado trae shipping_amount (paid_amount ya lo incluye).
-        - 0 si paid_amount ya cubre el flete: paid - total + cupon >= flete (carrito, o
-          ML que si lo incluyo) — nunca se suma dos veces.
-        - 0 si el comprador no paga envio (subsidiado por el vendedor)."""
+        #620: en ordenes ME2 donde el pago no trae shipping_amount, ML informa paid_amount
+        SIN el envio. #158: en ordenes ME1 el pago SI trae shipping_amount y paid_amount
+        TAMPOCO lo incluye (paid == total de items). En los dos casos la linea lleva el flete
+        y el importe a facturar tiene que llevarlo; si no, la linea y lo cobrable no cierran
+        y cada camino resuelve distinto (vaiven de la linea / "Condition not met").
+        El criterio vive en receiver_cost.shipping_missing_in_paid (puro, con test)."""
         self.ensure_one()
         shipment = "meli_shipment" in self._fields and self.meli_shipment
         morder = self.meli_orders[:1]
         if not shipment or not morder:
             return 0.0
-        if morder.payments_shipment_amount:
-            return 0.0
-        buyer = shipment._meli_buyer_shipping_amount(morder, config=config)
-        if buyer <= 0.0:
-            return 0.0
-        in_paid = (self.meli_paid_amount or 0.0) - (self.meli_total_amount or 0.0) + abs(self.meli_coupon_amount or 0.0)
-        if in_paid >= buyer - 1.0:
-            return 0.0
-        return buyer
+        return _meli_shipping_missing_in_paid_pure(
+            buyer=shipment._meli_buyer_shipping_amount(morder, config=config),
+            paid=self.meli_paid_amount,
+            total=self.meli_total_amount,
+            coupon=self.meli_coupon_amount,
+            payment_shipping=morder.payments_shipment_amount,
+            n_orders=len(self.meli_orders),
+        )
 
     def meli_amount_to_invoice( self, meli=None, config=None ):
 
