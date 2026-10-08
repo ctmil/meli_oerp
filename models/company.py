@@ -214,6 +214,10 @@ class res_company(models.Model):
             for company in self:
                 company.mercadolibre_state = True
             self.env['meli.util']._meli_log_neutralized_skip()
+            # Es tambien el compute de mercadolibre_state: un compute que sale sin
+            # asignar rompe la edicion de la empresa (auditoria 542, #661).
+            for company in self:
+                company.mercadolibre_state = True
             return
         # recoger el estado y devolver True o False (meli)
         #False if logged ok
