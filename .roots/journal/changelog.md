@@ -3,6 +3,14 @@
 > Historial de versiones y cambios orientado al cliente.
 
 ---
+## 19.0.26.200 — 8-oct-2026 · rama integrada T3LC (535) para staging: #638 + #618 + #620 + #486 sobre 26.198
+- **Cancelaciones (#638):** el barrido de estados rota por `meli_status_checked_at` y recorre toda la ventana.
+- **Estado del envío (#618):** el barrido refresca el estado de los envíos no terminales.
+- **Línea de envío (#620):** lleva lo que paga el comprador según ML (envío gratis subsidiado por el vendedor = 0).
+- **Precio importado (#486):** el precio de una venta ML se netea siempre por los impuestos no incluidos del producto.
+- Rama `claude/535-t3lc-integrado-2-19.0`, sólo staging de T3LC; NO landeada en 19.0 (al landear: max+1 en las 4 series).
+
+---
 ## 19.0.26.198 — 8-oct-2026 · release de flota: #601 (P1/P3/P6/P7), seguridad #661, contacto del albarán #643
 - **Envío gratis (#601 P1):** una orden con envío gratis ya no se pierde al importarse.
 - **Etiquetas (#601 P3):** el link de la etiqueta ya no lleva el token de ML; descarga con timeout y con modo vacío.
