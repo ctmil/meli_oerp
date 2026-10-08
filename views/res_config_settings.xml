@@ -11,13 +11,13 @@
                         <field name="mercadolibre_client_id"/>
                     </setting> 
                     <setting name="mercadolibre_secret_key" string="Secret Key" type="char">
-                        <field name="mercadolibre_secret_key"/>
+                        <field name="mercadolibre_secret_key" password="True"/>
                     </setting> 
                     <setting name="mercadolibre_access_token" string="Access Token" type="char">
-                        <field name="mercadolibre_access_token"/>
+                        <field name="mercadolibre_access_token" password="True"/>
                     </setting> 
                     <setting name="mercadolibre_refresh_token" string="Refresh Token" type="char">
-                        <field name="mercadolibre_refresh_token" password="False"/>
+                        <field name="mercadolibre_refresh_token" password="True"/>
                     </setting>
                     <setting name="mercadolibre_sending_message_to_customer" string="Activar/desactivar envio de mensaje a cliente" type="boolean">
                         <field name="mercadolibre_sending_message_to_customer"/>
