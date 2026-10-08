@@ -570,14 +570,22 @@ def get_company_selected( self, context=None, company=None, company_id=None, use
 #variant mage ids
 def variant_image_ids(self):
     if "product_variant_image_ids" in self._fields:
-        return self.product_variant_image_ids
+        return _meli_only_pictures(self.product_variant_image_ids)
     return None
 
 #template image ids
 def template_image_ids(self):
     if "product_template_image_ids" in self._fields:
-        return self.product_template_image_ids
+        return _meli_only_pictures(self.product_template_image_ids)
     return None
+
+# [#542] Un product.image con `video_url` es un VIDEO de la multimedia del producto: su imagen es
+# la miniatura de YouTube/Vimeo. No se sube como foto a ML (aparecería una miniatura de video entre
+# las fotos de la publicación). ML tampoco acepta hoy el video de YouTube (`video_id` se descarta).
+def _meli_only_pictures(images):
+    if images and "video_url" in images._fields:
+        return images.filtered(lambda i: not i.video_url)
+    return images
 
 
 #att value ids
