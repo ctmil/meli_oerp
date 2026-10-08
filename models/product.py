@@ -159,11 +159,16 @@ def _meli_parse_attributes_input(raw):
             return [], ("Cada atributo tiene que ser un bloque con 'id' y 'value_name'. "
                         "Encontré: %s" % (str(item)[:60],))
         att_id = item.get("id") or item.get("att_id")
-        if not att_id:
-            return [], "Hay un atributo sin 'id' en la lista."
         value = item.get("value_name", item.get("value"))
         if value is None:
             value = ""
+        if not att_id:
+            # Atributo PROPIO del vendedor (sin id de ML): {'name': 'Modelos', 'value_name': ...}.
+            # En User Products, ML lo usa como selector de la familia (ej. "Modelos" en Estribos).
+            if item.get("name"):
+                out.append({"name": str(item["name"]).strip(), "value_name": str(value).strip()})
+                continue
+            return [], "Hay un atributo sin 'id' (ni 'name') en la lista."
         out.append({"id": str(att_id).strip(), "value_name": str(value).strip()})
     return out, None
 
@@ -4465,11 +4470,12 @@ class product_product(models.Model):
                 # No se publica en silencio ignorando lo que el usuario cargó.
                 return warningobj.info(title='MELI ATRIBUTOS', message=_input_error, message_html="")
             for _a in _input_atts:
-                if _a["id"] in attributes_ids:
+                _key = _a.get("id") or ("name:" + _a["name"])
+                if _key in attributes_ids:
                     continue
-                attributes_ids[_a["id"]] = _a["value_name"]
+                attributes_ids[_key] = _a["value_name"]
                 attributes.append(_a)
-                _logger.info("MELI atributos (JSON): %s = %s", _a["id"], _a["value_name"])
+                _logger.info("MELI atributos (JSON): %s = %s", _key, _a["value_name"])
 
         # [#539] Atributos que vienen del MAPEO campo de Odoo -> atributo de ML.
         # COMPLETA, no reemplaza: lo que ya resolvieron las líneas de atributo de Odoo manda, porque
