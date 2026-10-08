@@ -4,6 +4,16 @@
 
 ---
 
+### 8 oct 2026 — Albaran sin Contacto al agregar una linea a un pedido ML confirmado [#643 Shoppy 502] (v18.0.26.197)
+
+**Sintoma.** Despachos ML con el campo Contacto vacio (18 de 18 desde 15-ago tenian una linea agregada a mano; ej. OUT/145611, venta ML 2000018696043976).
+
+**Causa raiz.** El conector no crea moves ni grupo de abastecimiento (Odoo estandar: move.partner = group.partner = partner_shipping_id al confirmar, stock_rule.py:306/339). Pero escribe `partner_shipping_id` DESPUES de confirmar (orders.py `partner_shipping_id` ~4714-4719 y shipment.py ~1843-1849, cuando llega la direccion del shipment), y Odoo 16 no propaga ese cambio al grupo ni a los albaranes abiertos (sale_stock/sale_order.py:105 solo agenda una actividad). El albaran queda con el comprador (N) y la venta con el contacto de entrega (N+1). Al agregar una linea, el grupo pasa a N+1 (sale_order_line.py:340), el move nuevo nace con N+1, `stock_move._assign_picking` (:1223) ve contactos distintos y vacia picking.partner_id, y `stock_picking.write` (:837) propaga el False a todos los moves (por eso los originales aparecen sin partner). Medido en prod: 841 OUT abiertos desde 25-sep con picking=comprador y venta=entrega.
+
+**Fix.** `sale_order.write` (orders.py) + `_meli_sync_shipping_partner_to_stock`: si cambia `partner_shipping_id` en una venta ML, se sincroniza grupo, albaranes abiertos y moves abiertos sin albaran que aun llevaban el valor viejo (no pisa contactos manuales ni albaranes hechos/cancelados). Savepoint, nunca rompe la sync.
+
+**No cubre** los albaranes que YA estan desfasados (841): se sanean con un script de datos (picking.partner_id = venta.partner_shipping_id en OUT abiertos desfasados), un caso verificado antes del lote.
+
 ### 30 sep 2026 — Build de flota 26.166 (v18.0.26.166)
 
 Sin cambios de codigo en meli_oerp. El build 26.166 es el fix de meli_oerp_multiple `_process_notification_order`
