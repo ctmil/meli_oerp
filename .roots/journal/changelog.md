@@ -3,6 +3,18 @@
 > Historial de versiones y cambios orientado al cliente.
 
 ---
+## 17.0.26.198 — 8-oct-2026 · release de flota: #601 (P1/P3/P6/P7), seguridad #661, contacto del albarán #643
+- **Envío gratis (#601 P1):** una orden con envío gratis ya no se pierde al importarse.
+- **Etiquetas (#601 P3):** el link de la etiqueta ya no lleva el token de ML; descarga con timeout y con modo vacío.
+- **Cron de stock/precio (#601 P6):** savepoint por ítem — un ítem que falla ya no aborta el resto del lote.
+- **Diagnóstico de stock (#601 P7):** nueva opción *Sólo las pausadas por falta de stock*: deja de reactivar pausas manuales.
+- **Seguridad (#661):** `/download/saveas` exige usuario y lista blanca (vacía: sin usos internos); `get_meli_state`
+  asigna el compute en bases neutralizadas (antes rompía la edición de la empresa).
+- **Contacto del albarán (#643):** si el conector cambia la dirección de entrega de una venta ML ya confirmada, se
+  propaga al grupo de abastecimiento y a los albaranes abiertos que llevaban la anterior (uno cargado a mano no se pisa).
+- Requiere `-u meli_oerp` (migración 26.172 incluida). Build único de flota 26.198 en 16/17/18/19.
+
+---
 ## 17.0.26.159 — 29-sep-2026 · build de flota
 - Sin cambios de código en esta serie: el número se alinea con 18.0.26.159 (#504/#520, descuento de vendedor y
   envío decididos juntos — la opción de tope existe sólo en 18.0).
