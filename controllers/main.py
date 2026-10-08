@@ -185,7 +185,15 @@ class Download(http.Controller):
 
     """
 
-    @http.route('/download/saveas', type='http', auth="public")
+    # Seguridad (auditoria 542, ticket #661): antes la ruta era auth="public" y
+    # ejecutaba getattr(Model, method)() con modelo y metodo elegidos por quien llamaba.
+    # Ahora exige usuario logueado Y que (modelo, metodo) este en esta lista blanca.
+    # Hoy ningun modulo del suite usa esta ruta (el ejemplo de arriba es solo documentacion),
+    # por eso la lista esta vacia: para habilitar un uso legitimo, agregar
+    # 'modelo.tecnico': ('metodo_publico',) aca. Nunca metodos que empiecen con "_".
+    _SAVEAS_WHITELIST = {}
+
+    @http.route('/download/saveas', type='http', auth="user")
     def saveas(self, model, record_id, method, encoded=False, filename=None, **kw):
         """ Download link for files generated on the fly.
 
@@ -196,6 +204,9 @@ class Download(http.Controller):
         :param str filename: the file's name, if any
         :returns: :class:`werkzeug.wrappers.Response`
         """
+        allowed = self._SAVEAS_WHITELIST.get(model) or ()
+        if method not in allowed or method.startswith('_'):
+            return request.not_found()
         Model = request.env[model].browse(int(record_id))
         datas = getattr(Model, method)()
         if not datas:
