@@ -15,6 +15,12 @@
 - Requiere `-u meli_oerp` (migración 26.172 incluida). Build único de flota 26.198 en 16/17/18/19.
 
 ---
+
+## 19.0.26.179 — 3-oct-2026 · El estado del envío se mantiene al día [#618]
+- Las ventas de MercadoLibre ya no quedan en "Listo para enviar" para siempre: el barrido periódico de estados
+  vuelve a consultar también el **envío** (enviado, entregado, no entregado) de las órdenes abiertas, por turnos.
+- Se puede desactivar con el parámetro del sistema `meli_oerp.resync_shipment_status = 0`.
+
 ## 19.0.26.159 — 29-sep-2026 · build de flota
 - Sin cambios de código en esta serie: el número se alinea con 18.0.26.159 (#504/#520, descuento de vendedor y
   envío decididos juntos — la opción de tope existe sólo en 18.0).
