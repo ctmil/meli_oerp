@@ -92,10 +92,22 @@ def meli_normalize_api_url(value):
 
 
 def _meli_url_parts(url):
-    from urllib.parse import urlsplit
+    """(host, path) para el rastro. El path va decodificado y SIN query ni fragmento: el SDK manda
+    la query percent-encoded dentro del path (/%2Fsites%3Faccess_token%3D...), así que se decodifica
+    antes de cortar, y cualquier access_token/refresh_token residual se tapa igual."""
+    import re
+    from urllib.parse import urlsplit, unquote
     try:
         u = urlsplit(str(url))
-        return u.netloc, u.path
+        path = u.path
+        for _i in range(3):
+            dec = unquote(path)
+            if dec == path:
+                break
+            path = dec
+        path = re.split(r'[?#]', path, 1)[0]
+        path = re.sub(r'(?i)(access_token|refresh_token|client_secret|code)=[^&/]*', r'\1=***', path)
+        return u.netloc, path
     except Exception:
         return '', ''
 
