@@ -384,14 +384,79 @@ class res_company(models.Model):
 
     #mercadolibre_sending_message_to_customer = fields.Boolean(string='Activate sending message to customer')
 
-    mercadolibre_http_proxy = fields.Char(
-        string='Host API ML (rescate)',
-        help='Reemplaza api.mercadolibre.com por un reverse proxy externo cuando la IP del '
-             'servidor está bloqueada por ML. Formato: http://proxy.example.com  '
-             'El proxy debe reenviar las requests a https://api.mercadolibre.com. '
-             'Vacío = directo a api.mercadolibre.com.',
+    # [#661 fase 3] URL de la API: ÚNICO campo validado. Reemplaza a mercadolibre_http_proxy (compañía)
+    # y a http_proxy (cuenta, meli_oerp_multiple), que quedan como alias sin almacenar.
+    meli_api_url = fields.Char(
+        string='URL de la API de Mercado Libre',
+        default='https://api.mercadolibre.com',
         size=512,
+        help='Dirección por la que se llama a la API de Mercado Libre. Lo normal es la oficial '
+             '(https://api.mercadolibre.com). Sólo se cambia para usar un reverse proxy de rescate cuando '
+             'la IP del servidor está bloqueada por ML.\n'
+             'Si la dirección no es la oficial, cada uso queda registrado (MercadoLibre > Registro de uso '
+             'de la URL de la API) y, con el Nivel de seguridad Alto, se ignora y se usa la oficial.',
     )
+    mercadolibre_http_proxy = fields.Char(
+        string='Host API ML (rescate) [obsoleto]',
+        compute='_compute_mercadolibre_http_proxy', inverse='_inverse_mercadolibre_http_proxy',
+        help='Obsoleto: alias de "URL de la API de Mercado Libre" (vacío = la oficial).',
+    )
+
+    @api.depends('meli_api_url')
+    def _compute_mercadolibre_http_proxy(self):
+        from .meli_util import API_HOST_DEFAULT
+        for company in self:
+            url = company.meli_api_url
+            company.mercadolibre_http_proxy = url if (url and url.rstrip('/') != API_HOST_DEFAULT) else False
+
+    def _inverse_mercadolibre_http_proxy(self):
+        from .meli_util import API_HOST_DEFAULT
+        for company in self:
+            company.meli_api_url = company.mercadolibre_http_proxy or API_HOST_DEFAULT
+
+    @api.constrains('meli_api_url')
+    def _check_meli_api_url(self):
+        from odoo.exceptions import ValidationError
+        from .meli_util import meli_normalize_api_url
+        for company in self:
+            try:
+                meli_normalize_api_url(company.meli_api_url)
+            except ValueError as e:
+                raise ValidationError(_("URL de la API de Mercado Libre inválida: %s") % e)
+
+    def _meli_api_url_vals(self, vals):
+        """Normaliza meli_api_url en vals (sin "/" final; vacío = la oficial)."""
+        from odoo.exceptions import ValidationError
+        from .meli_util import meli_normalize_api_url
+        if 'meli_api_url' in vals:
+            try:
+                vals['meli_api_url'] = meli_normalize_api_url(vals['meli_api_url'])
+            except ValueError as e:
+                raise ValidationError(_("URL de la API de Mercado Libre inválida: %s") % e)
+        return vals
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            self._meli_api_url_vals(vals)
+        return super().create(vals_list)
+
+    def write(self, vals):
+        if 'meli_api_url' not in vals:
+            return super().write(vals)
+        from .meli_util import meli_proxy_audit, _meli_url_parts
+        self._meli_api_url_vals(vals)
+        before = {c.id: c.meli_api_url for c in self}
+        res = super().write(vals)
+        for company in self:
+            if before.get(company.id) != company.meli_api_url:
+                old_host = _meli_url_parts(before.get(company.id) or '')[0]
+                new_host, new_path = _meli_url_parts(company.meli_api_url)
+                _logger.warning("meli: URL de la API de la compañía %s: %s -> %s (usuario %s)",
+                                company.id, before.get(company.id), company.meli_api_url, self.env.user.login)
+                meli_proxy_audit(self.env, 'config', company=company, host=new_host, path=new_path,
+                                 note="cambio de URL de la API: %s -> %s" % (old_host or '-', new_host or '-'))
+        return res
 
     mercadolibre_cron_refresh = fields.Boolean(string='Keep alive',help='Cron Automatic Token Refresh for keeping ML connection alive.')
 

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+        <record model="ir.ui.view" id="view_meli_proxy_audit_list">
+            <field name="name">meli.proxy.audit.list</field>
+            <field name="model">meli.proxy.audit</field>
+            <field name="arch" type="xml">
+                <list create="false" edit="false" delete="false">
+                    <field name="create_date" string="Fecha"/>
+                    <field name="event"/>
+                    <field name="company_name"/>
+                    <field name="account_label"/>
+                    <field name="host"/>
+                    <field name="method"/>
+                    <field name="path"/>
+                    <field name="status_code"/>
+                    <field name="user_login"/>
+                    <field name="note"/>
+                </list>
+            </field>
+        </record>
+
+        <record model="ir.ui.view" id="view_meli_proxy_audit_search">
+            <field name="name">meli.proxy.audit.search</field>
+            <field name="model">meli.proxy.audit</field>
+            <field name="arch" type="xml">
+                <search>
+                    <field name="host"/>
+                    <field name="path"/>
+                    <field name="company_name"/>
+                    <field name="account_label"/>
+                    <filter name="f_request" string="Usos" domain="[('event', '=', 'request')]"/>
+                    <filter name="f_blocked" string="Ignorados" domain="[('event', '=', 'blocked')]"/>
+                    <filter name="f_config" string="Cambios de URL" domain="[('event', '=', 'config')]"/>
+                    <group expand="0" string="Agrupar por">
+                        <filter name="g_host" string="Host" context="{'group_by': 'host'}"/>
+                        <filter name="g_event" string="Evento" context="{'group_by': 'event'}"/>
+                        <filter name="g_day" string="Día" context="{'group_by': 'create_date:day'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <record model="ir.actions.act_window" id="action_meli_proxy_audit">
+            <field name="name">Registro de uso de la URL de la API</field>
+            <field name="res_model">meli.proxy.audit</field>
+            <field name="view_mode">list</field>
+            <field name="help" type="html">
+                <p>Sin registros: la API se usa por la dirección oficial (https://api.mercadolibre.com).</p>
+            </field>
+        </record>
+
+        <menuitem id="menu_meli" name="MercadoLibre" parent="sale.sale_menu_root" sequence="16"/>
+
+        <menuitem id="menu_meli_proxy_audit"
+            action="action_meli_proxy_audit"
+            parent="menu_meli"
+            groups="base.group_system"
+            sequence="90"
+            name="Registro de uso de la URL de la API"/>
+    </data>
+</odoo>

@@ -60,3 +60,4 @@ access_sale_mercadolibre_claim_ml,mercadolibre.claim meli manager,model_mercadol
 access_sale_mercadolibre_claim_reader,mercadolibre.claim reader,model_mercadolibre_claim,meli_oerp.group_mercadolibre_reader,1,0,0,0
 access_meli_channel_mkt_ml,meli.channel.mkt meli manager,model_meli_channel_mkt,meli_oerp.group_mercadolibre_manager,1,0,0,0
 access_meli_channel_mkt_reader,meli.channel.mkt reader,model_meli_channel_mkt,meli_oerp.group_mercadolibre_reader,1,0,0,0
+access_meli_proxy_audit_system,meli.proxy.audit admin (solo lectura),model_meli_proxy_audit,base.group_system,1,0,0,0
