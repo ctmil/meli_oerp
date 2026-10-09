@@ -3,6 +3,11 @@
 > Historial de versiones y cambios orientado al cliente.
 
 ---
+
+## 16.0.26.210 — 9-oct-2026 · seguridad (#661, caso 542): Nivel de seguridad en todas las versiones + URL de la API única
+- **Nivel de seguridad** (Predeterminado/Bajo/Alto, en la compañía): disponible también en 16/17/18 (antes sólo 19). Login de ML sin mostrar tokens; fuera las páginas /meli/, /meli_authorize/, /meli_logout/, /meli/image y /download/saveas.
+- **URL de la API de Mercado Libre**: un único campo validado en la compañía (por defecto la oficial). Reemplaza al "Host API ML (rescate)" de la compañía y de cada cuenta; al actualizar se copia solo, nada cambia para quien no usa proxy.
+- **Registro de uso**: si la URL no es la oficial, cada llamada queda en *Ventas › MercadoLibre › Registro de uso de la URL de la API* (sólo Administrador; sin tokens) y en el log `meli_oerp.proxy_audit`. Con Nivel **Alto** la URL alternativa se ignora y se usa la oficial.
 ## 16.0.26.198 — 8-oct-2026 · release de flota: #601 (P1/P3/P6/P7), seguridad #661, contacto del albarán #643
 - **Envío gratis (#601 P1):** una orden con envío gratis ya no se pierde al importarse.
 - **Etiquetas (#601 P3):** el link de la etiqueta ya no lleva el token de ML; descarga con timeout y con modo vacío.

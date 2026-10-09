@@ -4,6 +4,12 @@
 
 ---
 
+### 9 oct 2026 — feat(seguridad): meli_api_url único + rastro del host alternativo [#661 fase 3, 542] (v16.0.26.210)
+
+**Archivos:** models/meli_util.py (meli_normalize_api_url, meli_proxy_audit, _meli_audit_wrap_request, _meli_resolve_api_host, get_new_instance, _nosdk_para_escritura), models/company.py, models/meli_proxy_audit.py, views/meli_proxy_audit_view.xml, migrations/16.0.26.210.
+
+**Decisiones:** fila del rastro en cursor PROPIO, sin FKs y con lock_timeout (no puede esperar un lock del llamador); 'blocked' con throttle 1/h; path decodificado y sin query (el SDK manda la query percent-encoded dentro del path: visto en odoo19mint). Search view: en 19 el <group> va sin expand/string.
+
 ### 8 oct 2026 — Albaran sin Contacto al agregar una linea a un pedido ML confirmado [#643 Shoppy 502] (v16.0.26.197)
 
 **Sintoma.** Despachos ML con el campo Contacto vacio (18 de 18 desde 15-ago tenian una linea agregada a mano; ej. OUT/145611, venta ML 2000018696043976).
