@@ -64,3 +64,4 @@ access_meli_attribute_mapping_sm,meli_oerp.attribute.mapping manager,model_meli_
 access_meli_attribute_mapping_ml,meli_oerp.attribute.mapping meli manager,model_meli_oerp_attribute_mapping,meli_oerp.group_mercadolibre_manager,1,1,1,1
 access_meli_attribute_value_mapping_sm,meli_oerp.attribute.value.mapping manager,model_meli_oerp_attribute_value_mapping,sales_team.group_sale_manager,1,1,1,1
 access_meli_attribute_value_mapping_ml,meli_oerp.attribute.value.mapping meli manager,model_meli_oerp_attribute_value_mapping,meli_oerp.group_mercadolibre_manager,1,1,1,1
+access_meli_proxy_audit_system,meli.proxy.audit admin (solo lectura),model_meli_proxy_audit,base.group_system,1,0,0,0

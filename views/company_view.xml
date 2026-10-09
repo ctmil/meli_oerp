@@ -87,6 +87,7 @@
               								<field name="mercadolibre_access_token" invisible="0" password="True" groups="base.group_system" />
               								<field name="mercadolibre_refresh_token" invisible="0" password="True" groups="base.group_system" />
               								<field name="mercadolibre_code" invisible="0" groups="base.group_no_one" />
+              								<field name="meli_api_url" groups="base.group_system" />
                               <field name="mercadolibre_cron_refresh" invisible="0"/>
                               <field name="mercadolibre_cron_mail" invisible="0"/>
                             </group>
