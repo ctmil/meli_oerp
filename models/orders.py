@@ -5942,6 +5942,8 @@ class mercadolibre_orders(models.Model):
                             discount_pct, order.coupon_amount, total_gross,
                             len(non_delivery_lines), sorder.name,
                         )
+                        # [529] el cupon puede cambiar despues de creada la factura borrador
+                        meli_sync_draft_invoice_discounts(sorder)
             elif _coupon_mode == 'separate_line':
                 if _so_editable:
                     meli_apply_coupon_separate_line(sorder, order.coupon_amount)
@@ -5973,6 +5975,7 @@ class mercadolibre_orders(models.Model):
                                     "(coupon_invoice_mode=full)",
                                     line.id, sorder.name,
                                 )
+                        meli_sync_draft_invoice_discounts(sorder)
                     meli_remove_coupon_separate_line(sorder)
 
         if (1==1 or config.mercadolibre_cron_get_orders_shipment):
