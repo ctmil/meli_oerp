@@ -5435,7 +5435,7 @@ class mercadolibre_orders(models.Model):
                     'status': Payment['status'] or '',
                     'date_created': ml_datetime(Payment['date_created']),
                     'date_last_modified': ml_datetime(Payment['date_last_modified']),
-                    'mercadopago_url': mp_payment_url+'?access_token='+str(meli.access_token),
+                    'mercadopago_url': mp_payment_url,  # #661: sin access_token (antes se guardaba en claro)
                     'full_payment': '',
                     'fee_amount': 0,
                     'shipping_amount': 0,
