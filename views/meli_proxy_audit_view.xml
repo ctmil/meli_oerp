@@ -32,7 +32,7 @@
                     <filter name="f_request" string="Usos" domain="[('event', '=', 'request')]"/>
                     <filter name="f_blocked" string="Ignorados" domain="[('event', '=', 'blocked')]"/>
                     <filter name="f_config" string="Cambios de URL" domain="[('event', '=', 'config')]"/>
-                    <group expand="0" string="Agrupar por">
+                    <group>
                         <filter name="g_host" string="Host" context="{'group_by': 'host'}"/>
                         <filter name="g_event" string="Evento" context="{'group_by': 'event'}"/>
                         <filter name="g_day" string="Día" context="{'group_by': 'create_date:day'}"/>
