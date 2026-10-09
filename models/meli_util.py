@@ -8,6 +8,7 @@ from odoo.tools.translate import _
 import requests
 from requests.adapters import HTTPAdapter
 import json
+import time as _meli_time
 try:
     from urllib import urlencode
 except ImportError:
@@ -54,6 +55,133 @@ def _meli_company_allows(company, feature):
     return True
 
 
+# ---------------------------------------------------------------------------
+#  [#661 fase 3] URL de la API en un único campo validado + rastro del host alternativo
+# ---------------------------------------------------------------------------
+# res.company.meli_api_url es la ÚNICA fuente del host de la API (reemplaza a
+# mercadolibre_http_proxy de la compañía y http_proxy de la cuenta, que quedan como alias).
+# Si el host no es el oficial, cada request queda registrada: línea JSON en el logger
+# `meli_oerp.proxy_audit` + fila en `meli.proxy.audit`. Nunca tokens, headers, body ni query.
+_proxy_audit_logger = logging.getLogger('meli_oerp.proxy_audit')
+_MELI_BLOCKED_AUDIT_LAST = {}
+
+
+def meli_normalize_api_url(value):
+    """Valida y normaliza la URL de la API. Vacío = oficial. ValueError si no es válida.
+
+    Se admite un prefijo de path (reverse proxy montado en una subruta); no se admiten usuario/clave,
+    query, fragmento ni espacios. Se quita la "/" final.
+    """
+    from urllib.parse import urlsplit
+    if not value or not str(value).strip():
+        return API_HOST_DEFAULT
+    raw = str(value).strip()
+    if any(c.isspace() for c in raw):
+        raise ValueError("la URL no puede tener espacios")
+    parts = urlsplit(raw)
+    if parts.scheme not in ('http', 'https'):
+        raise ValueError("la URL tiene que empezar con https:// (o http://)")
+    if not parts.hostname:
+        raise ValueError("falta el host")
+    if parts.username or parts.password:
+        raise ValueError("la URL no puede llevar usuario ni clave")
+    if parts.query or parts.fragment or raw.endswith('?') or raw.endswith('#'):
+        raise ValueError("la URL no puede llevar parámetros (?...) ni fragmento (#...)")
+    path = parts.path.rstrip('/')
+    return "%s://%s%s" % (parts.scheme, parts.netloc.lower(), path)
+
+
+def _meli_url_parts(url):
+    from urllib.parse import urlsplit
+    try:
+        u = urlsplit(str(url))
+        return u.netloc, u.path
+    except Exception:
+        return '', ''
+
+
+def meli_proxy_audit(env, event, company=None, account_label='', host='', method='', path='',
+                     status=None, note=''):
+    """Registra un uso (o bloqueo / cambio) del host alternativo. Nunca levanta excepción.
+
+    Va en un cursor PROPIO: la fila sobrevive aunque la transacción del llamador se revierta, y el
+    modelo no tiene claves foráneas (compañía/usuario como entero + texto) más un lock_timeout, así
+    que la inserción no puede quedar esperando un lock que tenga tomado el propio llamador.
+    """
+    try:
+        company_id = company.id if company else 0
+        company_name = company.sudo().name if company else ''
+        user_login = env.user.sudo().login if env.uid else ''
+    except Exception:
+        company_id, company_name, user_login = 0, '', ''
+    rec = {
+        'event': event, 'db': getattr(env.cr, 'dbname', ''), 'company_id': company_id,
+        'account': account_label or '', 'host': host or '', 'method': (method or '').upper(),
+        'path': path or '', 'status': status, 'user': user_login, 'note': note or '',
+    }
+    try:
+        _proxy_audit_logger.info(json.dumps(rec, ensure_ascii=False, default=str))
+    except Exception:
+        pass
+    if env.context.get('meli_proxy_audit_no_db'):
+        return
+    try:
+        with env.registry.cursor() as cr:
+            cr.execute("SET LOCAL lock_timeout = '2s'")
+            cr.execute("SET LOCAL statement_timeout = '5s'")
+            from odoo import api as _api, SUPERUSER_ID
+            aenv = _api.Environment(cr, SUPERUSER_ID, {})
+            if 'meli.proxy.audit' not in aenv:
+                return
+            aenv['meli.proxy.audit'].create({
+                'event': event,
+                'company_ref': company_id,
+                'company_name': company_name,
+                'account_label': (account_label or '')[:128],
+                'host': (host or '')[:256],
+                'method': (method or '').upper()[:16],
+                'path': (path or '')[:512],
+                'status_code': int(status) if status not in (None, '') else 0,
+                'user_login': user_login,
+                'note': (note or '')[:512],
+            })
+    except Exception as e:
+        _logger.warning("meli proxy audit: no se pudo registrar en la base (%s); queda la línea del log", e)
+
+
+def _meli_audit_callback(env, company, account_label):
+    """Callback (method, url, status) que se cuelga del cliente HTTP cuando el host no es el oficial."""
+    def _cb(method, url, status):
+        host, path = _meli_url_parts(url)
+        meli_proxy_audit(env, 'request', company=company, account_label=account_label, host=host,
+                         method=method, path=path, status=status)
+    return _cb
+
+
+def _meli_audit_wrap_request(obj, callback):
+    """Envuelve obj.request(method, url, ...) (requests.Session o rest_client del SDK)."""
+    if not obj or not callback or not hasattr(obj, 'request'):
+        return False
+    original = obj.request
+
+    def _audited_request(method, url, *args, **kwargs):
+        status = None
+        try:
+            resp = original(method, url, *args, **kwargs)
+            status = getattr(resp, 'status_code', None) or getattr(resp, 'status', None)
+            return resp
+        except Exception as e:
+            status = getattr(e, 'status', None) or 0
+            raise
+        finally:
+            try:
+                callback(method, url, status)
+            except Exception:
+                pass
+    obj.request = _audited_request
+    return True
+
+
 class LoggingRetry(Retry):
     def increment(self, *args, **kwargs):
         retry_number = kwargs.get('total', self.total)
@@ -72,8 +200,10 @@ API_HOST_DEFAULT = "https://api.mercadolibre.com"
 
 # NoSDK: requests Session con retry
 class MeliConfiguration:
-    def __init__(self, host="https://api.mercadolibre.com"):
+    def __init__(self, host="https://api.mercadolibre.com", audit=None):
         self.host = host
+        # [#661 fase 3] callback (method, url, status) cuando el host no es el oficial.
+        self.audit = audit
         self.retries = LoggingRetry(
             total=3,
             backoff_factor=0.5,
@@ -86,6 +216,8 @@ class MeliConfiguration:
         adapter = HTTPAdapter(max_retries=self.retries)
         session.mount("https://", adapter)
         session.mount("http://", adapter)
+        if self.audit:
+            _meli_audit_wrap_request(session, self.audit)
         return session
 
 
@@ -963,7 +1095,7 @@ if _versions.MELI_SDK_AVAILABLE and _meli_sdk and _ApiClient:
             """
             host = getattr(self, "api_host", None) or API_HOST_DEFAULT
             if host != API_HOST_DEFAULT:
-                config = MeliConfiguration(host=host)
+                config = MeliConfiguration(host=host, audit=getattr(self, "_meli_audit", None))
                 config.retries = False
             else:
                 config = configuration_nosdk
@@ -1154,19 +1286,47 @@ class MeliUtil(models.AbstractModel):
             _NEUTRALIZED_REFRESH_LOGGED = True
 
     @api.model
+    def _meli_resolve_api_host(self, company, account_label=''):
+        """[#661 fase 3] (host efectivo, callback de auditoría o None) para la compañía.
+
+        Oficial ⇒ (oficial, None): nada cambia respecto de siempre. Alternativo ⇒ se audita cada
+        request; con el Nivel de seguridad Alto se ignora (fila 'blocked') y se usa el oficial.
+        """
+        raw = company and 'meli_api_url' in company._fields and company.sudo().meli_api_url
+        try:
+            api_host = meli_normalize_api_url(raw)
+        except ValueError as e:
+            _logger.warning("meli: URL de la API inválida en la compañía %s (%s); se usa la oficial",
+                            company and company.id, e)
+            api_host = API_HOST_DEFAULT
+        if api_host == API_HOST_DEFAULT:
+            return API_HOST_DEFAULT, None
+        host, path = _meli_url_parts(api_host)
+        if not _meli_company_allows(company, 'proxy'):
+            _logger.warning("meli: host alternativo %s ignorado por el Nivel de seguridad (compañía %s)",
+                            host, company and company.id)
+            # Fila en la base: una por hora por (base, compañía, host) — get_new_instance corre muchas
+            # veces por minuto en los crons. El log sí registra cada vez.
+            key = (self.env.cr.dbname, company and company.id, host)
+            now = _meli_time.time()
+            if now - _MELI_BLOCKED_AUDIT_LAST.get(key, 0) > 3600:
+                _MELI_BLOCKED_AUDIT_LAST[key] = now
+                meli_proxy_audit(self.env, 'blocked', company=company, account_label=account_label,
+                                 host=host, path=path, note="Nivel de seguridad Alto: se usa la API oficial")
+            return API_HOST_DEFAULT, None
+        return api_host, _meli_audit_callback(self.env, company, account_label)
+
+    @api.model
     def get_new_instance(self, company=None, refresh_force=False):
 
         if not company:
             company = self.env.user.company_id
 
-        # Proxy de rescate: si la empresa tiene configurado un host alternativo,
-        # rutear la API (y el OAuth, vía _abs_url) por ese reverse proxy.
-        api_host = company.mercadolibre_http_proxy or "https://api.mercadolibre.com"
-        if api_host != "https://api.mercadolibre.com" and not _meli_company_allows(company, 'proxy'):
-            # [#661] Nivel de seguridad Alto: sólo la API oficial, el host alternativo se ignora.
-            _logger.warning("meli: proxy %s ignorado por el Nivel de seguridad (compañía %s)", api_host, company.id)
-            api_host = "https://api.mercadolibre.com"
-        use_custom_host = api_host != "https://api.mercadolibre.com"
+        # [#661 fase 3] Host de la API: único campo validado res.company.meli_api_url (proxy de
+        # rescate si no es el oficial). Host alternativo ⇒ cada request queda en el rastro; con el
+        # Nivel de seguridad Alto se ignora y se usa el oficial.
+        api_host, _audit_cb = self._meli_resolve_api_host(company)
+        use_custom_host = api_host != API_HOST_DEFAULT
 
         # Crear instancia de MeliApi según modo activo (SDK o requests)
         if _versions.USE_MELI_SDK and MeliApiSDK is not None:
@@ -1175,12 +1335,15 @@ class MeliUtil(models.AbstractModel):
                 # Host de rescate: sin auto-retry (los 429 agravan el rate-limit del proxy).
                 sdk_config.retries = False
                 api_client = _ApiClient(configuration=sdk_config)
+                if not _meli_audit_wrap_request(getattr(api_client, 'rest_client', None), _audit_cb):
+                    _logger.warning("meli proxy audit: el cliente SDK no expone rest_client.request; "
+                                    "sólo queda registrada la creación de la instancia")
             else:
                 api_client = _ApiClient(configuration=configuration_sdk)
             api_rest_client = MeliApi(api_client)
         else:
             if use_custom_host:
-                config = MeliConfiguration(host=api_host)
+                config = MeliConfiguration(host=api_host, audit=_audit_cb)
                 # Host de rescate: sin auto-retry (los 429 agravan el rate-limit del proxy).
                 # Espeja la rama SDK: el config fresco por-host NO debe heredar el Retry
                 # por defecto (status_forcelist=[413,429,503]); reintentar contra el proxy
@@ -1192,6 +1355,7 @@ class MeliUtil(models.AbstractModel):
         # El host efectivo viaja con la instancia: post_mini/put_mini lo necesitan para no
         # descartar el proxy de rescate al armar su cliente NoSDK interno.
         api_rest_client.api_host = api_host
+        api_rest_client._meli_audit = _audit_cb
         api_rest_client.client_id = company.mercadolibre_client_id
         api_rest_client.client_secret = company.mercadolibre_secret_key
         api_rest_client.access_token = company.mercadolibre_access_token or ''

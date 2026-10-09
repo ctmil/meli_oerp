@@ -39,6 +39,7 @@
         'views/shipment_view.xml',
         'views/carrier_mapping_view.xml',
         'views/notifications_view.xml',
+        'views/meli_proxy_audit_view.xml',
         #'views/res_config_settings.xml',
         'wizard/meli_consult_category_wizard.xml'
     ],
