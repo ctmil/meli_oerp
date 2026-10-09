@@ -846,6 +846,37 @@ def meli_apply_coupon_separate_line(sorder, coupon_amount):
         _logger.info("MELI: apply coupon separate line failed: %s", str(E))
 
 
+def meli_sync_draft_invoice_discounts(sorder):
+    """Lleva el descuento (%) de las lineas de la venta a su(s) factura(s) en BORRADOR.
+
+    [529 UniversoPets, venta ML 2000018699117140] ML puede actualizar el cupon DESPUES de que
+    la factura borrador ya se creo (7000 -> 9352,75, 46 s despues). El bloque del cupon recalcula
+    line.discount en la venta, pero la factura borrador quedaba con el % viejo y se posteaba con
+    el importe anterior (saldo contra el cobro). Solo toca facturas en estado 'draft' (sin CAE ni
+    numero fiscal); nunca una posteada. Solo lineas de producto con UNA linea de venta de ESTA
+    orden (packs con varias ordenes en una factura: cada orden sincroniza las suyas). Sin red."""
+    try:
+        if not sorder or "invoice_ids" not in sorder._fields:
+            return
+        moves = sorder.invoice_ids.filtered(
+            lambda m: m.state == "draft" and m.move_type in ("out_invoice", "out_refund"))
+        for move in moves:
+            cmds = []
+            for aml in move.invoice_line_ids:
+                sls = aml.sale_line_ids
+                if len(sls) != 1 or sls.order_id.id != sorder.id or sls.is_delivery:
+                    continue
+                if abs((aml.discount or 0.0) - (sls.discount or 0.0)) >= 0.000001:
+                    cmds.append((1, aml.id, {"discount": sls.discount}))
+            if cmds:
+                move.write({"invoice_line_ids": cmds})
+                _logger.info("MELI: draft invoice %s: discount re-synced from SO %s on %d line(s)",
+                             move.id, sorder.name, len(cmds))
+    except Exception as E:
+        _logger.warning("MELI: sync draft invoice discounts failed on SO %s: %s",
+                        sorder and sorder.name, str(E))
+
+
 def get_delivery_line(sorder):
     delivery_line = None
     try:
