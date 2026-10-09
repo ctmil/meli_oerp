@@ -1927,6 +1927,27 @@ class res_company(models.Model):
             _logger.debug("MELI_STOCK_DIAG: no se pudo persistir meli_last_status de %s: %s",
                           meli_id, _st_err)
 
+    def _meli_stock_safety_qty(self):
+        """[529] Stock de seguridad vigente para esta compania: el MAYOR entre el de la compania
+        (meli_oerp_stock, monocuenta) y el de las configuraciones de sus cuentas ML
+        (meli_oerp_multiple). El diagnostico de stock compara contra el stock de Odoo y tiene que
+        descontar lo MISMO que descuenta el envio (_meli_available_quantity); si no, reactiva o
+        "corrige" publicaciones que el resguardo dejo en 0 a proposito. Se usa el maximo para que el
+        diagnostico nunca reactive algo que alguna cuenta resguarda. 0 = sin resguardo (como antes)."""
+        company = self
+        qtys = [0]
+        if "mercadolibre_stock_safety_qty" in company._fields:
+            qtys.append(company.mercadolibre_stock_safety_qty or 0)
+        try:
+            if "mercadolibre.account" in self.env and "configuration" in self.env["mercadolibre.account"]._fields:
+                accounts = self.env["mercadolibre.account"].sudo().search([("company_id", "=", company.id)])
+                for cfg in accounts.mapped("configuration"):
+                    if "mercadolibre_stock_safety_qty" in cfg._fields:
+                        qtys.append(cfg.mercadolibre_stock_safety_qty or 0)
+        except Exception as _e:
+            _logger.debug("MELI_STOCK_DIAG: no se pudo leer el stock de seguridad de las cuentas: %s", _e)
+        return max(max(qtys), 0)
+
     def meli_stock_diagnostic(self, meli=False, reactivate=None):
         """
         Diagnostic safety check: compare Odoo stock vs ML stock for all published products.
@@ -1985,6 +2006,8 @@ class res_company(models.Model):
             AND (pp.meli_shipping_logistic_type IS NULL OR pp.meli_shipping_logistic_type != 'fulfillment')
         """, (company.id,))
         rows = self.env.cr.fetchall()
+        # [529] el stock de Odoo se compara YA descontado el stock de seguridad (mismo calculo que el envio)
+        _safety = company._meli_stock_safety_qty()
 
         reactivate_candidates = []        # (id, sku, meli_id, odoo_qty, meli_qty)
         drift_candidates = []             # (id, sku, meli_id, odoo_qty, meli_qty)
@@ -2000,7 +2023,7 @@ class res_company(models.Model):
 
         for row in rows:
             pid, sku, meli_id, meli_qty, odoo_qty, logistic_type = row
-            odoo_qty = max(odoo_qty or 0.0, 0.0)
+            odoo_qty = max((odoo_qty or 0.0) - _safety, 0.0)
             meli_qty = meli_qty or 0
 
             # fulfillment_user_product_id items: stored meli_qty reflects meli_facility
@@ -2035,16 +2058,16 @@ class res_company(models.Model):
                         GROUP BY sq.product_id
                     ) sq ON sq.product_id = pp.id
                     WHERE mp.meli_last_status = 'paused'
-                      AND COALESCE(sq.avail_qty, 0) > 0
+                      AND COALESCE(sq.avail_qty, 0) > %s
                       AND (pt.company_id IS NULL OR pt.company_id = %s)
                       AND mp.conn_id IS NOT NULL
                       AND mp.conn_id LIKE 'M%%'
                       AND (pp.meli_shipping_logistic_type IS NULL OR pp.meli_shipping_logistic_type != 'fulfillment')
                     ORDER BY qty_on_hand DESC
                     LIMIT 100
-                """, (company.id,))
+                """, (_safety, company.id,))
                 for pid2, sku2, meli_id2, meli_qty2, odoo_qty2 in self.env.cr.fetchall():
-                    odoo_qty2 = max(odoo_qty2 or 0.0, 0.0)
+                    odoo_qty2 = max((odoo_qty2 or 0.0) - _safety, 0.0)
                     # Skip if already in reactivate_candidates or fulfillment_user_candidates
                     already = (
                         any(r[2] == meli_id2 for r in reactivate_candidates)
