@@ -23,6 +23,7 @@ _logger = logging.getLogger(__name__)
 
 
 from ..models.versions import *
+from ..models.meli_util import _meli_mask
 
 def _get_headers(filename, filetype, content):
     return [
@@ -33,15 +34,8 @@ def _get_headers(filename, filetype, content):
     ]
     
 class MercadoLibre(http.Controller):
-    @http.route('/meli/', auth='public')
-    def index(self):
-        company = request.env.user.company_id
-        meli_util_model = request.env['meli.util']
-        meli = meli_util_model.get_new_instance(company)
-        if meli.need_login():
-            return "<a href='"+meli.auth_url()+"'>Login Please</a>"
 
-        return "MercadoLibre Publisher for Odoo - Copyright Moldeo Interactive 2021"
+    # [#661] Fuera /meli/ (página informativa) y /meli/image/* (sin usos): sólo quedan el webhook y el login.
 
     # csrf=False is required because this endpoint is a webhook called
     # from MercadoLibre servers — they cannot provide an Odoo CSRF token.
@@ -90,28 +84,6 @@ class MercadoLibre(http.Controller):
         #else:
         return ""
 
-    @http.route('/meli/image/<int:product_id>', type='http', auth="public")
-    @http.route('/meli/image/<int:product_id>/<int:image_id>', type='http', auth="public")
-    def meli_image(self, product_id, image_id=None, **kw):
-
-        #browse and read image data to browser
-        product = request.env["product.product"].browse(int(product_id))
-
-        if image_id:
-            filename = '%s_%s' % ("product.image".replace('.', '_'), str(product_id)+str("_")+str(image_id))
-            product_image = request.env["product.image"].browse( int(image_id) )
-            if product_image:
-                filecontent = base64.b64decode( get_image_full( product_image ) )
-            else:
-                return ""
-        else:
-            filename = '%s_%s' % ("meli.image".replace('.', '_'), product_id)
-            filecontent = base64.b64decode( get_image_full( product ) )
-
-        return request.make_response(filecontent,
-                                     [('Content-Type', 'application/octet-stream'),
-                                      ('Content-Disposition', content_disposition(filename))])
-
 
 class MercadoLibreLogin(http.Controller):
 
@@ -128,96 +100,16 @@ class MercadoLibreLogin(http.Controller):
             return "<h5>"+message+"</h5><br/>Retry (check your redirect_uri field in MercadoLibre company configuration, also the actual user and public user default company must be the same company ): <a href='"+meli.auth_url(redirect_URI=company.mercadolibre_redirect_uri)+"'>Login</a>"
 
         if codes['code']!='none':
-            _logger.info( "Meli: Authorize: REDIRECT_URI: %s, code: %s" % ( company.mercadolibre_redirect_uri, codes['code'] ) )
+            _logger.info( "Meli: Authorize: REDIRECT_URI: %s" % ( company.mercadolibre_redirect_uri ) )
             resp = meli.authorize( codes['code'], company.mercadolibre_redirect_uri)
             company.write( { 'mercadolibre_access_token': meli.access_token,
                              'mercadolibre_refresh_token': meli.refresh_token,
                              'mercadolibre_code': codes['code'],
                              'mercadolibre_cron_refresh': True } )
-            return 'LOGGED WITH CODE: %s <br>ACCESS_TOKEN: %s <br>REFRESH_TOKEN: %s <br>MercadoLibre Publisher for Odoo - Copyright Moldeo Interactive <br><a href="javascript:window.history.go(-2);">Volver a Odoo</a> <script>window.history.go(-2)</script>' % ( codes['code'], meli.access_token, meli.refresh_token )
+            # [#661] La página de login nunca muestra el código ni los tokens.
+            return 'CONECTADO A MERCADOLIBRE <br>MercadoLibre Publisher for Odoo - Copyright Moldeo Interactive <br><a href="javascript:window.history.go(-2);">Volver a Odoo</a> <script>window.history.go(-2)</script>'
         else:
             return "<a href='"+meli.auth_url()+"'>Try to Login Again Please</a>"
 
-class MercadoLibreAuthorize(http.Controller):
-    @http.route('/meli_authorize/', auth='public')
-    def index(self):
-        return "AUTHORIZE: MercadoLibre for Odoo - Moldeo Interactive"
-
-
-class MercadoLibreLogout(http.Controller):
-    @http.route('/meli_logout/', auth='public')
-    def index(self):
-        return "LOGOUT: MercadoLibre for Odoo - Moldeo Interactive"
-
-class Download(http.Controller):
-    """
-    Example of utilisation:
-
-    1) Add a "Download" button of type "object" on your form view
-
-    2) Define the method for downloading the file
-
-    from odoo import api, models
-    from odoo.tools ustr
-
-
-    class StockMove(models.Model):
-        _inherit = 'stock.move'
-
-
-        def _get_datas(self):
-            self.ensure_one()
-            return ustr("Stock n°%s") % self.id
-
-
-        def button_get_file(self):
-            self.ensure_one()
-            return {
-                'type': 'ir.actions.act_url',
-                'url': '/download/saveas?model=%(model)s&record_id=%(record_id)s&method=%(method)s&filename=%(filename)s' % {
-                    'filename': 'stock_infos.txt',
-                    'model': self._name,
-                    'record_id': self.id,
-                    'method': '_get_datas',
-                },
-                'target': 'self',
-            }
-
-    """
-
-    # Seguridad (auditoria 542, ticket #661): antes la ruta era auth="public" y
-    # ejecutaba getattr(Model, method)() con modelo y metodo elegidos por quien llamaba.
-    # Ahora exige usuario logueado Y que (modelo, metodo) este en esta lista blanca.
-    # Hoy ningun modulo del suite usa esta ruta (el ejemplo de arriba es solo documentacion),
-    # por eso la lista esta vacia: para habilitar un uso legitimo, agregar
-    # 'modelo.tecnico': ('metodo_publico',) aca. Nunca metodos que empiecen con "_".
-    _SAVEAS_WHITELIST = {}
-
-    @http.route('/download/saveas', type='http', auth="user")
-    def saveas(self, model, record_id, method, encoded=False, filename=None, **kw):
-        """ Download link for files generated on the fly.
-
-        :param str model: name of the model to fetch the data from
-        :param str record_id: id of the record from which to fetch the data
-        :param str method: name of the method used to fetch data, decorated with @api.one
-        :param bool encoded: whether the data is encoded in base64
-        :param str filename: the file's name, if any
-        :returns: :class:`werkzeug.wrappers.Response`
-        """
-        allowed = self._SAVEAS_WHITELIST.get(model) or ()
-        if method not in allowed or method.startswith('_'):
-            return request.not_found()
-        Model = request.env[model].browse(int(record_id))
-        datas = getattr(Model, method)()
-        if not datas:
-            return request.not_found()
-        filecontent = datas[0]
-        if not filecontent:
-            return request.not_found()
-        if encoded:
-            filecontent = base64.b64decode(filecontent)
-        if not filename:
-            filename = '%s_%s' % (model.replace('.', '_'), record_id)
-        return request.make_response(filecontent,
-                                     [('Content-Type', 'application/octet-stream'),
-                                      ('Content-Disposition', content_disposition(filename))])
+# [#661] Fuera /meli_authorize/ y /meli_logout/ (páginas informativas; la desconexión es un botón del
+# formulario) y /download/saveas (ejecutaba un método elegido por quien llamaba; ningún módulo la usaba).
