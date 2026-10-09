@@ -4,6 +4,14 @@
 
 ---
 
+### 9 oct 2026 — Build de flota 26.214 (v19.0.26.214)
+
+Sin cambios de codigo en meli_oerp. El build 26.214 es el fix de meli_oerp_autofacturacion (#486 Enerpoint: el portal
+de autofactura daba 500 al ingresar el RFC — timbrado con account.move.send abstracto + savepoint roto por el commit de
+l10n_mx_edi). Sube por la regla del build unico de flota.
+
+---
+
 ### 9 oct 2026 — feat(seguridad): meli_api_url único + rastro del host alternativo [#661 fase 3, 542] (v19.0.26.210)
 
 **Archivos:** models/meli_util.py (meli_normalize_api_url, meli_proxy_audit, _meli_audit_wrap_request, _meli_resolve_api_host, get_new_instance, _nosdk_para_escritura), models/company.py, models/meli_proxy_audit.py, views/meli_proxy_audit_view.xml, migrations/19.0.26.210.
