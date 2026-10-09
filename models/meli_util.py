@@ -23,6 +23,36 @@ from datetime import datetime
 from .versions import *
 from . import versions as _versions
 
+# Seguridad (comms 2026-10-05T15:22:47Z, 542): los tokens/secretos NUNCA van en claro al chatter,
+# al log ni a mercadolibre.notification.logs.
+_MELI_SECRET_KEYS = ('access_token', 'refresh_token', 'client_secret', 'secret_key', 'code')
+
+
+def _meli_mask(value):
+    """Enmascara un secreto: primeros 4 + '…' + ultimos 4 (o '***' si es corto)."""
+    if not value:
+        return str(value)
+    s = str(value)
+    if len(s) <= 12:
+        return '***'
+    return s[:4] + '…' + s[-4:]
+
+
+def _meli_redact(data, omit=False):
+    """Copia de un dict (respuesta OAuth, login_data) con los secretos enmascarados (omit=True: quitados)."""
+    if isinstance(data, dict):
+        if omit:
+            return {k: v for k, v in data.items() if k not in _MELI_SECRET_KEYS}
+        return {k: (_meli_mask(v) if k in _MELI_SECRET_KEYS else v) for k, v in data.items()}
+    return data
+
+
+def _meli_company_allows(company, feature):
+    """[#661] Nivel de seguridad (odoo_connector_api). Sin ese módulo instalado: comportamiento de siempre."""
+    if company and hasattr(company, '_ocapi_security_allows'):
+        return company.sudo()._ocapi_security_allows(feature)
+    return True
+
 
 class LoggingRetry(Retry):
     def increment(self, *args, **kwargs):
@@ -1132,6 +1162,10 @@ class MeliUtil(models.AbstractModel):
         # Proxy de rescate: si la empresa tiene configurado un host alternativo,
         # rutear la API (y el OAuth, vía _abs_url) por ese reverse proxy.
         api_host = company.mercadolibre_http_proxy or "https://api.mercadolibre.com"
+        if api_host != "https://api.mercadolibre.com" and not _meli_company_allows(company, 'proxy'):
+            # [#661] Nivel de seguridad Alto: sólo la API oficial, el host alternativo se ignora.
+            _logger.warning("meli: proxy %s ignorado por el Nivel de seguridad (compañía %s)", api_host, company.id)
+            api_host = "https://api.mercadolibre.com"
         use_custom_host = api_host != "https://api.mercadolibre.com"
 
         # Crear instancia de MeliApi según modo activo (SDK o requests)
@@ -1248,11 +1282,12 @@ class MeliUtil(models.AbstractModel):
                                 try:
                                     #refresh = meli.get_refresh_token()
                                     refresh = api_rest_client.get_refresh_token()
-                                    _logger.info("Refresh result: "+str(refresh))
+                                    _omit = not _meli_company_allows(company, 'token_in_chatter')
+                                    _logger.info("Refresh result: "+str(_meli_redact(refresh, omit=_omit)))
                                     if (refresh):
                                         #refjson = refresh.json()
                                         refjson = refresh
-                                        logs+= str(refjson)+"\n"
+                                        logs+= str(_meli_redact(refjson, omit=_omit))+"\n"
                                         if "access_token" in refjson:
                                             api_rest_client.access_token = refjson["access_token"]
                                             api_rest_client.refresh_token = refjson["refresh_token"]
