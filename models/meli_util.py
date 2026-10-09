@@ -742,15 +742,16 @@ class MeliApiNoSDK:
 
         url = self._abs_url(path)
 
-        # Para upload legacy, usamos query param access_token
+        # #661: el token va en el header, nunca en la URL (antes iba como query param).
+        headers = {"Accept": "application/json"}
         if atok:
-            sep = "&" if ("?" in url) else "?"
-            url = f"{url}{sep}access_token={atok}"
+            headers["Authorization"] = f"Bearer {atok}"
 
         try:
             resp = self._session.post(
                 url,
                 files=files,
+                headers=headers,
                 timeout=timeout
             )
             self.response = self._parse_response(resp)
@@ -1327,6 +1328,11 @@ class MeliUtil(models.AbstractModel):
                                  host=host, path=path, note="Nivel de seguridad Alto: se usa la API oficial")
             return API_HOST_DEFAULT, None
         return api_host, _meli_audit_callback(self.env, company, account_label)
+
+    @api.model
+    def _meli_view_instance(self, account_id=False):
+        """#661: instancia de ML para las vistas sin token (/meli/item_api). multiple la pisa por cuenta."""
+        return self.get_new_instance(self.env.user.company_id)
 
     @api.model
     def get_new_instance(self, company=None, refresh_force=False):

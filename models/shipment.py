@@ -26,6 +26,7 @@ from .meli_oerp_config import *
 #from ..melisdk.meli import Meli
 
 import json
+import hashlib
 
 import logging
 _logger = logging.getLogger(__name__)
@@ -62,6 +63,16 @@ from datetime import *
 
 from . import versions
 from .versions import *
+
+
+def _meli_token_key(access_token):
+    """#661: clave estable para agrupar por cuenta SIN usar el token como clave (que terminaba en full_links)."""
+    return hashlib.sha256((access_token or '').encode('utf-8')).hexdigest()[:12]
+
+
+def _meli_labels_view_url(record_ids, response_type):
+    """#661: link de descarga de etiquetas servido por Odoo (el token lo pone el servidor en el header)."""
+    return "/meli/shipment_labels?ids=%s&response_type=%s" % (",".join(str(i) for i in record_ids), response_type)
 
 
 def _meli_label_download(url, access_token, timeout=60):
@@ -241,13 +252,15 @@ class mercadolibre_shipment_print(models.TransientModel):
             if should_include:
                 atoken = ship_report.get("access_token")
                 if atoken:
+                    tkey = _meli_token_key(atoken)
                     result["by_token"].setdefault(
-                        atoken,
-                        {"shipment_ids": [], "url": None}
+                        tkey,
+                        {"shipment_ids": [], "record_ids": [], "url": None}
                     )
-                    result["by_token"][atoken]["shipment_ids"].append(
+                    result["by_token"][tkey]["shipment_ids"].append(
                         shipment.shipping_id
                     )
+                    result["by_token"][tkey]["record_ids"].append(shipment.id)
                     result["shipments_status"]["ready"].append(
                         {
                             "shipment_id": shipment.shipping_id,
@@ -269,13 +282,9 @@ class mercadolibre_shipment_print(models.TransientModel):
         # ------------------------------------------------------------
         response_type = "zpl2" if resolved_print_mode in ("zpl", "zpl_txt") else "pdf"
 
-        for atoken, token_data in result["by_token"].items():
-            token_data["url"] = (
-                "https://api.mercadolibre.com/shipment_labels"
-                f"?shipment_ids={','.join(token_data['shipment_ids'])}"
-                f"&response_type={response_type}"
-                f"&access_token={atoken}"
-            )
+        # #661: URL de Odoo sin token (antes: api.mercadolibre.com/...&access_token=...)
+        for tkey, token_data in result["by_token"].items():
+            token_data["url"] = _meli_labels_view_url(token_data["record_ids"], response_type)
 
         return result
 
@@ -344,17 +353,21 @@ class mercadolibre_shipment_print(models.TransientModel):
             reporte = reporte + sep + str( ship_report['message'] )
 
             if (shipment and shipment.status=="ready_to_ship"):
+                # #661: se agrupa por cuenta con un hash del token (nunca el token como clave,
+                # porque este dict se guarda en full_links) y el link es de Odoo, sin token.
                 atoken = ship_report['access_token']
-                if atoken and not (atoken in full_url_link_pdf):
-                    full_url_link_pdf[atoken] = { 'full_ids': '', 'comma': '', 'full_link': '' }
+                tkey = atoken and _meli_token_key(atoken)
+                if tkey and not (tkey in full_url_link_pdf):
+                    full_url_link_pdf[tkey] = { 'full_ids': '', 'comma': '', 'full_link': '', 'record_ids': [] }
 
-                if atoken and atoken in full_url_link_pdf:
-                    full_url_link_pdf[atoken]['full_ids'] += full_url_link_pdf[atoken]['comma'] + shipment.shipping_id
-                    full_url_link_pdf[atoken]['comma']  = ","
+                if tkey and tkey in full_url_link_pdf:
+                    full_url_link_pdf[tkey]['full_ids'] += full_url_link_pdf[tkey]['comma'] + shipment.shipping_id
+                    full_url_link_pdf[tkey]['comma']  = ","
+                    full_url_link_pdf[tkey]['record_ids'].append(shipment.id)
 
-                    full_url_link_pdf[atoken]['full_link'] = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_url_link_pdf[atoken]['full_ids']+"&response_type=pdf&access_token="+atoken
+                    full_url_link_pdf[tkey]['full_link'] = _meli_labels_view_url(full_url_link_pdf[tkey]['record_ids'], "pdf")
                     if (print_mode in ("zpl","zpl_txt")):
-                        full_url_link_pdf[atoken]['full_link'] = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+full_url_link_pdf[atoken]['full_ids']+"&response_type=zpl2&access_token="+atoken
+                        full_url_link_pdf[tkey]['full_link'] = _meli_labels_view_url(full_url_link_pdf[tkey]['record_ids'], "zpl2")
 
             sep = "<br>"+"\n"
 
@@ -367,7 +380,6 @@ class mercadolibre_shipment_print(models.TransientModel):
             if full_link:
                 full_links+= '<a href="'+full_link+'" target="_blank"><strong><u>Descargar PDF/ZPL</u></strong></a>'
 
-        # full_url_link_pdf = {'otken': {'full_link': "https://api.mercadolibre.com/shipment_labels?shipment_ids=43272588025&amp;response_type=pdf&amp;access_token=APP_USR-6866649250908201-040908-e22cf17b7005c0ee37b953b972c7c53b-1682539048"}}
         self.full_links= json.dumps(full_url_link_pdf)
         if (full_links):
             return warningobj.info( title='Impresión de etiquetas', message="Abrir links para descargar PDF/ZPL", message_html=""+full_ids+'<br><br>'+full_links+"<br><br>Reporte de no impresas:<br>"+reporte )
@@ -2004,10 +2016,16 @@ class mercadolibre_shipment(models.Model):
         #orders_query = "/orders/search?seller="+config.mercadolibre_seller_id+"&sort=date_desc"
 
         # https://api.mercadolibre.com/shipment_labels?shipment_ids=20178600648,20182100995&response_type=pdf&access_token=
-        # https://api.mercadolibre.com/shipments/27693158904?access_token=APP_USR-3069131366650174-120509-8746c1a831468e99f84105cd631ff206-246057399
+        # https://api.mercadolibre.com/shipments/27693158904?access_token=<TOKEN>
 
 
         return {}
+
+    def _meli_label_instance(self):
+        """#661: instancia de ML con la que se baja la etiqueta de ESTE envío (server-side).
+        meli_oerp_multiple la pisa para usar la cuenta de la orden."""
+        self.ensure_one()
+        return self.env['meli.util'].get_new_instance(self.env.user.company_id)
 
     def shipment_print( self, meli=None, config=None, include_ready_to_print=None ):
 

@@ -853,9 +853,9 @@ class product_template(models.Model):
             'price': self.get_price_for_category_predictor(),
         }]
         #response = meli.post("/sites/"+self.env.user.company_id._get_ML_sites()+"/category_predictor/predict", vals)
-        url = "/sites/"+self.env.user.company_id._get_ML_sites()+"/domain_discovery/search?q="+self.get_title_for_category_predictor()+"&access_token="+str(meli.access_token)
+        url = "/sites/"+self.env.user.company_id._get_ML_sites()+"/domain_discovery/search?q="+self.get_title_for_category_predictor()
         _logger.info(url)
-        response = meli.get(url)
+        response = meli.get(url, {'access_token': meli.access_token})  # #661: token por header, no en la URL (que además se logueaba)
         rjson = response.json()
         meli_categ = self.env['mercadolibre.category'].sudo()
         _logger.info(rjson)
@@ -3381,7 +3381,7 @@ class product_product(models.Model):
                     ML_status = rjson["status"]
                 if "permalink" in rjson:
                     ML_permalink_edit = company.get_ML_LINK_URL(meli=meli)+str("publicaciones/")+str(product.meli_id)+str("/modificar")
-                    ML_permalink_api = str("https://api.mercadolibre.com/items/")+str(product.meli_id)+str("?include_attributes=all&access_token="+str(meli and meli.access_token))
+                    ML_permalink_api = "/meli/item_api/%s" % product.meli_id  # #661: sin token, lo resuelve Odoo
                 if "error" in rjson:
                     ML_status = rjson["error"]
                 if "sub_status" in rjson:
