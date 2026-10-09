@@ -4,6 +4,10 @@
 
 ---
 
+## 18.0.26.213 — 9-oct-2026 · seguridad (#661, caso 542): el token de Mercado Libre ya no queda en links ni campos
+- **Link Api** de la publicación, botón **Abrir API** y links **Descargar PDF/ZPL** de etiquetas: ahora los sirve Odoo (`/meli/item_api`, `/meli/shipment_labels`, sólo usuarios internos); el token viaja en el encabezado del servidor y ya no aparece en pantalla, historial del navegador ni logs.
+- El link del pago de Mercado Pago se guarda sin token; la sugerencia de categoría y la subida de imágenes legacy mandan el token por encabezado.
+- Al actualizar (migración 26.213) se limpian los tokens que ya estaban guardados (pagos, links de etiquetas, avisos). Requiere `-u meli_oerp`. Build único de flota 26.213 en 16/17/18/19.
 ## 18.0.26.210 — 9-oct-2026 · seguridad (#661, caso 542): Nivel de seguridad en todas las versiones + URL de la API única
 - **Nivel de seguridad** (Predeterminado/Bajo/Alto, en la compañía): disponible también en 16/17/18 (antes sólo 19). Login de ML sin mostrar tokens; fuera las páginas /meli/, /meli_authorize/, /meli_logout/, /meli/image y /download/saveas.
 - **URL de la API de Mercado Libre**: un único campo validado en la compañía (por defecto la oficial). Reemplaza al "Host API ML (rescate)" de la compañía y de cada cuenta; al actualizar se copia solo, nada cambia para quien no usa proxy.

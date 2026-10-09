@@ -1413,3 +1413,8 @@ salvo fin de línea (17.0 es CRLF, 18.0 es LF).
 **PARCIAL**, igual que en 17.0.
 
 **Sólo se dispara en bases neutralizadas** (copias de prueba de Odoo.sh), no en producción.
+
+## 18.0.26.213 — 9-oct-2026 — #661 (542) access_token de ML en URLs/campos
+- **Síntoma:** el token de ML quedaba en `mercadolibre.payments.mercadopago_url` (guardado), en `meli_permalink_api` (pantalla), en los links del wizard de etiquetas y en `full_links` (JSON con el token como CLAVE), y `domain_discovery` lo logueaba con `_logger.info(url)`.
+- **Fix:** controller `controllers/token_views.py` (`/meli/item_api/<id>`, `/meli/shipment_labels`, auth=user + internos, ids validados, check de lectura) que pone el token en `Authorization: Bearer`; hooks `meli.util._meli_view_instance` y `mercadolibre.shipment._meli_label_instance` (multiple los pisa por cuenta); agrupación por `sha256(token)[:12]`.
+- **Migración 18.0.26.213:** limpia mercadopago_url, pdf_link, meli_warning.message(_html) y vacía full_links. Probada en PG16 y en odoo19mint (rollback).
