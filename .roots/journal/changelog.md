@@ -4,6 +4,15 @@
 
 ---
 
+## 19.0.26.218 — 10-oct-2026 · ventas de MercadoLibre: cancelaciones, estado de envío, línea de envío e IVA (#638 #618 #620 #486)
+- **#638** El re-chequeo de estado de órdenes recorre de forma rotativa todas las ventas abiertas (no sólo las últimas): una venta cancelada en ML se cancela en Odoo y, si ya tenía la salida de stock hecha, se genera su devolución.
+- **#618** El mismo re-chequeo refresca el estado de los envíos no terminales (p. ej. `ready_to_ship` → `delivered`).
+- **#620** La línea de envío de la venta refleja lo que **paga el comprador** según ML: si el flete lo cubre el vendedor (envío gratis/subsidiado, `cost_details`), la línea queda en 0 y no se suma al total.
+- **#486** La importación de órdenes toma el precio de ML siempre como IVA incluido, sin depender del flag de publicación.
+- Sin migración de datos nueva. Build 26.218 en 16/17/18/19 (paralelo a 26.217; al integrarse ambos en la rama de la serie se renumera).
+
+---
+
 ## 19.0.26.216 — 10-oct-2026 · build de flota (sin cambios funcionales en este módulo)
 - Acompaña a meli_oerp_accounting 26.216 (#462 Olpa): los «Grupos de pago» de las ventas de MercadoLibre se confirman también con módulos cuyo botón Confirmar es `action_post` (p. ej. `account_payment_group_pro`). Integra además 26.214 (#486) y 26.215 (#661/542). Build único de flota 26.216 en 16/17/18/19.
 
