@@ -23,7 +23,6 @@ from odoo import fields, models, api
 from odoo.tools.translate import _
 import logging
 
-#from ..melisdk.meli import Meli
 
 import logging
 _logger = logging.getLogger(__name__)
