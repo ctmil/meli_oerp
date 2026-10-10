@@ -689,13 +689,25 @@ def ml_tax_excluded(self, config=None ):
     return tax_excluded
 
 def ml_product_price_conversion( self, product_related_obj, price, config=None):
+    """Importe que COBRA ML (unitario de una orden, o flete) -> price_unit de la linea de venta.
+
+    [#486 Enerpoint] El precio de una venta de ML es SIEMPRE final, con impuestos incluidos.
+    Por eso se netea siempre por los impuestos de venta NO incluidos del producto (los
+    `price_include` ya lo absorben solos), de modo que total Odoo == lo cobrado en ML.
+
+    Antes esto dependia de ml_tax_excluded(config), o sea de `mercadolibre_tax_included`,
+    que es el flag de la PUBLICACION (si la lista de precios de Odoo trae IVA o no). Un mismo
+    campo gobernaba dos cosas: al pasar la conf a 'tax_included' (para publicar la lista tal
+    cual, que ya trae IVA), las ordenes importadas dejaron de netearse y entraron x1,16
+    (impuesto de 16 % no incluido sumado encima), y el control de montos de confirm_ml las
+    frenaba en presupuesto. La PUBLICACION sigue usando ml_tax_excluded() sin cambios.
+    """
     company_id = ("company_id" in config._fields and config.company_id) or config
     product_template = product_related_obj.product_tmpl_id
     ml_price_converted = float(price)
-    tax_excluded = ml_tax_excluded( self, config=config )
-    #tax_excluded = True
+    # Sin depender de ml_tax_excluded(): ver docstring [#486].
     #_logger.info("Taxes:"+str(product_template.taxes_id))
-    if ( tax_excluded and product_template.taxes_id ):
+    if ( product_template.taxes_id ):
         txfixed = 0
         txpercent = 0
         #_logger.info("Adjust taxes")
