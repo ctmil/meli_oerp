@@ -57,3 +57,6 @@ target/
 # .roots siempre versionado (forest) — no editar a mano
 !.roots/
 !.roots/**
+# bytecode tambien dentro de .roots (la negacion de arriba lo re-incluia)
+.roots/**/__pycache__/
+.roots/**/*.py[cod]
