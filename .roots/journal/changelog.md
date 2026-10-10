@@ -4,6 +4,9 @@
 
 ---
 
+## 17.0.26.219 — 10-oct-2026 · build de flota (sin cambios funcionales en este módulo)
+- Acompaña a meli_oerp_accounting 26.219 (#361 Score): no se concilia una factura global desde la notificación de una venta. Build único 26.219 en 16/17/18/19.
+
 ## 17.0.26.218 — 10-oct-2026 · ventas de MercadoLibre: cancelaciones, estado de envío, línea de envío e IVA (#638 #618 #620 #486)
 - **#638** El re-chequeo de estado de órdenes recorre de forma rotativa todas las ventas abiertas (no sólo las últimas): una venta cancelada en ML se cancela en Odoo y, si ya tenía la salida de stock hecha, se genera su devolución.
 - **#618** El mismo re-chequeo refresca el estado de los envíos no terminales (p. ej. `ready_to_ship` → `delivered`).
