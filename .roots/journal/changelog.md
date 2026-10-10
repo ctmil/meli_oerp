@@ -4,6 +4,21 @@
 
 ---
 
+## Versión 16.0.26.217 — La venta ya no se llena de mensajes «Línea adicional» [#462 Olpa]
+10 oct 2026
+
+**Cambios:**
+
+1. **El problema:** en algunas ventas Full el historial sumaba un mensaje *«Línea adicional con [MEL Distribution]»*
+   (o del envío Flex) en cada actualización desde Mercado Libre: cientos por venta. El conector ponía el envío en 0
+   (porque la venta superaba lo cobrado) y en la pasada siguiente lo volvía a poner, y cada vez borraba y recreaba la línea.
+2. **La solución:** el precio del envío sólo se repone si producto + envío no supera lo cobrado. La venta queda
+   estable igual a lo cobrado y no se recrea la línea.
+
+Además: `.gitignore` deja afuera el bytecode también dentro de `.roots/`. Build único de flota 26.217.
+
+---
+
 ## 16.0.26.216 — 10-oct-2026 · build de flota (sin cambios funcionales en este módulo)
 - Acompaña a meli_oerp_accounting 26.216 (#462 Olpa): los «Grupos de pago» de las ventas de MercadoLibre se confirman también con módulos cuyo botón Confirmar es `action_post` (p. ej. `account_payment_group_pro`). Integra además 26.214 (#486) y 26.215 (#661/542). Build único de flota 26.216 en 16/17/18/19.
 
