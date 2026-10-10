@@ -4,6 +4,11 @@
 
 ---
 
+## 16.0.26.216 — 10-oct-2026 · build de flota (sin cambios funcionales en este módulo)
+- Acompaña a meli_oerp_accounting 26.216 (#462 Olpa): los «Grupos de pago» de las ventas de MercadoLibre se confirman también con módulos cuyo botón Confirmar es `action_post` (p. ej. `account_payment_group_pro`). Integra además 26.214 (#486) y 26.215 (#661/542). Build único de flota 26.216 en 16/17/18/19.
+
+---
+
 ## 16.0.26.215 — 10-oct-2026 · seguridad (#661, caso 542): sin dependencias externas desde git
 - `requirements.txt` ya no instala el SDK de Mercado Libre desde `git+https://github.com/ctmil/python-sdk-2025.git` (no estaba fijado a una versión). El módulo habla con la API de ML con `requests` directo (`MeliApiNoSDK`), como ya hacía cuando el SDK no estaba instalado.
 - Se elimina la carpeta `melisdk/` (SDK viejo 1.0.0 vendorizado, sin uso: todos sus imports estaban comentados).
