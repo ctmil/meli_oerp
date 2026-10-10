@@ -64,7 +64,6 @@ _MELI_REQUESTED_BY_ES = {
     'mediator': 'Mediador',
 }
 
-#from ..melisdk.meli import Meli
 
 import json
 
