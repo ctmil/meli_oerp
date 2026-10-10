@@ -10,6 +10,18 @@
 - **#620** La línea de envío de la venta refleja lo que **paga el comprador** según ML: si el flete lo cubre el vendedor (envío gratis/subsidiado, `cost_details`), la línea queda en 0 y no se suma al total.
 - **#486** La importación de órdenes toma el precio de ML siempre como IVA incluido, sin depender del flag de publicación.
 - Sin migración de datos nueva. Build 26.218 en 16/17/18/19 (paralelo a 26.217; al integrarse ambos en la rama de la serie se renumera).
+## Versión 17.0.26.217 — La venta ya no se llena de mensajes «Línea adicional» [#462 Olpa]
+10 oct 2026
+
+**Cambios:**
+
+1. **El problema:** en algunas ventas Full el historial sumaba un mensaje *«Línea adicional con [MEL Distribution]»*
+   (o del envío Flex) en cada actualización desde Mercado Libre: cientos por venta. El conector ponía el envío en 0
+   (porque la venta superaba lo cobrado) y en la pasada siguiente lo volvía a poner, y cada vez borraba y recreaba la línea.
+2. **La solución:** el precio del envío sólo se repone si producto + envío no supera lo cobrado. La venta queda
+   estable igual a lo cobrado y no se recrea la línea.
+
+Además: `.gitignore` deja afuera el bytecode también dentro de `.roots/`. Build único de flota 26.217.
 
 ---
 

@@ -1057,7 +1057,21 @@ class mercadolibre_shipment(models.Model):
                 #UPDATE PRICE
                 delivery_line = get_delivery_line(sorder)
 
-                if delivery_line and abs(delivery_line.price_unit-delivery_price)>1.0:
+                # [#462 Olpa, 26.217] Esta regla y la de arriba (shipment_amount_cond_fix:
+                # "si la venta supera lo cobrado, envio en 0") se deshacian mutuamente cuando el
+                # producto SOLO ya iguala o supera lo cobrado (Full: el envio lo paga el
+                # vendedor). Cada ciclo una ponia el envio en 0 y la siguiente lo reponia, y cada
+                # vez el core borraba y recreaba la linea: en una venta confirmada eso postea
+                # "Linea adicional con ..." (SO 6545: 1 por ciclo, 320 mensajes). Se repone el
+                # precio solo si producto + envio no supera lo cobrado (mismo umbral que la regla
+                # de arriba), asi ninguna de las dos deja un estado que la otra deshaga.
+                _upd_ok = True
+                if delivery_line and received_amount and delivery_price > 0.0:
+                    _dl_total = sum(l.price_total for l in sorder.order_line if l.is_delivery)
+                    _would_total = (sorder.amount_total - _dl_total) + float(del_price or 0.0)
+                    _upd_ok = (_would_total - received_amount) <= 1.0
+
+                if delivery_line and _upd_ok and abs(delivery_line.price_unit-delivery_price)>1.0:
                     delivery_message = "Defined by MELI"
                     #_logger.info("Agregar delivery line delivery_price:"+str(delivery_price))
                     set_delivery_line(sorder, delivery_price, delivery_message )
