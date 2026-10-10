@@ -27,7 +27,6 @@ from .meli_oerp_config import *
 from .warning import warning
 
 import requests
-#from ..melisdk.meli import Meli
 
 # MULTIGET: Cache de categorías en RAM — evita search() por cada binding en importación masiva
 # {(db_name, meli_category_id): (ml_cat_id, www_cat_id)}

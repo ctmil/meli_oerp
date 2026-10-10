@@ -12,7 +12,7 @@
 - **Lenguaje:** Python 3.10+
 - **Base de datos:** PostgreSQL
 - **APIs externas:** MercadoLibre API v2 (items, orders, questions, categories, shipments)
-- **SDK interno:** `melisdk/meli.py` (wrapper GET/POST/PUT/DELETE con `extra_headers`)
+- **Cliente HTTP:** `models/meli_util.py` (`MeliApiNoSDK`, requests directo). El SDK `meli` es OPCIONAL (se usa si está instalado) y desde 26.215 ya no se declara en requirements.txt (auditoría #661)
 
 ## Versiones Activas
 
@@ -36,7 +36,7 @@ Módulo core funcional. Sincronización de productos, órdenes, envíos, pregunt
 
 - Modelos con prefijo `mercadolibre.` (ej: `mercadolibre.orders`, `mercadolibre.posting`)
 - Campos ML en modelos extendidos prefijados con `meli_` (ej: `meli_id`, `meli_title`)
-- SDK en `melisdk/meli.py` — acceso via `meli` instance de `odoo_connector_api`
+- Acceso a ML vía `meli_util.get_new_instance(...)`; la carpeta `melisdk/` vendorizada se eliminó en 26.215
 - Permalink API incluye `access_token` para autenticación directa desde backend
 - Carrier mapping (`meli_oerp.carrier.mapping`) para evitar duplicación de transportistas
 - Descuentos ML aplicados vía `line.discount` (porcentaje proporcional, NO restando del precio)
