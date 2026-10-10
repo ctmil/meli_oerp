@@ -61,6 +61,20 @@ no trae `shipping_amount`, ML informa `paid_amount` SIN el envio (solo el camino
   o si `paid - total + cupon >= flete` — carrito ya ajustado —, o si el comprador no paga envio). Nunca suma dos veces.
 - No repara ventas existentes bloqueadas/facturadas (el guard #493 sigue). Las abiertas se corrigen en el proximo resync.
 
+### 5 oct 2026 — Las ordenes ML se importan siempre como precio final IVA incluido [#486 Enerpoint] (v17.0.26.185)
+
+**Sintoma.** Enerpoint (MX): desde el 23-sep 22:2xZ cada orden ML importada (o re-procesada en borrador) quedaba con
+total Odoo = total ML x 1,16 y el control de montos de `confirm_ml` la dejaba en presupuesto (no-FULL sin confirmar).
+**Causa.** `ml_product_price_conversion()` (versions.py) sólo neteaba el impuesto si `ml_tax_excluded(config)`, es decir
+si `mercadolibre_tax_included='tax_excluded'`. Ese campo es el de la PUBLICACION (lista con o sin IVA): el cliente lo pasó
+a `tax_included` (su lista 43 ya trae IVA, para publicarla tal cual) y con eso la importación dejó de netear; su IVA 16 %
+no es `price_include` ⇒ se sumaba encima. Un campo, dos responsabilidades.
+**Fix.** La conversión ya no consulta el flag: el importe de ML se netea siempre por los impuestos de venta NO incluidos
+del producto (company de la conf). Con impuestos `price_include` no cambia nada; con `tax_excluded` tampoco (era la misma
+rama). Sólo cambia `tax_included`/`auto` + impuesto no incluido, que era justo el caso roto (total != cobrado).
+La publicación (`ml_tax_excluded` en product.py / connection_binding.py) queda igual.
+**Prueba.** Datos reales de 326292 (`ML 2000015321357013`, ML 800, tax 65 16 %): price_unit 689,655, total 800,00.
+Pre-corte 322799 (ML 1000) y 323269 (ML 554,40) dan lo mismo que antes. Sin migración (no toca datos).
 
 ### 30 sep 2026 — Build de flota 26.166 (v17.0.26.166)
 
