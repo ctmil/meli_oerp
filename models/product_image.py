@@ -20,7 +20,6 @@ from datetime import datetime
 
 from .meli_oerp_config import *
 
-#from ..melisdk.meli import Meli
 import string
 if (not ('replace' in string.__dict__)):
     string = str

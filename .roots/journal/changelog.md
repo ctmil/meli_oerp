@@ -4,6 +4,10 @@
 
 ---
 
+## 16.0.26.215 — 10-oct-2026 · seguridad (#661, caso 542): sin dependencias externas desde git
+- `requirements.txt` ya no instala el SDK de Mercado Libre desde `git+https://github.com/ctmil/python-sdk-2025.git` (no estaba fijado a una versión). El módulo habla con la API de ML con `requests` directo (`MeliApiNoSDK`), como ya hacía cuando el SDK no estaba instalado.
+- Se elimina la carpeta `melisdk/` (SDK viejo 1.0.0 vendorizado, sin uso: todos sus imports estaban comentados).
+- Si una instancia ya tiene el paquete `meli` instalado, sigue funcionando igual (se usa si está; ya no se exige). Sin migración de datos. Build único de flota 26.215 en 16/17/18/19.
 ## 16.0.26.213 — 9-oct-2026 · seguridad (#661, caso 542): el token de Mercado Libre ya no queda en links ni campos
 - **Link Api** de la publicación, botón **Abrir API** y links **Descargar PDF/ZPL** de etiquetas: ahora los sirve Odoo (`/meli/item_api`, `/meli/shipment_labels`, sólo usuarios internos); el token viaja en el encabezado del servidor y ya no aparece en pantalla, historial del navegador ni logs.
 - El link del pago de Mercado Pago se guarda sin token; la sugerencia de categoría y la subida de imágenes legacy mandan el token por encabezado.
