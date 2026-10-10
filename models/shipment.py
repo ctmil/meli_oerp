@@ -23,7 +23,6 @@ from odoo import fields, models, api
 import logging
 from .meli_oerp_config import *
 
-#from ..melisdk.meli import Meli
 
 import json
 import hashlib
