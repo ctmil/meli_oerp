@@ -33,6 +33,11 @@
 - Requiere `-u meli_oerp` (migración 26.172 incluida). Build único de flota 26.198 en 16/17/18/19.
 
 ---
+## 18.0.26.179 — 3-oct-2026 · El estado del envío se mantiene al día [#618]
+- Las ventas de MercadoLibre ya no quedan en "Listo para enviar" para siempre: el barrido periódico de estados
+  vuelve a consultar también el **envío** (enviado, entregado, no entregado) de las órdenes abiertas, por turnos.
+- Se puede desactivar con el parámetro del sistema `meli_oerp.resync_shipment_status = 0`.
+
 ## 18.0.26.159 — 29-sep-2026 · descuento de vendedor y envío se deciden juntos [#504 / #520]
 - **El problema:** con la opción *Tope del descuento de vendedor = nunca por debajo del total*, el importe a
   facturar decidía el descuento de vendedor y el envío **por separado**, y cada decisión rompía a la otra.
