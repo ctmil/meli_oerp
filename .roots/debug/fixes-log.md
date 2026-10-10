@@ -4,6 +4,18 @@
 
 ---
 
+## 10 oct 2026 — #462 Olpa: chatter con cientos de «Línea adicional con …» (v16.0.26.217)
+
+**Síntoma:** SO 6545/6546/6547 (Full) ~320 mensajes c/u y SO 6554 (Flex) 363: una «Línea adicional con [MEL Distribution]» por ciclo de actualización, y «Condition not met: paid vs total» cada dos ciclos.
+
+**Causa:** `models/shipment.py::_update_sale_order_shipping_info` tiene dos reglas que se deshacían mutuamente cuando el producto solo ya iguala o supera lo cobrado (envío Full a cargo del vendedor): `shipment_amount_cond_fix` (total > cobrado ⇒ envío 0) y «UPDATE PRICE» (línea ≠ precio de envío ⇒ lo repone). Cada cambio pasa por `set_delivery_line` ⇒ core `_remove_delivery_line` + `_create_delivery_line`, y en una venta confirmada `sale.order.line.create` postea «Extra line with %s».
+
+**Fix:** «UPDATE PRICE» sólo repone si `(amount_total - envío actual) + del_price - cobrado <= 1.0` (mismo umbral que la regla A).
+
+**Prueba:** Odoo 18 local, A/B con el método real (registros locales, sin red), números de SO 6545: origin ⇒ 32.135,51↔30.982 y 1 mensaje por pasada; 26.217 ⇒ estable desde la 2.ª pasada, 0 mensajes después. 6554 (Flex): mismo patrón en el chatter, no medido su amount_to_invoice.
+
+---
+
 ### 9 oct 2026 — Build de flota 26.214 (v16.0.26.214)
 
 Sin cambios de codigo en meli_oerp. El build 26.214 es el fix de meli_oerp_autofacturacion (#486 Enerpoint: el portal
