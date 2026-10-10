@@ -27,6 +27,23 @@ l10n_mx_edi). Sube por la regla del build unico de flota.
 **Fix.** `sale_order.write` (orders.py) + `_meli_sync_shipping_partner_to_stock`: si cambia `partner_shipping_id` en una venta ML, se sincroniza grupo, albaranes abiertos y moves abiertos sin albaran que aun llevaban el valor viejo (no pisa contactos manuales ni albaranes hechos/cancelados). Savepoint, nunca rompe la sync.
 
 **No cubre** los albaranes que YA estan desfasados (841): se sanean con un script de datos (picking.partner_id = venta.partner_shipping_id en OUT abiertos desfasados), un caso verificado antes del lote.
+### 3 oct 2026 — #618 T3LC: el estado del ENVIO se vuelve a consultar en el barrido rotativo (v17.0.26.179)
+
+Sobre #638 (26.176, `orders_resync_status` rotativo). Medido en T3LC (1-oct): de 25.659 ordenes abiertas en 15 d,
+25.273 seguian `ready_to_ship` y 16 `delivered` — `mercadolibre.shipment.status` solo se escribia en
+`fetch_shipment`, que corre al importar o cuando la ORDEN cambia; una orden `paid` que avanza en el envio no cambia.
+- `orders_resync_status`: para cada orden revisada SIN cambio de estado cuyo envio no es terminal
+  (`delivered`/`cancelled`, o `not_delivered` con substatus de devolucion cerrada) hace 1 GET `/shipments/<id>`
+  (1 por envio y por ciclo, aunque el carrito tenga varias ordenes). Misma rotacion por `meli_status_checked_at`.
+- `mercadolibre.shipment._meli_resync_status_vals`: solo la parte de ESTADO de fetch_shipment (status, substatus,
+  name, last_updated, tracking si faltaba, fechas de status_history). No toca costos, items, direccion ni la venta.
+- `_meli_apply_shipment_refresh`: escribe en un cursor corto aparte, `FOR UPDATE SKIP LOCKED` + `lock_timeout 5s`
+  (nunca espera a la txn del cron ni al import; lo tomado se reintenta en la proxima vuelta).
+- Apagable sin -u: `ir.config_parameter` `meli_oerp.resync_shipment_status = 0`. Log: `orders_resync_status #618:
+  ... envios consultados= cambiados= aplicados=`.
+- Efecto aguas abajo: `meli_status_brief` de la venta y el cron #328 de meli_oerp_stock (`meli_shipment.status =
+  delivered`) pasan a ver los envios entregados.
+
 
 ### 30 sep 2026 — Build de flota 26.166 (v17.0.26.166)
 
