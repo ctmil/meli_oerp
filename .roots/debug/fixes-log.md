@@ -43,6 +43,23 @@ Sobre #638 (26.176, `orders_resync_status` rotativo). Medido en T3LC (1-oct): de
   ... envios consultados= cambiados= aplicados=`.
 - Efecto aguas abajo: `meli_status_brief` de la venta y el cron #328 de meli_oerp_stock (`meli_shipment.status =
   delivered`) pasan a ver los envios entregados.
+### 3 oct 2026 — #620 T3LC: la linea de envio lleva lo que paga el COMPRADOR, no se infiere contra paid_amount (v17.0.26.180)
+
+Medido en T3LC (config: total=paid_amount, incluir envio=always, use_payment_shipping_amount=True, cupon=full),
+ventas 15-16 sep con envio a cargo del comprador (343): 138 con la linea de envio en $0, 154 cobradas, 51 cobradas
+pero con `meli_paid_amount` sin el envio (conflicto al facturar). Causa: `_update_sale_order_shipping_info` ponia la
+linea en 0 cuando `amount_total - meli_amount_to_invoice > 1` (`shipment_amount_cond_fix`); en ordenes ME2 cuyo pago
+no trae `shipping_amount`, ML informa `paid_amount` SIN el envio (solo el camino de carrito le sumaba receiver.cost).
+- Incluye el fix Olpa 462 (cherry-pick de `claude/fix-envio-receiver-subsidiado-17.0`): `receiver_cost` = receiver.cost
+  menos lo que cubre el vendedor (`cost_details`) => envio gratis subsidiado = 0 para el comprador.
+- `mercadolibre.shipment._meli_buyer_shipping_amount(order, config)`: UNICO origen del flete del comprador.
+  `mercadolibre_use_payment_shipping_amount` (meli_oerp_multiple, default True) se respeta igual que antes:
+  True = shipping_amount de los pagos aprobados; False = shipping_option.cost; en ambos, si da 0, receiver cost neto.
+- `_update_sale_order_shipping_info`: la valvula ya NO baja la linea a 0 (solo loguea `MELI #620`).
+- `sale.order._meli_shipping_missing_in_paid` + `meli_amount_to_invoice` (modos paid_amount/transaction_amount,
+  incluir envio != never): suma el flete del comprador si no esta en paid_amount (0 si el pago trae shipping_amount,
+  o si `paid - total + cupon >= flete` — carrito ya ajustado —, o si el comprador no paga envio). Nunca suma dos veces.
+- No repara ventas existentes bloqueadas/facturadas (el guard #493 sigue). Las abiertas se corrigen en el proximo resync.
 
 
 ### 30 sep 2026 — Build de flota 26.166 (v17.0.26.166)
