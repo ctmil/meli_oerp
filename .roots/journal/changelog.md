@@ -43,6 +43,15 @@
 - Si el envío es gratis para el comprador (lo cubre el vendedor), la línea queda en 0 y no se factura.
 - El ajuste "Usar Monto de envío de Pagos" de la cuenta se sigue respetando.
 
+## 16.0.26.185 — 5-oct-2026 · las ventas de ML entran siempre por lo cobrado, publiques con o sin IVA [#486]
+- **El problema:** el campo *Impuestos incluidos* de la configuración decidía dos cosas a la vez: cómo se
+  PUBLICA la lista de precios y cómo se IMPORTAN las ventas. Con *impuestos incluidos* (lista con IVA) y un
+  IVA de venta no incluido en el producto, cada venta importada sumaba el impuesto encima del precio ya
+  final de ML (total x1,16) y quedaba en presupuesto por diferencia de montos.
+- **Ahora** la importación toma siempre el precio de ML como final con impuestos y lo netea por los
+  impuestos de venta no incluidos del producto: el total de la venta en Odoo es lo cobrado en ML.
+- **Sin cambios** en la publicación de precios, ni para quien tiene *impuestos excluidos* o impuestos
+  con precio incluido.
 ## 16.0.26.159 — 29-sep-2026 · build de flota
 - Sin cambios de código en esta serie: el número se alinea con 18.0.26.159 (#504/#520, descuento de vendedor y
   envío decididos juntos — la opción de tope existe sólo en 18.0).
