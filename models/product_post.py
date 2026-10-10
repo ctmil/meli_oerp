@@ -36,7 +36,6 @@ from .meli_oerp_config import *
 
 from .warning import warning
 
-#from ..melisdk.meli import Meli
 
 
 from . import versions
