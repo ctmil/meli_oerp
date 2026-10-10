@@ -863,7 +863,7 @@ class res_company(models.Model):
             n20+=1
 
             #read id and official_store_id to check
-            #hacer paquetes de 20 !!!!!! /items?ids=$ITEM_ID1,$ITEM_ID2&attributes=$ATTRIBUTE1,$ATTRIBUTE2,$ATTRIBUTE3
+            #hacer paquetes de 20 !!!!!! /items/bulk?ids=$ITEM_ID1,$ITEM_ID2&attributes=body.$ATTRIBUTE1,body.$ATTRIBUTE2,body.$ATTRIBUTE3
 
             #armamos el paquete
             ids+= coma+str(meli_id)
@@ -875,16 +875,16 @@ class res_company(models.Model):
                     "attributes": "id,official_store_id"
                 }
                 #_logger.info("item_params:"+str(item_params))
-                responseItem = meli.get("/items"+str('?ids='+str(ids)+'&attributes='+str('id,official_store_id')), {'access_token':meli.access_token } )
-                #[ { "code": 200, "body": { "id": "MLM863472529", "official_store_id": 3476 } },
+                responseItem = meli.get("/items/bulk"+str('?ids='+str(ids)+'&attributes='+str('body.id,body.official_store_id')), {'access_token':meli.access_token } )
+                #[ { "status_code": 200, "id": "MLM863472529", "body": { "official_store_id": 3476 } },
                 #_logger.info("responseItem:"+str(responseItem and responseItem.json()))
                 if responseItem.json():
                     for rr in responseItem.json():
                         #_logger.info("rr:"+str(rr))
-                        if ("code" in rr and rr["code"]==200):
+                        if ("status_code" in rr and rr["status_code"]==200):
                             if ("body" in rr and rr["body"]):
                                 st_id = "official_store_id" in rr["body"] and rr["body"]["official_store_id"]
-                                ml_id = "id" in rr["body"] and rr["body"]["id"]
+                                ml_id = "id" in rr and rr["id"]
                                 if (st_id and official_store_id and str(st_id)==str(official_store_id) ):
                                     rresults.append(ml_id)
                 ids = ""
@@ -1538,7 +1538,7 @@ class res_company(models.Model):
                 meli_ids.extend(results)
                 params['access_token'] = meli.access_token
                 response = meli.get(
-                    f"/items?ids={ids_string}", 
+                    f"/items/bulk?ids={ids_string}",
                     params=params
                 )
                 res = response.rjson
@@ -1624,7 +1624,7 @@ class res_company(models.Model):
             try:
                 # Realizar la solicitud para ese bloque de IDs
                 response = meli.get(
-                    f"/items?ids={ids_string}", 
+                    f"/items/bulk?ids={ids_string}",
                     params=params
                 )
                 # Agregar los productos obtenidos a la lista total
