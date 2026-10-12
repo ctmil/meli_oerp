@@ -4,6 +4,9 @@
 
 ---
 
+## 19.0.26.220 — 12-oct-2026 · build de flota (sin cambios funcionales en este módulo)
+- Acompaña a meli_oerp_multiple 19.0.26.220: el ajuste de redondeo del total usaba `tax_id` en Odoo 19 (`tax_ids`) y fallaba en silencio. Build único 26.220 en 16/17/18/19.
+
 ## 19.0.26.219 — 10-oct-2026 · build de flota (sin cambios funcionales en este módulo)
 - Acompaña a meli_oerp_accounting 26.219 (#361 Score): no se concilia una factura global desde la notificación de una venta. Build único 26.219 en 16/17/18/19.
 
