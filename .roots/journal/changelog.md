@@ -4,6 +4,9 @@
 
 ---
 
+## 18.0.26.221 — 12-oct-2026 · build de flota (sin cambios funcionales en este módulo)
+- Acompaña a meli_oerp_multiple 26.221: el sello de stock ya no deja abortada la operación que lo llama (validar devoluciones, botones y crons de otros módulos). Build único 26.221 en 16/17/18/19.
+
 ## 18.0.26.220 — 12-oct-2026 · build de flota (sin cambios funcionales en este módulo)
 - Acompaña a meli_oerp_multiple 19.0.26.220: el ajuste de redondeo del total usaba `tax_id` en Odoo 19 (`tax_ids`) y fallaba en silencio. Build único 26.220 en 16/17/18/19.
 
