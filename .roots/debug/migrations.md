@@ -19,6 +19,13 @@ fecha de cancelación se lee del texto de `meli_status_detail`.
 ### 18.0.26.170 — sin script (30-sep-2026, #645)
 `mercadolibre_order_confirm_no_stock_mode` (Selection, default `confirm`) en `res.company` (meli_oerp) y en
 `mercadolibre.configuration` (meli_oerp_multiple). El ORM crea la columna con el default ⇒ comportamiento idéntico al anterior.
+## 5 oct 2026 — `sale.order.meli_handling_limit` almacenado (v18.0.26.188) [#431]
+
+- El related `meli_shipment.estimated_handling_limit` pasa a `store=True, index=True`.
+- `migrations/18.0.26.188/pre-migrate.py`: crea la columna (`ADD COLUMN IF NOT EXISTS`) y la llena por SQL desde
+  `mercadolibre_shipment` **antes** de cargar el modelo ⇒ Odoo no recomputa pedido por pedido.
+- Los envíos viejos siguen sin fecha hasta que se re-sincronicen (sólo se consulta `/sla` para envíos por despachar).
+
 
 ### 18.0.26.164 — `migrations/18.0.26.164/post-migrate.py` (29-sep-2026, ola de cancelaciones integrada)
 La siembra OLA3 (antes `18.0.26.149` → `18.0.26.162`) se renombra otra vez a **`18.0.26.164`**, el build de la ola integrada
