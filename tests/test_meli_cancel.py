@@ -233,6 +233,10 @@ class TestMeliCancelOnMlCancel(common.TransactionCase):
     # Borde 3 - entregada (picking validado)
     # ------------------------------------------------------------------
     def test_cancel_delivered_creates_return(self):
+        # Desde 26.221 (#638) la devolucion automatica sale solo con los motivos de
+        # meli_oerp.cancel_return_reasons (default buyer_cancel_express,fraud) y este test
+        # cancela "sin motivo". '*' = todos los motivos: mide el camino de la devolucion.
+        self.env['ir.config_parameter'].sudo().set_param('meli_oerp.cancel_return_reasons', '*')
         order = self._new_ml_order(meli_status='cancelled')
         order.action_confirm()
         if not order.picking_ids:
@@ -251,6 +255,61 @@ class TestMeliCancelOnMlCancel(common.TransactionCase):
             "Entregada: tiene que quedar una devolucion, no desaparecer el movimiento",
         )
         self.assertEqual(order.state, 'cancel')
+
+    def test_641_devolucion_cancelada_no_se_regenera(self):
+        """[#641 Shoppy 502] Si el usuario cancela la devolucion automatica, el ciclo
+        siguiente (confirm_ml -> meli_cancel_with_detail) NO la vuelve a crear."""
+        # El caso de #641 es la devolucion PENDIENTE que el usuario cancela: con el modo
+        # 'done' (default) la devolucion nace validada y una devolucion hecha no se cancela.
+        if 'mercadolibre_return_mode' in self.company._fields:
+            self.company.mercadolibre_return_mode = 'draft'
+        order = self._new_ml_order(meli_status='cancelled')
+        order.action_confirm()
+        salidas = order.picking_ids and self._deliver_order(order)
+        if not salidas:
+            self.skipTest("El entorno no deja un albaran de SALIDA en 'done'")
+        order._meli_return_done_pickings()
+        devoluciones = order.picking_ids.filtered(lambda p: p.picking_type_code == 'incoming')
+        if not devoluciones:
+            self.skipTest("El entorno no creo la devolucion automatica")
+        self.assertTrue(all(d.state != 'done' for d in devoluciones),
+                        "fixture: con modo 'draft' la devolucion tiene que quedar sin validar")
+        devoluciones.action_cancel()
+        antes = len(order.picking_ids)
+        order._meli_return_done_pickings()
+        self.assertEqual(len(order.picking_ids), antes,
+                         "La devolucion cancelada a mano no se tiene que regenerar")
+        # [26.223] mismo criterio en el helper de 26.221: la salida ya no figura pendiente.
+        if hasattr(order, '_meli_cancel_return_pending_pickings'):
+            self.assertFalse(order._meli_cancel_return_pending_pickings() & salidas,
+                             "Con la devolucion cancelada a mano, la salida no esta pendiente")
+
+    def test_640_confirmar_conserva_la_fecha_de_ml(self):
+        """[#640 Shoppy 502] Confirmar una venta ML no pisa date_order con now(): el
+        date_deadline de los movimientos queda igual a la fecha de ML y un reemplazo de
+        producto posterior se fusiona en vez de generar RET + transferencias internas."""
+        order = self._new_ml_order()
+        fecha_ml = fields.Datetime.from_string('2026-09-02 23:38:02')
+        order.date_order = fecha_ml
+        order.action_confirm()
+        self.assertEqual(order.date_order, fecha_ml)
+        movs = order.order_line.move_ids
+        if not movs:
+            self.skipTest("Sin movimientos de stock en el entorno")
+        lead = order.order_line[:1].customer_lead or 0.0
+        from datetime import timedelta
+        self.assertTrue(all(m.date_deadline == fecha_ml + timedelta(days=lead) for m in movs))
+
+    def test_640_venta_no_ml_sigue_tomando_now(self):
+        order = self.env['sale.order'].create({
+            'partner_id': self.partner.id,
+            'order_line': [(0, 0, {'product_id': self.product.id, 'product_uom_qty': 1.0,
+                                   'price_unit': 10.0})],
+        })
+        vieja = fields.Datetime.from_string('2020-01-01 00:00:00')
+        order.date_order = vieja
+        order.action_confirm()
+        self.assertNotEqual(order.date_order, vieja)
 
     # ------------------------------------------------------------------
     # Borde 4 - facturada (factura PUBLICADA): NO se cancela sola
