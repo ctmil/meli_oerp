@@ -4,6 +4,15 @@
 
 ---
 
+## 16.0.26.222 — 13-oct-2026 · cancelaciones (pack dividido, fecha de corte), límite de despacho, línea de envío ME1 [#431 #158]
+- **Pack dividido por MercadoLibre (`pack_splitted`) en el modo de cancelación `legacy`:** si la venta ya tiene la salida hecha o una factura publicada, **ya no se cancela**: queda abierta, sin devolución ni nota de crédito, con un aviso para buscar la venta gemela (la misma regla que el modo `por_estado_ml`). Antes la venta entregada se cancelaba. Sin salida ni factura, se cancela como siempre.
+- **«Cancelaciones automáticas desde»** (compañía y cuenta): lo que ML canceló antes de esa fecha queda **retenido** (marcado y en el filtro «Cancelaciones retenidas») en vez de procesarse solo. Vacío = como hasta ahora.
+- **«Venta sin existencia al confirmar»** (cuenta): confirmar como siempre / confirmar con la salida en espera / no confirmar hasta que haya existencia. Envíos FULL: nunca se crea devolución automática al almacén propio.
+- **Límite despacho ML:** se toma de `/shipments/{id}/sla` cuando ML no lo manda en el envío; columna opcional en pedidos y presupuestos. La migración llena la columna por SQL.
+- **#158** En ventas ME1 donde el pago trae el envío aparte, el importe a facturar incluye el flete: la línea de envío y lo cobrable coinciden y la línea deja de ir y venir.
+- El parámetro `meli_oerp.cancel_return_reasons` (26.221) sigue decidiendo qué motivos devuelven stock; el pack dividido entregado ya no llega a ese paso.
+- Build único 26.222 en 16/17/18/19.
+
 ## 16.0.26.221 — 13-oct-2026 · cancelaciones de ML: qué motivos devuelven el stock solos
 - **Nuevo parámetro del sistema `meli_oerp.cancel_return_reasons`** (Ajustes › Técnico › Parámetros del sistema):
   motivos de cancelación de MercadoLibre (`cancel_detail.code`, separados por coma) con los que la mercadería ya
