@@ -1517,3 +1517,6 @@ EXIT=0, sin `ParseError`; `sale.order.meli_unread_messages` presente en el regis
 - **Síntoma:** el token de ML quedaba en `mercadolibre.payments.mercadopago_url` (guardado), en `meli_permalink_api` (pantalla), en los links del wizard de etiquetas y en `full_links` (JSON con el token como CLAVE), y `domain_discovery` lo logueaba con `_logger.info(url)`.
 - **Fix:** controller `controllers/token_views.py` (`/meli/item_api/<id>`, `/meli/shipment_labels`, auth=user + internos, ids validados, check de lectura) que pone el token en `Authorization: Bearer`; hooks `meli.util._meli_view_instance` y `mercadolibre.shipment._meli_label_instance` (multiple los pisa por cuenta); agrupación por `sha256(token)[:12]`.
 - **Migración 19.0.26.213:** limpia mercadopago_url, pdf_link, meli_warning.message(_html) y vacía full_links. Probada en PG16 y en odoo19mint (rollback).
+
+## 19.0.26.222 — 13-oct-2026 · migración SLA renombrada (26.188 → 26.222)
+- La migración de #431 (llenar `meli_handling_limit` almacenado por SQL) vivía en `migrations/19.0.26.188/`: ninguna base por encima de 26.188 la habría corrido y Odoo recalcularía el related registro por registro. Se movió a `19.0.26.222/`; es idempotente (`ADD COLUMN IF NOT EXISTS` + `UPDATE`). Probado: instalado 26.221 → `-u` 26.222 en 16/17/18/19, la migración corre (banco Postgres, 13-oct).
