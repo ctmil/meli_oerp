@@ -4,6 +4,26 @@
 
 ---
 
+## 13 oct 2026 — #638 T3LC: la cancelación automática devolvía stock con CUALQUIER motivo (v19.0.26.221)
+**Síntoma:** el barrido rotativo de estados (#638, 26.218) cancelaba y **devolvía** (IN validado) las ventas canceladas
+en ML de los últimos 15 días sin mirar el motivo: `pack_splitted` (los ítems salen en las órdenes nuevas del split),
+`shipment_not_delivered` (paquete posiblemente perdido) y `mediations` (reclamo abierto) subían un stock que no estaba
+en el depósito. En T3LC salieron así, p. ej., MLWH/IN/00628 e IN/00644 (`pack_splitted`).
+**Causa:** `meli_cancel_with_detail` (legacy, paso 1) y `_meli_cancel_por_estado_ml` (paso 3) llamaban
+`_meli_return_done_pickings` incondicionalmente; el motivo (`meli_cancel_reason_code`, OLA 3) sólo se guardaba.
+**Fix:** paso de MERCADERÍA único `_meli_cancel_goods_return` con filtro por motivo. Función pura
+`cancel_decision.cancel_return_allowed(code, raw)`; parámetro `meli_oerp.cancel_return_reasons` (default
+`buyer_cancel_express,fraud`, `*` = todos, motivo vacío ⇒ no devuelve). Fuera de lista y con salida hecha sin devolver:
+NO devolución, la venta se cancela igual (facturas: misma política), `sale.order.meli_cancel_return_skipped=True`,
+chatter `once_key=cancel-return-skip-<id>`, log WARNING `MELI_CANCEL_RETURN_SKIP`. `return_mode='none'` no marca.
+Escape (reparación/decisión humana): context `meli_cancel_return_any_reason=True` ⇒ devuelve y apaga la marca.
+**Por qué en el paso compartido y no sólo en el barrido:** import y `confirm_ml` llaman al mismo método; con el filtro
+sólo en el barrido, la misma venta devolvería o no según qué cron la viera primero.
+**Prueba:** Postgres real, Odoo 16/17/18/19 (tests/shell_cancel_return_reasons.py): 17/17 por serie —
+legacy por motivo, sin motivo, reproceso, escape, `*`, lista custom, `return_mode none`, `orders_resync_status` con
+`meli` simulado (sin red), `por_estado_ml`. Test puro: tests/test_cancel_decision_pure.py (TestCancelReturnReasons).
+**No cubre:** ventas canceladas ANTES de 26.221 sin devolución (no se marcan retroactivamente).
+
 ## 10 oct 2026 — #462 Olpa: chatter con cientos de «Línea adicional con …» (v19.0.26.217)
 
 **Síntoma:** SO 6545/6546/6547 (Full) ~320 mensajes c/u y SO 6554 (Flex) 363: una «Línea adicional con [MEL Distribution]» por ciclo de actualización, y «Condition not met: paid vs total» cada dos ciclos.
