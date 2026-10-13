@@ -607,6 +607,24 @@ class sale_order(models.Model):
                 _logger.warning("MELI sync partner_shipping_id -> albaranes SO %s (id=%s): %s",
                                 order.name, order.id, e)
 
+    def _prepare_confirmation_values(self):
+        """[#640 Shoppy 502, 26.223] En ventas de ML se conserva la fecha de la venta de ML.
+
+        Odoo pone `date_order = now()` al confirmar y con esa fecha calcula el `date_deadline` de
+        los movimientos de entrega. Despues la re-sincronizacion vuelve a escribir la fecha de ML
+        (prepare_ml_order_vals: date_closed/date_created). Resultado: los movimientos originales
+        quedan con el deadline de la CONFIRMACION y cualquier cambio posterior de la venta
+        (reemplazar un producto sin stock: cantidad 1 -> 0 + linea nueva) genera movimientos con
+        el deadline de la fecha de ML. `date_deadline` es campo de fusion de stock.move, asi que el
+        movimiento negativo NO se absorbe en el original y Odoo lo convierte en devolucion:
+        RET + 2 transferencias internas "A procesar" (502: 9 de 9 pedidos del ticket #640).
+        Si todas las ventas a confirmar son de ML y ya tienen fecha, no se toca `date_order`.
+        """
+        vals = super(sale_order, self)._prepare_confirmation_values()
+        if self and all(o.meli_order_id and o.date_order for o in self):
+            vals.pop('date_order', None)
+        return vals
+
     def action_confirm(self):
         #_logger.info("meli order action_confirm: " + str(self.mapped("name")) )
         res = super(sale_order,self).action_confirm()
@@ -1647,13 +1665,14 @@ class sale_order(models.Model):
 
     def _meli_cancel_return_pending_pickings(self):
         """Salidas HECHAS de la venta que todavia no tienen devolucion (mismo criterio de
-        'ya devuelta' que _meli_return_done_pickings)."""
+        'ya devuelta' que _meli_return_done_pickings). [#641, 26.223] Una devolucion CANCELADA
+        a mano cuenta como resuelta en los dos: si no, el aviso "no se devolvio" y el flag
+        meli_cancel_return_skipped quedarian pegados sobre una decision ya tomada."""
         self.ensure_one()
         Move = self.env["stock.move"]
         return self.picking_ids.filtered(
             lambda p: p.state == "done" and p.picking_type_code == "outgoing"
-            and not Move.search_count([("origin_returned_move_id", "in", p.move_ids.ids),
-                                       ("state", "!=", "cancel")]))
+            and not Move.search_count([("origin_returned_move_id", "in", p.move_ids.ids)]))
 
     def _meli_cancel_goods_return(self, order_json=None, config=None, return_config=None):
         """Paso MERCADERIA de la cancelacion de ML, con el filtro de motivos (26.221).
@@ -2002,9 +2021,14 @@ class sale_order(models.Model):
             # Correct check: look for moves that reference this picking's moves as their origin.
             # (origin_returned_move_id is set on the RETURN move, not the original OUT move,
             # so checking it on picking.move_ids was always False — causing duplicate returns.)
+            # [#641 Shoppy 502, 26.223] Tambien cuenta una devolucion CANCELADA: si el usuario la
+            # cancelo (p.ej. venta FULL que ML reemplazo por otra con nuevo ID: la mercaderia nunca
+            # salio ni volvio a su deposito), es una decision tomada y no se vuelve a crear. Antes se
+            # excluian las canceladas y confirm_ml -> meli_cancel_with_detail la regeneraba en el
+            # ciclo siguiente (502: 128 salidas con 2 a 4 devoluciones automaticas desde el 1-sep).
+            # MISMO criterio en _meli_cancel_return_pending_pickings (26.221).
             already_returned = self.env['stock.move'].search_count([
                 ('origin_returned_move_id', 'in', picking.move_ids.ids),
-                ('state', '!=', 'cancel'),
             ])
             if already_returned:
                 continue
