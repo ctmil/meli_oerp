@@ -4,6 +4,13 @@
 
 ---
 
+## 17.0.26.223 — 13-oct-2026 · stock de seguridad en el diagnóstico, fecha de la venta al confirmar, devoluciones canceladas, aviso de seguridad [#529 #640 #641]
+- **#529** El diagnóstico de stock descuenta el stock de seguridad **por SKU según las Reglas de SKU tipo «Stock Rule»** (columna «Quantity Stock»; el SKU exacto gana sobre `*`), igual que el envío de stock: ya no reactiva ni «corrige» publicaciones que el resguardo deja en 0 a propósito. Sin reglas, igual que antes.
+- **#640** Al confirmar una venta de MercadoLibre se conserva la **fecha de la venta de ML** (antes se pisaba con la hora de confirmación). Reemplazar un producto después ya no genera una devolución y dos transferencias internas pendientes.
+- **#641** Si se cancela a mano la devolución automática de una cancelación de ML, queda como decisión tomada: el conector **ya no la vuelve a crear** en cada ciclo.
+- **Seguridad:** nuevo `SECURITY.md` con el aviso de la ruta `/download/saveas` (eliminada desde 26.206/26.207) y el **crédito a kta1kri**, que la reportó de forma responsable.
+- Build único 26.223 en 16/17/18/19.
+
 ## 17.0.26.222 — 13-oct-2026 · cancelaciones (pack dividido, fecha de corte), límite de despacho, línea de envío ME1 [#431 #158]
 - **Pack dividido por MercadoLibre (`pack_splitted`) en el modo de cancelación `legacy`:** si la venta ya tiene la salida hecha o una factura publicada, **ya no se cancela**: queda abierta, sin devolución ni nota de crédito, con un aviso para buscar la venta gemela (la misma regla que el modo `por_estado_ml`). Antes la venta entregada se cancelaba. Sin salida ni factura, se cancela como siempre.
 - **«Cancelaciones automáticas desde»** (compañía y cuenta): lo que ML canceló antes de esa fecha queda **retenido** (marcado y en el filtro «Cancelaciones retenidas») en vez de procesarse solo. Vacío = como hasta ahora.
