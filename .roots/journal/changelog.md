@@ -4,6 +4,18 @@
 
 ---
 
+## 18.0.26.221 — 13-oct-2026 · cancelaciones de ML: qué motivos devuelven el stock solos
+- **Nuevo parámetro del sistema `meli_oerp.cancel_return_reasons`** (Ajustes › Técnico › Parámetros del sistema):
+  motivos de cancelación de MercadoLibre (`cancel_detail.code`, separados por coma) con los que la mercadería ya
+  entregada se **devuelve automáticamente**. Por defecto **`buyer_cancel_express,fraud`**. `*` = todos los motivos
+  (el comportamiento anterior).
+- Con cualquier otro motivo (p. ej. `pack_splitted`, `shipment_not_delivered`, `mediations`, o sin motivo) la venta
+  se cancela igual que antes, pero **no se crea la devolución**: queda marcada «ML Cancelada sin devolución de
+  stock», con un aviso en el chatter, y se lista con el filtro **«ML: cancelada sin devolución de stock»** de Ventas.
+- Aplica a todas las cancelaciones automáticas de ML (barrido de estados, importación) y a los dos modos de
+  cancelación (`legacy` / `por_estado_ml`). Pedido de The 3 Letters (#638).
+- Sigue acompañando a meli_oerp_multiple 26.221 (sello de stock). Build único 26.221 en 16/17/18/19.
+
 ## 18.0.26.221 — 12-oct-2026 · build de flota (sin cambios funcionales en este módulo)
 - Acompaña a meli_oerp_multiple 26.221: el sello de stock ya no deja abortada la operación que lo llama (validar devoluciones, botones y crons de otros módulos). Build único 26.221 en 16/17/18/19.
 

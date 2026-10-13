@@ -4,6 +4,13 @@
 
 ---
 
+### 18.0.26.221 — sin script de migración (13-oct-2026, #638 motivos)
+- Campo nuevo `sale.order.meli_cancel_return_skipped` (Boolean, index, default False): lo crea el `-u`. **No se
+  rellena hacia atrás**: las ventas canceladas sin devolución antes de 26.221 no quedan marcadas.
+- Parámetro `meli_oerp.cancel_return_reasons` = `buyer_cancel_express,fraud` en `data/parameters_data.xml`
+  (`noupdate=1`): se crea en el `-u` si no existe; si el cliente lo cambió, se respeta. Verificado en 19 borrando
+  param + xmlid y corriendo `-u meli_oerp`.
+
 ### 18.0.26.164 — `migrations/18.0.26.164/post-migrate.py` (29-sep-2026, ola de cancelaciones integrada)
 La siembra OLA3 (antes `18.0.26.149` → `18.0.26.162`) se renombra otra vez a **`18.0.26.164`**, el build de la ola integrada
 (cancel-v2 26.162 + #585 26.163). Odoo corre las carpetas con `instalada < carpeta <= nueva`: con 26.164 corre desde una base

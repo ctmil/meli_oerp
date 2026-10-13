@@ -169,5 +169,33 @@ class TestCancelDecisionTable(unittest.TestCase):
         self.assertEqual(cd.classify_shipment(ctx["shipment"]), cd.SHIP_FULFILLMENT)
 
 
+class TestCancelReturnReasons(unittest.TestCase):
+    """26.221 (T3LC #638): que motivos de cancelacion devuelven stock automaticamente."""
+
+    def test_default(self):
+        for raw in (None, "", "   "):
+            self.assertTrue(cd.cancel_return_allowed("buyer_cancel_express", raw))
+            self.assertTrue(cd.cancel_return_allowed("fraud", raw))
+            for code in ("pack_splitted", "shipment_not_delivered", "mediations", "buyer_regretted"):
+                self.assertFalse(cd.cancel_return_allowed(code, raw), code)
+
+    def test_sin_motivo_no_devuelve(self):
+        self.assertFalse(cd.cancel_return_allowed("", None))
+        self.assertFalse(cd.cancel_return_allowed(None, "buyer_cancel_express,fraud"))
+        self.assertTrue(cd.cancel_return_allowed(None, "*"))
+
+    def test_todos(self):
+        for code in ("pack_splitted", "mediations", "cualquiera", ""):
+            self.assertTrue(cd.cancel_return_allowed(code, "*"))
+        self.assertTrue(cd.cancel_return_allowed("pack_splitted", "fraud, *"))
+
+    def test_lista_configurada(self):
+        raw = " Fraud ;pack_splitted\nmediations "
+        self.assertEqual(cd.parse_cancel_return_reasons(raw),
+                         frozenset(["fraud", "pack_splitted", "mediations"]))
+        self.assertTrue(cd.cancel_return_allowed("PACK_SPLITTED", raw))
+        self.assertFalse(cd.cancel_return_allowed("buyer_cancel_express", raw))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

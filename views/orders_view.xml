@@ -41,6 +41,10 @@
                           context="{'group_by' : 'meli_cancel_reason_code'}" name="meli_cancel_reason_code_filter"/>
                   <filter string='Cancelación esperando retorno' name="meli_cancel_waiting_return_filter"
                           domain="[('meli_cancel_waiting_return', '=', True)]"/>
+                  <!-- 26.221 (T3LC #638): canceladas por ML con un motivo fuera de
+                       meli_oerp.cancel_return_reasons => la mercaderia NO se devolvio sola. -->
+                  <filter string='ML: cancelada sin devolución de stock' name="meli_cancel_return_skipped_filter"
+                          domain="[('meli_cancel_return_skipped', '=', True)]"/>
                 </xpath>
             </field>
         </record>
@@ -107,6 +111,10 @@
                           context="{'group_by' : 'meli_cancel_reason_code'}" name="meli_cancel_reason_code_filter"/>
                   <filter string='Cancelación esperando retorno' name="meli_cancel_waiting_return_filter"
                           domain="[('meli_cancel_waiting_return', '=', True)]"/>
+                  <!-- 26.221 (T3LC #638): canceladas por ML con un motivo fuera de
+                       meli_oerp.cancel_return_reasons => la mercaderia NO se devolvio sola. -->
+                  <filter string='ML: cancelada sin devolución de stock' name="meli_cancel_return_skipped_filter"
+                          domain="[('meli_cancel_return_skipped', '=', True)]"/>
                 </xpath>
             </field>
         </record>
@@ -217,6 +225,7 @@
                                      decoration-danger="meli_handling_limit_status == 'overdue'"
                                      decoration-muted="meli_handling_limit_status == 'none'"/>
                               <field name="meli_cancel_reason_code" readonly="1" invisible="0"/>
+                              <field name="meli_cancel_return_skipped" readonly="1" invisible="not meli_cancel_return_skipped"/>
                               <field name="meli_cancel_waiting_return" readonly="1" invisible="not meli_cancel_waiting_return"/>
                               <field name="meli_cancel_decision" readonly="1" invisible="not meli_cancel_decision"/>
                               <field name="meli_status_detail" invisible="0"/>
