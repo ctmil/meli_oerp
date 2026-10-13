@@ -1906,6 +1906,52 @@ class res_company(models.Model):
             _logger.debug("MELI_STOCK_DIAG: no se pudo persistir meli_last_status de %s: %s",
                           meli_id, _st_err)
 
+    def _meli_stock_safety_resolver(self):
+        """[529] Devuelve f(sku) -> stock de seguridad vigente para esta compania.
+
+        El diagnostico compara contra el stock de Odoo y tiene que descontar LO MISMO que descuenta
+        el envio (_meli_available_quantity); si no, reactiva o "corrige" publicaciones que el
+        resguardo dejo en 0 a proposito. Desde 13-oct-2026 N sale de las REGLAS DE STOCK
+        (meli_oerp.sku.rule type='stock', "Quantity Stock"; SKU exacto gana sobre '*'), con la
+        misma funcion que usa el envio (meli_oerp_stock). Se consultan las reglas de la compania
+        (monocuenta) y las de cada configuracion de sus cuentas (multiple) y se toma el MAYOR, para
+        que el diagnostico nunca reactive algo que alguna cuenta resguarda.
+        Sin meli_oerp_stock instalado (no existe el modelo) o sin reglas => 0, como antes.
+        El campo mercadolibre_stock_safety_qty (26.208) ya NO se lee."""
+        company = self
+        _zero = lambda sku=None: 0.0
+        if "meli_oerp.sku.rule" not in self.env:
+            return _zero
+        Rule = self.env["meli_oerp.sku.rule"]
+        if not hasattr(Rule, "_meli_stock_safety_rules"):
+            return _zero
+        rule_sets = []
+        if "mercadolibre_stock_sku_mapping" in company._fields:
+            rule_sets.append(company.sudo().mercadolibre_stock_sku_mapping._meli_stock_safety_rules())
+        try:
+            if "mercadolibre.account" in self.env and "configuration" in self.env["mercadolibre.account"]._fields:
+                accounts = self.env["mercadolibre.account"].sudo().search([("company_id", "=", company.id)])
+                for cfg in accounts.mapped("configuration"):
+                    if "mercadolibre_stock_sku_mapping" in cfg._fields:
+                        rule_sets.append(cfg.mercadolibre_stock_sku_mapping._meli_stock_safety_rules())
+        except Exception as _e:
+            _logger.debug("MELI_STOCK_DIAG: no se pudieron leer las reglas de stock de las cuentas: %s", _e)
+        rule_sets = [rs for rs in rule_sets if rs]
+        if not rule_sets:
+            return _zero
+        cache = {}
+
+        def _resolve(sku=None):
+            key = (sku or "").strip()
+            if key not in cache:
+                cache[key] = max([0.0] + [rs._meli_stock_safety_qty_for_sku(key) for rs in rule_sets])
+            return cache[key]
+        return _resolve
+
+    def _meli_stock_safety_qty(self, sku=None):
+        """[529] N vigente para `sku` (ver _meli_stock_safety_resolver)."""
+        return self._meli_stock_safety_resolver()(sku)
+
     def meli_stock_diagnostic(self, meli=False, reactivate=None):
         """
         Diagnostic safety check: compare Odoo stock vs ML stock for all published products.
@@ -1964,6 +2010,9 @@ class res_company(models.Model):
             AND (pp.meli_shipping_logistic_type IS NULL OR pp.meli_shipping_logistic_type != 'fulfillment')
         """, (company.id,))
         rows = self.env.cr.fetchall()
+        # [529] el stock de Odoo se compara YA descontado el stock de seguridad (mismo calculo que el envio),
+        # por SKU segun las reglas de stock de la configuracion.
+        _safety_for = company._meli_stock_safety_resolver()
 
         reactivate_candidates = []        # (id, sku, meli_id, odoo_qty, meli_qty)
         drift_candidates = []             # (id, sku, meli_id, odoo_qty, meli_qty)
@@ -1979,7 +2028,7 @@ class res_company(models.Model):
 
         for row in rows:
             pid, sku, meli_id, meli_qty, odoo_qty, logistic_type = row
-            odoo_qty = max(odoo_qty or 0.0, 0.0)
+            odoo_qty = max((odoo_qty or 0.0) - _safety_for(sku), 0.0)
             meli_qty = meli_qty or 0
 
             # fulfillment_user_product_id items: stored meli_qty reflects meli_facility
@@ -2023,7 +2072,10 @@ class res_company(models.Model):
                     LIMIT 100
                 """, (company.id,))
                 for pid2, sku2, meli_id2, meli_qty2, odoo_qty2 in self.env.cr.fetchall():
-                    odoo_qty2 = max(odoo_qty2 or 0.0, 0.0)
+                    odoo_qty2 = max((odoo_qty2 or 0.0) - _safety_for(sku2), 0.0)
+                    if odoo_qty2 <= 0:
+                        # [529] todo su stock esta resguardado por la regla: nada que reactivar
+                        continue
                     # Skip if already in reactivate_candidates or fulfillment_user_candidates
                     already = (
                         any(r[2] == meli_id2 for r in reactivate_candidates)
