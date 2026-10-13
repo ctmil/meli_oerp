@@ -4,6 +4,10 @@
 
 ---
 
+## (sin numerar — entra en el build ≥ 26.223) — 13-oct-2026 · stock de seguridad desde las reglas de stock [#529]
+- El diagnóstico de stock descuenta el stock de seguridad **por SKU según las reglas de stock** de la configuración (Reglas de SKU tipo «Stock Rule», columna «Quantity Stock»; SKU exacto gana sobre `*`; las `update_rt` no cuentan), con la misma función que usa el envío. Sin `meli_oerp_stock` o sin reglas: 0, como antes.
+- El campo «Stock de seguridad (ML)» de 26.208 **ya no se lee**.
+
 ## 19.0.26.222 — 13-oct-2026 · cancelaciones (pack dividido, fecha de corte), límite de despacho, línea de envío ME1 [#431 #158 #529]
 - **Pack dividido por MercadoLibre (`pack_splitted`) en el modo de cancelación `legacy`:** si la venta ya tiene la salida hecha o una factura publicada, **ya no se cancela**: queda abierta, sin devolución ni nota de crédito, con un aviso para buscar la venta gemela (la misma regla que el modo `por_estado_ml`). Antes la venta entregada se cancelaba. Sin salida ni factura, se cancela como siempre.
 - **«Cancelaciones automáticas desde»** (compañía y cuenta): lo que ML canceló antes de esa fecha queda **retenido** (marcado y en el filtro «Cancelaciones retenidas») en vez de procesarse solo. Vacío = como hasta ahora.
