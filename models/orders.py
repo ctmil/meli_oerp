@@ -420,6 +420,17 @@ class sale_order(models.Model):
         string='ML Decisión de cancelación', copy=False, readonly=True,
         help="Última decisión tomada con el estado actualizado de MercadoLibre (orden, pagos "
              "y envío): la foto usada y la fila aplicada.")
+    # 26.221 (T3LC #638): la cancelacion de ML NO devolvio el stock porque el motivo esta
+    # fuera de `meli_oerp.cancel_return_reasons` (default buyer_cancel_express,fraud). La
+    # venta se cancelo igual; la salida sigue hecha. Es la lista de trabajo para decidir a
+    # mano (filtro "ML: cancelada sin devolución de stock"). Se apaga sola si despues se
+    # devuelve (ver _meli_cancel_goods_return).
+    meli_cancel_return_skipped = fields.Boolean(
+        string='ML Cancelada sin devolución de stock', index=True, copy=False, readonly=True,
+        help="MercadoLibre canceló el pedido con un motivo que NO está en el parámetro del "
+             "sistema 'meli_oerp.cancel_return_reasons' (por defecto: buyer_cancel_express, "
+             "fraud), así que NO se creó la devolución de la mercadería ya entregada. "
+             "Revisar si la mercadería volvió y, si corresponde, devolverla a mano.")
     meli_date_created = fields.Datetime('Meli Creation date')
     meli_date_closed = fields.Datetime('Meli Closing date')
 
@@ -1189,9 +1200,9 @@ class sale_order(models.Model):
         if d['so'] == _meli_cd.SO_SKIP:
             return False
 
-        # 3. MERCADERIA.
+        # 3. MERCADERIA (26.221: sujeta a los motivos de meli_oerp.cancel_return_reasons).
         if d['goods'] in (_meli_cd.GOODS_RETURN, _meli_cd.GOODS_CONFIG):
-            self._meli_return_done_pickings(config=config)
+            self._meli_cancel_goods_return(order_json=order_json, config=config, return_config=config)
 
         # 4. FACTURA.
         if d['cancel_drafts']:
@@ -1265,7 +1276,9 @@ class sale_order(models.Model):
         # 1. Devolver albaranes ya entregados
         # _meli_return_done_pickings usa hasattr para compatibilidad Odoo 16/17/18
         # (action_create_returns / create_returns) y evita crear devoluciones duplicadas.
-        self._meli_return_done_pickings()
+        # 26.221: solo si el motivo de ML esta en meli_oerp.cancel_return_reasons; si no,
+        # la venta se cancela igual (pasos 2-5) pero SIN devolucion, y queda marcada.
+        self._meli_cancel_goods_return(order_json=order_json, config=config)
 
         # 2. Gestionar facturas existentes — delegar a la política de configuración
         _has_unresolved_posted_invoice = False
@@ -1349,6 +1362,87 @@ class sale_order(models.Model):
             return False
 
         return self._meli_cancel_finish(cancel_msg)
+
+    # ====================================================================== #
+    #  26.221 (T3LC #638): QUE MOTIVOS DEVUELVEN STOCK SOLOS                  #
+    # ====================================================================== #
+    # Vale para TODA cancelacion automatica de ML (barrido de estados #638, import,
+    # confirm_ml, 'esperando retorno') y para los dos modos (legacy / por_estado_ml):
+    # si el filtro estuviera solo en el barrido, la misma venta devolveria o no segun
+    # que cron la viera primero. Ver models/cancel_decision.py (funcion pura + default).
+    #
+    # Motivo fuera de la lista y salida hecha sin devolver:
+    #   - NO se crea la devolucion (el stock no sube);
+    #   - la venta se cancela igual que antes (facturas: misma politica que antes);
+    #   - queda meli_cancel_return_skipped=True + aviso en el chatter (una vez) + log
+    #     WARNING con la marca MELI_CANCEL_RETURN_SKIP.
+    # Reparacion / decision humana: llamar con context meli_cancel_return_any_reason=True
+    # (p.ej. so.with_context(meli_cancel_return_any_reason=True)._meli_cancel_goods_return())
+    # devuelve sin mirar el motivo y apaga la marca.
+
+    def _meli_cancel_return_reason_code(self, order_json=None):
+        """Motivo de la cancelacion: el de la foto de ML que trae el llamador; si no viene,
+        el ya guardado en la venta (OLA 3)."""
+        self.ensure_one()
+        if isinstance(order_json, dict):
+            code = (order_json.get("cancel_detail") or {}).get("code")
+            if code:
+                return code
+        return self.meli_cancel_reason_code or ""
+
+    def _meli_cancel_return_allowed(self, order_json=None):
+        """(permitido, motivo) segun el parametro meli_oerp.cancel_return_reasons."""
+        self.ensure_one()
+        code = self._meli_cancel_return_reason_code(order_json)
+        if self.env.context.get("meli_cancel_return_any_reason"):
+            return True, code
+        raw = self.env["ir.config_parameter"].sudo().get_param(_meli_cd.CANCEL_RETURN_REASONS_PARAM)
+        return _meli_cd.cancel_return_allowed(code, raw), code
+
+    def _meli_cancel_return_pending_pickings(self):
+        """Salidas HECHAS de la venta que todavia no tienen devolucion (mismo criterio de
+        'ya devuelta' que _meli_return_done_pickings)."""
+        self.ensure_one()
+        Move = self.env["stock.move"]
+        return self.picking_ids.filtered(
+            lambda p: p.state == "done" and p.picking_type_code == "outgoing"
+            and not Move.search_count([("origin_returned_move_id", "in", p.move_ids.ids),
+                                       ("state", "!=", "cancel")]))
+
+    def _meli_cancel_goods_return(self, order_json=None, config=None, return_config=None):
+        """Paso MERCADERIA de la cancelacion de ML, con el filtro de motivos (26.221).
+        `return_config` se pasa tal cual a _meli_return_done_pickings (legacy lo llama sin
+        config, por_estado_ml con la config efectiva: se respeta cada uno como era).
+        :return: True si se intento la devolucion, False si se salteo por el motivo."""
+        self.ensure_one()
+        allowed, code = self._meli_cancel_return_allowed(order_json)
+        if not allowed and self._meli_return_mode(return_config) != "none":
+            pending = self._meli_cancel_return_pending_pickings()
+            if pending:
+                if not self.meli_cancel_return_skipped:
+                    self.meli_cancel_return_skipped = True
+                _logger.warning(
+                    "MELI_CANCEL_RETURN_SKIP %s (orden ML %s): motivo '%s' fuera de %s -> NO se "
+                    "devuelve el stock de %s; la venta se cancela igual.",
+                    self.name, self.meli_order_id or "-", code or "(sin motivo)",
+                    _meli_cd.CANCEL_RETURN_REASONS_PARAM, ", ".join(pending.mapped("name")))
+                meli_message_post(
+                    self,
+                    "⚠️ Cancelación de MercadoLibre con motivo '%s': NO se devolvió automáticamente "
+                    "la mercadería de %s (sólo se devuelve sola con los motivos del parámetro del "
+                    "sistema '%s'). Revisar si la mercadería volvió y, si corresponde, hacer la "
+                    "devolución a mano." % (code or "sin motivo", ", ".join(pending.mapped("name")),
+                                            _meli_cd.CANCEL_RETURN_REASONS_PARAM),
+                    config=self._meli_cancel_config(config),
+                    once_key="cancel-return-skip-%s" % self.id)
+            return False
+        if return_config is not None:
+            self._meli_return_done_pickings(config=return_config)
+        else:
+            self._meli_return_done_pickings()
+        if self.meli_cancel_return_skipped and not self._meli_cancel_return_pending_pickings():
+            self.meli_cancel_return_skipped = False
+        return True
 
     def _meli_unresolved_posted_invoices(self):
         """Facturas de cliente publicadas que SIGUEN sin resolver (no revertidas por NC)."""

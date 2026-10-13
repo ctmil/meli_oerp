@@ -348,3 +348,44 @@ def _text(ctx, d):
     if d.get("notes"):
         text += " Nota: " + "; ".join(d["notes"]) + "."
     return text
+
+
+# ====================================================================================== #
+#  26.221 (T3LC #638) -- QUE MOTIVOS DE CANCELACION DEVUELVEN STOCK SOLOS                 #
+# ====================================================================================== #
+# Pedido de la clienta (Sofia, T3LC 535) y OK de FCA el 13-oct-2026: la devolucion
+# AUTOMATICA de la mercaderia (crear y validar el IN de una salida ya hecha) solo para los
+# motivos en que la mercaderia vuelve con certeza. Con `pack_splitted` los items salen en
+# las ordenes NUEVAS del split, con `shipment_not_delivered` el paquete puede estar perdido
+# y con `mediations` hay un reclamo abierto: devolver stock ahi sube un inventario que no
+# esta en el deposito. Esos casos quedan para decision humana (ver meli_cancel_return_skipped
+# en sale.order).
+#
+# Parametro del sistema `meli_oerp.cancel_return_reasons`: codigos de `cancel_detail.code`
+# separados por coma. `*` = todos los motivos (el comportamiento anterior a 26.221).
+# Sin valor => el default de abajo. Un motivo VACIO (orden sin cancel_detail) no matchea
+# ninguna lista salvo `*`: ante la duda, no se mueve stock.
+CANCEL_RETURN_REASONS_PARAM = "meli_oerp.cancel_return_reasons"
+CANCEL_RETURN_REASONS_DEFAULT = "buyer_cancel_express,fraud"
+CANCEL_RETURN_ALL = "*"
+
+
+def parse_cancel_return_reasons(raw):
+    """Texto del parametro -> frozenset de codigos (en minusculas, sin espacios).
+    None / vacio => el default. Acepta coma, punto y coma, espacios o saltos de linea."""
+    if raw is None or not str(raw).strip():
+        raw = CANCEL_RETURN_REASONS_DEFAULT
+    text = str(raw)
+    for sep in (";", "\n", "\t", " "):
+        text = text.replace(sep, ",")
+    return frozenset(c.strip().lower() for c in text.split(",") if c.strip())
+
+
+def cancel_return_allowed(reason_code, raw_param=None):
+    """True si una cancelacion con `reason_code` (cancel_detail.code de ML) puede devolver
+    stock automaticamente segun el parametro `raw_param` (texto crudo; None = default)."""
+    reasons = parse_cancel_return_reasons(raw_param)
+    if CANCEL_RETURN_ALL in reasons:
+        return True
+    code = (reason_code or "").strip().lower()
+    return bool(code) and code in reasons
