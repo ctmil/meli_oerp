@@ -168,6 +168,19 @@ miran los COMPONENTES (`_bom_find` + `explode`); si no se puede explotar, el kit
 aviso + 0 compras (3 pasadas = 1 aviso) · W2 con prov ⇒ sale + OUT + 1 compra · W3 con stock ⇒ OUT assigned · quotation Q1 ⇒ draft
 + 1 aviso (2 pasadas), llega stock ⇒ sale · dropship/DSTR_ ⇒ sale · UoM docena ⇒ faltan 2 · kit ⇒ faltante del componente.
 16/17/19: mismo código (py_compile), no corridos en Odoo.
+### 5 oct 2026 — FIX fecha límite de despacho vacía: `/shipments/{id}/sla` (v17.0.26.188) [#431 Tus Refacciones]
+**Archivos:** `models/shipment.py` (`fetch_shipment`), `models/orders.py`, `views/orders_view.xml`, `migrations/17.0.26.188/pre-migrate.py`
+
+- **Bug (medido en prod 431, 5-oct):** `estimated_handling_limit` vacío en 0/725 envíos de 3 días ⇒ `sale.order.meli_handling_limit`
+  ("Límite despacho ML") y su badge de estado no mostraban nada. ML dejó de mandar `estimated_handling_limit` en `/shipments/{id}`
+  (ni `lead_time` ni `shipping_option`, tampoco con `x-format-new` ni en `/lead_time`).
+- **Fix:** en `fetch_shipment`, si la fecha no vino y el envío está por despachar (`pending`/`handling`/`ready_to_ship`),
+  `GET /shipments/{id}/sla` (timeout 5 s) → `expected_date` (→ UTC naive con `ml_datetime`). 404/sin fecha ⇒ log info;
+  excepción/timeout ⇒ warning; en ambos casos el campo queda como estaba y el fetch sigue.
+- `sale.order.meli_handling_limit` pasa a **almacenado + índice** y se agrega como columna **opcional oculta** en la lista de
+  pedidos/presupuestos (17+: `sale.sale_order_tree`; 16: `sale.view_order_tree` y `sale.view_quotation_tree`).
+- **Probado** (Odoo 18 local): JSON real del envío 48177776750 ⇒ `2026-10-07 00:00:00` UTC (= 6-oct 18:00 -06:00, lo que ve el vendedor en ML).
+
 
 ### 30 sep 2026 — Build de flota 26.166 (v17.0.26.166)
 
