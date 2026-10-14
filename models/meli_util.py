@@ -210,6 +210,26 @@ class LoggingRetry(Retry):
 API_HOST_DEFAULT = "https://api.mercadolibre.com"
 
 
+# #662 (542): TODA llamada a la API arma su URL con el host efectivo de la instancia
+# (res.company.meli_api_url, ya resuelto por el Nivel de seguridad en get_new_instance),
+# nunca con https://api.mercadolibre.com fijo. Y sale por la sesión de la instancia, que
+# es la que registra cada request cuando el host no es el oficial.
+def meli_instance_api_host(meli):
+    """Host efectivo de una instancia de ML (sin "/" final). Sin instancia: el oficial."""
+    host = meli and (getattr(meli, "api_host", None) or getattr(meli, "base_url", None))
+    return str(host or API_HOST_DEFAULT).rstrip("/")
+
+
+def meli_instance_url(meli, path):
+    """URL absoluta de `path` (p.ej. "answers", "shipment_labels?...") contra el host de la instancia."""
+    return meli_instance_api_host(meli) + "/" + str(path).lstrip("/")
+
+
+def meli_instance_session(meli):
+    """Sesión HTTP de la instancia (retry + rastro del host alternativo); sin instancia, requests."""
+    return (meli is not None and getattr(meli, "_session", None)) or requests
+
+
 # NoSDK: requests Session con retry
 class MeliConfiguration:
     def __init__(self, host="https://api.mercadolibre.com", audit=None):
@@ -268,7 +288,8 @@ class MeliApiNoSDK:
     """
 
     AUTH_URL = "https://auth.mercadolibre.com.ar/authorization"
-    TOKEN_URL = "https://api.mercadolibre.com/oauth/token"
+    # #662: el token se pide al host de la instancia (meli_api_url), no a uno fijo.
+    TOKEN_PATH = "oauth/token"
 
     needlogin_state = True
 
@@ -821,7 +842,7 @@ class MeliApiNoSDK:
     def authorize(self, code, redirect_uri=None):
         """
         Obtiene access_token usando authorization_code (sin SDK).
-        POST a https://api.mercadolibre.com/oauth/token
+        POST a <host de meli_api_url>/oauth/token
         """
         if redirect_uri:
             self.redirect_uri = redirect_uri
@@ -841,7 +862,7 @@ class MeliApiNoSDK:
 
         try:
             resp = self._session.post(
-                self.TOKEN_URL,
+                self._abs_url(self.TOKEN_PATH),
                 data=data,
                 headers=headers,
                 timeout=30
@@ -863,7 +884,7 @@ class MeliApiNoSDK:
     def get_refresh_token(self, code=None, redirect_uri=None):
         """
         Renueva access_token usando refresh_token (sin SDK).
-        POST a https://api.mercadolibre.com/oauth/token
+        POST a <host de meli_api_url>/oauth/token
         """
         data = {
             'grant_type': 'refresh_token',
@@ -879,7 +900,7 @@ class MeliApiNoSDK:
 
         try:
             resp = self._session.post(
-                self.TOKEN_URL,
+                self._abs_url(self.TOKEN_PATH),
                 data=data,
                 headers=headers,
                 timeout=30

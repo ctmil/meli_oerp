@@ -12,6 +12,11 @@
 así que las instalaciones existentes no cambian; un cliente que ya tiene 6 y quiere 2 la baja a mano en
 Ajustes > Técnico > Precisión decimal (nada del módulo la vuelve a subir). Mismo hook en 16/17/18: port pendiente.
 Rama `claude/542-get-meli-state-multicompania`, SIN merge/deploy.
+## 19.0.26.225 — 14-oct-2026 · #662 SteelTigers (542)
+- **URLs por `meli_api_url`:** el token (`oauth/token`, `authorize`/`get_refresh_token`), las etiquetas (`shipment._meli_label_url`/`_meli_label_fetch_vals` y `/meli/shipment_labels`) salen por el host efectivo de la instancia y por su sesión (rastro del host alternativo). Helpers nuevos en `meli_util`: `meli_instance_api_host`, `meli_instance_url`, `meli_instance_session`. `TOKEN_URL` fijo reemplazado por `TOKEN_PATH`.
+- **`USE_MELI_SDK` / `MELI_SDK_AVAILABLE` fijos en False** y sin `import meli` (`versions.py`).
+- **Landeo de 26.193** (rama `claude/542-get-meli-state-multicompania`, cherry-pick): `post_init_hook` de `Product Price` opcional por `meli_oerp.product_price_digits`.
+
 ## 13 oct 2026 — #638 T3LC: la cancelación automática devolvía stock con CUALQUIER motivo (v19.0.26.221)
 **Síntoma:** el barrido rotativo de estados (#638, 26.218) cancelaba y **devolvía** (IN validado) las ventas canceladas
 en ML de los últimos 15 días sin mirar el motivo: `pack_splitted` (los ítems salen en las órdenes nuevas del split),

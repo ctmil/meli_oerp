@@ -254,19 +254,10 @@ mercadolibre_shipment_print_guide_mode = "pdf"
 #   versions.USE_MELI_SDK = True   # forzar SDK
 #   versions.USE_MELI_SDK = False  # forzar requests
 # ---------------------------------------------------------------------------
+# #662 (542, 14-oct-2026): el SDK oficial NO se usa. Fijo en False y sin `import meli`:
+# todas las llamadas salen por requests (MeliApiNoSDK) y por el host de meli_api_url.
 MELI_SDK_AVAILABLE = False
-try:
-    import meli as _meli_sdk_probe
-    MELI_SDK_AVAILABLE = True
-    _logger.info("meli SDK disponible")
-except ImportError:
-    _logger.info("meli SDK no disponible - Usando requests directo")
-
-# Por defecto: usar SDK solo si está instalado
-USE_MELI_SDK = MELI_SDK_AVAILABLE
-
-#forzar NO SDK: comentar siguiente linea
-#USE_MELI_SDK = False
+USE_MELI_SDK = False
 
 # Detectar si unidecode está disponible
 UNIDECODE_AVAILABLE = False
