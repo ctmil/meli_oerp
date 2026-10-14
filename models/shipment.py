@@ -74,13 +74,15 @@ def _meli_labels_view_url(record_ids, response_type):
     return "/meli/shipment_labels?ids=%s&response_type=%s" % (",".join(str(i) for i in record_ids), response_type)
 
 
-def _meli_label_download(url, access_token, timeout=60):
-    """Descarga la etiqueta con el token en el header (no en la URL) y con timeout (#601 P3)."""
-    resp = requests.get(url, headers={'Authorization': 'Bearer %s' % access_token}, timeout=timeout)
+def _meli_label_download(url, access_token, timeout=60, session=None):
+    """Descarga la etiqueta con el token en el header (no en la URL) y con timeout (#601 P3).
+    #662: `session` = la de la instancia de ML (rastro del host alternativo)."""
+    resp = (session or requests).get(url, headers={'Authorization': 'Bearer %s' % access_token}, timeout=timeout)
     resp.raise_for_status()
     return resp.content
 # `import *` no trae los nombres con guion bajo: este guard se importa explicito [#493]
 from .versions import _meli_guard_delivery_write
+from .meli_util import meli_instance_url, meli_instance_session
 from .receiver_cost import receiver_buyer_cost
 
 #
@@ -2214,12 +2216,18 @@ class mercadolibre_shipment(models.Model):
                 print_mode = config["mercadolibre_shipment_print_guide_mode"] or "pdf"
         return print_mode
 
-    def _meli_label_url(self, print_mode="pdf"):
+    def _meli_label_url(self, print_mode="pdf", meli=None):
+        """URL de la etiqueta contra el host de meli_api_url (#662). Con `meli`, el de esa instancia;
+        sin instancia, el que resuelve la compañía del usuario (mismo criterio de Nivel de seguridad)."""
         self.ensure_one()
         response_type = "zpl2" if print_mode in ('zpl', 'zpl_txt') else "pdf"
-        return "https://api.mercadolibre.com/shipment_labels?shipment_ids=" + str(self.shipping_id) + "&response_type=" + response_type
+        path = "shipment_labels?shipment_ids=" + str(self.shipping_id) + "&response_type=" + response_type
+        if meli is None:
+            host = self.env['meli.util']._meli_resolve_api_host(self.env.user.company_id)[0]
+            return str(host).rstrip("/") + "/" + path
+        return meli_instance_url(meli, path)
 
-    def _meli_label_fetch_vals(self, access_token, print_mode="pdf", download_url=None):
+    def _meli_label_fetch_vals(self, access_token, print_mode="pdf", download_url=None, meli=None):
         """Baja la etiqueta de ML y devuelve los vals a escribir. NO escribe nada.
 
         Levanta la excepcion de red/HTTP si ML no la entrega: el llamador decide si eso
@@ -2227,10 +2235,11 @@ class mercadolibre_shipment(models.Model):
         """
         self.ensure_one()
         shipping_id = str(self.shipping_id)
-        download_url = download_url or self._meli_label_url(print_mode)
+        download_url = download_url or self._meli_label_url(print_mode, meli=meli)
+        _session = meli_instance_session(meli) if meli is not None else None
         vals = {}
         if print_mode == 'pdf':
-            data = _meli_label_download(download_url, access_token)
+            data = _meli_label_download(download_url, access_token, session=_session)
             vals["pdf_filename"] = "Shipment_" + shipping_id + ".pdf"
             vals["pdf_file"] = base64.b64encode(data)
             # Generar preview JPG (solo si pdf2image está disponible)
@@ -2249,7 +2258,7 @@ class mercadolibre_shipment(models.Model):
                     _logger.debug("Error generating PDF preview: %s", str(img_e))
 
         if print_mode in ('zpl', 'zpl_txt'):
-            data = _meli_label_download(download_url, access_token)
+            data = _meli_label_download(download_url, access_token, session=_session)
             is_zip = data[:2] == b'PK'
             if print_mode == 'zpl_txt':
                 # ML entrega la etiqueta ZPL2 dentro de un ZIP. En modo
@@ -2287,13 +2296,13 @@ class mercadolibre_shipment(models.Model):
 
         if (shipment and shipment.status=="ready_to_ship"):
 
-            download_url = shipment._meli_label_url(print_mode)
+            download_url = shipment._meli_label_url(print_mode, meli=meli)
             shipment.pdf_link = download_url
 
             if (shipment.substatus=="printed" or include_ready_to_print):
 
                 try:
-                    vals = shipment._meli_label_fetch_vals(meli.access_token, print_mode, download_url)
+                    vals = shipment._meli_label_fetch_vals(meli.access_token, print_mode, download_url, meli=meli)
                     if vals:
                         shipment.write(vals)
                 except Exception as e:
