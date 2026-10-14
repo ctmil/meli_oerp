@@ -2193,6 +2193,84 @@ class mercadolibre_shipment(models.Model):
         self.ensure_one()
         return self.env['meli.util'].get_new_instance(self.env.user.company_id)
 
+    # #158 (14-oct-2026): la descarga de la etiqueta se separa de su escritura.
+    #
+    # Antes shipment_print bajaba el PDF y lo escribia en el mismo paso, dentro de la
+    # transaccion del llamador. Desde un cron largo eso deja la llamada de red DENTRO de
+    # la transaccion, y si otro cron toca el mismo envio mientras tanto la escritura choca
+    # ('could not serialize access') y el rollback se lleva puesto el PDF ya bajado. ML,
+    # en cambio, ya registro la impresion y avanza el envio (cross_docking: printed ->
+    # in_packing_list / ready_for_pickup / in_hub). Medido en produccion: 30 de 30 envios
+    # sin PDF tenian el choque a <= 3 s de su date_first_printed.
+    #
+    # _meli_label_fetch_vals hace SOLO la red y devuelve los vals; el que llama decide en
+    # que transaccion los escribe. shipment_print sigue haciendo exactamente lo mismo.
+
+    def _meli_label_print_mode(self, config=None):
+        """Formato de etiqueta configurado: 'pdf' (default), 'zpl' o 'zpl_txt'."""
+        print_mode = "pdf"
+        if (config and "mercadolibre_shipment_print_guide" in config._fields):
+            if (config and "mercadolibre_shipment_print_guide_mode" in config._fields):
+                print_mode = config["mercadolibre_shipment_print_guide_mode"] or "pdf"
+        return print_mode
+
+    def _meli_label_url(self, print_mode="pdf"):
+        self.ensure_one()
+        response_type = "zpl2" if print_mode in ('zpl', 'zpl_txt') else "pdf"
+        return "https://api.mercadolibre.com/shipment_labels?shipment_ids=" + str(self.shipping_id) + "&response_type=" + response_type
+
+    def _meli_label_fetch_vals(self, access_token, print_mode="pdf", download_url=None):
+        """Baja la etiqueta de ML y devuelve los vals a escribir. NO escribe nada.
+
+        Levanta la excepcion de red/HTTP si ML no la entrega: el llamador decide si eso
+        cuenta como intento fallido.
+        """
+        self.ensure_one()
+        shipping_id = str(self.shipping_id)
+        download_url = download_url or self._meli_label_url(print_mode)
+        vals = {}
+        if print_mode == 'pdf':
+            data = _meli_label_download(download_url, access_token)
+            vals["pdf_filename"] = "Shipment_" + shipping_id + ".pdf"
+            vals["pdf_file"] = base64.b64encode(data)
+            # Generar preview JPG (solo si pdf2image está disponible)
+            if PDF2IMAGE_AVAILABLE:
+                try:
+                    images = convert_from_bytes(data, dpi=300, fmt='jpg')
+                    if len(images) > 0:
+                        for image in images:
+                            image_filename = "/tmp/%s-page%d.jpg" % ("Shipment_" + shipping_id, images.index(image))
+                            image.save(image_filename, "JPEG")
+                            if images.index(image) == 0:
+                                imgdata = urlopen("file://" + image_filename).read()
+                                vals["pdfimage_file"] = base64.b64encode(imgdata)
+                                vals["pdfimage_filename"] = "Shipment_" + shipping_id + ".jpg"
+                except Exception as img_e:
+                    _logger.debug("Error generating PDF preview: %s", str(img_e))
+
+        if print_mode in ('zpl', 'zpl_txt'):
+            data = _meli_label_download(download_url, access_token)
+            is_zip = data[:2] == b'PK'
+            if print_mode == 'zpl_txt':
+                # ML entrega la etiqueta ZPL2 dentro de un ZIP. En modo
+                # "ZPL (txt)" se extrae el contenido plano del zip y se guarda
+                # como .zpl directo (sin el empaquetado). Si ML ya devolviera
+                # ZPL plano, se usa tal cual.
+                if is_zip:
+                    try:
+                        with zipfile.ZipFile(io.BytesIO(data)) as zf:
+                            names = zf.namelist()
+                            if names:
+                                data = zf.read(names[0])
+                    except Exception as zerr:
+                        _logger.warning("No se pudo extraer ZPL del zip para %s: %s", shipping_id, zerr)
+                vals["pdf_filename"] = "Shipment_"+shipping_id+".zpl"
+            else:
+                # "ZPL (zip)": se conserva el paquete tal cual lo entrega ML.
+                vals["pdf_filename"] = "Shipment_"+shipping_id+(".zip" if is_zip else ".zpl")
+            vals["pdf_file"] = base64.b64encode(data)
+        return vals
+
     def shipment_print( self, meli=None, config=None, include_ready_to_print=None ):
 
         context = self.env.context
@@ -2205,66 +2283,19 @@ class mercadolibre_shipment(models.Model):
             meli = self.env['meli.util'].get_new_instance( company )
 
         ship_report = { 'message': '', 'access_token': meli.access_token }
-        print_mode = "pdf"
-        if (config and "mercadolibre_shipment_print_guide" in config._fields):
-            if (config and "mercadolibre_shipment_print_guide_mode" in config._fields):
-                print_mode = config["mercadolibre_shipment_print_guide_mode"] or "pdf"        
+        print_mode = shipment._meli_label_print_mode(config)
 
         if (shipment and shipment.status=="ready_to_ship"):
 
-            #full_str_ids = full_str_ids + comma + shipment
-            if (print_mode=='pdf'):
-                download_url = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+shipment.shipping_id+"&response_type=pdf"
-            if (print_mode in ('zpl','zpl_txt')):
-                download_url = "https://api.mercadolibre.com/shipment_labels?shipment_ids="+shipment.shipping_id+"&response_type=zpl2"
-    
+            download_url = shipment._meli_label_url(print_mode)
             shipment.pdf_link = download_url
 
-            if (shipment.substatus=="printed" or include_ready_to_print):            
+            if (shipment.substatus=="printed" or include_ready_to_print):
 
                 try:
-                    if print_mode == 'pdf':
-                        data = _meli_label_download(shipment.pdf_link, meli.access_token)
-                        shipment.pdf_filename = "Shipment_" + shipment.shipping_id + ".pdf"
-                        shipment.pdf_file = base64.b64encode(data)
-                        # Generar preview JPG (solo si pdf2image está disponible)
-                        if PDF2IMAGE_AVAILABLE:
-                            try:
-                                images = convert_from_bytes(data, dpi=300, fmt='jpg')
-                                if len(images) > 0:
-                                    for image in images:
-                                        image_filename = "/tmp/%s-page%d.jpg" % ("Shipment_" + shipment.shipping_id, images.index(image))
-                                        image.save(image_filename, "JPEG")
-                                        if images.index(image) == 0:
-                                            imgdata = urlopen("file://" + image_filename).read()
-                                            shipment.pdfimage_file = base64.b64encode(imgdata)
-                                            shipment.pdfimage_filename = "Shipment_" + shipment.shipping_id + ".jpg"
-                            except Exception as img_e:
-                                _logger.debug("Error generating PDF preview: %s", str(img_e))
-
-                    if print_mode in ('zpl', 'zpl_txt'):
-                        data = _meli_label_download(shipment.pdf_link, meli.access_token)
-                        is_zip = data[:2] == b'PK'
-                        if print_mode == 'zpl_txt':
-                            # ML entrega la etiqueta ZPL2 dentro de un ZIP. En modo
-                            # "ZPL (txt)" se extrae el contenido plano del zip y se guarda
-                            # como .zpl directo (sin el empaquetado). Si ML ya devolviera
-                            # ZPL plano, se usa tal cual.
-                            if is_zip:
-                                try:
-                                    with zipfile.ZipFile(io.BytesIO(data)) as zf:
-                                        names = zf.namelist()
-                                        if names:
-                                            data = zf.read(names[0])
-                                except Exception as zerr:
-                                    _logger.warning("No se pudo extraer ZPL del zip para %s: %s", shipment.shipping_id, zerr)
-                            shipment.pdf_filename = "Shipment_"+shipment.shipping_id+".zpl"
-                        else:
-                            # "ZPL (zip)": se conserva el paquete tal cual lo entrega ML.
-                            shipment.pdf_filename = "Shipment_"+shipment.shipping_id+(".zip" if is_zip else ".zpl")
-                        shipment.pdf_file = base64.b64encode(data)
-
-
+                    vals = shipment._meli_label_fetch_vals(meli.access_token, print_mode, download_url)
+                    if vals:
+                        shipment.write(vals)
                 except Exception as e:
                     _logger.info("Exception!")
                     _logger.info(e, exc_info=True)
