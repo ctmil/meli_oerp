@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""[#661 fase 3] La URL de la API pasa a un único campo validado: res.company.meli_api_url.
+"""[un caso fase 3] La URL de la API pasa a un único campo validado: res.company.meli_api_url.
 
 Hasta 26.209 el host alternativo (proxy de rescate) estaba en res.company.mercadolibre_http_proxy,
 que desde 26.210 es un alias sin almacenar. Su columna sigue en la base (Odoo no borra columnas):
