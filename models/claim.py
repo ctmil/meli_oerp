@@ -59,7 +59,7 @@ class mercadolibre_claim(models.Model):
 
     # Clasificacion del reclamo
     type = fields.Selection([
-        # [#615 ROEN] Valores REALES de /post-purchase/v1/claims (medidos sobre 67 reclamos
+        # [caso de un cliente] Valores REALES de /post-purchase/v1/claims (medidos sobre 67 reclamos
         # de una cuenta MLM el 23-sep-2026): returns, mediations, cancel_purchase, cancel_sale.
         # Los de mas abajo eran supuestos de la Fase 1; se dejan para no romper datos existentes.
         ("returns", "Devolucion"),
@@ -102,7 +102,7 @@ class mercadolibre_claim(models.Model):
     site_id = fields.Char(string="Site", help="Sitio de MercadoLibre del reclamo (MLA, MLM, ...).")
 
     def compute_claim_link(self):
-        # [#615 ROEN] Dominio por el site del reclamo, sin API (get_ML_LINK_URL consultaba
+        # [caso de un cliente] Dominio por el site del reclamo, sin API (get_ML_LINK_URL consultaba
         # /sites por cada registro) y sin dejar el campo sin asignar cuando no hay claim_id.
         company = self.env.company
         for c in self:
@@ -134,7 +134,7 @@ class mercadolibre_claim(models.Model):
             'raw_json': _json.dumps(Claim),
             'site_id': Claim.get("site_id") or False,
         }
-        # [#615 ROEN] Un valor que ML agregue y el selection no conozca NO puede tirar el sync
+        # [caso de un cliente] Un valor que ML agregue y el selection no conozca NO puede tirar el sync
         # entero: antes 'returns' daba ValueError, el cron se lo tragaba por compania y la
         # pantalla de reclamos quedaba VACIA sin un aviso. Se guarda vacio + WARNING; el valor
         # original sigue en raw_json.

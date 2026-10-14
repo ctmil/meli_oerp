@@ -22,7 +22,7 @@
 			<field name="value">new</field>
 		</record>
 
-		<!-- 26.221 (T3LC #638): motivos de cancelacion de ML (cancel_detail.code, separados
+		<!-- 26.221 (un cliente): motivos de cancelacion de ML (cancel_detail.code, separados
 		     por coma) con los que la mercaderia ya entregada se DEVUELVE automaticamente.
 		     '*' = todos (comportamiento anterior a 26.221). Ver models/cancel_decision.py. -->
 		<record id="meli_cancel_return_reasons_parameter" model="ir.config_parameter">

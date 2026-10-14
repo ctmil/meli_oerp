@@ -607,7 +607,7 @@ def ml_tax_excluded(self, config=None ):
 def ml_product_price_conversion( self, product_related_obj, price, config=None):
     """Importe que COBRA ML (unitario de una orden, o flete) -> price_unit de la linea de venta.
 
-    [#486 Enerpoint] El precio de una venta de ML es SIEMPRE final, con impuestos incluidos.
+    [caso de un cliente] El precio de una venta de ML es SIEMPRE final, con impuestos incluidos.
     Por eso se netea siempre por los impuestos de venta NO incluidos del producto (los
     `price_include` ya lo absorben solos), de modo que total Odoo == lo cobrado en ML.
 
@@ -621,7 +621,7 @@ def ml_product_price_conversion( self, product_related_obj, price, config=None):
     company_id = ("company_id" in config._fields and config.company_id) or config
     product_template = product_related_obj.product_tmpl_id
     ml_price_converted = float(price)
-    # Sin depender de ml_tax_excluded(): ver docstring [#486].
+    # Sin depender de ml_tax_excluded(): ver docstring [un caso].
     #_logger.info("Taxes:"+str(product_template.taxes_id))
     if ( product_template.taxes_id ):
         txfixed = 0
@@ -664,7 +664,7 @@ def meli_resolve_coupon_invoice_mode(config):
     """Modo de facturacion del cupon ML (tri-estado). Devuelve 'full'|'product_discount'|'separate_line'.
 
       - full (default): factura a precio pleno; el cupon ML (reembolsado por ML, vendedor
-        made-whole) NO se refleja en lineas. [caso #433 Elvimarta]
+        made-whole) NO se refleja en lineas. [caso un cliente]
       - product_discount: el cupon se imputa como descuento (%) sobre las lineas de PRODUCTO.
       - separate_line: el cupon se imputa como linea(s) de descuento separada(s), una por grupo
         de impuesto (prorrateo), sin tocar producto ni envio. OPT-IN (riesgos AFIP/CL).
@@ -798,7 +798,7 @@ def get_delivery_line(sorder):
 def _meli_guard_delivery_write(sorder, delivery_line, delivery_price):
     """True -> NO se debe escribir la linea de envio (la venta ya tiene factura posteada).
 
-    [#493 Shoppy] El guard estaba SOLO dentro de set_delivery_line, con un comentario que
+    [caso de un cliente] El guard estaba SOLO dentro de set_delivery_line, con un comentario que
     afirmaba que ese era "el unico lugar por el que pasan TODAS las reescrituras de la
     linea de envio". No era cierto: shipment.py escribe `price_unit`/`qty_to_invoice`
     DIRECTO sobre la linea, y `_remove_delivery_line()` la borra entera. Por esos caminos
@@ -840,13 +840,13 @@ def set_delivery_line( sorder, delivery_price, delivery_message ):
          deshace el borrado en vez de dejar la venta pelada;
       3) los fallos se loguean con la venta y el error reales.
 
-    Caso que lo destapo (Elvimarta, jul-2026): 47 ordenes quedaron sin flete en 7 semanas y
+    Caso que lo destapo (un cliente, jul-2026): 47 ordenes quedaron sin flete en 7 semanas y
     20 se facturaron por debajo de lo cobrado al comprador.
     """
     #check version
     delivery_line = get_delivery_line(sorder)
 
-    # [#493 Shoppy] No tocar ventas YA FACTURADAS. Este es el punto por el que el
+    # [caso de un cliente] No tocar ventas YA FACTURADAS. Este es el punto por el que el
     # conector dejaba el flete en 0 sobre ventas con factura posteada, y la venta
     # quedaba por debajo de su propia factura.
     if _meli_guard_delivery_write(sorder, delivery_line, delivery_price):
