@@ -21,7 +21,7 @@ class ProductAttribute(models.Model):
 
     meli_chart_id = fields.Many2one("mercadolibre.grid.chart",string="ML Guia de talle",readonly=True)
 
-    # [#542] Selector de familia (User Products). Cuando cada variante se publica como publicación
+    # [un caso] Selector de familia (User Products). Cuando cada variante se publica como publicación
     # propia, ML agrupa en una sola página las de la misma familia y arma un selector con los
     # atributos que difieren. Marcado, el valor de cada variante viaja como atributo PROPIO del
     # vendedor {"name": <atributo>, "value_name": <valor>}, sin cargar el JSON a mano.

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""[#539] Mapeo CAMPO de Odoo -> ATRIBUTO de MercadoLibre, con mapeo de VALORES.
+"""[un caso] Mapeo CAMPO de Odoo -> ATRIBUTO de MercadoLibre, con mapeo de VALORES.
 
 POR QUE EXISTE
 --------------
@@ -14,7 +14,7 @@ todos los productos.
 
 EL MAPEO DE VALORES NO ES UN EXTRA
 ----------------------------------
-Medido sobre un caso real (DISELEC, categoria MLM3390 "Cartas Coleccionables T.C.G"): de 8 campos
+Medido sobre un caso real (un cliente, categoria MLM3390 "Cartas Coleccionables T.C.G"): de 8 campos
 mapeables, 4 apuntan a atributos con LISTA CERRADA de valores, y el texto de Odoo no coincide con
 lo que ML espera:
     Condition "Near Mint"          -> ITEM_CONDITION  (ML solo acepta Nuevo / Usado)
@@ -125,7 +125,7 @@ class MeliAttributeMapping(models.Model):
     def _compute_value_mapping_summary(self):
         """Resumen legible de las traducciones, para verlo en la LISTA.
 
-        Pedido de FCA el 26-ago-2026: la lista mostraba `Traducciones = 0/3`, un numero que no dice
+        Pedido de Moldeo el 26-ago-2026: la lista mostraba `Traducciones = 0/3`, un numero que no dice
         QUE se tradujo. El texto dice ademas en que punto esta el mapeo, porque los tres estados son
         distintos y se confunden:
           - sin atributo   -> no manda nada (coherente con la fila en rojo);
@@ -211,7 +211,7 @@ class MeliAttributeMapping(models.Model):
         proposito: el onchange corre SOLO en el formulario, asi que un mapeo cargado por
         import/carga masiva o por `create()` quedaba con `meli_att_id` vacio y
         `_meli_attributes_from_mapping()` lo salteaba EN SILENCIO (`if not m.meli_att_id`).
-        Medido el 26-ago-2026 en la instancia de DISELEC (539): el mapeo creado por `create()`
+        Medido el 26-ago-2026 en la instancia de un cliente: el mapeo creado por `create()`
         no aportaba ningun atributo al body y no habia error ni log.
         Se sigue pudiendo escribir a mano (`readonly=False`), como promete el `help`, para
         atributos que todavia no fueron importados de ML.
@@ -228,7 +228,7 @@ class MeliAttributeMapping(models.Model):
 
         `_meli_attributes_from_mapping()` arranca con `if not m.meli_att_id: continue`: un mapeo sin
         destino se saltea EN SILENCIO, se ve bien en la lista y el atributo no viaja. Medido el
-        26-ago-2026: FCA guardo dos mapeos (`TCG`, `Set Abr`) asi y nada se lo dijo.
+        26-ago-2026: Moldeo guardo dos mapeos (`TCG`, `Set Abr`) asi y nada se lo dijo.
 
         Esta es UNA de cuatro capas, porque sola no alcanza — medido, no supuesto:
         - `@api.constrains` solo dispara si los campos vigilados estan en el write, asi que NO
@@ -257,11 +257,11 @@ class MeliAttributeMapping(models.Model):
     def _meli_value_for(self, product):
         """Valor final a mandar a ML para `product`, o None si no corresponde mandar nada.
 
-        Reglas (decididas por FCA el 24-ago-2026):
+        Reglas (decididas por Moldeo el 24-ago-2026):
         - Si hay traduccion definida para el valor de Odoo, se usa la traduccion.
         - Si NO hay traduccion, SE MANDA EL VALOR TAL CUAL.
         - Si el atributo tiene lista cerrada y el valor no esta entre los permitidos, IGUAL SE MANDA
-          (decision de FCA) pero queda un WARNING en el log: es el caso que hace fallar la
+          (decision de Moldeo) pero queda un WARNING en el log: es el caso que hace fallar la
           publicacion entera con un error ilegible de ML, asi que tiene que ser rastreable.
         """
         self.ensure_one()

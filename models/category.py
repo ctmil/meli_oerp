@@ -602,7 +602,7 @@ class mercadolibre_category(models.Model):
         ml_cat_id = None
         www_cat_id = None
 
-        # FIX #532 (perf): camino LIVIANO para PREDICCIÓN/sugerencia de categorías. Para mostrar
+        # FIX un caso (perf): camino LIVIANO para PREDICCIÓN/sugerencia de categorías. Para mostrar
         # las opciones en el wizard alcanza id + nombre: NO importamos atributos (_get_attributes),
         # ni grid charts (get_search_chart_filters), ni catalog_domain_json, ni la categoría web.
         # Todo eso se difiere a la SELECCIÓN/publicación (apply_category hace un import completo de
@@ -677,10 +677,10 @@ class mercadolibre_category(models.Model):
                 #_logger.info(cat_fields)
                 ml_cat_id = ml_cat_id.create((cat_fields))
                 if (ml_cat_id.id and is_branch==False):
-                  # [solsun-local->source] Savepoints: los except desnudos de _get_attributes /
+                  # [caso de un cliente] Savepoints: los except desnudos de _get_attributes /
                   # get_search_chart_filters se tragan errores SQL y dejan la transaccion PG
                   # abortada; sin savepoint el CREATE de la categoria se iba en el rollback pero
-                  # el id ya estaba cacheado -> FK violation posterior en meli_category (#410 BUG 3).
+                  # el id ya estaba cacheado -> FK violation posterior en meli_category (un caso BUG 3).
                   try:
                       with self.env.cr.savepoint():
                           ml_cat_id._get_attributes(meli=meli)
@@ -724,7 +724,7 @@ class mercadolibre_category(models.Model):
                 ml_cat_id.write((cat_fields))
 
                 if (ml_cat_id.id and is_branch==False):
-                  # [solsun-local->source] Savepoints (2o call-site, camino write): idem create.
+                  # [caso de un cliente] Savepoints (2o call-site, camino write): idem create.
                   try:
                       with self.env.cr.savepoint():
                           ml_cat_id._get_attributes()

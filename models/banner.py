@@ -32,10 +32,10 @@ class MercadolibreBanner(models.Model):
     header = fields.Text(string='Encabezado')
     footer = fields.Text(string='Pie')
     images = fields.Text(string='Imagenes (links)')
-    # [#539] Asignacion AUTOMATICA por categoria. La plantilla declara a que categorias aplica,
+    # [un caso] Asignacion AUTOMATICA por categoria. La plantilla declara a que categorias aplica,
     # en vez de una tabla de reglas aparte: se ve en el mismo lugar donde se escribe el texto.
     # Nacen VACIOS a proposito -> mientras nadie los complete, la resolucion se comporta igual
-    # que antes para todos los clientes. Pedido de FCA, 26-ago-2026.
+    # que antes para todos los clientes. Pedido de Moldeo, 26-ago-2026.
     odoo_categ_ids = fields.Many2many(
         "product.category", "meli_banner_odoo_categ_rel", "banner_id", "categ_id",
         string="Categorias de Odoo",
@@ -49,7 +49,7 @@ class MercadolibreBanner(models.Model):
 
     images_id = fields.Many2many("mercadolibre.image",string="Imagenes Meli")
 
-    # ------------------------------------------------------------------ [#539]
+    # ------------------------------------------------------------------ [un caso]
     # Lenguaje de plantilla para la descripcion.
     #
     # LA DESCRIPCION DE ML ES TEXTO PLANO. Medido en los dos extremos: mandamos

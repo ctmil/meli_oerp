@@ -35,7 +35,7 @@ def _get_headers(filename, filetype, content):
     
 class MercadoLibre(http.Controller):
 
-    # [#661] Fuera /meli/ (página informativa) y /meli/image/* (sin usos): sólo quedan el webhook y el login.
+    # [un caso] Fuera /meli/ (página informativa) y /meli/image/* (sin usos): sólo quedan el webhook y el login.
 
     # csrf=False is required because this endpoint is a webhook called
     # from MercadoLibre servers — they cannot provide an Odoo CSRF token.
@@ -106,10 +106,10 @@ class MercadoLibreLogin(http.Controller):
                              'mercadolibre_refresh_token': meli.refresh_token,
                              'mercadolibre_code': codes['code'],
                              'mercadolibre_cron_refresh': True } )
-            # [#661] La página de login nunca muestra el código ni los tokens.
+            # [un caso] La página de login nunca muestra el código ni los tokens.
             return 'CONECTADO A MERCADOLIBRE <br>MercadoLibre Publisher for Odoo - Copyright Moldeo Interactive <br><a href="javascript:window.history.go(-2);">Volver a Odoo</a> <script>window.history.go(-2)</script>'
         else:
             return "<a href='"+meli.auth_url()+"'>Try to Login Again Please</a>"
 
-# [#661] Fuera /meli_authorize/ y /meli_logout/ (páginas informativas; la desconexión es un botón del
+# [un caso] Fuera /meli_authorize/ y /meli_logout/ (páginas informativas; la desconexión es un botón del
 # formulario) y /download/saveas (ejecutaba un método elegido por quien llamaba; ningún módulo la usaba).
