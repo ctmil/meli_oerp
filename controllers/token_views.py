@@ -21,6 +21,8 @@ from odoo import http
 from odoo import release as odoo_release
 from odoo.http import request
 
+from ..models.meli_util import meli_instance_url, meli_instance_session
+
 _logger = logging.getLogger(__name__)
 
 _MELI_ID_RE = re.compile(r'^[A-Z]{3,4}\d{1,20}$')
@@ -88,9 +90,9 @@ class MeliTokenlessViews(http.Controller):
         if len(tokens) != 1:
             return _bad_request('Los envíos pertenecen a cuentas distintas: bajalos por separado.')
         tok, shipping_ids = next(iter(tokens.items()))
-        url = 'https://api.mercadolibre.com/shipment_labels'
+        url = meli_instance_url(meli, 'shipment_labels')  # #662: host de meli_api_url
         try:
-            resp = requests.get(
+            resp = meli_instance_session(meli).get(
                 url,
                 params={'shipment_ids': ','.join(shipping_ids), 'response_type': response_type},
                 headers={'Authorization': 'Bearer %s' % tok},
