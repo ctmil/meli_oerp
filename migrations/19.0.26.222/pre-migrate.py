@@ -6,10 +6,24 @@ import logging
 _logger = logging.getLogger(__name__)
 
 
+def _has_column(cr, table, column):
+    cr.execute("""SELECT 1 FROM information_schema.columns
+                   WHERE table_schema = current_schema()
+                     AND table_name = %s AND column_name = %s""", (table, column))
+    return bool(cr.fetchone())
+
+
 def migrate(cr, version):
     if not version:
         return
     cr.execute("ALTER TABLE sale_order ADD COLUMN IF NOT EXISTS meli_handling_limit timestamp")
+    # Guarda (26.226, detectado en 452): mercadolibre_shipment.estimated_handling_limit
+    # nace en 26.16. Al actualizar desde un build anterior la columna todavía no existe
+    # (no hay nada que copiar) y el UPDATE abortaba el -u entero (rc=255, "bad query").
+    if not _has_column(cr, 'mercadolibre_shipment', 'estimated_handling_limit'):
+        _logger.info("meli_oerp 26.222: mercadolibre_shipment.estimated_handling_limit no existe aún "
+                     "(upgrade desde < 26.16); nada que copiar")
+        return
     cr.execute("""
         UPDATE sale_order so
            SET meli_handling_limit = s.estimated_handling_limit
