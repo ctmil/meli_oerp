@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""[#494 Shoppy] Inicializa sale_order.meli_cancel_pending sobre el historico.
+"""[caso de un cliente] Inicializa sale_order.meli_cancel_pending sobre el historico.
 
 El campo es computed+store: al instalarse, Odoo lo calcula solo para los registros
 que toque el recompute. Sembrarlo por SQL garantiza que el filtro
@@ -27,10 +27,10 @@ def migrate(cr, version):
     if not _has_column(cr, "sale_order", "meli_cancel_pending"):
         # La columna la crea el ORM en el update del modulo; si todavia no esta,
         # el recompute normal de Odoo se encarga. No es un error.
-        _logger.info("#494: sale_order.meli_cancel_pending aun no existe, nada que sembrar.")
+        _logger.info("sale_order.meli_cancel_pending aun no existe, nada que sembrar.")
         return
     if not _has_column(cr, "sale_order", "meli_status"):
-        _logger.warning("#494: sale_order.meli_status no existe — no se puede sembrar meli_cancel_pending.")
+        _logger.warning("sale_order.meli_status no existe — no se puede sembrar meli_cancel_pending.")
         return
 
     # PASO 1 — refrescar meli_status desde el pedido de ML, SOLO para cancelados.
@@ -48,9 +48,9 @@ def migrate(cr, version):
                AND mo.status = 'cancelled'
                AND (so.meli_status IS DISTINCT FROM 'cancelled')
         """)
-        _logger.info("#494: meli_status='cancelled' propagado a %s venta(s) desde el pedido ML.", cr.rowcount)
+        _logger.info("meli_status='cancelled' propagado a %s venta(s) desde el pedido ML.", cr.rowcount)
     else:
-        _logger.warning("#494: no se pudo leer mercadolibre_orders.status/sale_order — "
+        _logger.warning("no se pudo leer mercadolibre_orders.status/sale_order — "
                         "meli_cancel_pending se siembra solo con lo que ya tenga la venta.")
 
     # PASO 2 — sembrar el booleano derivado (misma definicion exacta que el compute).
@@ -59,7 +59,7 @@ def migrate(cr, version):
            SET meli_cancel_pending = (meli_status = 'cancelled' AND state <> 'cancel')
          WHERE meli_cancel_pending IS DISTINCT FROM (meli_status = 'cancelled' AND state <> 'cancel')
     """)
-    _logger.info("#494: meli_cancel_pending sembrado en %s venta(s).", cr.rowcount)
+    _logger.info("meli_cancel_pending sembrado en %s venta(s).", cr.rowcount)
 
     cr.execute("SELECT COUNT(*) FROM sale_order WHERE meli_cancel_pending")
     pending = cr.fetchone()[0]
@@ -68,7 +68,7 @@ def migrate(cr, version):
         # vivas, con su factura emitida y sin cobrar. Si esto se loguea como informacion
         # nadie lo mira.
         _logger.warning(
-            "#494: %s venta(s) canceladas en MercadoLibre siguen VIVAS en Odoo. "
+            "%s venta(s) canceladas en MercadoLibre siguen VIVAS en Odoo. "
             "Verlas en Ventas con el filtro 'Cancelado en ML, vivo en Odoo'.",
             pending,
         )

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# 26.188 (#431): sale.order.meli_handling_limit pasa a almacenado (para ordenar la
+# 26.188 (un caso): sale.order.meli_handling_limit pasa a almacenado (para ordenar la
 # lista). Se crea y llena la columna por SQL antes de cargar el modelo, así Odoo no
 # recomputa el related registro por registro en bases grandes.
 import logging
@@ -17,7 +17,7 @@ def migrate(cr, version):
     if not version:
         return
     cr.execute("ALTER TABLE sale_order ADD COLUMN IF NOT EXISTS meli_handling_limit timestamp")
-    # Guarda (26.226, detectado en 452): mercadolibre_shipment.estimated_handling_limit
+    # Guarda (26.226, detectado en un cliente): mercadolibre_shipment.estimated_handling_limit
     # nace en 26.16. Al actualizar desde un build anterior la columna todavía no existe
     # (no hay nada que copiar) y el UPDATE abortaba el -u entero (rc=255, "bad query").
     if not _has_column(cr, 'mercadolibre_shipment', 'estimated_handling_limit'):
@@ -31,4 +31,4 @@ def migrate(cr, version):
          WHERE so.meli_shipment = s.id
            AND s.estimated_handling_limit IS NOT NULL
     """)
-    _logger.info("meli_oerp 26.222 (#431 SLA, era 26.188): sale_order.meli_handling_limit llenado en %s pedidos", cr.rowcount)
+    _logger.info("meli_oerp 26.222 (SLA, era 26.188): sale_order.meli_handling_limit llenado en %s pedidos", cr.rowcount)

@@ -254,7 +254,7 @@ class StockMove(models.Model):
         return res
 
     # ------------------------------------------------------------------
-    # #645 (Tus Refacciones 431): modo 'waiting' de "Venta sin existencia al confirmar".
+    # un caso (un cliente): modo 'waiting' de "Venta sin existencia al confirmar".
     # Con el contexto `meli_force_mts_product_ids` (lo pone SOLO
     # sale.order._meli_confirm_waiting_retry, dentro de un savepoint), los moves de
     # esos productos que nacen de una regla "mts_else_mto" NO disparan la regla
