@@ -71,6 +71,48 @@ import json
 import logging
 _logger = logging.getLogger(__name__)
 
+
+def _meli_partner_vals_changed(record, vals):
+    """Devuelve sólo los valores de `vals` que DIFIEREN de lo guardado en `record` (un registro).
+
+    Escribir un contacto con los MISMOS valores igual hace UPDATE de su fila (y recomputa
+    contact_address_complete y otros). Si ese contacto lo comparten muchas ventas -p. ej. el
+    contacto de facturación de un RFC/CUIT que se repite-, dos imports concurrentes chocan en esa
+    fila (SerializationFailure) y la venta no se crea en ese ciclo. Sin cambios, no hay write.
+    Ante la duda (x2many, valor no comparable) el valor se conserva y se escribe como antes.
+    """
+    if not vals or not record or len(record) != 1:
+        return vals
+    out = {}
+    for key, value in vals.items():
+        field = record._fields.get(key)
+        if field is None or field.type in ('one2many', 'many2many'):
+            out[key] = value
+            continue
+        try:
+            new = field.convert_to_cache(value, record, validate=False)
+            cur = field.convert_to_cache(record[key], record, validate=False)
+        except Exception:
+            out[key] = value
+            continue
+        if (new or False) != (cur or False):
+            out[key] = value
+    return out
+
+
+def _meli_partner_fiscal_sql_fix(cr, partner_id, set_clauses, values):
+    """UPDATE res_partner SET <set_clauses> sólo si algún valor DIFIERE del guardado.
+
+    Con todo igual el WHERE no matchea y la fila no se toca (no se toma su lock): es lo que evita
+    que imports concurrentes sobre un mismo contacto se maten entre sí. Devuelve filas tocadas.
+    """
+    cols = [clause.split('=')[0].strip() for clause in set_clauses]
+    cr.execute(
+        "UPDATE res_partner SET " + ", ".join(set_clauses) + " WHERE id = %s AND ("
+        + " OR ".join("%s IS DISTINCT FROM %%s" % col for col in cols) + ")",
+        tuple(list(values) + [partner_id] + list(values)))
+    return cr.rowcount
+
 import builtins  # so we can use builtins.Exception safely
 from odoo.exceptions import ValidationError
 
@@ -4782,6 +4824,7 @@ class mercadolibre_orders(models.Model):
                                     and partner_id[k]):
                                 continue
                             _fiscal_update[k] = v
+                        _fiscal_update = _meli_partner_vals_changed(partner_id, _fiscal_update)
                         if _fiscal_update:
                             try:
                                 partner_id.write(_fiscal_update)
@@ -4915,6 +4958,9 @@ class mercadolibre_orders(models.Model):
                                 billing_vat, _country_code, len(_vat_digits), partner_invoice_id.id
                             )
 
+                    # Sólo lo que CAMBIA (ver _meli_partner_vals_changed): un write sin cambios
+                    # igual bloquea la fila del contacto y choca con otros imports concurrentes.
+                    invoice_update = _meli_partner_vals_changed(partner_invoice_id, invoice_update)
                     if invoice_update:
                         _logger.info("Actualizando contacto facturación id:%s vat:%s campos:%s",
                                      partner_invoice_id.id, invoice_update.get('vat', '-'), list(invoice_update.keys()))
@@ -5006,11 +5052,7 @@ class mercadolibre_orders(models.Model):
                 if 'l10n_ar_afip_responsibility_type_id' in partner_invoice_id._fields and partner_invoice_id.l10n_ar_afip_responsibility_type_id:
                     _fix_fields.append("l10n_ar_afip_responsibility_type_id = %s")
                     _fix_vals.append(partner_invoice_id.l10n_ar_afip_responsibility_type_id.id)
-                if _fix_fields:
-                    self.env.cr.execute(
-                        "UPDATE res_partner SET " + ", ".join(_fix_fields) + " WHERE id = %s",
-                        tuple(_fix_vals + [partner_invoice_id.id])
-                    )
+                if _fix_fields and _meli_partner_fiscal_sql_fix(self.env.cr, partner_invoice_id.id, _fix_fields, _fix_vals):
                     _logger.info("COMMERCIAL_FIELDS_FIX SQL: datos fiscales en billing child id:%s (%s)",
                                  partner_invoice_id.id, ", ".join(_fix_fields))
 
@@ -5077,7 +5119,8 @@ class mercadolibre_orders(models.Model):
             if partner_invoice_id:
                 if ("fe_habilitada" in self.env['res.partner']._fields):
                     try:
-                        partner_invoice_id.write({"fe_habilitada": True})
+                        if not partner_invoice_id.fe_habilitada:
+                            partner_invoice_id.write({"fe_habilitada": True})
                     except:
                         _logger.error("No se pudo habilitar la Facturacion Electronica para este usuario")
 
