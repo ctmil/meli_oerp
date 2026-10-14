@@ -4,6 +4,10 @@
 
 ---
 
+## 17.0.26.224 — 14-oct-2026 · etiquetas: la descarga se separa del guardado [#158]
+- **#158** La descarga de la etiqueta de Mercado Libre se separa de su guardado (nuevo `_meli_label_fetch_vals`), para que el reintento automático de meli_oerp_multiple pueda guardarla en una transacción corta. La impresión manual y el asistente funcionan igual que antes.
+- Build único 26.224 en 16/17/18/19.
+
 ## 17.0.26.223 — 13-oct-2026 · stock de seguridad en el diagnóstico, fecha de la venta al confirmar, devoluciones canceladas, aviso de seguridad [#529 #640 #641]
 - **#529** El diagnóstico de stock descuenta el stock de seguridad **por SKU según las Reglas de SKU tipo «Stock Rule»** (columna «Quantity Stock»; el SKU exacto gana sobre `*`), igual que el envío de stock: ya no reactiva ni «corrige» publicaciones que el resguardo deja en 0 a propósito. Sin reglas, igual que antes.
 - **#640** Al confirmar una venta de MercadoLibre se conserva la **fecha de la venta de ML** (antes se pisaba con la hora de confirmación). Reemplazar un producto después ya no genera una devolución y dos transferencias internas pendientes.
