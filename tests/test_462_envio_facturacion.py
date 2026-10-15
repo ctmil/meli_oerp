@@ -10,12 +10,19 @@ from odoo.addons.account.tests.common import AccountTestInvoicingCommon
 from odoo.tests import tagged
 
 
+def _sales_user(env):
+    """En 19 el usuario de AccountTestInvoicingCommon no trae permisos de Ventas."""
+    gfield = 'group_ids' if 'group_ids' in env.user._fields else 'groups_id'
+    env.user.write({gfield: [(4, env.ref('sales_team.group_sale_manager').id)]})
+
+
 @tagged('post_install', '-at_install', 'meli_462e1')
 class TestMeli462EnvioFacturacion(AccountTestInvoicingCommon):
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        _sales_user(cls.env)
         Product = cls.env['product.product']
         # producto vendido: servicio con politica "entregadas" (sin stock => la entrega se simula
         # con qty_delivered, igual que la valida el albaran)
@@ -74,3 +81,56 @@ class TestMeli462EnvioFacturacion(AccountTestInvoicingCommon):
         pl, sl = self._lines(so)
         pl.qty_delivered = 1
         self.assertEqual(sl.qty_to_invoice, 0.0, "fuera de ML el envio sigue la politica del producto")
+
+
+@tagged('post_install', '-at_install', 'meli_462e1')
+class TestMeli462PackItemFaltante(AccountTestInvoicingCommon):
+    """Pack con un item sin producto en Odoo: el aviso lo nombra y no se repite cada ciclo."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        _sales_user(cls.env)
+
+    def _pack_order(self):
+        prod = self.env['product.product'].create({'name': 'Panos cian', 'type': 'service',
+                                                   'invoice_policy': 'order', 'list_price': 100.0})
+        MO = self.env['mercadolibre.orders'].sudo()
+        mo1 = MO.create({'name': 'MO 1', 'order_id': '4629001', 'pack_id': '4629000', 'status': 'paid',
+                         'order_items': [(0, 0, {'order_item_id': 'MLA111', 'seller_sku': 'SKU_cian',
+                                                 'order_item_title': 'Panos cian', 'quantity': 1,
+                                                 'unit_price': '100.0', 'product_id': prod.id})]})
+        mo2 = MO.create({'name': 'MO 2', 'order_id': '4629002', 'pack_id': '4629000', 'status': 'paid',
+                         'order_items': [(0, 0, {'order_item_id': 'MLA222', 'seller_sku': 'SKU_amariillo',
+                                                 'order_item_title': 'Panos amarillo', 'quantity': 1,
+                                                 'unit_price': '100.0'})]})
+        so = self.env['sale.order'].create({
+            'partner_id': self.partner_a.id,
+            'meli_order_id': '4629001,4629002',
+            'meli_orders': [(6, 0, (mo1 | mo2).ids)],
+            'meli_status': 'paid',
+            'meli_paid_amount': 200.0, 'meli_total_amount': 200.0,
+            'order_line': [(0, 0, {'product_id': prod.id, 'product_uom_qty': 1, 'price_unit': 100.0,
+                                   'tax_id' if 'tax_id' in self.env['sale.order.line']._fields else 'tax_ids': [(5, 0, 0)]})],
+        })
+        return so
+
+    def test_aviso_nombra_item_sin_producto(self):
+        so = self._pack_order()
+        self.assertIn('MLA222', so._meli_items_without_product())
+        self.assertNotIn('MLA111', so._meli_items_without_product())
+        ready, reason = so.meli_confirm_ready()
+        self.assertFalse(ready)
+        self.assertIn('SKU_amariillo', reason)
+
+    def test_aviso_una_sola_vez(self):
+        so = self._pack_order()
+        for _i in range(3):
+            res = so.confirm_ml()
+            self.assertTrue(res and res.get('error'))
+            # en prod cada ciclo agrega mensajes de seguimiento (el total sube y baja): 4 por ciclo
+            for _j in range(5):
+                so.message_post(body="seguimiento %s-%s" % (_i, _j))
+        n = self.env['mail.message'].search_count([
+            ('model', '=', 'sale.order'), ('res_id', '=', so.id), ('body', 'ilike', 'Condition not met')])
+        self.assertEqual(n, 1, "el mismo motivo se postea una sola vez (antes: en cada ciclo)")
