@@ -3345,7 +3345,7 @@ class mercadolibre_orders(models.Model):
 
         return full_phone
 
-    def _seller_discount_from_discounts_endpoint(self, ml_id, meli=None):
+    def _seller_discount_from_discounts_endpoint(self, ml_id, meli=None, out=None):
         """[#603] Lee /orders|packs/<ml_id>/discounts y devuelve el monto financiado por el VENDEDOR.
 
         Devuelve None cuando ML responde pero SIN 'details' -- que es lo que hace para una orden
@@ -3359,10 +3359,19 @@ class mercadolibre_orders(models.Model):
         if not rjson or 'details' not in rjson:
             return None
         seller_total = 0.0
+        seller_coupon = 0.0
         for detail in rjson.get('details', []):
+            _is_coupon = str(detail.get('type') or '').lower() == 'coupon'
             for item in detail.get('items', []):
                 amounts = item.get('amounts', {})
-                seller_total += float(amounts.get('seller', 0) or 0)
+                _seller = float(amounts.get('seller', 0) or 0)
+                seller_total += _seller
+                if _is_coupon:
+                    seller_coupon += _seller
+        # 26.229: la parte de amounts.seller que viene de detalles type=coupon (la lee
+        # _fetch_order_discounts cuando el dato es de la ORDEN, no del pack).
+        if out is not None:
+            out['seller_coupon'] = seller_coupon
         return seller_total
 
     def _fetch_order_discounts(self, meli=None):
@@ -3387,7 +3396,8 @@ class mercadolibre_orders(models.Model):
         if not meli or not self.order_id:
             return
         try:
-            seller_total = self._seller_discount_from_discounts_endpoint(self.order_id, meli=meli)
+            _out = {}
+            seller_total = self._seller_discount_from_discounts_endpoint(self.order_id, meli=meli, out=_out)
             _src = "order"
             if seller_total is None and self.pack_id:
                 seller_total = self._seller_discount_from_discounts_endpoint(self.pack_id, meli=meli)
@@ -3401,6 +3411,10 @@ class mercadolibre_orders(models.Model):
                 self._estimate_seller_discount_from_charges()
                 return
             self.discount_seller_amount = seller_total
+            if 'discount_seller_coupon_amount' in self._fields:
+                # 26.229: la parte "cupon" del descuento del vendedor sólo se toma cuando ML
+                # responde por la ORDEN; el detalle por PACK no se reparte por orden (#603).
+                self.discount_seller_coupon_amount = (_out.get("seller_coupon") or 0.0) if _src == "order" else 0.0
             _logger.info("MELI discounts for order %s: seller_amount=%.2f (coupon_amount=%.2f) [via %s]",
                          self.order_id, seller_total, self.coupon_amount, _src)
         except Exception as e:
@@ -3431,10 +3445,31 @@ class mercadolibre_orders(models.Model):
         _logger.info("MELI #603 order %s: seller_amount=%.2f calculado desde %d pago(s) locales.",
                      self.order_id, seller_total, len(self.payments))
 
-    def _set_product_unit_price( self, product_related_obj, Item, config=None ):
+    def _set_product_unit_price( self, product_related_obj, Item, config=None, items_total=None ):
+        """Precio unitario de la línea = precio de ML menos el descuento que paga el VENDEDOR.
+
+        26.229 (cupón a cargo del vendedor): `discount_seller_amount` es un importe de la
+        ORDEN (suma de amounts.seller de /orders/{id}/discounts). Con más de un ítem en la orden
+        se prorratea por el bruto de cada ítem (`items_total` = suma de unit_price*quantity de
+        todos los ítems); restarlo entero en cada ítem descontaba de más. Sin `items_total`
+        (packs: una orden = un ítem) el ítem lleva todo el descuento, como antes.
+        """
         order = self
         seller_discount = float(order.discount_seller_amount or 0)
-        unit_price = float(Item['unit_price']) - float(seller_discount / float(Item['quantity']))
+        _qty = float(Item['quantity'] or 1.0)
+        _gross = float(Item['unit_price']) * _qty
+        if seller_discount and items_total and float(items_total) > 0.0 and _gross < float(items_total) - 0.005:
+            seller_discount = seller_discount * (_gross / float(items_total))
+        # 26.229: el descuento de UN ítem nunca puede llevar su precio a cero o negativo. Si pasa,
+        # el importe no es de este ítem (p. ej. el descuento de un PACK entero, incidente de 26.131:
+        # 46 líneas con precio negativo) y se factura a precio pleno: romper el precio es peor que
+        # no aplicar el descuento.
+        if seller_discount and _gross > 0.0 and seller_discount >= _gross - 0.005:
+            _logger.warning("MELI _set_product_unit_price orden %s: descuento del vendedor %.2f >= bruto del item %.2f "
+                            "(%s): NO se aplica (se factura a precio pleno)",
+                            order.order_id or '-', seller_discount, _gross, Item.get('item', {}).get('id') if isinstance(Item.get('item'), dict) else '-')
+            seller_discount = 0.0
+        unit_price = float(Item['unit_price']) - float(seller_discount / _qty)
         upd_line = {
             "price_unit": ml_product_price_conversion( self, product_related_obj=product_related_obj, price=unit_price, config=config )
         }
@@ -5384,7 +5419,19 @@ class mercadolibre_orders(models.Model):
         # precio es peor que no aplicar el descuento.
         # Para reabrirlo hace falta PRORRATEAR el descuento del pack entre sus ordenes/lineas, y
         # medir el resultado antes de deployar.
-        if order and order.coupon_amount > 0:
+        # 26.229: el cupón puede venir SÓLO en los pagos (payments[].coupon_amount) y no en
+        # `coupon.amount` de la orden; en ese caso tampoco se buscaba quién lo paga y la venta se
+        # creaba a precio lleno aunque el cupón lo absorbiera el vendedor.
+        _payments_coupon = 0.0
+        for _p in (order_json.get('payments') or []):
+            if isinstance(_p, dict) and (_p.get('status') in (None, 'approved')):
+                try:
+                    _payments_coupon += float(_p.get('coupon_amount') or 0.0)
+                except (TypeError, ValueError):
+                    pass
+        # Sólo órdenes SIN pack: en una orden miembro de un pack el cupón de los pagos es del PACK y
+        # su descuento no se puede restar por línea sin prorratear (incidente 26.131, revertido en 26.135).
+        if order and (order.coupon_amount > 0 or (_payments_coupon > 0 and not order.pack_id)):
             order._fetch_order_discounts(meli=meli)
             meli_order_fields['meli_discount_seller_amount'] = order.discount_seller_amount or 0.0
 
@@ -5816,7 +5863,16 @@ class mercadolibre_orders(models.Model):
                         'name': product_related_obj.display_name or Item['item']['title'],
                     }
                     saleorderline_item_fields[uom_field] = product_related_obj.uom_id.id
-                    saleorderline_item_fields.update( self._set_product_unit_price( product_related_obj=product_related_obj, Item=Item, config=config ) )
+                    # 26.229: `order`, no `self`. En el import de una orden NUEVA `self` es el
+                    # recordset VACÍO (notificación sin mercadolibre.orders previo / cron), así que
+                    # el descuento del vendedor leído de `self` era 0 y la venta nacía a precio lleno.
+                    _items_total = 0.0
+                    for _it in (order_json.get('order_items') or []):
+                        try:
+                            _items_total += float(_it.get('unit_price') or 0.0) * float(_it.get('quantity') or 0.0)
+                        except (TypeError, ValueError, AttributeError):
+                            pass
+                    saleorderline_item_fields.update( order._set_product_unit_price( product_related_obj=product_related_obj, Item=Item, config=config, items_total=_items_total or None ) )
 
                     #TODO: agregar meli_order_id !!! (mismo item dos ordenes diferentes...puede pasar...)
                     saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),
@@ -6048,7 +6104,14 @@ class mercadolibre_orders(models.Model):
             # reparto depende SOLO del modo declarado en la config.
             _coupon_mode = meli_resolve_coupon_invoice_mode(config)
             _so_editable = sorder.state not in ('done',) and not ("locked" in sorder._fields and sorder.locked)
-            if _coupon_mode == 'product_discount':
+            # 26.229: la parte del cupón que paga el VENDEDOR ya está restada en el precio de
+            # la línea (_set_product_unit_price). Los modos que imputan el cupón a la venta sólo
+            # deben reflejar la parte que financia MercadoLibre; si no, el cupón se descuenta dos veces.
+            _ml_coupon = max(0.0, (order.coupon_amount or 0.0) - (order.discount_seller_coupon_amount or 0.0))
+            if _coupon_mode == 'product_discount' and _ml_coupon <= 0.0:
+                _logger.info("MELI: cupón %.2f a cargo del vendedor en %s: ya está en el precio, no se imputa como %% de descuento",
+                             order.coupon_amount or 0.0, sorder.name)
+            elif _coupon_mode == 'product_discount':
                 if _so_editable:
                     non_delivery_lines = sorder.order_line.filtered(lambda l: not l.is_delivery)
                     total_gross = 0.0
@@ -6059,7 +6122,7 @@ class mercadolibre_orders(models.Model):
                         )
                         total_gross += line.price_unit * line.product_uom_qty * (1.0 + tax_pct / 100.0)
                     if total_gross > 0:
-                        discount_pct = round((order.coupon_amount / total_gross) * 100.0, 6)
+                        discount_pct = round((_ml_coupon / total_gross) * 100.0, 6)
                         for line in non_delivery_lines:
                             line.discount = discount_pct
                         _logger.info(
@@ -6069,8 +6132,8 @@ class mercadolibre_orders(models.Model):
                             len(non_delivery_lines), sorder.name,
                         )
             elif _coupon_mode == 'separate_line':
-                if _so_editable:
-                    meli_apply_coupon_separate_line(sorder, order.coupon_amount)
+                if _so_editable and _ml_coupon > 0.0:
+                    meli_apply_coupon_separate_line(sorder, _ml_coupon)
             else:
                 # modo 'full': sin descuento. Limpiar cualquier descuento de cupón previo.
                 if _so_editable:
@@ -7180,6 +7243,11 @@ class mercadolibre_orders(models.Model):
     paid_amount = fields.Float(string='Paid amount',help='Includes shipping cost')
     coupon_amount = fields.Float(string='Coupon amount',help='Descuento',default=0.0)
     discount_seller_amount = fields.Float(string='Discount Seller Amount',help='Monto del descuento absorbido por el vendedor',default=0.0)
+    # 26.229: parte del CUPÓN que paga el vendedor (detalles type=coupon de /discounts).
+    # Sirve para no imputar dos veces el mismo cupón: si lo paga el vendedor ya está restado en el
+    # precio de la línea, y los modos de cupón (product_discount / separate_line) sólo deben
+    # reflejar la parte que financia MercadoLibre.
+    discount_seller_coupon_amount = fields.Float(string='Cupón a cargo del vendedor',help='Parte del cupón que absorbe el vendedor (desde /orders/{id}/discounts, type=coupon)',default=0.0)
     currency_id = fields.Char(string='Currency')
     buyer =  fields.Many2one( "mercadolibre.buyers","Buyer")
     buyer_billing_info = fields.Text(string="Billing Info")
