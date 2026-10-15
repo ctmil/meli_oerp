@@ -1172,7 +1172,7 @@ class mercadolibre_shipment(models.Model):
                     if delivery_line and _meli_guard_delivery_write(sorder, delivery_line, delivery_price):
                         delivery_line = None
                     if delivery_line and delivery_line.state not in ('cancel',):
-                        # [#462, 26.231] lo que FALTA facturar, no la cantidad pedida: despues
+                        # [26.231] lo que FALTA facturar, no la cantidad pedida: despues
                         # de facturar el envio volver a escribir 1 lo dejaba "A facturar".
                         _expected_qty = max((delivery_line.product_uom_qty or 1.0)
                                             - (delivery_line.qty_invoiced or 0.0), 0.0)

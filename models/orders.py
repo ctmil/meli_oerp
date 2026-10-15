@@ -130,7 +130,7 @@ class sale_order_line(models.Model):
     meli_order_item_iva = fields.Char("Meli Order Item IVA")
 
     # ------------------------------------------------------------------
-    # [#462 Matices, 26.231] Linea de ENVIO de una venta ML y estado de facturacion.
+    # [26.231] Linea de ENVIO de una venta ML y estado de facturacion.
     # El producto de envio (MEL Distribution, Personalizado MFlex, Places Pickup...) es un
     # SERVICIO con "facturar cantidades entregadas" y metodo de entrega manual: nada le pone
     # nunca cantidad entregada. Efectos medidos en prod (15-oct, 27 ventas facturadas):
@@ -138,7 +138,7 @@ class sale_order_line(models.Model):
     #    a "Nada para facturar" aunque el producto este facturado (23 de 27);
     #  - envio con precio: el conector escribia qty_to_invoice=1 a mano sobre un campo
     #    calculado; si algo lo recalculaba antes de facturar, la factura salia SIN el envio
-    #    (FA-B 102, 10-oct) y despues de facturar quedaba en -1/1 => "A facturar" (3 de 27).
+    #    (factura medida el 10-oct) y despues de facturar quedaba en -1/1 => "A facturar" (3 de 27).
     # En ML el envio se cobra con el pago, no se "entrega": la linea se factura como
     # politica "pedido" si tiene precio, y si es $0 no hay nada que facturar (estado
     # 'invoiced'). Nunca se factura SOLA (sin el producto). Solo afecta lineas is_delivery
@@ -2293,10 +2293,10 @@ class sale_order(models.Model):
         return (True, "")
 
     def _meli_items_without_product(self):
-        """[#462, 26.231] Items de las ordenes ML de esta venta que no tienen producto en
+        """[26.231] Items de las ordenes ML de esta venta que no tienen producto en
         Odoo (publicacion sin vincular / SKU que no coincide). Son la causa mas comun de
-        "lo cobrado no coincide con el total": la venta queda sin esa linea (Matices,
-        pack 2000015504345243: SKU '..._amariillo' sin producto, diferencia 15.900)."""
+        "lo cobrado no coincide con el total": la venta queda sin esa linea (caso medido: un
+        item de un pack con SKU mal escrito en la publicacion)."""
         self.ensure_one()
         parts = []
         morders = 'meli_orders' in self._fields and self.meli_orders
@@ -2339,9 +2339,9 @@ class sale_order(models.Model):
                 # El cron reintenta la orden cada ciclo (afecta ordenes con amount_total=0 sin
                 # lineas) y re-posteaba siempre. Postear solo si no hay ya un "Condition not met"
                 # en los ultimos ~5 mensajes.
-                # [#462, 26.231] El chequeo "ultimos 5 mensajes" no alcanzaba: cada ciclo agrega
-                # mensajes de seguimiento (cambios de total) y el aviso se repetia igual (Matices,
-                # 113 veces en una venta). Ahora UNA vez por motivo (mismos importes = mismo aviso).
+                # [26.231] El chequeo "ultimos 5 mensajes" no alcanzaba: cada ciclo agrega
+                # mensajes de seguimiento (cambios de total) y el aviso se repetia igual (una venta
+                # medida: 113 veces). Ahora UNA vez por motivo (mismos importes = mismo aviso).
                 meli_message_post(self, serror, config=config,
                                   once_key="confirm-cond-%s-%s" % (self.id, self._meli_short_hash(serror)))
                 return {'error': serror}
