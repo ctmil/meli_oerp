@@ -171,6 +171,63 @@ class sale_order_line(models.Model):
     meli_order_item_variation_id = fields.Char('Meli Order Item Variation Id')
     meli_order_item_iva = fields.Char("Meli Order Item IVA")
 
+    # ------------------------------------------------------------------
+    # [#462 Matices, 26.231] Linea de ENVIO de una venta ML y estado de facturacion.
+    # El producto de envio (MEL Distribution, Personalizado MFlex, Places Pickup...) es un
+    # SERVICIO con "facturar cantidades entregadas" y metodo de entrega manual: nada le pone
+    # nunca cantidad entregada. Efectos medidos en prod (15-oct, 27 ventas facturadas):
+    #  - envio a $0: la linea queda 'no' ("Nada para facturar") y arrastra al PEDIDO entero
+    #    a "Nada para facturar" aunque el producto este facturado (23 de 27);
+    #  - envio con precio: el conector escribia qty_to_invoice=1 a mano sobre un campo
+    #    calculado; si algo lo recalculaba antes de facturar, la factura salia SIN el envio
+    #    (FA-B 102, 10-oct) y despues de facturar quedaba en -1/1 => "A facturar" (3 de 27).
+    # En ML el envio se cobra con el pago, no se "entrega": la linea se factura como
+    # politica "pedido" si tiene precio, y si es $0 no hay nada que facturar (estado
+    # 'invoiced'). Nunca se factura SOLA (sin el producto). Solo afecta lineas is_delivery
+    # de ventas ML cuya cantidad entregada no calcula nadie (metodo manual).
+    # ------------------------------------------------------------------
+    def _meli_is_ml_shipping_line(self):
+        self.ensure_one()
+        if 'is_delivery' not in self._fields or not self.is_delivery:
+            return False
+        if self.display_type or not self.product_id or not self.order_id.meli_order_id:
+            return False
+        method = 'qty_delivered_method' in self._fields and self.qty_delivered_method
+        return method in (False, 'manual')
+
+    def _meli_shipping_line_is_free(self):
+        self.ensure_one()
+        return (self.price_unit or 0.0) <= 0.0
+
+    @api.depends('price_unit', 'is_delivery')
+    def _compute_qty_to_invoice(self):
+        res = super(sale_order_line, self)._compute_qty_to_invoice()
+        for line in self:
+            if line.state not in ('sale', 'done') or not line._meli_is_ml_shipping_line():
+                continue
+            if line._meli_shipping_line_is_free():
+                line.qty_to_invoice = 0.0
+            else:
+                line.qty_to_invoice = line.product_uom_qty - line.qty_invoiced
+        return res
+
+    @api.depends('price_unit', 'is_delivery')
+    def _compute_invoice_status(self):
+        res = super(sale_order_line, self)._compute_invoice_status()
+        for line in self:
+            if line.state not in ('sale', 'done') or not line._meli_is_ml_shipping_line():
+                continue
+            if line._meli_shipping_line_is_free() and line.invoice_status == 'no':
+                line.invoice_status = 'invoiced'
+        return res
+
+    def _can_be_invoiced_alone(self):
+        # (16.0 no tiene este hook: ahi lo resuelve delivery._compute_invoice_status)
+        if self._meli_is_ml_shipping_line():
+            return False
+        sup = getattr(super(sale_order_line, self), '_can_be_invoiced_alone', None)
+        return sup() if sup else True
+
 class sale_order(models.Model):
     _inherit = "sale.order"
 
@@ -2550,9 +2607,31 @@ class sale_order(models.Model):
                 _diff_direct, _diff_no_ship,
                 _tolerance, _coupon, self.meli_discount_seller_amount or 0,
             )
+            missing = self._meli_items_without_product()
+            if missing:
+                serror += " Falta(n) en la venta, sin producto vinculado en Odoo: %s." % missing
             return (False, serror)
 
         return (True, "")
+
+    def _meli_items_without_product(self):
+        """[#462, 26.231] Items de las ordenes ML de esta venta que no tienen producto en
+        Odoo (publicacion sin vincular / SKU que no coincide). Son la causa mas comun de
+        "lo cobrado no coincide con el total": la venta queda sin esa linea (Matices,
+        pack 2000015504345243: SKU '..._amariillo' sin producto, diferencia 15.900)."""
+        self.ensure_one()
+        parts = []
+        morders = 'meli_orders' in self._fields and self.meli_orders
+        for mo in (morders or []):
+            for oi in mo.order_items:
+                if oi.product_id:
+                    continue
+                parts.append("item %s%s SKU %s \"%s\" x%s $%s" % (
+                    oi.order_item_id or '?',
+                    (" var %s" % oi.order_item_variation_id) if oi.order_item_variation_id else "",
+                    oi.seller_sku or '-', (oi.order_item_title or '')[:60],
+                    oi.quantity or 0, oi.unit_price or '?'))
+        return "; ".join(parts)
 
     def confirm_ml( self, meli=None, config=None ):
         try:
@@ -2582,11 +2661,11 @@ class sale_order(models.Model):
                 # El cron reintenta la orden cada ciclo (afecta ordenes con amount_total=0 sin
                 # lineas) y re-posteaba siempre. Postear solo si no hay ya un "Condition not met"
                 # en los ultimos ~5 mensajes.
-                _recent_cond = self.message_ids[:5].filtered(
-                    lambda m: m.body and "Condition not met" in (m.body or "")
-                )
-                if not _recent_cond:
-                    meli_message_post(self, serror, config=config)
+                # [#462, 26.231] El chequeo "ultimos 5 mensajes" no alcanzaba: cada ciclo agrega
+                # mensajes de seguimiento (cambios de total) y el aviso se repetia igual (Matices,
+                # 113 veces en una venta). Ahora UNA vez por motivo (mismos importes = mismo aviso).
+                meli_message_post(self, serror, config=config,
+                                  once_key="confirm-cond-%s-%s" % (self.id, self._meli_short_hash(serror)))
                 return {'error': serror}
 
             if (self.state in ['draft']):
