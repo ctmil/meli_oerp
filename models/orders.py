@@ -737,6 +737,38 @@ class sale_order(models.Model):
                     total += pay.shipping_amount or 0.0
         return max(total, 0.0)
 
+    def _meli_pack_sync_cancelled(self, order_json=None):
+        """26.229 - Venta de un PACK: si TODAS sus órdenes ML están canceladas y la venta
+        todavía no lo refleja, escribe meli_status='cancelled' + motivo/fecha de la orden que
+        llega (order_json). Devuelve True si escribió. No cancela nada por sí misma: lo hace el
+        camino de siempre (confirm_ml / meli_cancel_with_detail) que corre a continuación.
+        Con una sola orden ML no hace nada (esa venta ya recibe el estado de su orden)."""
+        self.ensure_one()
+        morders = self.meli_orders
+        if len(morders) < 2 or self.meli_status == "cancelled":
+            return False
+        if not all((m.status or '') == 'cancelled' for m in morders):
+            return False
+        vals = {'meli_status': 'cancelled'}
+        if order_json and order_json.get('status') == 'cancelled':
+            # Mismos campos y formato que prepare_sale_order_vals (sin pasar por la cadena de
+            # overrides, que exige config de cuenta/stock).
+            cancel_detail = order_json.get("cancel_detail") or {}
+            detail = order_json.get("status_detail") or ''
+            if cancel_detail:
+                detail += " | %s: %s (solicitado por: %s, fecha: %s)" % (
+                    cancel_detail.get("code", ""), cancel_detail.get("description", ""),
+                    cancel_detail.get("requested_by", ""), cancel_detail.get("date", ""))
+            vals['meli_status_detail'] = detail
+            if 'meli_cancel_reason_code' in self._fields:
+                vals['meli_cancel_reason_code'] = cancel_detail.get("code") or ''
+            if 'meli_cancel_date' in self._fields and cancel_detail.get("date"):
+                vals['meli_cancel_date'] = ml_datetime(cancel_detail.get("date")) or False
+        self.write(vals)
+        _logger.info("MELI: pack %s -- las %d ordenes ML estan canceladas: la venta pasa a meli_status=cancelled",
+                     self.name, len(morders))
+        return True
+
     def meli_amount_to_invoice( self, meli=None, config=None ):
 
         total_config = (config and "mercadolibre_order_total_config" in config._fields) and config.mercadolibre_order_total_config
@@ -6121,6 +6153,15 @@ class mercadolibre_orders(models.Model):
             if _so_ship > 0.0:
                 sorder.meli_shipping_amount = _so_ship
                 _logger.info("MELI: %s meli_shipping_amount=%.2f desde los pagos (envío del comprador)", sorder.name, _so_ship)
+
+        # 26.229: cancelación de PACK. La venta de un pack agrupa varias órdenes ML y su
+        # meli_status sólo se escribía al crearla o mientras estaba en borrador (shipment.py); en
+        # una venta confirmada quedaba 'paid' aunque ML cancelara TODAS las órdenes (casos
+        # reales). Si todas las órdenes del pack están canceladas,
+        # la venta toma el estado y el motivo de la orden que llega y sigue el camino de
+        # cancelación de siempre (corte por fecha, pack_splitted, devoluciones: sin cambios).
+        if sorder and order and sorder.meli_status != "cancelled":
+            sorder._meli_pack_sync_cancelled(order_json=order_json)
 
         if sorder:
             for line in sorder.order_line:
