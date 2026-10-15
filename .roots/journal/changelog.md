@@ -7,6 +7,14 @@
 ## 18.0.26.224 — 14-oct-2026 · etiquetas: la descarga se separa del guardado [#158]
 - **#158** La descarga de la etiqueta de Mercado Libre se separa de su guardado (nuevo `_meli_label_fetch_vals`), para que el reintento automático de meli_oerp_multiple pueda guardarla en una transacción corta. La impresión manual y el asistente funcionan igual que antes.
 - Build único 26.224 en 16/17/18/19.
+## 18.0.26.229 — 15-oct-2026 · cupón del vendedor en la venta, envío del comprador, cancelación de packs, sin líneas nuevas en ventas confirmadas
+- **Cupón a cargo del vendedor:** si MercadoLibre informa que el cupón lo paga el vendedor (`/orders/{id}/discounts`, `amounts.seller`), la venta **nace con el descuento** (precio de la línea = precio de ML − descuento del vendedor) y la factura sale por lo que pagó el comprador. Antes la venta nueva se creaba a precio lleno. El descuento se reparte entre los ítems si la orden trae más de uno. También se consulta cuando el cupón viene sólo en el pago. En los modos «cupón como descuento» / «cupón en línea aparte» se imputa sólo la parte que financia ML (sin descontarlo dos veces). Órdenes de un pack: sin cambios (el cupón es del pack). Resguardo: un descuento nunca deja el precio de un ítem en cero o negativo; si lo haría, se factura a precio pleno.
+- **Envío pagado por el comprador:** si el pago trae el envío y la venta no lo tenía registrado (`meli_shipping_amount` en 0, visto en cross_docking), se toma del pago: la venta cuadra y deja de figurar «Incompleta».
+- **Cupón + descuento del vendedor:** cuando la venta ya tiene el descuento en el precio, el importe a facturar ya no lo vuelve a restar del pago. Sólo en ese caso y sólo si el cálculo anterior no cuadraba; el resto queda igual.
+- **Cancelación de packs:** si MercadoLibre cancela **todas** las órdenes de un pack, la venta pasa a cancelada por el camino de siempre (fecha de corte, pack dividido y devoluciones sin cambios).
+- **Sin líneas nuevas en ventas confirmadas:** la sincronización ya no agrega líneas a una venta confirmada o bloqueada (p. ej. después de cancelarla y reconfirmarla a mano).
+- Requiere actualizar el módulo (`-u meli_oerp`): campo nuevo `discount_seller_coupon_amount` en órdenes ML (se crea solo, sin migración de datos).
+- Build único 26.229 en 16/17/18/19.
 
 ## 18.0.26.223 — 13-oct-2026 · stock de seguridad en el diagnóstico, fecha de la venta al confirmar, devoluciones canceladas, aviso de seguridad [#529 #640 #641]
 - **#529** El diagnóstico de stock descuenta el stock de seguridad **por SKU según las Reglas de SKU tipo «Stock Rule»** (columna «Quantity Stock»; el SKU exacto gana sobre `*`), igual que el envío de stock: ya no reactiva ni «corrige» publicaciones que el resguardo deja en 0 a propósito. Sin reglas, igual que antes.
