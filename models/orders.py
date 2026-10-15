@@ -5831,7 +5831,25 @@ class mercadolibre_orders(models.Model):
                                                                         ('order_id','=',sorder.id)], limit=1 )
 
                     if not saleorderline_item_ids:
-                        if sorder.meli_paid_amount==0.0 or 1.1<abs((sorder.meli_paid_amount-(sorder.meli_discount_seller_amount or 0))-sorder.amount_total):
+                        # 26.229: respaldo por item de ML sin variación. Si uno de los dos lados
+                        # no tiene variación (vacío vs False, o se cargó a mano) la búsqueda exacta no
+                        # encontraba la línea y se creaba otra igual.
+                        _var = saleorderline_item_fields['meli_order_item_variation_id']
+                        _same_item = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),
+                                                                 ('order_id','=',sorder.id)] )
+                        _same_item = _same_item.filtered(lambda l: not _var or not l.meli_order_item_variation_id
+                                                         or str(l.meli_order_item_variation_id) == str(_var))
+                        if len(_same_item) == 1:
+                            saleorderline_item_ids = _same_item
+                    if not saleorderline_item_ids:
+                        # 26.229: NUNCA se agrega una línea a una venta ya
+                        # confirmada/bloqueada (mismo criterio que el write de abajo). El re-sync de una
+                        # venta cancelada y reconfirmada a mano agregaba la línea otra vez y el abastecimiento generaba movimientos nuevos en la entrega.
+                        _so_lines_locked = bool(sorder.state in ('sale', 'done')) or ("locked" in sorder._fields and sorder.locked)
+                        if _so_lines_locked:
+                            _logger.warning("MELI: %s está confirmada (state=%s): NO se agrega la línea del item %s (variación %s) desde la sincronización",
+                                            sorder.name, sorder.state, saleorderline_item_fields['meli_order_item_id'], _var)
+                        elif sorder.meli_paid_amount==0.0 or 1.1<abs((sorder.meli_paid_amount-(sorder.meli_discount_seller_amount or 0))-sorder.amount_total):
                             saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
                     
                     if saleorderline_item_ids:
