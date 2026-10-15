@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
     <data>
-        <!-- [#462 Matices, 26.230] Filtros de facturación / logística / reclamos para ventas ML,
+        <!-- [26.230] Filtros de facturación / logística / reclamos para ventas ML,
              en las DOS búsquedas de Ventas (Pedidos y Cotizaciones). Mismos nombres en ambas:
              si se cambia un dominio, cambiarlo en las dos. -->
         <record id="sale_order_view_search_meli_462_invoice" model="ir.ui.view">
@@ -10,7 +10,7 @@
             <field name="inherit_id" ref="meli_oerp.sale_order_view_search_inherit_meli"/>
             <field name="arch" type="xml">
                 <xpath expr="//filter[@name='meli_cancel_held_filter']" position="after">
-                  <!-- [#462 Matices, 26.230] Facturación de ventas ML. Dos preguntas distintas:
+                  <!-- [26.230] Facturación de ventas ML. Dos preguntas distintas:
                        * "Estado de facturación" (invoice_status, nativo) = si QUEDA algo por facturar.
                          "Nada para facturar" NO significa "facturada": con política por cantidad
                          entregada, una venta con la entrega sin validar (o ya facturada) dice eso.
@@ -64,7 +64,7 @@
             <field name="inherit_id" ref="meli_oerp.sale_order_view_search_inherit_quotation_meli"/>
             <field name="arch" type="xml">
                 <xpath expr="//filter[@name='meli_cancel_held_filter']" position="after">
-                  <!-- [#462 Matices, 26.230] Facturación de ventas ML. Dos preguntas distintas:
+                  <!-- [26.230] Facturación de ventas ML. Dos preguntas distintas:
                        * "Estado de facturación" (invoice_status, nativo) = si QUEDA algo por facturar.
                          "Nada para facturar" NO significa "facturada": con política por cantidad
                          entregada, una venta con la entrega sin validar (o ya facturada) dice eso.

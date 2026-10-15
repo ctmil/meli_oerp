@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-# [#462 Matices, 26.230] Estado de FACTURA de una venta de MercadoLibre, para filtrar.
+# [26.230] Estado de FACTURA de una venta de MercadoLibre, para filtrar.
 #
 # Por que no alcanza `invoice_status` (el "Estado de facturacion" nativo):
 #   ese campo dice si QUEDA ALGO POR FACTURAR, no si la venta TIENE factura. Con politica
 #   "cantidad entregada" una venta ML ya facturada o con la entrega sin validar muestra
-#   "Nada para facturar" -- medido en Matices (15-oct): de 72 ventas ML confirmadas, 57
+#   "Nada para facturar" -- medido en un cliente (15-oct): de 72 ventas ML confirmadas, 57
 #   decian "Nada para facturar" y solo 1 "Facturada", aunque muchas tenian factura publicada.
 #
 # Este campo responde la otra pregunta: que facturas de cliente tiene la venta.

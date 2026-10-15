@@ -1174,7 +1174,7 @@ class mercadolibre_shipment(models.Model):
                     if delivery_line and _meli_guard_delivery_write(sorder, delivery_line, delivery_price):
                         delivery_line = None
                     if delivery_line and delivery_line.state not in ('cancel',):
-                        # [#462, 26.231] lo que FALTA facturar, no la cantidad pedida: despues
+                        # [26.231] lo que FALTA facturar, no la cantidad pedida: despues
                         # de facturar el envio volver a escribir 1 lo dejaba "A facturar".
                         _expected_qty = max((delivery_line.product_uom_qty or 1.0)
                                             - (delivery_line.qty_invoiced or 0.0), 0.0)
@@ -2201,7 +2201,7 @@ class mercadolibre_shipment(models.Model):
         self.ensure_one()
         return self.env['meli.util'].get_new_instance(self.env.user.company_id)
 
-    # #158 (14-oct-2026): la descarga de la etiqueta se separa de su escritura.
+    # la descarga de la etiqueta se separa de su escritura.
     #
     # Antes shipment_print bajaba el PDF y lo escribia en el mismo paso, dentro de la
     # transaccion del llamador. Desde un cron largo eso deja la llamada de red DENTRO de
@@ -2223,7 +2223,7 @@ class mercadolibre_shipment(models.Model):
         return print_mode
 
     def _meli_label_url(self, print_mode="pdf", meli=None):
-        """URL de la etiqueta contra el host de meli_api_url (#662). Con `meli`, el de esa instancia;
+        """URL de la etiqueta contra el host de meli_api_url. Con `meli`, el de esa instancia;
         sin instancia, el que resuelve la compañía del usuario (mismo criterio de Nivel de seguridad)."""
         self.ensure_one()
         response_type = "zpl2" if print_mode in ('zpl', 'zpl_txt') else "pdf"

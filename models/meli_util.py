@@ -210,7 +210,7 @@ class LoggingRetry(Retry):
 API_HOST_DEFAULT = "https://api.mercadolibre.com"
 
 
-# #662 (542): TODA llamada a la API arma su URL con el host efectivo de la instancia
+# TODA llamada a la API arma su URL con el host efectivo de la instancia
 # (res.company.meli_api_url, ya resuelto por el Nivel de seguridad en get_new_instance),
 # nunca con https://api.mercadolibre.com fijo. Y sale por la sesión de la instancia, que
 # es la que registra cada request cuando el host no es el oficial.
@@ -288,7 +288,7 @@ class MeliApiNoSDK:
     """
 
     AUTH_URL = "https://auth.mercadolibre.com.ar/authorization"
-    # #662: el token se pide al host de la instancia (meli_api_url), no a uno fijo.
+    # el token se pide al host de la instancia (meli_api_url), no a uno fijo.
     TOKEN_PATH = "oauth/token"
 
     needlogin_state = True

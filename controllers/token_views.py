@@ -90,7 +90,7 @@ class MeliTokenlessViews(http.Controller):
         if len(tokens) != 1:
             return _bad_request('Los envíos pertenecen a cuentas distintas: bajalos por separado.')
         tok, shipping_ids = next(iter(tokens.items()))
-        url = meli_instance_url(meli, 'shipment_labels')  # #662: host de meli_api_url
+        url = meli_instance_url(meli, 'shipment_labels')  # host de meli_api_url
         try:
             resp = meli_instance_session(meli).get(
                 url,

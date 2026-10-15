@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""[#462 Matices, 26.231] Linea de envio de una venta ML y estado de facturacion.
+"""[26.231] Linea de envio de una venta ML y estado de facturacion.
 
 El producto de envio es un SERVICIO con "facturar cantidades entregadas" y entrega manual:
 nadie le pone cantidad entregada. Antes del fix:
@@ -28,7 +28,7 @@ class TestMeli462EnvioFacturacion(AccountTestInvoicingCommon):
         # con qty_delivered, igual que la valida el albaran)
         cls.prod = Product.create({'name': 'Mochila 462', 'type': 'service',
                                    'invoice_policy': 'delivery', 'list_price': 1000.0})
-        # producto de envio: como "MEL Distribution" en Matices
+        # producto de envio: como "MEL Distribution" en un cliente
         cls.ship = Product.create({'name': 'MEL Distribution 462', 'type': 'service',
                                    'invoice_policy': 'delivery', 'list_price': 1.0})
 
