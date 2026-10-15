@@ -3642,7 +3642,7 @@ class mercadolibre_orders(models.Model):
             self.discount_seller_amount = seller_total
             if 'discount_seller_coupon_amount' in self._fields:
                 # 26.229: la parte "cupon" del descuento del vendedor sólo se toma cuando ML
-                # responde por la ORDEN; el detalle por PACK no se reparte por orden (#603).
+                # responde por la ORDEN; el detalle por PACK no se reparte por orden.
                 self.discount_seller_coupon_amount = (_out.get("seller_coupon") or 0.0) if _src == "order" else 0.0
             _logger.info("MELI discounts for order %s: seller_amount=%.2f (coupon_amount=%.2f) [via %s]",
                          self.order_id, seller_total, self.coupon_amount, _src)
