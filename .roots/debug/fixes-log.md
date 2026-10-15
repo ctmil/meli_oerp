@@ -4,6 +4,25 @@
 
 ---
 
+## 15 oct 2026 — ventas ML: cupón del vendedor, envío del comprador, cupón+descuento, pack cancelado, línea en venta confirmada (v17.0.26.229)
+**1. Cupón a cargo del vendedor.** Síntoma: venta a precio lleno, factura sin el descuento. Causa: `orders_update_order_json`
+preciaba la línea con `self._set_product_unit_price` y en el import de una orden NUEVA `self` es el recordset vacío
+(⇒ `discount_seller_amount`=0); el re-sync sí descontaba pero la venta ya estaba confirmada. Fix: `order._set_product_unit_price`
+con prorrateo por ítem (`items_total`); `/discounts` también si `payments[].coupon_amount`>0; campo
+`mercadolibre.orders.discount_seller_coupon_amount` (type=coupon) y los modos product_discount/separate_line usan sólo la parte ML.
+**2. Envío del comprador.** `sale.order.meli_shipping_amount` sólo lo escribía `fetch_shipment` en un camino. Fix: fallback
+`payments[].shipping_cost`; red final en el import (venta de una orden); lectura `_meli_so_buyer_shipping()` (venta o pagos).
+**3. Cupón + descuento del vendedor.** `meli_amount_to_invoice` restaba del pago un descuento ya restado en la línea (topado por
+el cupón). Fix: wrapper sobre `_meli_amount_to_invoice_legacy`; si la venta prueba el descuento en la línea
+(`amount_total == meli_total_amount − desc`) y el legacy no cuadra ⇒ interpretación exacta sin descuento (pagado − s,
+s ∈ {0, envío del comprador}, tolerancia 1,0; autocontenido: esta serie no tiene el modo `never_below_total` de #504).
+**4. Pack cancelado.** `_meli_pack_sync_cancelled()` antes de `confirm_ml`: todas las órdenes canceladas ⇒ `meli_status`
+cancelled + motivo/fecha.
+**5. Línea en venta confirmada.** Guard de estado (sale/done/locked) antes de crear líneas en orders.py y shipment.py (packs);
+respaldo de búsqueda por ítem sin variación.
+**Tests:** `tests/test_ventas_ml_cupon_envio.py`, `tests/test_import_cupon_linea.py` (tag meli_26229); el control sobre el código
+anterior se midió en 18.0 (falla en los 5 frentes).
+
 ## 13 oct 2026 — #638 T3LC: la cancelación automática devolvía stock con CUALQUIER motivo (v17.0.26.221)
 **Síntoma:** el barrido rotativo de estados (#638, 26.218) cancelaba y **devolvía** (IN validado) las ventas canceladas
 en ML de los últimos 15 días sin mirar el motivo: `pack_splitted` (los ítems salen en las órdenes nuevas del split),
