@@ -2011,7 +2011,10 @@ class mercadolibre_shipment(models.Model):
                                                                                     ('order_id','=',shipment.sale_order.id)] )
 
                                 if not saleorderline_item_ids:
-                                    if sorder_pack.amount_total<(sorder_pack.meli_paid_amount-(sorder_pack.meli_discount_seller_amount or sorder_pack.meli_coupon_amount)):
+                                    # 26.229: nunca agregar lineas a una venta de pack ya confirmada/bloqueada.
+                                    if (sorder_pack.state in ('sale', 'done')) or ("locked" in sorder_pack._fields and sorder_pack.locked):
+                                        _logger.warning("MELI: pack %s confirmado (state=%s): NO se agrega la linea del item %s desde la sincronizacion", sorder_pack.name, sorder_pack.state, saleorderline_item_fields['meli_order_item_id'])
+                                    elif sorder_pack.amount_total<(sorder_pack.meli_paid_amount-(sorder_pack.meli_discount_seller_amount or sorder_pack.meli_coupon_amount)):
                                         #_logger.info("Sale Order Pack Create line")
                                         saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
                                 
