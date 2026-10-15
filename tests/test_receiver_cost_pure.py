@@ -19,8 +19,8 @@ SELLER, BUYER = 570653807, 437148007
 
 class TestReceiverBuyerCost(unittest.TestCase):
 
-    def test_olpa_envio_gratis_pagado_por_vendedor(self):
-        # /shipments/48148291803/costs real (Olpa 462, orden 2000018743707872)
+    def test_envio_gratis_pagado_por_vendedor(self):
+        # /shipments/<shipment_id>/costs real (un cliente, orden <order_id>)
         rcosts = {"receiver": {"cost": 2335.09, "user_id": BUYER,
                                "cost_details": [{"sender_id": SELLER, "amount": 2335.09}]},
                   "senders": [{"user_id": SELLER, "cost": 0}]}
@@ -54,8 +54,8 @@ class TestReceiverBuyerCost(unittest.TestCase):
 class TestShippingMissingInPaid(unittest.TestCase):
     f = staticmethod(rc.shipping_missing_in_paid)
 
-    def test_158_elvimarta_me1_pago_con_envio_paid_sin_envio(self):
-        # ML 2000015003762179 (158, IHSA): total == paid == 3.138.200, pago con envio 205.570
+    def test_me1_pago_con_envio_paid_sin_envio(self):
+        # ML <order_id> (un cliente): total == paid == 3.138.200, pago con envio 205.570
         self.assertEqual(self.f(205570, 3138200, 3138200, 0, 205570, 1), 205570)
 
     def test_pago_con_envio_y_paid_que_ya_lo_trae_no_suma(self):
