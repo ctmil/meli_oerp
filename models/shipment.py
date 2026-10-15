@@ -1123,7 +1123,7 @@ class mercadolibre_shipment(models.Model):
                     # picking is done — but for MeLi we invoice on payment, not on delivery.
                     delivery_line = get_delivery_line(sorder)
                     if delivery_line and delivery_line.state not in ('cancel',):
-                        # [#462, 26.231] lo que FALTA facturar, no la cantidad pedida: despues
+                        # [26.231] lo que FALTA facturar, no la cantidad pedida: despues
                         # de facturar el envio volver a escribir 1 lo dejaba "A facturar".
                         _expected_qty = max((delivery_line.product_uom_qty or 1.0)
                                             - (delivery_line.qty_invoiced or 0.0), 0.0)
