@@ -608,7 +608,7 @@ def ml_tax_excluded(self, config=None ):
 def ml_product_price_conversion( self, product_related_obj, price, config=None):
     """Importe que COBRA ML (unitario de una orden, o flete) -> price_unit de la linea de venta.
 
-    [#486 Enerpoint] El precio de una venta de ML es SIEMPRE final, con impuestos incluidos.
+    [caso de un cliente] El precio de una venta de ML es SIEMPRE final, con impuestos incluidos.
     Por eso se netea siempre por los impuestos de venta NO incluidos del producto (los
     `price_include` ya lo absorben solos), de modo que total Odoo == lo cobrado en ML.
 
@@ -622,7 +622,7 @@ def ml_product_price_conversion( self, product_related_obj, price, config=None):
     company_id = ("company_id" in config._fields and config.company_id) or config
     product_template = product_related_obj.product_tmpl_id
     ml_price_converted = float(price)
-    # Sin depender de ml_tax_excluded(): ver docstring [#486].
+    # Sin depender de ml_tax_excluded(): ver docstring [un caso].
     #_logger.info("Taxes:"+str(product_template.taxes_id))
     if ( product_template.taxes_id ):
         txfixed = 0
@@ -665,7 +665,7 @@ def meli_resolve_coupon_invoice_mode(config):
     """Modo de facturacion del cupon ML (tri-estado). Devuelve 'full'|'product_discount'|'separate_line'.
 
       - full (default): factura a precio pleno; el cupon ML (reembolsado por ML, vendedor
-        made-whole) NO se refleja en lineas. [caso #433 Elvimarta]
+        made-whole) NO se refleja en lineas. [caso un cliente]
       - product_discount: el cupon se imputa como descuento (%) sobre las lineas de PRODUCTO.
       - separate_line: el cupon se imputa como linea(s) de descuento separada(s), una por grupo
         de impuesto (prorrateo), sin tocar producto ni envio. OPT-IN (riesgos AFIP/CL).
@@ -684,9 +684,9 @@ def meli_resolve_coupon_invoice_mode(config):
 
 
 def meli_force_shipping_from_ml(config):
-    """[#411 Shoppy] Flag: cargar la linea de envio con el importe que ML INFORMA.
+    """[caso de un cliente] Flag: cargar la linea de envio con el importe que ML INFORMA.
 
-    Criterio confirmado por el cliente (Gonzalo, ticket #411, 20-ago-2026):
+    Criterio confirmado por el cliente (el cliente, ticket, 20-ago-2026):
         "confirmamos que queremos que el conector cargue la linea de envio con el importe
          correspondiente siempre que MercadoLibre informe que el comprador pago el envio,
          incluso si el calculo interno de MercadoLibre no lo devuelve en el momento de
@@ -707,14 +707,14 @@ def meli_force_shipping_from_ml(config):
 
 
 def meli_informed_shipping_amount(sorder, config=None, tolerance=1.0):
-    """[#411] Importe BRUTO de flete que ML informa como pagado por el COMPRADOR, o 0.0.
+    """[un caso] Importe BRUTO de flete que ML informa como pagado por el COMPRADOR, o 0.0.
 
     Devuelve 0.0 = "no forzar nada" (el resto del flujo decide como siempre). Solo devuelve
     un importe cuando estan dadas TODAS estas condiciones, que son las que separan el caso
     del ticket de los casos que hoy funcionan bien:
 
       1) el flag esta encendido (opt-in por cuenta);
-      2) hay orden(es) ML asociadas y NINGUNA cancelada (las canceladas van por el #494);
+      2) hay orden(es) ML asociadas y NINGUNA cancelada (las canceladas van por el un caso);
       3) ML informa un flete > 0 -> ENVIO GRATIS / BONIFICADO (informado 0) queda intacto;
       4) hay un pago cargado (paid_amount > 0) -> si el pago todavia no llego NO se inventa;
       5) el hueco real de la venta coincide con el flete informado:
@@ -731,7 +731,7 @@ def meli_informed_shipping_amount(sorder, config=None, tolerance=1.0):
     `ml_product_price_conversion` aguas abajo, igual que con cualquier otra fuente de flete:
     esta funcion NO puentea el tratamiento impositivo.
 
-    Medicion previa (Shoppy, ventas desde el 1-ago-2026): de 4.742 ordenes ML con la linea de
+    Medicion previa (un cliente, ventas desde el 1-ago-2026): de 4.742 ordenes ML con la linea de
     envio en 0, 4.703 tienen informado 0 (envio gratis, intactas) y 39 tienen informado > 0;
     de esas 39 la regla del hueco acierta en 36 y descarta 3 correctamente (una sin pago
     cargado, una con el flete ya incluido en el total, una con los numeros descuadrados).
@@ -770,14 +770,14 @@ def meli_informed_shipping_amount(sorder, config=None, tolerance=1.0):
 
         if abs(gap - informed) > tolerance:
             _logger.info(
-                "MELI #411 %s: ML informa flete %.2f pero el hueco de la venta es %.2f "
+                "MELI %s: ML informa flete %.2f pero el hueco de la venta es %.2f "
                 "(pagado %.2f, total %.2f, envio actual %.2f) — no se fuerza la linea.",
                 sorder.name, informed, gap, paid, sorder.amount_total or 0.0, delivery_total)
             return 0.0
 
         return informed
     except Exception as e:
-        _logger.warning("MELI #411 informed_shipping_amount: fallo en %s: %s",
+        _logger.warning("MELI informed_shipping_amount: fallo en %s: %s",
                         getattr(sorder, "name", "?"), e)
     return 0.0
 
@@ -898,7 +898,7 @@ def get_delivery_line(sorder):
 def _meli_guard_delivery_write(sorder, delivery_line, delivery_price):
     """True -> NO se debe escribir la linea de envio (la venta ya tiene factura posteada).
 
-    [#493 Shoppy] El guard estaba SOLO dentro de set_delivery_line, con un comentario que
+    [caso de un cliente] El guard estaba SOLO dentro de set_delivery_line, con un comentario que
     afirmaba que ese era "el unico lugar por el que pasan TODAS las reescrituras de la
     linea de envio". No era cierto: shipment.py escribe `price_unit`/`qty_to_invoice`
     DIRECTO sobre la linea, y `_remove_delivery_line()` la borra entera. Por esos caminos
@@ -940,13 +940,13 @@ def set_delivery_line( sorder, delivery_price, delivery_message ):
          deshace el borrado en vez de dejar la venta pelada;
       3) los fallos se loguean con la venta y el error reales.
 
-    Caso que lo destapo (Elvimarta, jul-2026): 47 ordenes quedaron sin flete en 7 semanas y
+    Caso que lo destapo (un cliente, jul-2026): 47 ordenes quedaron sin flete en 7 semanas y
     20 se facturaron por debajo de lo cobrado al comprador.
     """
     #check version
     delivery_line = get_delivery_line(sorder)
 
-    # [#493 Shoppy] No tocar ventas YA FACTURADAS. Este es el punto por el que el
+    # [caso de un cliente] No tocar ventas YA FACTURADAS. Este es el punto por el que el
     # conector dejaba el flete en 0 sobre ventas con factura posteada, y la venta
     # quedaba por debajo de su propia factura.
     if _meli_guard_delivery_write(sorder, delivery_line, delivery_price):

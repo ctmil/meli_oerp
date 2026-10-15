@@ -65,22 +65,22 @@ from .versions import *
 
 
 def _meli_token_key(access_token):
-    """#661: clave estable para agrupar por cuenta SIN usar el token como clave (que terminaba en full_links)."""
+    """un caso: clave estable para agrupar por cuenta SIN usar el token como clave (que terminaba en full_links)."""
     return hashlib.sha256((access_token or '').encode('utf-8')).hexdigest()[:12]
 
 
 def _meli_labels_view_url(record_ids, response_type):
-    """#661: link de descarga de etiquetas servido por Odoo (el token lo pone el servidor en el header)."""
+    """un caso: link de descarga de etiquetas servido por Odoo (el token lo pone el servidor en el header)."""
     return "/meli/shipment_labels?ids=%s&response_type=%s" % (",".join(str(i) for i in record_ids), response_type)
 
 
 def _meli_label_download(url, access_token, timeout=60, session=None):
-    """Descarga la etiqueta con el token en el header (no en la URL) y con timeout (#601 P3).
-    #662: `session` = la de la instancia de ML (rastro del host alternativo)."""
+    """Descarga la etiqueta con el token en el header (no en la URL) y con timeout (un caso P3).
+    `session` = la de la instancia de ML (rastro del host alternativo)."""
     resp = (session or requests).get(url, headers={'Authorization': 'Bearer %s' % access_token}, timeout=timeout)
     resp.raise_for_status()
     return resp.content
-# `import *` no trae los nombres con guion bajo: este guard se importa explicito [#493]
+# `import *` no trae los nombres con guion bajo: este guard se importa explicito [un caso]
 from .versions import _meli_guard_delivery_write
 from .meli_util import meli_instance_url, meli_instance_session
 from .receiver_cost import receiver_buyer_cost
@@ -91,7 +91,7 @@ from .receiver_cost import receiver_buyer_cost
 
 
 #
-# https://api.mercadolibre.com/shipment_labels?shipment_ids=20178600648,20182100995&response_type=pdf&access_token=
+# https://api.mercadolibre.com/shipment_labels?shipment_ids=<shipment_id>,<shipment_id>&response_type=pdf&access_token=
 class mercadolibre_shipment_print(models.TransientModel):
     _name = "mercadolibre.shipment.print"
     _description = "Impresión de etiquetas"
@@ -284,7 +284,7 @@ class mercadolibre_shipment_print(models.TransientModel):
         # ------------------------------------------------------------
         response_type = "zpl2" if resolved_print_mode in ("zpl", "zpl_txt") else "pdf"
 
-        # #661: URL de Odoo sin token (antes: api.mercadolibre.com/...&access_token=...)
+        # un caso: URL de Odoo sin token (antes: api.mercadolibre.com/...&access_token=...)
         for tkey, token_data in result["by_token"].items():
             token_data["url"] = _meli_labels_view_url(token_data["record_ids"], response_type)
 
@@ -355,7 +355,7 @@ class mercadolibre_shipment_print(models.TransientModel):
             reporte = reporte + sep + str( ship_report['message'] )
 
             if (shipment and shipment.status=="ready_to_ship"):
-                # #661: se agrupa por cuenta con un hash del token (nunca el token como clave,
+                # un caso: se agrupa por cuenta con un hash del token (nunca el token como clave,
                 # porque este dict se guarda en full_links) y el link es de Odoo, sin token.
                 atoken = ship_report['access_token']
                 tkey = atoken and _meli_token_key(atoken)
@@ -693,7 +693,7 @@ class mercadolibre_shipment(models.Model):
         return updated
 
     def _meli_buyer_shipping_amount(self, order=None, config=None):
-        """#620 - Flete que paga el COMPRADOR segun MercadoLibre (>= 0). Sin red.
+        """un caso - Flete que paga el COMPRADOR segun MercadoLibre (>= 0). Sin red.
 
         Es el monto de la linea de envio de la venta, y el mismo numero que usa
         sale.order._meli_shipping_missing_in_paid para el importe a facturar.
@@ -702,7 +702,7 @@ class mercadolibre_shipment(models.Model):
         - = False: shipping_option.cost del envio (costo para el comprador; list_cost es
           el costo lleno).
         - En ambos, si eso da 0: receiver.cost de /shipments/{id}/costs NETO de lo que
-          cubre el vendedor (receiver_buyer_cost: envio gratis subsidiado => 0, Olpa 462).
+          cubre el vendedor (receiver_buyer_cost: envio gratis subsidiado => 0, un cliente).
         Nunca se deduce comparando contra paid_amount."""
         self.ensure_one()
         use_payment = True
@@ -963,12 +963,12 @@ class mercadolibre_shipment(models.Model):
                 order._ensure_payment_shipping_amounts(meli=meli, config=config)
                 order.invalidate_recordset(['payments_shipment_amount'])
 
-            # #620: el flete de la linea = lo que PAGA EL COMPRADOR segun ML (ver
+            # un caso: el flete de la linea = lo que PAGA EL COMPRADOR segun ML (ver
             # _meli_buyer_shipping_amount). Mismo origen que antes, ahora en un solo lugar
             # para que meli_amount_to_invoice use exactamente el mismo numero.
             del_price = shipment._meli_buyer_shipping_amount(order, config=config)
 
-            # [#411 Shoppy] Criterio confirmado por el cliente el 20-ago-2026: la linea de
+            # [caso de un cliente] Criterio confirmado por el cliente el 20-ago-2026: la linea de
             # MercadoEnvios lleva el importe que ML INFORMA como pagado por el comprador,
             # aunque el calculo interno del conector no lo devuelva al crear la venta.
             # Las 5 condiciones (opt-in, pedido no cancelado, informado > 0, pago cargado y
@@ -979,7 +979,7 @@ class mercadolibre_shipment(models.Model):
             if _ml_forced_ship:
                 if abs(float(del_price or 0.0) - _ml_forced_ship) > 0.01:
                     _logger.info(
-                        "MELI #411 %s: se usa el flete informado por ML %.2f en lugar del "
+                        "MELI %s: se usa el flete informado por ML %.2f en lugar del "
                         "calculado %.2f.", sorder.name, _ml_forced_ship, float(del_price or 0.0))
                 del_price = _ml_forced_ship
 
@@ -1006,7 +1006,7 @@ class mercadolibre_shipment(models.Model):
             # envío = received_amount - total de producto (= envío neto del cupón). Si el
             # cupón cubre TODO el envío (residual <= 0) -> 0, que es lo correcto (bonificado).
             # Solo se toca cuando hay cupón; sin cupón el residual == envío bruto (sin cambio).
-            # FIX #399 (opción B): si el comprador paga el flete ENTERO
+            # FIX un caso (opción B): si el comprador paga el flete ENTERO
             # (shipping_seller_cost==0 y hay shipping_cost/receiver/payments_shipment_amount),
             # NO imputar el cupón al envío — la línea de envío debe quedar con el flete REAL
             # (del_price ya calculado arriba). En ese caso el cupón se imputa al PRODUCTO en
@@ -1019,7 +1019,7 @@ class mercadolibre_shipment(models.Model):
             )
             _coupon = abs(sorder.meli_coupon_amount or 0.0)
             # El cupón solo se ABSORBE en la línea de ENVÍO en modo 'product_discount' (flag ON
-            # histórico). En 'full' (made-whole, factura a precio pleno — #433) y en
+            # histórico). En 'full' (made-whole, factura a precio pleno — un caso) y en
             # 'separate_line' la línea de envío queda con el flete REAL.
             _coupon_mode_ship = meli_resolve_coupon_invoice_mode(config)
             if _coupon_mode_ship == 'product_discount' and _coupon > 0.0 and received_amount and received_amount > 0 and not _buyer_pays_full_shipping:
@@ -1033,8 +1033,8 @@ class mercadolibre_shipment(models.Model):
                     _dp = _dp[0]
                 delivery_price = _dp
                 del_price = _ship_residual
-                # [#411] Si el cupon se imputa a la linea de ENVIO (modo product_discount,
-                # #391/#399) ese criterio manda: es una eleccion explicita del cliente y no
+                # [un caso] Si el cupon se imputa a la linea de ENVIO (modo product_discount,
+                # un caso) ese criterio manda: es una eleccion explicita del cliente y no
                 # se pisa con el flete bruto informado por ML.
                 _ml_forced_ship = 0.0
 
@@ -1051,19 +1051,19 @@ class mercadolibre_shipment(models.Model):
             #_logger.info("ship_carrier_id:"+str(ship_carrier_id)+" sorder.carrier_id:"+str(sorder.carrier_id))
 
             if shipment_amount_cond_fix and _ml_forced_ship:
-                # [#411 Shoppy] Esta valvula baja el flete a 0 cuando el total de la venta
+                # [caso de un cliente] Esta valvula baja el flete a 0 cuando el total de la venta
                 # supera lo cobrable segun el calculo interno (meli_amount_to_invoice). En el
                 # caso del ticket se disparaba por un discount_seller_amount espurio
                 # (62.205,93 con coupon_amount 0, que no entra en el cap de orders.py) y
                 # pisaba un flete que ML SI informo y el comprador SI pago. Con el flag
                 # encendido y el hueco de la venta ya validado, la valvula no corre.
                 _logger.info(
-                    "MELI #411 %s: no se baja el flete a 0 — ML informa %.2f cobrado al "
+                    "MELI %s: no se baja el flete a 0 — ML informa %.2f cobrado al "
                     "comprador y el hueco de la venta coincide (cobrable interno %.2f, "
                     "total %.2f).", sorder.name, _ml_forced_ship, received_amount,
                     sorder.amount_total or 0.0)
             elif shipment_amount_cond_fix:
-                # #620 (T3LC 535): esta valvula ponia la linea de envio en 0 cuando el total
+                # un caso (un cliente): esta valvula ponia la linea de envio en 0 cuando el total
                 # de la venta superaba lo cobrable (meli_amount_to_invoice). En las ordenes
                 # donde ML no incluye el envio en paid_amount eso borraba un flete que el
                 # comprador SI pago (medido 15-16 sep: 138 de 343 en $0). El flete ya NO se
@@ -1071,7 +1071,7 @@ class mercadolibre_shipment(models.Model):
                 # dice que paga el comprador (0 si el vendedor lo subsidia). Si igual no
                 # cierra, la diferencia la marca el control de confirmacion/factura.
                 _logger.info(
-                    "MELI #620 %s: total %.2f > cobrable %.2f; la linea de envio queda en el "
+                    "MELI %s: total %.2f > cobrable %.2f; la linea de envio queda en el "
                     "flete del comprador %.2f (no se baja a 0).", sorder.name,
                     sorder.amount_total or 0.0, received_amount or 0.0, delivery_price or 0.0)
 
@@ -1091,7 +1091,7 @@ class mercadolibre_shipment(models.Model):
             if (sorder.carrier_id):
                 #activar para cuando no se quiere incluir en la factura? mejor setear para no ser facturado.. cuando es 0
                 if ((1==2 and delivery_price<=0.0) or including_shipping_cost=="never"):
-                    # [#493 Shoppy] borrar la linea es la reescritura mas destructiva de
+                    # [caso de un cliente] borrar la linea es la reescritura mas destructiva de
                     # todas y era la unica sin guard: sobre una venta ya facturada dejaba
                     # el pedido sin flete por debajo de su propia factura.
                     if not _meli_guard_delivery_write(sorder, get_delivery_line(sorder), 0.0):
@@ -1100,12 +1100,12 @@ class mercadolibre_shipment(models.Model):
                 #UPDATE PRICE
                 delivery_line = get_delivery_line(sorder)
 
-                # [#462 Olpa, 26.217] Esta regla y la de arriba (shipment_amount_cond_fix:
+                # [caso de un cliente] Esta regla y la de arriba (shipment_amount_cond_fix:
                 # "si la venta supera lo cobrado, envio en 0") se deshacian mutuamente cuando el
                 # producto SOLO ya iguala o supera lo cobrado (Full: el envio lo paga el
                 # vendedor). Cada ciclo una ponia el envio en 0 y la siguiente lo reponia, y cada
                 # vez el core borraba y recreaba la linea: en una venta confirmada eso postea
-                # "Linea adicional con ..." (SO 6545: 1 por ciclo, 320 mensajes). Se repone el
+                # "Linea adicional con ..." (SO <n>: 1 por ciclo, 320 mensajes). Se repone el
                 # precio solo si producto + envio no supera lo cobrado (mismo umbral que la regla
                 # de arriba), asi ninguna de las dos deja un estado que la otra deshaga.
                 _upd_ok = True
@@ -1148,7 +1148,7 @@ class mercadolibre_shipment(models.Model):
                     if delivery_line:
                         #_logger.info("Procesar delivery_price == 0 setear qty_to_invoice en 0")
                         # Only write if value actually changed (avoid unnecessary triggers)
-                        # [#493 Shoppy] Estas dos escrituras van DIRECTO sobre la linea y
+                        # [caso de un cliente] Estas dos escrituras van DIRECTO sobre la linea y
                         # esquivaban el guard de set_delivery_line: la venta quedaba igual
                         # por debajo de su factura y encima el chatter decia "cambio no
                         # aplicado", que era falso. El guard va ANTES de escribir.
@@ -1165,9 +1165,9 @@ class mercadolibre_shipment(models.Model):
                     # invoice_policy='delivery' which computes qty_to_invoice=0 until the
                     # picking is done — but for MeLi we invoice on payment, not on delivery.
                     delivery_line = get_delivery_line(sorder)
-                    # [#411] Este restore de qty_to_invoice escribe DIRECTO sobre la linea y
-                    # quedo sin guard en el #493 (que solo cubrio la rama de precio 0). Con el
-                    # flag del #411 esta rama pasa a alcanzar ventas que antes caian en la rama
+                    # [un caso] Este restore de qty_to_invoice escribe DIRECTO sobre la linea y
+                    # quedo sin guard en el un caso (que solo cubrio la rama de precio 0). Con el
+                    # flag del un caso esta rama pasa a alcanzar ventas que antes caian en la rama
                     # de 0, algunas YA FACTURADAS: reabrirles el flete a facturar seria emitir
                     # por fuera de lo que el cliente ya regularizo. El guard solo bloquea cuando
                     # el precio cambia de verdad, asi que el restore normal sigue igual.
@@ -1578,7 +1578,7 @@ class mercadolibre_shipment(models.Model):
                     if delays:
                         ship_fields["delay"] = ",".join(str(d) for d in delays)
 
-                # Fecha límite de despacho (#431, 5-oct-2026): ML dejó de mandar
+                # Fecha límite de despacho (un caso, 5-oct-2026): ML dejó de mandar
                 # estimated_handling_limit en /shipments/{id} (ni lead_time ni
                 # shipping_option). La fecha que el vendedor ve en ML sale de
                 # GET /shipments/{id}/sla -> expected_date. Sólo para envíos todavía
@@ -2102,14 +2102,14 @@ class mercadolibre_shipment(models.Model):
             sitem = self.env["mercadolibre.shipment.item"].create(ifields)
         return sitem
 
-    # #618 (T3LC) -- estados del ENVIO que ya no cambian: no se vuelven a consultar.
+    # un caso (un cliente) -- estados del ENVIO que ya no cambian: no se vuelven a consultar.
     # not_delivered NO es terminal en general (returning_to_sender -> returned), salvo
     # con los substatus de cierre.
     _MELI_SHIP_TERMINAL = ("delivered", "cancelled")
     _MELI_SHIP_NOT_DELIVERED_CLOSED = ("returned", "returned_to_warehouse", "returned_and_destroyed")
 
     def _meli_ship_status_is_open(self):
-        """#618 - True si el estado del envio todavia puede cambiar en ML."""
+        """un caso - True si el estado del envio todavia puede cambiar en ML."""
         self.ensure_one()
         st = self.status or ""
         if st in self._MELI_SHIP_TERMINAL:
@@ -2119,7 +2119,7 @@ class mercadolibre_shipment(models.Model):
         return True
 
     def _meli_resync_status_vals(self, meli):
-        """#618 - UN GET /shipments/<id> y devuelve los vals de ESTADO si cambio ({} si no).
+        """un caso - UN GET /shipments/<id> y devuelve los vals de ESTADO si cambio ({} si no).
 
         No escribe nada: quien llama aplica los vals en un cursor corto aparte (ver
         mercadolibre.orders._meli_apply_shipment_refresh). Es la parte de estado de
@@ -2183,14 +2183,14 @@ class mercadolibre_shipment(models.Model):
 
         #orders_query = "/orders/search?seller="+config.mercadolibre_seller_id+"&sort=date_desc"
 
-        # https://api.mercadolibre.com/shipment_labels?shipment_ids=20178600648,20182100995&response_type=pdf&access_token=
-        # https://api.mercadolibre.com/shipments/27693158904?access_token=<TOKEN>
+        # https://api.mercadolibre.com/shipment_labels?shipment_ids=<shipment_id>,<shipment_id>&response_type=pdf&access_token=
+        # https://api.mercadolibre.com/shipments/<shipment_id>?access_token=<TOKEN>
 
 
         return {}
 
     def _meli_label_instance(self):
-        """#661: instancia de ML con la que se baja la etiqueta de ESTE envío (server-side).
+        """un caso: instancia de ML con la que se baja la etiqueta de ESTE envío (server-side).
         meli_oerp_multiple la pisa para usar la cuenta de la orden."""
         self.ensure_one()
         return self.env['meli.util'].get_new_instance(self.env.user.company_id)

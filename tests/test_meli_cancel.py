@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""[#494] Cancelacion de la venta en Odoo cuando MercadoLibre cancela el pedido.
+"""[un caso] Cancelacion de la venta en Odoo cuando MercadoLibre cancela el pedido.
 
 Cubre los bordes que importan porque tocan plata y stock:
   1. venta en BORRADOR                      -> se cancela
@@ -32,10 +32,10 @@ class TestMeliCancelOnMlCancel(common.TransactionCase):
         if 'mercadolibre_notification_mode' in cls.company._fields:
             cls.company.mercadolibre_notification_mode = 'notification'
 
-        cls.partner = cls.env['res.partner'].create({'name': '#494 Comprador ML'})
+        cls.partner = cls.env['res.partner'].create({'name': 'Comprador ML'})
         # Localizacion AR: sin responsabilidad AFIP en el partner, la factura no puede
         # calcular su tipo de documento y action_post() muere en el FIXTURE, antes de
-        # llegar a una sola linea del codigo del #494.
+        # llegar a una sola linea del codigo del un caso.
         if 'l10n_ar_afip_responsibility_type_id' in cls.partner._fields:
             resp = cls.env.ref('l10n_ar.res_CF', raise_if_not_found=False)
             if not resp:
@@ -44,7 +44,7 @@ class TestMeliCancelOnMlCancel(common.TransactionCase):
                 cls.partner.l10n_ar_afip_responsibility_type_id = resp.id
 
         cls.product = cls.env['product.product'].create({
-            'name': '#494 Producto ML',
+            'name': 'Producto ML',
             'type': 'product',
             'invoice_policy': 'order',
             'list_price': 1000.0,
@@ -59,7 +59,7 @@ class TestMeliCancelOnMlCancel(common.TransactionCase):
         POR QUE ESTO IMPORTA MAS QUE UN DETALLE DE FIXTURE. En una instancia con la
         localizacion AR de facturacion electronica (`l10n_ar_afipws_fe`), `action_post()`
         llama a `do_pyafipws_request_cae()`: PIDE UN CAE REAL A AFIP. En el server de test
-        de Shoppy eso corta con "Not confirmed certificate for production", pero en una
+        de un cliente eso corta con "Not confirmed certificate for production", pero en una
         instancia con el certificado cargado un test emitiria un comprobante fiscal de
         verdad, y EL CAE NO SE DESHACE CON UN ROLLBACK. Un test nunca debe pasar por ahi.
 
@@ -81,7 +81,7 @@ class TestMeliCancelOnMlCancel(common.TransactionCase):
         """Crea y PUBLICA la factura de la venta, sin tocar AFIP.
 
         POR QUE EXISTE. Tres de estos tests morian en el fixture, dentro de
-        `action_post()`, y su ERROR se leia como si el codigo del #494 estuviera roto.
+        `action_post()`, y su ERROR se leia como si el codigo del un caso estuviera roto.
         Eran DOS muros encadenados, y el segundo solo aparecio al correr el primero:
 
         1. `l10n_latam_document_type_id`: con la localizacion latam instalada el diario lo
@@ -119,7 +119,7 @@ class TestMeliCancelOnMlCancel(common.TransactionCase):
         """Entrega la venta validando TODA la cadena de albaranes.
 
         POR QUE. `order.picking_ids[:1]` sirve en un almacen de UN paso. En uno de 2 o 3
-        pasos (el de Shoppy) la cadena es PICK -> PACK -> OUT y el primero es INTERNO:
+        pasos (el de un cliente) la cadena es PICK -> PACK -> OUT y el primero es INTERNO:
         validarlo solo no deja la venta entregada, y `_meli_return_done_pickings()` -- que
         filtra por `picking_type_code == 'outgoing'` -- no encuentra nada que devolver. El
         test decia "venta ENTREGADA" y montaba otra cosa: su fallo no probaba un defecto
@@ -149,7 +149,7 @@ class TestMeliCancelOnMlCancel(common.TransactionCase):
                         else:
                             line.quantity = move.product_uom_qty
                 # skip_immediate/skip_backorder: button_validate() tambien puede devolver
-                # el dict de un wizard en vez de validar -- el mismo modo de falla del #494.
+                # el dict de un wizard en vez de validar -- el mismo modo de falla del un caso.
                 picking.with_context(skip_immediate=True, skip_backorder=True).button_validate()
                 if picking.state == 'done':
                     avanzo = True
@@ -233,7 +233,7 @@ class TestMeliCancelOnMlCancel(common.TransactionCase):
     # Borde 3 - entregada (picking validado)
     # ------------------------------------------------------------------
     def test_cancel_delivered_creates_return(self):
-        # Desde 26.221 (#638) la devolucion automatica sale solo con los motivos de
+        # Desde 26.221 (un caso) la devolucion automatica sale solo con los motivos de
         # meli_oerp.cancel_return_reasons (default buyer_cancel_express,fraud) y este test
         # cancela "sin motivo". '*' = todos los motivos: mide el camino de la devolucion.
         self.env['ir.config_parameter'].sudo().set_param('meli_oerp.cancel_return_reasons', '*')
@@ -257,9 +257,9 @@ class TestMeliCancelOnMlCancel(common.TransactionCase):
         self.assertEqual(order.state, 'cancel')
 
     def test_641_devolucion_cancelada_no_se_regenera(self):
-        """[#641 Shoppy 502] Si el usuario cancela la devolucion automatica, el ciclo
+        """[caso de un cliente] Si el usuario cancela la devolucion automatica, el ciclo
         siguiente (confirm_ml -> meli_cancel_with_detail) NO la vuelve a crear."""
-        # El caso de #641 es la devolucion PENDIENTE que el usuario cancela: con el modo
+        # El caso de un caso es la devolucion PENDIENTE que el usuario cancela: con el modo
         # 'done' (default) la devolucion nace validada y una devolucion hecha no se cancela.
         if 'mercadolibre_return_mode' in self.company._fields:
             self.company.mercadolibre_return_mode = 'draft'
@@ -285,7 +285,7 @@ class TestMeliCancelOnMlCancel(common.TransactionCase):
                              "Con la devolucion cancelada a mano, la salida no esta pendiente")
 
     def test_640_confirmar_conserva_la_fecha_de_ml(self):
-        """[#640 Shoppy 502] Confirmar una venta ML no pisa date_order con now(): el
+        """[caso de un cliente] Confirmar una venta ML no pisa date_order con now(): el
         date_deadline de los movimientos queda igual a la fecha de ML y un reemplazo de
         producto posterior se fusiona en vez de generar RET + transferencias internas."""
         order = self._new_ml_order()
@@ -386,7 +386,7 @@ class TestMeliCancelOnMlCancel(common.TransactionCase):
             # date_created NO es decorativo: _orders_redrain_pending_cancels() filtra por
             # ("date_created", ">=", ahora - mercadolibre_cron_orders_redrain_days). Sin
             # fecha el pedido queda FUERA del barrido y el test medía 0 pendientes creyendo
-            # que medía el re-drain. (Nota para el frente del #494: un pedido ML con
+            # que medía el re-drain. (Nota para el frente del un caso: un pedido ML con
             # date_created NULL nunca entraría al re-drain; en la base de test son 0 de 120,
             # asi que hoy es un borde teorico, no un sintoma.)
             'date_created': fields.Datetime.now(),
@@ -413,7 +413,7 @@ class TestMeliCancelOnMlCancel(common.TransactionCase):
         self.assertTrue(ml_order.exists())
 
     # ------------------------------------------------------------------
-    # El defecto que hacia que el codigo FINGIERA trabajar (#494)
+    # El defecto que hacia que el codigo FINGIERA trabajar (un caso)
     # ------------------------------------------------------------------
     def test_action_cancel_sin_el_contexto_devuelve_el_wizard_y_no_cancela(self):
         """Control NEGATIVO: reproduce el defecto contra el core, no contra nosotros.
@@ -437,7 +437,7 @@ class TestMeliCancelOnMlCancel(common.TransactionCase):
             self.assertNotEqual(
                 order.state, 'cancel',
                 "Si action_cancel() devolvio el wizard, la venta NO se cancelo: dar eso "
-                "por cancelado es exactamente el defecto del #494")
+                "por cancelado es exactamente el defecto del un caso")
         else:
             self.assertEqual(order.state, 'cancel')
 
@@ -462,7 +462,7 @@ class TestMeliCancelOnMlCancel(common.TransactionCase):
         self.assertEqual(order.state, 'cancel')
 
     def test_el_chatter_no_afirma_una_cancelacion_que_no_ocurrio(self):
-        """El corazon del #494: no fallaba, MENTIA.
+        """El corazon del un caso: no fallaba, MENTIA.
 
         Se fuerza el peor caso (la cancelacion no se puede aplicar) y se exige que el
         chatter NO quede diciendo 'Orden cancelada por MercadoLibre' sobre una venta que

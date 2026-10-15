@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""#661 (542) — Vistas de la API de MercadoLibre SIN el access_token en la URL.
+"""un caso — Vistas de la API de MercadoLibre SIN el access_token en la URL.
 
 Antes, el link "Link Api" de la publicación, el botón "Abrir API" y los links de
 descarga de etiquetas llevaban `?access_token=APP_USR-...` pegado: el token quedaba

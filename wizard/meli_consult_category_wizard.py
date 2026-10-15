@@ -28,7 +28,7 @@ class MeliConsultCategoryWizard(models.TransientModel):
         self.ensure_one()
         if not self.category_selected_id:
             raise ValidationError(_("Seleccione al menos una categoría"))
-        # FIX #532: la predicción trajo la categoría en modo liviano (id+nombre). Al SELECCIONARLA
+        # FIX un caso: la predicción trajo la categoría en modo liviano (id+nombre). Al SELECCIONARLA
         # la hidratamos con un import completo (atributos, grid charts, catalog_domain) para que
         # quede lista para publicar. Es 1 sola categoría, no las N sugeridas → sigue siendo rápido.
         try:
