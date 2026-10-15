@@ -4,6 +4,12 @@
 
 ---
 
+## 17.0.26.231 — 15-oct-2026 · estado de facturación correcto con la línea de envío, aviso de ítem sin producto [#462]
+- **Línea de envío de una venta ML:** se factura con el pago, no con la entrega. Con precio, entra en la factura junto al producto (antes podía quedar afuera y la factura salía por menos de lo cobrado); a $0 no tiene nada que facturar. Nunca se factura sola, sin el producto.
+- **Estado de facturación:** una venta ML facturada ya no muestra «Nada para facturar» ni «A facturar» por culpa de la línea de envío. Al actualizar, el estado de las ventas existentes se recalcula solo (sólo el estado: no se tocan facturas, importes ni entregas).
+- **Aviso «lo cobrado no coincide»:** ahora nombra el ítem de ML que no tiene producto en Odoo (ítem, SKU, título, cantidad, precio) y se publica una sola vez por motivo, no en cada sincronización.
+- Requiere actualizar el módulo (`-u meli_oerp`); migración 17.0.26.231 (recalcula el estado de facturación de ventas ML confirmadas).
+- Build único 26.231 en 16/17/18/19 para los 5 módulos del suite (integra 26.224–26.230).
 ## 17.0.26.223 — 13-oct-2026 · stock de seguridad en el diagnóstico, fecha de la venta al confirmar, devoluciones canceladas, aviso de seguridad [#529 #640 #641]
 - **#529** El diagnóstico de stock descuenta el stock de seguridad **por SKU según las Reglas de SKU tipo «Stock Rule»** (columna «Quantity Stock»; el SKU exacto gana sobre `*`), igual que el envío de stock: ya no reactiva ni «corrige» publicaciones que el resguardo deja en 0 a propósito. Sin reglas, igual que antes.
 - **#640** Al confirmar una venta de MercadoLibre se conserva la **fecha de la venta de ML** (antes se pisaba con la hora de confirmación). Reemplazar un producto después ya no genera una devolución y dos transferencias internas pendientes.
