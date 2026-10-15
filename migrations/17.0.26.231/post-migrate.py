@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""[#462 Matices, 26.231] Recalcula el estado de facturacion de las ventas ML por la
+"""[26.231] Recalcula el estado de facturacion de las ventas ML por la
 linea de envio. Desde 26.231 la linea de envio de una venta ML (servicio, entrega manual)
 se factura como politica "pedido" si tiene precio y no tiene nada que facturar si es $0
 (ver sale_order_line._meli_is_ml_shipping_line). Los valores YA guardados de
