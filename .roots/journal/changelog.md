@@ -4,6 +4,15 @@
 
 ---
 
+## 18.0.26.229 — 15-oct-2026 · cupón del vendedor en la venta, envío del comprador, cancelación de packs, sin líneas nuevas en ventas confirmadas
+- **Cupón a cargo del vendedor:** si MercadoLibre informa que el cupón lo paga el vendedor (`/orders/{id}/discounts`, `amounts.seller`), la venta **nace con el descuento** (precio de la línea = precio de ML − descuento del vendedor) y la factura sale por lo que pagó el comprador. Antes la venta nueva se creaba a precio lleno. El descuento se reparte entre los ítems si la orden trae más de uno. También se consulta cuando el cupón viene sólo en el pago. En los modos «cupón como descuento» / «cupón en línea aparte» se imputa sólo la parte que financia ML (sin descontarlo dos veces).
+- **Envío pagado por el comprador:** si el pago trae el envío y la venta no lo tenía registrado (`meli_shipping_amount` en 0, visto en cross_docking), se toma del pago: la venta cuadra y deja de figurar «Incompleta».
+- **Cupón + descuento del vendedor:** cuando la venta ya tiene el descuento en el precio, el importe a facturar ya no lo vuelve a restar del pago. Sólo en ese caso y sólo si el cálculo anterior no cuadraba; el resto queda igual.
+- **Cancelación de packs:** si MercadoLibre cancela **todas** las órdenes de un pack, la venta pasa a cancelada por el camino de siempre (fecha de corte, pack dividido y devoluciones sin cambios).
+- **Sin líneas nuevas en ventas confirmadas:** la sincronización ya no agrega líneas a una venta confirmada o bloqueada (p. ej. después de cancelarla y reconfirmarla a mano).
+- Requiere actualizar el módulo (`-u meli_oerp`): campo nuevo `discount_seller_coupon_amount` en órdenes ML (se crea solo, sin migración de datos).
+- Build único 26.229 en 16/17/18/19.
+
 ## 18.0.26.171 — 1-oct-2026 · casos especiales de confirmación y cancelación [Tus Refacciones 431]
 - **"Venta sin existencia al confirmar = Confirmar siempre" ahora también funciona con la ruta "Obtener bajo
   pedido (MTO)" estándar de Odoo** (antes sólo con la variante "Tomar del stock, si no disponible, ordenar"). La
