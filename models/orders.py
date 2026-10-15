@@ -692,6 +692,25 @@ class sale_order(models.Model):
             return invoices[0]
         return None
 
+    def _meli_so_buyer_shipping(self):
+        """26.229 - Envío que pagó el COMPRADOR, a nivel venta (>= 0). Sin red.
+
+        `meli_shipping_amount` de la venta sólo lo llena mercadolibre.shipment.fetch_shipment
+        en un camino (orden sin pack que encuentra su venta). En cross_docking quedaba
+        en 0 aunque el pago lo traía (p. ej. 152 + 85 de envío = 237) y la venta
+        figuraba "Incompleta". Si la venta no lo tiene, se toma de los pagos APROBADOS de sus
+        órdenes ML (mismo dato que ya usa meli_oerp_accounting para fulfillment)."""
+        self.ensure_one()
+        ship = self.meli_shipping_amount or 0.0
+        if ship > 0.0:
+            return ship
+        total = 0.0
+        for morder in self.meli_orders:
+            for pay in morder.payments:
+                if pay.status == 'approved':
+                    total += pay.shipping_amount or 0.0
+        return max(total, 0.0)
+
     def _meli_shipping_to_subtract( self, seller_discount=0.0 ):
         """Importe de envio a restar de meli_paid_amount, decidido POR ORDEN.
 
@@ -714,7 +733,7 @@ class sale_order(models.Model):
         dato que manda ML. Devuelve 0.0 cuando el pago no incluye el envio.
         """
         self.ensure_one()
-        ship = self.meli_shipping_amount or 0.0
+        ship = self._meli_so_buyer_shipping()
         if ship <= 0.0:
             return 0.0
 
@@ -2389,7 +2408,7 @@ class sale_order(models.Model):
         # For self_service logistics the SO has no shipping line, but
         # meli_paid_amount (and thus amount_to_invoice) includes the shipping
         # amount. Accept if the diff is fully explained by shipping.
-        _shipping = self.meli_shipping_amount or 0.0
+        _shipping = self._meli_so_buyer_shipping()
         _diff_no_ship = abs( float(amount_to_invoice) - _shipping - _amount_total_before_retentions ) if _shipping > 0 else _diff_direct
         confirm_cond = (amount_to_invoice > 0) and (
             _diff_direct < _tolerance
@@ -6158,6 +6177,17 @@ class mercadolibre_orders(models.Model):
 
                     payment_fields["taxes_amount"] = payment_fields["full_payment"]["taxes_amount"]
 
+                # 26.229: si MercadoPago no informó el envío (o no respondió), se usa el
+                # `shipping_cost` del pago que trae la propia orden de ML. Sin esto el envío que
+                # pagó el comprador quedaba en 0 y la venta no cuadraba ("Incompleto").
+                if not payment_fields.get("shipping_amount"):
+                    try:
+                        _pay_ship = float(Payment.get('shipping_cost') or 0.0)
+                    except (TypeError, ValueError, AttributeError):
+                        _pay_ship = 0.0
+                    if _pay_ship > 0.0:
+                        payment_fields["shipping_amount"] = _pay_ship
+
                 payment_ids = payments_obj.search( [  ('payment_id','=',payment_fields['payment_id']),
                                                             ('order_id','=',order.id ) ] )
                 if not payment_ids:
@@ -6271,6 +6301,15 @@ class mercadolibre_orders(models.Model):
                             sorder.meli_date_closed = order.date_closed
 
         #could be packed sorder or standard one product item order
+        # 26.229: red final del envío que pagó el comprador en ventas de UNA orden ML.
+        # fetch_shipment lo escribe sólo en un camino; si no pasó por ahí (cross_docking)
+        # la venta quedaba con meli_shipping_amount=0. Los packs los suma shipment.py (totales).
+        if sorder and order and len(sorder.meli_orders) <= 1 and not (sorder.meli_shipping_amount or 0.0):
+            _so_ship = sum((p.shipping_amount or 0.0) for p in order.payments if p.status == 'approved')
+            if _so_ship > 0.0:
+                sorder.meli_shipping_amount = _so_ship
+                _logger.info("MELI: %s meli_shipping_amount=%.2f desde los pagos (envío del comprador)", sorder.name, _so_ship)
+
         if sorder:
             for line in sorder.order_line:
                 if (sorder.meli_order_id and line.is_delivery and line.price_unit<=0.0 and line.qty_to_invoice>0):
