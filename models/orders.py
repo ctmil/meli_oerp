@@ -2281,9 +2281,31 @@ class sale_order(models.Model):
                 _diff_direct, _diff_no_ship,
                 _tolerance, _coupon, self.meli_discount_seller_amount or 0,
             )
+            missing = self._meli_items_without_product()
+            if missing:
+                serror += " Falta(n) en la venta, sin producto vinculado en Odoo: %s." % missing
             return (False, serror)
 
         return (True, "")
+
+    def _meli_items_without_product(self):
+        """[#462, 26.231] Items de las ordenes ML de esta venta que no tienen producto en
+        Odoo (publicacion sin vincular / SKU que no coincide). Son la causa mas comun de
+        "lo cobrado no coincide con el total": la venta queda sin esa linea (Matices,
+        pack 2000015504345243: SKU '..._amariillo' sin producto, diferencia 15.900)."""
+        self.ensure_one()
+        parts = []
+        morders = 'meli_orders' in self._fields and self.meli_orders
+        for mo in (morders or []):
+            for oi in mo.order_items:
+                if oi.product_id:
+                    continue
+                parts.append("item %s%s SKU %s \"%s\" x%s $%s" % (
+                    oi.order_item_id or '?',
+                    (" var %s" % oi.order_item_variation_id) if oi.order_item_variation_id else "",
+                    oi.seller_sku or '-', (oi.order_item_title or '')[:60],
+                    oi.quantity or 0, oi.unit_price or '?'))
+        return "; ".join(parts)
 
     def confirm_ml( self, meli=None, config=None ):
         try:
@@ -2313,11 +2335,11 @@ class sale_order(models.Model):
                 # El cron reintenta la orden cada ciclo (afecta ordenes con amount_total=0 sin
                 # lineas) y re-posteaba siempre. Postear solo si no hay ya un "Condition not met"
                 # en los ultimos ~5 mensajes.
-                _recent_cond = self.message_ids[:5].filtered(
-                    lambda m: m.body and "Condition not met" in (m.body or "")
-                )
-                if not _recent_cond:
-                    meli_message_post(self, serror, config=config)
+                # [#462, 26.231] El chequeo "ultimos 5 mensajes" no alcanzaba: cada ciclo agrega
+                # mensajes de seguimiento (cambios de total) y el aviso se repetia igual (Matices,
+                # 113 veces en una venta). Ahora UNA vez por motivo (mismos importes = mismo aviso).
+                meli_message_post(self, serror, config=config,
+                                  once_key="confirm-cond-%s-%s" % (self.id, self._meli_short_hash(serror)))
                 return {'error': serror}
 
             if (self.state in ['draft']):
