@@ -4,6 +4,12 @@
 
 ---
 
+## 17.0.26.231 — 15-oct-2026 · estado de facturación correcto con la línea de envío, aviso de ítem sin producto [#462]
+- **Línea de envío de una venta ML:** se factura con el pago, no con la entrega. Con precio, entra en la factura junto al producto (antes podía quedar afuera y la factura salía por menos de lo cobrado); a $0 no tiene nada que facturar. Nunca se factura sola, sin el producto.
+- **Estado de facturación:** una venta ML facturada ya no muestra «Nada para facturar» ni «A facturar» por culpa de la línea de envío. Al actualizar, el estado de las ventas existentes se recalcula solo (sólo el estado: no se tocan facturas, importes ni entregas).
+- **Aviso «lo cobrado no coincide»:** ahora nombra el ítem de ML que no tiene producto en Odoo (ítem, SKU, título, cantidad, precio) y se publica una sola vez por motivo, no en cada sincronización.
+- Requiere actualizar el módulo (`-u meli_oerp`); migración 17.0.26.231 (recalcula el estado de facturación de ventas ML confirmadas).
+- Build único 26.231 en 16/17/18/19 para los 5 módulos del suite (integra 26.224–26.230).
 ## 17.0.26.224 — 14-oct-2026 · etiquetas: la descarga se separa del guardado [#158]
 - **#158** La descarga de la etiqueta de Mercado Libre se separa de su guardado (nuevo `_meli_label_fetch_vals`), para que el reintento automático de meli_oerp_multiple pueda guardarla en una transacción corta. La impresión manual y el asistente funcionan igual que antes.
 - Build único 26.224 en 16/17/18/19.
