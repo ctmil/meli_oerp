@@ -23,7 +23,7 @@ PRODUCT_PRICE_DIGITS_DEFAULT = 6
 
 
 def _meli_product_price_target_digits(env):
-    """#542/#659: precision objetivo de 'Product Price' segun ir.config_parameter.
+    """precision objetivo de 'Product Price' segun ir.config_parameter.
 
     - parametro ausente/vacio  -> 6 (comportamiento historico)
     - '0' / 'false' / 'no' / 'off' / 'keep' -> None (no tocar la precision)
@@ -54,7 +54,7 @@ def post_init_hook(env_or_cr, registry=None):
     This allows storing prices with higher precision to avoid rounding
     errors when calculating inverse taxes (e.g., 21% IVA).
 
-    #542/#659: opcional. Se controla con el parametro de sistema
+    opcional. Se controla con el parametro de sistema
     'meli_oerp.product_price_digits' (ver _meli_product_price_target_digits).
     Nunca BAJA una precision ya configurada: sólo la sube hasta el objetivo.
     Corre sólo al INSTALAR el módulo (no en -u), así que no afecta a las
