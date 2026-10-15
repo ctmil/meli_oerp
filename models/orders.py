@@ -129,6 +129,63 @@ class sale_order_line(models.Model):
     meli_order_item_variation_id = fields.Char('Meli Order Item Variation Id')
     meli_order_item_iva = fields.Char("Meli Order Item IVA")
 
+    # ------------------------------------------------------------------
+    # [#462 Matices, 26.231] Linea de ENVIO de una venta ML y estado de facturacion.
+    # El producto de envio (MEL Distribution, Personalizado MFlex, Places Pickup...) es un
+    # SERVICIO con "facturar cantidades entregadas" y metodo de entrega manual: nada le pone
+    # nunca cantidad entregada. Efectos medidos en prod (15-oct, 27 ventas facturadas):
+    #  - envio a $0: la linea queda 'no' ("Nada para facturar") y arrastra al PEDIDO entero
+    #    a "Nada para facturar" aunque el producto este facturado (23 de 27);
+    #  - envio con precio: el conector escribia qty_to_invoice=1 a mano sobre un campo
+    #    calculado; si algo lo recalculaba antes de facturar, la factura salia SIN el envio
+    #    (FA-B 102, 10-oct) y despues de facturar quedaba en -1/1 => "A facturar" (3 de 27).
+    # En ML el envio se cobra con el pago, no se "entrega": la linea se factura como
+    # politica "pedido" si tiene precio, y si es $0 no hay nada que facturar (estado
+    # 'invoiced'). Nunca se factura SOLA (sin el producto). Solo afecta lineas is_delivery
+    # de ventas ML cuya cantidad entregada no calcula nadie (metodo manual).
+    # ------------------------------------------------------------------
+    def _meli_is_ml_shipping_line(self):
+        self.ensure_one()
+        if 'is_delivery' not in self._fields or not self.is_delivery:
+            return False
+        if self.display_type or not self.product_id or not self.order_id.meli_order_id:
+            return False
+        method = 'qty_delivered_method' in self._fields and self.qty_delivered_method
+        return method in (False, 'manual')
+
+    def _meli_shipping_line_is_free(self):
+        self.ensure_one()
+        return (self.price_unit or 0.0) <= 0.0
+
+    @api.depends('price_unit', 'is_delivery')
+    def _compute_qty_to_invoice(self):
+        res = super(sale_order_line, self)._compute_qty_to_invoice()
+        for line in self:
+            if line.state not in ('sale', 'done') or not line._meli_is_ml_shipping_line():
+                continue
+            if line._meli_shipping_line_is_free():
+                line.qty_to_invoice = 0.0
+            else:
+                line.qty_to_invoice = line.product_uom_qty - line.qty_invoiced
+        return res
+
+    @api.depends('price_unit', 'is_delivery')
+    def _compute_invoice_status(self):
+        res = super(sale_order_line, self)._compute_invoice_status()
+        for line in self:
+            if line.state not in ('sale', 'done') or not line._meli_is_ml_shipping_line():
+                continue
+            if line._meli_shipping_line_is_free() and line.invoice_status == 'no':
+                line.invoice_status = 'invoiced'
+        return res
+
+    def _can_be_invoiced_alone(self):
+        # (16.0 no tiene este hook: ahi lo resuelve delivery._compute_invoice_status)
+        if self._meli_is_ml_shipping_line():
+            return False
+        sup = getattr(super(sale_order_line, self), '_can_be_invoiced_alone', None)
+        return sup() if sup else True
+
 class sale_order(models.Model):
     _inherit = "sale.order"
 
