@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""[#462 Matices, 26.230] Filtros de facturacion de ventas ML.
+"""[26.230] Filtros de facturacion de ventas ML.
 
 1. `meli_invoice_state` (no almacenado, busqueda por SQL) clasifica igual al computar y al
    buscar: sin factura / borrador / publicada / con nota de credito.
