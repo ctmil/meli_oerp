@@ -19,6 +19,7 @@ from . import product_post
 from . import questions
 from . import claim
 from . import orders
+from . import sale_order_invoice_state
 from . import res_partner
 #from . import currency
 from . import shipment
