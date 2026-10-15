@@ -2,16 +2,16 @@
 <odoo>
     <data>
 
-        <!-- [#539] Mapeo campo de Odoo -> atributo de ML. Molde: carrier_mapping_view.xml -->
+        <!-- [un caso] Mapeo campo de Odoo -> atributo de ML. Molde: carrier_mapping_view.xml -->
 
         <record id="view_meli_attribute_mapping_tree" model="ir.ui.view">
             <field name="name">meli_oerp.attribute.mapping.tree</field>
             <field name="model">meli_oerp.attribute.mapping</field>
             <field name="arch" type="xml">
-                <!-- [#539] SIN `editable`: la traduccion de valores vive en la ficha (o2m
+                <!-- [un caso] SIN `editable`: la traduccion de valores vive en la ficha (o2m
                      `value_mapping_ids`), y con la lista editable en linea el click editaba la fila
                      y no habia forma de entrar al formulario. La carga es manual: click en la fila
-                     = abrir la ficha. Pedido de FCA, 26-ago-2026. -->
+                     = abrir la ficha. Pedido de Moldeo, 26-ago-2026. -->
                 <list decoration-danger="not meli_att_id">
                     <field name="sequence" widget="handle"/>
                     <field name="model_name"/>
@@ -20,8 +20,8 @@
                     <field name="meli_att_id"/>
                     <field name="category_id" options="{'no_create': True}"/>
                     <field name="value_mapping_count" string="Trad." optional="show"/>
-                    <!-- [#539] El resumen de las traducciones EN LA LISTA: el contador solo decia
-                         cuantas, no cuales. Pedido de FCA, 26-ago-2026. -->
+                    <!-- [un caso] El resumen de las traducciones EN LA LISTA: el contador solo decia
+                         cuantas, no cuales. Pedido de Moldeo, 26-ago-2026. -->
                     <field name="value_mapping_summary" string="Valores mapeados"/>
                     <field name="active" invisible="1"/>
                 </list>
@@ -34,7 +34,7 @@
             <field name="arch" type="xml">
                 <form>
                     <sheet>
-                        <!-- [#539] Aviso NO bloqueante: un mapeo sin atributo de ML no manda nada y
+                        <!-- [un caso] Aviso NO bloqueante: un mapeo sin atributo de ML no manda nada y
                              antes no lo decia nadie. Se avisa (no se bloquea con constrains: eso
                              rompe los registros ya guardados al recomputar, incluso al abrir la
                              lista). Medido en produccion el 26-ago-2026. -->

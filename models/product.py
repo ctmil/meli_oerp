@@ -31,7 +31,7 @@ import math
 import requests
 import base64
 import json
-import ast   # [#539] para leer `meli_attributes_input` cuando viene como repr de Python
+import ast   # [un caso] para leer `meli_attributes_input` cuando viene como repr de Python
 import mimetypes
 from urllib.request import urlopen
 
@@ -85,7 +85,7 @@ def _meli_is_valid_gtin(code):
     MercadoLibre acepta como Product Identifier (GTIN) sólo códigos GTIN-8,
     UPC-A (12), EAN-13 (13) o GTIN-14: numéricos, de longitud 8/12/13/14 y con
     dígito verificador correcto (módulo 10, GS1). Un SKU/código interno como
-    'C6536' NO es un GTIN → devuelve False y NO debe mandarse como GTIN.
+    '<SKU>' NO es un GTIN → devuelve False y NO debe mandarse como GTIN.
 
     100% defensivo: cualquier entrada no válida devuelve False.
     """
@@ -108,7 +108,7 @@ def _meli_is_valid_gtin(code):
         return False
 
 def _meli_ean13_from_base(base):
-    """[#539] Completa `base` (dígitos) a un EAN-13 válido: recorta/rellena a 12 y calcula el control.
+    """[un caso] Completa `base` (dígitos) a un EAN-13 válido: recorta/rellena a 12 y calcula el control.
 
     El dígito verificador NO es opcional: medido contra ML, un EAN de 13 dígitos con el control mal
     vuelve `item.attribute.product_identifier.invalid_format`. Es exactamente lo que pasó con
@@ -125,7 +125,7 @@ def _meli_ean13_from_base(base):
 
 
 def _meli_parse_attributes_input(raw):
-    """[#539] Parsea el campo `meli_attributes_input` -> lista de dicts {'id':..., 'value_name':...}.
+    """[un caso] Parsea el campo `meli_attributes_input` -> lista de dicts {'id':..., 'value_name':...}.
 
     Acepta JSON **y** el `repr` de Python (comillas simples). No es un capricho: el campo hermano
     `meli_attributes` se escribe con `str(attributes)` desde siempre, asi que TODAS las instalaciones
@@ -173,7 +173,7 @@ def _meli_parse_attributes_input(raw):
 
 
 def _meli_gtin_problem(code):
-    """[#539] Devuelve el MOTIVO por el que `code` no sirve como GTIN, o None si es válido.
+    """[un caso] Devuelve el MOTIVO por el que `code` no sirve como GTIN, o None si es válido.
 
     Existe para poder decirle al usuario QUE esta mal, no solo que "no es valido". Distingue los dos
     casos, que se confunden todo el tiempo:
@@ -265,7 +265,7 @@ class product_template(models.Model):
                     )
                     del vals[field_name]
 
-        # [#539 DISELEC] Propagacion de la CATEGORIA de la plantilla a sus variantes.
+        # [caso de un cliente] Propagacion de la CATEGORIA de la plantilla a sus variantes.
         # El body que se manda a ML se arma con product.meli_category (la VARIANTE), y el unico
         # lugar que copiaba plantilla->variante lo hacia solo "si la variante estaba vacia". Con la
         # variante ya cargada (el caso normal: la escribio el alta o la sync desde ML) cambiar la
@@ -300,7 +300,7 @@ class product_template(models.Model):
 
     @api.onchange('meli_category')
     def _onchange_meli_category_meli(self):
-        # [#539 DISELEC] Aviso al cambiar la categoria en la plantilla. Un onchange de Odoo solo puede
+        # [caso de un cliente] Aviso al cambiar la categoria en la plantilla. Un onchange de Odoo solo puede
         # MOSTRAR un warning (no puede preguntar y esperar la respuesta), asi que el mensaje dice
         # exactamente que hacer despues: la casilla "Actualizar Categoría" del wizard de Publicar,
         # que aplica el cambio en ML publicacion por publicacion.
@@ -326,7 +326,7 @@ class product_template(models.Model):
             }
 
     def product_template_post_category( self, context=None, meli=None ):
-        # [#539 DISELEC] Empuja SOLO la categoria de las publicaciones de la plantilla.
+        # [caso de un cliente] Empuja SOLO la categoria de las publicaciones de la plantilla.
         # Espejo de product_template_post_title: corta y devuelve el error del primer variant que
         # falle (dict con 'error') para que el wizard muestre el motivo que dio ML.
         _logger.info("base product.template: product_template_post_category")
@@ -543,10 +543,10 @@ class product_template(models.Model):
         HTTP 200 -- that is the OWNING account (a foreign seller's token yields
         403 access_denied, so we move on to the next). This replaces the old
         approach that resolved ownership by pre-scanning each seller's full item
-        list via fetch_list_meli_ids: on LARGE accounts (e.g. DECO ~20.8k items)
+        list via fetch_list_meli_ids: on LARGE accounts (e.g. un cliente ~20.8k items)
         that paged listing does NOT cover every item, so many products were left
         untouched. The direct fetch always reaches the item regardless of catalog
-        size (verified in prod on account 526 / item MLA1685903163).
+        size (verified in prod on an account / item MLA<id>).
 
         The account that last answered OK is remembered and tried first, so a run
         over one seller's catalog does not re-probe every account for each item;
@@ -558,7 +558,7 @@ class product_template(models.Model):
 
         Always ends in a user-facing notification: this runs for minutes over
         thousands of products and used to return silently, so from the UI it was
-        indistinguishable from doing nothing (Deco/KPI ticket #485)."""
+        indistinguishable from doing nothing (un cliente ticket un caso)."""
         # meli_id lives on the variant (product.product), so filter templates by
         # their variants' meli_id (NOT template.meli_id, which does not exist).
         if self:
@@ -1024,12 +1024,12 @@ class product_template(models.Model):
         #response = meli.post("/sites/"+self.env.user.company_id._get_ML_sites()+"/category_predictor/predict", vals)
         url = "/sites/"+self.env.user.company_id._get_ML_sites()+"/domain_discovery/search?q="+self.get_title_for_category_predictor()
         _logger.info(url)
-        response = meli.get(url, {'access_token': meli.access_token})  # #661: token por header, no en la URL (que además se logueaba)
+        response = meli.get(url, {'access_token': meli.access_token})  # un caso: token por header, no en la URL (que además se logueaba)
         rjson = response.json()
         meli_categ = self.env['mercadolibre.category'].sudo()
         _logger.info(rjson)
         _logger.info(isinstance(rjson, list))
-        # FIX #532 (perf): SÓLO sugerir. Limitamos a las 3 primeras opciones de domain_discovery
+        # FIX un caso (perf): SÓLO sugerir. Limitamos a las 3 primeras opciones de domain_discovery
         # e importamos en modo LIVIANO (predict_only=True): id+nombre, sin atributos ni árbol.
         # La hidratación completa (atributos/chart) se hace al SELECCIONAR (wizard.apply_category).
         _MAX_PREDICTOR_SUGGESTIONS = 3
@@ -1235,7 +1235,7 @@ class product_template(models.Model):
     # the ML product attributes WIDTH/HEIGHT/LENGTH. Numeric value + its unit
     # kept apart on purpose (value as Float so it is directly usable downstream,
     # e.g. copied onto the sale order line; unit kept verbatim as ML sends it,
-    # 'm'/'cm'/... -- we do NOT normalize). [#424 Deco/KPI]
+    # 'm'/'cm'/... -- we do NOT normalize). [caso de un cliente]
     meli_product_width = fields.Float(string="Ancho del producto", help="Atributo WIDTH de la publicación (valor numérico).")
     meli_product_width_unit = fields.Char(string="Unidad ancho", help="Unidad del atributo WIDTH tal como la envía ML (ej. 'm', 'cm').")
     meli_product_height = fields.Float(string="Alto del producto", help="Atributo HEIGHT de la publicación (valor numérico).")
@@ -1244,7 +1244,7 @@ class product_template(models.Model):
     meli_product_length_unit = fields.Char(string="Unidad largo", help="Unidad del atributo LENGTH tal como la envía ML (ej. 'm', 'cm').")
 
     # Taxes brought from ML (VALUE_ADDED_TAX / IMPORT_DUTY). Often mandatory to
-    # publish (#474); imported so they need not be entered by hand. Ej: '21 %'.
+    # publish (un caso); imported so they need not be entered by hand. Ej: '21 %'.
     meli_vat = fields.Char(string="IVA [meli]", help="Atributo VALUE_ADDED_TAX de la publicación (ej. '21 %').")
     meli_import_duty = fields.Char(string="Impuesto interno [meli]", help="Atributo IMPORT_DUTY de la publicación (ej. '0 %').")
 
@@ -1253,7 +1253,7 @@ class product_product(models.Model):
     _inherit = "product.product"
 
     def _meli_family_selector_attributes(self):
-        """[#542] Atributos PROPIOS del vendedor que arman el selector de familia en ML.
+        """[un caso] Atributos PROPIOS del vendedor que arman el selector de familia en ML.
 
         Para cada valor de variante cuyo atributo tiene marcado "Selector de familia en ML"
         devuelve {"name": <atributo>, "value_name": <valor>}. Sólo cuando cada variante es una
@@ -1284,7 +1284,7 @@ class product_product(models.Model):
         "BRAND":  "meli_brand",
         "MODEL":  "meli_model",
         "GENDER": "meli_gender",
-        # Taxes: often MANDATORY to publish (see #474). Bring them from ML so the
+        # Taxes: often MANDATORY to publish (see un caso). Bring them from ML so the
         # client does not have to re-enter them by hand. ML value like '21 %'.
         "VALUE_ADDED_TAX": "meli_vat",
         "IMPORT_DUTY":     "meli_import_duty",
@@ -1311,13 +1311,13 @@ class product_product(models.Model):
         "meli_seller_package_length",
         "meli_seller_package_weight",
         # Taxes: ML authoritative -> keep synced on every import (mandatory
-        # attributes, avoid manual drift). [#474]
+        # attributes, avoid manual drift). [un caso]
         "meli_vat",
         "meli_import_duty",
     }
     # Product dimensions (item, not package): ML attribute id -> (value field,
     # unit field). Value goes to a Float, unit kept verbatim in a Char. ML is
-    # authoritative -> overwrite when it sends a numeric value. [#424 Deco/KPI]
+    # authoritative -> overwrite when it sends a numeric value. [caso de un cliente]
     _MELI_PRODUCT_DIM_MAP = {
         "WIDTH":  ("meli_product_width",  "meli_product_width_unit"),
         "HEIGHT": ("meli_product_height", "meli_product_height_unit"),
@@ -1390,7 +1390,7 @@ class product_product(models.Model):
         SELLER_PACKAGE_* is present. Bare WIDTH/HEIGHT/LENGTH (the *product*
         dimensions, distinct from the package) go to the numeric
         meli_product_{width,height,length} + their *_unit Char via
-        _MELI_PRODUCT_DIM_MAP (ML authoritative -> overwrite). [#424]
+        _MELI_PRODUCT_DIM_MAP (ML authoritative -> overwrite). [un caso]
         Writes the template and EVERY variant of the publication (all the
         variants sharing `self.meli_id`), not just `self` -- the item-level
         values (size/taxes/package) are common to all colour variants. `self`
@@ -1440,7 +1440,7 @@ class product_product(models.Model):
                 ml_prod_vals[field] = val
         # Product dimensions (WIDTH/HEIGHT/LENGTH) -> Float value + unit Char, on
         # BOTH template and variant. ML is authoritative -> overwrite when it
-        # sends a numeric value; a missing/blank one is left untouched. [#424]
+        # sends a numeric value; a missing/blank one is left untouched. [un caso]
         dim_map = self._MELI_PRODUCT_DIM_MAP
         for att in attributes:
             if not isinstance(att, dict):
@@ -1464,7 +1464,7 @@ class product_product(models.Model):
         # Write to EVERY variant of this publication, not just `self`. These are
         # item-level fields (size/taxes/package are the same for all the colour
         # variants), and the backfill used to pass only the first variant, so the
-        # rest stayed empty -- the "solo toma la primera variante" report. [#424]
+        # rest stayed empty -- the "solo toma la primera variante" report. [un caso]
         if ml_prod_vals and self:
             siblings = self.product_tmpl_id.product_variant_ids.filtered(
                 lambda v: v.meli_id and v.meli_id == self.meli_id
@@ -1691,7 +1691,7 @@ class product_product(models.Model):
         # realmente. Evita FK violation (meli_category=<id> not present) si meli_get_category
         # devolviera un id huerfano; un id invalido abortaria la transaccion de toda la sync.
         if (mlcatid and self.env["mercadolibre.category"].browse(mlcatid).exists()):
-            # [#539 DISELEC] La sync desde ML NO revierte una categoria que el usuario cambio en Odoo
+            # [caso de un cliente] La sync desde ML NO revierte una categoria que el usuario cambio en Odoo
             # y todavia no publico. Antes escribia siempre en producto Y plantilla, asi que cualquier
             # importacion desde ML (cron incluido) devolvia la categoria vieja y el cambio se perdia
             # en silencio: es el "volvi a cambiarla y volvio a tomar la anterior" que reportan.
@@ -2572,7 +2572,7 @@ class product_product(models.Model):
                             upids.append(vupid)
 
             if (not meli_id_variation):
-                # A2 fix (ticket #425): do NOT return the list-string str(upids)
+                # A2 fix (ticket un caso): do NOT return the list-string str(upids)
                 # (e.g. "['MLMU123']"). It used to be persisted verbatim into
                 # meli_user_product_id, which broke the user-products stock push
                 # (degraded to standard -> not_modifiable -> stranded, the
@@ -2658,9 +2658,9 @@ class product_product(models.Model):
             #publication specific banner
             mlbanner = product.meli_mercadolibre_banner or product_template.meli_mercadolibre_banner
             #configuration banner
-            # [#539] Paso por CATEGORIA, entre lo asignado a mano y el banner global de la config.
+            # [un caso] Paso por CATEGORIA, entre lo asignado a mano y el banner global de la config.
             # Devuelve vacio si nadie cargo categorias en las plantillas => la cadena queda igual
-            # que antes. Pedido de FCA, 26-ago-2026.
+            # que antes. Pedido de Moldeo, 26-ago-2026.
             mlbanner = mlbanner or self.env["mercadolibre.banner"]._meli_banner_for_product(product)
             mlbanner = mlbanner or (config and config.mercadolibre_banner)
             if (mlbanner):
@@ -2682,7 +2682,7 @@ class product_product(models.Model):
         #    product._meli_set_images(product_template=product_template, pictures=pictures, rjson=rjson)
 
         #categories
-        # [solsun-local->source] Savepoint: un fallo SQL en _meli_set_category abortaba la tx y
+        # [caso de un cliente] Savepoint: un fallo SQL en _meli_set_category abortaba la tx y
         # TODO lo posterior de la sync (precio, posting.search, ...) caia con InFailedSqlTransaction.
         try:
             with self.env.cr.savepoint():
@@ -3597,7 +3597,7 @@ class product_product(models.Model):
                     ML_status = rjson["status"]
                 if "permalink" in rjson:
                     ML_permalink_edit = company.get_ML_LINK_URL(meli=meli)+str("publicaciones/")+str(product.meli_id)+str("/modificar")
-                    ML_permalink_api = "/meli/item_api/%s" % product.meli_id  # #661: sin token, lo resuelve Odoo
+                    ML_permalink_api = "/meli/item_api/%s" % product.meli_id  # un caso: sin token, lo resuelve Odoo
                 if "error" in rjson:
                     ML_status = rjson["error"]
                 if "sub_status" in rjson:
@@ -3838,7 +3838,7 @@ class product_product(models.Model):
             return False
 
     def _meli_generate_barcode(self, config=None):
-        """[#539] Genera y GUARDA un código de barras para esta variante, si corresponde.
+        """[un caso] Genera y GUARDA un código de barras para esta variante, si corresponde.
 
         Sólo actúa si: la plantilla tiene tildado "Generar código de barras", la variante NO tiene
         barcode, y hay prefijo configurado. **Nunca pisa un barcode existente**: un código cargado a
@@ -4320,7 +4320,7 @@ class product_product(models.Model):
                     #if not barcode_updated and set_barcode and variant.barcode:
                     #updated_attributes.append( { "id": "GTIN", "value_name": variant.barcode } )
 
-                    # [#542] Publicando cada variante como publicación propia, un atributo de
+                    # [un caso] Publicando cada variante como publicación propia, un atributo de
                     # variación de ML (COLOR) con UN solo valor también es un atributo del ítem.
                     if (at_line_id.attribute_id.meli_default_id_attribute.id and
                         (at_line_id.attribute_id.meli_default_id_attribute.variation_attribute==False
@@ -4355,7 +4355,7 @@ class product_product(models.Model):
         if product.meli_model==False or len(product.meli_model)==0:
             product.meli_model = product_tmpl.meli_model
 
-        # [#539] Si la plantilla lo pide y el producto no tiene código de barras, se genera acá:
+        # [un caso] Si la plantilla lo pide y el producto no tiene código de barras, se genera acá:
         # justo antes de decidir si mandamos el GTIN, y sólo en ese caso. Guarda el código en
         # `barcode`, así queda estable para las próximas publicaciones y visible para el usuario.
         if (not product.barcode and product_tmpl.meli_autogenerate_gtin
@@ -4365,7 +4365,7 @@ class product_product(models.Model):
         if (product.barcode and not product_tmpl.meli_pub_as_variant and not "GTIN" in attributes_ids):
             # category-aware: solo mandar GTIN si el barcode es un EAN/GTIN válido
             # (evita el 400 'Product Identifier [GTIN] invalid format' cuando el
-            #  barcode es en realidad un SKU interno, p.ej. koreautos 'C6536').
+            #  barcode es en realidad un SKU interno, p.ej. un cliente '<SKU>').
             attribute = product._meli_gtin_attribute(product.barcode, product.meli_category)
             if attribute:
                 attributes_ids[attribute["id"]] = attribute["value_name"]
@@ -4430,7 +4430,7 @@ class product_product(models.Model):
                     _logger.info("seller_package attribute added: "+str(attribute))
 
         # Product dimensions (item) -> ML WIDTH/HEIGHT/LENGTH, rebuilt as
-        # "<number> <unit>" from the Float value + unit Char. [#424 Deco/KPI]
+        # "<number> <unit>" from the Float value + unit Char. [caso de un cliente]
         _prod_dim_fields = [
             ("meli_product_width",  "meli_product_width_unit",  "WIDTH"),
             ("meli_product_height", "meli_product_height_unit", "HEIGHT"),
@@ -4448,9 +4448,9 @@ class product_product(models.Model):
                     attributes.append(attribute)
                     _logger.info("product dimension attribute added: "+str(attribute))
 
-        # Taxes (often MANDATORY to publish, see #474) -> ML VALUE_ADDED_TAX /
+        # Taxes (often MANDATORY to publish, see un caso) -> ML VALUE_ADDED_TAX /
         # IMPORT_DUTY. Sending them from the imported fields avoids the "missing
-        # conditional required attribute" publish error. [#474 Deco/KPI]
+        # conditional required attribute" publish error. [caso de un cliente]
         _tax_fields = [
             ("meli_vat", "VALUE_ADDED_TAX"),
             ("meli_import_duty", "IMPORT_DUTY"),
@@ -4480,7 +4480,7 @@ class product_product(models.Model):
         #_product_post_set_quantity
         product.meli_available_quantity = product._meli_available_quantity(meli=meli,config=config)
 
-        # [#539] Atributos cargados a mano en JSON, SOLO en la primera publicación.
+        # [un caso] Atributos cargados a mano en JSON, SOLO en la primera publicación.
         # Es el camino para carga masiva desde Excel: `meli_attributes_input` es texto, así que se
         # importa y se edita en lote, sin tener que crear un product.attribute.value por cada valor.
         # Va ANTES del mapeo a propósito: lo que el usuario cargó para ESTE producto gana sobre la
@@ -4498,7 +4498,7 @@ class product_product(models.Model):
                 attributes.append(_a)
                 _logger.info("MELI atributos (JSON): %s = %s", _key, _a["value_name"])
 
-        # [#542] Selector de familia: atributos de variante marcados "Selector de familia en ML".
+        # [un caso] Selector de familia: atributos de variante marcados "Selector de familia en ML".
         # Después del JSON: si el usuario cargó ese atributo a mano, gana lo suyo.
         for _a in product._meli_family_selector_attributes():
             _key = "name:" + _a["name"]
@@ -4508,7 +4508,7 @@ class product_product(models.Model):
             attributes.append(_a)
             _logger.info("MELI selector de familia: %s = %s", _a["name"], _a["value_name"])
 
-        # [#539] Atributos que vienen del MAPEO campo de Odoo -> atributo de ML.
+        # [un caso] Atributos que vienen del MAPEO campo de Odoo -> atributo de ML.
         # COMPLETA, no reemplaza: lo que ya resolvieron las líneas de atributo de Odoo manda, porque
         # es lo que el usuario cargó explícitamente en ESE producto; el mapeo es la regla general.
         # Va ANTES del guard de GTIN a propósito: un GTIN que llegue por mapeo también se valida.
@@ -4522,7 +4522,7 @@ class product_product(models.Model):
             # Defensivo: un mapeo mal cargado NO puede impedir publicar.
             _logger.exception("MELI mapeo de atributos: falló, se publica sin los atributos mapeados")
 
-        # [#539 DISELEC] GTIN inválido cargado como LÍNEA DE ATRIBUTO.
+        # [caso de un cliente] GTIN inválido cargado como LÍNEA DE ATRIBUTO.
         # `_meli_is_valid_gtin` protegía sólo el camino del campo `barcode`; un GTIN cargado como
         # atributo ("Código universal de producto") viajaba a ML sin validar y volvía
         # `item.attribute.product_identifier.invalid_format`, ilegible para el usuario. Y ese es el
@@ -4579,13 +4579,13 @@ class product_product(models.Model):
             "plain_text": product.meli_description or '',
         }
         mlbanner = product.meli_mercadolibre_banner or product_tmpl.meli_mercadolibre_banner
-        # [#539] Paso por CATEGORIA, entre lo asignado a mano y el banner global de la config.
+        # [un caso] Paso por CATEGORIA, entre lo asignado a mano y el banner global de la config.
         # Devuelve vacio si nadie cargo categorias en las plantillas => la cadena queda igual
-        # que antes. Pedido de FCA, 26-ago-2026.
+        # que antes. Pedido de Moldeo, 26-ago-2026.
         mlbanner = mlbanner or self.env["mercadolibre.banner"]._meli_banner_for_product(product)
         mlbanner = mlbanner or (config and config.mercadolibre_banner)
         if (mlbanner):
-            # [#539] `attributes` va para que la plantilla pueda nombrar {attr.ATT_ID}: el valor
+            # [un caso] `attributes` va para que la plantilla pueda nombrar {attr.ATT_ID}: el valor
             # YA resuelto por el mapeo, sin mantener una segunda traducción del mismo dato.
             bodydescription["plain_text"] = mlbanner.get_description(product=product, attributes=attributes)
 
@@ -4634,7 +4634,7 @@ class product_product(models.Model):
             if product.meli_video and product.meli_video.strip():
                 body["video_id"] = product.meli_video.strip()
 
-            # [#539 DISELEC] CATEGORIA en el update. Este body se reconstruye desde cero para el
+            # [caso de un cliente] CATEGORIA en el update. Este body se reconstruye desde cero para el
             # PUT y no incluia category_id (solo viajaba en el ALTA): cambiar la categoria en Odoo y
             # apretar Publicar no cambiaba nada en ML, y no avisaba -- fallaba en silencio.
             # Se manda SOLO cuando difiere de la que ML tiene hoy (productjson), para no tocar
@@ -4650,7 +4650,7 @@ class product_product(models.Model):
 
             if (config and "mercadolibre_user_product_seller" in config._fields ):
                 if (config.mercadolibre_user_product_seller):
-                    # [#539 DISELEC] Con la family YA creada, ML rechaza family_name en el
+                    # [caso de un cliente] Con la family YA creada, ML rechaza family_name en el
                     # PUT /items/{id} aunque el item no tenga ventas:
                     #   400 BODY_INVALID_FIELDS cause 374 "The field family name is invalid"
                     # El nombre de la family se cambia en el USER PRODUCT (/user-products/{id}), no
@@ -5010,7 +5010,7 @@ class product_product(models.Model):
         #last modifications if response is OK
         if "id" in rjson:
             product.write( { 'meli_id': rjson["id"]} )
-            # [#539 DISELEC] Si el publicar/actualizar llevaba el cambio de categoria y ML no lo
+            # [caso de un cliente] Si el publicar/actualizar llevaba el cambio de categoria y ML no lo
             # rechazo, la publicacion ya esta en la categoria nueva: se apaga la marca de pendiente
             # y la sincronizacion desde ML vuelve a mandar sobre este campo.
             if body.get("category_id"):
@@ -5179,7 +5179,7 @@ class product_product(models.Model):
                             var = {
                                 #"id": str( product.meli_id_variation ),
                                 "available_quantity": product.meli_available_quantity,
-                                #"picture_ids": ['806634-MLM28112717071_092018', '928808-MLM28112717068_092018', '643737-MLM28112717069_092018', '934652-MLM28112717070_092018']
+                                #"picture_ids": ['806634-MLM<id>_092018', '928808-MLM<id>_092018', '643737-MLM<id>_092018', '934652-MLM<id>_092018']
                             }
                             varias["variations"].append(var)
                             #_logger.info(varias)
@@ -5253,7 +5253,7 @@ class product_product(models.Model):
                     var = {
                         #"id": str( product.meli_id_variation ),
                         "available_quantity": product.meli_available_quantity,
-                        #"picture_ids": ['806634-MLM28112717071_092018', '928808-MLM28112717068_092018', '643737-MLM28112717069_092018', '934652-MLM28112717070_092018']
+                        #"picture_ids": ['806634-MLM<id>_092018', '928808-MLM<id>_092018', '643737-MLM<id>_092018', '934652-MLM<id>_092018']
                     }
                     responsevar = meli.put_mini("/items/"+product.meli_id+'/variations/'+str( product.meli_id_variation ), var, {'access_token':meli.access_token})
                     if (responsevar):
@@ -5393,7 +5393,7 @@ class product_product(models.Model):
                     var = {
                         "id": varx["id"],
                         "price": meli_price,
-                        #"picture_ids": ['806634-MLM28112717071_092018', '928808-MLM28112717068_092018', '643737-MLM28112717069_092018', '934652-MLM28112717070_092018']
+                        #"picture_ids": ['806634-MLM<id>_092018', '928808-MLM<id>_092018', '643737-MLM<id>_092018', '934652-MLM<id>_092018']
                     }
                     vars.append(var)
                 _logger.info("product_post_price (variations):"+str(vars))
@@ -5483,7 +5483,7 @@ class product_product(models.Model):
         return {}
 
     def product_post_category(self, context=None, meli=None):
-        # [#539 DISELEC] Empuja SOLO la categoria de la publicacion a ML (no el producto completo).
+        # [caso de un cliente] Empuja SOLO la categoria de la publicacion a ML (no el producto completo).
         # Espejo exacto de product_post_title: PUT /items/{meli_id} { 'category_id': <MLXNNNN> }.
         #
         # POR QUE EXISTE: el body de update de product_post() NO incluia category_id (solo viaja en el
@@ -5536,7 +5536,7 @@ class product_product(models.Model):
         return self.product_tmpl_id.action_category_predictor()
 
     def write(self, vals):
-        # [#539 DISELEC] Si alguien cambia la categoria de una publicacion ya publicada, se marca
+        # [caso de un cliente] Si alguien cambia la categoria de una publicacion ya publicada, se marca
         # "cambiada sin publicar": ML todavia tiene la anterior. Esa marca es la que impide que la
         # sincronizacion desde ML la revierta antes de que llegue a aplicarse (_meli_set_category).
         # El contexto meli_category_sync distingue lo que escribe el conector de lo que cambia una
@@ -5654,7 +5654,7 @@ class product_product(models.Model):
     meli_seller_package_weight = fields.Char(string="Peso del paquete [vendedor]", help="SELLER_PACKAGE_WEIGHT: Peso del paquete a enviar. Ej: '500 g'")
 
     # Product dimensions (item, NOT package) from ML WIDTH/HEIGHT/LENGTH. Mirror
-    # of the same fields on product.template; the import fills both. [#424 Deco/KPI]
+    # of the same fields on product.template; the import fills both. [caso de un cliente]
     meli_product_width = fields.Float(string="Ancho del producto", help="Atributo WIDTH de la publicación (valor numérico).")
     meli_product_width_unit = fields.Char(string="Unidad ancho", help="Unidad del atributo WIDTH tal como la envía ML (ej. 'm', 'cm').")
     meli_product_height = fields.Float(string="Alto del producto", help="Atributo HEIGHT de la publicación (valor numérico).")
@@ -5678,7 +5678,7 @@ class product_product(models.Model):
     #
     # ANTES se usaba MAX(stock_move.create_date). Eso es un BUG: create_date es
     # la fecha en que se CREO la fila, no en que el stock cambio. Consecuencias
-    # medidas en produccion (OrgVit 475, 28-jul-2026):
+    # medidas en produccion (un cliente, 28-jul-2026):
     #
     #   * El maximo SE CONGELA en cuanto deja de crearse movimientos nuevos.
     #     Como `stock_update` se sella en CADA push, la condicion de cola

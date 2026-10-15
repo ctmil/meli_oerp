@@ -26,7 +26,7 @@ from .versions import *
 import logging
 
 _logger = logging.getLogger(__name__)
-#https://api.mercadolibre.com/questions/search?item_id=MLA508223205
+#https://api.mercadolibre.com/questions/search?item_id=MLA<id>
 
 class mercadolibre_questions(models.Model):
     _name = "mercadolibre.questions"

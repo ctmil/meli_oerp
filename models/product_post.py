@@ -59,7 +59,7 @@ class product_template_post(models.TransientModel):
     post_price = fields.Boolean(string="Actualizar Precio",help="No actualiza el producto completo, solo el precio",default=False)
     post_title = fields.Boolean(string="Actualizar Título",help="No actualiza el producto completo, solo el título",default=False)
     post_category = fields.Boolean(string="Actualizar Categoría",
-        help="[#539] No actualiza el producto completo, sólo la categoría de Mercado Libre: manda a ML "
+        help="No actualiza el producto completo, sólo la categoría de Mercado Libre: manda a ML "
              "la categoría que tiene el producto en Odoo. Mercado Libre puede rechazarlo (categorías "
              "que exigen atributos que la publicación no tiene, como el GTIN; publicaciones con "
              "ventas o de catálogo). Si lo rechaza, se muestra el motivo textual que devuelve ML.",
@@ -201,7 +201,7 @@ class product_post(models.TransientModel):
     post_price = fields.Boolean(string="Acutalizar Precio",help="No actualiza el producto, solo el precio",default=False)
     post_title = fields.Boolean(string="Actualizar Título",help="No actualiza el producto, solo el título",default=False)
     post_category = fields.Boolean(string="Actualizar Categoría",
-        help="[#539] No actualiza el producto, sólo la categoría de ESTA publicación: manda a Mercado "
+        help="No actualiza el producto, sólo la categoría de ESTA publicación: manda a Mercado "
              "Libre la categoría que tiene la variante en Odoo. Es el camino para mover una sola "
              "publicación de categoría sin tocar las demás. Mercado Libre puede rechazarlo; en ese "
              "caso se muestra el motivo textual que devuelve.",

@@ -51,7 +51,7 @@
                     <b>duplicados</b>. Conviene sólo cuando ahí hay un texto propio, distinto de 
                     los campos.
                   </div>
-                  <!-- [#539] Asignacion automatica: la plantilla declara a que categorias
+                  <!-- [un caso] Asignacion automatica: la plantilla declara a que categorias
                        aplica. Vacio = se asigna a mano en el producto, como hasta ahora. -->
                   <group name="gcategorias" string="Se asigna sola a estas categorias">
                     <field name="meli_category_ids" widget="many2many_tags" options="{'no_create': True}"/>

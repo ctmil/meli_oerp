@@ -42,7 +42,7 @@
                           context="{'group_by' : 'meli_cancel_reason_code'}" name="meli_cancel_reason_code_filter"/>
                   <filter string='Cancelación esperando retorno' name="meli_cancel_waiting_return_filter"
                           domain="[('meli_cancel_waiting_return', '=', True)]"/>
-                  <!-- 26.221 (T3LC #638): canceladas por ML con un motivo fuera de
+                  <!-- 26.221 (un cliente): canceladas por ML con un motivo fuera de
                        meli_oerp.cancel_return_reasons => la mercaderia NO se devolvio sola. -->
                   <filter string='ML: cancelada sin devolución de stock' name="meli_cancel_return_skipped_filter"
                           domain="[('meli_cancel_return_skipped', '=', True)]"/>
@@ -95,7 +95,7 @@
                           context="{'group_by' : 'meli_cancel_reason_code'}" name="meli_cancel_reason_code_filter"/>
                   <filter string='Cancelación esperando retorno' name="meli_cancel_waiting_return_filter"
                           domain="[('meli_cancel_waiting_return', '=', True)]"/>
-                  <!-- 26.221 (T3LC #638): canceladas por ML con un motivo fuera de
+                  <!-- 26.221 (un cliente): canceladas por ML con un motivo fuera de
                        meli_oerp.cancel_return_reasons => la mercaderia NO se devolvio sola. -->
                   <filter string='ML: cancelada sin devolución de stock' name="meli_cancel_return_skipped_filter"
                           domain="[('meli_cancel_return_skipped', '=', True)]"/>
@@ -625,7 +625,7 @@
                 target="new"/-->
 
 
-        <!-- #585: reparación de ventas confirmadas con moves en borrador sin entrega
+        <!-- un caso: reparación de ventas confirmadas con moves en borrador sin entrega
              (abastecimiento fallido). Re-lanza dentro de un savepoint; resultado en el chatter. -->
         <record id="action_meli_relaunch_procurement_server" model="ir.actions.server">
             <field name="name">MELI: Relanzar abastecimiento</field>
@@ -647,7 +647,7 @@
             <field name="code">records.action_meli_cancel_process_held()</field>
         </record>
 
-        <!-- Columna opcional "Límite despacho ML" en la lista de pedidos (#431) -->
+        <!-- Columna opcional "Límite despacho ML" en la lista de pedidos (un caso) -->
         <record id="sale_order_tree_meli_handling_limit" model="ir.ui.view">
             <field name="name">sale.order.list.meli.handling.limit.sale_order_tree</field>
             <field name="model">sale.order</field>

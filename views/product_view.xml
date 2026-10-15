@@ -166,10 +166,10 @@
                         <field name="meli_family_name" />
                         <field name="meli_family_id" string="Family Id (ML)" readonly="1"/>
                         <field name="meli_description" />
-                        <!-- [#539] La plantilla descriptiva se elige ACA, como el resto de la
+                        <!-- [un caso] La plantilla descriptiva se elige ACA, como el resto de la
                              configuracion basica. El campo ya existia y la cadena de resolucion
                              (variante > plantilla > configuracion > compania) tambien: solo
-                             faltaba poder verlo. Pedido de FCA, 26-ago-2026. -->
+                             faltaba poder verlo. Pedido de Moldeo, 26-ago-2026. -->
                         <field name="meli_mercadolibre_banner" options="{'no_create': True}"/>
                         <field name="meli_category" />
                         <field name="meli_price" />
@@ -298,7 +298,7 @@
             <field name="arch" type="xml">
                 <field name="virtual_available" position="after">
                     <field name="meli_stock_update" groups="meli_oerp.group_mercadolibre_manager"/>
-                    <!-- [#539] En la LISTA a propósito: es lo que permite tildarlo de a muchos.
+                    <!-- [un caso] En la LISTA a propósito: es lo que permite tildarlo de a muchos.
                          `optional="show"` (no "hide"): con la columna oculta por defecto había que
                          ir a buscarla al selector de columnas, y como esta lista NO es `editable`
                          tampoco se podía tildar desde acá. Para el tildado masivo de verdad está
@@ -626,7 +626,7 @@
             <field name="state">code</field>
             <!-- `action = ...` is what sends the result notification back to the client: without it
                  the server action swallows the returned dict and the list action looks like it did
-                 nothing (Deco/KPI #485). No .filtered() here either: the method filters, and it
+                 nothing (un cliente). No .filtered() here either: the method filters, and it
                  needs to see the unlinked records to report them. -->
             <field name="code">action = records.action_meli_backfill_template_fields()</field>
         </record>

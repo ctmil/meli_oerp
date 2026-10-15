@@ -37,15 +37,15 @@ from .versions import *
 import hashlib
 import random
 
-#https://api.mercadolibre.com/questions/search?item_id=MLA508223205
-#https://api.mercadolibre.com/myfeeds?app_id=3219083410743656&offset=1&limit=5&access_token=<TOKEN>
+#https://api.mercadolibre.com/questions/search?item_id=MLA<id>
+#https://api.mercadolibre.com/myfeeds?app_id=<app_id>&offset=1&limit=5&access_token=<TOKEN>
 #
 #{
 #      "_id": "5dc1f402b5365146406663c0",
-#      "resource": "/items/MLC482192418",
+#      "resource": "/items/MLC<id>",
 #      "user_id": 387126569,
 #      "topic": "items",
-#      "application_id": 3219083410743656,
+#      "application_id": <app_id>,
 #      "attempts": 1,
 #      "sent": "2019-11-05T22:13:22.377Z",
 #      "received": "2019-11-05T22:13:22.354Z",
@@ -305,7 +305,7 @@ class MercadolibreNotification(models.Model):
             noti.processing_started = ml_datetime(str(datetime.now()))
 
             try:
-                # Resource format: /items/MLA123456789
+                # Resource format: /items/MLA<id>
                 resource = str(noti.resource)
                 if not resource.startswith('/items/'):
                     noti.state = 'FAILED'
