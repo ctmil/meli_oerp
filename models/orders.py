@@ -765,7 +765,115 @@ class sale_order(models.Model):
             n_orders=len(self.meli_orders),
         )
 
+    def _meli_so_buyer_shipping(self):
+        """26.229 - Envío que pagó el COMPRADOR, a nivel venta (>= 0). Sin red.
+
+        `meli_shipping_amount` de la venta sólo lo llena mercadolibre.shipment.fetch_shipment
+        en un camino (orden sin pack que encuentra su venta). En cross_docking quedaba
+        en 0 aunque el pago lo traía (p. ej. 152 + 85 de envío = 237) y la venta
+        figuraba "Incompleta". Si la venta no lo tiene, se toma de los pagos APROBADOS de sus
+        órdenes ML (mismo dato que ya usa meli_oerp_accounting para fulfillment).
+        Se usa en lecturas (meli_confirm_ready, importe exacto); la ruta 'never' de
+        meli_amount_to_invoice sigue restando meli_shipping_amount como antes."""
+        self.ensure_one()
+        ship = self.meli_shipping_amount or 0.0
+        if ship > 0.0:
+            return ship
+        total = 0.0
+        for morder in self.meli_orders:
+            for pay in morder.payments:
+                if pay.status == 'approved':
+                    total += pay.shipping_amount or 0.0
+        return max(total, 0.0)
+
+    def _meli_pack_sync_cancelled(self, order_json=None):
+        """26.229 - Venta de un PACK: si TODAS sus órdenes ML están canceladas y la venta
+        todavía no lo refleja, escribe meli_status='cancelled' + motivo/fecha de la orden que
+        llega (order_json). Devuelve True si escribió. No cancela nada por sí misma: lo hace el
+        camino de siempre (confirm_ml / meli_cancel_with_detail) que corre a continuación.
+        Con una sola orden ML no hace nada (esa venta ya recibe el estado de su orden)."""
+        self.ensure_one()
+        morders = self.meli_orders
+        if len(morders) < 2 or self.meli_status == "cancelled":
+            return False
+        if not all((m.status or '') == 'cancelled' for m in morders):
+            return False
+        vals = {'meli_status': 'cancelled'}
+        if order_json and order_json.get('status') == 'cancelled':
+            # Mismos campos y formato que prepare_sale_order_vals (sin pasar por la cadena de
+            # overrides, que exige config de cuenta/stock).
+            cancel_detail = order_json.get("cancel_detail") or {}
+            detail = order_json.get("status_detail") or ''
+            if cancel_detail:
+                detail += " | %s: %s (solicitado por: %s, fecha: %s)" % (
+                    cancel_detail.get("code", ""), cancel_detail.get("description", ""),
+                    cancel_detail.get("requested_by", ""), cancel_detail.get("date", ""))
+            vals['meli_status_detail'] = detail
+            if 'meli_cancel_reason_code' in self._fields:
+                vals['meli_cancel_reason_code'] = cancel_detail.get("code") or ''
+            if 'meli_cancel_date' in self._fields and cancel_detail.get("date"):
+                vals['meli_cancel_date'] = ml_datetime(cancel_detail.get("date")) or False
+        self.write(vals)
+        _logger.info("MELI: pack %s -- las %d ordenes ML estan canceladas: la venta pasa a meli_status=cancelled",
+                     self.name, len(morders))
+        return True
+
     def meli_amount_to_invoice( self, meli=None, config=None ):
+        """Importe a facturar segun lo que pago el comprador.
+
+        26.229 (cupon + descuento del vendedor): el calculo de siempre
+        (_meli_amount_to_invoice_legacy) resta el descuento del vendedor del pago aunque ya este
+        restado en el precio de la linea, topado por el cupon. Caso real:
+        linea 399,99 - 60,99 = 339; pagado 388,18 (= 339 + 49,18 de envio del comprador);
+        cupon 16,95 -> 388,18 - 16,95 = 371,23 contra 339.
+        Solo cuando la VENTA prueba que el descuento ya esta en la linea
+        (amount_total == meli_total_amount - descuento) y el calculo de siempre NO cuadra, se toma
+        la interpretacion exacta del pago SIN volver a restar el descuento: pagado - s, s en
+        {0, envio del comprador}, a menos de 1,0 del total. Sin esa evidencia, o si el calculo de
+        siempre ya cuadra, o si nada cuadra: el calculo de siempre, sin cambios.
+        """
+        legacy = self._meli_amount_to_invoice_legacy(meli=meli, config=config)
+        try:
+            if len(self) != 1 or not config:
+                return legacy
+            total_config = ("mercadolibre_order_total_config" in config._fields) and config.mercadolibre_order_total_config
+            if total_config not in ('paid_amount', 'transaction_amount'):
+                return legacy
+            tol = 1.0
+            target = self.amount_total or 0.0
+            disc = self.meli_discount_seller_amount or 0.0
+            gross = self.meli_total_amount or 0.0
+            paid = self.meli_paid_amount or 0.0
+            if paid <= 0.0 or target <= 0.0 or disc <= 0.0 or gross <= 0.0 or abs((gross - disc) - target) >= tol:
+                return legacy
+            ship = self._meli_so_buyer_shipping()
+            _legacy = float(legacy or 0.0)
+            if _legacy > 0.0 and (abs(_legacy - target) < tol or (ship > 0.0 and abs(_legacy - ship - target) < tol)):
+                return legacy
+            including = ("mercadolibre_including_shipping_cost" in config._fields
+                         and config.mercadolibre_including_shipping_cost) or "always"
+            ships = [0.0, ship] if (including == "never" and ship > 0.0) else [0.0]
+            best = None
+            for _s in ships:
+                value = paid - _s
+                score = abs(value - target)
+                if including != "never" and ship > 0.0:
+                    score = min(score, abs(value - ship - target))
+                if best is None or score < best[0]:
+                    best = (score, value)
+            if best and best[0] < tol and abs(best[1] - _legacy) >= 0.005:
+                _logger.info(
+                    "MELI amount_to_invoice %s: el descuento del vendedor %.2f ya esta en la linea (ML %.2f -> venta %.2f); "
+                    "calculo de siempre %.2f, se usa %.2f (pagado %.2f, cupon %.2f, envio %.2f)",
+                    self.name, disc, gross, target, _legacy, best[1], paid,
+                    self.meli_coupon_amount or 0.0, ship)
+                return best[1]
+        except Exception as e:
+            _logger.warning("MELI amount_to_invoice %s: interpretacion exacta fallo (%s); se usa el calculo de siempre",
+                            self.name, e)
+        return legacy
+
+    def _meli_amount_to_invoice_legacy( self, meli=None, config=None ):
 
         total_config = (config and "mercadolibre_order_total_config" in config._fields) and config.mercadolibre_order_total_config
 
@@ -2253,7 +2361,7 @@ class sale_order(models.Model):
         # For self_service logistics the SO has no shipping line, but
         # meli_paid_amount (and thus amount_to_invoice) includes the shipping
         # amount. Accept if the diff is fully explained by shipping.
-        _shipping = self.meli_shipping_amount or 0.0
+        _shipping = self._meli_so_buyer_shipping()
         _diff_no_ship = abs( float(amount_to_invoice) - _shipping - _amount_total_before_retentions ) if _shipping > 0 else _diff_direct
         confirm_cond = (amount_to_invoice > 0) and (
             _diff_direct < _tolerance
@@ -3387,7 +3495,7 @@ class mercadolibre_orders(models.Model):
 
         return full_phone
 
-    def _seller_discount_from_discounts_endpoint(self, ml_id, meli=None):
+    def _seller_discount_from_discounts_endpoint(self, ml_id, meli=None, out=None):
         """[un caso] Lee /orders|packs/<ml_id>/discounts y devuelve el monto financiado por el VENDEDOR.
 
         Devuelve None cuando ML responde pero SIN 'details' -- que es lo que hace para una orden
@@ -3401,10 +3509,19 @@ class mercadolibre_orders(models.Model):
         if not rjson or 'details' not in rjson:
             return None
         seller_total = 0.0
+        seller_coupon = 0.0
         for detail in rjson.get('details', []):
+            _is_coupon = str(detail.get('type') or '').lower() == 'coupon'
             for item in detail.get('items', []):
                 amounts = item.get('amounts', {})
-                seller_total += float(amounts.get('seller', 0) or 0)
+                _seller = float(amounts.get('seller', 0) or 0)
+                seller_total += _seller
+                if _is_coupon:
+                    seller_coupon += _seller
+        # 26.229: la parte de amounts.seller que viene de detalles type=coupon (la lee
+        # _fetch_order_discounts cuando el dato es de la ORDEN, no del pack).
+        if out is not None:
+            out['seller_coupon'] = seller_coupon
         return seller_total
 
     def _fetch_order_discounts(self, meli=None):
@@ -3429,7 +3546,8 @@ class mercadolibre_orders(models.Model):
         if not meli or not self.order_id:
             return
         try:
-            seller_total = self._seller_discount_from_discounts_endpoint(self.order_id, meli=meli)
+            _out = {}
+            seller_total = self._seller_discount_from_discounts_endpoint(self.order_id, meli=meli, out=_out)
             _src = "order"
             if seller_total is None and self.pack_id:
                 seller_total = self._seller_discount_from_discounts_endpoint(self.pack_id, meli=meli)
@@ -3443,6 +3561,10 @@ class mercadolibre_orders(models.Model):
                 self._estimate_seller_discount_from_charges()
                 return
             self.discount_seller_amount = seller_total
+            if 'discount_seller_coupon_amount' in self._fields:
+                # 26.229: la parte "cupon" del descuento del vendedor sólo se toma cuando ML
+                # responde por la ORDEN; el detalle por PACK no se reparte por orden (#603).
+                self.discount_seller_coupon_amount = (_out.get("seller_coupon") or 0.0) if _src == "order" else 0.0
             _logger.info("MELI discounts for order %s: seller_amount=%.2f (coupon_amount=%.2f) [via %s]",
                          self.order_id, seller_total, self.coupon_amount, _src)
         except Exception as e:
@@ -3473,10 +3595,31 @@ class mercadolibre_orders(models.Model):
         _logger.info("MELI order %s: seller_amount=%.2f calculado desde %d pago(s) locales.",
                      self.order_id, seller_total, len(self.payments))
 
-    def _set_product_unit_price( self, product_related_obj, Item, config=None ):
+    def _set_product_unit_price( self, product_related_obj, Item, config=None, items_total=None ):
+        """Precio unitario de la línea = precio de ML menos el descuento que paga el VENDEDOR.
+
+        26.229 (cupón a cargo del vendedor): `discount_seller_amount` es un importe de la
+        ORDEN (suma de amounts.seller de /orders/{id}/discounts). Con más de un ítem en la orden
+        se prorratea por el bruto de cada ítem (`items_total` = suma de unit_price*quantity de
+        todos los ítems); restarlo entero en cada ítem descontaba de más. Sin `items_total`
+        (packs: una orden = un ítem) el ítem lleva todo el descuento, como antes.
+        """
         order = self
         seller_discount = float(order.discount_seller_amount or 0)
-        unit_price = float(Item['unit_price']) - float(seller_discount / float(Item['quantity']))
+        _qty = float(Item['quantity'] or 1.0)
+        _gross = float(Item['unit_price']) * _qty
+        if seller_discount and items_total and float(items_total) > 0.0 and _gross < float(items_total) - 0.005:
+            seller_discount = seller_discount * (_gross / float(items_total))
+        # 26.229: el descuento de UN ítem nunca puede llevar su precio a cero o negativo. Si pasa,
+        # el importe no es de este ítem (p. ej. el descuento de un PACK entero, incidente de 26.131:
+        # 46 líneas con precio negativo) y se factura a precio pleno: romper el precio es peor que
+        # no aplicar el descuento.
+        if seller_discount and _gross > 0.0 and seller_discount >= _gross - 0.005:
+            _logger.warning("MELI _set_product_unit_price orden %s: descuento del vendedor %.2f >= bruto del item %.2f "
+                            "(%s): NO se aplica (se factura a precio pleno)",
+                            order.order_id or '-', seller_discount, _gross, Item.get('item', {}).get('id') if isinstance(Item.get('item'), dict) else '-')
+            seller_discount = 0.0
+        unit_price = float(Item['unit_price']) - float(seller_discount / _qty)
         upd_line = {
             "price_unit": ml_product_price_conversion( self, product_related_obj=product_related_obj, price=unit_price, config=config )
         }
@@ -5427,7 +5570,19 @@ class mercadolibre_orders(models.Model):
         # precio es peor que no aplicar el descuento.
         # Para reabrirlo hace falta PRORRATEAR el descuento del pack entre sus ordenes/lineas, y
         # medir el resultado antes de deployar.
-        if order and order.coupon_amount > 0:
+        # 26.229: el cupón puede venir SÓLO en los pagos (payments[].coupon_amount) y no en
+        # `coupon.amount` de la orden; en ese caso tampoco se buscaba quién lo paga y la venta se
+        # creaba a precio lleno aunque el cupón lo absorbiera el vendedor.
+        _payments_coupon = 0.0
+        for _p in (order_json.get('payments') or []):
+            if isinstance(_p, dict) and (_p.get('status') in (None, 'approved')):
+                try:
+                    _payments_coupon += float(_p.get('coupon_amount') or 0.0)
+                except (TypeError, ValueError):
+                    pass
+        # Sólo órdenes SIN pack: en una orden miembro de un pack el cupón de los pagos es del PACK y
+        # su descuento no se puede restar por línea sin prorratear (incidente 26.131, revertido en 26.135).
+        if order and (order.coupon_amount > 0 or (_payments_coupon > 0 and not order.pack_id)):
             order._fetch_order_discounts(meli=meli)
             meli_order_fields['meli_discount_seller_amount'] = order.discount_seller_amount or 0.0
 
@@ -5859,7 +6014,16 @@ class mercadolibre_orders(models.Model):
                         'name': product_related_obj.display_name or Item['item']['title'],
                     }
                     saleorderline_item_fields[uom_field] = product_related_obj.uom_id.id
-                    saleorderline_item_fields.update( self._set_product_unit_price( product_related_obj=product_related_obj, Item=Item, config=config ) )
+                    # 26.229: `order`, no `self`. En el import de una orden NUEVA `self` es el
+                    # recordset VACÍO (notificación sin mercadolibre.orders previo / cron), así que
+                    # el descuento del vendedor leído de `self` era 0 y la venta nacía a precio lleno.
+                    _items_total = 0.0
+                    for _it in (order_json.get('order_items') or []):
+                        try:
+                            _items_total += float(_it.get('unit_price') or 0.0) * float(_it.get('quantity') or 0.0)
+                        except (TypeError, ValueError, AttributeError):
+                            pass
+                    saleorderline_item_fields.update( order._set_product_unit_price( product_related_obj=product_related_obj, Item=Item, config=config, items_total=_items_total or None ) )
 
                     #TODO: agregar meli_order_id !!! (mismo item dos ordenes diferentes...puede pasar...)
                     saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),
@@ -5867,7 +6031,25 @@ class mercadolibre_orders(models.Model):
                                                                         ('order_id','=',sorder.id)], limit=1 )
 
                     if not saleorderline_item_ids:
-                        if sorder.meli_paid_amount==0.0 or 1.1<abs((sorder.meli_paid_amount-(sorder.meli_discount_seller_amount or 0))-sorder.amount_total):
+                        # 26.229: respaldo por item de ML sin variación. Si uno de los dos lados
+                        # no tiene variación (vacío vs False, o se cargó a mano) la búsqueda exacta no
+                        # encontraba la línea y se creaba otra igual.
+                        _var = saleorderline_item_fields['meli_order_item_variation_id']
+                        _same_item = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),
+                                                                 ('order_id','=',sorder.id)] )
+                        _same_item = _same_item.filtered(lambda l: not _var or not l.meli_order_item_variation_id
+                                                         or str(l.meli_order_item_variation_id) == str(_var))
+                        if len(_same_item) == 1:
+                            saleorderline_item_ids = _same_item
+                    if not saleorderline_item_ids:
+                        # 26.229: NUNCA se agrega una línea a una venta ya
+                        # confirmada/bloqueada (mismo criterio que el write de abajo). El re-sync de una
+                        # venta cancelada y reconfirmada a mano agregaba la línea otra vez y el abastecimiento generaba movimientos nuevos en la entrega.
+                        _so_lines_locked = bool(sorder.state in ('sale', 'done')) or ("locked" in sorder._fields and sorder.locked)
+                        if _so_lines_locked:
+                            _logger.warning("MELI: %s está confirmada (state=%s): NO se agrega la línea del item %s (variación %s) desde la sincronización",
+                                            sorder.name, sorder.state, saleorderline_item_fields['meli_order_item_id'], _var)
+                        elif sorder.meli_paid_amount==0.0 or 1.1<abs((sorder.meli_paid_amount-(sorder.meli_discount_seller_amount or 0))-sorder.amount_total):
                             saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
                     
                     if saleorderline_item_ids:
@@ -6054,6 +6236,17 @@ class mercadolibre_orders(models.Model):
 
                     payment_fields["taxes_amount"] = payment_fields["full_payment"]["taxes_amount"]
 
+                # 26.229: si MercadoPago no informó el envío (o no respondió), se usa el
+                # `shipping_cost` del pago que trae la propia orden de ML. Sin esto el envío que
+                # pagó el comprador quedaba en 0 y la venta no cuadraba ("Incompleto").
+                if not payment_fields.get("shipping_amount"):
+                    try:
+                        _pay_ship = float(Payment.get('shipping_cost') or 0.0)
+                    except (TypeError, ValueError, AttributeError):
+                        _pay_ship = 0.0
+                    if _pay_ship > 0.0:
+                        payment_fields["shipping_amount"] = _pay_ship
+
                 payment_ids = payments_obj.search( [  ('payment_id','=',payment_fields['payment_id']),
                                                             ('order_id','=',order.id ) ] )
                 if not payment_ids:
@@ -6091,7 +6284,14 @@ class mercadolibre_orders(models.Model):
             # reparto depende SOLO del modo declarado en la config.
             _coupon_mode = meli_resolve_coupon_invoice_mode(config)
             _so_editable = sorder.state not in ('done',) and not ("locked" in sorder._fields and sorder.locked)
-            if _coupon_mode == 'product_discount':
+            # 26.229: la parte del cupón que paga el VENDEDOR ya está restada en el precio de
+            # la línea (_set_product_unit_price). Los modos que imputan el cupón a la venta sólo
+            # deben reflejar la parte que financia MercadoLibre; si no, el cupón se descuenta dos veces.
+            _ml_coupon = max(0.0, (order.coupon_amount or 0.0) - (order.discount_seller_coupon_amount or 0.0))
+            if _coupon_mode == 'product_discount' and _ml_coupon <= 0.0:
+                _logger.info("MELI: cupón %.2f a cargo del vendedor en %s: ya está en el precio, no se imputa como %% de descuento",
+                             order.coupon_amount or 0.0, sorder.name)
+            elif _coupon_mode == 'product_discount':
                 if _so_editable:
                     non_delivery_lines = sorder.order_line.filtered(lambda l: not l.is_delivery)
                     total_gross = 0.0
@@ -6102,7 +6302,7 @@ class mercadolibre_orders(models.Model):
                         )
                         total_gross += line.price_unit * line.product_uom_qty * (1.0 + tax_pct / 100.0)
                     if total_gross > 0:
-                        discount_pct = round((order.coupon_amount / total_gross) * 100.0, 6)
+                        discount_pct = round((_ml_coupon / total_gross) * 100.0, 6)
                         for line in non_delivery_lines:
                             line.discount = discount_pct
                         _logger.info(
@@ -6112,8 +6312,8 @@ class mercadolibre_orders(models.Model):
                             len(non_delivery_lines), sorder.name,
                         )
             elif _coupon_mode == 'separate_line':
-                if _so_editable:
-                    meli_apply_coupon_separate_line(sorder, order.coupon_amount)
+                if _so_editable and _ml_coupon > 0.0:
+                    meli_apply_coupon_separate_line(sorder, _ml_coupon)
             else:
                 # modo 'full': sin descuento. Limpiar cualquier descuento de cupón previo.
                 if _so_editable:
@@ -6167,6 +6367,24 @@ class mercadolibre_orders(models.Model):
                             sorder.meli_date_closed = order.date_closed
 
         #could be packed sorder or standard one product item order
+        # 26.229: red final del envío que pagó el comprador en ventas de UNA orden ML.
+        # fetch_shipment lo escribe sólo en un camino; si no pasó por ahí (cross_docking)
+        # la venta quedaba con meli_shipping_amount=0. Los packs los suma shipment.py (totales).
+        if sorder and order and len(sorder.meli_orders) <= 1 and not (sorder.meli_shipping_amount or 0.0):
+            _so_ship = sum((p.shipping_amount or 0.0) for p in order.payments if p.status == 'approved')
+            if _so_ship > 0.0:
+                sorder.meli_shipping_amount = _so_ship
+                _logger.info("MELI: %s meli_shipping_amount=%.2f desde los pagos (envío del comprador)", sorder.name, _so_ship)
+
+        # 26.229: cancelación de PACK. La venta de un pack agrupa varias órdenes ML y su
+        # meli_status sólo se escribía al crearla o mientras estaba en borrador (shipment.py); en
+        # una venta confirmada quedaba 'paid' aunque ML cancelara TODAS las órdenes (casos
+        # reales). Si todas las órdenes del pack están canceladas,
+        # la venta toma el estado y el motivo de la orden que llega y sigue el camino de
+        # cancelación de siempre (corte por fecha, pack_splitted, devoluciones: sin cambios).
+        if sorder and order and sorder.meli_status != "cancelled":
+            sorder._meli_pack_sync_cancelled(order_json=order_json)
+
         if sorder:
             for line in sorder.order_line:
                 if (sorder.meli_order_id and line.is_delivery and line.price_unit<=0.0 and line.qty_to_invoice>0):
@@ -7223,6 +7441,11 @@ class mercadolibre_orders(models.Model):
     paid_amount = fields.Float(string='Paid amount',help='Includes shipping cost')
     coupon_amount = fields.Float(string='Coupon amount',help='Descuento',default=0.0)
     discount_seller_amount = fields.Float(string='Discount Seller Amount',help='Monto del descuento absorbido por el vendedor',default=0.0)
+    # 26.229: parte del CUPÓN que paga el vendedor (detalles type=coupon de /discounts).
+    # Sirve para no imputar dos veces el mismo cupón: si lo paga el vendedor ya está restado en el
+    # precio de la línea, y los modos de cupón (product_discount / separate_line) sólo deben
+    # reflejar la parte que financia MercadoLibre.
+    discount_seller_coupon_amount = fields.Float(string='Cupón a cargo del vendedor',help='Parte del cupón que absorbe el vendedor (desde /orders/{id}/discounts, type=coupon)',default=0.0)
     currency_id = fields.Char(string='Currency')
     buyer =  fields.Many2one( "mercadolibre.buyers","Buyer")
     buyer_billing_info = fields.Text(string="Billing Info")
