@@ -770,6 +770,61 @@ class sale_order(models.Model):
         return True
 
     def meli_amount_to_invoice( self, meli=None, config=None ):
+        """Importe a facturar segun lo que pago el comprador.
+
+        26.229 (cupon + descuento del vendedor): el calculo de siempre
+        (_meli_amount_to_invoice_legacy) resta el descuento del vendedor del pago aunque ya este
+        restado en el precio de la linea, topado por el cupon. Caso real:
+        linea 399,99 - 60,99 = 339; pagado 388,18 (= 339 + 49,18 de envio del comprador);
+        cupon 16,95 -> 388,18 - 16,95 = 371,23 contra 339.
+        Solo cuando la VENTA prueba que el descuento ya esta en la linea
+        (amount_total == meli_total_amount - descuento) y el calculo de siempre NO cuadra, se toma
+        la interpretacion exacta del pago SIN volver a restar el descuento: pagado - s, s en
+        {0, envio del comprador}, a menos de 1,0 del total. Sin esa evidencia, o si el calculo de
+        siempre ya cuadra, o si nada cuadra: el calculo de siempre, sin cambios.
+        """
+        legacy = self._meli_amount_to_invoice_legacy(meli=meli, config=config)
+        try:
+            if len(self) != 1 or not config:
+                return legacy
+            total_config = ("mercadolibre_order_total_config" in config._fields) and config.mercadolibre_order_total_config
+            if total_config not in ('paid_amount', 'transaction_amount'):
+                return legacy
+            tol = 1.0
+            target = self.amount_total or 0.0
+            disc = self.meli_discount_seller_amount or 0.0
+            gross = self.meli_total_amount or 0.0
+            paid = self.meli_paid_amount or 0.0
+            if paid <= 0.0 or target <= 0.0 or disc <= 0.0 or gross <= 0.0 or abs((gross - disc) - target) >= tol:
+                return legacy
+            ship = self._meli_so_buyer_shipping()
+            _legacy = float(legacy or 0.0)
+            if _legacy > 0.0 and (abs(_legacy - target) < tol or (ship > 0.0 and abs(_legacy - ship - target) < tol)):
+                return legacy
+            including = ("mercadolibre_including_shipping_cost" in config._fields
+                         and config.mercadolibre_including_shipping_cost) or "always"
+            ships = [0.0, ship] if (including == "never" and ship > 0.0) else [0.0]
+            best = None
+            for _s in ships:
+                value = paid - _s
+                score = abs(value - target)
+                if including != "never" and ship > 0.0:
+                    score = min(score, abs(value - ship - target))
+                if best is None or score < best[0]:
+                    best = (score, value)
+            if best and best[0] < tol and abs(best[1] - _legacy) >= 0.005:
+                _logger.info(
+                    "MELI amount_to_invoice %s: el descuento del vendedor %.2f ya esta en la linea (ML %.2f -> venta %.2f); "
+                    "calculo de siempre %.2f, se usa %.2f (pagado %.2f, cupon %.2f, envio %.2f)",
+                    self.name, disc, gross, target, _legacy, best[1], paid,
+                    self.meli_coupon_amount or 0.0, ship)
+                return best[1]
+        except Exception as e:
+            _logger.warning("MELI amount_to_invoice %s: interpretacion exacta fallo (%s); se usa el calculo de siempre",
+                            self.name, e)
+        return legacy
+
+    def _meli_amount_to_invoice_legacy( self, meli=None, config=None ):
 
         total_config = (config and "mercadolibre_order_total_config" in config._fields) and config.mercadolibre_order_total_config
 
