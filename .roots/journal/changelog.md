@@ -4,6 +4,13 @@
 
 ---
 
+## 17.0.26.230 — 15-oct-2026 · filtros de facturación, logística y reclamos en Ventas [#462]
+- **Nuevo «ML Factura»** en las ventas: *Sin factura / Factura en borrador / Facturada / Con nota de crédito*. Dice qué facturas **tiene** la venta; el «Estado de facturación» nativo dice si **queda algo por facturar** (por eso una venta ya facturada, o con la entrega sin validar, muestra «Nada para facturar»).
+- **Filtros nuevos** en Pedidos y en Cotizaciones (todos «ML · …»): Sin confirmar, A facturar, Nada para facturar, Totalmente facturadas, Sin factura publicada, Factura en borrador, Con factura publicada, Con nota de crédito, Full, Flex, Colecta, Punto de entrega, Con reclamo abierto y Con devolución (reclamo de ML) — estos dos, para usuarios con permiso de MercadoLibre.
+- **Agrupar por** «ML · Estado de facturación» (ambas) y «ML · Tipo de logística» (Pedidos).
+- Sin columnas nuevas ni migración: requiere actualizar el módulo (`-u meli_oerp`).
+- Build único 26.230 en 16/17/18/19.
+
 ## 17.0.26.223 — 13-oct-2026 · stock de seguridad en el diagnóstico, fecha de la venta al confirmar, devoluciones canceladas, aviso de seguridad [#529 #640 #641]
 - **#529** El diagnóstico de stock descuenta el stock de seguridad **por SKU según las Reglas de SKU tipo «Stock Rule»** (columna «Quantity Stock»; el SKU exacto gana sobre `*`), igual que el envío de stock: ya no reactiva ni «corrige» publicaciones que el resguardo deja en 0 a propósito. Sin reglas, igual que antes.
 - **#640** Al confirmar una venta de MercadoLibre se conserva la **fecha de la venta de ML** (antes se pisaba con la hora de confirmación). Reemplazar un producto después ya no genera una devolución y dos transferencias internas pendientes.
