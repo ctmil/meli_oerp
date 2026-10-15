@@ -83,7 +83,7 @@ def _meli_is_valid_gtin(code):
     MercadoLibre acepta como Product Identifier (GTIN) sólo códigos GTIN-8,
     UPC-A (12), EAN-13 (13) o GTIN-14: numéricos, de longitud 8/12/13/14 y con
     dígito verificador correcto (módulo 10, GS1). Un SKU/código interno como
-    'C6536' NO es un GTIN → devuelve False y NO debe mandarse como GTIN.
+    '<SKU>' NO es un GTIN → devuelve False y NO debe mandarse como GTIN.
 
     100% defensivo: cualquier entrada no válida devuelve False.
     """
@@ -373,10 +373,10 @@ class product_template(models.Model):
         HTTP 200 -- that is the OWNING account (a foreign seller's token yields
         403 access_denied, so we move on to the next). This replaces the old
         approach that resolved ownership by pre-scanning each seller's full item
-        list via fetch_list_meli_ids: on LARGE accounts (e.g. DECO ~20.8k items)
+        list via fetch_list_meli_ids: on LARGE accounts (e.g. un cliente ~20.8k items)
         that paged listing does NOT cover every item, so many products were left
         untouched. The direct fetch always reaches the item regardless of catalog
-        size (verified in prod on account 526 / item MLA1685903163).
+        size (verified in prod on an account / item MLA<id>).
 
         The account that last answered OK is remembered and tried first, so a run
         over one seller's catalog does not re-probe every account for each item;
@@ -388,7 +388,7 @@ class product_template(models.Model):
 
         Always ends in a user-facing notification: this runs for minutes over
         thousands of products and used to return silently, so from the UI it was
-        indistinguishable from doing nothing (Deco/KPI ticket #485)."""
+        indistinguishable from doing nothing (un cliente ticket un caso)."""
         # meli_id lives on the variant (product.product), so filter templates by
         # their variants' meli_id (NOT template.meli_id, which does not exist).
         if self:
@@ -854,12 +854,12 @@ class product_template(models.Model):
         #response = meli.post("/sites/"+self.env.user.company_id._get_ML_sites()+"/category_predictor/predict", vals)
         url = "/sites/"+self.env.user.company_id._get_ML_sites()+"/domain_discovery/search?q="+self.get_title_for_category_predictor()
         _logger.info(url)
-        response = meli.get(url, {'access_token': meli.access_token})  # #661: token por header, no en la URL (que además se logueaba)
+        response = meli.get(url, {'access_token': meli.access_token})  # un caso: token por header, no en la URL (que además se logueaba)
         rjson = response.json()
         meli_categ = self.env['mercadolibre.category'].sudo()
         _logger.info(rjson)
         _logger.info(isinstance(rjson, list))
-        # FIX #532 (perf): SÓLO sugerir. Limitamos a las 3 primeras opciones de domain_discovery
+        # FIX un caso (perf): SÓLO sugerir. Limitamos a las 3 primeras opciones de domain_discovery
         # e importamos en modo LIVIANO (predict_only=True): id+nombre, sin atributos ni árbol.
         # La hidratación completa (atributos/chart) se hace al SELECCIONAR (wizard.apply_category).
         _MAX_PREDICTOR_SUGGESTIONS = 3
@@ -1056,7 +1056,7 @@ class product_template(models.Model):
     # the ML product attributes WIDTH/HEIGHT/LENGTH. Numeric value + its unit
     # kept apart on purpose (value as Float so it is directly usable downstream,
     # e.g. copied onto the sale order line; unit kept verbatim as ML sends it,
-    # 'm'/'cm'/... -- we do NOT normalize). [#424 Deco/KPI]
+    # 'm'/'cm'/... -- we do NOT normalize). [caso de un cliente]
     meli_product_width = fields.Float(string="Ancho del producto", help="Atributo WIDTH de la publicación (valor numérico).")
     meli_product_width_unit = fields.Char(string="Unidad ancho", help="Unidad del atributo WIDTH tal como la envía ML (ej. 'm', 'cm').")
     meli_product_height = fields.Float(string="Alto del producto", help="Atributo HEIGHT de la publicación (valor numérico).")
@@ -1065,7 +1065,7 @@ class product_template(models.Model):
     meli_product_length_unit = fields.Char(string="Unidad largo", help="Unidad del atributo LENGTH tal como la envía ML (ej. 'm', 'cm').")
 
     # Taxes brought from ML (VALUE_ADDED_TAX / IMPORT_DUTY). Often mandatory to
-    # publish (#474); imported so they need not be entered by hand. Ej: '21 %'.
+    # publish (un caso); imported so they need not be entered by hand. Ej: '21 %'.
     meli_vat = fields.Char(string="IVA [meli]", help="Atributo VALUE_ADDED_TAX de la publicación (ej. '21 %').")
     meli_import_duty = fields.Char(string="Impuesto interno [meli]", help="Atributo IMPORT_DUTY de la publicación (ej. '0 %').")
 
@@ -1086,7 +1086,7 @@ class product_product(models.Model):
         "BRAND":  "meli_brand",
         "MODEL":  "meli_model",
         "GENDER": "meli_gender",
-        # Taxes: often MANDATORY to publish (see #474). Bring them from ML so the
+        # Taxes: often MANDATORY to publish (see un caso). Bring them from ML so the
         # client does not have to re-enter them by hand. ML value like '21 %'.
         "VALUE_ADDED_TAX": "meli_vat",
         "IMPORT_DUTY":     "meli_import_duty",
@@ -1113,13 +1113,13 @@ class product_product(models.Model):
         "meli_seller_package_length",
         "meli_seller_package_weight",
         # Taxes: ML authoritative -> keep synced on every import (mandatory
-        # attributes, avoid manual drift). [#474]
+        # attributes, avoid manual drift). [un caso]
         "meli_vat",
         "meli_import_duty",
     }
     # Product dimensions (item, not package): ML attribute id -> (value field,
     # unit field). Value goes to a Float, unit kept verbatim in a Char. ML is
-    # authoritative -> overwrite when it sends a numeric value. [#424 Deco/KPI]
+    # authoritative -> overwrite when it sends a numeric value. [caso de un cliente]
     _MELI_PRODUCT_DIM_MAP = {
         "WIDTH":  ("meli_product_width",  "meli_product_width_unit"),
         "HEIGHT": ("meli_product_height", "meli_product_height_unit"),
@@ -1192,7 +1192,7 @@ class product_product(models.Model):
         SELLER_PACKAGE_* is present. Bare WIDTH/HEIGHT/LENGTH (the *product*
         dimensions, distinct from the package) go to the numeric
         meli_product_{width,height,length} + their *_unit Char via
-        _MELI_PRODUCT_DIM_MAP (ML authoritative -> overwrite). [#424]
+        _MELI_PRODUCT_DIM_MAP (ML authoritative -> overwrite). [un caso]
         Writes the template and EVERY variant of the publication (all the
         variants sharing `self.meli_id`), not just `self` -- the item-level
         values (size/taxes/package) are common to all colour variants. `self`
@@ -1242,7 +1242,7 @@ class product_product(models.Model):
                 ml_prod_vals[field] = val
         # Product dimensions (WIDTH/HEIGHT/LENGTH) -> Float value + unit Char, on
         # BOTH template and variant. ML is authoritative -> overwrite when it
-        # sends a numeric value; a missing/blank one is left untouched. [#424]
+        # sends a numeric value; a missing/blank one is left untouched. [un caso]
         dim_map = self._MELI_PRODUCT_DIM_MAP
         for att in attributes:
             if not isinstance(att, dict):
@@ -1266,7 +1266,7 @@ class product_product(models.Model):
         # Write to EVERY variant of this publication, not just `self`. These are
         # item-level fields (size/taxes/package are the same for all the colour
         # variants), and the backfill used to pass only the first variant, so the
-        # rest stayed empty -- the "solo toma la primera variante" report. [#424]
+        # rest stayed empty -- the "solo toma la primera variante" report. [un caso]
         if ml_prod_vals and self:
             siblings = self.product_tmpl_id.product_variant_ids.filtered(
                 lambda v: v.meli_id and v.meli_id == self.meli_id
@@ -1399,7 +1399,7 @@ class product_product(models.Model):
                 product_template.write({'lst_price': ml_price_converted})
 
     def _meli_price_decimals( self, meli_currency, config=None ):
-        """Decimales con los que se publica un precio en MercadoLibre (#601 P5).
+        """Decimales con los que se publica un precio en MercadoLibre (un caso P5).
 
         Sale de res.currency.decimal_places, que es el dato del sistema — no de una
         constante nuestra. Orden de resolucion:
@@ -1459,7 +1459,7 @@ class product_product(models.Model):
         else:
             #_logger.info( "new_price: " +str(new_price))
             if ( product.meli_price_fixed and product.meli_price):
-                # #601 P5: era int(float(...)) -> un precio fijo de 495.69 se publicaba 495.
+                # un caso P5: era int(float(...)) -> un precio fijo de 495.69 se publicaba 495.
                 # Ademas `product_tmpl_id` no existe en este ambito (la local es `product_tmpl`):
                 # con meli_price fijo == 0 esta linea levantaba NameError.
                 new_price = float(product.meli_price) or float(product_tmpl.meli_price or 0.0) or 0.0
@@ -1492,7 +1492,7 @@ class product_product(models.Model):
         elif (product_tmpl.meli_currency and product_tmpl.meli_currency == 'CLP'):
             new_price = str( int( int( math.floor(int(new_price) / 100 ) * 100 + 90 ) ) )
         else:
-            # #601 P5: antes esta rama hacia SIEMPRE math.ceil() -> entero. Alcanzaba a
+            # un caso P5: antes esta rama hacia SIEMPRE math.ceil() -> entero. Alcanzaba a
             # toda moneda distinta de MXN/USD/CLP y, sobre todo, al caso de
             # meli_currency VACIO, que es por donde caen los productos sin moneda
             # cargada: un precio de 495.69 se publicaba como 496.
@@ -2403,7 +2403,7 @@ class product_product(models.Model):
                             upids.append(vupid)
 
             if (not meli_id_variation):
-                # A2 fix (ticket #425): do NOT return the list-string str(upids)
+                # A2 fix (ticket un caso): do NOT return the list-string str(upids)
                 # (e.g. "['MLMU123']"). It used to be persisted verbatim into
                 # meli_user_product_id, which broke the user-products stock push
                 # (degraded to standard -> not_modifiable -> stranded, the
@@ -2509,7 +2509,7 @@ class product_product(models.Model):
         #    product._meli_set_images(product_template=product_template, pictures=pictures, rjson=rjson)
 
         #categories
-        # [solsun-local->source] Savepoint: un fallo SQL en _meli_set_category abortaba la tx y
+        # [caso de un cliente] Savepoint: un fallo SQL en _meli_set_category abortaba la tx y
         # TODO lo posterior de la sync (precio, posting.search, ...) caia con InFailedSqlTransaction.
         try:
             with self.env.cr.savepoint():
@@ -3424,7 +3424,7 @@ class product_product(models.Model):
                     ML_status = rjson["status"]
                 if "permalink" in rjson:
                     ML_permalink_edit = company.get_ML_LINK_URL(meli=meli)+str("publicaciones/")+str(product.meli_id)+str("/modificar")
-                    ML_permalink_api = "/meli/item_api/%s" % product.meli_id  # #661: sin token, lo resuelve Odoo
+                    ML_permalink_api = "/meli/item_api/%s" % product.meli_id  # un caso: sin token, lo resuelve Odoo
                 if "error" in rjson:
                     ML_status = rjson["error"]
                 if "sub_status" in rjson:
@@ -4134,7 +4134,7 @@ class product_product(models.Model):
         if (product.barcode and not product_tmpl.meli_pub_as_variant and not "GTIN" in attributes_ids):
             # category-aware: solo mandar GTIN si el barcode es un EAN/GTIN válido
             # (evita el 400 'Product Identifier [GTIN] invalid format' cuando el
-            #  barcode es en realidad un SKU interno, p.ej. koreautos 'C6536').
+            #  barcode es en realidad un SKU interno, p.ej. un cliente '<SKU>').
             attribute = product._meli_gtin_attribute(product.barcode, product.meli_category)
             if attribute:
                 attributes_ids[attribute["id"]] = attribute["value_name"]
@@ -4199,7 +4199,7 @@ class product_product(models.Model):
                     _logger.info("seller_package attribute added: "+str(attribute))
 
         # Product dimensions (item) -> ML WIDTH/HEIGHT/LENGTH, rebuilt as
-        # "<number> <unit>" from the Float value + unit Char. [#424 Deco/KPI]
+        # "<number> <unit>" from the Float value + unit Char. [caso de un cliente]
         _prod_dim_fields = [
             ("meli_product_width",  "meli_product_width_unit",  "WIDTH"),
             ("meli_product_height", "meli_product_height_unit", "HEIGHT"),
@@ -4217,9 +4217,9 @@ class product_product(models.Model):
                     attributes.append(attribute)
                     _logger.info("product dimension attribute added: "+str(attribute))
 
-        # Taxes (often MANDATORY to publish, see #474) -> ML VALUE_ADDED_TAX /
+        # Taxes (often MANDATORY to publish, see un caso) -> ML VALUE_ADDED_TAX /
         # IMPORT_DUTY. Sending them from the imported fields avoids the "missing
-        # conditional required attribute" publish error. [#474 Deco/KPI]
+        # conditional required attribute" publish error. [caso de un cliente]
         _tax_fields = [
             ("meli_vat", "VALUE_ADDED_TAX"),
             ("meli_import_duty", "IMPORT_DUTY"),
@@ -4848,7 +4848,7 @@ class product_product(models.Model):
                             var = {
                                 #"id": str( product.meli_id_variation ),
                                 "available_quantity": product.meli_available_quantity,
-                                #"picture_ids": ['806634-MLM28112717071_092018', '928808-MLM28112717068_092018', '643737-MLM28112717069_092018', '934652-MLM28112717070_092018']
+                                #"picture_ids": ['806634-MLM<id>_092018', '928808-MLM<id>_092018', '643737-MLM<id>_092018', '934652-MLM<id>_092018']
                             }
                             varias["variations"].append(var)
                             #_logger.info(varias)
@@ -4922,7 +4922,7 @@ class product_product(models.Model):
                     var = {
                         #"id": str( product.meli_id_variation ),
                         "available_quantity": product.meli_available_quantity,
-                        #"picture_ids": ['806634-MLM28112717071_092018', '928808-MLM28112717068_092018', '643737-MLM28112717069_092018', '934652-MLM28112717070_092018']
+                        #"picture_ids": ['806634-MLM<id>_092018', '928808-MLM<id>_092018', '643737-MLM<id>_092018', '934652-MLM<id>_092018']
                     }
                     responsevar = meli.put_mini("/items/"+product.meli_id+'/variations/'+str( product.meli_id_variation ), var, {'access_token':meli.access_token})
                     if (responsevar):
@@ -5062,7 +5062,7 @@ class product_product(models.Model):
                     var = {
                         "id": varx["id"],
                         "price": meli_price,
-                        #"picture_ids": ['806634-MLM28112717071_092018', '928808-MLM28112717068_092018', '643737-MLM28112717069_092018', '934652-MLM28112717070_092018']
+                        #"picture_ids": ['806634-MLM<id>_092018', '928808-MLM<id>_092018', '643737-MLM<id>_092018', '934652-MLM<id>_092018']
                     }
                     vars.append(var)
                 _logger.info("product_post_price (variations):"+str(vars))
@@ -5244,7 +5244,7 @@ class product_product(models.Model):
     meli_seller_package_weight = fields.Char(string="Peso del paquete [vendedor]", help="SELLER_PACKAGE_WEIGHT: Peso del paquete a enviar. Ej: '500 g'")
 
     # Product dimensions (item, NOT package) from ML WIDTH/HEIGHT/LENGTH. Mirror
-    # of the same fields on product.template; the import fills both. [#424 Deco/KPI]
+    # of the same fields on product.template; the import fills both. [caso de un cliente]
     meli_product_width = fields.Float(string="Ancho del producto", help="Atributo WIDTH de la publicación (valor numérico).")
     meli_product_width_unit = fields.Char(string="Unidad ancho", help="Unidad del atributo WIDTH tal como la envía ML (ej. 'm', 'cm').")
     meli_product_height = fields.Float(string="Alto del producto", help="Atributo HEIGHT de la publicación (valor numérico).")
@@ -5268,7 +5268,7 @@ class product_product(models.Model):
     #
     # ANTES se usaba MAX(stock_move.create_date). Eso es un BUG: create_date es
     # la fecha en que se CREO la fila, no en que el stock cambio. Consecuencias
-    # medidas en produccion (OrgVit 475, 28-jul-2026):
+    # medidas en produccion (un cliente, 28-jul-2026):
     #
     #   * El maximo SE CONGELA en cuanto deja de crearse movimientos nuevos.
     #     Como `stock_update` se sella en CADA push, la condicion de cola

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""[#504/#520] Descuento de vendedor y envio se deciden JUNTOS (opt-in never_below_total).
+"""[un caso] Descuento de vendedor y envio se deciden JUNTOS (opt-in never_below_total).
 
-Caso (a) = PROD Dannok (420), SO 28789 / ML 2000018486811198, cuenta en paid_amount +
+Caso (a) = PROD un cliente, SO <n> / ML <order_id>, cuenta en paid_amount +
 including_shipping_cost=never. Pagado = total + envio: el descuento ya esta en el precio y el
 envio lo pago el comprador. 26.76.2 daba 56.697,56 y 26.158 daba 62.642,56; correcto 60.793,78.
 """
@@ -17,8 +17,8 @@ class TestDiscountShippingJoint(common.TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.company = cls.env.company
-        cls.partner = cls.env['res.partner'].create({'name': '#504b Comprador ML'})
-        cls.product = cls.env['product.product'].create({'name': '#504b Producto'})
+        cls.partner = cls.env['res.partner'].create({'name': 'Comprador ML'})
+        cls.product = cls.env['product.product'].create({'name': 'Producto'})
         cls.tax_field = 'tax_ids' if 'tax_ids' in cls.env['sale.order.line']._fields else 'tax_id'
 
     def _order(self, total, paid, disc=0.0, coupon=0.0, ship=0.0):
@@ -53,7 +53,7 @@ class TestDiscountShippingJoint(common.TransactionCase):
         self.company.meli_seller_discount_cap_mode = 'never_below_total' if on else 'coupon'
 
     # (a) el caso real
-    def test_a_dannok_so_28789(self):
+    def test_a_caso_real_descuento_y_envio(self):
         self._opt_in()
         so = self._order(60793.78, 66738.78, disc=4096.22, coupon=1627.08, ship=5945.0)
         self.assertAlmostEqual(so.meli_amount_to_invoice(config=self._cfg()), 60793.78, places=2)
@@ -64,7 +64,7 @@ class TestDiscountShippingJoint(common.TransactionCase):
         so = self._order(60793.78, 66738.78, disc=4096.22, coupon=1627.08, ship=5945.0)
         self.assertAlmostEqual(so.meli_amount_to_invoice(config=self._cfg()), 62642.56, places=2)
 
-    # (b) Tus Refacciones 431: envio absorbido por el vendedor
+    # (b) un cliente: envio absorbido por el vendedor
     def test_b_shipping_absorbed(self):
         for on in (True, False):
             self._opt_in(on)

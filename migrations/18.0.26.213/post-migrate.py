@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""#661 (542): el access_token de MercadoLibre quedaba guardado en claro en campos
+"""un caso: el access_token de MercadoLibre quedaba guardado en claro en campos
 que cualquiera con acceso al registro podía ver (y en el link del pago de MP).
 Desde 26.213 no se guarda más; esto limpia lo YA guardado. Idempotente: sólo toca
 filas que todavía tienen el token. Cada tabla/columna se verifica antes (los
@@ -43,7 +43,7 @@ def migrate(cr, version):
              WHERE {c}::text LIKE '%%access_token=%%'
         """.format(t=table, c=column))
         if cr.rowcount:
-            _logger.info("MELI 26.213 (#661): access_token quitado de %s fila(s) de %s.%s", cr.rowcount, table, column)
+            _logger.info("MELI 26.213: access_token quitado de %s fila(s) de %s.%s", cr.rowcount, table, column)
 
     # Wizard de etiquetas: full_links guardaba un JSON con el token como CLAVE. Es transitorio: se vacía.
     if _has_column(cr, 'mercadolibre_shipment_print', 'full_links'):
@@ -52,4 +52,4 @@ def migrate(cr, version):
              WHERE full_links IS NOT NULL AND full_links <> '{}'
         """)
         if cr.rowcount:
-            _logger.info("MELI 26.213 (#661): full_links vaciado en %s wizard(s) de etiquetas", cr.rowcount)
+            _logger.info("MELI 26.213: full_links vaciado en %s wizard(s) de etiquetas", cr.rowcount)

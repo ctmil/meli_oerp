@@ -14,7 +14,7 @@ El campo nuevo se puebla de ahora en mas en la importacion, pero las
 cancelaciones YA IMPORTADAS lo tendrian vacio. Sin esta siembra el agrupado
 "ML Motivo de cancelacion" arrancaria mostrando casi todo en "None" y se leeria
 como que el dato no existe — el mismo modo de falla que se documento en la
-migracion 26.95 del #494 ("arrancaria mostrando de menos, que es peor que no
+migracion 26.95 del un caso ("arrancaria mostrando de menos, que es peor que no
 tenerlo").
 
 QUE HACE, EXACTAMENTE.
