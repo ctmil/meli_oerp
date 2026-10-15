@@ -805,7 +805,7 @@ class sale_order(models.Model):
                     _retention_total += abs(line.price_subtotal * tax.amount / 100.0)
         return self.amount_total + _retention_total
 
-    def _meli_amount_joint_discount_shipping(self, including_shipping_cost, config=None):
+    def _meli_amount_joint_discount_shipping(self, including_shipping_cost, config=None, force=False, discounts=None):
         """[#504/#520] Importe a facturar decidiendo descuento de vendedor y envio JUNTOS.
 
         Solo actua con el opt-in `meli_seller_discount_cap_mode = never_below_total`
@@ -838,9 +838,12 @@ class sale_order(models.Model):
         el importe al total.
         """
         self.ensure_one()
+        # 26.229: con force=True (lo usa meli_amount_to_invoice cuando el calculo de siempre
+        # NO cuadra y la venta prueba que el descuento ya esta en la linea) se evalua aunque la
+        # cuenta no tenga el opt-in; `discounts` restringe los descuentos candidatos.
         _cap_mode = self._meli_order_setting(
             "meli_seller_discount_cap_mode", "coupon", config=config)
-        if _cap_mode != "never_below_total":
+        if _cap_mode != "never_below_total" and not force:
             return None
 
         paid = self.meli_paid_amount or 0.0
@@ -848,10 +851,11 @@ class sale_order(models.Model):
             return None
 
         disc = self.meli_discount_seller_amount or 0.0
-        ship = self.meli_shipping_amount or 0.0
+        ship = self._meli_so_buyer_shipping()
         target = self._meli_amount_total_before_retentions()
 
-        discounts = [0.0] + ([disc] if disc > 0.0 else [])
+        if discounts is None:
+            discounts = [0.0] + ([disc] if disc > 0.0 else [])
         if including_shipping_cost == "never" and ship > 0.0:
             ships = [0.0, ship]
         else:
@@ -896,6 +900,53 @@ class sale_order(models.Model):
         )
 
     def meli_amount_to_invoice( self, meli=None, config=None ):
+        """Importe a facturar segun lo que pago el comprador.
+
+        26.229 (cupon + descuento del vendedor): el calculo de siempre
+        (_meli_amount_to_invoice_legacy) resta el descuento del vendedor del pago aunque ya este
+        restado en el precio de la linea, topado por el cupon. Caso real:
+        linea 399,99 - 60,99 = 339; pagado 388,18 (= 339 + 49,18 de envio del comprador);
+        cupon 16,95 -> 388,18 - 16,95 = 371,23 contra 339.
+        Solo cuando la VENTA prueba que el descuento ya esta en la linea
+        (amount_total == meli_total_amount - descuento) y el calculo de siempre NO cuadra, se toma
+        la interpretacion exacta del pago SIN volver a restar el descuento: pagado - s, s en
+        {0, envio del comprador} (misma regla que el opt-in never_below_total). Sin esa evidencia,
+        o si el calculo de siempre ya cuadra, o si nada cuadra: el calculo de siempre, sin cambios
+        (el default 'coupon' del resto de la flota queda igual).
+        """
+        legacy = self._meli_amount_to_invoice_legacy(meli=meli, config=config)
+        try:
+            if len(self) != 1 or not config:
+                return legacy
+            total_config = ("mercadolibre_order_total_config" in config._fields) and config.mercadolibre_order_total_config
+            if total_config not in ('paid_amount', 'transaction_amount'):
+                return legacy
+            target = self._meli_amount_total_before_retentions()
+            disc = self.meli_discount_seller_amount or 0.0
+            gross = self.meli_total_amount or 0.0
+            tol = self.MELI_JOINT_TOLERANCE
+            if target <= 0.0 or disc <= 0.0 or gross <= 0.0 or abs((gross - disc) - target) >= tol:
+                return legacy
+            ship = self._meli_so_buyer_shipping()
+            _legacy = float(legacy or 0.0)
+            if _legacy > 0.0 and (abs(_legacy - target) < tol or (ship > 0.0 and abs(_legacy - ship - target) < tol)):
+                return legacy
+            including = ("mercadolibre_including_shipping_cost" in config._fields
+                         and config.mercadolibre_including_shipping_cost) or "always"
+            exact = self._meli_amount_joint_discount_shipping(including, config=config, force=True, discounts=[0.0])
+            if exact is not None and abs(float(exact) - _legacy) >= 0.005:
+                _logger.info(
+                    "MELI amount_to_invoice %s: el descuento del vendedor %.2f ya esta en la linea (ML %.2f -> venta %.2f); "
+                    "calculo de siempre %.2f, se usa %.2f (pagado %.2f, cupon %.2f, envio %.2f)",
+                    self.name, disc, gross, target, _legacy, exact, self.meli_paid_amount or 0.0,
+                    self.meli_coupon_amount or 0.0, ship)
+                return exact
+        except Exception as e:
+            _logger.warning("MELI amount_to_invoice %s: interpretacion exacta fallo (%s); se usa el calculo de siempre",
+                            self.name, e)
+        return legacy
+
+    def _meli_amount_to_invoice_legacy( self, meli=None, config=None ):
 
         total_config = (config and "mercadolibre_order_total_config" in config._fields) and config.mercadolibre_order_total_config
 
