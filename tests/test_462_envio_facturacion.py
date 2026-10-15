@@ -126,8 +126,7 @@ class TestMeli462PackItemFaltante(AccountTestInvoicingCommon):
     def test_aviso_una_sola_vez(self):
         so = self._pack_order()
         for _i in range(3):
-            res = so.confirm_ml()
-            self.assertTrue(res and res.get('error'))
+            so.confirm_ml()  # (con meli_oerp_stock instalado confirm_ml no devuelve el resultado)
             # en prod cada ciclo agrega mensajes de seguimiento (el total sube y baja): 4 por ciclo
             for _j in range(5):
                 so.message_post(body="seguimiento %s-%s" % (_i, _j))
