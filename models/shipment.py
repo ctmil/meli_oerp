@@ -47,6 +47,7 @@ from . import product
 from . import product_post
 from . import posting
 from . import res_partner
+from . import meli_prorate
 
 # pdf2image es opcional - solo se usa para generar preview JPG de etiquetas PDF
 PDF2IMAGE_AVAILABLE = False
@@ -2004,16 +2005,38 @@ class mercadolibre_shipment(models.Model):
                                 if (mOrder.fee_amount):
                                     sorder_pack.meli_fee_amount = sorder_pack.meli_fee_amount + mOrder.fee_amount
 
-                                saleorderline_item_fields.update( order._set_product_unit_price( product_related_obj, mOrder.order_items[0], config=config ) )
+                                # [#603] el precio de la linea sale de la orden MIEMBRO (mOrder), no de
+                                # la orden que disparo el fetch (`order`): antes se le aplicaba a cada
+                                # linea del carrito el descuento de otra orden.
+                                saleorderline_item_fields.update( mOrder._set_product_unit_price( product_related_obj, mOrder.order_items[0], config=config ) )
 
                                 saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),
                                                                                     ('meli_order_item_variation_id','=',saleorderline_item_fields['meli_order_item_variation_id']),
                                                                                     ('order_id','=',shipment.sale_order.id)] )
 
                                 if not saleorderline_item_ids:
-                                    if sorder_pack.amount_total<(sorder_pack.meli_paid_amount-(sorder_pack.meli_discount_seller_amount or sorder_pack.meli_coupon_amount)):
+                                    # [#595 Shoppy 502] Antes: `amount_total < paid - cupon`. Restar el cupon
+                                    # del CARRITO dejaba afuera, en silencio, al ultimo item mas barato que
+                                    # el cupon. Ahora la linea entra si cabe en lo pagado, y nunca para una
+                                    # sub-orden cancelada por ML.
+                                    _line_amount = float(mOrder.order_items[0]["unit_price"] or 0.0) * float(mOrder.order_items[0]["quantity"] or 0.0)
+                                    if mOrder.status in ('cancelled', 'invalid'):
+                                        _logger.info("MELI #595 pack %s: sub-orden %s cancelada, no se agrega linea.",
+                                                     sorder_pack.name, mOrder.order_id)
+                                    elif meli_prorate.pack_line_fits(sorder_pack.amount_total, sorder_pack.meli_paid_amount, _line_amount):
                                         #_logger.info("Sale Order Pack Create line")
                                         saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
+                                    else:
+                                        _skip_msg = ("MELI #595: NO se agrego la linea de la sub-orden %s (%s, $%.2f): "
+                                                     "el pedido ya suma %.2f y lo pagado es %.2f. Revisar si el producto "
+                                                     "se reemplazo a mano o si falta una linea.") % (
+                                                     mOrder.order_id, mOrder.order_items[0]["order_item_title"], _line_amount,
+                                                     sorder_pack.amount_total, sorder_pack.meli_paid_amount)
+                                        _logger.warning(_skip_msg)
+                                        _seen = sorder_pack.message_ids[:30].filtered(
+                                            lambda m: m.body and "MELI #595" in m.body and str(mOrder.order_id) in m.body)
+                                        if not _seen:
+                                            meli_message_post(sorder_pack, _skip_msg, config=config)
                                 
                                 
                                 if saleorderline_item_ids:

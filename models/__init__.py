@@ -9,6 +9,7 @@
 from . import versions
 from . import warning
 from . import meli_util
+from . import meli_prorate
 from . import company
 from . import product_image
 from . import product
