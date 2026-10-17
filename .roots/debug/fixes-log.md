@@ -4,6 +4,23 @@
 
 ---
 
+## 16 oct 2026 — #603 F5b Shoppy 502: descuento del vendedor por línea acotado al cupón y prorrateado + #595 línea de carrito (v16.0.26.235)
+**Síntoma:** `_set_product_unit_price` restaba `discount_seller_amount / qty` ENTERO de cada ítem: un importe de nivel
+orden/pack aplicado a cada línea. En 502 ese campo no es un cupón (mayor que el cupón casi siempre, a veces mayor que la
+orden): la cancelación del 01-oct dejó [F04194AL] en -48.730,17; el 26.131 dejó 46 líneas negativas. #595: en carritos,
+el ítem más barato que el cupón del carrito no se creaba nunca y sin aviso (`amount_total < pagado - cupón`).
+**Fix (port de b1545b4c, repo cliente 502):** `models/meli_prorate.py` (puro, sin Odoo): `bounded_order_discount`
+(sin cupón ⇒ 0, con cupón ⇒ min(descuento, cupón)), `prorate_cents` (mayor resto, cuadra al centavo, nunca negativo),
+`pack_line_fits` (la línea entra si cabe en lo pagado). `mercadolibre.orders._meli_line_seller_discount` reparte entre
+los ítems de la orden. shipment.py: el precio sale de la orden MIEMBRO (`mOrder`), sub-orden cancelada no agrega línea,
+y si no entra se avisa en el chatter una vez. Sin llamadas de red nuevas.
+**Cambio de comportamiento:** `discount_seller_amount > 0` con `coupon_amount = 0` ya no descuenta (precio pleno).
+**Tests:** `test_meli_prorate.py` (puro + tag meli_prorate), `test_meli_f5b_orm.py` (tag meli_f5b, ORM). Banco 16: verde;
+control origin 223: rojo. #640/#641 del mismo commit cliente ya estaban en 26.223.
+**Pendiente:** 17/18/19 (mismo código vivo), prueba en test de Shoppy, 1 caso real antes del lote (meli-promotions-pending §2026-10-13).
+
+---
+
 ## 13 oct 2026 — #638 T3LC: la cancelación automática devolvía stock con CUALQUIER motivo (v16.0.26.221)
 **Síntoma:** el barrido rotativo de estados (#638, 26.218) cancelaba y **devolvía** (IN validado) las ventas canceladas
 en ML de los últimos 15 días sin mirar el motivo: `pack_splitted` (los ítems salen en las órdenes nuevas del split),

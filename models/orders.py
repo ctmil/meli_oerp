@@ -77,6 +77,7 @@ from odoo.exceptions import ValidationError
 from . import posting
 from . import product
 from . import shipment
+from . import meli_prorate
 from dateutil.parser import *
 from datetime import *
 from urllib.request import urlopen
@@ -3431,10 +3432,44 @@ class mercadolibre_orders(models.Model):
         _logger.info("MELI #603 order %s: seller_amount=%.2f calculado desde %d pago(s) locales.",
                      self.order_id, seller_total, len(self.payments))
 
+    def _meli_item_key(self, Item):
+        """(item_id, variation_id) de un item, venga como dict del JSON de ML o como
+        registro mercadolibre.order_items (shipment.py le pasa el registro)."""
+        try:
+            it = Item['item']
+            return (str(it.get('id') or ''), str(it.get('variation_id') or ''))
+        except Exception:
+            return (str(Item['order_item_id'] or ''), str(Item['order_item_variation_id'] or ''))
+
+    def _meli_line_seller_discount(self, Item):
+        """[#603 Shoppy 502, F5b] Parte del descuento del vendedor de ESTA orden que le toca a `Item`.
+
+        Antes: `discount_seller_amount / quantity` restado del precio de CADA item => un importe
+        de nivel orden aplicado entero a cada linea (en un pack, el del pack entero; 26.131 dejo
+        46 lineas con precio negativo). Ahora el descuento se acota al cupon de la orden
+        (meli_prorate.bounded_order_discount) y se reparte entre los items de la orden
+        proporcional a su importe, al centavo. Ninguna linea puede quedar negativa.
+        Sin llamadas de red: usa solo lo ya guardado en la orden.
+        """
+        cap = meli_prorate.bounded_order_discount(self.discount_seller_amount, self.coupon_amount)
+        if cap <= 0.0:
+            return 0.0
+        key = self._meli_item_key(Item)
+        keys, weights = [], []
+        for oi in self.order_items:
+            keys.append((str(oi.order_item_id or ''), str(oi.order_item_variation_id or '')))
+            weights.append(float(oi.unit_price or 0.0) * float(oi.quantity or 0.0))
+        if key not in keys:
+            # Item todavia no guardado en la orden: es el unico peso conocido.
+            keys = [key]
+            weights = [float(Item['unit_price'] or 0.0) * float(Item['quantity'] or 0.0)]
+        return meli_prorate.prorate_cents(weights, cap)[keys.index(key)]
+
     def _set_product_unit_price( self, product_related_obj, Item, config=None ):
         order = self
-        seller_discount = float(order.discount_seller_amount or 0)
-        unit_price = float(Item['unit_price']) - float(seller_discount / float(Item['quantity']))
+        _qty = float(Item['quantity'] or 0.0) or 1.0
+        _line_discount = order._meli_line_seller_discount(Item) if order else 0.0
+        unit_price = float(Item['unit_price']) - float(_line_discount / _qty)
         upd_line = {
             "price_unit": ml_product_price_conversion( self, product_related_obj=product_related_obj, price=unit_price, config=config )
         }
