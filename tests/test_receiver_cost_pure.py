@@ -43,6 +43,39 @@ class TestReceiverBuyerCost(unittest.TestCase):
                                "cost_details": [{"sender_id": BUYER, "amount": 3000.0}]}}
         self.assertEqual(rc.receiver_buyer_cost(rcosts), 3000.0)
 
+    def test_fulfillment_mx_flete_cubierto_por_vendedor_da_cero(self):
+        # /shipments/<id>/costs real, fulfillment MX (un cliente, 8-oct-2026): receiver.cost 79
+        # cubierto entero por el VENDEDOR (cost_details.sender_id = senders[0].user_id).
+        # La orden ML trae total_amount == paid_amount == 247.6 y el pago total_paid 247.6 con
+        # shipping 0 => el comprador NO pago flete. Linea de envio en 0 = lo cobrado.
+        seller_mx, buyer_mx = 573976600, 3485303698
+        rcosts = {"receiver": {"compensations": [], "fees": [], "cost": 79, "discounts": [],
+                               "user_id": buyer_mx,
+                               "cost_details": [{"sender_id": seller_mx, "amount": 79}],
+                               "save": 0, "compensation": 0},
+                  "gross_amount": 85,
+                  "senders": [{"compensations": [], "charges": {"charge_flex": 0}, "fees": [],
+                               "cost": 6, "discounts": [], "user_id": seller_mx,
+                               "save": 0, "compensation": 0}],
+                  "base_exchange": None}
+        self.assertEqual(rc.receiver_buyer_cost(rcosts), 0.0)
+        # y la venta no suma flete a lo cobrable
+        self.assertEqual(rc.shipping_missing_in_paid(
+            rc.receiver_buyer_cost(rcosts), 247.6, 247.6, 0, 0, 1), 0.0)
+
+    def test_fulfillment_mx_comprador_paga_99(self):
+        # Mismo envio fulfillment, pero SIN subsidio del vendedor: el comprador paga los 99.
+        seller_mx, buyer_mx = 573976600, 3485303698
+        rcosts = {"receiver": {"cost": 99, "user_id": buyer_mx, "cost_details": []},
+                  "senders": [{"user_id": seller_mx, "cost": 6}]}
+        self.assertEqual(rc.receiver_buyer_cost(rcosts), 99.0)
+        rcosts["receiver"]["cost_details"] = [{"sender_id": buyer_mx, "amount": 99}]
+        self.assertEqual(rc.receiver_buyer_cost(rcosts), 99.0)
+        # pago sin shipping_amount y paid sin el flete => se suma a lo cobrable
+        self.assertEqual(rc.shipping_missing_in_paid(99.0, 324.55, 324.55, 0, 0, 1), 99.0)
+        # paid que ya trae el flete => no se suma dos veces
+        self.assertEqual(rc.shipping_missing_in_paid(99.0, 423.55, 324.55, 0, 0, 1), 0.0)
+
     def test_nunca_negativo_y_entradas_raras(self):
         rcosts = {"receiver": {"cost": 100.0, "cost_details": [{"sender_id": SELLER, "amount": 500.0}]}}
         self.assertEqual(rc.receiver_buyer_cost(rcosts), 0.0)
