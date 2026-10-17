@@ -4,6 +4,9 @@
 
 ---
 
+## 16.0.26.239 — 17-oct-2026 · build de integración de prueba Shoppy 502 (sin cambios funcionales respecto de 26.235)
+- Acompaña a meli_oerp_accounting y meli_oerp_multiple 26.239 (#524 conciliación por id de orden ML + contador del wizard), sobre la integración F5b #603 26.235. Rama `claude/502-test-int-1017-16.0`, sin landear en 16.0.
+
 ## 16.0.26.223 — 13-oct-2026 · stock de seguridad en el diagnóstico, fecha de la venta al confirmar, devoluciones canceladas, aviso de seguridad [#529 #640 #641]
 - **#529** El diagnóstico de stock descuenta el stock de seguridad **por SKU según las Reglas de SKU tipo «Stock Rule»** (columna «Quantity Stock»; el SKU exacto gana sobre `*`), igual que el envío de stock: ya no reactiva ni «corrige» publicaciones que el resguardo deja en 0 a propósito. Sin reglas, igual que antes.
 - **#640** Al confirmar una venta de MercadoLibre se conserva la **fecha de la venta de ML** (antes se pisaba con la hora de confirmación). Reemplazar un producto después ya no genera una devolución y dos transferencias internas pendientes.
