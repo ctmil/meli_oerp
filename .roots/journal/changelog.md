@@ -4,6 +4,8 @@
 
 ---
 
+## 19.0.26.245 — 19-oct-2026 · el cupón de ML ya no cambia una venta facturada [#529]
+- **#529** Si la venta ya tiene una factura de cliente **publicada**, la actualización de la orden de ML ya no reescribe el descuento del cupón en sus líneas: venta y factura quedan con el mismo importe. Las ventas sin factura o con factura en borrador siguen recibiendo el cupón como antes.
 ## 19.0.26.284 — 22-oct-2026 · una venta de MercadoLibre ya no se crea dos veces [#431]
 - **Venta duplicada:** cuando dos procesos traían la misma venta de MercadoLibre al mismo tiempo (las notificaciones y el repaso periódico de ventas), se creaban dos ventas, dos envíos y el contacto dos veces. Ahora cada venta (o carrito) la importa un solo proceso: el otro la saltea y la venta queda una sola vez.
 - Requiere actualizar (`-u meli_oerp,meli_oerp_multiple`); sin campos nuevos. Build único 26.284 en 16/17/18/19.
