@@ -3360,6 +3360,12 @@ class mercadolibre_orders(models.Model):
             return None
         seller_total = 0.0
         for detail in rjson.get('details', []):
+            # [529] (19-oct-2026) type "discount" = oferta de PRECIO financiada por el vendedor:
+            # ML ya la descuenta del unit_price (Kindon 2000019046887762: lista 55.000, oferta
+            # 687,50, unit_price 54.312,50). Restarla otra vez dejaba la venta 689,56 por debajo
+            # de lo cobrado. Solo cuenta lo que NO esta en el precio (cupon del vendedor, etc.).
+            if detail.get('type') == 'discount':
+                continue
             for item in detail.get('items', []):
                 amounts = item.get('amounts', {})
                 seller_total += float(amounts.get('seller', 0) or 0)
@@ -3434,7 +3440,17 @@ class mercadolibre_orders(models.Model):
     def _set_product_unit_price( self, product_related_obj, Item, config=None ):
         order = self
         seller_discount = float(order.discount_seller_amount or 0)
-        unit_price = float(Item['unit_price']) - float(seller_discount / float(Item['quantity']))
+        unit_price = float(Item['unit_price'])
+        if seller_discount:
+            # [529] (19-oct-2026) El descuento del vendedor es de la ORDEN: se prorratea por el
+            # subtotal de cada item. Antes se restaba ENTERO (dividido la cantidad del item) en cada
+            # linea, o sea N veces en una orden de N items.
+            _qty = float(Item['quantity']) or 1.0
+            _order_subtotal = sum(float(oi.unit_price or 0) * float(oi.quantity or 0) for oi in order.order_items)
+            _share = 1.0
+            if _order_subtotal > 0:
+                _share = min(1.0, (unit_price * _qty) / _order_subtotal)
+            unit_price = unit_price - (seller_discount * _share) / _qty
         upd_line = {
             "price_unit": ml_product_price_conversion( self, product_related_obj=product_related_obj, price=unit_price, config=config )
         }
@@ -5392,6 +5408,10 @@ class mercadolibre_orders(models.Model):
             #_logger.info("Updating sale.order: %s" % (sorder.id))
             if (sorder.state in ['sale','done']) or ("locked" in sorder._fields and sorder.locked):
                 del meli_order_fields["pricelist_id"]
+                # [529] (19-oct-2026) Una venta confirmada ya no reescribe sus lineas: si se le cambia
+                # el descuento del vendedor, el control de importe (meli_amount_to_invoice) deja de
+                # coincidir con el precio de sus lineas y la venta queda trabada sin facturar.
+                meli_order_fields.pop('meli_discount_seller_amount', None)
             #_logger.info(meli_order_fields)
             sorder.meli_fix_team( meli=meli, config=config )
             for k in [k for k in meli_order_fields if k not in sorder._fields]:

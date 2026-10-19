@@ -603,16 +603,44 @@ def ml_date(datestr):
         return None
 
 def ml_tax_excluded(self, config=None ):
-    #11.0
-    #tax_excluded = self.env.user.has_group('sale.group_show_price_subtotal')
-    #12.0 and 13.0
-    tax_excluded = self.env.user.has_group('account.group_show_line_subtotals_tax_excluded')
+    """True = el precio de lista de Odoo es NETO (al publicar se suma el IVA; al importar se netea).
 
+    [529/543] (19-oct-2026) `auto` ("Configuracion del sistema") se resolvia con el grupo
+    account.group_show_line_subtotals_tax_excluded, que existe SOLO hasta Odoo 16 (17 lo movio a
+    website_sale; 18/19 usan res.company.account_price_include). En 17+ has_group() de un xmlid
+    inexistente da False, asi que `auto` ya era "lista con impuestos incluidos" para publicar e
+    importar precios. Se deja EXPLICITO y sin depender de un xmlid que no existe; NO se cambia el
+    significado: este flag gobierna el precio PUBLICADO (price_list_apply_tax=True) y atarlo a
+    account_price_include (default 'tax_excluded') subiria x1,21 lo publicado de todo cliente 17+
+    con `auto`. Las ORDENES no dependen de esto: ver ml_product_price_conversion [#486].
+    """
     company = (config and "company_id" in config._fields and config.company_id) or self.env.user.company_id
     config = config or company
     if (config and config.mercadolibre_tax_included not in ['auto']):
-        tax_excluded = (config.mercadolibre_tax_included in ['tax_excluded'])
-    return tax_excluded
+        return (config.mercadolibre_tax_included in ['tax_excluded'])
+    #11.0: 'sale.group_show_price_subtotal' / 12.0 a 16.0: el grupo de abajo / 17.0+: no existe
+    if self.env.ref('account.group_show_line_subtotals_tax_excluded', raise_if_not_found=False):
+        return self.env.user.has_group('account.group_show_line_subtotals_tax_excluded')
+    return False
+
+def ml_sale_tax_rates(taxes, company=None):
+    """(porcentaje, fijo) de los impuestos de VENTA no incluidos en precio, SOLO de `company`.
+
+    [543] (19-oct-2026) Un producto compartido entre compañias lleva en taxes_id el IVA de CADA
+    una: sumarlos todos dividia/multiplicaba por 1,42 en vez de 1,21 con dos compañias. Sin
+    compañia (llamador viejo) se suman todos, como antes.
+    """
+    txpercent = 0.0
+    txfixed = 0.0
+    for txid in (taxes or []):
+        if company and txid.company_id and txid.company_id != company:
+            continue
+        if (txid.type_tax_use == "sale" and not txid.price_include):
+            if (txid.amount_type == "percent"):
+                txpercent = txpercent + txid.amount
+            if (txid.amount_type == "fixed"):
+                txfixed = txfixed + txid.amount
+    return txpercent, txfixed
 
 def ml_product_price_conversion( self, product_related_obj, price, config=None):
     """Importe que COBRA ML (unitario de una orden, o flete) -> price_unit de la linea de venta.

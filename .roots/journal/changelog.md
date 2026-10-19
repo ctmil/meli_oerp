@@ -4,6 +4,15 @@
 
 ---
 
+## 16.0.26.249 — 19-oct-2026 · descuento del vendedor restado dos veces, IVA de una sola compañía, 401 de ML [#529 #543]
+- **#529 Descuento del vendedor:** una **oferta de precio** de ML (`/discounts` tipo `discount`) ya viene dentro del precio unitario; el importador la volvía a restar. Ej. Kindon: precio ML 54.312,50 (lista 55.000 − oferta 687,50) entraba como 53.625 y la venta quedaba 689,56 por debajo de lo cobrado. Ahora sólo se resta lo que no está en el precio (p. ej. el cupón financiado por el vendedor), y el importe a controlar/facturar usa el mismo valor.
+- **#529** El descuento del vendedor, que es de la **orden**, se **prorratea** entre sus ítems (antes se restaba entero en cada línea).
+- **#529** Una venta ya **confirmada** no recibe un descuento del vendedor nuevo al re-sincronizar: sus líneas no se reescriben, y cambiarlo dejaba el control de importe desalineado.
+- **#543 Multicompañía:** al importar precios de ML (y al publicarlos con «impuestos excluidos») se usa sólo el IVA de la compañía de la configuración. Un producto con el IVA de dos compañías dividía por 1,42 en vez de 1,21.
+- **«Tax Included = Configuración del sistema» (`auto`):** queda explícito que en Odoo 17+ equivale a «impuestos incluidos» (el grupo que consultaba existe sólo hasta 16). **No cambia ningún precio publicado.** Las ventas importadas ya se netean siempre desde 26.185 (#486).
+- **#529** Un **401 de token vencido** de ML (que viene sin `error`) ahora dispara el refresh del token.
+- Build único 26.249 en 16/17/18/19 (con meli_oerp_multiple 26.249).
+
 ## 16.0.26.223 — 13-oct-2026 · stock de seguridad en el diagnóstico, fecha de la venta al confirmar, devoluciones canceladas, aviso de seguridad [#529 #640 #641]
 - **#529** El diagnóstico de stock descuenta el stock de seguridad **por SKU según las Reglas de SKU tipo «Stock Rule»** (columna «Quantity Stock»; el SKU exacto gana sobre `*`), igual que el envío de stock: ya no reactiva ni «corrige» publicaciones que el resguardo deja en 0 a propósito. Sin reglas, igual que antes.
 - **#640** Al confirmar una venta de MercadoLibre se conserva la **fecha de la venta de ML** (antes se pisaba con la hora de confirmación). Reemplazar un producto después ya no genera una devolución y dos transferencias internas pendientes.
