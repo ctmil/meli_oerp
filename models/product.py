@@ -1293,15 +1293,8 @@ class product_product(models.Model):
 
         if ( tax_excluded and product_template.taxes_id ):
             _logger.info("Adjust taxes")
-            txfixed = 0
-            txpercent = 0
-            #_logger.info("Adjust taxes")
-            for txid in product_template.taxes_id:
-                if (txid.type_tax_use=="sale" and not txid.price_include):
-                    if (txid.amount_type=="percent"):
-                        txpercent = txpercent + txid.amount
-                    if (txid.amount_type=="fixed"):
-                        txfixed = txfixed + txid.amount
+            # [543] solo los impuestos de la compania de la config (antes sumaba los de todas: /1,42 con dos)
+            txpercent, txfixed = ml_sale_tax_rates(product_template.taxes_id, company)
             if (txfixed>0 or txpercent>0):
                 #_logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_converted))
                 ml_price_converted = txfixed + ml_price_converted / (1.0 + txpercent*0.01)
@@ -1320,15 +1313,8 @@ class product_product(models.Model):
 
         if ( tax_excluded and product_template.taxes_id ):
             _logger.info("Adjust taxes")
-            txfixed = 0
-            txpercent = 0
-            #_logger.info("Adjust taxes")
-            for txid in product_template.taxes_id:
-                if (txid.type_tax_use=="sale" and not txid.price_include):
-                    if (txid.amount_type=="percent"):
-                        txpercent = txpercent + txid.amount
-                    if (txid.amount_type=="fixed"):
-                        txfixed = txfixed + txid.amount
+            # [543] solo los impuestos de la compania de la config (antes sumaba los de todas: /1,42 con dos)
+            txpercent, txfixed = ml_sale_tax_rates(product_template.taxes_id, company)
             if (txfixed>0 or txpercent>0):
                 #_logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_converted))
                 ml_price_converted = txfixed + ml_price_converted / (1.0 + txpercent*0.01)
@@ -1441,15 +1427,8 @@ class product_product(models.Model):
         tax_excluded = ml_tax_excluded(self, config=config)
         if ( price_list_apply_tax and tax_excluded and product_tmpl.taxes_id ):
             _logger.info("Adjust taxes for publish")
-            txfixed = 0
-            txpercent = 0
-            #_logger.info("Adjust taxes")
-            for txid in product_tmpl.taxes_id:
-                if (txid.type_tax_use=="sale" and not txid.price_include):
-                    if (txid.amount_type=="percent"):
-                        txpercent = txpercent + txid.amount
-                    if (txid.amount_type=="fixed"):
-                        txfixed = txfixed + txid.amount
+            # [543] solo los impuestos de la compania de la config (antes sumaba los de todas: /1,42 con dos)
+            txpercent, txfixed = ml_sale_tax_rates(product_tmpl.taxes_id, company)
             if (txfixed>0 or txpercent>0):
                 #_logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_converted))
                 new_price = txfixed + new_price * (1.0 + txpercent*0.01)
