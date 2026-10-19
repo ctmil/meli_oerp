@@ -801,6 +801,13 @@ class mercadolibre_shipment(models.Model):
 
             ship_default_code = ship_name
 
+            # [#529] La compania que manda es la de la VENTA: el producto de envio y el
+            # carrier tienen que ser de esa compania (o sin compania), si no Odoo rechaza
+            # la venta y la entrega con "company inconsistencies". Con la venta en la
+            # compania de la config (el caso normal) el dominio es el mismo de antes.
+            so_company = sorder.company_id or company
+            company_domain = [('company_id', '=', so_company.id)]
+
             if (shipment.mode=="me1"):
                 product_shipping_id = product_obj.search([('default_code','ilike','ENVIO-ME1')]
                                                             + company_domain,
@@ -840,7 +847,7 @@ class mercadolibre_shipment(models.Model):
                     "type": "service",
                     #"taxes_id": None
                     "categ_id": default_categ.id,
-                    "company_id": company.id
+                    "company_id": so_company.id
                 }
                 #_logger.info(ship_prod)
                 product_shipping_tpl = product_tpl.create((ship_prod))
@@ -858,26 +865,29 @@ class mercadolibre_shipment(models.Model):
 
             ship_carrier = {
                 "name": ship_name,
-                "company_id": (self.company_id and self.company_id.id),
+                "company_id": (so_company and so_company.id) or False,
             }
             ship_carrier["product_id"] = product_shipping_id.id
 
             # 1) Buscar en tabla de mapeo meli_oerp.carrier.mapping
             ship_carrier_id = self.env["meli_oerp.carrier.mapping"].resolve_carrier(
                 meli_name=ship_name,
-                company=company,
+                company=so_company,
                 product_shipping_id=product_shipping_id,
             )
 
-            # 2) Fallback: buscar delivery.carrier por nombre
+            # 2) Fallback: buscar delivery.carrier por nombre, SOLO en la compania de la
+            # venta y, si no hay, entre los carriers sin compania.
+            # [#529] Antes el segundo intento buscaba en TODAS las companias y tomaba el
+            # carrier homonimo de otra (Kindon tomo el "Personalizado MFlex" de UniversoPets).
             if not ship_carrier_id:
                 ship_carrier_id = self.env["delivery.carrier"].search(
-                    [('name', '=ilike', ship_carrier['name'])] + company_domain,
-                    order="company_id asc", limit=1)
+                    [('name', '=ilike', ship_carrier['name']), ('company_id', '=', so_company.id)],
+                    limit=1)
             if not ship_carrier_id:
                 ship_carrier_id = self.env["delivery.carrier"].search(
-                    [('name', '=ilike', ship_carrier['name'])],
-                    order="company_id asc", limit=1)
+                    [('name', '=ilike', ship_carrier['name']), ('company_id', '=', False)],
+                    limit=1)
 
             # 3) Último recurso: crear carrier nuevo
             if not ship_carrier_id:
@@ -903,21 +913,27 @@ class mercadolibre_shipment(models.Model):
 
             all_company_ok = False
             if ship_carrier_id and product_shipping_id:
-                all_company_ok = ship_carrier_id.company_id == sorder.company_id and product_shipping_id.company_id == sorder.company_id
-                already_notified = sorder.message_ids.filtered(
-                    lambda m: m.body and "Companias Coinciden OK" in (m.body or "")
-                )
-                if not already_notified:
-                    sorder.message_post(body=str("Companias Coinciden OK, Carrier, Servicio de envio y Pedido"))
-
-                if all_company_ok == False:
-                    #try and check to set or change products and carriers
-                    if not ship_carrier_id or not product_shipping_id:
-                        message_str_error = str("Companias no coinciden en Carrier, Servicio y Orden")
-                        message_str_error+= str("\n")
-                        message_str_error+= str( ( ship_carrier_id and str(ship_carrier_id.company_id or "Carrier sin Empresa") ) or "Sin Carrier" )
-                        message_str_error+= str("\n")
-                        message_str_error+= str( (product_shipping_id and str(product_shipping_id.company_id or "Servicio de envio sin Empresa")) or "Sin servicio de envio" )
+                # [#529] Mismo criterio que el _check_company de Odoo: sin compania o la de la
+                # venta. El "OK" se postea SOLO si de verdad coinciden (antes se posteaba
+                # antes de comparar, y el aviso de desajuste no salia nunca).
+                def _same_company(rec):
+                    return (not rec.company_id) or rec.company_id == sorder.company_id
+                all_company_ok = _same_company(ship_carrier_id) and _same_company(product_shipping_id)
+                if all_company_ok:
+                    already_notified = sorder.message_ids.filtered(
+                        lambda m: m.body and "Companias Coinciden OK" in (m.body or "")
+                    )
+                    if not already_notified:
+                        sorder.message_post(body=str("Companias Coinciden OK, Carrier, Servicio de envio y Pedido"))
+                else:
+                    message_str_error = "Companias no coinciden en Carrier, Servicio y Orden. Pedido: %s. Carrier %s: %s. Servicio de envio %s: %s." % (
+                        sorder.company_id.name or "Sin Empresa",
+                        ship_carrier_id.name, ship_carrier_id.company_id.name or "sin Empresa",
+                        product_shipping_id.display_name, product_shipping_id.company_id.name or "sin Empresa")
+                    already_warned = sorder.message_ids.filtered(
+                        lambda m: m.body and message_str_error in (m.body or "")
+                    )
+                    if not already_warned:
                         sorder.message_post(body=message_str_error)
             else:
                 sorder.message_post(body=str("Sin servicio de envio o carrier."))
