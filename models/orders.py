@@ -843,6 +843,44 @@ class sale_order(models.Model):
                     total += pay.shipping_amount or 0.0
         return max(total, 0.0)
 
+    def _meli_sale_ml_orders(self):
+        """26.250: órdenes ML de la venta (many2many meli_orders + las que apuntan a ella)."""
+        self.ensure_one()
+        return self.meli_orders | self.env['mercadolibre.orders'].search([('sale_order', '=', self.id)])
+
+    def _meli_pack_alive_orders(self):
+        """26.250: en una venta de CARRITO con 2+ órdenes ML, las órdenes que NO están canceladas.
+        Vacío si la venta tiene una sola orden ML."""
+        self.ensure_one()
+        morders = self._meli_sale_ml_orders()
+        if len(morders) < 2:
+            return morders.browse()
+        return morders.filtered(lambda m: (m.status or '') != 'cancelled')
+
+    def _meli_cancel_hold_partial_pack(self, cancel_msg, order_json=None, config=None):
+        """26.250 (#431 riesgo 3): ML canceló UNA orden de un carrito y otras siguen vigentes.
+        Antes se cancelaba la venta ENTERA (con devoluciones y facturas de las órdenes vivas).
+        Ahora no se cancela: nota única en la venta. Cuando ML cancela la última orden viva, la
+        venta sigue el camino de cancelación de siempre. pack_splitted y la acción manual quedan afuera.
+        :return: True si retuvo (no hay que cancelar)."""
+        self.ensure_one()
+        if self.env.context.get('meli_cancel_ignore_partial_pack'):
+            return False
+        if self._meli_cancel_is_pack_splitted(order_json=order_json):
+            return False
+        alive = self._meli_pack_alive_orders()
+        if not alive:
+            return False
+        alive_ids = sorted(str(a.order_id) for a in alive)
+        _logger.info("meli_cancel %s: carrito PARCIAL, no se cancela la venta (vigentes: %s)", self.name, alive_ids)
+        meli_message_post(
+            self,
+            "MercadoLibre canceló una orden de este carrito, pero %d orden(es) siguen vigentes (%s). No se "
+            "canceló la venta completa: revise las líneas y la entrega de la orden cancelada. Motivo ML: %s" % (
+                len(alive_ids), ", ".join(alive_ids), cancel_msg),
+            config=config, once_key="cancel-pack-parcial-%s-%s" % (self.id, "-".join(alive_ids)))
+        return True
+
     def _meli_pack_sync_cancelled(self, order_json=None):
         """26.229 - Venta de un PACK: si TODAS sus órdenes ML están canceladas y la venta
         todavía no lo refleja, escribe meli_status='cancelled' + motivo/fecha de la orden que
@@ -850,8 +888,13 @@ class sale_order(models.Model):
         camino de siempre (confirm_ml / meli_cancel_with_detail) que corre a continuación.
         Con una sola orden ML no hace nada (esa venta ya recibe el estado de su orden)."""
         self.ensure_one()
-        morders = self.meli_orders
-        if len(morders) < 2 or self.meli_status == "cancelled":
+        morders = self._meli_sale_ml_orders()
+        if not morders or self.meli_status == "cancelled":
+            return False
+        if len(morders) < 2 and str(self.meli_order_id or '') in ('', str(morders.order_id or '')):
+            # 26.250: venta de UNA orden ML (no carrito): recibe el estado por su propio camino.
+            # Un CARRITO con una sola orden (meli_order_id = pack_id) sí entra: orders_update_order_json
+            # no la encuentra por order_id y su meli_status no se escribía (#431, carritos 2026-09).
             return False
         if not all((m.status or '') == 'cancelled' for m in morders):
             return False
@@ -1737,6 +1780,9 @@ class sale_order(models.Model):
         # mano. Va ANTES de los dos modos y antes de cualquier red o escritura.
         if self._meli_cancel_hold_by_cutoff(cancel_msg, order_json=order_json, config=config):
             return False
+        # 26.250 (#431): carrito con órdenes ML todavía vigentes ⇒ no se cancela la venta entera.
+        if self._meli_cancel_hold_partial_pack(cancel_msg, order_json=order_json, config=config):
+            return False
 
         if self._meli_cancel_mode(config) == 'por_estado_ml':
             return self._meli_cancel_por_estado_ml(cancel_msg, order_json=order_json, meli=meli, config=config)
@@ -2001,7 +2047,7 @@ class sale_order(models.Model):
             cancel_msg = "Orden cancelada por MercadoLibre."
             if so.meli_status_detail:
                 cancel_msg += " Motivo: %s" % so.meli_status_detail
-            so.with_context(meli_cancel_ignore_cutoff=True).meli_cancel_with_detail(cancel_msg)
+            so.with_context(meli_cancel_ignore_cutoff=True, meli_cancel_ignore_partial_pack=True).meli_cancel_with_detail(cancel_msg)
             if so.state == 'cancel':
                 so.meli_cancel_held = False
                 done += 1
@@ -3673,6 +3719,51 @@ class mercadolibre_orders(models.Model):
         self.discount_seller_amount = seller_total
         _logger.info("MELI order %s: seller_amount=%.2f calculado desde %d pago(s) locales.",
                      self.order_id, seller_total, len(self.payments))
+
+    def _meli_adopt_unlinked_sale_line(self, sorder, line_fields):
+        """26.250 (#431 bug 6): adoptar la línea del MISMO producto que no tiene vínculo con ML.
+
+        Al cancelar y volver a confirmar una venta a mano (o al editarla en cotización) la línea
+        que queda la crea el usuario y NO tiene `meli_order_item_id`. La sincronización la buscaba
+        por (item, variación, venta), no la encontraba y agregaba OTRA línea igual ⇒ venta con el
+        producto duplicado y un abastecimiento nuevo. Ahora, antes de crear, se adopta la línea
+        sin vínculo de ese producto escribiéndole los ids de ML (también en cotización: cubre la
+        sincronización que cae entre "cotización" y "confirmar").
+        Si hay varias candidatas se adopta la de la misma cantidad (o la primera) y se avisa en el
+        log: nunca se crea otra. Devuelve la línea adoptada o un recordset vacío.
+        """
+        SOL = self.env['sale.order.line']
+        product_id = line_fields.get('product_id')
+        if not sorder or not product_id:
+            return SOL
+        cands = SOL.search([('order_id', '=', sorder.id),
+                            ('product_id', '=', product_id),
+                            ('meli_order_item_id', 'in', [False, ''])], order='id')
+        cands = cands.filtered(lambda l: not l.display_type)
+        if not cands:
+            return SOL
+        qty = line_fields.get('product_uom_qty')
+        line = cands.filtered(lambda l: qty and abs((l.product_uom_qty or 0.0) - float(qty)) < 0.0001)[:1] or cands[:1]
+        if len(cands) > 1:
+            _logger.warning("MELI: %s tiene %s líneas sin vínculo ML del producto %s: se adopta la línea %s para el item %s",
+                            sorder.name, len(cands), product_id, line.id, line_fields.get('meli_order_item_id'))
+        vals = {k: line_fields[k] for k in ('meli_order_item_id', 'meli_order_item_variation_id', 'meli_order_item_iva')
+                if k in line_fields}
+        line.write(vals)
+        _logger.info("MELI: %s adopta la línea %s (producto %s, sin vínculo ML) para el item %s (variación %s)",
+                     sorder.name, line.id, product_id, vals.get('meli_order_item_id'), vals.get('meli_order_item_variation_id'))
+        return line
+
+    def _meli_note_line_not_added(self, sorder, line_fields, config=None):
+        """26.250 (#431 bug 6): control visible cuando la sincronización NO agrega una línea a una
+        venta confirmada. Una nota por item (once_key): el usuario ve que ML informa un item que la
+        venta no tiene vinculado, en vez de que aparezca una línea nueva sin aviso."""
+        _item = line_fields.get('meli_order_item_id')
+        _var = line_fields.get('meli_order_item_variation_id')
+        msg = ("MercadoLibre informa el item %s (variación %s, cantidad %s) y esta venta confirmada no tiene una "
+               "línea vinculada a ese item. No se agregó una línea automáticamente para no duplicar la entrega: "
+               "revise las líneas de la venta.") % (_item, _var or '-', line_fields.get('product_uom_qty'))
+        meli_message_post(sorder, msg, config=config, once_key="linea-no-agregada-%s-%s" % (_item, _var or ''))
 
     def _set_product_unit_price( self, product_related_obj, Item, config=None, items_total=None ):
         """Precio unitario de la línea = precio de ML menos el descuento que paga el VENDEDOR.
@@ -6137,6 +6228,10 @@ class mercadolibre_orders(models.Model):
                         if len(_same_item) == 1:
                             saleorderline_item_ids = _same_item
                     if not saleorderline_item_ids:
+                        # 26.250 (#431 bug 6): adoptar la línea del mismo producto sin vínculo ML
+                        # (la deja el usuario al cancelar y reconfirmar) en vez de crear otra.
+                        saleorderline_item_ids = order._meli_adopt_unlinked_sale_line(sorder, saleorderline_item_fields)
+                    if not saleorderline_item_ids:
                         # 26.229: NUNCA se agrega una línea a una venta ya
                         # confirmada/bloqueada (mismo criterio que el write de abajo). El re-sync de una
                         # venta cancelada y reconfirmada a mano agregaba la línea otra vez y el abastecimiento generaba movimientos nuevos en la entrega.
@@ -6144,6 +6239,7 @@ class mercadolibre_orders(models.Model):
                         if _so_lines_locked:
                             _logger.warning("MELI: %s está confirmada (state=%s): NO se agrega la línea del item %s (variación %s) desde la sincronización",
                                             sorder.name, sorder.state, saleorderline_item_fields['meli_order_item_id'], _var)
+                            order._meli_note_line_not_added(sorder, saleorderline_item_fields, config=config)
                         elif sorder.meli_paid_amount==0.0 or 1.1<abs((sorder.meli_paid_amount-(sorder.meli_discount_seller_amount or 0))-sorder.amount_total):
                             saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
                     
@@ -6861,7 +6957,8 @@ class mercadolibre_orders(models.Model):
                         order.sale_order.meli_cancel_date = ml_datetime(cancel_detail.get("date")) or False
                     if order_json["status"] in ("cancelled",):
                         sorder = order.sale_order
-                        if sorder.meli_status != "cancelled":
+                        # 26.250: en un carrito con otras órdenes vigentes la venta NO pasa a cancelada.
+                        if sorder.meli_status != "cancelled" and not sorder._meli_pack_alive_orders():
                             sorder.meli_status = "cancelled"
                         if sorder.state in ["draft", "sale", "sent", "done"]:
                             cancel_msg = "Orden cancelada por MercadoLibre."
