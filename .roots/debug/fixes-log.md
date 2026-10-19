@@ -4,6 +4,15 @@
 
 ---
 
+## 19 oct 2026 — #529 UniversoPets: el cupón re-descontaba ventas ya facturadas (v16.0.26.245)
+**Síntoma:** SO 19396 (ML 2000019028383918) facturada FA-B 00003-00000065 por 54.312,35; seis minutos después OdooBot
+bajó la venta a 54.009,56 ⇒ venta ≠ factura.
+**Causa:** el bloque del cupón de `orders_update_order_json` (modos product_discount / separate_line / full) sólo
+excluía SO `done`/`locked`; en `sale` con factura posteada recalculaba `line.discount` sobre el `price_unit` vigente.
+**Fix:** `_so_editable = False` si la SO tiene una `out_invoice` **posteada**. No se usa `qty_invoiced` porque cuenta
+borradores y el borrador sí debe seguir el cupón (`meli_sync_draft_invoice_discounts`, sólo 19.0).
+**Prueba:** banco local, texto literal del bloque sobre SO real: control (origin) reproduce 54.312,35 → 52.248,48 con
+factura 54.312,35; con fix venta == factura. Rama `claude/529-cupon-facturada-16.0`.
 ## 22 oct 2026 — #431 venta ML doble por importación en paralelo (v16.0.26.284)
 Barrido `CRON_UNPROCESSED_ORDERS` (Cron Meli Orders) + `Meli Process Order Notifications` importaban la misma orden a la
 vez: buscar-y-crear sin lock (el lock existente es por NOTIFICACIÓN) ⇒ 2 mercadolibre.orders + 2 shipments + contacto
