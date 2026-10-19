@@ -4,6 +4,9 @@
 
 ---
 
+## 19.0.26.247 — 19-oct-2026 · método de envío de la propia compañía [#529]
+- **#529** Multi-compañía: si la tabla de equivalencias de métodos de envío no tiene uno asignado, la venta ya no toma el método de envío **de otra compañía** con el mismo nombre (eso hacía que Odoo rechazara la venta y la entrega por «company inconsistencies»). Busca sólo en la compañía de la venta o entre los métodos sin compañía; si no hay, lo crea en la compañía de la venta. El mensaje «Compañías coinciden OK» se publica sólo cuando de verdad coinciden; si no, la venta muestra qué compañía tiene el método y el producto de envío.
+
 ## 19.0.26.238 — 17-oct-2026 · build de flota (sin cambios funcionales en este módulo)
 - Acompaña a meli_oerp_multiple 26.238 (#361: stock de publicaciones pausadas en México). Build único 26.238 (sólo serie 19.0 en esta entrega).
 
