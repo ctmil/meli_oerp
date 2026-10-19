@@ -4,6 +4,16 @@
 
 ---
 
+## 19 oct 2026 — #529 UniversoPets: el cupón re-descontaba ventas ya facturadas (v17.0.26.245)
+**Síntoma:** SO 19396 (ML 2000019028383918) facturada FA-B 00003-00000065 por 54.312,35; seis minutos después OdooBot
+bajó la venta a 54.009,56 ⇒ venta ≠ factura.
+**Causa:** el bloque del cupón de `orders_update_order_json` (modos product_discount / separate_line / full) sólo
+excluía SO `done`/`locked`; en `sale` con factura posteada recalculaba `line.discount` sobre el `price_unit` vigente.
+**Fix:** `_so_editable = False` si la SO tiene una `out_invoice` **posteada**. No se usa `qty_invoiced` porque cuenta
+borradores y el borrador sí debe seguir el cupón (`meli_sync_draft_invoice_discounts`, sólo 19.0).
+**Prueba:** banco local, texto literal del bloque sobre SO real: control (origin) reproduce 54.312,35 → 52.248,48 con
+factura 54.312,35; con fix venta == factura. Rama `claude/529-cupon-facturada-17.0`.
+
 ## 13 oct 2026 — #638 T3LC: la cancelación automática devolvía stock con CUALQUIER motivo (v17.0.26.221)
 **Síntoma:** el barrido rotativo de estados (#638, 26.218) cancelaba y **devolvía** (IN validado) las ventas canceladas
 en ML de los últimos 15 días sin mirar el motivo: `pack_splitted` (los ítems salen en las órdenes nuevas del split),
