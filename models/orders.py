@@ -6048,6 +6048,16 @@ class mercadolibre_orders(models.Model):
             # reparto depende SOLO del modo declarado en la config.
             _coupon_mode = meli_resolve_coupon_invoice_mode(config)
             _so_editable = sorder.state not in ('done',) and not ("locked" in sorder._fields and sorder.locked)
+            # [529] (19-oct-2026) Una venta con factura de cliente POSTEADA no se re-descuenta:
+            # reescribir line.discount despues de facturar deja venta != factura (SO 19396:
+            # factura 54.312,35, OdooBot la bajo a 54.009,56 seis minutos despues). Se mira la
+            # factura posteada y NO qty_invoiced, porque qty_invoiced tambien cuenta borradores
+            # y el borrador SI debe seguir el cupon (meli_sync_draft_invoice_discounts).
+            if _so_editable and "invoice_ids" in sorder._fields and sorder.invoice_ids.filtered(
+                    lambda m: m.state == 'posted' and m.move_type == 'out_invoice'):
+                _so_editable = False
+                _logger.info("MELI: coupon not applied on SO %s: it already has a posted invoice",
+                             sorder.name)
             if _coupon_mode == 'product_discount':
                 if _so_editable:
                     non_delivery_lines = sorder.order_line.filtered(lambda l: not l.is_delivery)
