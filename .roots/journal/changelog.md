@@ -4,6 +4,10 @@
 
 ---
 
+## 19.0.26.246 — 19-oct-2026 · match de SKU por token (opcional) [#543]
+- **#543** Nueva opción **«Search SKU by token»** (`mercadolibre_sku_token_match`, por defecto **apagada**) y **«SKU token separators»** (default `- /`). Para catálogos donde el SKU de Mercado Libre trae el código de Odoo **más** una descripción (p.ej. `21342-ALIMENTO PERRO 20K` contra Referencia interna `21342`): se parte el SKU por los separadores y se vincula **sólo** si exactamente un trozo coincide con la Referencia interna de un único producto. Ningún trozo, dos trozos o código repetido en Odoo ⇒ no vincula (queda en el log). Es respaldo: corre después de la búsqueda exacta de siempre; apagada, todo funciona igual que antes.
+- Config de la compañía (pestaña de importación, junto a «Search SKU»). Aplica a la importación de publicaciones (`product_meli_get_products`) y a la búsqueda de producto al importar ventas (`orders.py`).
+
 ## 19.0.26.238 — 17-oct-2026 · build de flota (sin cambios funcionales en este módulo)
 - Acompaña a meli_oerp_multiple 26.238 (#361: stock de publicaciones pausadas en México). Build único 26.238 (sólo serie 19.0 en esta entrega).
 

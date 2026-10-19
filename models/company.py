@@ -642,6 +642,21 @@ class res_company(models.Model):
              "Vincula UNICAMENTE si el resultado es un solo producto: con 0 o con varios deja la "
              "publicacion sin vincular y lo registra en el log. Viene desactivado a proposito, porque "
              "hay catalogos donde el barcode no es unico o guarda un SKU interno.")
+    mercadolibre_sku_token_match = fields.Boolean(
+        string='Search SKU by token',
+        default=False,
+        help="Vincular cuando el SKU de ML trae el codigo de Odoo MAS otro texto, p.ej.\n"
+             "'21342-VITAL PREMIUM PERRO ADULTO 20K' con Referencia interna '21342'.\n"
+             "Solo actua como respaldo, DESPUES de que la busqueda exacta por SKU no encontro nada: "
+             "el SKU se parte por los separadores y se acepta el producto SOLO si exactamente un "
+             "trozo coincide con la Referencia interna de UN UNICO producto. Si no coincide ningun "
+             "trozo, si coinciden dos, o si el codigo esta repetido en Odoo, NO se vincula y queda "
+             "en el log. Viene desactivado: encenderlo cambia como se vinculan publicaciones y ventas.")
+    mercadolibre_sku_token_separators = fields.Char(
+        string='SKU token separators',
+        default='- /',
+        help="Caracteres que separan el codigo del resto del SKU de ML. Cada caracter es un "
+             "separador (el espacio cuenta como cualquier espacio en blanco). Vacio = '- /'.")
 
     mercadolibre_seller_user = fields.Many2one("res.users", string="Vendedor", help="Usuario con el que se registrarán las órdenes automáticamente")
     mercadolibre_seller_team = fields.Many2one("crm.team", string="Equipo de ventas", help="Equipo de ventas asociado a las ventas de ML")
@@ -1201,6 +1216,13 @@ class res_company(models.Model):
                                     posting_id.meli_id = item_id
                                 if (len(posting_id)>1):
                                     _logger.error("Founded templates more than 2 default code: seller_sku: "+str(seller_sku)+" template: "+str(posting_id.mapped('name')))
+                            # [#543] Respaldo por TOKEN del SKU (mercadolibre_sku_token_match):
+                            # solo si la busqueda exacta no encontro nada. Apagado = no hace nada.
+                            if (not posting_id or len(posting_id)==0):
+                                token_id = self.env['product.product']._meli_sku_token_resolve( seller_sku, company, company_domain )
+                                if token_id:
+                                    posting_id = token_id
+                                    posting_id.meli_id = item_id
 
                         # Respaldo por CODIGO DE BARRAS (mercadolibre_import_search_barcode).
                         # Solo corre si la busqueda por SKU no dejo exactamente UN product.product:
@@ -1248,6 +1270,16 @@ class res_company(models.Model):
                                     posting_id = seller_sku and self.env['product.product'].search([('default_code','=',seller_sku) ]
                                                                                                     + company_domain)
                                     if (posting_id and seller_sku and len(posting_id)==1):
+                                        posting_id.meli_id = item_id
+                                        if (len(posting_id.product_tmpl_id.product_variant_ids)>1):
+                                            posting_id.meli_id_variation = var['id']
+
+                                # [#543] Respaldo por TOKEN del SKU de la variacion (apagado = no hace nada).
+                                if (company.mercadolibre_import_search_sku and not posting_id):
+                                    var_sku = ( var.get('seller_custom_field') or var.get('seller_sku') )
+                                    token_id = var_sku and self.env['product.product']._meli_sku_token_resolve( var_sku, company, company_domain )
+                                    if token_id:
+                                        posting_id = token_id
                                         posting_id.meli_id = item_id
                                         if (len(posting_id.product_tmpl_id.product_variant_ids)>1):
                                             posting_id.meli_id_variation = var['id']

@@ -45,6 +45,7 @@ if (not ('replace' in string.__dict__)):
 
 from . import versions
 from .versions import *
+from .sku_token import meli_sku_token_pick, like_escape as _meli_like_escape, RESULT_AMBIGUOUS_TOKENS, RESULT_AMBIGUOUS_PRODUCT
 
 from html.parser import HTMLParser
 
@@ -1251,6 +1252,67 @@ class product_template(models.Model):
 class product_product(models.Model):
 
     _inherit = "product.product"
+
+    # ------------------------------------------------------------------
+    # [#543] Match de SKU por TOKEN (opcion `mercadolibre_sku_token_match`).
+    # UN solo helper para todos los puntos de matching por SKU del suite
+    # (importacion, binding, ventas). Con la opcion APAGADA devuelve vacio/False
+    # SIN tocar la base: los llamadores lo usan solo como RESPALDO despues de la
+    # busqueda exacta de siempre, asi que el comportamiento no cambia.
+    # Regla y casos: models/sku_token.py.
+    # ------------------------------------------------------------------
+    @api.model
+    def _meli_sku_token_config(self, config):
+        """(activado, separadores) desde res.company, mercadolibre.configuration
+        o mercadolibre.account (se usa su configuracion)."""
+        if not config:
+            return False, None
+        if ('mercadolibre_sku_token_match' not in config._fields
+                and 'configuration' in config._fields):
+            config = config[:1].configuration
+        if not config or 'mercadolibre_sku_token_match' not in config._fields:
+            return False, None
+        config = config[:1]
+        return bool(config.mercadolibre_sku_token_match), config.mercadolibre_sku_token_separators
+
+    @api.model
+    def _meli_sku_token_resolve(self, sku, config=None, domain=None):
+        """Producto UNICO cuyo default_code es exactamente un token del SKU de ML.
+
+        Devuelve product.product de 1 registro, o vacio (opcion apagada, SKU sin
+        separadores, ningun token, varios tokens o codigo repetido en Odoo)."""
+        empty = self.env['product.product']
+        enabled, separators = self._meli_sku_token_config(config)
+        if not enabled or not sku or not isinstance(sku, str):
+            return empty
+        extra = list(domain or [])
+
+        def _lookup(token):
+            return empty.search([('default_code', '=ilike', _meli_like_escape(token))] + extra, limit=2)
+
+        found, token, result = meli_sku_token_pick(sku, separators, _lookup)
+        if found:
+            _logger.info("SKU token match: SKU ML '%s' -> token '%s' -> %s", sku, token, found.display_name)
+            return found
+        if result in (RESULT_AMBIGUOUS_TOKENS, RESULT_AMBIGUOUS_PRODUCT):
+            _logger.warning("SKU token match: SKU ML '%s' NO se vincula (%s: %s)", sku, result, token)
+        return empty
+
+    def _meli_sku_token_matches(self, sku, config=None, domain=None):
+        """True si ESTE producto es el que resuelve el SKU de ML por token.
+        `sku` puede ser una lista (publicacion con variaciones): alcanza con uno."""
+        product = self[:1]
+        if not product or not sku:
+            return False
+        enabled, _seps = self._meli_sku_token_config(config)
+        if not enabled:
+            return False
+        skus = sku if isinstance(sku, (list, tuple)) else [sku]
+        for one in skus:
+            if one and isinstance(one, str):
+                if self._meli_sku_token_resolve(one, config, domain).id == product.id:
+                    return True
+        return False
 
     def _meli_family_selector_attributes(self):
         """[#542] Atributos PROPIOS del vendedor que arman el selector de familia en ML.

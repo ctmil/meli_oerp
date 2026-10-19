@@ -3557,6 +3557,11 @@ class mercadolibre_orders(models.Model):
                 product_related = product_obj.search([('meli_id','=', meli_id)]
                                                       +company_domain)
 
+        # [#543] Respaldo por TOKEN del SKU (mercadolibre_sku_token_match): ultimo recurso,
+        # despues de SKU exacto, barcode y meli_id. Apagado = no hace nada.
+        if (not product_related and meli_seller_sku):
+            product_related = product_obj._meli_sku_token_resolve( meli_seller_sku, config or company, company_domain )
+
         return product_related
 
     def update_partner_billing_info( self, partner_id, meli_buyer_fields, Receiver):
@@ -5453,6 +5458,10 @@ class mercadolibre_orders(models.Model):
                                                                 +company_domain)
                     else:
                         seller_sku = ('seller_sku' in Item['item'] and Item['item']['seller_sku']) or ('seller_custom_field' in Item['item'] and Item['item']['seller_custom_field'])
+
+                    # [#543] Respaldo por TOKEN del SKU (apagado = no hace nada).
+                    if (not product_related and seller_sku):
+                        product_related = product_obj._meli_sku_token_resolve( seller_sku, config, company_domain )
 
 
                     #TODO: 3RD attempt using barcode

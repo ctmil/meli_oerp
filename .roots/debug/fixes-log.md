@@ -4,6 +4,12 @@
 
 ---
 
+## 19 oct 2026 — #543 Petswagon: SKU de ML «código-descripción» no vinculaba (v19.0.26.246)
+**Síntoma:** SKU en ML `21342-VITAL PREMIUM PERRO ADULTO 20K`, Referencia interna `21342`: el wizard de importación masiva no vinculaba nada y el binding de variante abortaba («Aborting binding product (using Only SKU: NO SKU)»).
+**Causa:** todo el matching del suite es exacto (`default_code =ilike sku`).
+**Fix:** opción `mercadolibre_sku_token_match` (+ `_separators`), default apagada, como RESPALDO después del exacto. Helper único: `models/sku_token.py` (regla pura) + `product.product._meli_sku_token_resolve/_matches` (ORM; apagada ⇒ 0 queries). Puntos: `company.product_meli_get_products` (ítem y variación), `mercadolibre.orders.search_meli_product` y 2.º intento de `orders_update_order_json`.
+**Prueba:** banco Odoo 16, 17, 18 y 19 (PG privado, shell ORM 39/39 en CADA serie): test puro contra la lista medida de 543 (1338 filas, 0 discrepancias: 586 activas/415 pausadas resuelven) + shell ORM 39/39 (único, sin match, ambiguo de tokens, código duplicado, comodín `_` escapado, otra compañía, separador custom, opción apagada ⇒ resultados de hoy y 0 queries, `bind_to` real: apagada no crea binding de variante, encendida sí).
+
 ## 13 oct 2026 — #638 T3LC: la cancelación automática devolvía stock con CUALQUIER motivo (v19.0.26.221)
 **Síntoma:** el barrido rotativo de estados (#638, 26.218) cancelaba y **devolvía** (IN validado) las ventas canceladas
 en ML de los últimos 15 días sin mirar el motivo: `pack_splitted` (los ítems salen en las órdenes nuevas del split),

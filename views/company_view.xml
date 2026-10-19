@@ -153,6 +153,8 @@
                                 <field name="mercadolibre_cron_get_questions" invisible="0"/>
                                 <field name="mercadolibre_import_search_sku" invisible="0"/>
                                 <field name="mercadolibre_import_search_barcode" invisible="0"/>
+                                <field name="mercadolibre_sku_token_match" invisible="0"/>
+                                <field name="mercadolibre_sku_token_separators" invisible="not mercadolibre_sku_token_match"/>
                                 <field name="mercadolibre_order_total_config" invisible="0"/>
                               </group>
                               <group>
