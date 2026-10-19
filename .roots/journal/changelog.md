@@ -4,6 +4,14 @@
 
 ---
 
+## 19.0.26.249 — 19-oct-2026 · descuento del vendedor restado dos veces, IVA de una sola compañía, 401 de ML [#529 #543]
+- **#529 Descuento del vendedor:** una **oferta de precio** de ML (`/discounts` tipo `discount`) ya viene dentro del precio unitario; el importador la volvía a restar. Ej. Kindon: precio ML 54.312,50 (lista 55.000 − oferta 687,50) entraba como 53.625 y la venta quedaba 689,56 por debajo de lo cobrado. Ahora sólo se resta lo que no está en el precio (p. ej. el cupón financiado por el vendedor), y el importe a controlar/facturar usa el mismo valor.
+- **#529** El descuento del vendedor, que es de la **orden**, se **prorratea** entre sus ítems (antes se restaba entero en cada línea).
+- **#529** Una venta ya **confirmada** no recibe un descuento del vendedor nuevo al re-sincronizar: sus líneas no se reescriben, y cambiarlo dejaba el control de importe desalineado.
+- **#543 Multicompañía:** al importar precios de ML (y al publicarlos con «impuestos excluidos») se usa sólo el IVA de la compañía de la configuración. Un producto con el IVA de dos compañías dividía por 1,42 en vez de 1,21.
+- **«Tax Included = Configuración del sistema» (`auto`):** queda explícito que en Odoo 17+ equivale a «impuestos incluidos» (el grupo que consultaba existe sólo hasta 16). **No cambia ningún precio publicado.** Las ventas importadas ya se netean siempre desde 26.185 (#486).
+- **#529** Un **401 de token vencido** de ML (que viene sin `error`) ahora dispara el refresh del token.
+- Build único 26.249 en 16/17/18/19 (con meli_oerp_multiple 26.249).
 ## 19.0.26.245 — 19-oct-2026 · el cupón de ML ya no cambia una venta facturada [#529]
 - **#529** Si la venta ya tiene una factura de cliente **publicada**, la actualización de la orden de ML ya no reescribe el descuento del cupón en sus líneas: venta y factura quedan con el mismo importe. Las ventas sin factura o con factura en borrador siguen recibiendo el cupón como antes.
 ## 19.0.26.284 — 22-oct-2026 · una venta de MercadoLibre ya no se crea dos veces [#431]
