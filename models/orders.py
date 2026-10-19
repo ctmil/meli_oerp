@@ -4080,6 +4080,23 @@ class mercadolibre_orders(models.Model):
                 self.discount_seller_coupon_amount = seller_coupon
             _logger.info("MELI discounts for order %s: seller_amount=%.2f (coupon_amount=%.2f)",
                          self.order_id, seller_total, self.coupon_amount)
+            seller_in_price = 0.0
+            for detail in rjson.get('details', []):
+                # [529] (19-oct-2026) type "discount" = oferta de PRECIO financiada por el vendedor:
+                # ML ya la descuenta del unit_price (Kindon 2000019046887762: lista 55.000, oferta
+                # 687,50, unit_price 54.312,50). Restarla otra vez dejaba la venta 689,56 por debajo
+                # de lo cobrado. Solo cuenta lo que NO esta en el precio (cupon del vendedor, etc.).
+                _in_price = (detail.get('type') == 'discount')
+                for item in detail.get('items', []):
+                    amounts = item.get('amounts', {})
+                    _seller = float(amounts.get('seller', 0) or 0)
+                    if _in_price:
+                        seller_in_price += _seller
+                    else:
+                        seller_total += _seller
+            self.discount_seller_amount = seller_total
+            _logger.info("MELI discounts for order %s: seller_amount=%.2f (en el precio, no se resta: %.2f) (coupon_amount=%.2f)",
+                         self.order_id, seller_total, seller_in_price, self.coupon_amount)
         except Exception as e:
             _logger.info("MELI: Could not fetch /orders/%s/discounts: %s", self.order_id, e)
             self._estimate_seller_discount_from_charges()
@@ -6163,6 +6180,10 @@ class mercadolibre_orders(models.Model):
             #_logger.info("Updating sale.order: %s" % (sorder.id))
             if (sorder.state in ['sale','done']) or ("locked" in sorder._fields and sorder.locked):
                 del meli_order_fields["pricelist_id"]
+                # [529] (19-oct-2026) Una venta confirmada ya no reescribe sus lineas: si se le cambia
+                # el descuento del vendedor, el control de importe (meli_amount_to_invoice) deja de
+                # coincidir con el precio de sus lineas y la venta queda trabada sin facturar.
+                meli_order_fields.pop('meli_discount_seller_amount', None)
             #_logger.info(meli_order_fields)
             sorder.meli_fix_team( meli=meli, config=config )
             for k in [k for k in meli_order_fields if k not in sorder._fields]:

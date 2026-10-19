@@ -4,6 +4,23 @@
 
 ---
 
+## 19 oct 2026 — #529 Kindon / #543 Petswagon: descuento del vendedor doble, IVA de todas las compañías, 401 (v18.0.26.249)
+**Síntoma (529):** orden 2000019046887762 (precio ML 54.312,50 = lista 55.000 − oferta del vendedor 687,50; cupón 2.062,50 100 % ML;
+pagó 52.250) entraba en 51.560,44: 689,56 por debajo de lo cobrado.
+**Causa:** `amounts.seller` de `/orders/{id}/discounts` suma también los detalles `type: "discount"` (oferta de PRECIO, ya
+descontada del `unit_price`); `_set_product_unit_price` la restaba otra vez, y además restaba el total de la ORDEN en cada
+ítem (`seller/qty`, sin prorratear). `meli_amount_to_invoice` resta el mismo valor ⇒ los dos errores se compensaban
+(venta 51.560,44 ≈ control 51.562,50): corregir sólo la línea dejaba la venta en «Condition not met».
+**Fix:** se excluye `type == 'discount'` al calcular `discount_seller_amount` (fuente única: lo heredan la línea y el control);
+prorrateo por subtotal del ítem; venta en sale/done no recibe un `meli_discount_seller_amount` nuevo. Validado contra 184
+detalles reales de `/discounts` (431 MX): `discount` 124 (siempre `funding_mode: seller`, total = unit_price), `coupon` 54, `cashback` 6.
+**#543:** `_meli_price_converted`, `_meli_set_product_price` y `set_meli_price` sumaban `taxes_id` de todas las compañías ⇒
+helper `ml_sale_tax_rates(taxes, company)`. **`auto`:** grupo `account.group_show_line_subtotals_tax_excluded` sólo existe ≤16;
+se deja explícito (17+ ⇒ False) SIN cambiar el significado: atarlo a `account_price_include` (default tax_excluded) subía ×1,21
+lo publicado de todo cliente 17+ con `auto` (`price_list_apply_tax=True`). El +21 % de órdenes de Kindon ya lo resolvía 26.185.
+**401:** helper `meli_is_auth_error()`; `get_new_instance` entra al refresh con `{"code":"unauthorized"}`.
+**Prueba:** tests/shell_529_descuento_vendedor_iva.py, banco Postgres 16/17/18/19 (11 checks). Control con origin: reproduce 53.625 y 85,21.
+**No cubre:** ventas ya importadas con el descuento doble (no se re-precian: corrección manual o re-importar en borrador).
 ## 19 oct 2026 — #529 UniversoPets: el cupón re-descontaba ventas ya facturadas (v18.0.26.245)
 **Síntoma:** SO 19396 (ML 2000019028383918) facturada FA-B 00003-00000065 por 54.312,35; seis minutos después OdooBot
 bajó la venta a 54.009,56 ⇒ venta ≠ factura.
