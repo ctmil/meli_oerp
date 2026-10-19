@@ -1961,16 +1961,26 @@ class mercadolibre_shipment(models.Model):
                                                                                     ('meli_order_item_variation_id','=',saleorderline_item_fields['meli_order_item_variation_id']),
                                                                                     ('order_id','=',shipment.sale_order.id)] )
 
+                                _adopted_line = False
+                                if not saleorderline_item_ids:
+                                    # 26.250 (#431 bug 6): adoptar la linea del mismo producto sin vinculo ML
+                                    # (la deja el usuario al cancelar y reconfirmar el carrito) en vez de crear otra.
+                                    saleorderline_item_ids = order._meli_adopt_unlinked_sale_line(sorder_pack, saleorderline_item_fields)
+                                    _adopted_line = bool(saleorderline_item_ids)
                                 if not saleorderline_item_ids:
                                     # 26.229: nunca agregar lineas a una venta de pack ya confirmada/bloqueada.
                                     if (sorder_pack.state in ('sale', 'done')) or ("locked" in sorder_pack._fields and sorder_pack.locked):
                                         _logger.warning("MELI: pack %s confirmado (state=%s): NO se agrega la linea del item %s desde la sincronizacion", sorder_pack.name, sorder_pack.state, saleorderline_item_fields['meli_order_item_id'])
+                                        order._meli_note_line_not_added(sorder_pack, saleorderline_item_fields, config=config)
                                     elif sorder_pack.amount_total<(sorder_pack.meli_paid_amount-(sorder_pack.meli_discount_seller_amount or sorder_pack.meli_coupon_amount)):
                                         #_logger.info("Sale Order Pack Create line")
                                         saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
                                 
                                 
-                                if saleorderline_item_ids:
+                                if saleorderline_item_ids and _adopted_line and ((sorder_pack.state in ('sale', 'done')) or ("locked" in sorder_pack._fields and sorder_pack.locked)):
+                                    # 26.250: linea adoptada en un pack confirmado: solo se vincula, no se tocan impuestos.
+                                    pass
+                                elif saleorderline_item_ids:
                                     #_logger.info(saleorderline_item_ids:"+str(saleorderline_item_ids))
                                     #_logger.info(product_related_obj taxes_id:"+str(product_related_obj.taxes_id))
                                     #_logger.info(product_related_obj taxes_id:"+str(product_related_obj.taxes_id and product_related_obj.taxes_id.company_id))
