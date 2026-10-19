@@ -4,6 +4,13 @@
 
 ---
 
+## 19 oct 2026 — #529 UniversoPets/Kindon: carrier de envío de OTRA compañía (v18.0.26.247)
+**Síntoma:** ventas de Kindon (cía 3) con «Personalizado MFlex»/«Estándar» de UniversoPets (cía 1) ⇒ «company inconsistencies… Delivery Method belongs to another company» al guardar la venta o validar la entrega; y en la venta «Companias Coinciden OK».
+**Causa:** `shipment._update_sale_order_shipping_info`: con el mapeo `meli_oerp.carrier.mapping` vacío, el 2.º fallback buscaba `delivery.carrier` por nombre SIN filtro de compañía. El «OK» se posteaba antes de comparar y el aviso de desajuste tenía una condición imposible (nunca salía).
+**Fix:** compañía efectiva = la de la VENTA (mapeo, búsqueda del producto de envío, búsqueda del carrier: cía de la venta y luego sin compañía; creación del carrier y del producto en la cía de la venta). Chequeo = `_check_company` de Odoo (sin compañía o la de la venta); «OK» sólo si pasa, si no aviso con las compañías reales (sin repetir).
+**Prueba:** banco Odoo 16/17/18/19, `tests/shell_carrier_cross_company.py` 8/8 en cada serie (venta cía B con carrier homónimo sólo en A ⇒ crea el de B; carrier sin compañía ⇒ lo usa; control cía A sin cambio; mapeo cruzado ⇒ sin «OK» y con aviso). Antes del fix el mismo test reproduce el bug (toma el carrier de A + «OK»).
+**No cubre:** datos ya cargados (las 8 ventas de Kindon se corrigen aparte).
+
 ## 13 oct 2026 — #638 T3LC: la cancelación automática devolvía stock con CUALQUIER motivo (v18.0.26.221)
 **Síntoma:** el barrido rotativo de estados (#638, 26.218) cancelaba y **devolvía** (IN validado) las ventas canceladas
 en ML de los últimos 15 días sin mirar el motivo: `pack_splitted` (los ítems salen en las órdenes nuevas del split),

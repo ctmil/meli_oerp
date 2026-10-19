@@ -4,6 +4,9 @@
 
 ---
 
+## 18.0.26.247 — 19-oct-2026 · método de envío de la propia compañía [#529]
+- **#529** Multi-compañía: si la tabla de equivalencias de métodos de envío no tiene uno asignado, la venta ya no toma el método de envío **de otra compañía** con el mismo nombre (eso hacía que Odoo rechazara la venta y la entrega por «company inconsistencies»). Busca sólo en la compañía de la venta o entre los métodos sin compañía; si no hay, lo crea en la compañía de la venta. El mensaje «Compañías coinciden OK» se publica sólo cuando de verdad coinciden; si no, la venta muestra qué compañía tiene el método y el producto de envío.
+
 ## 18.0.26.223 — 13-oct-2026 · stock de seguridad en el diagnóstico, fecha de la venta al confirmar, devoluciones canceladas, aviso de seguridad [#529 #640 #641]
 - **#529** El diagnóstico de stock descuenta el stock de seguridad **por SKU según las Reglas de SKU tipo «Stock Rule»** (columna «Quantity Stock»; el SKU exacto gana sobre `*`), igual que el envío de stock: ya no reactiva ni «corrige» publicaciones que el resguardo deja en 0 a propósito. Sin reglas, igual que antes.
 - **#640** Al confirmar una venta de MercadoLibre se conserva la **fecha de la venta de ML** (antes se pisaba con la hora de confirmación). Reemplazar un producto después ya no genera una devolución y dos transferencias internas pendientes.
