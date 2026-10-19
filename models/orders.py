@@ -3923,6 +3923,12 @@ class mercadolibre_orders(models.Model):
         seller_coupon = 0.0
         for detail in rjson.get('details', []):
             _is_coupon = str(detail.get('type') or '').lower() == 'coupon'
+            # [529] (19-oct-2026) type "discount" = oferta de PRECIO financiada por el vendedor:
+            # ML ya la descuenta del unit_price (Kindon 2000019046887762: lista 55.000, oferta
+            # 687,50, unit_price 54.312,50). Restarla otra vez dejaba la venta 689,56 por debajo
+            # de lo cobrado. Solo cuenta lo que NO esta en el precio (cupon del vendedor, etc.).
+            if detail.get('type') == 'discount':
+                continue
             for item in detail.get('items', []):
                 amounts = item.get('amounts', {})
                 _seller = float(amounts.get('seller', 0) or 0)
@@ -6091,6 +6097,10 @@ class mercadolibre_orders(models.Model):
             #_logger.info("Updating sale.order: %s" % (sorder.id))
             if (sorder.state in ['sale','done']) or ("locked" in sorder._fields and sorder.locked):
                 del meli_order_fields["pricelist_id"]
+                # [529] (19-oct-2026) Una venta confirmada ya no reescribe sus lineas: si se le cambia
+                # el descuento del vendedor, el control de importe (meli_amount_to_invoice) deja de
+                # coincidir con el precio de sus lineas y la venta queda trabada sin facturar.
+                meli_order_fields.pop('meli_discount_seller_amount', None)
             #_logger.info(meli_order_fields)
             sorder.meli_fix_team( meli=meli, config=config )
             for k in [k for k in meli_order_fields if k not in sorder._fields]:

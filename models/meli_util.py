@@ -48,6 +48,28 @@ def _meli_redact(data, omit=False):
     return data
 
 
+def meli_is_auth_error(rjson):
+    """[529] (19-oct-2026) ¿La respuesta de ML es un rechazo del TOKEN?
+
+    Con el token vencido ML responde HTTP 401 {"code": "unauthorized", "message": "invalid access token"},
+    SIN las claves `error` ni `status` (medido en Kindon 19-oct). Los chequeos de siempre
+    (`"error" in rjson`, `status and cause`) no lo veian: no se refrescaba el token y el barrido de
+    ordenes lo leia como "no hay ordenes nuevas".
+    """
+    if not isinstance(rjson, dict):
+        return False
+    code = str(rjson.get("code") or rjson.get("error") or "").lower()
+    message = str(rjson.get("message") or "").lower()
+    status = rjson.get("status")
+    try:
+        status = int(status) if status not in (None, "") else 0
+    except (TypeError, ValueError):
+        status = 0
+    if status == 401 or code in ("unauthorized", "invalid_token", "expired_token", "invalid_grant"):
+        return True
+    return ("access token" in message or "access_token" in message) and ("invalid" in message or "expired" in message)
+
+
 def _meli_company_allows(company, feature):
     """[un caso] Nivel de seguridad (odoo_connector_api). Sin ese módulo instalado: comportamiento de siempre."""
     if company and hasattr(company, '_ocapi_security_allows'):
@@ -1438,7 +1460,8 @@ class MeliUtil(models.AbstractModel):
                     return api_rest_client
 
                 #_logger.info(rjson)
-                if ( rjson and "error" in rjson) or refresh_force==True:
+                # [529] un 401 de token vencido viene sin "error": tambien dispara el refresh
+                if ( rjson and "error" in rjson) or meli_is_auth_error(rjson) or refresh_force==True:
 
                     if company.mercadolibre_cron_refresh or api_rest_client.access_token:
                         internals = {
