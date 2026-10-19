@@ -4,6 +4,10 @@
 
 ---
 
+## 18.0.26.246 — 19-oct-2026 · match de SKU por token (opcional) [#543]
+- **#543** Nueva opción **«Search SKU by token»** (`mercadolibre_sku_token_match`, por defecto **apagada**) y **«SKU token separators»** (default `- /`). Para catálogos donde el SKU de Mercado Libre trae el código de Odoo **más** una descripción (p.ej. `21342-ALIMENTO PERRO 20K` contra Referencia interna `21342`): se parte el SKU por los separadores y se vincula **sólo** si exactamente un trozo coincide con la Referencia interna de un único producto. Ningún trozo, dos trozos o código repetido en Odoo ⇒ no vincula (queda en el log). Es respaldo: corre después de la búsqueda exacta de siempre; apagada, todo funciona igual que antes.
+- Config de la compañía (pestaña de importación, junto a «Search SKU»). Aplica a la importación de publicaciones (`product_meli_get_products`) y a la búsqueda de producto al importar ventas (`orders.py`).
+
 ## 18.0.26.223 — 13-oct-2026 · stock de seguridad en el diagnóstico, fecha de la venta al confirmar, devoluciones canceladas, aviso de seguridad [#529 #640 #641]
 - **#529** El diagnóstico de stock descuenta el stock de seguridad **por SKU según las Reglas de SKU tipo «Stock Rule»** (columna «Quantity Stock»; el SKU exacto gana sobre `*`), igual que el envío de stock: ya no reactiva ni «corrige» publicaciones que el resguardo deja en 0 a propósito. Sin reglas, igual que antes.
 - **#640** Al confirmar una venta de MercadoLibre se conserva la **fecha de la venta de ML** (antes se pisaba con la hora de confirmación). Reemplazar un producto después ya no genera una devolución y dos transferencias internas pendientes.
