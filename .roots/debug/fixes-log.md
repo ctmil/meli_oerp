@@ -4,6 +4,19 @@
 
 ---
 
+## 19 oct 2026 — #431 bug 6 adopción de línea sin vínculo ML + carritos (v17.0.26.250)
+**1. Línea duplicada (medido en ventas reales: cancelar+reconfirmar a mano).** La línea vigente la crea el usuario sin
+`meli_order_item_id`; `orders_update_order_json` no la encontraba por (item, variación, venta), el monto no cuadraba y creaba
+otra (26.229 lo frenaba sólo en venta confirmada; en cotización seguía creando). Fix: `mercadolibre.orders._meli_adopt_unlinked_sale_line`
+adopta la línea sin vínculo del mismo producto (igual cantidad o la primera) antes de crear; en venta confirmada sin candidata,
+`_meli_note_line_not_added` deja una nota única (once_key). Gemelo pack en shipment.py (adoptada en pack confirmado: sólo vincula).
+**2. Carrito de una orden.** `_meli_pack_sync_cancelled` exigía ≥2 órdenes: un carrito (meli_order_id = pack_id) con una sola orden
+cancelada no tomaba meli_status. Ahora entra si la venta es de carrito.
+**3. Carrito parcial.** orders_resync_status / update_order_status cancelaban la venta ENTERA con una sola orden cancelada.
+`_meli_cancel_hold_partial_pack` (en meli_cancel_with_detail, tras el corte por fecha) retiene con nota única mientras quede una
+orden vigente; excepción pack_splitted y `action_meli_cancel_process_held`. update_order_status no marca meli_status en carrito parcial.
+**Tests:** `tests/test_adopcion_linea.py` (tag meli_26250, 9). Control sobre 26.188: el re-sync agrega la 2.ª línea (2 != 1).
+
 ## 15 oct 2026 — ventas ML: cupón del vendedor, envío del comprador, cupón+descuento, pack cancelado, línea en venta confirmada (v17.0.26.229)
 **1. Cupón a cargo del vendedor.** Síntoma: venta a precio lleno, factura sin el descuento. Causa: `orders_update_order_json`
 preciaba la línea con `self._set_product_unit_price` y en el import de una orden NUEVA `self` es el recordset vacío

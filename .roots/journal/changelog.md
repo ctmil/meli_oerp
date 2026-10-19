@@ -4,6 +4,13 @@
 
 ---
 
+## 17.0.26.250 — 19-oct-2026 · la sincronización no duplica productos en ventas reconfirmadas y no cancela un carrito con órdenes vigentes
+- **Producto duplicado:** si la venta se canceló y se volvió a confirmar a mano (o se editó en cotización), la línea que queda no está vinculada a MercadoLibre. La sincronización ahora **adopta esa línea** (mismo producto) en vez de agregar otra igual; también si cae mientras la venta está en cotización. Si hay varias sin vincular, adopta la de la misma cantidad.
+- **Venta confirmada sin la línea:** la sincronización no agrega líneas y deja **una nota** en la venta indicando el ítem de MercadoLibre que no está vinculado, para revisarlo.
+- **Carrito con una sola orden:** cuando MercadoLibre cancela la orden, la venta del carrito toma el estado cancelado y sigue el camino de cancelación de siempre (antes quedaba confirmada).
+- **Carrito con varias órdenes:** si MercadoLibre cancela **una** orden y otras siguen vigentes, ya no se cancela la venta entera: queda una nota en la venta. Cuando se cancela la última, la venta se cancela como siempre. La acción manual «procesar cancelaciones retenidas» y el pack dividido no cambian.
+- Requiere actualizar el módulo (`-u meli_oerp`); sin campos nuevos ni migración. Build único 26.250 en 16/17/18/19.
+
 ## 17.0.26.229 — 15-oct-2026 · cupón del vendedor en la venta, envío del comprador, cancelación de packs, sin líneas nuevas en ventas confirmadas
 - **Cupón a cargo del vendedor:** si MercadoLibre informa que el cupón lo paga el vendedor (`/orders/{id}/discounts`, `amounts.seller`), la venta **nace con el descuento** (precio de la línea = precio de ML − descuento del vendedor) y la factura sale por lo que pagó el comprador. Antes la venta nueva se creaba a precio lleno. El descuento se reparte entre los ítems si la orden trae más de uno. También se consulta cuando el cupón viene sólo en el pago. En los modos «cupón como descuento» / «cupón en línea aparte» se imputa sólo la parte que financia ML (sin descontarlo dos veces).
 - **Envío pagado por el comprador:** si el pago trae el envío y la venta no lo tenía registrado (`meli_shipping_amount` en 0, visto en cross_docking), se toma del pago: la venta cuadra y deja de figurar «Incompleta».
