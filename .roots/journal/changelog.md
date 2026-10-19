@@ -4,6 +4,9 @@
 
 ---
 
+## 19.0.26.245 — 19-oct-2026 · el cupón de ML ya no cambia una venta facturada [#529]
+- **#529** Si la venta ya tiene una factura de cliente **publicada**, la actualización de la orden de ML ya no reescribe el descuento del cupón en sus líneas: venta y factura quedan con el mismo importe. Las ventas sin factura o con factura en borrador siguen recibiendo el cupón como antes.
+
 ## 19.0.26.238 — 17-oct-2026 · build de flota (sin cambios funcionales en este módulo)
 - Acompaña a meli_oerp_multiple 26.238 (#361: stock de publicaciones pausadas en México). Build único 26.238 (sólo serie 19.0 en esta entrega).
 
