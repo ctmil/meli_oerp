@@ -28,6 +28,7 @@ import re
 from .meli_oerp_config import *
 from . import cancel_decision as _meli_cd
 from .receiver_cost import shipping_missing_in_paid as _meli_shipping_missing_in_paid_pure
+from . import address_lock as _meli_addr
 from time import monotonic as _mono
 
 # Traducción de códigos de cancelación ML → español
@@ -576,6 +577,16 @@ class sale_order(models.Model):
     meli_receiver_zip_code = fields.Char(string="ML Receiver CP", related="meli_shipment.receiver_zip_code", store=True, index=True, readonly=True)
     meli_shipment_logistic_type = fields.Char(string="Logistic Type",index=True)
     meli_update_forbidden = fields.Boolean(string="Bloqueado para actualizar desde ML",default=False, index=True)
+    # [#513 TYL, 26.275] Ultimo contacto de factura / entrega que puso la SINCRONIZACION (no el usuario).
+    # Si el pedido tiene otro, se cambio a mano y la sincronizacion lo respeta.
+    meli_partner_invoice_auto_id = fields.Many2one('res.partner', string="Factura puesta por ML",
+        copy=False, readonly=True, ondelete='set null',
+        help="Ultimo contacto de factura que puso la sincronizacion de MercadoLibre. Si la direccion "
+             "de factura del pedido es otra, se cambio a mano y la sincronizacion no la reemplaza.")
+    meli_partner_shipping_auto_id = fields.Many2one('res.partner', string="Entrega puesta por ML",
+        copy=False, readonly=True, ondelete='set null',
+        help="Ultimo contacto de entrega que puso la sincronizacion de MercadoLibre. Si la direccion "
+             "de entrega del pedido es otra, se cambio a mano y la sincronizacion no la reemplaza.")
 
     meli_handling_limit = fields.Datetime(
         related='meli_shipment.estimated_handling_limit',
@@ -705,6 +716,69 @@ class sale_order(models.Model):
             except Exception as e:
                 _logger.warning("MELI sync partner_shipping_id -> albaranes SO %s (id=%s): %s",
                                 order.name, order.id, e)
+
+    # [#513 TYL, 26.275] Direcciones del pedido: la sincronizacion las pone al crear o si estan
+    # vacias, y despues solo si siguen siendo las que puso ella. Un cambio manual se respeta.
+    # Logica de decision pura en models/address_lock.py (tests/test_address_lock_pure.py).
+    _MELI_ADDR_AUTO = {'partner_invoice_id': 'meli_partner_invoice_auto_id',
+                       'partner_shipping_id': 'meli_partner_shipping_auto_id'}
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        orders = super(sale_order, self).create(vals_list)
+        for order in orders:
+            if not order.meli_order_id:
+                continue
+            upd = {}
+            for fname, auto_f in self._MELI_ADDR_AUTO.items():
+                if order[fname] and not order[auto_f]:
+                    upd[auto_f] = order[fname].id
+            if upd:
+                order.write(upd)
+        return orders
+
+    def _meli_address_locked(self, fname):
+        """True si el contacto `fname` (partner_invoice_id / partner_shipping_id) se fijo a mano."""
+        self.ensure_one()
+        cur = self[fname]
+        edited = bool(fname == 'partner_shipping_id' and cur and cur._meli_address_manually_edited())
+        return _meli_addr.order_contact_locked(cur.id, self[self._MELI_ADDR_AUTO[fname]].id,
+                                               self.partner_id.id, edited)
+
+    def _meli_merge_ml_addresses(self, vals, invoice_partner=None, shipping_partner=None):
+        """Agrega a `vals` la factura / entrega que resolvio ML, respetando un cambio manual.
+
+        self = el pedido existente (1 registro) o vacio si se va a crear.
+        """
+        targets = (('partner_invoice_id', invoice_partner), ('partner_shipping_id', shipping_partner))
+        order = self[:1]
+        for fname, ml in targets:
+            ml_id = ml.id if ml else False
+            if not order:
+                if ml_id:
+                    vals[fname] = ml_id
+                continue
+            auto_f = self._MELI_ADDR_AUTO[fname]
+            cur = order[fname]
+            edited = bool(fname == 'partner_shipping_id' and cur and cur._meli_address_manually_edited())
+            decision = _meli_addr.decide_order_contact(False, cur.id, order[auto_f].id,
+                                                       order.partner_id.id, ml_id, edited)
+            if decision == _meli_addr.WRITE:
+                vals[fname] = ml_id
+                vals[auto_f] = ml_id
+            elif decision == _meli_addr.SAME:
+                vals.pop(fname, None)
+                if order[auto_f].id != ml_id:
+                    vals[auto_f] = ml_id
+            elif decision == _meli_addr.MANUAL:
+                vals.pop(fname, None)
+                _logger.info("MELI #513 SO %s (id=%s): %s cambiado a mano (id=%s), no se reemplaza por id=%s",
+                             order.name, order.id, fname, cur.id, ml_id)
+            if 'partner_id' in vals and fname not in vals and cur:
+                # partner_invoice_id / partner_shipping_id son compute sobre partner_id: si la
+                # sincronizacion escribe partner_id, se re-manda el valor actual para que no se recalcule.
+                vals[fname] = cur.id
+        return vals
 
     def _prepare_confirmation_values(self):
         """[caso de un cliente] En ventas de ML se conserva la fecha de la venta de ML.
@@ -5376,7 +5450,9 @@ class mercadolibre_orders(models.Model):
 
 
         if (original_contact_partner_id):
-            if config.mercadolibre_cron_get_orders_shipment_client:
+            # [#513] si la entrega del pedido se fijo a mano no se busca / crea / actualiza el contacto de ML
+            _meli513_ship_locked = bool(sorder and sorder.id and sorder._meli_address_locked('partner_shipping_id'))
+            if config.mercadolibre_cron_get_orders_shipment_client and not _meli513_ship_locked:
                 partner_shipping_id = self.env["mercadolibre.shipment"].partner_delivery_id( partner_id=original_contact_partner_id,
                                                                                             Receiver=Receiver,
                                                                                             config=config)
@@ -5486,9 +5562,13 @@ class mercadolibre_orders(models.Model):
                 meli_order_fields.update({'partner_id': (partner_id and partner_id.id)})
 
         if partner_invoice_id:
-            partner_invoice_already_set = (sorder and sorder.partner_invoice_id and sorder.partner_invoice_id.id == partner_invoice_id.id)
-            if not partner_invoice_already_set:
-                meli_order_fields.update({'partner_invoice_id': (partner_invoice_id and partner_invoice_id.id)})
+            # [#513] partner_invoice_id se aplica abajo en _meli_merge_ml_addresses (respeta un cambio
+            # manual). La posicion fiscal sale de la factura que va a quedar en el pedido.
+            _meli513_inv_eff = partner_invoice_id
+            if (sorder and sorder.id and sorder.partner_invoice_id
+                    and sorder.partner_invoice_id != partner_invoice_id
+                    and sorder._meli_address_locked('partner_invoice_id')):
+                _meli513_inv_eff = sorder.partner_invoice_id
 
             # Blue Orange / CER: set fiscal_position_id from billing partner's property_account_position_id
             # This ensures the sale order has the correct fiscal position for invoice document type selection.
@@ -5497,17 +5577,15 @@ class mercadolibre_orders(models.Model):
             _set_fp = ('mercadolibre_set_fiscal_position' not in config._fields
                        or config.mercadolibre_set_fiscal_position)
             if _set_fp:
-                if 'property_account_position_id' in partner_invoice_id._fields and partner_invoice_id.property_account_position_id:
-                    meli_order_fields['fiscal_position_id'] = partner_invoice_id.property_account_position_id.id
+                if 'property_account_position_id' in _meli513_inv_eff._fields and _meli513_inv_eff.property_account_position_id:
+                    meli_order_fields['fiscal_position_id'] = _meli513_inv_eff.property_account_position_id.id
             else:
                 meli_order_fields['fiscal_position_id'] = False
 
-        if partner_shipping_id:
-            shipping_partner_already_set = (sorder and sorder.partner_shipping_id and sorder.partner_shipping_id.id == partner_shipping_id.id)
-            update_shipping = not sorder or (sorder and not sorder.partner_shipping_id)
-            update_shipping = update_shipping or not shipping_partner_already_set
-            if (update_shipping):
-                meli_order_fields['partner_shipping_id'] = partner_shipping_id.id
+        # [#513 TYL] factura / entrega: al crear o si estan vacias; despues solo si nadie las cambio a mano
+        ((sorder and sorder.id and sorder) or saleorder_obj)._meli_merge_ml_addresses(
+            meli_order_fields, invoice_partner=partner_invoice_id or None,
+            shipping_partner=partner_shipping_id or None)
 
         if ("pack_id" in order_json and order_json["pack_id"]):
             meli_order_fields['name'] = "ML %s" % ( str(order_json["pack_id"]) )
@@ -5662,9 +5740,11 @@ class mercadolibre_orders(models.Model):
             # finds the billing child (with fiscal data) instead of the parent.
             if order and order.sale_order and partner_invoice_id and partner_id and partner_invoice_id.id != partner_id.id:
                 _pack_so = order.sale_order
-                if not _pack_so.partner_invoice_id or _pack_so.partner_invoice_id.id != partner_invoice_id.id:
+                if ((not _pack_so.partner_invoice_id or _pack_so.partner_invoice_id.id != partner_invoice_id.id)
+                        and not _pack_so._meli_address_locked('partner_invoice_id')):  # [#513]
                     try:
-                        _pack_so.write({'partner_invoice_id': partner_invoice_id.id})
+                        _pack_so.write({'partner_invoice_id': partner_invoice_id.id,
+                                        'meli_partner_invoice_auto_id': partner_invoice_id.id})
                         _logger.info("Pack sub-order: actualizado partner_invoice_id en SO id:%s -> billing child id:%s (%s)",
                                      _pack_so.id, partner_invoice_id.id, partner_invoice_id.name)
                     except Exception as _e:
