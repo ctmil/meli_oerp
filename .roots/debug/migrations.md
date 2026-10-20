@@ -4,6 +4,11 @@
 
 ---
 
+### 19.0.26.282 — sin script de migración (20-oct-2026, #513 direcciones manuales)
+- Campos nuevos, vacíos tras el `-u`: `sale.order.meli_partner_invoice_auto_id`, `sale.order.meli_partner_shipping_auto_id`
+  (Many2one res.partner, copy=False, ondelete set null) y `res.partner.meli_address_sync_hash` (Char). Sin backfill: los
+  pedidos viejos usan la regla de legado (sólo el valor por defecto se considera del conector) y adoptan el registro en la
+  primera sincronización en que coinciden con ML.
 ### 19.0.26.221 — sin script de migración (13-oct-2026, #638 motivos)
 - Campo nuevo `sale.order.meli_cancel_return_skipped` (Boolean, index, default False): lo crea el `-u`. **No se
   rellena hacia atrás**: las ventas canceladas sin devolución antes de 26.221 no quedan marcadas.

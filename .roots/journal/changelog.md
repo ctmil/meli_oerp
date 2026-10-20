@@ -4,6 +4,12 @@
 
 ---
 
+## 19.0.26.282 — 22-oct-2026 · las direcciones de entrega y factura cambiadas a mano ya no vuelven a la original al sincronizar [#513]
+- Si en un pedido de ML se cambia a mano el contacto de entrega o de factura, o la calle/ciudad/teléfono del contacto de entrega, la re-sincronización desde ML (cron, notificación o «Actualizar») lo respeta. Si nadie lo tocó, un cambio de dirección hecho en ML sigue entrando.
+- Pestaña MercadoLibre del pedido: «Factura puesta por ML» / «Entrega puesta por ML» (sólo lectura).
+- Pedidos anteriores a esta versión cuya entrega/factura no es el propio cliente se consideran fijados (no se re-sincroniza su dirección).
+- Sólo meli_oerp en este build; el resto del suite se alinea en el próximo build de flota.
+
 ## 19.0.26.280 — 22-oct-2026 · la actualización de stock de una entrada grande ya no se pierde en silencio [#475]
 - Sin cambios funcionales en este módulo (acompaña).
 - Build único 19.0.26.280 en 16/17/18/19 para meli_oerp, meli_oerp_stock, meli_oerp_multiple, meli_oerp_accounting y meli_oerp_autofacturacion.
