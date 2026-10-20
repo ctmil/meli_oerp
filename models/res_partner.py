@@ -5,6 +5,7 @@ from difflib import SequenceMatcher
 import logging
 import re
 from . import versions
+from . import address_lock as _meli_addr
 
 _logger = logging.getLogger(__name__)
 
@@ -29,6 +30,33 @@ class ResPartner(models.Model):
     meli_buyer = fields.Many2one('mercadolibre.buyers',string='Meli Buyer')
     meli_update_forbidden = fields.Boolean(string='Meli Update Forbiden')
     meli_order_id = fields.Char('Meli Order Id',index=True)
+    # [#513 TYL, 26.282] huella de la ultima direccion que escribio la sincronizacion de ML en este
+    # contacto. Si la direccion actual no coincide, se edito a mano y la sincronizacion no la pisa.
+    meli_address_sync_hash = fields.Char('Huella direccion ML', copy=False, readonly=True)
+
+    def _meli_address_values(self):
+        self.ensure_one()
+        vals = {}
+        for f in _meli_addr.ADDRESS_FIELDS:
+            if f in self._fields:
+                v = self[f]
+                vals[f] = v.id if hasattr(v, '_ids') else v
+        return vals
+
+    def _meli_address_manually_edited(self):
+        """True si la direccion se edito a mano despues de la ultima escritura de la sincronizacion.
+
+        Solo contactos de entrega: la direccion del comprador la actualiza orders.py por otro camino."""
+        self.ensure_one()
+        if self.type != 'delivery':
+            return False
+        return _meli_addr.address_manually_edited(self.meli_address_sync_hash, self._meli_address_values())
+
+    def _meli_address_mark_synced(self):
+        for rec in self.filtered(lambda r: r.type == 'delivery'):
+            fp = _meli_addr.address_fingerprint(rec._meli_address_values())
+            if rec.meli_address_sync_hash != fp:
+                rec.sudo().write({'meli_address_sync_hash': fp})
 
     # Modo 3: contacto de facturación independiente (sin parent_id).
     # meli_buyer_partner_id vincula al buyer que creó/usó este contacto fiscal.
