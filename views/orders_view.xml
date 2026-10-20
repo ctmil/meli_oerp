@@ -192,6 +192,8 @@
                               <field name="meli_buyer_nickname"/>
                               <field name="meli_buyer_id"/>
                               <field name="meli_update_forbidden" string="No actualizar desde ML"/>
+                              <field name="meli_partner_invoice_auto_id" readonly="1"/>
+                              <field name="meli_partner_shipping_auto_id" readonly="1"/>
                               <field name="meli_order_id" invisible="0"/>
                               <field name="meli_status" invisible="0"/>
                               <field name="meli_unread_messages" readonly="1"
