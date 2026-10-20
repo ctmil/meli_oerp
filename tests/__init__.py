@@ -9,3 +9,4 @@ from . import test_import_cupon_linea
 from . import test_462_filtros_facturacion
 from . import test_462_envio_facturacion
 from . import test_adopcion_linea
+from . import test_513_direcciones_manuales
