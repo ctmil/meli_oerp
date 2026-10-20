@@ -775,12 +775,23 @@ class mercadolibre_shipment(models.Model):
 
             if (sorder.partner_shipping_id):
                 partner_shipping_id = sorder.partner_shipping_id
+                # [#513 TYL] no se pisa la direccion si la entrega del pedido se cambio a mano o si el
+                # contacto se edito a mano (huella distinta de la ultima que escribio la sincronizacion)
                 if (partner_shipping_id and "meli_update_forbidden" in partner_shipping_id._fields and not partner_shipping_id.meli_update_forbidden):
-                    partner_shipping_id.street = shipment.receiver_address_line
-                    partner_shipping_id.street2 = shipment.receiver_address_comment
-                    partner_shipping_id.city = shipment.receiver_city
-                    if shipment.receiver_address_phone and not ("XXXX" in shipment.receiver_address_phone):
-                        partner_shipping_id.phone = shipment.receiver_address_phone
+                    if sorder._meli_address_locked('partner_shipping_id'):
+                        _logger.info("MELI #513 SO %s: contacto de entrega id=%s fijado/editado a mano, no se actualiza desde ML",
+                                     sorder.name, partner_shipping_id.id)
+                    else:
+                        _ship_addr = {
+                            'street': shipment.receiver_address_line,
+                            'street2': shipment.receiver_address_comment,
+                            'city': shipment.receiver_city,
+                        }
+                        if shipment.receiver_address_phone and not ("XXXX" in shipment.receiver_address_phone):
+                            _ship_addr['phone'] = shipment.receiver_address_phone
+                        if any((partner_shipping_id[k] or False) != (v or False) for k, v in _ship_addr.items()):
+                            partner_shipping_id.write(_ship_addr)
+                        partner_shipping_id._meli_address_mark_synced()
                 #sorder.partner_id.state = ships.receiver_state
 
             ship_name = shipment.tracking_method or (shipment.mode=="me1" and "ME1 - zip") or (shipment.mode=="custom" and "Personalizado")  or (shipment.logistic_type=="self_service" and "Personalizado MFlex")
@@ -1262,6 +1273,7 @@ class mercadolibre_shipment(models.Model):
                 deliv_id = respartner_obj.create(pdelivery_fields)
                 if deliv_id:
                     #_logger.info("Created Res Partner Delivery "+str(deliv_id))
+                    deliv_id._meli_address_mark_synced()  # [#513]
                     partner_shipping_id = deliv_id
             except Exception as e:
                 _logger.error("Created res.partner delivery issue.")
@@ -1282,8 +1294,14 @@ class mercadolibre_shipment(models.Model):
                     if f in deliv_id._fields:
                         if pdelivery_fields[f] != deliv_id[f]:
                             hchanges = True
-                if hchanges:
+                if hchanges and deliv_id._meli_address_manually_edited():
+                    # [#513 TYL] direccion editada a mano: se usa el contacto pero no se pisa
+                    _logger.info("MELI #513 partner_delivery_id: contacto id=%s editado a mano, no se actualiza", deliv_id.id)
+                elif hchanges:
                     deliv_id.write(pdelivery_fields)
+                    deliv_id._meli_address_mark_synced()
+                elif not deliv_id.meli_address_sync_hash:
+                    deliv_id._meli_address_mark_synced()
                 partner_shipping_id = deliv_id
             except:
                 _logger.error("Updating res.partner delivery issue.")
@@ -1745,7 +1763,9 @@ class mercadolibre_shipment(models.Model):
 
                     original_contact_partner_id = partner_id
                     partner_shipping_id = None
-                    if "receiver_address" in ship_json:
+                    # [#513] si la entrega del pedido del pack se fijo a mano no se busca / actualiza el contacto
+                    _meli513_pack_so = self.env["sale.order"].search([('meli_order_id', '=', packed_order_ids)], order="id asc", limit=1)
+                    if "receiver_address" in ship_json and not (_meli513_pack_so and _meli513_pack_so._meli_address_locked('partner_shipping_id')):
                         if config.mercadolibre_cron_get_orders_shipment_client:
                             partner_shipping_id = self.partner_delivery_id( partner_id=original_contact_partner_id, Receiver=ship_json["receiver_address"], config=config )
 
@@ -1864,19 +1884,11 @@ class mercadolibre_shipment(models.Model):
                             if not partner_already_set:
                                 meli_order_fields.update({'partner_id': (partner_id and partner_id.id)})
 
-                        if partner_invoice_id:
-                            partner_invoice_already_set = (sorder and sorder.partner_invoice_id and sorder.partner_invoice_id.id == partner_invoice_id.id)
-                            if not partner_invoice_already_set:
-                                meli_order_fields.update({'partner_invoice_id': (partner_invoice_id and partner_invoice_id.id)})
-
-
-                        if partner_shipping_id:
-                            sorder = sorder_pack
-                            shipping_partner_already_set = (sorder and sorder.partner_shipping_id and sorder.partner_shipping_id.id == partner_shipping_id.id)
-                            update_shipping = not sorder or (sorder and not sorder.partner_shipping_id)
-                            update_shipping = update_shipping or not shipping_partner_already_set
-                            if (update_shipping):
-                                meli_order_fields['partner_shipping_id'] = partner_shipping_id.id
+                        # [#513 TYL] factura / entrega: al crear o si estan vacias; despues solo si nadie las cambio a mano
+                        sorder = sorder_pack
+                        self.env["sale.order"].browse(sorder_pack[:1].ids)._meli_merge_ml_addresses(
+                            meli_order_fields, invoice_partner=partner_invoice_id or None,
+                            shipping_partner=partner_shipping_id or None)
 
                         if ("pack_id" in all_orders[0] and all_orders[0]["pack_id"]):
                             meli_order_fields['name'] = "ML %s" % ( str(all_orders[0]["pack_id"]) )
