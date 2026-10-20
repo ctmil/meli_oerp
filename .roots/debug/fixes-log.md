@@ -4,6 +4,29 @@
 
 ---
 
+## 20 oct 2026 — #513 TYL: la sincronización devolvía a la original la dirección cambiada a mano (v16.0.26.282)
+**Síntoma:** el usuario cambia a mano la dirección de FACTURA o de ENTREGA de un pedido de ML y la siguiente
+sincronización de la orden (cron o notificación) la vuelve a la original. Igual con la calle / ciudad / teléfono del
+CONTACTO de entrega editado a mano. Único escape: `sale.order.meli_update_forbidden`, que corta TODO lo que viene de ML.
+**Causa:** `orders_update_order_json` y el bloque de packs de `shipment.py` comparaban el contacto del pedido con el
+resuelto desde ML y lo reescribían si difería, sin distinguir quién lo había puesto. `_update_sale_order_shipping_info`
+pisaba street/street2/city/phone del contacto de entrega; `partner_delivery_id` hacía `write` si difería. Además en 15+
+partner_invoice_id / partner_shipping_id son compute sobre partner_id: si el conector escribía partner_id, Odoo los recalculaba.
+**Fix:** el pedido guarda el último contacto que puso el CONECTOR (`meli_partner_invoice_auto_id`,
+`meli_partner_shipping_auto_id`; se registran al crear). En un pedido existente el conector cambia el contacto sólo si
+está vacío o si sigue siendo el que puso él; si es otro, se respeta (log `MELI #513`), y si el conector escribe partner_id se
+re-manda el valor actual. Pedidos anteriores (sin registro): sólo el valor por defecto (el propio cliente) se toma como del
+conector. Contacto de entrega (type=delivery): `res.partner.meli_address_sync_hash` = huella de la última dirección que escribió
+el conector; si no coincide, se editó a mano y no se pisa (sin huella = comportamiento previo, y se registra). Con la entrega
+fijada a mano tampoco se busca / crea contacto de entrega nuevo. La posición fiscal sale de la factura que queda en el pedido.
+Lógica pura: `models/address_lock.py`. Sin opción de configuración: un cambio de dirección hecho en ML sigue entrando si nadie
+tocó el pedido; `meli_update_forbidden` sigue igual.
+**Prueba:** `tests/test_address_lock_pure.py` 20/20; harness (ast) sobre `_meli_merge_ml_addresses` / `_meli_address_locked`
+con registros simulados, 11 casos (nuevo, 513 entrega y factura manual, manual + partner_id, cambio en ML, legado, contacto
+editado, vacío) en 16/17/18/19. **No probado en un Odoo real ni contra un pedido de ML** — pendiente antes del pase.
+**No cubre:** cambios manuales hechos ANTES de instalar 26.282 en un pedido que todavía tiene la dirección por defecto, ni
+contactos de entrega editados antes de 26.282 (sin huella): la primera sincronización posterior todavía los pisa.
+
 ## 22 oct 2026 — ventas ML: adopción de línea sin vínculo, carrito de una orden y carrito parcial [#431] (v16.0.26.271)
 #431 duplicados: `orders.py`/`shipment.py` adoptan la línea sin `meli_order_item_id` del mismo producto antes de crear; `_meli_pack_sync_cancelled` acepta carrito de 1 orden; `meli_cancel_with_detail` retiene mientras quede orden vigente. Tests `tests/test_adopcion_linea.py` (tag meli_26250): fix 9/9 en 16-19, control origin 26.270 5F+2E. Origen: ramas claude/431-adopcion-linea-<v> (26.250).
 
