@@ -101,13 +101,38 @@ class mercadolibre_claim(models.Model):
 
     site_id = fields.Char(string="Site", help="Sitio de MercadoLibre del reclamo (MLA, MLM, ...).")
 
+    def _meli_claim_ref(self):
+        """[#615 ROEN 26.259] Id de la conversacion de la venta en el panel del vendedor:
+        el PACK si la venta es un carrito, si no la ORDEN. Primero la orden vinculada; si no
+        esta vinculada, el recurso del reclamo cuando es una orden."""
+        self.ensure_one()
+        o = self.order_id
+        for ref in (o and o.pack_id, o and o.order_id,
+                    self.resource == 'order' and self.resource_id):
+            ref = str(ref or '').strip()
+            if ref and ref not in ('0', 'False', 'None'):
+                return ref
+        return False
+
     def compute_claim_link(self):
         # [#615 ROEN] Dominio por el site del reclamo, sin API (get_ML_LINK_URL consultaba
         # /sites por cada registro) y sin dejar el campo sin asignar cuando no hay claim_id.
-        company = self.env.company
+        # [#615 ROEN 26.259] Mediacion => la mediacion en el panel del vendedor:
+        #   https://vendedores.<dominio>/ventas/nueva/mensajeria/<pack|orden>/mediacion/<claim_id>
+        # (formato confirmado por la cliente sobre un reclamo type=mediations). Para los otros
+        # tipos (returns, cancel_*) el formato del panel NO esta confirmado: se deja el enlace
+        # anterior (www.<dominio>/reclamos/<claim_id>, que ML redirige a la venta).
         for c in self:
-            c.claim_link = ("https://www.%s/reclamos/%s" % (
-                company._meli_site_domain(c.site_id), c.claim_id)) if c.claim_id else False
+            if not c.claim_id:
+                c.claim_link = False
+                continue
+            domain = (c.company_id or self.env.company)._meli_site_domain(c.site_id)
+            ref = c.type == 'mediations' and c._meli_claim_ref()
+            if ref:
+                c.claim_link = "https://vendedores.%s/ventas/nueva/mensajeria/%s/mediacion/%s" % (
+                    domain, ref, c.claim_id)
+            else:
+                c.claim_link = "https://www.%s/reclamos/%s" % (domain, c.claim_id)
 
     claim_link = fields.Char(string="Claim Link", compute=compute_claim_link)
 

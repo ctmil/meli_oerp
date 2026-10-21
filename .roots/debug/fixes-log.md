@@ -4,6 +4,12 @@
 
 ---
 
+## 21 oct 2026 — #615 ROEN: el enlace del reclamo no abría la mediación (v19.0.26.259)
+**Síntoma:** desde el reclamo, el enlace llevaba a la venta y no a la mediación; la cliente pasó el formato correcto (`vendedores.…/ventas/nueva/mensajeria/<pack>/mediacion/<claim>`).
+**Causa:** `mercadolibre.claim.compute_claim_link` armaba `www.<dominio>/reclamos/<claim_id>`. El fix de 26.133 (dc6f4b47) sólo había corregido el link de mensajería de la orden.
+**Fix:** `_meli_claim_ref` (pack de la orden > orden > `resource_id` si `resource='order'`) y, **sólo para `type='mediations'`**, el link del panel del vendedor. Otros tipos o sin referencia ⇒ link anterior (no hay formato confirmado para returns/cancel_*). Dominio con la compañía del reclamo.
+**Prueba:** `tests/test_525_claim_link.py` (tag `meli_525`), caso real claim 5597226476 / pack 2000015578976049: banco 17 y 19 con fix 4/4; control origin 3 FAIL + 1 OK (control: tipos no mediación sin cambio). 16/18 py_compile.
+
 ## 19 oct 2026 — #543 Petswagon: SKU de ML «código-descripción» no vinculaba (v19.0.26.246)
 **Síntoma:** SKU en ML `21342-VITAL PREMIUM PERRO ADULTO 20K`, Referencia interna `21342`: el wizard de importación masiva no vinculaba nada y el binding de variante abortaba («Aborting binding product (using Only SKU: NO SKU)»).
 **Causa:** todo el matching del suite es exacto (`default_code =ilike sku`).
