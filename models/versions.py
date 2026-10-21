@@ -604,6 +604,43 @@ def ml_tax_excluded(self, config=None ):
         tax_excluded = (config.mercadolibre_tax_included in ['tax_excluded'])
     return tax_excluded
 
+
+def ml_tax_company(self, config=None, company=None):
+    """Compania cuyos impuestos de venta valen para convertir precios ML<->Odoo [#543].
+
+    company explicita > config si es res.company > config.company_id > compania activa.
+    """
+    if company:
+        return company
+    if config:
+        if config._name == "res.company":
+            return config
+        if "company_id" in config._fields and config.company_id:
+            return config.company_id
+    return self.env.company
+
+
+def ml_sale_taxes_of_company(self, taxes, config=None, company=None):
+    """[#543 PetsWagon] De los impuestos de un producto, SOLO los de la compania de la cuenta/config
+    (o de una compania madre: desde 17 los impuestos de la casa matriz valen en sus sucursales).
+
+    Un producto multi-compania tiene en taxes_id un IVA por compania. Las conversiones de precio
+    (importar el precio de ML a Odoo y publicar el de Odoo a ML) los sumaban TODOS: con dos IVA 21 %
+    el precio ML 121 entraba como 85,21 (/1,42) y el de lista 100 se publicaba a 142 (x1,42).
+    Los crons corren como superusuario (sin ir.rule), asi que ven los impuestos de todas.
+    Es el mismo criterio que ya usaba ml_product_price_conversion (lineas de la orden).
+    """
+    if not taxes:
+        return taxes
+    company = ml_tax_company(self, config=config, company=company)
+    if not company:
+        return taxes
+    allowed = company
+    if "parent_ids" in company._fields:
+        allowed = company.parent_ids | company
+    return taxes.filtered(lambda t: not t.company_id or t.company_id in allowed)
+
+
 def ml_product_price_conversion( self, product_related_obj, price, config=None):
     """Importe que COBRA ML (unitario de una orden, o flete) -> price_unit de la linea de venta.
 
