@@ -4,6 +4,13 @@
 
 ---
 
+## 21 oct 2026 — #611 ROEN 525: «REACTIVADA» cada 30 min sobre publicaciones que seguían pausadas (v19.0.26.257)
+**Síntoma:** >290 «✅ REACTIVADA» en 7 días sobre las mismas (PMG9378 MLM903579818, PMG8009 MLM857540231, PMG5630_10 MLM2472247546), todas con existencia sólo en MLF (Full) y 0 en WH.
+**Causa:** `meli_stock_diagnostic` suma por SQL `stock_quant` de TODAS las ubicaciones internas (Full incluida); el push publica `_meli_available_quantity` de las ubicaciones de la configuración ⇒ publica 0, ML la deja pausada; y «REACTIVADA» se anotaba sin releer el estado (`product_meli_status_active` devuelve {} siempre).
+**Fix:** `_meli_diag_publishable_qty` (misma función que el push, config de la cuenta del binding, tipo logístico de la respuesta ya leída vía `meli_logistic_type_hint`): si es 0 ⇒ no reactiva (queda en el detalle). `_meli_diag_status_after_activate`: GET de verificación; «REACTIVADA» sólo si `active`, si no «NO QUEDÓ ACTIVA» (warning) o «ACTIVACIÓN SIN VERIFICAR».
+**Prueba:** `tests/test_525_stock_diag_full.py` (tag meli_525, 3 casos). Banco 19 y 17: fix 3/3; control origin 2 FAIL + el control positivo OK.
+**Costo:** +1 GET por reactivación intentada (las inútiles ya no se intentan).
+
 ## 19 oct 2026 — #543 Petswagon: SKU de ML «código-descripción» no vinculaba (v19.0.26.246)
 **Síntoma:** SKU en ML `21342-VITAL PREMIUM PERRO ADULTO 20K`, Referencia interna `21342`: el wizard de importación masiva no vinculaba nada y el binding de variante abortaba («Aborting binding product (using Only SKU: NO SKU)»).
 **Causa:** todo el matching del suite es exacto (`default_code =ilike sku`).
