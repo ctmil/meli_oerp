@@ -4,6 +4,12 @@
 
 ---
 
+## 21 oct 2026 — #543 PetsWagon: conversión de precio suma el IVA de TODAS las compañías (v16.0.26.262)
+**Síntoma (leído en código, no medido en prod):** producto con IVA 21 % de MC LASER y de DRILOR en `taxes_id`, `mercadolibre_tax_included=tax_excluded` ⇒ publicar 100 ⇒ 142; importar 121 ⇒ 85,21.
+**Causa:** 6 loops `for txid in <prod>.taxes_id` sin filtro de compañía — meli_oerp product.py `_meli_price_converted`, `_meli_set_product_price` (import) y `set_meli_price` (publicar); meli_oerp_multiple product.py `_meli_price_converted` (import, vía `update_pl_price`) y connection_binding.py `update_price` ×2 (publicar). Los crons corren como superusuario (sin ir.rule) ⇒ ven los impuestos de todas las compañías. `ml_product_price_conversion` (líneas de orden) ya filtraba.
+**Fix:** helpers `ml_tax_company` / `ml_sale_taxes_of_company` en meli_oerp/models/versions.py (compañía explícita > config res.company > config.company_id > env.company; acepta impuestos de la compañía o de sus padres) usados en los 6 loops; en multiple se pasa `account.company_id` (la configuración puede no tener compañía) — `_meli_price_converted` gana kwarg `company`.
+**Prueba:** `meli_oerp_multiple/tests/test_543_tax_company.py` (tag `meli_543`, 6). Banco 17/19: fix 6/6; control origin 3 FAIL (85,21 · 85,21 · '142'≠'121') + 1 ERROR (kwarg) + 2 controles OK. 16/18 py_compile.
+
 ## 13 oct 2026 — #638 T3LC: la cancelación automática devolvía stock con CUALQUIER motivo (v16.0.26.221)
 **Síntoma:** el barrido rotativo de estados (#638, 26.218) cancelaba y **devolvía** (IN validado) las ventas canceladas
 en ML de los últimos 15 días sin mirar el motivo: `pack_splitted` (los ítems salen en las órdenes nuevas del split),
