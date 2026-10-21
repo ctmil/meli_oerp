@@ -4,6 +4,9 @@
 
 ---
 
+## 19.0.26.262 — 21-oct-2026 · precio con IVA de una sola compañía en empresas multi-compañía [#543]
+- **#543** Con un producto que tiene **un IVA por compañía** (p.ej. IVA 21 % de cada empresa) y «Tax Included» = sin impuestos, la conversión de precios entre Mercado Libre y Odoo sumaba los impuestos de **todas** las compañías: al **publicar**, un precio de lista 100 salía a **142** en vez de 121; al **traer el precio de ML**, 121 entraba como **85,21** en vez de 100. Ahora se usan sólo los impuestos de venta de la compañía de la cuenta (o de su casa matriz), igual que en las líneas de las ventas.
+
 ## 19.0.26.246 — 19-oct-2026 · match de SKU por token (opcional) [#543]
 - **#543** Nueva opción **«Search SKU by token»** (`mercadolibre_sku_token_match`, por defecto **apagada**) y **«SKU token separators»** (default `- /`). Para catálogos donde el SKU de Mercado Libre trae el código de Odoo **más** una descripción (p.ej. `21342-ALIMENTO PERRO 20K` contra Referencia interna `21342`): se parte el SKU por los separadores y se vincula **sólo** si exactamente un trozo coincide con la Referencia interna de un único producto. Ningún trozo, dos trozos o código repetido en Odoo ⇒ no vincula (queda en el log). Es respaldo: corre después de la búsqueda exacta de siempre; apagada, todo funciona igual que antes.
 - Config de la compañía (pestaña de importación, junto a «Search SKU»). Aplica a la importación de publicaciones (`product_meli_get_products`) y a la búsqueda de producto al importar ventas (`orders.py`).

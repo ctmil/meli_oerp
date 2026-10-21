@@ -1556,7 +1556,7 @@ class product_product(models.Model):
             txfixed = 0
             txpercent = 0
             #_logger.info("Adjust taxes")
-            for txid in product_template.taxes_id:
+            for txid in ml_sale_taxes_of_company(self, product_template.taxes_id, config=config):
                 if (txid.type_tax_use=="sale" and not txid.price_include):
                     if (txid.amount_type=="percent"):
                         txpercent = txpercent + txid.amount
@@ -1583,7 +1583,7 @@ class product_product(models.Model):
             txfixed = 0
             txpercent = 0
             #_logger.info("Adjust taxes")
-            for txid in product_template.taxes_id:
+            for txid in ml_sale_taxes_of_company(self, product_template.taxes_id, config=config):
                 if (txid.type_tax_use=="sale" and not txid.price_include):
                     if (txid.amount_type=="percent"):
                         txpercent = txpercent + txid.amount
@@ -1704,7 +1704,7 @@ class product_product(models.Model):
             txfixed = 0
             txpercent = 0
             #_logger.info("Adjust taxes")
-            for txid in product_tmpl.taxes_id:
+            for txid in ml_sale_taxes_of_company(self, product_tmpl.taxes_id, config=config):
                 if (txid.type_tax_use=="sale" and not txid.price_include):
                     if (txid.amount_type=="percent"):
                         txpercent = txpercent + txid.amount
