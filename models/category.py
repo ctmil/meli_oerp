@@ -763,6 +763,54 @@ class mercadolibre_category(models.Model):
             cat.catalog_domain_chart_active = (( not ("domain_not_active" in cat.catalog_domain_chart_result)) and
                                                 "filters_validation_error" in cat.catalog_domain_chart_result)
 
+    def _meli_ensure_catalog_domain( self, meli=None ):
+        """131 (13.0.26.263): las categorias creadas/importadas sin 'settings' quedan con catalog_domain
+        vacio y entonces ni el desplegable de guias (dominio meli_domain_id) ni la busqueda de guias
+        funcionan. Lo completa desde /categories/<id> (settings.catalog_domain, ej. MLA-BRAS)."""
+        self.ensure_one()
+        if self.catalog_domain or not self.meli_category_id:
+            return self.catalog_domain
+        meli = self.get_meli(meli=meli)
+        response = meli.get("/categories/"+str(self.meli_category_id), {'access_token':meli.access_token})
+        rjson = response and response.json()
+        domain = rjson and isinstance(rjson, dict) and (rjson.get("settings") or {}).get("catalog_domain")
+        if domain:
+            self.catalog_domain = domain
+        return self.catalog_domain
+
+    def meli_import_grid_charts( self, brand=None, gender=None, meli=None ):
+        """Trae a Odoo las guias de talles de ML para el dominio de la categoria (las del vendedor y las
+        de la marca). ML exige BRAND y GENDER en /catalog/charts/search. Devuelve las guias importadas."""
+        self.ensure_one()
+        charts = self.env["mercadolibre.grid.chart"]
+        if not brand or not gender or not self._meli_ensure_catalog_domain(meli=meli):
+            return charts
+        rjson = self.get_search_chart( brand=brand, gender=gender, meli=meli )
+        for chart_json in ((rjson and isinstance(rjson, dict) and rjson.get("charts")) or []):
+            if chart_json and chart_json.get("id") and chart_json.get("rows") is not None:
+                charts |= charts.create_chart(chart_json)
+        return charts
+
+    def meli_find_grid_chart( self, brand=None, gender=None, sizes=None, meli=None ):
+        """131 (13.0.26.263): la guia que usan las publicaciones del vendedor para esa marca.
+        ML devuelve TODAS las guias del vendedor del dominio (la marca no filtra), asi que se elige la
+        UNICA cuyo nombre contiene la marca; si hay varias, la unica que cubre todos los talles. Si no
+        queda una sola, no elige (las guias quedan importadas para elegirlas en el desplegable)."""
+        self.ensure_one()
+        charts = self.meli_import_grid_charts( brand=brand, gender=gender, meli=meli )
+        def norm(x):
+            return unidecode.unidecode(str(x or "")).strip().lower()
+        nbrand = norm(brand)
+        candidates = charts.filtered(lambda c: nbrand and nbrand in norm(c._meli_chart_label()))
+        if len(candidates)>1 and sizes:
+            nsizes = set(norm(x) for x in sizes if x)
+            covering = candidates.filtered(lambda c: nsizes <= set(norm(x) for x in c._meli_chart_sizes()))
+            candidates = covering or candidates
+        if len(candidates)==1:
+            return candidates
+        _logger.info("meli_find_grid_chart: brand "+str(brand)+" gender "+str(gender)+" candidates "+str(candidates.mapped("meli_id"))+" of "+str(len(charts)))
+        return self.env["mercadolibre.grid.chart"]
+
     catalog_domain_link = fields.Char(string="Domain Id Link",compute=_catalog_domain_link)
     catalog_domain_json = fields.Text(string="Domain id json")
     catalog_domain_chart_active = fields.Boolean(string="Domain Charts active", index=True,readonly=True)
@@ -974,6 +1022,22 @@ class mercadolibre_grid_chart(models.Model):
             chart.write(vals)
         return chart
 
+    def import_chart( self, chart_id, meli=None ):
+        """131 (13.0.26.263): trae una guia de ML por su id (ej. la del atributo 'ID de la guia de talles')."""
+        chart_id = str(chart_id or "").strip()
+        if not chart_id:
+            return self.browse()
+        chart = self.search([('meli_id','=',chart_id)], limit=1)
+        if chart and chart.rows:
+            return chart
+        meli = self.env["mercadolibre.category"].get_meli(meli=meli)
+        response = meli.get("/catalog/charts/"+chart_id, {'access_token':meli.access_token})
+        rjson = response and response.json()
+        if rjson and isinstance(rjson, dict) and rjson.get("id") and rjson.get("rows") is not None:
+            return self.create_chart(rjson)
+        _logger.error("import_chart: no se pudo traer la guia "+chart_id+": "+str(rjson)[:300])
+        return self.browse()
+
     def update_attributes(self, product=None):
         #
         #_logger.info("update_attributes")
@@ -1006,7 +1070,42 @@ class mercadolibre_grid_chart(models.Model):
             #_logger.info("update_attributes: reload att values in odoo")
             pass;
 
+    def _meli_chart_label( self ):
+        """131 (13.0.26.263): nombre legible de la guia. 'name' guarda json.dumps(names) => '{"MLA": "Corpi\\u00f1os ..."}'."""
+        self.ensure_one()
+        label = self.name or ""
+        try:
+            names = json.loads(self.name or "")
+            if isinstance(names, dict):
+                label = names.get(self.site_id or "MLA") or (names and list(names.values())[0]) or label
+        except Exception:
+            pass
+        return label
+
+    def name_get( self ):
+        return [ (chart.id, "%s [%s]" % (chart._meli_chart_label(), chart.meli_id)) for chart in self ]
+
+    def _meli_chart_sizes( self ):
+        """Valores de la columna principal (SIZE) de cada fila."""
+        self.ensure_one()
+        main_att = self.main_attribute_id or "SIZE"
+        return [ col.value for row in self.rows for col in row.attribute_values if col.att_id==main_att and col.value ]
+
     def search_row_id( self, value ):
+        """131 (13.0.26.263): la fila de un talle se busca PRIMERO por coincidencia exacta en la columna
+        principal de la guia (main_attribute_id, SIZE) y gana la PRIMERA. Antes se comparaba contra todas
+        las columnas (FILTRABLE_SIZE, medidas) y ganaba la ULTIMA: en 9172274 el talle 100 es SIZE de :6
+        pero tambien FILTRABLE_SIZE de :5 y :7 => mandaba :7 (100C) y ML respondia SIZE is not valid.
+        Si no hay coincidencia exacta, se mantiene la busqueda anterior (por nombre/valor/numero)."""
+        main_att = (self and self.main_attribute_id) or "SIZE"
+        for row in self.rows:
+            for attval in row.attribute_values:
+                if attval.att_id==main_att and attval.value and really_compare(str(value).strip(), str(attval.value).strip()):
+                    _logger.info("search_row_id: exact "+str(main_att)+" for Value: "+str(value)+" ROW ID >>> "+str(row.row_id))
+                    return [row.row_id, attval.value]
+        return self._search_row_id_legacy( value )
+
+    def _search_row_id_legacy( self, value ):
 
         #_logger.info("search_row_id: for value: " + str(value) + "value.isnumeric() : " + str(value and value.replace(".","").isnumeric()) )
 

@@ -563,6 +563,61 @@ class product_template(models.Model):
     meli_grid_chart_id = fields.Many2one("mercadolibre.grid.chart",string="Guia de talles", index=True )
     meli_catalog_domain = fields.Char(string="Meli Domain",related="meli_category.catalog_domain")
 
+    # 131 (13.0.26.263): guia de talles sin complicarse. Las publicaciones de la cuenta llevan la guia en
+    # ML (SIZE_GRID_ID) pero en Odoo no habia ninguna guia y las categorias no tenian catalog_domain, asi
+    # que el campo "Guia de talles" no ofrecia nada. Se resuelve sola al publicar (o con el boton):
+    #   1. el atributo "ID de la guia de talles" (SIZE_GRID_ID, 1 valor) => se importa esa guia;
+    #   2. si no, la guia del vendedor cuyo nombre contiene la marca (Marca + Genero de la plantilla).
+    _MELI_GRID_LINE_NAMES = {
+        "SIZE": ("TALLE", "TALLA", "SIZE"),
+        "BRAND": ("MARCA", "_MARCA", "BRAND"),
+        "GENDER": ("GENERO", "GENDER"),
+        "SIZE_GRID_ID": (),
+    }
+
+    def _meli_line_values( self, att_id ):
+        self.ensure_one()
+        names = self._MELI_GRID_LINE_NAMES.get(att_id, ())
+        for line in self.attribute_line_ids:
+            ml_att = line.attribute_id.meli_default_id_attribute
+            key = unidecode.unidecode( line.attribute_id.name or "" ).strip().upper()
+            if (ml_att and ml_att.att_id==att_id) or key in names:
+                return line.value_ids.mapped("name")
+        return []
+
+    def _meli_grid_chart_resolve( self, meli=None ):
+        self.ensure_one()
+        chart_obj = self.env["mercadolibre.grid.chart"]
+        if self.meli_grid_chart_id:
+            return self.meli_grid_chart_id
+        chart = chart_obj
+        grid_ids = self._meli_line_values("SIZE_GRID_ID")
+        if len(grid_ids)==1:
+            chart = chart_obj.import_chart( grid_ids[0], meli=meli )
+        sizes = self._meli_line_values("SIZE")
+        if not chart and sizes and self.meli_category:
+            brand = self.meli_brand or (self._meli_line_values("BRAND") or [None])[0]
+            gender = self.meli_gender or (self._meli_line_values("GENDER") or [None])[0]
+            chart = self.meli_category.meli_find_grid_chart( brand=brand, gender=gender, sizes=sizes, meli=meli )
+        if chart:
+            self.meli_grid_chart_id = chart
+            _logger.info("131 guia de talles: "+str(self.display_name)+" => "+str(chart.meli_id))
+        return chart
+
+    def action_meli_grid_chart_find( self ):
+        warningobj = self.env["meli.warning"]
+        res_lines = []
+        for tmpl in self:
+            chart = tmpl._meli_grid_chart_resolve()
+            if chart:
+                res_lines.append( "%s: %s" % (tmpl.display_name, chart.display_name) )
+            else:
+                cat = tmpl.meli_category
+                domain = cat and cat.catalog_domain
+                imported = domain and self.env["mercadolibre.grid.chart"].search([('meli_domain_id','=',domain)])
+                res_lines.append( "%s: no se encontro una unica guia para la marca. Elegila en 'Guia de talles' (%s guias de ML disponibles)." % (tmpl.display_name, len(imported or [])) )
+        return warningobj.info( title="Guia de talles", message="\n".join(res_lines), message_html="<br/>".join(res_lines) )
+
     meli_channel_mkt = fields.Many2many( "meli.channel.mkt", string="Channels", index=True )
 
 class product_product(models.Model):
