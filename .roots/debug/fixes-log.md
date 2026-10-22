@@ -4,6 +4,9 @@
 
 ---
 
+## 22 oct 2026 — pack_splitted devuelve si la gemela tiene salida propia [#624] (v18.0.26.288)
+#624 ROEN, medido: las gemelas de C tienen su PROPIA salida done (MLF/OUT/02339 cancelada + 02347 gemela; 02560 + 02561) ⇒ no devolver la de la cancelada deja doble salida. `_meli_cancel_by_reason` (REASON_PACK_SPLIT): salida propia done + gemela con salida done ⇒ ctx `meli_cancel_return_any_reason` + `meli_cancel_pack_split_return` (el legacy no corta en pack_splitted) y nota once `cancel-packsplit-twin-<id>`; si no ⇒ `_meli_cancel_pack_splitted_legacy` (nota + actividad). Tests `test_26278_cancel_por_motivo.py`: gemela con salida ⇒ devuelve (control origin 26.283 ROJO en 16-19), gemela sin salida / sin gemela ⇒ no devuelve (guardas). Fix 19/19 verde en 16-19.
+
 ## 19 oct 2026 — #529 Kindon / #543 Petswagon: descuento del vendedor doble, IVA de todas las compañías, 401 (v18.0.26.249)
 **Síntoma (529):** orden 2000019046887762 (precio ML 54.312,50 = lista 55.000 − oferta del vendedor 687,50; cupón 2.062,50 100 % ML;
 pagó 52.250) entraba en 51.560,44: 689,56 por debajo de lo cobrado.
