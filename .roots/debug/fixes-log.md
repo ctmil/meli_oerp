@@ -4,6 +4,19 @@
 
 ---
 
+## 22 oct 2026 — #542 SteelTigers API 661 / portal #662: 3 correcciones genéricas de contactos (v19.0.26.264)
+**Origen:** ZIP de IAV Tech (Pablo) con lógica de SteelTigers metida en `orders.py`/`shipment.py`. Se tomó SÓLO lo genérico,
+reescrito; lo de SteelTigers vive en su módulo `steeltiger_meli_contacts` (herencia, sin hook en el core).
+**Fix (`orders_update_order_json`):**
+1. Orden NUEVA: el `mercadolibre.buyers` se crea antes que la orden y el `if order and buyer_id` no la vinculaba ⇒
+   `buyer_id` se inicializa siempre y se escribe `order.buyer` tras crear la orden.
+2. Re-fetch de la orden (llega sin datos del comprador): `data['order_json'] = order_json`, para que los módulos que
+   post-procesan después de `super()` lean el JSON que usó la importación.
+3. `'CONSUMIDOR FINAL': 5` en el mapa AFIP: CF informado por ML pasa a ser dato fiscal EXPLÍCITO (corrige una condición
+   previa del contacto; antes caía al default 5 como implícito y FISCAL_PROTECT no lo escribía).
+**Prueba:** `tests/test_542_661_generico.py` (tag `meli_542_661`). Banco 19 y 17: fix 3/3, control origin 3 FAIL.
+16/18: py_compile, mismo delta.
+
 ### 6 oct 2026 — Precisión "Product Price" a 6 dígitos ahora es opcional [#542 SteelTiger / #659] (v19.0.26.193)
 
 `__init__.py` `post_init_hook`: forzaba 'Product Price' a 6 dígitos al instalar. Ahora lee el parámetro de sistema
