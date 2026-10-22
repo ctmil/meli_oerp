@@ -156,25 +156,51 @@ class TestCancelPorMotivo(TransactionCase):
         self.assertEqual(len(self._review(so)), 1)
         self.assertTrue(so.meli_cancel_review_scheduled)
 
-    def test_c_pack_splitted_con_gemela_no_devuelve_y_nombra_la_gemela(self):
+    def _pack_split(self, twin_deliver=True, with_twin=True):
         prod = self._prod()
         so, _ = self._mkso(prod=prod, oid="2000099990011")
-        twin, _ = self._mkso(prod=prod, oid="2000099990012")
-        twin.meli_status = "paid"
+        twin = self.SO
         MO = self.env["mercadolibre.orders"]
         buyer = self.env["mercadolibre.buyers"].create({"name": "Comprador 624", "buyer_id": "650423053"})
         mo1 = MO.create({"order_id": "2000099990011", "pack_id": "2000014788491255", "status": "cancelled",
                          "buyer": buyer.id, "date_created": "2026-08-31 05:08:18", "sale_order": so.id})
-        mo2 = MO.create({"order_id": "2000099990012", "pack_id": "2000014788999259", "status": "paid",
-                         "buyer": buyer.id, "date_created": "2026-08-31 07:33:25", "sale_order": twin.id})
-        for mo in (mo1, mo2):
-            self.env["mercadolibre.order_items"].create({"order_id": mo.id, "order_item_id": "MLM1922940117"})
+        self.env["mercadolibre.order_items"].create({"order_id": mo1.id, "order_item_id": "MLM1922940117"})
+        if with_twin:
+            twin, _ = self._mkso(prod=prod, oid="2000099990012", deliver=twin_deliver)
+            twin.meli_status = "paid"
+            mo2 = MO.create({"order_id": "2000099990012", "pack_id": "2000014788999259", "status": "paid",
+                             "buyer": buyer.id, "date_created": "2026-08-31 07:33:25", "sale_order": twin.id})
+            self.env["mercadolibre.order_items"].create({"order_id": mo2.id, "order_item_id": "MLM1922940117"})
         so.meli_orders = [(6, 0, mo1.ids)]
+        return so, twin, prod
+
+    def test_c_pack_splitted_gemela_con_salida_propia_devuelve(self):
+        """26.288: la gemela trae su propia salida hecha => devolver la de la cancelada (si no, doble salida)."""
+        so, twin, prod = self._pack_split(twin_deliver=True)
         self.assertEqual(so._meli_pack_splitted_twins(), twin)
+        self.assertEqual(self._qty(prod), 46, "doble salida antes de procesar")
+        self.assertTrue(self._cancel(so, _oj("pack_splitted", ["by_admin"], oid="2000099990011")))
+        self.assertEqual(so.state, "cancel")
+        self.assertEqual(self._returns(so).mapped("state"), ["done"])
+        self.assertEqual(self._qty(prod), 48, "queda una sola salida: la de la gemela")
+        self.assertIn(twin.name, so.meli_cancel_decision)
+        twin_out = twin.picking_ids.filtered(lambda p: p.picking_type_code == "outgoing")
+        self.assertIn(twin_out.name, so.meli_cancel_decision)
+
+    def test_c_pack_splitted_gemela_sin_salida_no_devuelve(self):
+        so, twin, prod = self._pack_split(twin_deliver=False)
         self.assertFalse(self._cancel(so, _oj("pack_splitted", ["by_admin"], oid="2000099990011")))
         self.assertNotEqual(so.state, "cancel")
-        self.assertFalse(self._returns(so), "decision del coordinador: sin devolucion automatica")
+        self.assertFalse(self._returns(so))
         self.assertIn(twin.name, so.meli_cancel_decision)
+        self.assertEqual(len(self._review(so)), 1)
+
+    def test_c_pack_splitted_sin_gemela_no_devuelve(self):
+        so, twin, prod = self._pack_split(with_twin=False)
+        self.assertFalse(self._cancel(so, _oj("pack_splitted", ["by_admin"], oid="2000099990011")))
+        self.assertNotEqual(so.state, "cancel")
+        self.assertFalse(self._returns(so))
+        self.assertIn("no se encontró la venta gemela", so.meli_cancel_decision)
         self.assertEqual(len(self._review(so)), 1)
 
     # ------------------------------------------------- dato de pago y red --

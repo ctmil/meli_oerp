@@ -1895,7 +1895,8 @@ class sale_order(models.Model):
         # regla que `por_estado_ml` (pago acreditado sin reintegro): ML re-creó la venta con
         # otro número, la mercadería y la plata siguen con la gemela => nunca devolución ni
         # nota de crédito automática.
-        if self._meli_cancel_is_pack_splitted(order_json=order_json):
+        if self._meli_cancel_is_pack_splitted(order_json=order_json) and \
+                not self.env.context.get('meli_cancel_pack_split_return'):
             return self._meli_cancel_pack_splitted_legacy(cancel_msg, config=config)
 
         # 1. Devolver albaranes ya entregados
@@ -2319,7 +2320,37 @@ class sale_order(models.Model):
         if reason == _meli_cd.REASON_DEFAULT:
             return None
         if reason == _meli_cd.REASON_PACK_SPLIT:
-            return self._meli_cancel_pack_splitted_legacy(cancel_msg, config=config)
+            # 26.288 (#624): medido en un cliente -- la gemela del split trae SU PROPIA salida
+            # hecha; sin devolver la de esta venta la mercaderia sale dos veces. Gemela en Odoo
+            # con salida propia 'done' => se devuelve la salida de esta venta (como A/B). Sin
+            # gemela o gemela sin salida propia => como antes: nota + actividad, sin devolver.
+            own_out = self.picking_ids.filtered(
+                lambda pk: pk.state == "done" and pk.picking_type_code == "outgoing")
+            twin_out = self.env["stock.picking"]
+            twins = self.env["sale.order"]
+            if own_out:
+                try:
+                    twins = self._meli_pack_splitted_twins()
+                except Exception as e:
+                    _logger.warning("meli_cancel %s: no se pudo buscar la venta gemela: %s", self.name, e)
+                twin_out = twins.mapped("picking_ids").filtered(
+                    lambda pk: pk.state == "done" and pk.picking_type_code == "outgoing")
+            if not (own_out and twin_out):
+                return self._meli_cancel_pack_splitted_legacy(cancel_msg, config=config)
+            text = ("pack dividido por MercadoLibre (pack_splitted): la venta gemela %s tiene su propia salida "
+                    "hecha (%s), así que se cancela esta venta y se devuelve su salida (%s) para que la "
+                    "mercadería no salga dos veces." % (
+                        ", ".join(twins.mapped("name")), ", ".join(twin_out.mapped("name")),
+                        ", ".join(own_out.mapped("name"))))
+            if self.meli_cancel_decision != text:
+                self.meli_cancel_decision = text
+            meli_message_post(self, "Cancelación de MercadoLibre: %s Motivo ML: %s" % (text, cancel_msg),
+                              config=config, once_key="cancel-packsplit-twin-%s" % self.id)
+            ctx = {"meli_cancel_return_any_reason": True, "meli_cancel_policy_reason": reason,
+                   "meli_cancel_pack_split_return": True}
+            if self._meli_cancel_return_full_on():
+                ctx["meli_cancel_return_full"] = True
+            return ctx
         if reason == _meli_cd.REASON_COVERED:
             text = ("motivo '%s' con el pago cubierto por MercadoLibre (bpp_covered): ML le pagó la venta "
                     "al vendedor. Se mantiene como venta concretada: no se cancela, no se devuelve la "
