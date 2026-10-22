@@ -4,6 +4,15 @@
 
 ---
 
+## 19.0.26.268 — 22-oct-2026 · release de flota: integración 462 (224–231) + aviso Publicar Stock [#462 #452]
+- **Filtros de Ventas ML** (ex 26.230): Sin confirmar, A facturar, Nada para facturar, Totalmente facturadas, Sin factura publicada, Factura en borrador, Con factura publicada, Con nota de crédito, Full / Flex / Colecta / Punto de entrega, reclamos y devoluciones.
+- **Línea de envío** (ex 26.231): se factura con el pago y no con la entrega; con envío $0 no deja el pedido en «Nada para facturar»; nunca se factura sola. La migración `migrations/19.0.26.268` recalcula el estado de facturación de las ventas ya confirmadas (renumerada desde 26.231 para que corra también en bases que ya están en 26.267).
+- Aviso «lo cobrado no coincide»: nombra el ítem sin producto y se publica una sola vez (ex 26.231).
+- Cupón a cargo del vendedor, prorrateado por ítem y sin llevar nunca un precio a cero; envío pagado por el comprador tomado de los pagos; cupón + descuento sin restar dos veces; venta de un pack cancelado entero toma el estado; la sincronización no agrega líneas a una venta confirmada (ex 26.229).
+- Import de órdenes: el contacto de facturación sólo se escribe si algo cambió (ex 26.228). Textos neutros (ex 26.227).
+- Guarda del pre-migrate 26.222 cuando la base viene de un build anterior a 26.16 (ex 26.226). URLs de la API armadas con el host configurado y sin SDK (ex 26.225). Etiquetas: descarga separada de su escritura (ex 26.224).
+- Build único 19.0.26.268 en 16/17/18/19 para meli_oerp, meli_oerp_stock, meli_oerp_multiple, meli_oerp_accounting y meli_oerp_autofacturacion = 26.267 + integración 224–231 (nunca landeada hasta hoy) + #452.
+
 ## 19.0.26.267 — 22-oct-2026 · release de flota [#525 #539 #526]
 - 267 = release flota: 265 #525 + 266 #539 + 267 #526. Sin cambios funcionales nuevos en este módulo en este build (acompaña).
 - Build único 26.267 en 16/17/18/19 para meli_oerp, meli_oerp_multiple, meli_oerp_stock, meli_oerp_accounting y meli_oerp_autofacturacion.
