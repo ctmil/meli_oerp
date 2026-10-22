@@ -4,6 +4,9 @@
 
 ---
 
+## 22 oct 2026 — cancelaciones ML por motivo A-F [#624] (v17.0.26.283)
+#624 ROEN: `cancel_detail.code` no separa B/F ni D/E; los separa `payments[].status_detail` (bpp_covered = ML pagó la venta), medido sobre 16 cancelaciones reales etiquetadas por la clienta. `cancel_decision.classify_cancel_reason` (pura) + `sale.order._meli_cancel_by_reason` (opt-in `meli_oerp.cancel_reason_policy=by_reason`, sólo legacy); `meli_cancel_covered`, `meli_cancel_review_scheduled`; mediación: devolución sin validar DESPUÉS de cancelar (`_meli_cancel_after_legacy`, `meli_return_mode_force`); FULL con `meli_oerp.cancel_return_full=1`; pack_splitted nombra la gemela (`_meli_pack_splitted_twins`). Tests `tests/test_26278_cancel_por_motivo.py` (tag meli_26278) + tabla pura: fix verde en 16-19, control origin rojo. Regresión 19: 0 nuevas (4 FAIL preexistentes en accounting TestCancelPorEstadoML p01/p02/p10/p14).
+
 ## 20 oct 2026 — #513 TYL: la sincronización devolvía a la original la dirección cambiada a mano (v17.0.26.282)
 **Síntoma:** el usuario cambia a mano la dirección de FACTURA o de ENTREGA de un pedido de ML y la siguiente
 sincronización de la orden (cron o notificación) la vuelve a la original. Igual con la calle / ciudad / teléfono del
