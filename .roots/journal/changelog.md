@@ -4,6 +4,10 @@
 
 ---
 
+## 18.0.26.269 — 22-oct-2026 · cobros ML con línea de método explícita + lectura de mercadolibre.client [#526 #630 #542]
+- Nuevo helper `meli_payment_method_line_for(journal, tipo, partner)` en `models/versions.py`: elige la línea de método de pago del diario que tenga «Cuenta de pagos pendientes» (o el default que la versión de Odoo aplique). Lo usan los cobros de meli_oerp_accounting y meli_oerp_multiple.
+- Build único 18.0.26.269 en 16/17/18/19 para meli_oerp, meli_oerp_stock, meli_oerp_multiple, meli_oerp_accounting y meli_oerp_autofacturacion.
+
 ## 18.0.26.268 — 22-oct-2026 · release de flota: integración 462 (224–231) + aviso Publicar Stock [#462 #452]
 - **Filtros de Ventas ML** (ex 26.230): Sin confirmar, A facturar, Nada para facturar, Totalmente facturadas, Sin factura publicada, Factura en borrador, Con factura publicada, Con nota de crédito, Full / Flex / Colecta / Punto de entrega, reclamos y devoluciones.
 - **Línea de envío** (ex 26.231): se factura con el pago y no con la entrega; con envío $0 no deja el pedido en «Nada para facturar»; nunca se factura sola. La migración `migrations/18.0.26.268` recalcula el estado de facturación de las ventas ya confirmadas (renumerada desde 26.231 para que corra también en bases que ya están en 26.267).
