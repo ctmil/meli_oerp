@@ -1023,3 +1023,71 @@ def tax_names_equivalent(name1: str, name2: str) -> bool:
         return False
     # reconocemos equivalencia si las tasas son iguales
     return r1 == r2
+
+
+# ---------------------------------------------------------------------------
+# [26.269] Linea de metodo de pago EXPLICITA para los cobros/pagos de ML.
+#
+# El modulo creaba el account.payment con journal_id + payment_method_id pero sin
+# payment_method_line_id, asi que Odoo elegia la linea solo: en 18/19 la preferida
+# del partner y si no la PRIMERA linea del diario; en 16/17 la primera. La "Cuenta
+# de pagos pendientes" del cobro sale de esa linea (payment_account_id). En 18/19 no
+# hay default de compania: si la primera linea es "Online"/"En linea" sin cuenta, el
+# cobro queda SIN ASIENTO (visto en un cliente: los 3 diarios de cobro tenian "Online"
+# sin cuenta). En 16/17 la linea sin cuenta cae al default de la compania
+# (account_journal_payment_debit/credit_account_id) y en 18/19 Community Odoo pone la
+# cuenta pendiente del plan: esos defaults se respetan. El caso roto es 18/19 con
+# account_accountant (Enterprise / Odoo.sh), donde no hay default.
+#
+# Regla: si la linea que Odoo elegiria sola es valida, se usa ESA (sin cambio de
+# comportamiento). Si no, la primera linea del diario que si tenga cuenta. Si
+# ninguna es valida, devuelve una linea vacia + el motivo, y el que llama NO crea
+# el pago (un pago sin asiento es peor que un pago que falta y avisa).
+# ---------------------------------------------------------------------------
+def meli_payment_method_line_for(journal, payment_type='inbound', partner=None):
+    """Devuelve (account.payment.method.line, motivo). motivo == '' si hay linea valida."""
+    from odoo import release
+    env = journal.env
+    Line = env['account.payment.method.line']
+    if not journal:
+        return Line, "no hay diario de pagos configurado"
+    journal = journal[:1]
+    lines = journal._get_available_payment_method_lines(payment_type)
+    company = journal.company_id
+    default_field = ('account_journal_payment_debit_account_id' if payment_type == 'inbound'
+                     else 'account_journal_payment_credit_account_id')
+    company_default = default_field in company._fields and company[default_field]
+    if not company_default and release.version_info[0] >= 18:
+        # 18/19 SIN contabilidad completa (Community: _get_invoice_in_payment_state != 'in_payment'):
+        # al crear el pago Odoo le pone la cuenta pendiente del plan si la linea no tiene
+        # (account.payment.create -> _get_outstanding_account). Ese default se respeta. Con
+        # account_accountant (Enterprise / Odoo.sh) no hay default: linea sin cuenta = sin asiento.
+        Move = env['account.move']
+        if hasattr(Move, '_get_invoice_in_payment_state') and Move._get_invoice_in_payment_state() != 'in_payment':
+            company_default = True
+
+    def _valid(line):
+        return bool(line and (line.payment_account_id or company_default))
+
+    # Lo que Odoo elegiria solo (ver account.payment._compute_payment_method_line_id).
+    odoo_pick = Line
+    if partner and release.version_info[0] >= 18:
+        pref_field = ('property_inbound_payment_method_line_id' if payment_type == 'inbound'
+                      else 'property_outbound_payment_method_line_id')
+        if pref_field in partner._fields:
+            pref = partner.with_company(company)[pref_field]
+            if pref and pref.id in lines.ids:
+                odoo_pick = pref
+    odoo_pick = odoo_pick or lines[:1]
+    if _valid(odoo_pick):
+        return odoo_pick, ''
+    for line in lines:
+        if _valid(line):
+            _logger.info("MELI payment method line: diario %s, la linea por defecto '%s' no tiene "
+                         "cuenta de pagos pendientes; se usa '%s'.",
+                         journal.display_name, odoo_pick.name, line.name)
+            return line, ''
+    tipo = 'entrante' if payment_type == 'inbound' else 'saliente'
+    return Line, ("el diario '%s' no tiene ningun metodo de pago %s con 'Cuenta de pagos pendientes' "
+                  "configurada (Contabilidad > Configuracion > Diarios > %s > pestana de pagos). "
+                  "Sin esa cuenta el pago quedaria sin asiento." % (journal.display_name, tipo, journal.display_name))
