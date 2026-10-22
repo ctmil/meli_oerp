@@ -618,7 +618,8 @@ class res_company(models.Model):
        help="Controla cómo se registran los mensajes de MeLi en pedidos y productos:\n"
             "- Notificaciones: aparecen en el inbox del usuario (comportamiento actual)\n"
             "- Notas internas: se registran en el chatter pero sin notificar al usuario\n"
-            "- Desactivadas: solo se registran en el log del servidor")
+            "- Desactivadas: solo se registran en el log del servidor\n"
+            "Excepción: los avisos de cobros/pagos de MercadoLibre que NO se pudieron registrar (dinero sin registrar) quedan siempre como nota interna.")
 
     mercadolibre_create_product_from_order = fields.Boolean(string='Importar productos inexistentes',help='Importar productos desde la orden si no se encuentran en la base.')
     mercadolibre_update_existings_variants = fields.Boolean(string='Actualiza/agrega variantes',help='Permite agregar y actualizar variantes de un producto existente (No recomendable cuando se está ya en modo Odoo a ML, solo usar cuando se importa por primera vez de ML a Odoo, para no romper el stock)')
