@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""#661 (542) — Vistas de la API de MercadoLibre SIN el access_token en la URL.
+"""un caso — Vistas de la API de MercadoLibre SIN el access_token en la URL.
 
 Antes, el link "Link Api" de la publicación, el botón "Abrir API" y los links de
 descarga de etiquetas llevaban `?access_token=APP_USR-...` pegado: el token quedaba
@@ -20,6 +20,8 @@ import requests
 from odoo import http
 from odoo import release as odoo_release
 from odoo.http import request
+
+from ..models.meli_util import meli_instance_url, meli_instance_session
 
 _logger = logging.getLogger(__name__)
 
@@ -88,9 +90,9 @@ class MeliTokenlessViews(http.Controller):
         if len(tokens) != 1:
             return _bad_request('Los envíos pertenecen a cuentas distintas: bajalos por separado.')
         tok, shipping_ids = next(iter(tokens.items()))
-        url = 'https://api.mercadolibre.com/shipment_labels'
+        url = meli_instance_url(meli, 'shipment_labels')  # host de meli_api_url
         try:
-            resp = requests.get(
+            resp = meli_instance_session(meli).get(
                 url,
                 params={'shipment_ids': ','.join(shipping_ids), 'response_type': response_type},
                 headers={'Authorization': 'Bearer %s' % tok},

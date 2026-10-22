@@ -1,7 +1,7 @@
-# Prueba con Postgres REAL del filtro de motivos (26.221, #638). NO es un TestCase de Odoo: se corre con
+# Prueba con Postgres REAL del filtro de motivos (26.221, un caso). NO es un TestCase de Odoo: se corre con
 #   odoo-bin shell -c <conf> -d <db efimera con meli_oerp> < meli_oerp/tests/shell_cancel_return_reasons.py
 # Todo va en una transaccion que se revierte. Sin red (meli simulado). Esperado: RESUMEN 17 OK / 0 FAIL.
-# 26.221 (T3LC #638) - filtro de motivos de la devolucion automatica. Corre en `odoo-bin shell`
+# 26.221 (un cliente) - filtro de motivos de la devolucion automatica. Corre en `odoo-bin shell`
 # sobre Postgres REAL (db efimera t_motivos, suite 19.0 de las ramas sello-19.0). SIN red: el
 # `meli` del resync es un doble que responde /orders/<id>; por_estado_ml con la foto simulada.
 # Todo dentro de UNA transaccion que se revierte al final.
@@ -112,7 +112,7 @@ try:
     check("return_mode none + pack_splitted -> sin marca", state(so, p, out),
           {'so': 'cancel', 'ret': [], 'qty': 8.0, 'flag': False, 'chatter_skip': False})
     co.mercadolibre_return_mode = 'done'
-    # --- 6. EL CAMINO REAL DEL #638: orders_resync_status con meli simulado -------------------
+    # --- 6. EL CAMINO REAL DEL un caso: orders_resync_status con meli simulado -------------------
     Orders = E['mercadolibre.orders']
     class Resp:
         def __init__(self, j): self._j = j
@@ -143,9 +143,9 @@ try:
     with patch.object(type(Orders), '_meli_mark_status_checked', lambda self, ids: 0):
         res = Orders.orders_resync_status(meli=fm, config=co)
     print("resync:", res, "GETs:", len(fm.calls))
-    check("resync #638 buyer_cancel_express -> devuelve", state(*trio['buyer_cancel_express']), RET)
-    check("resync #638 pack_splitted -> NO devuelve, marca", state(*trio['pack_splitted']), NORET)
-    check("resync #638 shipment_not_delivered -> NO devuelve, marca", state(*trio['shipment_not_delivered']), NORET)
+    check("resync buyer_cancel_express -> devuelve", state(*trio['buyer_cancel_express']), RET)
+    check("resync pack_splitted -> NO devuelve, marca", state(*trio['pack_splitted']), NORET)
+    check("resync shipment_not_delivered -> NO devuelve, marca", state(*trio['shipment_not_delivered']), NORET)
     print("  motivo guardado:", {c: t[0].meli_cancel_reason_code for c, t in trio.items()})
     # --- 7. modo por_estado_ml (foto simulada: no enviado + reintegrado => GOODS_RETURN) -------
     co.mercadolibre_cancel_mode = 'por_estado_ml'

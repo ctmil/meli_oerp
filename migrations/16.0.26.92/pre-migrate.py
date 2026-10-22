@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""[#420 Shoppy] estimated_buffering_date: fields.Datetime -> fields.Date.
+"""[caso de un cliente] estimated_buffering_date: fields.Datetime -> fields.Date.
 
 ML entrega el 'buffering.date' del shipping_option como DÍA calendario a
 medianoche-UTC ('YYYY-MM-DD 00:00:00Z'). Al guardarse como timestamp se
@@ -29,14 +29,14 @@ def migrate(cr, version):
     table, column = "mercadolibre_shipment", "estimated_buffering_date"
     dtype = _column_type(cr, table, column)
     if dtype is None:
-        _logger.info("[#420] %s.%s no existe aún; nada que castear", table, column)
+        _logger.info("%s.%s no existe aún; nada que castear", table, column)
         return
     if dtype == "date":
-        _logger.info("[#420] %s.%s ya es date; skip", table, column)
+        _logger.info("%s.%s ya es date; skip", table, column)
         return
     cr.execute(
         'ALTER TABLE mercadolibre_shipment '
         'ALTER COLUMN estimated_buffering_date TYPE date '
         'USING estimated_buffering_date::date'
     )
-    _logger.info("[#420] %s.%s casteado %s -> date", table, column, dtype)
+    _logger.info("%s.%s casteado %s -> date", table, column, dtype)

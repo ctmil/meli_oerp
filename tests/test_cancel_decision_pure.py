@@ -170,7 +170,7 @@ class TestCancelDecisionTable(unittest.TestCase):
 
 
 class TestCancelReturnReasons(unittest.TestCase):
-    """26.221 (T3LC #638): que motivos de cancelacion devuelven stock automaticamente."""
+    """26.221 (un cliente): que motivos de cancelacion devuelven stock automaticamente."""
 
     def test_default(self):
         for raw in (None, "", "   "):
