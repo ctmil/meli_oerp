@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-"""[26.231] Recalcula el estado de facturacion de las ventas ML por la
-linea de envio. Desde 26.231 la linea de envio de una venta ML (servicio, entrega manual)
+"""[26.268, ex 26.231] Recalcula el estado de facturacion de las ventas ML por la
+linea de envio. Desde 26.268 (ex 26.231) la linea de envio de una venta ML (servicio, entrega manual)
 se factura como politica "pedido" si tiene precio y no tiene nada que facturar si es $0
 (ver sale_order_line._meli_is_ml_shipping_line). Los valores YA guardados de
 qty_to_invoice / invoice_status no se recalculan solos al actualizar el modulo: sin esto
@@ -37,7 +37,7 @@ def migrate(cr, version):
     ])
     lines = lines.filtered(lambda l: l._meli_is_ml_shipping_line())
     if not lines:
-        _logger.info("MELI 26.231: sin lineas de envio ML confirmadas, nada que recalcular.")
+        _logger.info("MELI 26.268: sin lineas de envio ML confirmadas, nada que recalcular.")
         return
     orders = lines.mapped('order_id')
     before = _status_count(env, orders)
@@ -47,5 +47,5 @@ def migrate(cr, version):
     env.flush_all()
     orders.invalidate_recordset(['invoice_status'])
     after = _status_count(env, orders)
-    _logger.info("MELI 26.231: estado de facturacion recalculado en %d ventas ML (%d lineas de envio). "
+    _logger.info("MELI 26.268: estado de facturacion recalculado en %d ventas ML (%d lineas de envio). "
                  "Antes %s -> despues %s", len(orders), len(lines), before, after)
