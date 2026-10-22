@@ -1480,7 +1480,7 @@ class MeliUtil(models.AbstractModel):
 
                         #_logger.error(rjson)
 
-                        if rjson["error"]=="not_found":
+                        if rjson.get("error")=="not_found":  # [529] 26.287: un 401 sin clave "error" tambien entra aca (antes KeyError)
                             api_rest_client.needlogin_state = True
                             logs+= "NOT FOUND"+"\n"
 
