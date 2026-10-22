@@ -4,6 +4,11 @@
 
 ---
 
+## 17.0.26.288 — 22-oct-2026 · cancelaciones por motivo: pack dividido devuelve si la venta gemela ya tiene su salida [#624]
+- **Pack dividido (`pack_splitted`) con la política `meli_oerp.cancel_reason_policy = by_reason`** [#624]: si la venta gemela (mismo comprador y producto, creada por ML al dividir el paquete) está en Odoo y tiene **su propia salida hecha**, la venta cancelada se cancela y **se devuelve su salida** (como A/B), con una nota que nombra la gemela y las dos salidas: sin esto quedaban dos salidas por un solo envío. Si la gemela no tiene salida propia o no está en Odoo: como antes, nota + actividad, sin devolución.
+- FULL: la devolución respeta `meli_oerp.cancel_return_full`. Sin la política activa, `pack_splitted` sigue como siempre.
+- Build único 17.0.26.288 en 16/17/18/19 para meli_oerp, meli_oerp_stock, meli_oerp_multiple, meli_oerp_accounting y meli_oerp_autofacturacion.
+
 ## 17.0.26.287 — 22-oct-2026 — landeo #529 26.245 + 26.249 (build de flota 26.287)
 - Landeo en origin de `claude/529-cupon-facturada-17.0` (26.245) y `claude/529-descuento-vendedor-iva-17.0` (26.249), renumerados a 26.287.
 - Merge con 26.229 (cupón del vendedor prorrateado con `items_total` + guarda de precio negativo): se conserva el prorrateo de 26.229; de 26.249 queda el salto de los detalles `type=discount` (oferta ya en `unit_price`), la guarda de venta confirmada, el IVA de una sola compañía y el 401.
