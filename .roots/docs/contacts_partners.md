@@ -222,3 +222,11 @@ Para que los pedidos se puedan facturar hay que **activar "Importar clientes"**
 en la configuracion de la cuenta MeLi, **o** dejar configurado un
 `mercadolibre_contact_partner` que actue como contacto generico cuando la
 importacion de clientes esta desactivada.
+
+### Extensión por cliente (26.264, #542)
+Para reglas propias de un cliente sobre los contactos de ML **no** se agrega código al core: se hereda
+`mercadolibre.orders.orders_update_order_json` (y `mercadolibre.shipment.partner_delivery_id`) con `depends` de todo el
+suite, se llama a `super()` con el contexto propio (llega a todas las altas/escrituras de `res.partner` del import) y se
+post-procesa después. `data['order_json']` es el JSON efectivamente usado y `order.buyer` está vinculado también en
+órdenes nuevas. Ejemplo: `steeltiger_meli_contacts` (repo ctmil/steeltigers).
+
