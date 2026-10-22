@@ -2111,6 +2111,58 @@ class res_company(models.Model):
         """[529] N vigente para `sku` (ver _meli_stock_safety_resolver)."""
         return self._meli_stock_safety_resolver()(sku)
 
+    def _meli_diag_publishable_qty(self, product, meli_id, meli, rjson):
+        """[525 #611] Cantidad que PUBLICARIA el push para esta publicacion.
+
+        Misma funcion que usa el push (_meli_available_quantity), con la configuracion de la
+        cuenta de la vinculacion (si hay meli_oerp_multiple) y por lo tanto las MISMAS
+        ubicaciones: la existencia en Full (MLF) no cuenta para una publicacion que no es
+        Full. Incluye el stock de seguridad. El tipo logistico sale de la respuesta de ML ya
+        leida (contexto meli_logistic_type_hint) para no repetir el GET.
+        Devuelve None si no se pudo calcular (el diagnostico sigue como antes)."""
+        try:
+            config = None
+            if 'mercadolibre.product' in self.env:
+                bind = self.env['mercadolibre.product'].sudo().search(
+                    [('product_id', '=', product.id), ('conn_id', '=', str(meli_id))], limit=1)
+                account = bind and bind.connection_account
+                config = (account and account.configuration) or None
+            prod = product
+            if isinstance(rjson, dict):
+                hint = (rjson.get('shipping') or {}).get('logistic_type') or ''
+                if rjson.get('user_product_id') or any(
+                        isinstance(v, dict) and v.get('user_product_id') for v in (rjson.get('variations') or [])):
+                    hint += '_user_product_id'
+                prod = product.with_context(meli_logistic_type_hint=hint)
+            try:
+                qty = prod._meli_available_quantity(meli_id=meli_id, meli=meli, config=config)
+            except TypeError:
+                # meli_oerp sin meli_oerp_stock: la firma no tiene meli_id
+                qty = prod._meli_available_quantity(meli=meli, config=config)
+            return float(qty or 0.0)
+        except Exception as _pq_err:
+            if getattr(_pq_err, 'pgcode', '') in ('40001', '40P01'):
+                raise
+            _logger.warning("MELI_STOCK_DIAG: no se pudo calcular el stock publicable de %s: %s", meli_id, _pq_err)
+            return None
+
+    def _meli_diag_status_after_activate(self, meli, meli_id):
+        """[525 #611] Estado REAL en ML despues de pedir la activacion: (status, sub_status).
+        status=None si no se pudo verificar."""
+        try:
+            response = meli.get("/items/%s" % meli_id, {'access_token': meli.access_token})
+            rjson = response.json() if response else {}
+        except Exception as _st_err:
+            if getattr(_st_err, 'pgcode', '') in ('40001', '40P01'):
+                raise
+            return None, []
+        if not isinstance(rjson, dict) or rjson.get('error'):
+            return None, []
+        status = rjson.get('status')
+        if not isinstance(status, str) or status.isdigit():
+            return None, []
+        return status, (rjson.get('sub_status') or [])
+
     def meli_stock_diagnostic(self, meli=False, reactivate=None):
         """
         Diagnostic safety check: compare Odoo stock vs ML stock for all published products.
@@ -2354,6 +2406,20 @@ class res_company(models.Model):
                             checked_items_log.append(f"⏭ {item_log} → paused, NO se reactiva (modo={reactivate}, sub_status={_ml_sub})")
                             continue
                         product = self.env['product.product'].browse(pid)
+                        # [525 #611] El SQL de arriba suma TODAS las ubicaciones internas (Full incluida),
+                        # pero el push publica solo las de la configuracion. Si lo publicable es 0, activar
+                        # no sirve: ML la vuelve a pausar y esto se repetia cada 30 min anotando REACTIVADA.
+                        _publishable = self._meli_diag_publishable_qty(product, meli_id, meli, rjson)
+                        if _publishable is not None and _publishable <= 0:
+                            _logger.info(
+                                "MELI_STOCK_DIAG: NO reactiva [%s] %s — Odoo=%.0f pero stock publicable=%.0f",
+                                sku, meli_id, odoo_qty, _publishable
+                            )
+                            checked_items_log.append(
+                                f"⏭ {item_log} → paused, NO se reactiva: stock publicable={_publishable:.0f} "
+                                f"(la existencia esta en ubicaciones de las que no publica, p.ej. Full)"
+                            )
+                            continue
                         if not product.meli_update_stock_blocked and not product.product_tmpl_id.meli_update_stock_blocked:
                             _logger.warning(
                                 "MELI_STOCK_DIAG: REACTIVATING [%s] %s (paused + Odoo_qty=%.0f)",
@@ -2370,8 +2436,23 @@ class res_company(models.Model):
                             product.product_post_stock(meli=meli)
                             try:
                                 product.product_meli_status_active(meli=meli)
-                                actions_taken.append(f"✅ REACTIVADA [{sku}] {meli_id} — paused + Odoo={odoo_qty:.0f} (status=active explícito)")
-                                checked_items_log.append(f"✅ {item_log} → REACTIVADA (status=active explícito)")
+                                # [525 #611] Se anota REACTIVADA solo si ML la muestra activa.
+                                _after, _after_sub = self._meli_diag_status_after_activate(meli, meli_id)
+                                if _after:
+                                    self._meli_diag_persist_ml_status(pid, meli_id, _after, ml_qty)
+                                if _after == 'active':
+                                    actions_taken.append(f"✅ REACTIVADA [{sku}] {meli_id} — paused + Odoo={odoo_qty:.0f} (status=active verificado)")
+                                    checked_items_log.append(f"✅ {item_log} → REACTIVADA (status=active verificado)")
+                                elif _after:
+                                    _logger.warning(
+                                        "MELI_STOCK_DIAG: NO QUEDO ACTIVA [%s] %s — se pidio activar y ML sigue status=%s sub_status=%s",
+                                        sku, meli_id, _after, _after_sub
+                                    )
+                                    actions_taken.append(f"⚠️ NO QUEDÓ ACTIVA [{sku}] {meli_id} — se pidió activar y ML sigue status={_after} sub_status={_after_sub}")
+                                    checked_items_log.append(f"⚠️ {item_log} → se pidió activar, ML sigue {_after} {_after_sub}")
+                                else:
+                                    actions_taken.append(f"❔ ACTIVACIÓN SIN VERIFICAR [{sku}] {meli_id} — no se pudo releer el estado en ML")
+                                    checked_items_log.append(f"❔ {item_log} → activación pedida, estado en ML sin verificar")
                             except Exception as _act_err:
                                 if getattr(_act_err, 'pgcode', '') in ('40001', '40P01'):
                                     raise
