@@ -8,6 +8,9 @@
 - **#611** El control automático **Meli Stock Diagnostic** ya no intenta reactivar una publicación pausada cuando la existencia que ve está en ubicaciones de las que esa publicación **no publica** (p.ej. sólo en Full): calcula la cantidad con la misma regla que el envío de stock.
 - Sólo anota **«REACTIVADA»** si Mercado Libre la muestra activa después; si sigue pausada lo dice (**«NO QUEDÓ ACTIVA»**, con el motivo que informa ML).
 - Build único 26.257 en 16/17/18/19 (junto con meli_oerp_multiple 26.257).
+## 17.0.26.259 — 21-oct-2026 · el enlace del reclamo abre la mediación en el panel del vendedor [#615]
+- **#615** En una **mediación**, «Claim Link» abre ahora la mediación en el panel del vendedor: `https://vendedores.<dominio>/ventas/nueva/mensajeria/<pack o, si no hay, orden>/mediacion/<reclamo>`. Antes abría `www.<dominio>/reclamos/<reclamo>`, que Mercado Libre redirige a la venta.
+- Devoluciones y cancelaciones conservan el enlace anterior: el formato del panel para esos tipos no está confirmado.
 
 ## 17.0.26.223 — 13-oct-2026 · stock de seguridad en el diagnóstico, fecha de la venta al confirmar, devoluciones canceladas, aviso de seguridad [#529 #640 #641]
 - **#529** El diagnóstico de stock descuenta el stock de seguridad **por SKU según las Reglas de SKU tipo «Stock Rule»** (columna «Quantity Stock»; el SKU exacto gana sobre `*`), igual que el envío de stock: ya no reactiva ni «corrige» publicaciones que el resguardo deja en 0 a propósito. Sin reglas, igual que antes.
