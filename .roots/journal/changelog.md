@@ -4,6 +4,12 @@
 
 ---
 
+## 18.0.26.271 — 22-oct-2026 · ventas ML: adopción de línea sin vínculo, carrito de una orden y carrito parcial [#431]
+- **Ventas ML sin líneas duplicadas** [#431]: al sincronizar, si la venta tiene una línea del mismo producto sin vínculo ML (p. ej. la que deja cancelar y reconfirmar a mano) se la **adopta** escribiéndole los ids de ML en vez de crear otra; en una venta confirmada sin candidata no crea y deja **una** nota de control por ítem. Igual en las líneas de un pack.
+- **Carrito de una orden**: una venta de carrito con una sola orden toma el estado cancelado de ML.
+- **Carrito parcial**: si ML cancela una sola orden de un carrito, la venta no se cancela entera mientras quede alguna orden vigente (nota única); la última cancelación sigue el camino de siempre.
+- Build único 18.0.26.271 en 16/17/18/19 para meli_oerp, meli_oerp_stock, meli_oerp_multiple, meli_oerp_accounting y meli_oerp_autofacturacion.
+
 ## 18.0.26.270 — 22-oct-2026 · pagos salientes ML con línea de método explícita + aviso de dinero sin registrar siempre visible
 - Avisos de **dinero sin registrar** (cobro o pago de ML que no se pudo crear) quedan **siempre** en el chatter: con el modo de notificaciones «Desactivadas» van como nota interna (sin inbox), una vez por pago. Nuevo `meli_money_block_post` y parámetro `force_chatter` en `meli_message_post`; el help del modo lo documenta.
 - Build único 18.0.26.270 en 16/17/18/19 para meli_oerp, meli_oerp_stock, meli_oerp_multiple, meli_oerp_accounting y meli_oerp_autofacturacion.
