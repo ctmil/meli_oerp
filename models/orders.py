@@ -3918,11 +3918,16 @@ class mercadolibre_orders(models.Model):
         partner_id = False
         partner_shipping_id = False
         partner_invoice_id = False  # #601: si la orden llega sin buyer no se asignaba y abortaba en la asignación de contactos
+        buyer_id = False  # #542-661: definido siempre; se vincula a la orden también cuando la orden es NUEVA
 
         if not 'buyer' in order_json or not 'name' in order_json['buyer'] or not 'first_name' in order_json['buyer']:
             #_logger.info("Buyer not present, fetch order")
             response = meli.get("/orders/"+str(order_json['id']), {'access_token':meli.access_token})
             order_json = response.json()
+            # #542-661: los módulos que heredan este método y post-procesan después de super()
+            # leen data['order_json']: tiene que ser el mismo que se usó en esta importación.
+            if isinstance(data, dict):
+                data['order_json'] = order_json
             #_logger.info(order_json)
 
         if 'buyer' in order_json:
@@ -4170,6 +4175,8 @@ class mercadolibre_orders(models.Model):
                             'SUJETO EXENTO': 4,
                             'RESPONSABLE MONOTRIBUTO': 6,
                             'MONOTRIBUTO': 6,
+                            # #542-661: informado por ML => dato explícito (corrige un valor previo)
+                            'CONSUMIDOR FINAL': 5,
                         }
                         if _taxpayer_upper and _taxpayer_upper in _afip_code_map:
                             _afip_code = _afip_code_map[_taxpayer_upper]
@@ -5358,6 +5365,15 @@ class mercadolibre_orders(models.Model):
             #_logger.info(Adding new order: " )
             #_logger.info(order_fields)
             order = order_obj.create( (order_fields))
+
+        # #542-661: en una orden NUEVA el comprador (mercadolibre.buyers) se crea antes que la orden,
+        # así que el `if order and buyer_id` de arriba no la vinculaba: se vincula ahora.
+        if order and buyer_id and 'buyer' in order._fields and order.buyer != buyer_id:
+            try:
+                order.write({'buyer': buyer_id.id})
+            except Exception as _e:
+                _logger.warning("orders_update_order_json > no se pudo vincular el comprador %s a la orden %s: %s",
+                                buyer_id.id, order.id, _e)
 
         # Fetch discount details from ML API to determine seller-funded portion.
         #
