@@ -4,6 +4,10 @@
 
 ---
 
+## 16.0.26.280 — 22-oct-2026 · la actualización de stock de una entrada grande ya no se pierde en silencio [#475]
+- Sin cambios funcionales en este módulo (acompaña).
+- Build único 16.0.26.280 en 16/17/18/19 para meli_oerp, meli_oerp_stock, meli_oerp_multiple, meli_oerp_accounting y meli_oerp_autofacturacion.
+
 ## 16.0.26.279 — 22-oct-2026 · panel CRONs: «Ejecutar ahora» con lock y contador de la corrida de precios [#427]
 - Sin cambios funcionales en este módulo (acompaña).
 - Build único 16.0.26.279 en 16/17/18/19 para meli_oerp, meli_oerp_stock, meli_oerp_multiple, meli_oerp_accounting y meli_oerp_autofacturacion.
