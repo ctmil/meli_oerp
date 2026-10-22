@@ -22,6 +22,7 @@
 from odoo import fields, models, api
 import logging
 from .meli_oerp_config import *
+from .import_lock import meli_import_guard as _meli_import_guard
 
 
 import json
@@ -1326,6 +1327,16 @@ class mercadolibre_shipment(models.Model):
             ship_id = order.shipping_id
         else:
             _logger.info("No hay orden o shipping_id")
+            return None
+
+        # #431: el envio y la venta del CARRITO se crean una sola vez aunque dos procesos lo importen
+        # a la vez (re-entrante con el lock que ya tomo orders_update_order_json). Ver import_lock.py.
+        _ml_pack = ("pack_id" in order._fields and order.pack_id) or None
+        _busy = _meli_import_guard(self.env, [_ml_pack, order.order_id], [
+            ('mercadolibre_shipment', 'shipping_id', [ship_id]),
+            ('mercadolibre_orders', 'pack_id', [_ml_pack]),
+        ], label='envio %s de la orden %s' % (ship_id, order.order_id))
+        if _busy:
             return None
 
         ship_json = None
