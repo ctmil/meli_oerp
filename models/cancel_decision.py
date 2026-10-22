@@ -4,7 +4,7 @@
 MODULO PURO: no importa nada de Odoo ni hace red. Todo lo que hay aca se prueba con
 una tabla de casos sin levantar un servidor (tests/test_cancel_decision_pure.py).
 
-Indicacion de diseno de FCA (29-sep-2026, frente 431 TusRefacciones):
+Indicacion de diseno de Moldeo (29-sep-2026, frente un cliente):
     "basar el mapeo de cada tipo de cancelacion a parametros que veas son fundamentales,
      consultando los status actualizados de la orden y pagos y envios de meli ANTES de
      accionar".
@@ -351,9 +351,9 @@ def _text(ctx, d):
 
 
 # ====================================================================================== #
-#  26.221 (T3LC #638) -- QUE MOTIVOS DE CANCELACION DEVUELVEN STOCK SOLOS                 #
+#  26.221 (un cliente) -- QUE MOTIVOS DE CANCELACION DEVUELVEN STOCK SOLOS                 #
 # ====================================================================================== #
-# Pedido de la clienta (Sofia, T3LC 535) y OK de FCA el 13-oct-2026: la devolucion
+# Pedido de la clienta (un cliente) y OK de Moldeo el 13-oct-2026: la devolucion
 # AUTOMATICA de la mercaderia (crear y validar el IN de una salida ya hecha) solo para los
 # motivos en que la mercaderia vuelve con certeza. Con `pack_splitted` los items salen en
 # las ordenes NUEVAS del split, con `shipment_not_delivered` el paquete puede estar perdido

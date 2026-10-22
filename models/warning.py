@@ -33,7 +33,7 @@ meli_errors = {
 #
 # La API de ML devuelve, en el 400 de validación, una lista `cause` con
 # mensajes CRUDOS en inglés (ej: "Product Identifier [GTIN] contains values
-# with invalid format: [C6536]"). Estos llegaban tal cual al usuario, resultando
+# with invalid format: [<SKU>]"). Estos llegaban tal cual al usuario, resultando
 # ILEGIBLES. Acá los mapeamos a un texto claro, en español y accionable.
 #
 # Cada entrada = (regex, plantilla). La plantilla puede ser:
@@ -43,7 +43,7 @@ meli_errors = {
 # original de ML (defensivo: no perder información). Extensible: agregar filas.
 # ---------------------------------------------------------------------------
 MELI_PUBLISH_ERROR_PATTERNS = [
-    # --- GTIN/EAN/UPC: los más comunes e ilegibles (koreautos, catálogo) ---
+    # --- GTIN/EAN/UPC: los más comunes e ilegibles (un cliente, catálogo) ---
     # GTIN con formato inválido (típico: barcode = SKU interno, no un EAN real)
     (r"Product Identifier\s*\[?\s*(GTIN|EAN|UPC)\s*\]?.*?invalid format\s*:?\s*\[?\s*([^\]\.]+?)\s*\]?\s*$",
      lambda m: ("El código de barras / %s '%s' no tiene un formato válido para MercadoLibre "

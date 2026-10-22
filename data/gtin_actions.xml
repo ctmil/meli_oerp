@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!--
-      [#539] Tildado MASIVO de "Generar código de barras" (meli_autogenerate_gtin).
+      [un caso] Tildado MASIVO de "Generar código de barras" (meli_autogenerate_gtin).
 
       Por qué una acción y no la lista: la lista de productos de MercadoLibre no es `editable`,
       así que tildar la columna fila por fila no es posible; había que abrir cada producto.

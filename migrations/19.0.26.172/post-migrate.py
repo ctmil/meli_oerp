@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""#601 P3: el link de la etiqueta (mercadolibre.shipment.pdf_link) se guardaba con
+"""un caso P3: el link de la etiqueta (mercadolibre.shipment.pdf_link) se guardaba con
 el access_token de MercadoLibre adentro, legible por cualquiera que vea el envío.
 Desde 26.172 se guarda sin token y la descarga lo manda en el header. Esto limpia
 los links YA guardados. Idempotente: sólo toca filas que todavía tienen el token."""
