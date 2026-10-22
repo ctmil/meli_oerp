@@ -4,6 +4,14 @@
 
 ---
 
+## 22 oct 2026 — #431 venta ML doble por importación en paralelo (v19.0.26.284)
+Barrido `CRON_UNPROCESSED_ORDERS` (Cron Meli Orders) + `Meli Process Order Notifications` importaban la misma orden a la
+vez: buscar-y-crear sin lock (el lock existente es por NOTIFICACIÓN) ⇒ 2 mercadolibre.orders + 2 shipments + contacto
+doble + 2 sale.order (prod 431: 7 ventas en octubre). Fix `models/import_lock.py`: `pg_try_advisory_xact_lock` por
+pack_id y order_id (try, sin espera) + chequeo de snapshot vencido (REPEATABLE READ; cursor nuevo) ⇒ skip
+`MELI_IMPORT_PARALLEL`; guard en `orders_update_order_json` y `fetch_shipment`; create de la orden en savepoint
+(UniqueViolation ⇒ skip). Tests: `test_431_import_lock` (meli_431_lock) + `shell_import_race_same_order.py`.
+
 ## 22 oct 2026 — cancelaciones ML por motivo A-F [#624] (v19.0.26.283)
 #624 ROEN: `cancel_detail.code` no separa B/F ni D/E; los separa `payments[].status_detail` (bpp_covered = ML pagó la venta), medido sobre 16 cancelaciones reales etiquetadas por la clienta. `cancel_decision.classify_cancel_reason` (pura) + `sale.order._meli_cancel_by_reason` (opt-in `meli_oerp.cancel_reason_policy=by_reason`, sólo legacy); `meli_cancel_covered`, `meli_cancel_review_scheduled`; mediación: devolución sin validar DESPUÉS de cancelar (`_meli_cancel_after_legacy`, `meli_return_mode_force`); FULL con `meli_oerp.cancel_return_full=1`; pack_splitted nombra la gemela (`_meli_pack_splitted_twins`). Tests `tests/test_26278_cancel_por_motivo.py` (tag meli_26278) + tabla pura: fix verde en 16-19, control origin rojo. Regresión 19: 0 nuevas (4 FAIL preexistentes en accounting TestCancelPorEstadoML p01/p02/p10/p14).
 
