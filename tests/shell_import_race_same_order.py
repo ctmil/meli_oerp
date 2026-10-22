@@ -35,6 +35,19 @@ if not env['product.product'].search([('meli_id', '=', 'MLM000TEST')], limit=1):
 _prod = env['product.product'].search([('meli_id', '=', 'MLM000TEST')], limit=1)
 if 'is_storable' in _prod._fields:
     _prod.is_storable = True
+# meli_oerp_multiple de bases viejas (p.ej. 26.229) pide config = mercadolibre.configuration (con `accounts`).
+CONFIG = ('mercadolibre.configuration', None)
+if 'mercadolibre.configuration' in env and 'accounts' not in company._fields:
+    _Conf = env['mercadolibre.configuration']
+    _vals = {k: v for k, v in {'name': 'Prueba carrera 431', 'mercadolibre_pricelist': pricelist.id,
+                                'mercadolibre_cron_get_orders_shipment_client': True,
+                                'company_id': company.id}.items() if k in _Conf._fields}
+    for _fn, _f in _Conf._fields.items():          # m2o obligatorios (almacen, etc.): el primero que haya
+        if _f.required and _f.type == 'many2one' and _fn not in _vals:
+            _vals[_fn] = env[_f.comodel_name].search([], limit=1).id
+        elif _f.required and _f.type == 'selection' and _fn not in _vals:
+            _vals[_fn] = _f._description_selection(env)[0][0]
+    CONFIG = ('mercadolibre.configuration', _Conf.create(_vals).id)
 env.cr.commit()
 ROUTES = [('/items/', {'id': 'MLM000TEST'})]
 OUT = []
@@ -48,7 +61,7 @@ def do_import(cr, oid, buyer=123001):
                side_effect=requests.exceptions.ConnectionError('sin red')):
         return e['mercadolibre.orders'].orders_update_order_json(
             {'id': False, 'order_json': oj},
-            meli=_FakeMeli(ROUTES), config=e['res.company'].browse(company.id))
+            meli=_FakeMeli(ROUTES), config=(e[CONFIG[0]].browse(CONFIG[1]) if CONFIG[1] else e['res.company'].browse(company.id)))
 
 
 def count(oid):
