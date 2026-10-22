@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""[#661 fase 3] Rastro de uso de una URL de la API de Mercado Libre distinta de la oficial.
+"""[un caso fase 3] Rastro de uso de una URL de la API de Mercado Libre distinta de la oficial.
 
 Cada request al host alternativo (reverse proxy de rescate), cada vez que el Nivel de seguridad Alto
 lo ignora, y cada cambio de la URL quedan acá (y en el logger `meli_oerp.proxy_audit` como línea JSON).

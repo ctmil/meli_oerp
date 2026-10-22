@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""[#504/#520 Dannok] El tope del descuento de vendedor se resuelve por la compania
+"""[caso de un cliente] El tope del descuento de vendedor se resuelve por la compania
 cuando la configuracion que recibe el flujo es la de una CUENTA ML sin ese campo.
 
 Con `meli_oerp_multiple`, `meli_amount_to_invoice` recibe una `mercadolibre.configuration`
@@ -11,7 +11,7 @@ La config de cuenta se simula con un objeto que se comporta como un record en lo
 el calculo (`_fields`, acceso por atributo y por clave, `company_id`): asi el test no
 depende de instalar meli_oerp_multiple (y todo lo que arrastra) para probar la regla.
 
-Numeros del caso real (venta ML 2000018486811198, SO 28789): total 60.793,78, pagado
+Numeros del caso real (venta ML <order_id>, SO <n>): total 60.793,78, pagado
 60.793,78, descuento de vendedor 4.096,22, sin cupon registrado en la venta.
   - modo "coupon" (default)          -> 56.697,56 (la venta no confirma)
   - modo "never_below_total"         -> 60.793,78
@@ -50,9 +50,9 @@ class TestSellerDiscountCapModeFallback(common.TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.company = cls.env.company
-        cls.partner = cls.env['res.partner'].create({'name': '#504 Comprador ML'})
+        cls.partner = cls.env['res.partner'].create({'name': 'Comprador ML'})
         cls.product = cls.env['product.product'].create({
-            'name': '#504 Producto',
+            'name': 'Producto',
             'list_price': TOTAL,
         })
         tax_field = 'tax_ids' if 'tax_ids' in cls.env['sale.order.line']._fields else 'tax_id'

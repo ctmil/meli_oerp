@@ -31,6 +31,40 @@ reescrito; lo de SteelTigers vive en su módulo `steeltiger_meli_contacts` (here
 **Causa:** `mercadolibre.claim.compute_claim_link` armaba `www.<dominio>/reclamos/<claim_id>`. El fix de 26.133 (dc6f4b47) sólo había corregido el link de mensajería de la orden.
 **Fix:** `_meli_claim_ref` (pack de la orden > orden > `resource_id` si `resource='order'`) y, **sólo para `type='mediations'`**, el link del panel del vendedor. Otros tipos o sin referencia ⇒ link anterior (no hay formato confirmado para returns/cancel_*). Dominio con la compañía del reclamo.
 **Prueba:** `tests/test_525_claim_link.py` (tag `meli_525`), caso real claim 5597226476 / pack 2000015578976049: banco 17 y 19 con fix 4/4; control origin 3 FAIL + 1 OK (control: tipos no mediación sin cambio). 16/18 py_compile.
+### 6 oct 2026 — Precisión "Product Price" a 6 dígitos ahora es opcional [#542 SteelTiger / #659] (v19.0.26.193)
+
+`__init__.py` `post_init_hook`: forzaba 'Product Price' a 6 dígitos al instalar. Ahora lee el parámetro de sistema
+`meli_oerp.product_price_digits`: ausente/vacío ⇒ 6 (como antes); `0`/`false`/`no`/`off`/`keep` ⇒ no toca; entero
+1..10 ⇒ sube hasta ese valor. Nunca BAJA una precisión ya configurada. El hook corre sólo al INSTALAR (no en `-u`),
+así que las instalaciones existentes no cambian; un cliente que ya tiene 6 y quiere 2 la baja a mano en
+Ajustes > Técnico > Precisión decimal (nada del módulo la vuelve a subir). Mismo hook en 16/17/18: port pendiente.
+Rama `claude/542-get-meli-state-multicompania`, SIN merge/deploy.
+
+### 30 sep 2026 — Build de flota 26.166 (v19.0.26.166)
+## 18.0.26.225 — 14-oct-2026 · #662 SteelTigers (542)
+- **URLs por `meli_api_url`:** el token (`oauth/token`, `authorize`/`get_refresh_token`), las etiquetas (`shipment._meli_label_url`/`_meli_label_fetch_vals` y `/meli/shipment_labels`) salen por el host efectivo de la instancia y por su sesión (rastro del host alternativo). Helpers nuevos en `meli_util`: `meli_instance_api_host`, `meli_instance_url`, `meli_instance_session`. `TOKEN_URL` fijo reemplazado por `TOKEN_PATH`.
+- **`USE_MELI_SDK` / `MELI_SDK_AVAILABLE` fijos en False** y sin `import meli` (`versions.py`).
+- **Landeo de 26.193** (rama `claude/542-get-meli-state-multicompania`, cherry-pick): `post_init_hook` de `Product Price` opcional por `meli_oerp.product_price_digits`.
+## 15 oct 2026 — ventas ML: cupón del vendedor, envío del comprador, cupón+descuento, pack cancelado, línea en venta confirmada (v18.0.26.229)
+**1. Cupón a cargo del vendedor.** Síntoma: venta a precio lleno, factura sin el descuento. Causa: `orders_update_order_json`
+preciaba la línea con `self._set_product_unit_price` y en el import de una orden NUEVA `self` es el recordset vacío
+(⇒ `discount_seller_amount`=0); el re-sync sí descontaba pero la venta ya estaba confirmada. Fix: `order._set_product_unit_price`
+con prorrateo por ítem (`items_total`); `/discounts` también si `payments[].coupon_amount`>0; campo
+`mercadolibre.orders.discount_seller_coupon_amount` (type=coupon) y los modos product_discount/separate_line usan sólo la parte ML.
+Guarda ampliada sólo para órdenes SIN pack_id; backstop en `_set_product_unit_price`: descuento >= bruto del ítem ⇒ no se aplica
+(WARNING) — el incidente de 26.131 (descuento de pack restado por línea, precios negativos) no puede repetirse por este camino.
+**2. Envío del comprador.** `sale.order.meli_shipping_amount` sólo lo escribía `fetch_shipment` en un camino. Fix: fallback
+`payments[].shipping_cost`; red final en el import (venta de una orden); lectura `_meli_so_buyer_shipping()` (venta o pagos).
+**3. Cupón + descuento del vendedor.** `meli_amount_to_invoice` restaba del pago un descuento ya restado en la línea (topado por
+el cupón). Fix: wrapper sobre `_meli_amount_to_invoice_legacy`; si la venta prueba el descuento en la línea
+(`amount_total == meli_total_amount − desc`) y el legacy no cuadra ⇒ interpretación exacta sin descuento (joint, `force`, `discounts=[0]`).
+Tests del default 'coupon' intactos.
+**4. Pack cancelado.** `_meli_pack_sync_cancelled()` antes de `confirm_ml`: todas las órdenes canceladas ⇒ `meli_status`
+cancelled + motivo/fecha.
+**5. Línea en venta confirmada.** Guard de estado (sale/done/locked) antes de crear líneas en orders.py y shipment.py (packs);
+respaldo de búsqueda por ítem sin variación.
+**Tests:** `tests/test_ventas_ml_cupon_envio.py`, `tests/test_import_cupon_linea.py` (tag meli_26229); control sobre el código
+anterior falla en los 5 frentes.
 
 ## 13 oct 2026 — #638 T3LC: la cancelación automática devolvía stock con CUALQUIER motivo (v18.0.26.221)
 **Síntoma:** el barrido rotativo de estados (#638, 26.218) cancelaba y **devolvía** (IN validado) las ventas canceladas
