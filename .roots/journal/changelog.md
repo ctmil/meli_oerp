@@ -4,6 +4,10 @@
 
 ---
 
+## 17.0.26.265 — 22-oct-2026 · integración del pase de ROEN [#525]
+- incluye #611 (diagnóstico de stock no reactiva sin stock publicable; REACTIVADA sólo verificada, ex 26.257) y #615 (enlace del reclamo a la mediación, ex 26.259).
+- Build único 26.265 en 16/17/18/19 para meli_oerp, meli_oerp_multiple, meli_oerp_stock y meli_oerp_accounting.
+
 ## 17.0.26.257 — 21-oct-2026 · el diagnóstico de stock ya no «reactiva» lo que no puede publicar [#611]
 - **#611** El control automático **Meli Stock Diagnostic** ya no intenta reactivar una publicación pausada cuando la existencia que ve está en ubicaciones de las que esa publicación **no publica** (p.ej. sólo en Full): calcula la cantidad con la misma regla que el envío de stock.
 - Sólo anota **«REACTIVADA»** si Mercado Libre la muestra activa después; si sigue pausada lo dice (**«NO QUEDÓ ACTIVA»**, con el motivo que informa ML).
