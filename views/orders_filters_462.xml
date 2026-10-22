@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+        <!-- [26.230] Filtros de facturación / logística / reclamos para ventas ML,
+             en las DOS búsquedas de Ventas (Pedidos y Cotizaciones). Mismos nombres en ambas:
+             si se cambia un dominio, cambiarlo en las dos. -->
+        <record id="sale_order_view_search_meli_462_invoice" model="ir.ui.view">
+            <field name="name">sale.order.search.meli.462.invoice</field>
+            <field name="model">sale.order</field>
+            <field name="inherit_id" ref="meli_oerp.sale_order_view_search_inherit_meli"/>
+            <field name="arch" type="xml">
+                <xpath expr="//filter[@name='meli_cancel_held_filter']" position="after">
+                  <!-- [26.230] Facturación de ventas ML. Dos preguntas distintas:
+                       * "Estado de facturación" (invoice_status, nativo) = si QUEDA algo por facturar.
+                         "Nada para facturar" NO significa "facturada": con política por cantidad
+                         entregada, una venta con la entrega sin validar (o ya facturada) dice eso.
+                       * "ML Factura" (meli_invoice_state) = qué facturas TIENE la venta. -->
+                  <separator/>
+                  <filter string="ML · Sin confirmar (presupuesto)" name="meli_462_draft"
+                          domain="[('meli_order_id','!=',False),('state','in',['draft','sent'])]"/>
+                  <separator/>
+                  <filter string="ML · A facturar" name="meli_462_to_invoice"
+                          domain="[('meli_order_id','!=',False),('invoice_status','=','to invoice')]"/>
+                  <filter string="ML · Nada para facturar" name="meli_462_nothing_to_invoice"
+                          domain="[('meli_order_id','!=',False),('state','in',['sale']),('invoice_status','=','no')]"/>
+                  <filter string="ML · Totalmente facturadas" name="meli_462_fully_invoiced"
+                          domain="[('meli_order_id','!=',False),('invoice_status','in',['invoiced','upselling'])]"/>
+                  <separator/>
+                  <filter string="ML · Sin factura publicada" name="meli_462_no_posted_invoice"
+                          domain="[('meli_order_id','!=',False),('state','in',['sale']),('meli_invoice_state','in',['none','draft'])]"/>
+                  <filter string="ML · Factura en borrador" name="meli_462_draft_invoice"
+                          domain="[('meli_order_id','!=',False),('meli_invoice_state','=','draft')]"/>
+                  <filter string="ML · Con factura publicada" name="meli_462_posted_invoice"
+                          domain="[('meli_order_id','!=',False),('meli_invoice_state','in',['posted','refunded'])]"/>
+                  <filter string="ML · Con nota de crédito" name="meli_462_refunded"
+                          domain="[('meli_order_id','!=',False),('meli_invoice_state','=','refunded')]"/>
+                  <separator/>
+                  <filter string="ML · Full" name="meli_462_full"
+                          domain="[('meli_order_id','!=',False),('meli_shipment_logistic_type','=','fulfillment')]"/>
+                  <filter string="ML · Flex" name="meli_462_flex"
+                          domain="[('meli_order_id','!=',False),('meli_shipment_logistic_type','=','self_service')]"/>
+                  <filter string="ML · Colecta" name="meli_462_colecta"
+                          domain="[('meli_order_id','!=',False),('meli_shipment_logistic_type','=','cross_docking')]"/>
+                  <filter string="ML · Punto de entrega" name="meli_462_drop_off"
+                          domain="[('meli_order_id','!=',False),('meli_shipment_logistic_type','in',['xd_drop_off','drop_off'])]"/>
+                  <separator/>
+                  <!-- Reclamos de ML (mercadolibre.claim, cron de reclamos). Solo para quien puede leer
+                       reclamos: sin ese permiso el filtro daria error de acceso. -->
+                  <filter string="ML · Con reclamo abierto" name="meli_462_claim_open" groups="meli_oerp.group_mercadolibre_reader,meli_oerp.group_mercadolibre_manager,sales_team.group_sale_manager"
+                          domain="[('meli_orders.claim_ids.status','in',['opened','in_process'])]"/>
+                  <filter string="ML · Con devolución (reclamo de ML)" name="meli_462_claim_return" groups="meli_oerp.group_mercadolibre_reader,meli_oerp.group_mercadolibre_manager,sales_team.group_sale_manager"
+                          domain="[('meli_orders.claim_ids.type','in',['returns','return'])]"/>
+                  <filter string="ML · Estado de facturación" name="meli_462_group_invoice_status" domain="[]"
+                          context="{'group_by': 'invoice_status'}"/>
+                  <filter string="ML · Tipo de logística" name="meli_462_group_logistic" domain="[]"
+                          context="{'group_by': 'meli_shipment_logistic_type'}"/>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="sale_order_view_search_quotation_meli_462_invoice" model="ir.ui.view">
+            <field name="name">sale.order.search.quotation.meli.462.invoice</field>
+            <field name="model">sale.order</field>
+            <field name="inherit_id" ref="meli_oerp.sale_order_view_search_inherit_quotation_meli"/>
+            <field name="arch" type="xml">
+                <xpath expr="//filter[@name='meli_cancel_held_filter']" position="after">
+                  <!-- [26.230] Facturación de ventas ML. Dos preguntas distintas:
+                       * "Estado de facturación" (invoice_status, nativo) = si QUEDA algo por facturar.
+                         "Nada para facturar" NO significa "facturada": con política por cantidad
+                         entregada, una venta con la entrega sin validar (o ya facturada) dice eso.
+                       * "ML Factura" (meli_invoice_state) = qué facturas TIENE la venta. -->
+                  <separator/>
+                  <filter string="ML · Sin confirmar (presupuesto)" name="meli_462_draft"
+                          domain="[('meli_order_id','!=',False),('state','in',['draft','sent'])]"/>
+                  <separator/>
+                  <filter string="ML · A facturar" name="meli_462_to_invoice"
+                          domain="[('meli_order_id','!=',False),('invoice_status','=','to invoice')]"/>
+                  <filter string="ML · Nada para facturar" name="meli_462_nothing_to_invoice"
+                          domain="[('meli_order_id','!=',False),('state','in',['sale']),('invoice_status','=','no')]"/>
+                  <filter string="ML · Totalmente facturadas" name="meli_462_fully_invoiced"
+                          domain="[('meli_order_id','!=',False),('invoice_status','in',['invoiced','upselling'])]"/>
+                  <separator/>
+                  <filter string="ML · Sin factura publicada" name="meli_462_no_posted_invoice"
+                          domain="[('meli_order_id','!=',False),('state','in',['sale']),('meli_invoice_state','in',['none','draft'])]"/>
+                  <filter string="ML · Factura en borrador" name="meli_462_draft_invoice"
+                          domain="[('meli_order_id','!=',False),('meli_invoice_state','=','draft')]"/>
+                  <filter string="ML · Con factura publicada" name="meli_462_posted_invoice"
+                          domain="[('meli_order_id','!=',False),('meli_invoice_state','in',['posted','refunded'])]"/>
+                  <filter string="ML · Con nota de crédito" name="meli_462_refunded"
+                          domain="[('meli_order_id','!=',False),('meli_invoice_state','=','refunded')]"/>
+                  <separator/>
+                  <filter string="ML · Full" name="meli_462_full"
+                          domain="[('meli_order_id','!=',False),('meli_shipment_logistic_type','=','fulfillment')]"/>
+                  <filter string="ML · Flex" name="meli_462_flex"
+                          domain="[('meli_order_id','!=',False),('meli_shipment_logistic_type','=','self_service')]"/>
+                  <filter string="ML · Colecta" name="meli_462_colecta"
+                          domain="[('meli_order_id','!=',False),('meli_shipment_logistic_type','=','cross_docking')]"/>
+                  <filter string="ML · Punto de entrega" name="meli_462_drop_off"
+                          domain="[('meli_order_id','!=',False),('meli_shipment_logistic_type','in',['xd_drop_off','drop_off'])]"/>
+                  <separator/>
+                  <!-- Reclamos de ML (mercadolibre.claim, cron de reclamos). Solo para quien puede leer
+                       reclamos: sin ese permiso el filtro daria error de acceso. -->
+                  <filter string="ML · Con reclamo abierto" name="meli_462_claim_open" groups="meli_oerp.group_mercadolibre_reader,meli_oerp.group_mercadolibre_manager,sales_team.group_sale_manager"
+                          domain="[('meli_orders.claim_ids.status','in',['opened','in_process'])]"/>
+                  <filter string="ML · Con devolución (reclamo de ML)" name="meli_462_claim_return" groups="meli_oerp.group_mercadolibre_reader,meli_oerp.group_mercadolibre_manager,sales_team.group_sale_manager"
+                          domain="[('meli_orders.claim_ids.type','in',['returns','return'])]"/>
+                  <filter string="ML · Estado de facturación" name="meli_462_group_invoice_status" domain="[]"
+                          context="{'group_by': 'invoice_status'}"/>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>

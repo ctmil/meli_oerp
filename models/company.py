@@ -69,7 +69,7 @@ class res_company(models.Model):
 
         return AUTH_URL+"/authorization"
 
-    # [#615 ROEN] Dominio de MercadoLibre por SITIO, sin llamar a la API.
+    # [caso de un cliente] Dominio de MercadoLibre por SITIO, sin llamar a la API.
     # get_ML_LINK_URL() consulta /sites en cada llamada: no sirve para un campo computado
     # que se evalua sobre miles de filas. Aca: site_id explicito (ej. el que trae el reclamo)
     # o, si no hay, el pais de la compania.
@@ -215,7 +215,7 @@ class res_company(models.Model):
                 company.mercadolibre_state = True
             self.env['meli.util']._meli_log_neutralized_skip()
             # Es tambien el compute de mercadolibre_state: un compute que sale sin
-            # asignar rompe la edicion de la empresa (auditoria 542, #661).
+            # asignar rompe la edicion de la empresa (auditoría de seguridad, un caso).
             for company in self:
                 company.mercadolibre_state = True
             return
@@ -378,7 +378,7 @@ class res_company(models.Model):
 
     #mercadolibre_sending_message_to_customer = fields.Boolean(string='Activate sending message to customer')
 
-    # [#661 fase 3] URL de la API: ÚNICO campo validado. Reemplaza a mercadolibre_http_proxy (compañía)
+    # [un caso fase 3] URL de la API: ÚNICO campo validado. Reemplaza a mercadolibre_http_proxy (compañía)
     # y a http_proxy (cuenta, meli_oerp_multiple), que quedan como alias sin almacenar.
     meli_api_url = fields.Char(
         string='URL de la API de Mercado Libre',
@@ -462,7 +462,7 @@ class res_company(models.Model):
     mercadolibre_cron_get_orders_shipment = fields.Boolean(string='Importar envíos',help='Cron Get Orders Shipment')
     mercadolibre_cron_get_orders_shipment_client = fields.Boolean(string='Importar clientes',help='Cron Get Orders Shipment Client')
     mercadolibre_cron_get_orders_client_set_company = fields.Boolean(string='Asociar Empresa',help='Asociar el cliente siempre a la empresa de la cuenta',default=True)
-    mercadolibre_cron_get_orders_status = fields.Boolean(string='Re-sincronizar estado de pedidos',help='#475 Cron dedicado: re-consulta por ID a MercadoLibre los pedidos abiertos recientes y refleja cancelaciones/cambios de estado que la ventana date_desc del cron de importacion no alcanza.',default=True)
+    mercadolibre_cron_get_orders_status = fields.Boolean(string='Re-sincronizar estado de pedidos',help='Cron dedicado: re-consulta por ID a MercadoLibre los pedidos abiertos recientes y refleja cancelaciones/cambios de estado que la ventana date_desc del cron de importacion no alcanza.',default=True)
     mercadolibre_cron_orders_status_days = fields.Integer(string='Dias re-sync de estado',help='Ventana en dias hacia atras (por fecha de creacion) de pedidos abiertos a re-consultar en el cron de re-sync de estado.',default=7)
     mercadolibre_cron_orders_status_limit = fields.Integer(string='Max pedidos por ciclo (re-sync estado)',help='Tope de pedidos a re-consultar por ciclo del cron de re-sync de estado, para acotar el uso de API (rate-limit).',default=100)
     mercadolibre_cron_get_questions = fields.Boolean(string='Importar preguntas',help='Cron Get Questions')
@@ -643,7 +643,7 @@ class res_company(models.Model):
     #  Ver la nota gemela en                                               #
     #  meli_oerp_multiple/models/connection_configuration.py: este campo   #
     #  se declara en los DOS modelos y el default DEBE ser el mismo en     #
-    #  ambos (bug del #453 y del #587).                                    #
+    #  ambos (bug del un caso y del un caso).                                    #
     # ------------------------------------------------------------------ #
     mercadolibre_return_mode = fields.Selection([
         ("none", "No crear devolucion"),
@@ -662,9 +662,9 @@ class res_company(models.Model):
             "No aplica a los envios FULL, donde el stock vive en el fulfillment de MercadoLibre: "
             "esos albaranes se saltean solos por no tener cantidades que devolver.")
 
-    # Cancelaciones decididas con la FOTO FRESCA de ML (29-sep-2026, frente 431).
+    # Cancelaciones decididas con la FOTO FRESCA de ML (29-sep-2026, un frente).
     # GEMELO en meli_oerp_multiple/models/connection_configuration.py con el MISMO
-    # default (bug del #453): con cuenta de conexion manda el de la cuenta.
+    # default (bug del un caso): con cuenta de conexion manda el de la cuenta.
     mercadolibre_cancel_mode = fields.Selection([
         ("legacy", "Según configuración (histórico)"),
         ("por_estado_ml", "Según el estado actualizado de ML (orden, pagos y envío)"),
@@ -681,9 +681,9 @@ class res_company(models.Model):
             "acreditado sin reintegro (p. ej. pack dividido) se deja para revisar a mano. Si ML "
             "no responde, no se toca nada y se reintenta. Cada decisión queda en el chatter.")
 
-    # Venta ML sin existencia al confirmar (#645, Tus Refacciones 431, 30-sep-2026).
+    # Venta ML sin existencia al confirmar (un caso, un cliente, 30-sep-2026).
     # GEMELO en meli_oerp_multiple/models/connection_configuration.py con el MISMO
-    # default (bug del #453): con cuenta de conexion manda el de la CUENTA.
+    # default (bug del un caso): con cuenta de conexion manda el de la CUENTA.
     mercadolibre_order_confirm_no_stock_mode = fields.Selection([
         ("confirm", "Confirmar; si el abastecimiento falla, queda en cotización"),
         ("waiting", "Confirmar siempre: la salida queda en espera de existencia"),
@@ -707,9 +707,9 @@ class res_company(models.Model):
             "Los servicios, los consumibles sin control de inventario y los productos de "
             "triangulación (dropship o referencia DSTR_) no se consideran.")
 
-    # 26.171 (E2, Tus Refacciones 431): fecha de corte de las cancelaciones automáticas.
+    # 26.171 (E2, un cliente): fecha de corte de las cancelaciones automáticas.
     # GEMELO en meli_oerp_multiple/models/connection_configuration.py con el MISMO default
-    # (vacío; bug del #453): con cuenta de conexion manda el de la CUENTA.
+    # (vacío; bug del un caso): con cuenta de conexion manda el de la CUENTA.
     mercadolibre_cancel_auto_from = fields.Datetime(
        string="Cancelaciones automáticas desde",
        help="Fecha y hora desde la que las cancelaciones de MercadoLibre se procesan "
@@ -722,7 +722,7 @@ class res_company(models.Model):
             "de la venta.\n"
             "Vacío (por defecto): se procesan todas, como hasta ahora.")
 
-    # [#493 Shoppy] Ver la nota gemela en meli_oerp_multiple/models/connection_configuration.py:
+    # [caso de un cliente] Ver la nota gemela en meli_oerp_multiple/models/connection_configuration.py:
     # este campo se declara en los DOS modelos y el default DEBE ser el mismo en ambos.
     mercadolibre_protect_invoiced_orders = fields.Boolean(
         string="No modificar pedidos ya facturados",
@@ -859,7 +859,7 @@ class res_company(models.Model):
                 }
                 #_logger.info("item_params:"+str(item_params))
                 responseItem = meli.get("/items"+str('?ids='+str(ids)+'&attributes='+str('id,official_store_id')), {'access_token':meli.access_token } )
-                #[ { "code": 200, "body": { "id": "MLM863472529", "official_store_id": 3476 } },
+                #[ { "code": 200, "body": { "id": "MLM<id>", "official_store_id": 3476 } },
                 #_logger.info("responseItem:"+str(responseItem and responseItem.json()))
                 if responseItem.json():
                     for rr in responseItem.json():
@@ -1723,7 +1723,7 @@ class res_company(models.Model):
                     icommit+= 1
                     icount+= 1
                     try:
-                        with self.env.cr.savepoint():  # #601 P6: un ítem que falla no deshace a los demás
+                        with self.env.cr.savepoint():  # un caso P6: un ítem que falla no deshace a los demás
                             resjson = obj.product_post_stock(meli=meli)
                         logs_list.append(f"{obj.default_code} {obj.meli_id}: {obj.meli_available_quantity}")
 
@@ -1748,7 +1748,7 @@ class res_company(models.Model):
                         _logger.info(e, exc_info=True)
                         logs_list.append(f"{obj.default_code} {obj.meli_id}: {obj.meli_available_quantity}")
                         errors_list.append(f"{obj.default_code} {obj.meli_id} >> {e}")
-                        # #601 P6: el savepoint del ítem ya deshizo SÓLO este ítem; los anteriores quedan registrados
+                        # un caso P6: el savepoint del ítem ya deshizo SÓLO este ítem; los anteriores quedan registrados
 
             noti.resource = "meli_update_remote_stock #"+str(icount) +'/'+str(maxcommits)
             noti.stop_internal_notification(errors="\n".join(errors_list), logs="\n".join(logs_list))
@@ -1828,7 +1828,7 @@ class res_company(models.Model):
                     icommit+= 1
                     icount+= 1
                     try:
-                        with self.env.cr.savepoint():  # #601 P6: un ítem que falla no deshace a los demás
+                        with self.env.cr.savepoint():  # un caso P6: un ítem que falla no deshace a los demás
                             resjson = obj.product_post_stock(meli=meli)
                         logs_list.append(f"{obj.default_code} {obj.meli_id}: {obj.meli_available_quantity}")
 
@@ -1853,7 +1853,7 @@ class res_company(models.Model):
                         _logger.info(e, exc_info=True)
                         logs_list.append(f"{obj.default_code} {obj.meli_id}: {obj.meli_available_quantity}")
                         errors_list.append(f"{obj.default_code} {obj.meli_id} >> {e}")
-                        # #601 P6: el savepoint del ítem ya deshizo SÓLO este ítem; los anteriores quedan registrados
+                        # un caso P6: el savepoint del ítem ya deshizo SÓLO este ítem; los anteriores quedan registrados
 
             noti.resource = "meli_update_remote_stock_rt #"+str(icount) +'/'+str(maxcommits)
             noti.stop_internal_notification(errors="\n".join(errors_list), logs="\n".join(logs_list))
@@ -2008,7 +2008,7 @@ class res_company(models.Model):
         t_diag_start = _time.time()
 
         company = self if self and self._name == 'res.company' and self.id else self.env.user.company_id
-        # #601 P7: pausar/despausar es decisión comercial — el modo lo elige la cuenta (multiple lo pasa) o la compañía.
+        # un caso P7: pausar/despausar es decisión comercial — el modo lo elige la cuenta (multiple lo pasa) o la compañía.
         reactivate = reactivate or company.mercadolibre_stock_diag_reactivate or 'all'
         if not company.mercadolibre_cron_post_update_stock:
             return {}
@@ -2060,7 +2060,7 @@ class res_company(models.Model):
         fulfillment_user_candidates = []  # fulfillment_user_product_id items with Odoo stock
         actions_taken = []                # human-readable lines for chatter summary
         checked_items_log = []            # per-item detail for chatter debug
-        # (A) #535 Score, 19-ago-2026 — contadores para que la corrida pueda DECIR por que
+        # (A) un cliente, 19-ago-2026 — contadores para que la corrida pueda DECIR por que
         # no hizo nada. Antes el unico resultado observable era "0 acciones" y el cron lo
         # reportaba como exito. [[cero-resultados-no-distingue-falla-de-nada-que-hacer]]
         api_errors = 0                    # respuestas de ERROR de ML (403/401/404/5xx)
@@ -2169,7 +2169,7 @@ class res_company(models.Model):
                         continue
                     rjson = response.json()
 
-                    # (A) #535 Score, 19-ago-2026 — UNA RESPUESTA DE ERROR DE ML NO ES "SIN ACCION".
+                    # (A) un cliente, 19-ago-2026 — UNA RESPUESTA DE ERROR DE ML NO ES "SIN ACCION".
                     # `meli.get()` devuelve SIEMPRE el objeto API (truthy), asi que el guard
                     # `if not response` de arriba no se dispara nunca. El body de error de ML llega
                     # como {'message':..., 'error':'forbidden', 'status':403, 'cause':[...]}: ml_status
@@ -2422,7 +2422,7 @@ class res_company(models.Model):
             items_checked_ok, api_errors
         )
 
-        # (A) #535 Score — el resultado tiene que poder EXPLICARSE, no solo contarse.
+        # (A) un cliente — el resultado tiene que poder EXPLICARSE, no solo contarse.
         # Si se consultaron items y ML rechazo todos (o casi), la corrida NO es exitosa:
         # el llamador (cron_meli_stock_diagnostic) usa diag_state/diag_message para
         # marcarla 'warning' con el motivo en vez de dejar un verde vacio.
@@ -2496,7 +2496,7 @@ class res_company(models.Model):
             'drift_candidates': len(drift_candidates),
             'actions_taken': len(actions_taken),
             'elapsed_seconds': round(t_diag_elapsed, 2),
-            # (A) #535 Score — claves NUEVAS (aditivas, no rompen llamadores viejos):
+            # (A) un cliente — claves NUEVAS (aditivas, no rompen llamadores viejos):
             # con esto el cron puede reportar por que una corrida no hizo nada.
             'items_to_check': len(all_to_check),
             'items_checked_ok': items_checked_ok,
@@ -2559,7 +2559,7 @@ class res_company(models.Model):
                         if (obj.meli_id and icount<=topcommits):
                             try:
                                 #_logger.info( "Update Price: #" + str(icount) +'/'+str(maxcommits)+ ' meli_id:'+str(obj.meli_id)  )
-                                with self.env.cr.savepoint():  # #601 P6: un ítem que falla no deshace a los demás
+                                with self.env.cr.savepoint():  # un caso P6: un ítem que falla no deshace a los demás
                                     resjson = obj.product_post_price(meli=meli)
                                 logs+= str(obj.default_code)+" "+str(obj.meli_id)+": "+str(obj.meli_price)+"\n"
                                 if "error" in resjson:
@@ -2582,7 +2582,7 @@ class res_company(models.Model):
                                 logs+= str(obj.default_code)+" "+str(obj.meli_id)+": "+str(obj.meli_price)+", "
                                 #errors+= str(obj.default_code)+" "+str(obj.meli_id)+" >> "+str(e.args[0])+str(", ")
                                 errors+= str(obj.default_code)+" "+str(obj.meli_id)+" >> "+str(e)+"\n"
-                                # #601 P6: el savepoint del ítem ya deshizo SÓLO este ítem; los anteriores quedan registrados
+                                # un caso P6: el savepoint del ítem ya deshizo SÓLO este ítem; los anteriores quedan registrados
                                 pass;
 
                     noti.resource = "meli_update_remote_price #"+str(icount) +'/'+str(maxcommits)
