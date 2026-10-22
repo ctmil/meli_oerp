@@ -197,5 +197,50 @@ class TestCancelReturnReasons(unittest.TestCase):
         self.assertFalse(cd.cancel_return_allowed("buyer_cancel_express", raw))
 
 
+
+class TestClassifyCancelReason624(unittest.TestCase):
+    """26.278 (#624): tabla A-F MEDIDA sobre 16 cancelaciones reales etiquetadas por la clienta
+    (texto del panel de ML) — status_detail del pago tal como lo devolvio GET /orders/{id}."""
+
+    MEDIDO = [
+        # (caso, cancel_detail.code, payments[].status_detail, clase esperada)
+        ("A comprador", "buyer_cancel_express", ["bpp_refunded"], cd.REASON_RETURN),
+        ("B paquete cancelado por ML", "shipment_not_delivered", ["bpp_refunded"], cd.REASON_RETURN),
+        ("C pack dividido", "pack_splitted", ["by_admin"], cd.REASON_PACK_SPLIT),
+        ("D devolucion finalizada", "mediations", ["bpp_refunded"], cd.REASON_RETURN_REVIEW),
+        ("D descartamos el producto", "mediations", ["bpp_covered"], cd.REASON_COVERED),
+        ("E te dimos el dinero", "mediations", ["bpp_covered"], cd.REASON_COVERED),
+        ("F paquete no entregado, te reembolsamos", "shipment_not_delivered", ["bpp_covered"], cd.REASON_COVERED),
+    ]
+
+    def test_tabla_medida(self):
+        for caso, code, details, esperado in self.MEDIDO:
+            self.assertEqual(cd.classify_cancel_reason(code, details), esperado, caso)
+
+    def test_ambiguo_sin_dato_de_pago_es_revision(self):
+        for code in ("mediations", "shipment_not_delivered"):
+            self.assertEqual(cd.classify_cancel_reason(code, None), cd.REASON_REVIEW)
+            self.assertEqual(cd.classify_cancel_reason(code, ["", None]), cd.REASON_REVIEW)
+
+    def test_cubierto_gana_aunque_haya_otro_pago(self):
+        self.assertEqual(cd.classify_cancel_reason("mediations", ["bpp_refunded", "bpp_covered"]),
+                         cd.REASON_COVERED)
+
+    def test_mayusculas_y_espacios(self):
+        self.assertEqual(cd.classify_cancel_reason(" Mediations ", [" BPP_COVERED "]), cd.REASON_COVERED)
+
+    def test_otros_motivos_quedan_como_siempre(self):
+        for code in ("buyer_regretted", "fraud", "seller_cancelled", "", None):
+            self.assertEqual(cd.classify_cancel_reason(code, ["bpp_covered"]), cd.REASON_DEFAULT)
+
+    def test_parametros(self):
+        self.assertTrue(cd.cancel_policy_enabled(" By_Reason "))
+        for raw in (None, "", "legacy", "1"):
+            self.assertFalse(cd.cancel_policy_enabled(raw))
+        for raw in ("1", "true", "Si", "on"):
+            self.assertTrue(cd.param_is_true(raw))
+        for raw in (None, "", "0", "false", "no"):
+            self.assertFalse(cd.param_is_true(raw))
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
