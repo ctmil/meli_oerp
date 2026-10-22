@@ -30,6 +30,7 @@ from . import cancel_decision as _meli_cd
 from .receiver_cost import shipping_missing_in_paid as _meli_shipping_missing_in_paid_pure
 from . import address_lock as _meli_addr
 from time import monotonic as _mono
+from .import_lock import meli_import_guard as _meli_import_guard
 
 # Traducción de códigos de cancelación ML → español
 _MELI_CANCEL_CODES_ES = {
@@ -4432,6 +4433,21 @@ class mercadolibre_orders(models.Model):
 
         #_logger.info(orders_update_order_json > data "+str(data['id']) + " json:" + str(data['order_json']['id']) )
 
+        # #431: UNA orden (o carrito) se importa una sola vez aunque la traigan dos procesos a la vez
+        # (barrido del cron de ordenes + notificaciones). Lock por pack/orden y, bajo el lock, ¿ya la
+        # commiteo otro despues de nuestro snapshot? ⇒ se saltea. Ver models/import_lock.py.
+        _ml_oid = order_json.get("id")
+        _ml_pack = order_json.get("pack_id")
+        _ml_ship = (order_json.get("shipping") or {}).get("id") if isinstance(order_json.get("shipping"), dict) else None
+        if _ml_oid:
+            _busy = _meli_import_guard(self.env, [_ml_pack, _ml_oid], [
+                ('mercadolibre_orders', 'order_id', [_ml_oid]),
+                ('mercadolibre_orders', 'pack_id', [_ml_pack]),
+                ('mercadolibre_shipment', 'shipping_id', [_ml_ship]),
+            ], label='orden %s%s' % (_ml_oid, (' (carrito %s)' % _ml_pack) if _ml_pack else ''))
+            if _busy:
+                return {'error': _busy}
+
         # if id is defined, we are updating existing one
         if (oid):
             order = order_obj.browse(oid )
@@ -5926,7 +5942,17 @@ class mercadolibre_orders(models.Model):
         else:
             #_logger.info(Adding new order: " )
             #_logger.info(order_fields)
-            order = order_obj.create( (order_fields))
+            # #431: si un indice unico (meli_oerp_multiple) rechaza la fila porque otro proceso la
+            # acaba de crear, se saltea sin dejar la transaccion abortada para el resto del lote.
+            try:
+                with self.env.cr.savepoint():
+                    order = order_obj.create( (order_fields))
+            except Exception as _e:
+                if psycopg2_errors and isinstance(_e, psycopg2_errors.UniqueViolation):
+                    _msg = 'MELI_IMPORT_PARALLEL: orden %s ya creada por otro proceso (%s)' % (order_json.get('id'), _e)
+                    _logger.info(_msg)
+                    return {'error': _msg}
+                raise
 
         # #542-661: en una orden NUEVA el comprador (mercadolibre.buyers) se crea antes que la orden,
         # así que el `if order and buyer_id` de arriba no la vinculaba: se vincula ahora.
@@ -6863,6 +6889,9 @@ class mercadolibre_orders(models.Model):
                 return { "error": order_json }
             else:
                 ret = self.orders_update_order_json( {"id": False, "order_json": order_json }, meli=meli, config=config )
+                if isinstance(ret, dict) and 'MELI_IMPORT_PARALLEL' in str(ret.get('error') or ''):
+                    # #431: la importa otro proceso en paralelo: quien llama lo ve como SKIP, no como importada.
+                    return { "error": ret["error"] }
                 if ret:
                     #_logger.info(ret)
                     return { "ret": ret }
