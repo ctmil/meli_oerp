@@ -4,6 +4,18 @@
 
 ---
 
+## 22 oct 2026 — #431 venta ML doble por importación en paralelo (v18.0.26.250.1 paquete / suite 26.284)
+**Medido en prod 431:** 7 ventas con 2 SO, todas de octubre. `Cron Meli Orders` (barrido CRON_UNPROCESSED_ORDERS, órdenes
+de 24 h que "no están en Odoo") y `Meli Process Order Notifications` importan la misma orden a la vez; el lock existente
+(connection_account FOR UPDATE NOWAIT) es por NOTIFICACIÓN, el barrido no pasa por él, y orders/shipment hacen
+buscar-y-crear sin lock ⇒ 2 mercadolibre.orders + 2 shipments + contacto doble + 2 sale.order.
+**Fix:** `models/import_lock.py` — `pg_try_advisory_xact_lock` por pack_id y order_id (try, sin espera: la importación ya
+hace red dentro de la transacción) + chequeo de snapshot vencido (REPEATABLE READ: si otro commiteó la orden después de
+nuestro snapshot, un cursor nuevo la ve y esta pasada se saltea). Guard en `orders_update_order_json` y `fetch_shipment`;
+create de la orden en savepoint (UniqueViolation ⇒ skip). Error `MELI_IMPORT_PARALLEL` = SKIP.
+**Prueba:** `tests/test_431_import_lock.py` (tag meli_431_lock) + `tests/shell_import_race_same_order.py` (dos
+transacciones reales): control 2 ventas por orden, fix 1.
+
 ## 19 oct 2026 — #431 bug 6 adopción de línea sin vínculo ML + carritos (v18.0.26.250)
 **1. Línea duplicada (medido en ventas reales: cancelar+reconfirmar a mano).** La línea vigente la crea el usuario sin
 `meli_order_item_id`; `orders_update_order_json` no la encontraba por (item, variación, venta), el monto no cuadraba y creaba

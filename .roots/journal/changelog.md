@@ -4,6 +4,10 @@
 
 ---
 
+## 18.0.26.250.1 — 22-oct-2026 · una venta de MercadoLibre ya no se crea dos veces
+- **Venta duplicada:** cuando dos procesos traían la misma venta de MercadoLibre al mismo tiempo (las notificaciones y el repaso periódico de ventas), se creaban dos ventas, dos envíos y el contacto dos veces. Ahora cada venta (o carrito) la importa un solo proceso: el otro la saltea y la venta queda una sola vez.
+- Requiere actualizar los módulos (`-u meli_oerp,meli_oerp_multiple`); sin campos nuevos. Paquete sobre 26.250; en la suite va como build 26.284.
+
 ## 18.0.26.250 — 19-oct-2026 · la sincronización no duplica productos en ventas reconfirmadas y no cancela un carrito con órdenes vigentes
 - **Producto duplicado:** si la venta se canceló y se volvió a confirmar a mano (o se editó en cotización), la línea que queda no está vinculada a MercadoLibre. La sincronización ahora **adopta esa línea** (mismo producto) en vez de agregar otra igual; también si cae mientras la venta está en cotización. Si hay varias sin vincular, adopta la de la misma cantidad.
 - **Venta confirmada sin la línea:** la sincronización no agrega líneas y deja **una nota** en la venta indicando el ítem de MercadoLibre que no está vinculado, para revisarlo.
