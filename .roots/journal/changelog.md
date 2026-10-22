@@ -4,6 +4,17 @@
 
 ---
 
+## 19.0.26.283 — 22-oct-2026 · cancelaciones ML por motivo (opt-in) [#624] + botón Publicar Plazo [#609]
+- **Cancelaciones de MercadoLibre según el motivo** [#624] (opt-in, modo de cancelación `legacy`): con el parámetro del sistema `meli_oerp.cancel_reason_policy = by_reason`:
+  - cancelada por el comprador (`buyer_cancel_express`) y paquete cancelado por ML (`shipment_not_delivered` con el pago reintegrado): se cancela la venta y se devuelve la salida hecha;
+  - mediación/devolución (`mediations` con el pago reintegrado): se cancela la venta y la devolución queda **sin validar**, con una actividad «Revisar cancelación de MercadoLibre» para decidirla con la resolución del reclamo;
+  - ML **cubrió la venta** (pago `bpp_covered`: «Te dimos el dinero…», «Paquete no entregado. Te reembolsamos…»): **venta concretada**, no se cancela ni se devuelve; nueva marca «ML Cancelada con venta cubierta por ML», nuevo filtro, y sale del filtro «Canceladas pendientes en Odoo» y del banner;
+  - pack dividido (`pack_splitted`): sin devolución automática; la nota nombra la **venta gemela** y su salida, y se agenda una actividad;
+  - motivo ambiguo sin dato de pago: no se acciona, actividad de revisión. El dato de pago sale del `order_json` o de la foto fresca de ML (GET con timeout antes de escribir).
+- `meli_oerp.cancel_return_full = 1`: con la política activa, las devoluciones de envíos **FULL** se crean (para quien lleva el stock del depósito FULL en Odoo).
+- Sin los parámetros, el comportamiento es el de siempre.
+- Build único 19.0.26.283 en 16/17/18/19 para meli_oerp, meli_oerp_stock, meli_oerp_multiple, meli_oerp_accounting y meli_oerp_autofacturacion.
+
 ## 19.0.26.282 — 22-oct-2026 · las direcciones de entrega y factura cambiadas a mano ya no vuelven a la original al sincronizar [#513]
 - Si en un pedido de ML se cambia a mano el contacto de entrega o de factura, o la calle/ciudad/teléfono del contacto de entrega, la re-sincronización desde ML (cron, notificación o «Actualizar») lo respeta. Si nadie lo tocó, un cambio de dirección hecho en ML sigue entrando.
 - Pestaña MercadoLibre del pedido: «Factura puesta por ML» / «Entrega puesta por ML» (sólo lectura).
