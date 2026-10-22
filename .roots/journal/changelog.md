@@ -4,6 +4,10 @@
 
 ---
 
+## 17.0.26.279 — 22-oct-2026 · panel CRONs: «Ejecutar ahora» con lock y contador de la corrida de precios [#427]
+- Sin cambios funcionales en este módulo (acompaña).
+- Build único 17.0.26.279 en 16/17/18/19 para meli_oerp, meli_oerp_stock, meli_oerp_multiple, meli_oerp_accounting y meli_oerp_autofacturacion.
+
 ## 17.0.26.273 — 22-oct-2026 · número de la retención del pago = ID de operación de MercadoPago [#484]
 - Sin cambios funcionales en este módulo (acompaña).
 - Build único 17.0.26.273 en 16/17/18/19 para meli_oerp, meli_oerp_stock, meli_oerp_multiple, meli_oerp_accounting y meli_oerp_autofacturacion.
