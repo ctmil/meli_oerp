@@ -4,6 +4,10 @@
 
 ---
 
+## 16.0.26.273 — 22-oct-2026 · número de la retención del pago = ID de operación de MercadoPago [#484]
+- Sin cambios funcionales en este módulo (acompaña).
+- Build único 16.0.26.273 en 16/17/18/19 para meli_oerp, meli_oerp_stock, meli_oerp_multiple, meli_oerp_accounting y meli_oerp_autofacturacion.
+
 ## 16.0.26.272 — 22-oct-2026 · reintento de etiquetas de envíos buffered: cola y ventana desde la liberación [#158]
 - Sin cambios funcionales en este módulo (acompaña).
 - Build único 16.0.26.272 en 16/17/18/19 para meli_oerp, meli_oerp_stock, meli_oerp_multiple, meli_oerp_accounting y meli_oerp_autofacturacion.
