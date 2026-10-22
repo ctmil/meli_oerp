@@ -12,3 +12,4 @@ from . import test_adopcion_linea
 from . import test_513_direcciones_manuales
 
 from . import test_26278_cancel_por_motivo
+from . import test_431_import_lock
