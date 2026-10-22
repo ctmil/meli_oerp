@@ -4,6 +4,9 @@
 
 ---
 
+## 22 oct 2026 — ventas ML: adopción de línea sin vínculo, carrito de una orden y carrito parcial [#431] (v19.0.26.271)
+#431 duplicados: `orders.py`/`shipment.py` adoptan la línea sin `meli_order_item_id` del mismo producto antes de crear; `_meli_pack_sync_cancelled` acepta carrito de 1 orden; `meli_cancel_with_detail` retiene mientras quede orden vigente. Tests `tests/test_adopcion_linea.py` (tag meli_26250): fix 9/9 en 16-19, control origin 26.270 5F+2E. Origen: ramas claude/431-adopcion-linea-<v> (26.250).
+
 ## 22 oct 2026 — release de flota 26.267 (v19.0.26.267)
 267 = release flota: 265 #525 + 266 #539 + 267 #526. meli_oerp no cambia código respecto de 26.265 (los fixes de 266/267 viven en
 meli_oerp_multiple y meli_oerp_accounting); se sube el build para que el suite quede en un único número.
