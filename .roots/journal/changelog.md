@@ -4,6 +4,10 @@
 
 ---
 
+## 16.0.26.284 — 22-oct-2026 · una venta de MercadoLibre ya no se crea dos veces [#431]
+- **Venta duplicada:** cuando dos procesos traían la misma venta de MercadoLibre al mismo tiempo (las notificaciones y el repaso periódico de ventas), se creaban dos ventas, dos envíos y el contacto dos veces. Ahora cada venta (o carrito) la importa un solo proceso: el otro la saltea y la venta queda una sola vez.
+- Requiere actualizar (`-u meli_oerp,meli_oerp_multiple`); sin campos nuevos. Build único 26.284 en 16/17/18/19.
+
 ## 16.0.26.283 — 22-oct-2026 · cancelaciones ML por motivo (opt-in) [#624] + botón Publicar Plazo [#609]
 - **Cancelaciones de MercadoLibre según el motivo** [#624] (opt-in, modo de cancelación `legacy`): con el parámetro del sistema `meli_oerp.cancel_reason_policy = by_reason`:
   - cancelada por el comprador (`buyer_cancel_express`) y paquete cancelado por ML (`shipment_not_delivered` con el pago reintegrado): se cancela la venta y se devuelve la salida hecha;
