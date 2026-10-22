@@ -155,7 +155,7 @@ def meli_message_body_with_marker(body, once_key):
     return markup_escape(body) + Markup(meli_once_marker(once_key))
 
 
-def meli_message_post(record, body, config=None, once_key=None):
+def meli_message_post(record, body, config=None, once_key=None, force_chatter=False):
     """Post a message respecting the MeLi notification mode setting.
 
     config: res.company or connection_account record with mercadolibre_notification_mode field.
@@ -182,6 +182,11 @@ def meli_message_post(record, body, config=None, once_key=None):
     if config and 'mercadolibre_notification_mode' in config._fields:
         mode = config.mercadolibre_notification_mode or 'notification'
 
+    if mode == 'none' and force_chatter:
+        # [26.270] Aviso de DINERO BLOQUEADO (cobro/pago que no se registro): el modo 'none'
+        # existe para bajar ruido, no para esconder plata sin registrar. Va como nota interna
+        # (sin inbox), una vez por pago (once_key).
+        mode = 'internal_note'
     if mode == 'none':
         _logger.info("MELI [%s] %s: %s", record._name, getattr(record, 'name', record.id), body)
         return
@@ -1091,3 +1096,12 @@ def meli_payment_method_line_for(journal, payment_type='inbound', partner=None):
     return Line, ("el diario '%s' no tiene ningun metodo de pago %s con 'Cuenta de pagos pendientes' "
                   "configurada (Contabilidad > Configuracion > Diarios > %s > pestana de pagos). "
                   "Sin esa cuenta el pago quedaria sin asiento." % (journal.display_name, tipo, journal.display_name))
+
+
+def meli_money_block_post(record, body, config=None, once_key=None):
+    """[26.270] Aviso de cobro/pago NO registrado: siempre queda en el chatter (nota interna si el
+    modo de notificaciones es 'none'). Si el registro no tiene chatter, queda en el log."""
+    _logger.warning("MELI dinero sin registrar [%s %s]: %s", record and record._name,
+                    record and record.ids, body)
+    if record and hasattr(record, 'message_post'):
+        meli_message_post(record, body, config=config, once_key=once_key, force_chatter=True)
