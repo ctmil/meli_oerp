@@ -4,6 +4,10 @@
 
 ---
 
+## 17.0.26.270 — 22-oct-2026 · pagos salientes ML con línea de método explícita + aviso de dinero sin registrar siempre visible
+- Avisos de **dinero sin registrar** (cobro o pago de ML que no se pudo crear) quedan **siempre** en el chatter: con el modo de notificaciones «Desactivadas» van como nota interna (sin inbox), una vez por pago. Nuevo `meli_money_block_post` y parámetro `force_chatter` en `meli_message_post`; el help del modo lo documenta.
+- Build único 17.0.26.270 en 16/17/18/19 para meli_oerp, meli_oerp_stock, meli_oerp_multiple, meli_oerp_accounting y meli_oerp_autofacturacion.
+
 ## 17.0.26.269 — 22-oct-2026 · cobros ML con línea de método explícita + lectura de mercadolibre.client [#526 #630 #542]
 - Nuevo helper `meli_payment_method_line_for(journal, tipo, partner)` en `models/versions.py`: elige la línea de método de pago del diario que tenga «Cuenta de pagos pendientes» (o el default que la versión de Odoo aplique). Lo usan los cobros de meli_oerp_accounting y meli_oerp_multiple.
 - Build único 17.0.26.269 en 16/17/18/19 para meli_oerp, meli_oerp_stock, meli_oerp_multiple, meli_oerp_accounting y meli_oerp_autofacturacion.
