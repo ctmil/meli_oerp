@@ -4,6 +4,12 @@
 
 ---
 
+## 19.0.26.287 — 22-oct-2026 — landeo #529 26.245 + 26.249 (build de flota 26.287)
+- Landeo en origin de `claude/529-cupon-facturada-19.0` (26.245) y `claude/529-descuento-vendedor-iva-19.0` (26.249), renumerados a 26.287.
+- Merge con 26.229 (cupón del vendedor prorrateado con `items_total` + guarda de precio negativo): se conserva el prorrateo de 26.229; de 26.249 queda el salto de los detalles `type=discount` (oferta ya en `unit_price`), la guarda de venta confirmada, el IVA de una sola compañía y el 401.
+- 26.245 combinado con 26.229: la guarda de factura posteada va ANTES del reparto del cupón.
+- `rjson.get("error")` en el refresh: con el 401 sin clave `error` el `rjson["error"]` daba KeyError.
+
 ## 19.0.26.249 — 19-oct-2026 · descuento del vendedor restado dos veces, IVA de una sola compañía, 401 de ML [#529 #543]
 - **#529 Descuento del vendedor:** una **oferta de precio** de ML (`/discounts` tipo `discount`) ya viene dentro del precio unitario; el importador la volvía a restar. Ej. Kindon: precio ML 54.312,50 (lista 55.000 − oferta 687,50) entraba como 53.625 y la venta quedaba 689,56 por debajo de lo cobrado. Ahora sólo se resta lo que no está en el precio (p. ej. el cupón financiado por el vendedor), y el importe a controlar/facturar usa el mismo valor.
 - **#529** El descuento del vendedor, que es de la **orden**, se **prorratea** entre sus ítems (antes se restaba entero en cada línea).

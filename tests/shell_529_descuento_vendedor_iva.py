@@ -74,8 +74,9 @@ check('B3-3 Kindon: price_unit neto x 1,21 = 54.312,50 (precio ML), no 53.625 (%
 o3 = fill('mercadolibre.orders', {'order_id': 'T529C', 'name': 'T529C', 'discount_seller_amount': 400.0})
 for uid, up in (('I1', 1000.0), ('I2', 3000.0)):
     fill('mercadolibre.order_items', {'order_id': o3.id, 'order_item_id': uid, 'unit_price': str(up), 'quantity': 1})
-p1 = o3._set_product_unit_price(prod_notax, {'unit_price': 1000.0, 'quantity': 1}, config=A)['price_unit']
-p2 = o3._set_product_unit_price(prod_notax, {'unit_price': 3000.0, 'quantity': 1}, config=A)['price_unit']
+_it = {'items_total': 4000.0} if 'items_total' in o3._set_product_unit_price.__code__.co_varnames else {}  # 26.229: el llamador pasa el bruto de la orden
+p1 = o3._set_product_unit_price(prod_notax, {'unit_price': 1000.0, 'quantity': 1}, config=A, **_it)['price_unit']
+p2 = o3._set_product_unit_price(prod_notax, {'unit_price': 3000.0, 'quantity': 1}, config=A, **_it)['price_unit']
 check('B3-4 prorrateo: 900 + 2700 = 3600 (antes 600 + 2600 = 3200: el descuento entraba dos veces) [%.2f, %.2f]' % (p1, p2),
       abs(p1 - 900) < 0.01 and abs(p2 - 2700) < 0.01)
 
