@@ -4,6 +4,10 @@
 
 ---
 
+## 16.0.26.267 — 22-oct-2026 · release de flota [#525 #539 #526]
+- 267 = release flota: 265 #525 + 266 #539 + 267 #526. Sin cambios funcionales nuevos en este módulo en este build (acompaña).
+- Build único 26.267 en 16/17/18/19 para meli_oerp, meli_oerp_multiple, meli_oerp_stock, meli_oerp_accounting y meli_oerp_autofacturacion.
+
 ## 16.0.26.265 — 22-oct-2026 · integración del pase de ROEN [#525]
 - incluye #611 (diagnóstico de stock no reactiva sin stock publicable; REACTIVADA sólo verificada, ex 26.257) y #615 (enlace del reclamo a la mediación, ex 26.259).
 - Build único 26.265 en 16/17/18/19 para meli_oerp, meli_oerp_multiple, meli_oerp_stock y meli_oerp_accounting.

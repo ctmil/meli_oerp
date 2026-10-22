@@ -4,6 +4,10 @@
 
 ---
 
+## 22 oct 2026 — release de flota 26.267 (v16.0.26.267)
+267 = release flota: 265 #525 + 266 #539 + 267 #526. meli_oerp no cambia código respecto de 26.265 (los fixes de 266/267 viven en
+meli_oerp_multiple y meli_oerp_accounting); se sube el build para que el suite quede en un único número.
+
 ## 22 oct 2026 — #542 SteelTigers API 661 / portal #662: 3 correcciones genéricas de contactos (v16.0.26.264)
 **Origen:** ZIP de IAV Tech (Pablo) con lógica de SteelTigers metida en `orders.py`/`shipment.py`. Se tomó SÓLO lo genérico,
 reescrito; lo de SteelTigers vive en su módulo `steeltiger_meli_contacts` (herencia, sin hook en el core).
