@@ -8,6 +8,9 @@
 - **#611** El control automático **Meli Stock Diagnostic** ya no intenta reactivar una publicación pausada cuando la existencia que ve está en ubicaciones de las que esa publicación **no publica** (p.ej. sólo en Full): calcula la cantidad con la misma regla que el envío de stock.
 - Sólo anota **«REACTIVADA»** si Mercado Libre la muestra activa después; si sigue pausada lo dice (**«NO QUEDÓ ACTIVA»**, con el motivo que informa ML).
 - Build único 26.257 en 16/17/18/19 (junto con meli_oerp_multiple 26.257).
+## 19.0.26.259 — 21-oct-2026 · el enlace del reclamo abre la mediación en el panel del vendedor [#615]
+- **#615** En una **mediación**, «Claim Link» abre ahora la mediación en el panel del vendedor: `https://vendedores.<dominio>/ventas/nueva/mensajeria/<pack o, si no hay, orden>/mediacion/<reclamo>`. Antes abría `www.<dominio>/reclamos/<reclamo>`, que Mercado Libre redirige a la venta.
+- Devoluciones y cancelaciones conservan el enlace anterior: el formato del panel para esos tipos no está confirmado.
 
 ## 19.0.26.246 — 19-oct-2026 · match de SKU por token (opcional) [#543]
 - **#543** Nueva opción **«Search SKU by token»** (`mercadolibre_sku_token_match`, por defecto **apagada**) y **«SKU token separators»** (default `- /`). Para catálogos donde el SKU de Mercado Libre trae el código de Odoo **más** una descripción (p.ej. `21342-ALIMENTO PERRO 20K` contra Referencia interna `21342`): se parte el SKU por los separadores y se vincula **sólo** si exactamente un trozo coincide con la Referencia interna de un único producto. Ningún trozo, dos trozos o código repetido en Odoo ⇒ no vincula (queda en el log). Es respaldo: corre después de la búsqueda exacta de siempre; apagada, todo funciona igual que antes.
