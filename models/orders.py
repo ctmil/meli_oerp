@@ -4067,34 +4067,26 @@ class mercadolibre_orders(models.Model):
                 return
             seller_total = 0.0
             seller_coupon = 0.0
+            seller_in_price = 0.0
             for detail in rjson.get('details', []):
                 _is_coupon = str(detail.get('type') or '').lower() == 'coupon'
+                # [529] (19-oct-2026, landeo 26.287) type "discount" = oferta de PRECIO financiada por el
+                # vendedor: ML ya la descuenta del unit_price (Kindon 2000019046887762: lista 55.000, oferta
+                # 687,50, unit_price 54.312,50). Restarla otra vez dejaba la venta 689,56 por debajo de lo
+                # cobrado. Solo cuenta lo que NO esta en el precio (cupon del vendedor, etc.).
+                _in_price = (str(detail.get('type') or '').lower() == 'discount')
                 for item in detail.get('items', []):
                     amounts = item.get('amounts', {})
                     _seller = float(amounts.get('seller', 0) or 0)
+                    if _in_price:
+                        seller_in_price += _seller
+                        continue
                     seller_total += _seller
                     if _is_coupon:
                         seller_coupon += _seller
             self.discount_seller_amount = seller_total
             if 'discount_seller_coupon_amount' in self._fields:
                 self.discount_seller_coupon_amount = seller_coupon
-            _logger.info("MELI discounts for order %s: seller_amount=%.2f (coupon_amount=%.2f)",
-                         self.order_id, seller_total, self.coupon_amount)
-            seller_in_price = 0.0
-            for detail in rjson.get('details', []):
-                # [529] (19-oct-2026) type "discount" = oferta de PRECIO financiada por el vendedor:
-                # ML ya la descuenta del unit_price (Kindon 2000019046887762: lista 55.000, oferta
-                # 687,50, unit_price 54.312,50). Restarla otra vez dejaba la venta 689,56 por debajo
-                # de lo cobrado. Solo cuenta lo que NO esta en el precio (cupon del vendedor, etc.).
-                _in_price = (detail.get('type') == 'discount')
-                for item in detail.get('items', []):
-                    amounts = item.get('amounts', {})
-                    _seller = float(amounts.get('seller', 0) or 0)
-                    if _in_price:
-                        seller_in_price += _seller
-                    else:
-                        seller_total += _seller
-            self.discount_seller_amount = seller_total
             _logger.info("MELI discounts for order %s: seller_amount=%.2f (en el precio, no se resta: %.2f) (coupon_amount=%.2f)",
                          self.order_id, seller_total, seller_in_price, self.coupon_amount)
         except Exception as e:
