@@ -4,6 +4,10 @@
 
 ---
 
+## 19.0.26.272 — 22-oct-2026 · reintento de etiquetas de envíos buffered: cola y ventana desde la liberación [#158]
+- Sin cambios funcionales en este módulo (acompaña).
+- Build único 19.0.26.272 en 16/17/18/19 para meli_oerp, meli_oerp_stock, meli_oerp_multiple, meli_oerp_accounting y meli_oerp_autofacturacion.
+
 ## 19.0.26.271 — 22-oct-2026 · ventas ML: adopción de línea sin vínculo, carrito de una orden y carrito parcial [#431]
 - **Ventas ML sin líneas duplicadas** [#431]: al sincronizar, si la venta tiene una línea del mismo producto sin vínculo ML (p. ej. la que deja cancelar y reconfirmar a mano) se la **adopta** escribiéndole los ids de ML en vez de crear otra; en una venta confirmada sin candidata no crea y deja **una** nota de control por ítem. Igual en las líneas de un pack.
 - **Carrito de una orden**: una venta de carrito con una sola orden toma el estado cancelado de ML.
