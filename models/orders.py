@@ -531,6 +531,20 @@ class sale_order(models.Model):
              "sistema 'meli_oerp.cancel_return_reasons' (por defecto: buyer_cancel_express, "
              "fraud), así que NO se creó la devolución de la mercadería ya entregada. "
              "Revisar si la mercadería volvió y, si corresponde, devolverla a mano.")
+    # 26.278 (#624): politica por motivo (meli_oerp.cancel_reason_policy=by_reason). ML canceló
+    # la orden pero el pago figura `bpp_covered`: el programa de proteccion de ML le pagó la venta
+    # al vendedor (motivos E/F de la clienta) => venta CONCRETADA, no se cancela. La marca la saca
+    # del filtro "Canceladas pendientes en Odoo" y del banner, y corta el reintento del cron.
+    meli_cancel_covered = fields.Boolean(
+        string='ML Cancelada con venta cubierta por ML', index=True, copy=False, readonly=True,
+        help="MercadoLibre canceló el pedido pero le pagó la venta al vendedor (pago 'bpp_covered': "
+             "por ejemplo 'Te dimos el dinero de la venta y reembolsamos al comprador' o 'Paquete no "
+             "entregado. Te reembolsamos el monto'). Se mantiene como venta concretada: no se cancela "
+             "ni se devuelve la mercadería.")
+    # 26.278 (#624): la actividad de revision se crea UNA vez por venta (aunque se marque hecha y
+    # la venta siga abierta, el cron no la recrea en cada pasada).
+    meli_cancel_review_scheduled = fields.Boolean(
+        string='ML Revisión de cancelación agendada', copy=False, readonly=True)
     # 26.171 (E2, 431): fecha de la cancelación en ML (`cancel_detail.date`) y la marca de
     # "cancelación retenida": ML la canceló ANTES de la fecha de corte configurada
     # ("Cancelaciones automáticas desde") y por eso NO se accionó automáticamente.
@@ -1563,9 +1577,15 @@ class sale_order(models.Model):
     def _meli_return_mode(self, config=None):
         """Mismo criterio que _meli_return_done_pickings (config efectiva, default 'done')."""
         config = self._meli_cancel_config(config)
+        mode = 'done'
         if config and 'mercadolibre_return_mode' in config._fields:
-            return config.mercadolibre_return_mode or 'done'
-        return 'done'
+            mode = config.mercadolibre_return_mode or 'done'
+        # 26.278 (#624): la politica por motivo pide la devolucion SIN validar para las
+        # mediaciones (se decide con la resolucion del reclamo). 'none' configurado manda.
+        force = self.env.context.get('meli_return_mode_force')
+        if force and mode != 'none':
+            return force
+        return mode
 
     def _meli_cancel_fetch(self, meli, path):
         """UN GET a la API de ML con timeout. Devuelve el json o un dict con 'error'.
@@ -1780,6 +1800,16 @@ class sale_order(models.Model):
         if self._meli_cancel_mode(config) == 'por_estado_ml':
             return self._meli_cancel_por_estado_ml(cancel_msg, order_json=order_json, meli=meli, config=config)
 
+        # 26.278 (#624): politica por MOTIVO (opt-in: meli_oerp.cancel_reason_policy=by_reason).
+        # bool => resultado final; dict => sigue el camino legacy con ese contexto; None => este
+        # motivo no lo maneja la politica. Ver _meli_cancel_by_reason y models/cancel_decision.py.
+        if self._meli_cancel_policy_on() and not self.env.context.get('meli_cancel_policy_applied'):
+            policy = self._meli_cancel_by_reason(cancel_msg, order_json=order_json, meli=meli, config=config)
+            if isinstance(policy, bool):
+                return policy
+            if isinstance(policy, dict):
+                self = self.with_context(meli_cancel_policy_applied=True, **policy)
+
         # 26.171 (E3, 431): pack dividido por ML (pack_splitted) en el modo legacy. Misma
         # regla que `por_estado_ml` (pago acreditado sin reintegro): ML re-creó la venta con
         # otro número, la mercadería y la plata siguen con la gemela => nunca devolución ni
@@ -1792,7 +1822,11 @@ class sale_order(models.Model):
         # (action_create_returns / create_returns) y evita crear devoluciones duplicadas.
         # 26.221: solo si el motivo de ML esta en meli_oerp.cancel_return_reasons; si no,
         # la venta se cancela igual (pasos 2-5) pero SIN devolucion, y queda marcada.
-        self._meli_cancel_goods_return(order_json=order_json, config=config)
+        # 26.278 (#624): mediacion => la devolucion se crea DESPUES de cancelar la venta (si se
+        # crea antes queda sin validar y la cascada de action_cancel la cancela). Ver
+        # _meli_cancel_after_legacy.
+        if not self.env.context.get('meli_cancel_return_draft_review'):
+            self._meli_cancel_goods_return(order_json=order_json, config=config)
 
         # 2. Gestionar facturas existentes — delegar a la política de configuración
         _has_unresolved_posted_invoice = False
@@ -1873,9 +1907,9 @@ class sale_order(models.Model):
             _logger.warning("meli_cancel_with_detail: orden %s NO cancelada — factura publicada sin resolver. Acción manual requerida.", self.name)
             # False, no None: el contrato del método es "¿quedó cancelada?". Acá no, a
             # propósito. Y NO se postea el cancel_msg: el chatter no afirma lo que no pasó.
-            return False
+            return self._meli_cancel_after_legacy(False, order_json=order_json, config=config)
 
-        return self._meli_cancel_finish(cancel_msg)
+        return self._meli_cancel_after_legacy(self._meli_cancel_finish(cancel_msg), order_json=order_json, config=config)
 
     # ====================================================================== #
     #  26.221 (un cliente): QUE MOTIVOS DEVUELVEN STOCK SOLOS                  #
@@ -2068,19 +2102,192 @@ class sale_order(models.Model):
         if out_done or unresolved:
             text = ("pack dividido por MercadoLibre (pack_splitted): ML re-creó la venta con otro número. "
                     "No se crea devolución ni nota de crédito; la venta queda abierta para revisarla a mano "
-                    "(buscar la venta gemela)%s%s." % (
+                    "(buscar la venta gemela)%s%s%s." % (
                         out_done and "; tiene la salida hecha" or "",
-                        unresolved and "; factura publicada %s" % ", ".join(unresolved.mapped('name')) or ""))
+                        unresolved and "; factura publicada %s" % ", ".join(unresolved.mapped('name')) or "",
+                        self._meli_pack_splitted_twins_text()))
             if self.meli_cancel_decision != text:
                 self.meli_cancel_decision = text
             meli_message_post(self, "⚠️ ACCIÓN REQUERIDA (cancelación de ML): %s Motivo ML: %s" % (text, cancel_msg),
                               config=config, once_key="cancel-packsplit-%s" % self.id)
+            # 26.278 (#624): con la politica por motivo, ademas una actividad (el aviso que se
+            # ve en el tablero). Sin devolucion automatica: decision del coordinador (la gemela
+            # sigue viva). Si la gemela tiene su propia salida, la de esta venta sobra.
+            if self._meli_cancel_policy_on():
+                self._meli_cancel_schedule_review(
+                    "Pack dividido por MercadoLibre: revisar si esta venta y su gemela sacaron la "
+                    "mercadería dos veces. Si la gemela tiene su propia salida, devolver la salida de "
+                    "esta venta y cancelarla. %s" % text, config=config)
             return False
         text = ("pack dividido por MercadoLibre (pack_splitted): se cancela la venta sin devolución ni nota "
                 "de crédito (sin salida hecha ni factura publicada).")
         if self.meli_cancel_decision != text:
             self.meli_cancel_decision = text
         return self._meli_cancel_finish(cancel_msg)
+
+    # ------------------------------------------------------------------ #
+    #  26.278 (#624): politica por MOTIVO de cancelacion (opt-in)          #
+    # ------------------------------------------------------------------ #
+    # Tabla A-F y medicion en models/cancel_decision.py (classify_cancel_reason). Solo modo
+    # 'legacy': 'por_estado_ml' decide con su propia matriz.
+    _MELI_REVIEW_SUMMARY = "Revisar cancelación de MercadoLibre"
+
+    def _meli_cancel_policy_on(self):
+        ICP = self.env["ir.config_parameter"].sudo()
+        return _meli_cd.cancel_policy_enabled(ICP.get_param(_meli_cd.CANCEL_POLICY_PARAM))
+
+    def _meli_cancel_return_full_on(self):
+        ICP = self.env["ir.config_parameter"].sudo()
+        return _meli_cd.param_is_true(ICP.get_param(_meli_cd.CANCEL_RETURN_FULL_PARAM))
+
+    def _meli_cancel_payment_details(self, order_json=None, meli=None, config=None):
+        """(ok, lista de payments[].status_detail | motivo del fallo). Del order_json fresco
+        del llamador si lo trae; si no, de la foto de _meli_cancel_context (GET con timeout,
+        ANTES de escribir, con cache). Foto incompleta => ok False => no se acciona."""
+        self.ensure_one()
+        if isinstance(order_json, dict) and isinstance(order_json.get("payments"), list):
+            return True, [(p or {}).get("status_detail") or "" for p in order_json["payments"]]
+        if self.env.context.get("meli_cancel_offline"):
+            return False, "pasada sin conexión a MercadoLibre"
+        ctx = self._meli_cancel_context(order_json=order_json, meli=meli, config=config)
+        if not ctx.get("ok"):
+            return False, ctx.get("missing") or "estado de ML incompleto"
+        return True, [p.get("status_detail") or "" for p in ctx.get("payments") or []]
+
+    def _meli_cancel_schedule_review(self, note, config=None):
+        """Actividad 'Revisar cancelación de MercadoLibre' en la venta, UNA sola abierta."""
+        self.ensure_one()
+        if "activity_ids" not in self._fields or self.meli_cancel_review_scheduled:
+            return False
+        if self.activity_ids.filtered(lambda a: a.summary == self._MELI_REVIEW_SUMMARY):
+            self.meli_cancel_review_scheduled = True
+            return False
+        try:
+            with self.env.cr.savepoint():
+                self.activity_schedule(
+                    "mail.mail_activity_data_todo",
+                    summary=self._MELI_REVIEW_SUMMARY, note=note,
+                    user_id=(self.user_id or self.env.user).id)
+            self.meli_cancel_review_scheduled = True
+            return True
+        except Exception as e:
+            _logger.warning("meli_cancel %s: no se pudo crear la actividad de revisión: %s", self.name, e)
+            return False
+
+    def _meli_pack_splitted_twins(self):
+        """Ventas de Odoo que ML creó al dividir el pack: mismo comprador, algún ítem en común,
+        no canceladas, creadas desde la orden original. (#624, medido: la gemela llega con tag
+        splitted_order segundos después de la cancelación y genera SU PROPIA salida.)"""
+        self.ensure_one()
+        mine = self.meli_orders or self.meli_order
+        if not mine:
+            return self.browse()
+        buyers = mine.mapped("buyer")
+        if not buyers:
+            return self.browse()
+        items = set(i for i in mine.mapped("order_items.order_item_id") if i)
+        dates = [d for d in mine.mapped("date_created") if d]
+        dom = [("buyer", "in", buyers.ids), ("id", "not in", mine.ids), ("status", "!=", "cancelled")]
+        if dates:
+            dom.append(("date_created", ">=", min(dates)))
+        twins = self.env["mercadolibre.orders"].search(dom, limit=50)
+        if items:
+            twins = twins.filtered(lambda o: items & set(o.order_items.mapped("order_item_id")))
+        return twins.mapped("sale_order").filtered(lambda so: so.id != self.id)
+
+    def _meli_pack_splitted_twins_text(self):
+        try:
+            twins = self._meli_pack_splitted_twins()
+        except Exception as e:
+            _logger.warning("meli_cancel %s: no se pudo buscar la venta gemela: %s", self.name, e)
+            return ""
+        if not twins:
+            return "; no se encontró la venta gemela en Odoo"
+        parts = []
+        for tw in twins:
+            outs = tw.picking_ids.filtered(lambda p: p.picking_type_code == "outgoing" and p.state != "cancel")
+            parts.append("%s%s" % (tw.name, outs and " (salida %s)" % ", ".join(
+                "%s %s" % (p.name, p.state) for p in outs) or " (sin salida)"))
+        return "; venta gemela: %s" % "; ".join(parts)
+
+    def _meli_cancel_by_reason(self, cancel_msg, order_json=None, meli=None, config=None):
+        """Politica por motivo (#624).
+        :return: bool = resultado final (True si la venta quedó cancelada); dict = contexto
+                 con el que sigue el camino legacy; None = el motivo no lo maneja la politica."""
+        self.ensure_one()
+        if self.state == "cancel":
+            return None
+        if self.meli_cancel_covered:
+            return False
+        code = (self._meli_cancel_return_reason_code(order_json) or "").strip().lower()
+        if not code and self._meli_cancel_is_pack_splitted(order_json=order_json):
+            code = "pack_splitted"
+        details = None
+        if code in _meli_cd.POLICY_AMBIGUOUS_CODES:
+            ok, details = self._meli_cancel_payment_details(order_json=order_json, meli=meli, config=config)
+            if not ok:
+                _logger.warning("meli_cancel (por motivo) %s: sin dato de pago (%s) — no se acciona.", self.name, details)
+                meli_message_post(
+                    self,
+                    "Cancelación de ML en espera: no se pudo leer el pago de la orden en MercadoLibre (%s), "
+                    "que es lo que distingue una venta cubierta por ML de una cancelada. No se tocó nada; se "
+                    "vuelve a intentar en la próxima sincronización." % details,
+                    config=config, once_key="cancel-reason-nopay-%s" % self.id)
+                return False
+        reason = _meli_cd.classify_cancel_reason(code, details)
+        if reason == _meli_cd.REASON_DEFAULT:
+            return None
+        if reason == _meli_cd.REASON_PACK_SPLIT:
+            return self._meli_cancel_pack_splitted_legacy(cancel_msg, config=config)
+        if reason == _meli_cd.REASON_COVERED:
+            text = ("motivo '%s' con el pago cubierto por MercadoLibre (bpp_covered): ML le pagó la venta "
+                    "al vendedor. Se mantiene como venta concretada: no se cancela, no se devuelve la "
+                    "mercadería y no se toca la factura." % code)
+            self.write({"meli_cancel_covered": True, "meli_cancel_decision": text})
+            meli_message_post(self, "Cancelación de MercadoLibre: %s Motivo ML: %s" % (text, cancel_msg),
+                              config=config, once_key="cancel-covered-%s" % self.id)
+            return False
+        if reason == _meli_cd.REASON_REVIEW:
+            text = ("motivo '%s' sin dato de pago que permita saber si ML cubrió la venta: no se cancela "
+                    "ni se mueve stock; revisarla en MercadoLibre." % code)
+            if self.meli_cancel_decision != text:
+                self.meli_cancel_decision = text
+            meli_message_post(self, "⚠️ ACCIÓN REQUERIDA (cancelación de ML): %s Motivo ML: %s" % (text, cancel_msg),
+                              config=config, once_key="cancel-review-%s" % self.id)
+            self._meli_cancel_schedule_review(text, config=config)
+            return False
+        ctx = {"meli_cancel_return_any_reason": True, "meli_cancel_policy_reason": reason}
+        if self._meli_cancel_return_full_on():
+            ctx["meli_cancel_return_full"] = True
+        if reason == _meli_cd.REASON_RETURN_REVIEW:
+            ctx["meli_cancel_return_draft_review"] = True
+            text = ("motivo '%s' (mediación/devolución, pago reintegrado al comprador): se cancela la venta y "
+                    "la devolución de la salida queda SIN VALIDAR para decidirla con la resolución del reclamo." % code)
+        else:
+            text = "motivo '%s': se cancela la venta y se devuelve la salida hecha." % code
+        if self.meli_cancel_decision != text:
+            self.meli_cancel_decision = text
+        return ctx
+
+    def _meli_cancel_after_legacy(self, result, order_json=None, config=None):
+        """Cierre del camino legacy. Con la politica por motivo y una mediacion (D): crear la
+        devolucion SIN VALIDAR recien ahora (la venta ya esta cancelada, la cascada no la toca)
+        y la actividad de revision."""
+        if not self.env.context.get("meli_cancel_return_draft_review"):
+            return result
+        pending = self._meli_cancel_return_pending_pickings()
+        if pending:
+            self.with_context(meli_return_mode_force="draft")._meli_cancel_goods_return(
+                order_json=order_json, config=config)
+        rets = self.env["stock.move"].search([
+            ("origin_returned_move_id", "in", pending.mapped("move_ids").ids),
+            ("state", "!=", "cancel")]).mapped("picking_id") if pending else self.env["stock.picking"]
+        self._meli_cancel_schedule_review(
+            "Mediación/devolución de MercadoLibre: revisar la resolución del reclamo. %s" % (
+                rets and ("Devolución sin validar: %s. Validarla si el producto volvió; cancelarla si no "
+                          "vuelve." % ", ".join(rets.mapped("name")))
+                or "No hay salida hecha para devolver."), config=config)
+        return result
 
     def _meli_unresolved_posted_invoices(self):
         """Facturas de cliente publicadas que SIGUEN sin resolver (no revertidas por NC)."""
@@ -2249,7 +2456,9 @@ class sale_order(models.Model):
         # Nunca devolución automática a un almacén propio (en 18/19 el guard de "sin
         # cantidades" NO las salteaba: mira la cantidad ENTREGADA, que es > 0). Es lo que ya
         # decidía `por_estado_ml` (SHIP_FULFILLMENT => no mover stock) y lo que dice la ayuda.
-        if self.is_meli_order_fulfillment() and self.picking_ids.filtered(
+        # 26.278 (#624): con la politica por motivo y meli_oerp.cancel_return_full=1 el cliente
+        # lleva el stock del deposito FULL en Odoo: la devolucion vuelve a la ubicacion de origen.
+        if self.is_meli_order_fulfillment() and not self.env.context.get('meli_cancel_return_full') and self.picking_ids.filtered(
                 lambda p: p.state == "done" and p.picking_type_code == "outgoing"):
             _logger.info("_meli_return_done_pickings: %s es FULL -> no se crea devolucion", self.name)
             meli_message_post(self, "Cancelación de ML: envío FULL (el stock lo gestiona MercadoLibre en su "
@@ -2383,6 +2592,8 @@ class sale_order(models.Model):
                 elif return_mode == 'done':
                     meli_message_post(self, "Devolución creada para albarán %s (%s) pero NO se pudo validar: al cancelar la orden puede quedar cancelada y el stock NO vuelve. Revisar manualmente." % (picking.name, _ret_names),
                                       once_key="ret-notdone-%s" % picking.id)
+                elif self.env.context.get('meli_cancel_return_draft_review'):
+                    meli_message_post(self, "Devolución creada SIN VALIDAR para revisión (mediación de MercadoLibre) del albarán %s (%s): validarla si la mercadería volvió, o cancelarla si no vuelve, según la resolución del reclamo." % (picking.name, _ret_names))
                 else:
                     meli_message_post(self, "Devolución creada automáticamente para albarán %s (%s). Queda SIN validar por configuración (Devolución al cancelar = 'Crear sin validar'): la cancelación de la orden la va a cancelar." % (picking.name, _ret_names))
             except Exception as e:
@@ -2984,11 +3195,11 @@ class sale_order(models.Model):
     )
 
     @api.depends('meli_status', 'state', 'meli_status_detail',
-                 'invoice_ids.state', 'picking_ids.state')
+                 'invoice_ids.state', 'picking_ids.state', 'meli_cancel_covered')
     def _compute_meli_cancel_pending_banner(self):
         for order in self:
             # Solo mostrar cuando ML canceló pero Odoo NO está cancelado
-            if order.meli_status != 'cancelled' or order.state == 'cancel':
+            if order.meli_status != 'cancelled' or order.state == 'cancel' or order.meli_cancel_covered:
                 order.meli_cancel_pending_banner = False
                 continue
 
