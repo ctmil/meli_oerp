@@ -27,5 +27,27 @@ ls-remote == local; o ramas claude/* pusheadas y reporte si no se cumple. Sin de
 - [x] test verde 14/14 en 16/17/18/19; test_billing_info_endpoint_pure sigue OK
 - [x] reserva 26.292 en el bus (comms.md, grep -c = 1); 26.291 = 452 (L49008)
 - [x] lock 5 módulos 02:08Z; 26.291 (452) landeó; fetch rc=0, max=291 ⇒ 26.292; rebase limpio, tests verdes; bump 5×4
-- [ ] push FF + ls-remote
+- [x] push FF + ls-remote (26.292 landeada 02:2xZ, bus L49054)
 - [x] roots-refresh: journal/changelog.md 26.292 en los 5×4
+
+## Paso 2 — override opt-in del default 601/G03 (pedido coordinador 23-oct, build 26.294)
+**Qué:** opción de compañía `mercadolibre_mx_cfdi_override_default` (Boolean, default False), visible en la pestaña
+de configuración ML (res.config.settings related). Prendida: contacto EXISTENTE con régimen '601' y ML manda otro código
+válido ⇒ se escribe el de ML (log `MX_CFDI override 601→X`). Uso CFDI (17+): igual sólo si el contacto tiene 'G03'.
+NUNCA pisa un valor distinto de 601/G03 (carga manual) ni contactos `meli_update_forbidden`. 16.0: sólo régimen.
+**Por qué:** Odoo pone 601 por default ⇒ personas físicas (612) y público en general (616) ya cargados quedan mal (limitación de 26.292).
+**Sobre:** meli_oerp 16/17/18/19, ramas `claude/mlm-cfdi-override-<v>` desde origin/<v> (26.292). Si multiple tiene flags
+equivalentes por cuenta (meli config), respetarlo también. Bump 5 módulos × 4 versiones.
+**Build:** 26.293 RESERVADO para #239 (sin landear) ⇒ 26.294 (max 4×5 + bus, +1). Reservar en bus, grep -c.
+**Tests:** tests/test_mlm_cfdi_pure.py: apagada = 26.292; prendida 601→612, 601→616; no pisa 603; bloqueado; sin l10n_mx_edi no-op.
+Rojo sin el cambio, verde con él en 16-19; resto de *_pure.py verde. -u en banco local ≥1 versión rc=0 (campo+vista).
+**Terminado:** landeado FF en origin/16-19 de los 5 con 26.294, ls-remote == local, changelog. Nada a clientes/prod.
+### Avance paso 2
+- [x] fetch 5 módulos rc=0; origin 16-19 ×5 = 26.292; max refs = 26.293 (accounting claude/462-239-*); reserva 26.294 en bus (grep -c = 1)
+- [x] patrón: `'<flag>' in config._fields and config.<flag>`; config = res.company o mercadolibre.configuration (multiple: gemelo en connection_configuration.py + connection_account_view.xml; sale.py llama super con config de cuenta)
+- [x] tests rojos: test_mlm_cfdi_pure.py 23 tests, contra origin 26.292 FAILED (2 fail, 8 err) en 16/17/18/19
+- [x] implementación por patcher idéntico 16-19: orders.py (_MELI_MX_ODOO_DEFAULTS, override_default, config=config, log override), company.py + company_view.xml; multiple: gemelo en ramas claude/mlm-cfdi-override-<v> (worktrees meli_oerp_multiple/claude-mlm-cfdi-override-<v>)
+- [x] tests verdes 23/23 en 16-19; resto *_pure.py OK (igual que base)
+- [ ] -u banco local
+- [ ] sync-lock 5 módulos, bump 26.294 + changelog
+- [ ] push FF + ls-remote; release locks; bus RELEASE

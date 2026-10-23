@@ -701,6 +701,17 @@ class res_company(models.Model):
              "Evita triplicar contactos para la misma persona.",
     )
 
+    mercadolibre_mx_cfdi_override_default = fields.Boolean(
+        string="México: corregir régimen/uso CFDI por defecto (601/G03) con el dato de ML",
+        default=False,
+        help="Sólo MercadoLibre México con l10n_mx_edi. Odoo crea los contactos con régimen fiscal 601 "
+             "(y uso de CFDI G03) por defecto, así que una persona física (612) o público en general (616) "
+             "ya cargados quedan con un régimen que no es el suyo. Prendida: si el contacto tiene 601 (o G03) "
+             "y MercadoLibre informa otro código válido, se escribe el de ML. Nunca pisa un valor distinto "
+             "(carga manual) ni contactos bloqueados para MercadoLibre. Apagada (por defecto): sólo se completan "
+             "campos vacíos.",
+    )
+
     mercadolibre_billing_force_on_main = fields.Boolean(
         string="Datos fiscales SIEMPRE en el contacto principal (no separar)",
         default=True,

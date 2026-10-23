@@ -20,7 +20,7 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 _PATH = os.environ.get("ORDERS_PY") or os.path.join(_HERE, "..", "models", "orders.py")
 _FUNCS = ("_normalize_billing_info_v2", "_meli_mx_cfdi_codes", "_meli_mx_cfdi_partner_vals",
           "_meli_mx_cfdi_order_usage", "_meli_mx_selection_codes", "_meli_mx_apply_cfdi")
-_ASSIGNS = ("_MELI_MX_REGIME_FIELD", "_MELI_MX_USAGE_FIELD")
+_ASSIGNS = ("_MELI_MX_REGIME_FIELD", "_MELI_MX_USAGE_FIELD", "_MELI_MX_ODOO_DEFAULTS", "_MELI_MX_OVERRIDE_FLAG")
 
 
 def _load():
@@ -235,6 +235,102 @@ class TestMlmCfdi(unittest.TestCase):
         self.assertTrue("self._meli_mx_apply_cfdi(" in body, "orders_update_order_json no llama _meli_mx_apply_cfdi")
         self.assertTrue("_meli_mx_cfdi_order_usage(" in body, "orders_update_order_json no fija el uso en la venta")
         self.assertEqual(body.count("_mx_cfdi_new_partner_ids.add("), 3)
+
+
+# ----------------------------------------------------------------------------------------------
+# 26.294: override OPT-IN del default de Odoo (601 regimen / G03 uso) en contactos EXISTENTES.
+# res.company (y la configuracion de cuenta de meli_oerp_multiple) mercadolibre_mx_cfdi_override_default.
+# Apagada (default) = comportamiento 26.292. Nunca pisa otro valor (carga manual) ni contactos bloqueados.
+# ----------------------------------------------------------------------------------------------
+_OVR = "mercadolibre_mx_cfdi_override_default"
+
+
+class FakeConfig(object):
+    def __init__(self, value=None, declared=True):
+        self._fields = {_OVR: True} if declared else {}
+        if declared:
+            setattr(self, _OVR, value)
+
+
+ON, OFF = FakeConfig(True), FakeConfig(False)
+
+
+class TestMlmCfdiOverrideDefault(unittest.TestCase):
+
+    def _apply(self, payload, partner, config, partner_fields=MX_FIELDS):
+        s = make_self(partner_fields=partner_fields)
+        bi = s._normalize_billing_info_v2(payload, site_id="MLM")
+        return s._meli_mx_apply_cfdi(partner, bi, is_new=False, config=config)
+
+    def test_20_apagada_es_26292(self):
+        for cfg in (OFF, None, FakeConfig(declared=False)):
+            p = FakePartner(MX_FIELDS, l10n_mx_edi_fiscal_regime="601", l10n_mx_edi_usage="G03")
+            self.assertEqual(self._apply(PUB, p, cfg), {}, cfg)
+            self.assertEqual((p.l10n_mx_edi_fiscal_regime, p.l10n_mx_edi_usage), ("601", "G03"))
+            p = FakePartner(MX_FIELDS, l10n_mx_edi_fiscal_regime="601")
+            self.assertEqual(self._apply(PF, p, cfg), {"l10n_mx_edi_usage": "G03"}, cfg)
+
+    def test_21_prendida_601_a_612(self):
+        p = FakePartner(MX_FIELDS, l10n_mx_edi_fiscal_regime="601", l10n_mx_edi_usage="G03")
+        with self.assertLogs("test_mlm_cfdi", level="INFO") as cm:
+            vals = self._apply(PF, p, ON)
+        self.assertEqual(vals, {"l10n_mx_edi_fiscal_regime": "612"})
+        self.assertEqual((p.l10n_mx_edi_fiscal_regime, p.l10n_mx_edi_usage), ("612", "G03"))
+        self.assertTrue(any("MX_CFDI override 601\u2192612" in m for m in cm.output), cm.output)
+
+    def test_22_prendida_601_a_616_y_g03_a_s01(self):
+        p = FakePartner(MX_FIELDS, l10n_mx_edi_fiscal_regime="601", l10n_mx_edi_usage="G03")
+        with self.assertLogs("test_mlm_cfdi", level="INFO") as cm:
+            vals = self._apply(PUB, p, ON)
+        self.assertEqual(vals, {"l10n_mx_edi_fiscal_regime": "616", "l10n_mx_edi_usage": "S01"})
+        self.assertTrue(any("MX_CFDI override 601\u2192616" in m for m in cm.output), cm.output)
+        self.assertTrue(any("MX_CFDI override G03\u2192S01" in m for m in cm.output), cm.output)
+
+    def test_23_prendida_no_pisa_manual(self):
+        p = FakePartner(MX_FIELDS, l10n_mx_edi_fiscal_regime="603", l10n_mx_edi_usage="I01")
+        with self.assertLogs("test_mlm_cfdi", level="INFO") as cm:
+            vals = self._apply(PUB, p, ON)
+        self.assertEqual(vals, {})
+        self.assertEqual(p.writes, [])
+        self.assertEqual((p.l10n_mx_edi_fiscal_regime, p.l10n_mx_edi_usage), ("603", "I01"))
+        self.assertTrue(any("no se pisa" in m for m in cm.output), cm.output)
+        # manual en uno, default en el otro: solo se corrige el default
+        p = FakePartner(MX_FIELDS, l10n_mx_edi_fiscal_regime="603", l10n_mx_edi_usage="G03")
+        self.assertEqual(self._apply(PUB, p, ON), {"l10n_mx_edi_usage": "S01"})
+
+    def test_24_prendida_contacto_bloqueado(self):
+        p = FakePartner(MX_FIELDS + ("meli_update_forbidden",), meli_update_forbidden=True,
+                        l10n_mx_edi_fiscal_regime="601", l10n_mx_edi_usage="G03")
+        self.assertEqual(self._apply(PUB, p, ON), {})
+        self.assertEqual(p.writes, [])
+
+    def test_25_prendida_sin_l10n_mx_edi_noop(self):
+        p = FakePartner(())
+        self.assertEqual(self._apply(PUB, p, ON, partner_fields=()), {})
+        self.assertEqual(p.writes, [])
+
+    def test_26_prendida_16_0_solo_regimen(self):
+        f = ("l10n_mx_edi_fiscal_regime",)
+        p = FakePartner(f, l10n_mx_edi_fiscal_regime="601")
+        self.assertEqual(self._apply(PUB, p, ON, partner_fields=f), {"l10n_mx_edi_fiscal_regime": "616"})
+
+    def test_27_prendida_ml_manda_601_no_toca(self):
+        p = FakePartner(MX_FIELDS, l10n_mx_edi_fiscal_regime="601", l10n_mx_edi_usage="G03")
+        self.assertEqual(self._apply(v2("BU", "E", "", "AAA010101KR2", "601", "x", "G03", "y"), p, ON), {})
+
+    def test_28_cableado_opcion(self):
+        body = SRC[SRC.index("def orders_update_order_json"):]
+        body = body[:body.index("\n    def ", 10)]
+        call = body[body.index("self._meli_mx_apply_cfdi("):]
+        call = call[:call.index(")\n")]
+        self.assertIn("config=config", call, "la importacion no le pasa la config a _meli_mx_apply_cfdi")
+        root = os.path.join(_HERE, "..")
+        comp = open(os.path.join(root, "models", "company.py"), encoding="utf-8").read()
+        self.assertIn("%s = fields.Boolean(" % _OVR, comp)
+        decl = comp[comp.index("%s = fields.Boolean(" % _OVR):]
+        self.assertIn("default=False", decl[:decl.index("\n    )")])
+        view = open(os.path.join(root, "views", "company_view.xml"), encoding="utf-8").read()
+        self.assertIn('<field name="%s"' % _OVR, view)
 
 
 if __name__ == "__main__":
