@@ -4,6 +4,12 @@
 
 ---
 
+## 18.0.26.298 — 23-oct-2026 · Importar publicaciones con oferta activa trae el precio de lista [#452]
+- Al importar o actualizar desde MercadoLibre una publicación con una oferta/campaña activa, la lista de precios de ML de Odoo ahora recibe el **precio de lista** (`original_price`) y no el precio con descuento (`price`). Si la publicación no tiene oferta, nada cambia.
+- El "Precio de venta" de ML del producto/vinculación (`meli_price`) sigue siendo el precio publicado hoy (`price`): publicar el de lista sobre una publicación con campaña podría levantar la promoción.
+- Aplica a todos los caminos de importación (asistente masivo, cron, vinculación, actualización desde la plantilla): todos pasan por `product_meli_get_product`. El neteo de IVA (configuración "impuestos excluidos") se aplica igual que antes, sobre el precio de lista.
+- Build único 18.0.26.298 en 16/17/18/19 para meli_oerp, meli_oerp_stock, meli_oerp_multiple, meli_oerp_accounting y meli_oerp_autofacturacion (26.297 se saltea: lo usan ramas provisorias).
+
 ## 18.0.26.296 — 23-oct-2026 · Vincular variante: el aviso refleja si la vinculación quedó (meli_oerp_multiple)
 - Sin cambios funcionales en este módulo (acompaña).
 - Build único 18.0.26.296 en 16/17/18/19 para meli_oerp, meli_oerp_stock, meli_oerp_multiple, meli_oerp_accounting y meli_oerp_autofacturacion.
