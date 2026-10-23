@@ -50,4 +50,4 @@ Rojo sin el cambio, verde con él en 16-19; resto de *_pure.py verde. -u en banc
 - [x] tests verdes 23/23 en 16-19; resto *_pure.py OK (igual que base)
 - [x] -u banco local 18 (leaves/2026-10-23-mlm-cfdi-override-banco)
 - [x] sync-lock 5 módulos (03:24-03:28Z), bump 26.294 + changelog 5×4; banco 18: base origin 26.292 (-i multiple) → -u meli_oerp,multiple rc=0, 0 ERROR, columna en res_company y mercadolibre_configuration, campo en ambas vistas, default False
-- [ ] push FF + ls-remote; release locks; bus RELEASE
+- [x] push FF sin force rc=0, ls-remote == local en las 20 (meli_oerp 16 377d9a39 17 fd2667d0 18 dd7439dd 19 720a4cdf); manifest-version-check: origin 5×4 = 26.294; locks liberados; bus RELEASE 26.294
