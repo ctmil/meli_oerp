@@ -4,6 +4,10 @@
 
 ---
 
+## 19.0.26.296 — 23-oct-2026 · Vincular variante: el aviso refleja si la vinculación quedó (meli_oerp_multiple)
+- Sin cambios funcionales en este módulo (acompaña).
+- Build único 19.0.26.296 en 16/17/18/19 para meli_oerp, meli_oerp_stock, meli_oerp_multiple, meli_oerp_accounting y meli_oerp_autofacturacion.
+
 ## 19.0.26.295 — 23-oct-2026 · un usuario interno sin grupos de conectores ya puede abrir y editar Contactos [#583]
 - Sin cambios funcionales en este módulo (acompaña).
 - Build único 19.0.26.295 en 16/17/18/19 para meli_oerp, meli_oerp_stock, meli_oerp_multiple, meli_oerp_accounting, meli_oerp_autofacturacion y odoo_connector_api.
