@@ -3976,8 +3976,14 @@ class mercadolibre_orders(models.Model):
                     {'access_token': meli.access_token},
                     extra_headers={'x-version': '2'},
                 )
-                if response is not None and getattr(response, 'status_code', 0) == 200:
-                    biljson = response.json() or {}
+                # meli.get() devuelve el propio cliente (sin `status_code`): la respuesta se
+                # lee con .json(); un error HTTP llega como dict con `error`/`status`.
+                biljson = (response.json() if response is not None else None)
+                _bj_status = biljson.get('status') if isinstance(biljson, dict) else None
+                _bj_ok = (isinstance(biljson, dict) and bool(biljson)
+                          and not biljson.get('error')
+                          and not (isinstance(_bj_status, int) and _bj_status >= 400))
+                if _bj_ok:
                     # v2 wraps billing_info under buyer
                     api_billing_info = (
                         (biljson.get('buyer') or {}).get('billing_info')
@@ -3991,7 +3997,7 @@ class mercadolibre_orders(models.Model):
                     _logger.warning(
                         "get_billing_info: new endpoint %s returned status=%s for order_id=%s, "
                         "falling back to legacy endpoint",
-                        url, response and getattr(response, 'status_code', None), order_id,
+                        url, _bj_status or (isinstance(biljson, dict) and biljson.get('error')) or None, order_id,
                     )
             except Exception as e:
                 _logger.error(
