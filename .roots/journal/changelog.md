@@ -4,6 +4,10 @@
 
 ---
 
+## 18.0.26.289 — 22-oct-2026 · una venta de MercadoLibre que falla a mitad del lote del cron de órdenes se reintenta en la corrida siguiente [#543]
+- Sin cambios funcionales en este módulo (acompaña).
+- Build único 18.0.26.289 en 16/17/18/19 para meli_oerp, meli_oerp_stock, meli_oerp_multiple, meli_oerp_accounting y meli_oerp_autofacturacion.
+
 ## 18.0.26.288 — 22-oct-2026 · cancelaciones por motivo: pack dividido devuelve si la venta gemela ya tiene su salida [#624]
 - **Pack dividido (`pack_splitted`) con la política `meli_oerp.cancel_reason_policy = by_reason`** [#624]: si la venta gemela (mismo comprador y producto, creada por ML al dividir el paquete) está en Odoo y tiene **su propia salida hecha**, la venta cancelada se cancela y **se devuelve su salida** (como A/B), con una nota que nombra la gemela y las dos salidas: sin esto quedaban dos salidas por un solo envío. Si la gemela no tiene salida propia o no está en Odoo: como antes, nota + actividad, sin devolución.
 - FULL: la devolución respeta `meli_oerp.cancel_return_full`. Sin la política activa, `pack_splitted` sigue como siempre.
