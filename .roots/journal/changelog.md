@@ -4,6 +4,12 @@
 
 ---
 
+## 17.0.26.294 — 23-oct-2026 · México: opción para corregir el régimen fiscal por defecto (601) con el dato de MercadoLibre
+- **Nueva opción, apagada por defecto**: *México: corregir régimen/uso CFDI por defecto (601/G03) con el dato de ML* (`mercadolibre_mx_cfdi_override_default`), en la pestaña de configuración de MercadoLibre de la compañía (y en la configuración de cada cuenta con meli_oerp_multiple).
+- Odoo crea los contactos mexicanos con régimen 601 por defecto: personas físicas (612) o público en general (616) ya cargados quedaban con un régimen que no es el suyo y 26.292 no los corregía. Con la opción prendida, si el contacto tiene 601 y ML informa otro código válido, se escribe el de ML (log `MX_CFDI override 601→612`). Uso de CFDI (G03 → p. ej. S01) con la misma regla.
+- Nunca se pisa un valor distinto del default (carga manual) ni un contacto bloqueado para MercadoLibre. Apagada: igual que 26.292 (sólo completa vacíos). Sin `l10n_mx_edi`: sin cambios.
+- Build único 17.0.26.294 en 16/17/18/19 para meli_oerp, meli_oerp_stock, meli_oerp_multiple, meli_oerp_accounting y meli_oerp_autofacturacion.
+
 ## 17.0.26.292 — 23-oct-2026 · México: régimen fiscal y uso de CFDI del comprador se toman de MercadoLibre
 - **MLM con `l10n_mx_edi`**: el régimen fiscal (`l10n_mx_edi_fiscal_regime`, p. ej. 601/612/616) y el uso de CFDI (`l10n_mx_edi_usage`, p. ej. G01/G03/S01) que ML informa en los datos de facturación del comprador ahora se cargan en el contacto de facturación. Antes había que cargarlos a mano.
 - Contacto creado por la importación: toma el dato de ML. Contacto existente: sólo se completan los campos **vacíos**; un valor cargado a mano **no se pisa** (queda en el log `MX_CFDI`). Contactos fijos de la configuración (bloqueados) no se tocan.
