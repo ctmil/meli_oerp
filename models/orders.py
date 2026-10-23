@@ -110,6 +110,10 @@ def _meli_partner_vals_changed(record, vals):
 # ----------------------------------------------------------------------------------------------
 _MELI_MX_REGIME_FIELD = 'l10n_mx_edi_fiscal_regime'
 _MELI_MX_USAGE_FIELD = 'l10n_mx_edi_usage'
+# Default que Odoo (l10n_mx_edi) pone en el contacto MX: no es una carga manual. Con la opcion
+# mercadolibre_mx_cfdi_override_default (opt-in, 26.294) se corrige con el dato de ML en contactos existentes.
+_MELI_MX_ODOO_DEFAULTS = {_MELI_MX_REGIME_FIELD: '601', _MELI_MX_USAGE_FIELD: 'G03'}
+_MELI_MX_OVERRIDE_FLAG = 'mercadolibre_mx_cfdi_override_default'
 
 
 def _meli_mx_cfdi_codes(billing_info):
@@ -137,12 +141,14 @@ def _meli_mx_cfdi_codes(billing_info):
     return (regime or None, usage or None)
 
 
-def _meli_mx_cfdi_partner_vals(current, codes, valid_regimes, valid_usages, is_new):
+def _meli_mx_cfdi_partner_vals(current, codes, valid_regimes, valid_usages, is_new, override_default=False):
     """Que escribir en el contacto fiscal. Devuelve (vals, no_pisados=[(campo, actual, ml)]).
 
     current: {campo: valor} SOLO de los campos l10n_mx_edi que existen en el modelo.
     is_new: el contacto se creo en esta importacion => manda el dato de ML (Odoo le puso 601 por default).
     Contacto existente: solo se completa lo VACIO; un valor distinto (cargado a mano) no se pisa.
+    override_default (opt-in, 26.294): en un existente, el DEFAULT de Odoo (601 / G03) tambien se
+    corrige con el dato de ML. Cualquier otro valor sigue sin pisarse.
     """
     regime, usage = codes
     vals, skipped = {}, []
@@ -153,7 +159,7 @@ def _meli_mx_cfdi_partner_vals(current, codes, valid_regimes, valid_usages, is_n
         cur = current[field] or False
         if cur == code:
             continue
-        if cur and not is_new:
+        if cur and not is_new and not (override_default and cur == _MELI_MX_ODOO_DEFAULTS.get(field)):
             skipped.append((field, cur, code))
             continue
         vals[field] = code
@@ -3726,9 +3732,12 @@ class mercadolibre_orders(models.Model):
         except Exception:
             return set()
 
-    def _meli_mx_apply_cfdi(self, partner, billing_info, is_new=False):
+    def _meli_mx_apply_cfdi(self, partner, billing_info, is_new=False, config=None):
         """MLM: escribe regimen fiscal / uso de CFDI de ML en el contacto fiscal, sin pisar lo cargado a mano.
-        No-op sin l10n_mx_edi, sin codigos de ML, con codigos fuera de la seleccion o con el contacto bloqueado."""
+        No-op sin l10n_mx_edi, sin codigos de ML, con codigos fuera de la seleccion o con el contacto bloqueado.
+        config (res.company o configuracion de cuenta de meli_oerp_multiple) con
+        mercadolibre_mx_cfdi_override_default prendido: el default de Odoo (601 / G03) de un contacto
+        existente se corrige con el dato de ML (log 'MX_CFDI override'). Apagado o ausente = 26.292."""
         if not partner or len(partner) != 1:
             return {}
         if 'meli_update_forbidden' in partner._fields and partner.meli_update_forbidden:
@@ -3740,11 +3749,18 @@ class mercadolibre_orders(models.Model):
         codes = _meli_mx_cfdi_codes(billing_info)
         if not (codes[0] or codes[1]):
             return {}
+        override_default = bool(config is not None and _MELI_MX_OVERRIDE_FLAG in getattr(config, '_fields', {})
+                                and getattr(config, _MELI_MX_OVERRIDE_FLAG, False))
         vals, skipped = _meli_mx_cfdi_partner_vals(
             current, codes,
             self._meli_mx_selection_codes('res.partner', _MELI_MX_REGIME_FIELD),
             self._meli_mx_selection_codes('res.partner', _MELI_MX_USAGE_FIELD),
-            is_new)
+            is_new, override_default=override_default)
+        if not is_new:
+            for field in vals:
+                if current.get(field):
+                    _logger.info("MX_CFDI override %s\u2192%s: contacto id:%s campo %s",
+                                 current[field], vals[field], partner.id, field)
         for field, cur, ml in skipped:
             _logger.info("MX_CFDI: contacto id:%s tiene %s=%s cargado; ML informa %s — no se pisa",
                          partner.id, field, cur, ml)
@@ -6035,7 +6051,8 @@ class mercadolibre_orders(models.Model):
         _mx_cfdi_partner = partner_invoice_id or partner_id
         if _mx_cfdi_billing_info and _mx_cfdi_partner:
             self._meli_mx_apply_cfdi(_mx_cfdi_partner, _mx_cfdi_billing_info,
-                                     is_new=(_mx_cfdi_partner.id in _mx_cfdi_new_partner_ids))
+                                     is_new=(_mx_cfdi_partner.id in _mx_cfdi_new_partner_ids),
+                                     config=config)
 
         meli_order_fields = self.prepare_sale_order_vals( order_json=order_json, meli=meli, config=config, sale_order=sorder )
         meli_order_fields.update({'pricelist_id': plistid.id })
