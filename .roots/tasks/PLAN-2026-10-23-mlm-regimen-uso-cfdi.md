@@ -26,5 +26,6 @@ ls-remote == local; o ramas claude/* pusheadas y reporte si no se cumple. Sin de
 - [x] implementación por patcher idéntico en 16/17/18/19 (anclas únicas, py_compile ok)
 - [x] test verde 14/14 en 16/17/18/19; test_billing_info_endpoint_pure sigue OK
 - [x] reserva 26.292 en el bus (comms.md, grep -c = 1); 26.291 = 452 (L49008)
-- [ ] lock + bump 5 módulos + push FF + ls-remote
-- [ ] roots-refresh (changelog)
+- [x] lock 5 módulos 02:08Z; 26.291 (452) landeó; fetch rc=0, max=291 ⇒ 26.292; rebase limpio, tests verdes; bump 5×4
+- [ ] push FF + ls-remote
+- [x] roots-refresh: journal/changelog.md 26.292 en los 5×4

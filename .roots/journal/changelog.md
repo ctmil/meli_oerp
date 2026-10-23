@@ -4,6 +4,13 @@
 
 ---
 
+## 19.0.26.292 — 23-oct-2026 · México: régimen fiscal y uso de CFDI del comprador se toman de MercadoLibre
+- **MLM con `l10n_mx_edi`**: el régimen fiscal (`l10n_mx_edi_fiscal_regime`, p. ej. 601/612/616) y el uso de CFDI (`l10n_mx_edi_usage`, p. ej. G01/G03/S01) que ML informa en los datos de facturación del comprador ahora se cargan en el contacto de facturación. Antes había que cargarlos a mano.
+- Contacto creado por la importación: toma el dato de ML. Contacto existente: sólo se completan los campos **vacíos**; un valor cargado a mano **no se pisa** (queda en el log `MX_CFDI`). Contactos fijos de la configuración (bloqueados) no se tocan.
+- Uso de CFDI en la venta (17.0+ con `l10n_mx_edi_sale`, que lo pasa a la factura): venta nueva, o venta sin facturas con el uso vacío o en el default G03. En 16.0 el uso no vive en el contacto ni en la venta: sólo se carga el régimen.
+- Sin `l10n_mx_edi` instalado (otros países): sin cambios.
+- Build único 19.0.26.292 en 16/17/18/19 para meli_oerp, meli_oerp_stock, meli_oerp_multiple, meli_oerp_accounting y meli_oerp_autofacturacion.
+
 ## 19.0.26.291 — 23-oct-2026 · el servicio de envío archivado o con la referencia cambiada ya no se duplica en cada venta [#452]
 - **Producto de servicio de envío** [#452]: al importar una venta, el módulo buscaba el producto de envío sólo entre los **activos** y, si no lo encontraba, creaba uno nuevo **antes** de mirar el producto del transportista. Con el servicio archivado (p. ej. para sacarlo de otra tienda) o con la referencia interna cambiada por una secuencia automática (`product_sequence`), se creaba un «ME1 - zip» nuevo en cada pasada del cron — y ni siquiera se usaba en la línea. Ahora se busca: activos (por referencia y por nombre) → producto del transportista → archivados; sólo se crea si no existe ninguno.
 - Productos duplicados ya creados no se borran solos: se eliminan a mano si no tienen ventas ni asientos.
