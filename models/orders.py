@@ -102,6 +102,80 @@ def _meli_partner_vals_changed(record, vals):
     return out
 
 
+# ----------------------------------------------------------------------------------------------
+# MLM (Mexico): regimen fiscal y uso de CFDI que ML informa en billing-info -> l10n_mx_edi.
+# v2 (/orders/billing-info/MLM/<id>): taxes.taxpayer_type.id ('601') y taxes.cfdi.id ('G01').
+# legacy (/orders/<id>/billing_info, additional_info aplanado): TAXPAYER_TYPE_ID ('601') y CFDI ('G01').
+# Sin l10n_mx_edi instalado los campos no existen y todo es no-op.
+# ----------------------------------------------------------------------------------------------
+_MELI_MX_REGIME_FIELD = 'l10n_mx_edi_fiscal_regime'
+_MELI_MX_USAGE_FIELD = 'l10n_mx_edi_usage'
+
+
+def _meli_mx_cfdi_codes(billing_info):
+    """(regimen SAT, uso CFDI) informados por ML para el comprador, o None en cada uno."""
+    if not isinstance(billing_info, dict):
+        return (None, None)
+    taxes = billing_info.get('taxes')
+    taxes = taxes if isinstance(taxes, dict) else {}
+    tpt = taxes.get('taxpayer_type')
+    tpt = tpt if isinstance(tpt, dict) else {}
+    cfdi = taxes.get('cfdi')
+    cfdi = cfdi if isinstance(cfdi, dict) else {}
+    regime = str(tpt.get('id') or '').strip()
+    if not regime:
+        # legacy: TAXPAYER_TYPE_ID trae el codigo SAT; en v2 normalizado trae la DESCRIPCION (se ignora)
+        legacy = str(billing_info.get('TAXPAYER_TYPE_ID') or '').strip()
+        if len(legacy) == 3 and legacy.isdigit():
+            regime = legacy
+    usage = str(cfdi.get('id') or '').strip().upper()
+    if not usage:
+        for key in ('CFDI', 'cfdi'):
+            if isinstance(billing_info.get(key), str):
+                usage = billing_info[key].strip().upper()
+                break
+    return (regime or None, usage or None)
+
+
+def _meli_mx_cfdi_partner_vals(current, codes, valid_regimes, valid_usages, is_new):
+    """Que escribir en el contacto fiscal. Devuelve (vals, no_pisados=[(campo, actual, ml)]).
+
+    current: {campo: valor} SOLO de los campos l10n_mx_edi que existen en el modelo.
+    is_new: el contacto se creo en esta importacion => manda el dato de ML (Odoo le puso 601 por default).
+    Contacto existente: solo se completa lo VACIO; un valor distinto (cargado a mano) no se pisa.
+    """
+    regime, usage = codes
+    vals, skipped = {}, []
+    for field, code, valid in ((_MELI_MX_REGIME_FIELD, regime, valid_regimes),
+                               (_MELI_MX_USAGE_FIELD, usage, valid_usages)):
+        if field not in current or not code or code not in valid:
+            continue
+        cur = current[field] or False
+        if cur == code:
+            continue
+        if cur and not is_new:
+            skipped.append((field, cur, code))
+            continue
+        vals[field] = code
+    return vals, skipped
+
+
+def _meli_mx_cfdi_order_usage(usage, valid_usages, order_is_new, current_usage, has_invoices):
+    """Uso de CFDI para la VENTA (es por operacion). None = no tocar.
+    Venta nueva: el de ML. Existente: solo si esta vacio o en el default 'G03' y todavia sin facturas."""
+    if not usage or usage not in valid_usages:
+        return None
+    if (current_usage or False) == usage:
+        return None
+    if order_is_new:
+        return usage
+    if has_invoices:
+        return None
+    if not current_usage or current_usage == 'G03':
+        return usage
+    return None
+
+
 def _meli_partner_fiscal_sql_fix(cr, partner_id, set_clauses, values):
     """UPDATE res_partner SET <set_clauses> sólo si algún valor DIFIERE del guardado.
 
@@ -3642,6 +3716,48 @@ class mercadolibre_orders(models.Model):
             return Buyer['billing_info']["ZIP_CODE"]
         return ""
 
+    def _meli_mx_selection_codes(self, model, fname):
+        """Codigos validos de una seleccion (vacio si el campo no existe en el modelo)."""
+        field = self.env[model]._fields.get(fname)
+        if not field:
+            return set()
+        try:
+            return set(field.get_values(self.env))
+        except Exception:
+            return set()
+
+    def _meli_mx_apply_cfdi(self, partner, billing_info, is_new=False):
+        """MLM: escribe regimen fiscal / uso de CFDI de ML en el contacto fiscal, sin pisar lo cargado a mano.
+        No-op sin l10n_mx_edi, sin codigos de ML, con codigos fuera de la seleccion o con el contacto bloqueado."""
+        if not partner or len(partner) != 1:
+            return {}
+        if 'meli_update_forbidden' in partner._fields and partner.meli_update_forbidden:
+            return {}
+        current = dict((f, partner[f]) for f in (_MELI_MX_REGIME_FIELD, _MELI_MX_USAGE_FIELD)
+                       if f in partner._fields)
+        if not current:
+            return {}
+        codes = _meli_mx_cfdi_codes(billing_info)
+        if not (codes[0] or codes[1]):
+            return {}
+        vals, skipped = _meli_mx_cfdi_partner_vals(
+            current, codes,
+            self._meli_mx_selection_codes('res.partner', _MELI_MX_REGIME_FIELD),
+            self._meli_mx_selection_codes('res.partner', _MELI_MX_USAGE_FIELD),
+            is_new)
+        for field, cur, ml in skipped:
+            _logger.info("MX_CFDI: contacto id:%s tiene %s=%s cargado; ML informa %s — no se pisa",
+                         partner.id, field, cur, ml)
+        if vals:
+            try:
+                with self.env.cr.savepoint():
+                    partner.write(vals)
+                _logger.info("MX_CFDI: contacto id:%s <- %s (nuevo=%s)", partner.id, vals, is_new)
+            except Exception as e:
+                _logger.warning("MX_CFDI: no se pudo escribir %s en contacto id:%s: %s", vals, partner.id, e)
+                return {}
+        return vals
+
     def _normalize_billing_info_v2(self, bi, site_id=None):
         """Flatten the new ML billing-info v2 response into the legacy
         UPPERCASE-key dict that the rest of this module consumes.
@@ -4538,6 +4654,8 @@ class mercadolibre_orders(models.Model):
         partner_shipping_id = False
         partner_invoice_id = False  # #601: si la orden llega sin buyer no se asignaba y abortaba en la asignación de contactos
         buyer_id = False  # #542-661: definido siempre; se vincula a la orden también cuando la orden es NUEVA
+        _mx_cfdi_billing_info = {}  # MLM: regimen / uso de CFDI de billing-info (ver _meli_mx_apply_cfdi)
+        _mx_cfdi_new_partner_ids = set()  # contactos creados en ESTA importacion (el dato de ML manda)
 
         if not 'buyer' in order_json or not 'name' in order_json['buyer'] or not 'first_name' in order_json['buyer']:
             #_logger.info("Buyer not present, fetch order")
@@ -4578,6 +4696,7 @@ class mercadolibre_orders(models.Model):
                     )
 
             Buyer['billing_info'] = self.get_billing_info(order_id=order_json['id'],meli=meli,data=order_json)
+            _mx_cfdi_billing_info = Buyer['billing_info'] or {}
             _logger.info("BUYER_DATA: order=%s buyer_id=%s billing_info_keys=%s doc_type=%s doc_number=%s",
                          order_json.get('id','?'), _buyer_id_raw,
                          list(Buyer.get('billing_info', {}).keys()),
@@ -5372,6 +5491,7 @@ class mercadolibre_orders(models.Model):
                         # y la transacción del batch sigue sana (no se abortan las demás órdenes).
                         with self.env.cr.savepoint():
                             partner_id = respartner_obj.create(meli_buyer_fields)
+                            _mx_cfdi_new_partner_ids.add(partner_id.id)
                             partner_id.flush_recordset()  # forzar el INSERT dentro del savepoint
                         _logger.info("Contacto principal creado: %s (meli_buyer_id: %s)", partner_id.name, buyer_fields['buyer_id'])
                 except Exception as e:
@@ -5649,6 +5769,7 @@ class mercadolibre_orders(models.Model):
                             if company and company.id:
                                 billing_child_fields['company_id'] = company.id
                             partner_invoice_id = respartner_obj.create(billing_child_fields)
+                            _mx_cfdi_new_partner_ids.add(partner_invoice_id.id)
                             _logger.info("Entidad fiscal creada: %s (VAT: %s) vinculada a buyer: %s",
                                          partner_invoice_id.name, billing_vat, partner_id.name)
                     except ValidationError as ve:
@@ -5656,6 +5777,7 @@ class mercadolibre_orders(models.Model):
                         if bad_vat:
                             try:
                                 partner_invoice_id = respartner_obj.create(billing_child_fields)
+                                _mx_cfdi_new_partner_ids.add(partner_invoice_id.id)
                             except Exception as e2:
                                 _logger.error("Error creando entidad fiscal (sin VAT): %s", str(e2))
                     except Exception as e:
@@ -5909,8 +6031,25 @@ class mercadolibre_orders(models.Model):
                 if _shp_diff:
                     partner_shipping_id = partner_id
 
+        # MLM: regimen fiscal / uso de CFDI informados por ML -> contacto fiscal (sin pisar lo cargado a mano)
+        _mx_cfdi_partner = partner_invoice_id or partner_id
+        if _mx_cfdi_billing_info and _mx_cfdi_partner:
+            self._meli_mx_apply_cfdi(_mx_cfdi_partner, _mx_cfdi_billing_info,
+                                     is_new=(_mx_cfdi_partner.id in _mx_cfdi_new_partner_ids))
+
         meli_order_fields = self.prepare_sale_order_vals( order_json=order_json, meli=meli, config=config, sale_order=sorder )
         meli_order_fields.update({'pricelist_id': plistid.id })
+
+        # MLM: el uso de CFDI es por operacion -> en la venta (l10n_mx_edi_sale, 17+), que lo pasa a la factura
+        _mx_usage = _mx_cfdi_billing_info and _meli_mx_cfdi_codes(_mx_cfdi_billing_info)[1]
+        if _mx_usage and _MELI_MX_USAGE_FIELD in saleorder_obj._fields:
+            _mx_so = (sorder and sorder.id and sorder) or None
+            _mx_so_usage = _meli_mx_cfdi_order_usage(
+                _mx_usage, self._meli_mx_selection_codes('sale.order', _MELI_MX_USAGE_FIELD),
+                not _mx_so, _mx_so and _mx_so[_MELI_MX_USAGE_FIELD],
+                bool(_mx_so and 'invoice_ids' in _mx_so._fields and _mx_so.invoice_ids))
+            if _mx_so_usage:
+                meli_order_fields[_MELI_MX_USAGE_FIELD] = _mx_so_usage
 
         if partner_id:
             partner_already_set = (sorder and sorder.partner_id and sorder.partner_id.id == partner_id.id)
