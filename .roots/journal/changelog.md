@@ -4,6 +4,10 @@
 
 ---
 
+## 19.0.26.295 — 23-oct-2026 · un usuario interno sin grupos de conectores ya puede abrir y editar Contactos [#583]
+- Sin cambios funcionales en este módulo (acompaña).
+- Build único 19.0.26.295 en 16/17/18/19 para meli_oerp, meli_oerp_stock, meli_oerp_multiple, meli_oerp_accounting, meli_oerp_autofacturacion y odoo_connector_api.
+
 ## 19.0.26.294 — 23-oct-2026 · México: opción para corregir el régimen fiscal por defecto (601) con el dato de MercadoLibre
 - **Nueva opción, apagada por defecto**: *México: corregir régimen/uso CFDI por defecto (601/G03) con el dato de ML* (`mercadolibre_mx_cfdi_override_default`), en la pestaña de configuración de MercadoLibre de la compañía (y en la configuración de cada cuenta con meli_oerp_multiple).
 - Odoo crea los contactos mexicanos con régimen 601 por defecto: personas físicas (612) o público en general (616) ya cargados quedaban con un régimen que no es el suyo y 26.292 no los corregía. Con la opción prendida, si el contacto tiene 601 y ML informa otro código válido, se escribe el de ML (log `MX_CFDI override 601→612`). Uso de CFDI (G03 → p. ej. S01) con la misma regla.
