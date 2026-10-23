@@ -4,6 +4,11 @@
 
 ---
 
+## 16.0.26.291 — 23-oct-2026 · el servicio de envío archivado o con la referencia cambiada ya no se duplica en cada venta [#452]
+- **Producto de servicio de envío** [#452]: al importar una venta, el módulo buscaba el producto de envío sólo entre los **activos** y, si no lo encontraba, creaba uno nuevo **antes** de mirar el producto del transportista. Con el servicio archivado (p. ej. para sacarlo de otra tienda) o con la referencia interna cambiada por una secuencia automática (`product_sequence`), se creaba un «ME1 - zip» nuevo en cada pasada del cron — y ni siquiera se usaba en la línea. Ahora se busca: activos (por referencia y por nombre) → producto del transportista → archivados; sólo se crea si no existe ninguno.
+- Productos duplicados ya creados no se borran solos: se eliminan a mano si no tienen ventas ni asientos.
+- Build único 16.0.26.291 en 16/17/18/19 para meli_oerp, meli_oerp_stock, meli_oerp_multiple, meli_oerp_accounting y meli_oerp_autofacturacion.
+
 ## 16.0.26.289 — 22-oct-2026 · una venta de MercadoLibre que falla a mitad del lote del cron de órdenes se reintenta en la corrida siguiente [#543]
 - Sin cambios funcionales en este módulo (acompaña).
 - Build único 16.0.26.289 en 16/17/18/19 para meli_oerp, meli_oerp_stock, meli_oerp_multiple, meli_oerp_accounting y meli_oerp_autofacturacion.
