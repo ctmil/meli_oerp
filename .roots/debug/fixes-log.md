@@ -4,6 +4,13 @@
 
 ---
 
+## 23 oct 2026 — servicio de envío archivado se recreaba por venta [#452 Global Value] (v18.0.26.291)
+**Síntoma:** productos «ME1 - zip» de servicio a $1 con referencias 001304..001322, ~uno por pasada del cron (21/22-oct).
+**Causa (combinada):** el cliente archivó los servicios de envío de los transportistas (ENVIO-ME1, MEL Distribution, Places Pickup) para sacarlos de TiendaNube; `_update_sale_order_shipping_info` buscaba sólo activos y creaba uno nuevo antes de mirar `carrier.product_id`; con `product_sequence` (OCA) la ref nueva no era ENVIO-ME1 y la búsqueda (sólo por default_code) nunca lo volvía a encontrar. El producto creado no iba a la línea.
+**Fix:** `mercadolibre.shipment._meli_find_shipping_product`: activos (ref y nombre) → producto del transportista (mapeo o delivery.carrier) → archivados; sólo crea si no hay ninguno. Ex rama claude/452-envio-archivado-<v> (26.274), rebaseada sobre 26.290.
+**Prueba:** tests/test_452_envio_archivado.py (tag meli_452, 8 casos; 2 de flujo real sobre _update_sale_order_shipping_info). Control origin 26.290: archivado ⇒ 2 productos, ref pisada 2 pasadas ⇒ 3 (uno por pasada). Fix 8/8 en 16-19.
+**No cubre:** los duplicados ya creados (se borran a mano si no tienen ventas/asientos).
+
 ## 22 oct 2026 — pack_splitted devuelve si la gemela tiene salida propia [#624] (v18.0.26.288)
 #624 ROEN, medido: las gemelas de C tienen su PROPIA salida done (MLF/OUT/02339 cancelada + 02347 gemela; 02560 + 02561) ⇒ no devolver la de la cancelada deja doble salida. `_meli_cancel_by_reason` (REASON_PACK_SPLIT): salida propia done + gemela con salida done ⇒ ctx `meli_cancel_return_any_reason` + `meli_cancel_pack_split_return` (el legacy no corta en pack_splitted) y nota once `cancel-packsplit-twin-<id>`; si no ⇒ `_meli_cancel_pack_splitted_legacy` (nota + actividad). Tests `test_26278_cancel_por_motivo.py`: gemela con salida ⇒ devuelve (control origin 26.283 ROJO en 16-19), gemela sin salida / sin gemela ⇒ no devuelve (guardas). Fix 19/19 verde en 16-19.
 

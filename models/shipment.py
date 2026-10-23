@@ -708,6 +708,59 @@ class mercadolibre_shipment(models.Model):
             amount = self.shipping_receiver_cost
         return max(float(amount or 0.0), 0.0)
 
+    def _meli_find_shipping_product(self, ship_name, mode, company, company_domain):
+        """Producto de servicio de envio EXISTENTE para ``ship_name`` (vacio si no hay).
+
+        [26.291 #452] Orden de busqueda, para no crear un producto nuevo por venta:
+          1. activos, por referencia (ENVIO-ME1 / ENVIO / el nombre) y por nombre;
+          2. el producto del transportista de ese nombre (mapeo o delivery.carrier):
+             es el que la linea de envio termina usando;
+          3. los mismos criterios del paso 1 entre los ARCHIVADOS.
+        El paso 1 conserva el comportamiento anterior cuando hay un activo.
+        """
+        product_obj = self.env['product.product']
+        if mode == "me1":
+            domains = [[('default_code', 'ilike', 'ENVIO-ME1')],
+                       [('name', '=', ship_name), ('type', '=', 'service')]]
+        else:
+            domains = [[('default_code', 'ilike', 'ENVIO')],
+                       ['|', '|', ('default_code', '=', 'ENVIO'),
+                        ('default_code', '=', ship_name),
+                        ('name', '=', ship_name)]]
+
+        def _search(domain, archived=False):
+            obj = product_obj.with_context(active_test=False) if archived else product_obj
+            return obj.search(domain + company_domain, order="company_id asc", limit=1)
+
+        for domain in domains:
+            found = _search(domain)
+            if found:
+                return found
+
+        if ship_name:
+            carrier = self.env['delivery.carrier']
+            if 'meli_oerp.carrier.mapping' in self.env:
+                mapping = self.env['meli_oerp.carrier.mapping'].search(
+                    [('meli_name', '=ilike', ship_name),
+                     '|', ('company_id', '=', company.id), ('company_id', '=', False)], limit=1)
+                if mapping and mapping.carrier_id and mapping.carrier_id.active:
+                    carrier = mapping.carrier_id
+            if not carrier:
+                carrier = self.env['delivery.carrier'].search(
+                    [('name', '=ilike', ship_name)] + company_domain,
+                    order="company_id asc", limit=1)
+            if not carrier:
+                carrier = self.env['delivery.carrier'].search(
+                    [('name', '=ilike', ship_name)], order="company_id asc", limit=1)
+            if carrier and carrier.product_id:
+                return carrier.product_id
+
+        for domain in domains:
+            found = _search(domain, archived=True)
+            if found:
+                return found
+        return product_obj
+
     def _update_sale_order_shipping_info( self, order, meli=None, config=None ):
 
         company = (config and 'company_id' in config._fields and config.company_id) or ("company_id" in self._fields and self.company_id) or self.env.user.company_id
@@ -803,26 +856,13 @@ class mercadolibre_shipment(models.Model):
             if not ship_name or len(ship_name)==0:
                 continue;
 
-            ship_default_code = ship_name
+            ship_default_code = (shipment.mode=="me1" and 'ENVIO-ME1') or ship_name
 
-            if (shipment.mode=="me1"):
-                product_shipping_id = product_obj.search([('default_code','ilike','ENVIO-ME1')]
-                                                            + company_domain,
-                                                            order="company_id asc",
-                                                            limit=1 )
-                ship_default_code = 'ENVIO-ME1'
-            else:
-                product_shipping_id = product_obj.search([('default_code','ilike','ENVIO')]
-                                                         + company_domain,
-                                                         order="company_id asc",
-                                                         limit=1)
-                if (len(product_shipping_id)==0):
-                    product_shipping_id = product_obj.search(['|','|',('default_code','=','ENVIO'),
-                            ('default_code','=',ship_name),
-                            ('name','=',ship_name)]
-                            + company_domain,
-                            order="company_id asc",
-                            limit=1)
+            # [26.291 #452] reutilizar el servicio de envio aunque este ARCHIVADO o con la
+            # referencia interna cambiada (p.ej. product_sequence): antes se creaba uno nuevo
+            # por cada pasada del cron, y ese producto ni siquiera se usaba en la linea.
+            product_shipping_id = shipment._meli_find_shipping_product(
+                ship_name, shipment.mode, company, company_domain)
 
             if len(product_shipping_id):
                 #_logger.info("_update_sale_order_shipping_info ")
