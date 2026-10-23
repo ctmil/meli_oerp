@@ -2738,9 +2738,19 @@ class product_product(models.Model):
         if "variations" in rjson and len(rjson["variations"])>1:
             force_price_for_variant = False
 
+        # [452] Con una oferta activa ML devuelve en 'price' el precio CON DESCUENTO y en
+        # 'original_price' el de lista. Al importar, el precio de Odoo es el de LISTA: la oferta
+        # es de ML y vence; si se copia a la lista de precios, Odoo queda con el precio rebajado.
+        meli_list_price = rjson.get('price')
+        try:
+            if rjson.get('original_price') and float(rjson['original_price']) > float(rjson['price'] or 0):
+                meli_list_price = rjson['original_price']
+        except Exception:
+            meli_list_price = rjson.get('price')
+
         try:
             if (float(rjson['price'])>=0.0):
-                product._meli_set_product_price( product_template, rjson['price'], force_variant=force_price_for_variant, config=config )
+                product._meli_set_product_price( product_template, meli_list_price, force_variant=force_price_for_variant, config=config )
         except Exception as e:
             _logger.info(e, exc_info=True)
             rjson['price'] = 0.0
@@ -2757,7 +2767,7 @@ class product_product(models.Model):
 
         try:
             if (float(rjson['price'])>=0.0):
-                product._meli_set_product_price( product_template, rjson['price'] )
+                product._meli_set_product_price( product_template, meli_list_price )
         except:
             _logger.info(e, exc_info=True)
             rjson['price'] = 0.0
