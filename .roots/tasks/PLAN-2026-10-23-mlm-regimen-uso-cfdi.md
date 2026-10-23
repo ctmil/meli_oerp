@@ -48,6 +48,6 @@ Rojo sin el cambio, verde con él en 16-19; resto de *_pure.py verde. -u en banc
 - [x] tests rojos: test_mlm_cfdi_pure.py 23 tests, contra origin 26.292 FAILED (2 fail, 8 err) en 16/17/18/19
 - [x] implementación por patcher idéntico 16-19: orders.py (_MELI_MX_ODOO_DEFAULTS, override_default, config=config, log override), company.py + company_view.xml; multiple: gemelo en ramas claude/mlm-cfdi-override-<v> (worktrees meli_oerp_multiple/claude-mlm-cfdi-override-<v>)
 - [x] tests verdes 23/23 en 16-19; resto *_pure.py OK (igual que base)
-- [ ] -u banco local
-- [ ] sync-lock 5 módulos, bump 26.294 + changelog
+- [x] -u banco local 18 (leaves/2026-10-23-mlm-cfdi-override-banco)
+- [x] sync-lock 5 módulos (03:24-03:28Z), bump 26.294 + changelog 5×4; banco 18: base origin 26.292 (-i multiple) → -u meli_oerp,multiple rc=0, 0 ERROR, columna en res_company y mercadolibre_configuration, campo en ambas vistas, default False
 - [ ] push FF + ls-remote; release locks; bus RELEASE
