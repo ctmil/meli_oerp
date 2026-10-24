@@ -844,7 +844,9 @@ class mercadolibre_shipment(models.Model):
                             'city': shipment.receiver_city,
                         }
                         if shipment.receiver_address_phone and not ("XXXX" in shipment.receiver_address_phone):
-                            _ship_addr['phone'] = shipment.receiver_address_phone
+                            # [#682] phone Y mobile (sin pisar un mobile cargado a mano)
+                            _ship_addr.update(self.env['mercadolibre.orders']._meli_phone_mobile_vals(
+                                shipment.receiver_address_phone, partner_shipping_id ))
                         if any((partner_shipping_id[k] or False) != (v or False) for k, v in _ship_addr.items()):
                             partner_shipping_id.write(_ship_addr)
                         partner_shipping_id._meli_address_mark_synced()
@@ -1254,6 +1256,33 @@ class mercadolibre_shipment(models.Model):
 
         return Partner
 
+    def _meli_pack_invoice_partner( self, rp, pack_ref, receiver_id, partner_id, company ):
+        """[#682] Contacto de facturacion para la venta de un pack.
+
+        1) el contacto creado para ese pack (meli_order_id == pack_id), de la compania o sin compania;
+        2) si no hay: el contacto de facturacion (type=invoice) cuyo VAT es el documento de facturacion
+           del comprador (mercadolibre.buyers.billing_info_doc_number). orders.py reutiliza ese contacto
+           entre packs ("un CUIT = un contacto") y le deja el meli_order_id del PRIMER pack, asi que el
+           2do pack del mismo comprador no lo encontraba por pack_id y la venta quedaba facturando al
+           contacto principal, que no lleva DNI (158 IHSA, 20 ventas desde ago-2026);
+        3) si tampoco: el contacto principal (comportamiento anterior).
+        """
+        company_only_domain = [('company_id','=',company.id)] if company else []
+        company_none_domain = [('company_id','=',False)]
+        partner_invoice_id = rp.search([('meli_order_id','=',pack_ref)]+company_only_domain, limit=1)
+        if not partner_invoice_id:
+            partner_invoice_id = rp.search([('meli_order_id','=',pack_ref)]+company_none_domain, limit=1)
+        if not partner_invoice_id and partner_id and receiver_id:
+            buyer = self.env['mercadolibre.buyers'].sudo().search([('buyer_id','=',str(receiver_id))], limit=1)
+            doc_number = buyer and (buyer.billing_info_doc_number or '').strip()
+            if doc_number:
+                partner_invoice_id = rp.search([('vat','=',doc_number), ('type','=','invoice'),
+                    ('company_id','in',[company.id, False] if company else [False])], limit=1)
+                if partner_invoice_id:
+                    _logger.info("MELI #682 pack %s: contacto de facturacion id=%s encontrado por documento del comprador",
+                                 pack_ref, partner_invoice_id.id)
+        return partner_invoice_id or partner_id
+
     def partner_delivery_id( self, partner_id=None, Receiver=None, config=None ):
         #_logger.info("Processing partner_delivery_id for partner:"+str(partner_id and partner_id.name)+" Receiver:"+str(Receiver)+" config:"+str(config) )
         if (not Receiver or not partner_id):
@@ -1298,7 +1327,8 @@ class mercadolibre_shipment(models.Model):
 
         full_phone = orders_obj.full_phone( Receiver )
         if full_phone and not ("XXXX" in full_phone):
-            pdelivery_fields['phone'] = full_phone
+            # [#682] el telefono va a phone Y a mobile (WhatsApp/SMS leen mobile)
+            pdelivery_fields.update(orders_obj._meli_phone_mobile_vals( full_phone ))
         if partner_id and partner_id.lang:
             pdelivery_fields["lang"] =  partner_id.lang
 
@@ -1336,6 +1366,9 @@ class mercadolibre_shipment(models.Model):
                 del pdelivery_fields["country_id"]
                 del pdelivery_fields["state_id"]
                 del pdelivery_fields["type"]
+                # [#682] no pisar un mobile cargado a mano (distinto del phone)
+                if "mobile" in pdelivery_fields and "mobile" not in orders_obj._meli_phone_mobile_vals( pdelivery_fields.get("phone"), deliv_id ):
+                    del pdelivery_fields["mobile"]
                 for f in pdelivery_fields:
                     if f in deliv_id._fields:
                         if pdelivery_fields[f] != deliv_id[f]:
@@ -1813,9 +1846,9 @@ class mercadolibre_shipment(models.Model):
                     if not partner_id:
                         partner_id = _rp_su.search([  ('meli_buyer_id','=',ship_fields['receiver_id'] ) ]+company_none_domain, limit=1 )
 
-                    partner_invoice_id = _rp_su.search([  ('meli_order_id','=',partner_invoice_meli_order_id ) ]+company_only_domain, limit=1 )
-                    if not partner_invoice_id:
-                        partner_invoice_id = _rp_su.search([  ('meli_order_id','=',partner_invoice_meli_order_id ) ]+company_none_domain, limit=1 ) or partner_id
+                    # [#682] contacto de facturacion del pack: por pack_id y, si no, por el DNI/CUIT del comprador
+                    partner_invoice_id = self._meli_pack_invoice_partner( _rp_su, partner_invoice_meli_order_id,
+                        ship_fields['receiver_id'], partner_id, company )
 
                     original_contact_partner_id = partner_id
                     partner_shipping_id = None
