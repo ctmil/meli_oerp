@@ -26,6 +26,21 @@ class ResPartner(models.Model):
 
     _inherit = "res.partner"
 
+    # 20.0: el core saco res.partner.company_type (is_company pasa a calcularse de has_vat +
+    # commercial_partner_id). La importacion de compradores de ML escribe y compara company_type:
+    # se restituye con la misma definicion de base 19.0 (interfaz sobre is_company).
+    company_type = fields.Selection(string='Company Type',
+        selection=[('person', 'Person'), ('company', 'Company')],
+        compute='_compute_company_type', inverse='_write_company_type')
+
+    def _compute_company_type(self):
+        for partner in self:
+            partner.company_type = 'company' if partner.is_company else 'person'
+
+    def _write_company_type(self):
+        for partner in self:
+            partner.is_company = partner.company_type == 'company'
+
     meli_buyer_id = fields.Char('Meli Buyer Id',index=True)
     meli_buyer = fields.Many2one('mercadolibre.buyers',string='Meli Buyer')
     meli_update_forbidden = fields.Boolean(string='Meli Update Forbiden')

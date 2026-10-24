@@ -44,8 +44,8 @@ class TestCancelPorMotivo(TransactionCase):
         if "mercadolibre_notification_mode" in cls.co._fields:
             cls.co.mercadolibre_notification_mode = "internal_note"
         cls.ICP = cls.env["ir.config_parameter"].sudo()
-        cls.ICP.set_param("meli_oerp.cancel_reason_policy", "by_reason")
-        cls.ICP.set_param("meli_oerp.cancel_return_full", "")
+        cls.ICP.set_str("meli_oerp.cancel_reason_policy", "by_reason")
+        cls.ICP.set_str("meli_oerp.cancel_return_full", "")
         cls.SO = cls.env["sale.order"]
 
     def setUp(self):
@@ -240,7 +240,7 @@ class TestCancelPorMotivo(TransactionCase):
         self.assertFalse(self._returns(so))
 
     def test_full_con_parametro_devuelve_a_la_ubicacion_de_origen(self):
-        self.ICP.set_param("meli_oerp.cancel_return_full", "1")
+        self.ICP.set_str("meli_oerp.cancel_return_full", "1")
         so, prod = self._mkso(logistic="fulfillment")
         self.assertTrue(self._cancel(so, _oj("buyer_cancel_express", ["bpp_refunded"])))
         rets = self._returns(so)
@@ -250,7 +250,7 @@ class TestCancelPorMotivo(TransactionCase):
 
     # ------------------------------------------------ politica apagada --
     def test_politica_apagada_comportamiento_de_siempre(self):
-        self.ICP.set_param("meli_oerp.cancel_reason_policy", "")
+        self.ICP.set_str("meli_oerp.cancel_reason_policy", "")
         so, prod = self._mkso()
         self.assertTrue(self._cancel(so, _oj("mediations", ["bpp_covered"])))
         self.assertEqual(so.state, "cancel", "sin la politica, una mediacion cubierta se cancela como antes")

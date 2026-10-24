@@ -29,7 +29,7 @@ def _meli_product_price_target_digits(env):
     - '0' / 'false' / 'no' / 'off' / 'keep' -> None (no tocar la precision)
     - entero N (1..10)         -> N
     """
-    raw = env['ir.config_parameter'].sudo().get_param(PRODUCT_PRICE_DIGITS_PARAM)
+    raw = env['ir.config_parameter'].sudo().get_str(PRODUCT_PRICE_DIGITS_PARAM, False)
     if raw is None or raw is False or str(raw).strip() == '':
         return PRODUCT_PRICE_DIGITS_DEFAULT
     raw = str(raw).strip().lower()

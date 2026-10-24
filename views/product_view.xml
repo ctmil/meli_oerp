@@ -39,7 +39,8 @@
                 <field name="meli_force_pub" string="Product Image ML Force Publication"/>
                 <field name="meli_pub" string="Product Image ML Publication"/>
               </xpath>
-              <xpath expr="//div[hasclass('card')]//field[@name='name']" position="after">
+              <!-- 20.0: la card de product.image ya no tiene `name` adentro ni div class="card" literal -->
+              <xpath expr="//t[@t-name='card']//field[@name='image_1920']/.." position="after">
                 <field name="meli_force_pub" string="ML Force Pub"/>
                 <field name="meli_imagen_id" string="ML id"/>
               </xpath>
@@ -296,7 +297,8 @@
             <field name="type">list</field>
             <field name="inherit_id" ref="product.product_template_tree_view"/>
             <field name="arch" type="xml">
-                <field name="virtual_available" position="after">
+                <!-- 20.0: la lista de plantillas ya no trae `virtual_available` (sólo `qty_available`) -->
+                <field name="qty_available" position="after">
                     <field name="meli_stock_update" groups="meli_oerp.group_mercadolibre_manager"/>
                     <!-- [un caso] En la LISTA a propósito: es lo que permite tildarlo de a muchos.
                          `optional="show"` (no "hide"): con la columna oculta por defecto había que

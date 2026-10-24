@@ -95,9 +95,7 @@ class mercadolibre_claim(models.Model):
     raw_json = fields.Text(string="Raw (JSON)")
 
     _unique_claim_id = versions.UniqueIndex('claim_id', message='Claim id already exists!')
-    _sql_constraints = versions.sql_constraints_if_no_unique_index([
-        ('unique_claim_id', 'claim_id', 'Claim id already exists!'),
-    ])
+    # 20.0: `_sql_constraints` (aun vacio) dispara warning en el registry; alcanza con el UniqueIndex.
 
     site_id = fields.Char(string="Site", help="Sitio de MercadoLibre del reclamo (MLA, MLM, ...).")
 

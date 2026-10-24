@@ -71,20 +71,20 @@
                               <table style="width: 100%">
                                 <tr>
                                   <td style="width: 20%"><b>Destinatario:</b></td>
-                                  <td><span><t t-esc="shipment['receiver_address_name']"/></span></td>
+                                  <td><span><t t-out="shipment['receiver_address_name']"/></span></td>
                                 </tr>
                                 <tr>
                                   <td><b>Dirección:</b></td>
-                                  <td><span><t t-esc="shipment['receiver_address_line']"/></span></td>
+                                  <td><span><t t-out="shipment['receiver_address_line']"/></span></td>
                                 </tr>
                                 <tr>
                                   <td><b>Teléfono:</b></td>
                                   <td>
                                     <table style="width: 100%">
                                       <tr>
-                                        <td style="width: 22.5%"><span><t t-esc="shipment['receiver_address_phone']"/></span></td>
+                                        <td style="width: 22.5%"><span><t t-out="shipment['receiver_address_phone']"/></span></td>
                                         <td style="width: 15%"><b>Destino:</b></td>
-                                        <td style="width: 62.5%"><span><t t-esc="shipment['receiver_city']"/></span>,<span><t t-esc="shipment['receiver_state']"/></span>
+                                        <td style="width: 62.5%"><span><t t-out="shipment['receiver_city']"/></span>,<span><t t-out="shipment['receiver_state']"/></span>
                                         <!--,<span t-field="o.receiver_country"/>--></td>
                                       </tr>
                                     </table>
@@ -92,13 +92,13 @@
                                 </tr>
                                 <tr>
                                   <td><b>Tipo de envío:</b></td>
-                                  <td style="background-color: #99FF99;"><span><t t-esc="shipment['tracking_method']"/></span></td>
+                                  <td style="background-color: #99FF99;"><span><t t-out="shipment['tracking_method']"/></span></td>
                                 </tr>
                                 <tr>
                                   <td><b>Producto(s):</b></td>
                                   <td>
                                     <span t-foreach="shipment['items']" t-as="item">
-                                      <span><t t-esc="item['quantity']"/></span> x <span><t t-esc="item['name']"/></span>,
+                                      <span><t t-out="item['quantity']"/></span> x <span><t t-out="item['name']"/></span>,
                                    </span>
                                    </td>
                                 </tr>

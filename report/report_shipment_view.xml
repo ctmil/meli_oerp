@@ -16,7 +16,7 @@
               <head>
                   <meta charset="utf-8" />
                   <meta name="viewport" content="initial-scale=1"/>
-                  <title><t t-esc="title or 'Odoo Report'"/></title>
+                  <title><t t-out="title or 'Odoo Report'"/></title>
                   <t t-call-assets="web.assets_common" t-js="false"/>
                   <t t-call-assets="web.report_assets_common" t-js="false"/>
                   <t t-if="editable">
@@ -40,7 +40,7 @@
               <body class="container">
                   <div id="wrapwrap">
                       <main>
-                          <t t-raw="0"/>
+                          <t t-out="0"/>
                       </main>
                   </div>
               </body>
@@ -66,7 +66,7 @@
               <div class="row"><pre> </pre></div>
             </div>
             <div class="article" t-att-data-oe-model="o and o._name" t-att-data-oe-id="o and o.id" t-att-data-oe-lang="o and o.env.context.get('lang')">
-              <t t-raw="0"/>
+              <t t-out="0"/>
             </div>
         </template>
         
@@ -161,7 +161,7 @@
   			            <head>
   			                <meta charset="utf-8" />
   			                <meta name="viewport" content="initial-scale=1"/>
-  			                <title><t t-esc="title or 'Odoo Report'"/></title>
+  			                <title><t t-out="title or 'Odoo Report'"/></title>
   			                <t t-call-assets="web.assets_common" t-js="false"/>
   			                <t t-call-assets="web.report_assets_common" t-js="false"/>
   			                <t t-if="editable">
@@ -185,7 +185,7 @@
   			            <body class="container" style="margin:0px;padding:0px;">
   			                <div id="wrapwrap">
   			                    <main>
-  			                        <t t-raw="0"/>
+  			                        <t t-out="0"/>
   			                    </main>
   			                </div>
   			            </body>

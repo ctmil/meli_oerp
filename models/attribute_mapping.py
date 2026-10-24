@@ -100,10 +100,7 @@ class MeliAttributeMapping(models.Model):
     _unique_field_att_categ = versions.UniqueIndex(
         "field_id, meli_att_id, category_id",
         message="Ya existe un mapeo para ese campo, ese atributo y esa categoría.")
-    _sql_constraints = versions.sql_constraints_if_no_unique_index([
-        ("uniq_field_att_categ", "field_id, meli_att_id, category_id",
-         "Ya existe un mapeo para ese campo, ese atributo y esa categoría."),
-    ])
+    # 20.0: `_sql_constraints` (aun vacio) dispara warning en el registry; alcanza con el UniqueIndex.
 
     @api.depends("field_id", "meli_att_id")
     def _compute_name(self):
@@ -360,7 +357,4 @@ class MeliAttributeValueMapping(models.Model):
 
     _unique_value_por_mapeo = versions.UniqueIndex(
         "mapping_id, odoo_value", message="Ese valor ya está traducido en este mapeo.")
-    _sql_constraints = versions.sql_constraints_if_no_unique_index([
-        ("uniq_value_por_mapeo", "mapping_id, odoo_value",
-         "Ese valor ya está traducido en este mapeo."),
-    ])
+    # 20.0: `_sql_constraints` (aun vacio) dispara warning en el registry; alcanza con el UniqueIndex.

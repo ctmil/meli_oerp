@@ -14,7 +14,7 @@ E = env
 co = E.company
 OUT = []
 ICP = E['ir.config_parameter'].sudo()
-print("PARAM instalado:", repr(ICP.get_param(cd.CANCEL_RETURN_REASONS_PARAM)))
+print("PARAM instalado:", repr(ICP.get_str(cd.CANCEL_RETURN_REASONS_PARAM, False)))
 for f in ('mercadolibre_cancel_mode', 'mercadolibre_return_mode'):
     print("company.%s =" % f, f in co._fields and co[f])
 co.mercadolibre_cancel_mode = 'legacy'
@@ -95,17 +95,17 @@ try:
     check("escape any_reason sobre pack_splitted marcado", state(so, p, out),
           {'so': 'cancel', 'ret': ['done'], 'qty': 10.0, 'flag': False})
     # --- 3. parametro '*' = comportamiento anterior -----------------------------------------
-    ICP.set_param(cd.CANCEL_RETURN_REASONS_PARAM, '*')
+    ICP.set_str(cd.CANCEL_RETURN_REASONS_PARAM, '*')
     so, p, out = mk_so('pack_splitted', 'star')
     so.meli_cancel_with_detail("x")
     check("param '*' pack_splitted -> devuelve", state(so, p, out), RET)
     # --- 4. lista configurada distinta --------------------------------------------------------
-    ICP.set_param(cd.CANCEL_RETURN_REASONS_PARAM, 'mediations')
+    ICP.set_str(cd.CANCEL_RETURN_REASONS_PARAM, 'mediations')
     so, p, out = mk_so('mediations', 'cfg-med'); so.meli_cancel_with_detail("x")
     check("param 'mediations' mediations -> devuelve", state(so, p, out), RET)
     so, p, out = mk_so('fraud', 'cfg-fraud'); so.meli_cancel_with_detail("x")
     check("param 'mediations' fraud -> NO devuelve", state(so, p, out), NORET)
-    ICP.set_param(cd.CANCEL_RETURN_REASONS_PARAM, 'buyer_cancel_express,fraud')
+    ICP.set_str(cd.CANCEL_RETURN_REASONS_PARAM, 'buyer_cancel_express,fraud')
     # --- 5. return_mode none: no se marca nada (igual que antes) ------------------------------
     co.mercadolibre_return_mode = 'none'
     so, p, out = mk_so('pack_splitted', 'none'); so.meli_cancel_with_detail("x")

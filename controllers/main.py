@@ -10,8 +10,8 @@ from odoo.http import Controller, Response, request, route
 try:
     from odoo.http import content_disposition
 except ImportError:
-    from odoo.addons.web.controllers.main import content_disposition
-    pass;
+    # 20.0: odoo.http es un paquete; content_disposition vive en odoo.http.stream
+    from odoo.http.stream import content_disposition
 import json
 import sys
 import pprint

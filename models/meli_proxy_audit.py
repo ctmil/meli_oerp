@@ -39,7 +39,7 @@ class MeliProxyAudit(models.Model):
     def _gc_meli_proxy_audit(self):
         """Retención: ICP meli_oerp.proxy_audit_days (default 90; 0 = no borrar)."""
         try:
-            days = int(self.env['ir.config_parameter'].sudo().get_param('meli_oerp.proxy_audit_days', 90))
+            days = int(self.env['ir.config_parameter'].sudo().get_str('meli_oerp.proxy_audit_days', 90))
         except (TypeError, ValueError):
             days = 90
         if days <= 0:

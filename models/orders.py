@@ -2103,7 +2103,7 @@ class sale_order(models.Model):
         code = self._meli_cancel_return_reason_code(order_json)
         if self.env.context.get("meli_cancel_return_any_reason"):
             return True, code
-        raw = self.env["ir.config_parameter"].sudo().get_param(_meli_cd.CANCEL_RETURN_REASONS_PARAM)
+        raw = self.env["ir.config_parameter"].sudo().get_str(_meli_cd.CANCEL_RETURN_REASONS_PARAM, False)
         return _meli_cd.cancel_return_allowed(code, raw), code
 
     def _meli_cancel_return_pending_pickings(self):
@@ -2293,11 +2293,11 @@ class sale_order(models.Model):
 
     def _meli_cancel_policy_on(self):
         ICP = self.env["ir.config_parameter"].sudo()
-        return _meli_cd.cancel_policy_enabled(ICP.get_param(_meli_cd.CANCEL_POLICY_PARAM))
+        return _meli_cd.cancel_policy_enabled(ICP.get_str(_meli_cd.CANCEL_POLICY_PARAM, False))
 
     def _meli_cancel_return_full_on(self):
         ICP = self.env["ir.config_parameter"].sudo()
-        return _meli_cd.param_is_true(ICP.get_param(_meli_cd.CANCEL_RETURN_FULL_PARAM))
+        return _meli_cd.param_is_true(ICP.get_str(_meli_cd.CANCEL_RETURN_FULL_PARAM, False))
 
     def _meli_cancel_payment_details(self, order_json=None, meli=None, config=None):
         """(ok, lista de payments[].status_detail | motivo del fallo). Del order_json fresco
@@ -2661,7 +2661,9 @@ class sale_order(models.Model):
                 self.name)
             return
 
-        ReturnWiz = self.env["stock.return.picking"]
+        # 20.0: el wizard stock.return.picking NO existe; la devolucion es
+        # picking._create_return() + action_return_all() (stock/models/stock_picking.py).
+        ReturnWiz = self.env["stock.return.picking"] if "stock.return.picking" in self.env else None
         for picking in self.picking_ids.filtered(
             lambda p: p.state == "done" and p.picking_type_code == "outgoing"
         ):
@@ -2681,7 +2683,7 @@ class sale_order(models.Model):
             if already_returned:
                 continue
             try:
-                wiz = ReturnWiz.with_context(active_id=picking.id, active_ids=[picking.id], active_model="stock.picking").create({})
+                wiz = ReturnWiz.with_context(active_id=picking.id, active_ids=[picking.id], active_model="stock.picking").create({}) if ReturnWiz is not None else None
                 # --- Poblar las líneas del wizard (Odoo 16.0) -------------------------------
                 # En 16.0 `product_return_moves` se llena en @api.onchange('picking_id')
                 # (core stock/wizard/stock_picking_return.py) y los onchange NO corren en
@@ -2690,10 +2692,23 @@ class sale_order(models.Model):
                 # devolución automática nunca funcionó, y el cron reintentaba para siempre.
                 # En 17.0+ el mismo campo es compute+store (depends='picking_id'), así que
                 # ya viene poblado y este bloque no hace nada.
-                if "product_return_moves" in wiz._fields and not wiz.product_return_moves:
+                if wiz is not None and "product_return_moves" in wiz._fields and not wiz.product_return_moves:
                     if hasattr(wiz, "_onchange_picking_id"):
                         wiz._onchange_picking_id()
-                if hasattr(wiz, "action_create_returns_all"):
+                if wiz is None:
+                    # Odoo 20.0: mismo guard de cantidad-cero que la rama 18+/19 (cantidad
+                    # ENTREGADA en los moves originales, sin los desechados).
+                    _scrap_field = False
+                    for _f in ("scrapped", "scrap_id"):
+                        if _f in picking.move_ids._fields:
+                            _scrap_field = _f
+                            break
+                    if not sum(picking.move_ids.filtered(lambda m: m.state != "cancel" and not (_scrap_field and m[_scrap_field])).mapped("quantity")):
+                        _logger.info("Return omitida para %s: sin cantidades entregadas a devolver.", picking.name)
+                        continue
+                    _new_return = picking._create_return()
+                    _new_return.action_return_all()
+                elif hasattr(wiz, "action_create_returns_all"):
                     # Odoo 18+: el core ya NO precalcula product_return_moves.quantity
                     # (siempre nace en 0 — ver stock/wizard/stock_picking_return.py
                     # _prepare_stock_return_picking_line_vals_from_move). Ese cálculo
@@ -7632,7 +7647,7 @@ class mercadolibre_orders(models.Model):
         por defecto; se apaga sin -u con ir.config_parameter
         meli_oerp.resync_shipment_status = 0 (p.ej. si el rate-limit de ML aprieta: suma
         hasta 1 GET /shipments por orden revisada, solo para envios NO terminales)."""
-        raw = self.env["ir.config_parameter"].sudo().get_param(self._MELI_RESYNC_SHIPMENT_PARAM, "1")
+        raw = self.env["ir.config_parameter"].sudo().get_str(self._MELI_RESYNC_SHIPMENT_PARAM, "1")
         return str(raw).strip().lower() not in ("0", "false", "no", "off", "")
 
     def _meli_apply_shipment_refresh(self, updates):

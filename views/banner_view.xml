@@ -147,7 +147,7 @@
 
                         <!-- Body -->
                         <div class="card-body p-2">
-                        <h6 class="card-title mb-2 text-truncate" t-esc="record.name.value"/>
+                        <h6 class="card-title mb-2 text-truncate" t-out="record.name.value"/>
 
                         <!-- Size badge (approx from base64 length) -->
                         <t t-set="b64len" t-value="(record.image_1920.raw_value &amp;&amp; record.image_1920.raw_value.length) || 0"/>
@@ -161,7 +161,7 @@
                             t-value="kb &lt; 100 ? 'Acceptable file size' : (kb &lt; 1000 ? 'Huge file size. Optimize image.' : 'Optimization required! Reduce size or increase compression.')"/>
                             <span t-attf-class="badge rounded-pill #{size_status}"
                                 t-att-title="message"
-                                t-esc="kb + ' KB'"/>
+                                t-out="kb + ' KB'"/>
                         </t>
                         </div>
 

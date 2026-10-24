@@ -30,11 +30,7 @@
 			<field name="value">buyer_cancel_express,fraud</field>
 		</record>
 
-		<record model="ir.rule" id="mercadolibre_questions_comp_rule">
-				<field name="name">MercadoLibre Questions multi-company</field>
-				<field name="model_id" ref="model_mercadolibre_questions"/>
-				<field name="domain_force">['|',('company_id','=',False),('company_id', 'in', company_ids)]</field>
-		</record>
+		<!-- 20.0: el ir.rule duplicado de questions vive en security/ir.access.csv -->
 
 	</data>
 </odoo>

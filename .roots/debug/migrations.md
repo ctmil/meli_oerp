@@ -4,6 +4,40 @@
 
 ---
 
+### 20.0.26.300 — PORT 19.0 → 20.0 (24-oct-2026, agente migrador-20, rama `claude/port-20.0` desde origin/19.0 a30d1752)
+Core 20 medido: odoo 632c2d6c · enterprise f6513ecb. `-i` y `-u` en `meli20_test` (community) y `meli20e_test`
+(+enterprise, `web_enterprise`): **0 WARNING / 0 ERROR**. Mismas features que 19.0.26.300 ⇒ mismo build.
+Cambios (sólo lo que 20 exige; sin refactor):
+- **Seguridad:** 20 eliminó `ir.model.access` e `ir.rule` ⇒ un solo modelo `ir.access` (`operation` 'crud' + `domain`).
+  `security/ir.model.access.csv` → `security/ir.access.csv` (66 filas, perms 1/0 → letras `crud`; `model_id` por nombre de
+  modelo). Los 3 `ir.rule` multi-company (orders/shipment/questions) → filas **sin grupo** = restricción, mismo dominio.
+  El `ir.rule` duplicado de questions en `data/parameters_data.xml` se borró.
+- **`ir.config_parameter`:** `get_param/set_param` ya no existen ⇒ `get_str(key, default)` / `set_str` (get_param(k) ≡
+  get_str(k, False)). 21 llamadas (models, `__init__` hook y tests).
+- **`res.partner.company_type`:** eliminado del core (is_company pasa a compute de has_vat+commercial_partner). La importación
+  de compradores lo escribe y compara ⇒ se restituye en `models/res_partner.py` con la definición de base 19 (compute/inverse
+  sobre is_company). Verificado en shell: company→is_company True; person con VAT → False.
+- **Devoluciones:** el wizard `stock.return.picking` **no existe** en 20 ⇒ `_meli_return_done_pickings` usa
+  `picking._create_return()` + `action_return_all()` cuando el wizard falta (mismo guard de cantidad entregada). Smoke en shell:
+  picking 3 u. done → devolución draft con 3 u. y `origin_returned_move_id` (lo que el resto del flujo busca).
+- **Imágenes de variante:** website_sale 20 sacó `product.image.product_variant_id` y `product.product.product_variant_image_ids`
+  (las imágenes de variante cuelgan de `attribute_value_ids`). Se restituyen ambos campos en `models/product_image.py`
+  (definición de website_sale 19) para las fotos por variación de ML. ⚠️ El sitio web 20 NO muestra esas imágenes por variante
+  (usa attribute_value_ids): mapear eso es feature, no port — abierto.
+- **Video:** `html_editor.tools.get_video_embed_code/get_video_thumbnail` eliminados ⇒ import con fallback (embed False) en
+  `mercadolibre.image`; la constraint de video_url sólo valida embed si los helpers existen.
+- **Controller:** `content_disposition` vive en `odoo.http.stream` (odoo.http es paquete; `web.controllers.main` vacío).
+- **`_sql_constraints`:** en 20 su sola presencia (aun `[]`) da WARNING ⇒ se quitaron los 3 (claim, attribute_mapping x2); queda
+  el `UniqueIndex`.
+- **Vistas:** kanban `product.image` (sin `name` en la card ni `div.card` literal → ancla `image_1920/..`); lista de plantillas
+  sin `virtual_available` (ancla `qty_available`); `t-esc`/`t-raw` prohibidos en arch y no compilados por QWeb 20 → `t-out`
+  (banner kanban + 2 reportes); `ir.actions.report.report_file` eliminado → borrado.
+- Sin scripts de migración nuevos. Las carpetas `migrations/19.0.*` no aplican a una instalación 20 nueva; una base 19→20
+  de un cliente es otro frente (upgrade de Odoo + mapeo de ACL a ir.access lo hace el upgrade oficial).
+- Tests del módulo en 20 (community): 102 tests, 0 failed, 1 error = `setUpClass` de `test_26278_cancel_por_motivo`, que usa
+  `res.company.mercadolibre_invoice_cancel_mode` (campo de meli_oerp_accounting, no instalado): dependencia cruzada
+  preexistente en 19, no del port.
+
 ### 19.0.26.282 — sin script de migración (20-oct-2026, #513 direcciones manuales)
 - Campos nuevos, vacíos tras el `-u`: `sale.order.meli_partner_invoice_auto_id`, `sale.order.meli_partner_shipping_auto_id`
   (Many2one res.partner, copy=False, ondelete set null) y `res.partner.meli_address_sync_hash` (Char). Sin backfill: los

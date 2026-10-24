@@ -1645,9 +1645,9 @@ class res_company(models.Model):
             for i in range(0, len(lst), n):
                 yield lst[i:i + n]
         company = self.env.company
-        limit_parameter = int(ICP.get_param('meli_local_products_search_range'))
-        offset_parameter = int(ICP.get_param('meli_local_products_search_last_offset'))
-        total_items_parameter = int(ICP.get_param('meli_local_products_search_total'))
+        limit_parameter = int(ICP.get_str('meli_local_products_search_range', False))
+        offset_parameter = int(ICP.get_str('meli_local_products_search_last_offset', False))
+        total_items_parameter = int(ICP.get_str('meli_local_products_search_total', False))
         meli = self.env['meli.util'].get_new_instance(company)
         params = {
             'access_token': meli.access_token, 
@@ -1685,8 +1685,8 @@ class res_company(models.Model):
         if new_offset >= total:
             new_offset = 0
         new_total = total
-        ICP.set_param('meli_local_products_search_last_offset', new_offset)
-        ICP.set_param('meli_local_products_search_total', new_total)
+        ICP.set_str('meli_local_products_search_last_offset', new_offset)
+        ICP.set_str('meli_local_products_search_total', new_total)
 
         # Aquí aseguramos que `access_token` sigue presente en el segundo parámetro
         params = {

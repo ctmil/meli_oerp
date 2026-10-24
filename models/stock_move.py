@@ -182,7 +182,7 @@ class StockMove(models.Model):
         if self.env.context.get('meli_skip_stock_update'):
             return True
         # Skip if global config parameter is set
-        skip_stock = str2bool(self.env['ir.config_parameter'].sudo().get_param('meli_skip_stock', 'False'))
+        skip_stock = str2bool(self.env['ir.config_parameter'].sudo().get_str('meli_skip_stock', 'False'))
         return skip_stock
 
     def _action_assign(self):

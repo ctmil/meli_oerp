@@ -14,7 +14,16 @@ import mimetypes
 from urllib.request import urlopen
 
 from odoo.exceptions import ValidationError
-from odoo.addons.html_editor.tools import get_video_embed_code, get_video_thumbnail
+try:
+    from odoo.addons.html_editor.tools import get_video_embed_code, get_video_thumbnail
+    _HAS_VIDEO_TOOLS = True
+except ImportError:
+    # 20.0: html_editor.tools ya no trae los helpers de video (y product.image perdio embed_code).
+    _HAS_VIDEO_TOOLS = False
+    def get_video_embed_code(video_url):
+        return False
+    def get_video_thumbnail(video_url):
+        return None
 
 
 from datetime import datetime
@@ -37,6 +46,11 @@ class ProductImage(models.Model):
     #product_attribute_id = fields.Many2one('product.attribute.value', u'Atributo asociado')
 
     #website_sale.product_template_form_view
+    # 20.0: website_sale saco product.image.product_variant_id (las imagenes de variante pasan a
+    # colgar de attribute_value_ids). meli_oerp lo sigue usando para las fotos por variacion de ML:
+    # se restituye aca con la misma definicion que tenia website_sale 19.0.
+    product_variant_id = fields.Many2one('product.product', "Product Variant", index=True, ondelete='cascade')
+
     meli_imagen_id = fields.Char(string='Imagen Id',index=True)
     meli_imagen_link = fields.Char(string='Imagen Link')
     meli_imagen_size = fields.Char(string='Size')
@@ -65,6 +79,13 @@ class ProductImage(models.Model):
             pimage.meli_imagen_hash = hexhash
         return hexhash
 
+
+
+class ProductProductMeliImages(models.Model):
+    _inherit = "product.product"
+
+    # 20.0: restituye product_variant_image_ids (website_sale 19.0) para las fotos por variacion de ML.
+    product_variant_image_ids = fields.One2many('product.image', 'product_variant_id', "Extra Variant Images")
 
 
 class MeliImage(models.Model):
@@ -105,7 +126,7 @@ class MeliImage(models.Model):
     @api.constrains('video_url')
     def _check_valid_video_url(self):
         for image in self:
-            if image.video_url and not image.embed_code:
+            if image.video_url and _HAS_VIDEO_TOOLS and not image.embed_code:
                 raise ValidationError(_("Provided video URL for '%s' is not valid. Please enter a valid video URL.", image.name))
 
     meli_imagen_id = fields.Char(string='Imagen Id',index=True)

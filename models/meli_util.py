@@ -1329,7 +1329,7 @@ class MeliUtil(models.AbstractModel):
         neutralizadas con ir.config_parameter 'database.is_neutralized'.
         """
         try:
-            val = self.env['ir.config_parameter'].sudo().get_param('database.is_neutralized')
+            val = self.env['ir.config_parameter'].sudo().get_str('database.is_neutralized', False)
         except Exception:
             return False
         return str(val).strip().lower() in ('1', 'true', 't', 'yes')

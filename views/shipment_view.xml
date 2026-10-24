@@ -370,7 +370,6 @@
                     <field name="model">mercadolibre.shipment</field>
                     <field name="report_type">qweb-pdf</field>
                     <field name="report_name">meli_oerp.report_shipment</field>
-                    <field name="report_file">meli_oerp.report_shipment</field>
                     <field name="print_report_name">'Reporte de etiquetas'</field>
                     <!--field name="attachment">(object.state == 'posted') and ((object.name or 'INV').replace('/','_')+'.pdf')</field-->
                     <field name="binding_model_id" ref="model_mercadolibre_shipment"/>
@@ -395,7 +394,6 @@
                 <field name="model">sale.order</field>
                 <field name="report_type">qweb-pdf</field>
                 <field name="report_name">meli_oerp.report_order_shipment</field>
-                <field name="report_file">meli_oerp.report_order_shipment</field>
                 <field name="print_report_name">'Reporte de etiquetas desde ordenes'</field>
                 <!--field name="attachment">(object.state == 'posted') and ((object.name or 'INV').replace('/','_')+'.pdf')</field-->
                 <field name="binding_model_id" ref="model_sale_order"/>
@@ -420,7 +418,6 @@
                 <field name="model">account.move</field>
                 <field name="report_type">qweb-pdf</field>
                 <field name="report_name">meli_oerp.report_invoice_shipment</field>
-                <field name="report_file">meli_oerp.report_invoice_shipment</field>
                 <field name="print_report_name">'Reporte de facturas con etiquetas'</field>
                 <!--field name="attachment">(object.state == 'posted') and ((object.name or 'INV').replace('/','_')+'.pdf')</field-->
                 <field name="binding_model_id" ref="model_account_move"/>
