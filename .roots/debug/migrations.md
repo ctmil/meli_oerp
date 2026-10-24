@@ -54,6 +54,28 @@ Cambios (sólo lo que 20 exige; sin refactor):
   `res.company.mercadolibre_invoice_cancel_mode` (campo de meli_oerp_accounting, no instalado): dependencia cruzada
   preexistente en 19, no del port.
 
+**Clasificación F8** (A = la forma nueva ya funciona en 16–19 ⇒ candidato a backport para converger · B = sólo 20 ·
+C = cambio de comportamiento/feature). Medido en `odoo/16.0–19.0` (read-only; ⚠️ `odoo/19.0` = master 19.1a): `ir.attachment.raw`
+existe en 16–19; `fields.Binary` acepta str base64 al escribir en 16 (`convert_to_cache`); `t-out` existe en QWeb 16;
+`uom.uom.compare` sólo en 19.1; `ir.config_parameter.get_str` y `odoo.http.stream` NO existen en 16–19. NADA aplicado atrás.
+- B · `security/ir.access.csv` (ir.model.access/ir.rule no existen en 20; en 16–19 sí, y ir.access no).
+- B · `get_param/set_param` → `get_str/set_str` (get_str no existe en 16–19; si se quiere una sola lógica: shim en versions.py).
+- C · `res.partner.company_type` restituido (20 lo sacó; is_company pasa a compute). Decisión de producto.
+- B · devolución sin wizard (`_create_return()` + `action_return_all()`); el código queda con guard y en 16–19 sigue el wizard.
+- C · `product.image.product_variant_id` / `product_variant_image_ids` restituidos; el sitio 20 no muestra imágenes por variante.
+- A · import con fallback de `get_video_embed_code/get_video_thumbnail` (inocuo en 16–19).
+- B · `content_disposition` desde `odoo.http.stream` (no existe en 16–19; con try/except de import sería A).
+- B · quitar `_sql_constraints` (queda `UniqueIndex`, que no existe en 16).
+- B · ancla kanban `product.image` y lista de plantillas (`qty_available`): vistas distintas por serie, no medido en 16–18.
+- A · `t-esc`/`t-raw` → `t-out` (banner kanban + 2 reportes).
+- A · borrar `report_file` del reporte (verificar en 16–19 el nombre del archivo descargado antes de aplicar).
+- A · `b64_of_binary` / `b64_for_binary_write` en `get_image_full`/`set_image_full`, colector de imágenes, `_get_shipment`,
+  miniatura de video y `pdf_file`/`pdfimage_file` como str base64 (en 16–19 el Binary ya es base64 ⇒ los helpers son no-op).
+- B · `bytes(shipment.pdf_file)` (en 16–19 `bytes()` daría el base64, no el PDF; con un helper `raw_of_binary` sería A).
+- A · `ir.attachment` con `'raw'` en el CSV de product_post (raw existe en 16–19).
+- B · `mrp.bom(.line).uom_id` (en 16–19 es `product_uom_id`).
+- B · `uom.compare()` en vez de `rounding` (compare sólo desde 19.1).
+
 ### 19.0.26.282 — sin script de migración (20-oct-2026, #513 direcciones manuales)
 - Campos nuevos, vacíos tras el `-u`: `sale.order.meli_partner_invoice_auto_id`, `sale.order.meli_partner_shipping_auto_id`
   (Many2one res.partner, copy=False, ondelete set null) y `res.partner.meli_address_sync_hash` (Char). Sin backfill: los
