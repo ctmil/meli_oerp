@@ -185,9 +185,9 @@ class StockMove(models.Model):
         skip_stock = str2bool(self.env['ir.config_parameter'].sudo().get_param('meli_skip_stock', 'False'))
         return skip_stock
 
-    def _action_assign(self):
+    def _action_assign(self, force_qty=False):
         t_start = time.time()
-        res = super(StockMove, self)._action_assign()
+        res = super(StockMove, self)._action_assign(force_qty=force_qty)
         t_super_end = time.time()
 
         if not self._should_skip_meli_stock_update():
