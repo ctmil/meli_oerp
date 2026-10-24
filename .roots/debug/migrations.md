@@ -261,3 +261,9 @@ disponibles; sin `name_get()` ni APIs deprecadas en la tanda.
 16.0 `28b86e3` (python→attrs) NO se porta a 19.
 
 ---
+
+## 20.0 — build Odoo.sh (F7, 24-oct-2026): 0 WARNING / 0 ERROR en tests de la plataforma
+Odoo.sh (dev build, demo, `--test-enable --log-level=test --test-tags /<suite>`) marcó el build 40514555 *failed*
+y con 165 líneas W/E, todas emitidas DESDE TESTS (la instalación estaba limpia). Fix sin cambio de comportamiento:
+tests: MP falso 503 en vez de ConnectionError (test_513/542/import_cupon; 431 y adopcion heredan) + mute del 'no account' de multiple cuando el suite está instalado; assertLogs en los WARNING esperados (525 diag full, cupon_envio backstop, 26278 x2, adopcion c/d); mute_logger de meli_util en test_452 (consulta /sites sin red).
+Verificado: banco e+demo y c sin demo `0 failed, 0 error(s) of 236`, 0 líneas W/E; -u c/e limpio. Versión sin cambio (20.0.26.301: sin vistas/data).

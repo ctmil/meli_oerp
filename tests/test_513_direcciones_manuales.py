@@ -12,9 +12,22 @@ Control (origin sin el fix): 3, 4 y 5 tienen que FALLAR.
 import copy
 from unittest.mock import patch
 
-import requests
-
 from odoo.tests import common, tagged
+from odoo.tools import mute_logger
+
+
+class _MPNoDisponible:
+    """Respuesta de MercadoPago no disponible (503): mismo resultado que sin red (no hay datos
+    de MP y la orden sigue), sin el WARNING de red que ensucia el log del build."""
+    ok = False
+    status_code = 503
+
+    def __bool__(self):
+        return False
+
+    def json(self):
+        return {}
+
 
 OID = 2000000051300101
 BUYER_ID = 51300101
@@ -97,8 +110,8 @@ class TestMeli513DireccionesManuales(common.TransactionCase):
         oj = _order_json(street)
         routes = [('/orders/%s/billing_info' % OID, {}), ('/orders/%s/discounts' % OID, {}),
                   ('/orders/%s' % OID, oj), ('/items/', {'id': 'MLA513001', 'title': 'Prueba 513'})]
-        with patch('odoo.addons.meli_oerp.models.orders.requests.get',
-                   side_effect=requests.exceptions.ConnectionError('sin red')):
+        with patch('odoo.addons.meli_oerp.models.orders.requests.get', return_value=_MPNoDisponible()), \
+                mute_logger('odoo.addons.meli_oerp_multiple.models.sale'):
             res = self.env['mercadolibre.orders'].orders_update_order_json(
                 {'id': False, 'order_json': oj}, meli=_FakeMeli(routes), config=self.company)
         self.assertFalse(isinstance(res, dict) and res.get('error'), res)

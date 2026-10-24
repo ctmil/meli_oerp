@@ -96,7 +96,8 @@ class TestStockDiagFull(TransactionCase):
         """PMG9378/PMG8009/PMG5630_10: existencia solo en MLF => no se pide activar (publicaria 0)."""
         self._producto('T525F', 'MLM525100001', self.loc_full, 3.0)
         meli = _FakeMeli({'MLM525100001': [_item('MLM525100001', 'paused')]})
-        res = self.env.company.meli_stock_diagnostic(meli=meli, reactivate='all')
+        with self.assertLogs('odoo.addons.meli_oerp.models.company', level='WARNING'):
+            res = self.env.company.meli_stock_diagnostic(meli=meli, reactivate='all')
         self.assertIn('MLM525100001', meli.calls, "control: la publicacion tiene que haber entrado al diagnostico")
         self.assertFalse(self.activate.called, "con stock solo en Full no hay nada publicable que reactivar")
         self.assertEqual(res.get('actions_taken'), 0)

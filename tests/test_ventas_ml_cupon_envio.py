@@ -114,8 +114,10 @@ class TestVentasMLCuponEnvio(common.TransactionCase):
         pack entero) no se aplica; la linea queda a precio pleno, nunca negativa."""
         mo = self.env['mercadolibre.orders'].create({'order_id': 'T-PACKDISC', 'name': 'x',
                                                       'discount_seller_amount': 50170.70})
-        res = mo._set_product_unit_price(self.product, {'unit_price': 3200.0, 'quantity': 1}, config=self.company)
+        with self.assertLogs('odoo.addons.meli_oerp.models.orders', level='WARNING') as cm:
+            res = mo._set_product_unit_price(self.product, {'unit_price': 3200.0, 'quantity': 1}, config=self.company)
         self.assertAlmostEqual(res['price_unit'], 3200.0, places=2)
+        self.assertTrue(any('NO se aplica' in m for m in cm.output))
 
     def test_1_so_with_seller_coupon_invoices_paid_amount(self):
         """Con la linea en 5.057,80, el importe a facturar es lo pagado (5.057,80) y confirma."""
