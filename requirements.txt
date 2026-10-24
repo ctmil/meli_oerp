@@ -1,4 +1,3 @@
 pdf2image
 unidecode
-Pillow>=12.0.0
 
