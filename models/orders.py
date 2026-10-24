@@ -4005,6 +4005,22 @@ class mercadolibre_orders(models.Model):
 
         return billinginfo
 
+    def _meli_phone_mobile_vals( self, phone, partner=None ):
+        """[#682] Valores de telefono para un contacto que escribe el conector: `phone` y tambien `mobile`
+        (el modulo de WhatsApp/SMS del cliente lee `mobile`; antes solo se escribia `phone`).
+        `mobile` se escribe si el campo existe (Odoo 19 lo elimino de res.partner) y el contacto no tiene
+        un mobile propio: vacio o igual al phone actual (es la copia que hizo el conector). Un mobile
+        cargado a mano, distinto del phone, no se pisa.
+        """
+        vals = {}
+        if not phone:
+            return vals
+        vals['phone'] = phone
+        if 'mobile' in self.env['res.partner']._fields:
+            if not partner or not partner.mobile or partner.mobile == partner.phone:
+                vals['mobile'] = phone
+        return vals
+
     def full_phone( self, buyer_json, context=None ):
         full_phone = ''
         if "phone" in buyer_json:
@@ -5514,7 +5530,8 @@ class mercadolibre_orders(models.Model):
                         # (meli_buyer_id, active, company_id), se revierte SOLO este create
                         # y la transacción del batch sigue sana (no se abortan las demás órdenes).
                         with self.env.cr.savepoint():
-                            partner_id = respartner_obj.create(meli_buyer_fields)
+                            # [#682] el contacto nace con el telefono en phone Y mobile
+                            partner_id = respartner_obj.create(dict(meli_buyer_fields, **self._meli_phone_mobile_vals(meli_buyer_fields.get('phone'))))
                             _mx_cfdi_new_partner_ids.add(partner_id.id)
                             partner_id.flush_recordset()  # forzar el INSERT dentro del savepoint
                         _logger.info("Contacto principal creado: %s (meli_buyer_id: %s)", partner_id.name, buyer_fields['buyer_id'])
@@ -5545,6 +5562,9 @@ class mercadolibre_orders(models.Model):
                     parent_update['city'] = self.city(Receiver, Buyer)
                 if not partner_id.phone and 'phone' in meli_buyer_fields and meli_buyer_fields['phone']:
                     parent_update['phone'] = meli_buyer_fields['phone']
+                # [#682] mobile vacio: toma el telefono que manda ML (no pisa uno cargado a mano)
+                if 'mobile' in partner_id._fields and not partner_id.mobile and meli_buyer_fields.get('phone'):
+                    parent_update['mobile'] = meli_buyer_fields['phone']
                 if partner_id.email and (partner_id.email == buyer_fields.get("email", "") or "mercadolibre.com" in str(partner_id.email)):
                     parent_update['email'] = ''
 
