@@ -4,6 +4,10 @@
 
 ---
 
+## 24 oct 2026 — release 26.302: _action_assign(force_qty) / Pillow (v18.0.26.302)
+**Causa:** override `_action_assign(self)` sin `force_qty`; el core stock 16–19 es `_action_assign(self, force_qty=False)` y mrp llama `super()._action_assign(force_qty=...)` ⇒ TypeError si mrp queda encima en el MRO. **Fix:** firma y super con `force_qty` (port de 20.0, lint test_override_signatures).
+**Pillow:** fuera de requirements.txt (compat-20 clase A).
+
 ## 24 oct 2026 — 2do pack del mismo comprador facturaba al contacto sin DNI + teléfono sólo en «Teléfono» [#682 158 IHSA] (v18.0.26.300)
 **Síntoma:** ventas de carritos con `partner_invoice_id` = contacto principal (sin DNI) aunque existía el contacto `invoice` con el DNI; el WhatsApp de coordinación del cliente lee `partner_shipping_id.mobile` y el conector sólo escribía `phone`.
 **Causa:** orders.py reutiliza el contacto de facturación por VAT entre packs (un CUIT = un contacto) y le deja el `meli_order_id` del primer pack; shipment.py buscaba el del pack sólo por `meli_order_id == pack_id` y caía al principal. La corrección posterior de orders.py no corre si la venta tiene `meli_update_forbidden`.
