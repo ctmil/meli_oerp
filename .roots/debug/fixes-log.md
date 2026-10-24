@@ -4,6 +4,13 @@
 
 ---
 
+## 24 oct 2026 — 2do pack del mismo comprador facturaba al contacto sin DNI + teléfono sólo en «Teléfono» [#682 158 IHSA] (v16.0.26.300)
+**Síntoma:** ventas de carritos con `partner_invoice_id` = contacto principal (sin DNI) aunque existía el contacto `invoice` con el DNI; el WhatsApp de coordinación del cliente lee `partner_shipping_id.mobile` y el conector sólo escribía `phone`.
+**Causa:** orders.py reutiliza el contacto de facturación por VAT entre packs (un CUIT = un contacto) y le deja el `meli_order_id` del primer pack; shipment.py buscaba el del pack sólo por `meli_order_id == pack_id` y caía al principal. La corrección posterior de orders.py no corre si la venta tiene `meli_update_forbidden`.
+**Fix:** `mercadolibre.shipment._meli_pack_invoice_partner` (pack_id → VAT == `mercadolibre.buyers.billing_info_doc_number`, type=invoice, compañía o sin compañía → principal). `mercadolibre.orders._meli_phone_mobile_vals`: phone + mobile (si el campo existe y el mobile está vacío o es copia del phone) en contacto principal (create/update) y de entrega (create/update).
+**Prueba:** tests/test_682_dni_movil.py (tag meli_682_dni_movil, 8 casos). Fix 8/8 en 16-19; control origin 26.299: 7/8 rojo en 16-18, 5/8 en 19 (sin campo mobile). Suite meli_oerp completa sin fallas nuevas.
+**No cubre:** las ventas ya creadas (diagnóstico: partners/Argentina/elvimarta/.roots/reports/682-dni-movil-2026-10-23.md).
+
 ## 23 oct 2026 — servicio de envío archivado se recreaba por venta [#452 Global Value] (v16.0.26.291)
 **Síntoma:** productos «ME1 - zip» de servicio a $1 con referencias 001304..001322, ~uno por pasada del cron (21/22-oct).
 **Causa (combinada):** el cliente archivó los servicios de envío de los transportistas (ENVIO-ME1, MEL Distribution, Places Pickup) para sacarlos de TiendaNube; `_update_sale_order_shipping_info` buscaba sólo activos y creaba uno nuevo antes de mirar `carrier.product_id`; con `product_sequence` (OCA) la ref nueva no era ENVIO-ME1 y la búsqueda (sólo por default_code) nunca lo volvía a encontrar. El producto creado no iba a la línea.

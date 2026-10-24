@@ -4,6 +4,12 @@
 
 ---
 
+## 16.0.26.300 — 24-oct-2026 · Contacto de facturación del 2do pack con el DNI + teléfono también en «Móvil» [#682]
+- Venta de un pack (carrito) de un comprador que ya tenía otro pack: la venta ahora toma el contacto de facturación con su DNI/CUIT (buscado por el documento de facturación del comprador) en vez del contacto principal, que no lleva DNI. Antes sólo se buscaba por el número del pack y el contacto de facturación conservaba el del primer pack.
+- El teléfono que manda MercadoLibre se escribe en «Teléfono» y también en «Móvil» (contacto del comprador y contacto de entrega), para que WhatsApp/SMS lo encuentren. Un móvil cargado a mano (distinto del teléfono) no se pisa.
+- No corrige las ventas ya creadas. Test `meli_682_dni_movil` (sin red).
+- Build único 26.300 en 16/17/18/19 para meli_oerp, meli_oerp_stock, meli_oerp_multiple, meli_oerp_accounting y meli_oerp_autofacturacion.
+
 ## 16.0.26.299 — 23-oct-2026 · acompaña release de flota (fix #650 en meli_oerp_accounting)
 - Sin cambios funcionales en este módulo (acompaña).
 - Build único 26.299 en 16/17/18/19 para meli_oerp, meli_oerp_stock, meli_oerp_multiple, meli_oerp_accounting y meli_oerp_autofacturacion.
