@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import base64
 from dateutil.parser import *
 from datetime import *
 
@@ -592,11 +593,28 @@ def att_value_ids(self):
 def att_line_ids(self):
     return self.attribute_line_ids
 
+# 20.0: los Binary/Image se leen como BinaryValue (contenido CRUDO, ya no base64) y al escribir
+# rechazan bytes (TypeError "use BinaryValue instead of bytes"). Esta capa mantiene el contrato de
+# 19 para todo el modulo: get_image_full devuelve base64 (bytes) y set_image_full acepta base64.
+def b64_of_binary(value):
+    """valor de un Binary leido en 20 (BinaryValue crudo) -> base64 en bytes, como en 19."""
+    if not value:
+        return False
+    if isinstance(value, (bytes, str)):
+        return value
+    return base64.b64encode(value)
+
+def b64_for_binary_write(value):
+    """base64 en bytes -> str base64 (lo que acepta un Binary en 20)."""
+    if isinstance(value, bytes):
+        return value.decode()
+    return value
+
 def get_image_full(self):
-    return ("variant_image" in self._fields and self.variant_image) or self.image_1920
+    return b64_of_binary(("variant_image" in self._fields and self.variant_image) or self.image_1920)
 
 def set_image_full(self, image):
-    self.image_1920 = image
+    self.image_1920 = b64_for_binary_write(image)
     return True
 
 def get_first_image_to_publish(self):

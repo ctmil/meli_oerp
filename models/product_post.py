@@ -543,7 +543,7 @@ class product_template_import(models.TransientModel):
             csv_report_attachment = self.env['ir.attachment'].create({
                 'name': ATTACHMENT_NAME+'.csv',
                 'type': 'binary',
-                'datas': b64_csv,
+                'raw': base64.b64decode(b64_csv),  # 20.0: 'datas' se IGNORA (adjunto vacio); va 'raw'
                 #'datas_fname': ATTACHMENT_NAME + '.csv',
                 'access_token': self.env['ir.attachment']._generate_access_token(),
                 #'store_fname': ATTACHMENT_NAME+'.csv',

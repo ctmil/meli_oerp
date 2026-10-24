@@ -1798,14 +1798,14 @@ class mercadolibre_shipment(models.Model):
                     if PDF2IMAGE_AVAILABLE:
                         try:
                             if shipment.pdf_filename and not shipment.pdfimage_filename:
-                                data = base64.b64decode(shipment.pdf_file)
+                                data = bytes(shipment.pdf_file)  # 20.0: Binary se lee crudo
                                 images = convert_from_bytes(data, dpi=300, fmt='jpg')
                                 for image in images:
                                     image_filename = "/tmp/%s-page%d.jpg" % ("Shipment_" + shipment.shipping_id, images.index(image))
                                     image.save(image_filename, "JPEG")
                                     if images.index(image) == 0:
                                         imgdata = urlopen("file://" + image_filename).read()
-                                        shipment.pdfimage_file = base64encode(imgdata)
+                                        shipment.pdfimage_file = base64.b64encode(imgdata).decode()  # 20.0: Binary no acepta bytes
                                         shipment.pdfimage_filename = "Shipment_" + shipment.shipping_id + ".jpg"
                         except Exception as e:
                             _logger.debug("Error converting pdf to jpg: %s", str(e))
@@ -2304,7 +2304,7 @@ class mercadolibre_shipment(models.Model):
         if print_mode == 'pdf':
             data = _meli_label_download(download_url, access_token, session=_session)
             vals["pdf_filename"] = "Shipment_" + shipping_id + ".pdf"
-            vals["pdf_file"] = base64.b64encode(data)
+            vals["pdf_file"] = base64.b64encode(data).decode()  # 20.0: Binary no acepta bytes
             # Generar preview JPG (solo si pdf2image está disponible)
             if PDF2IMAGE_AVAILABLE:
                 try:
@@ -2315,7 +2315,7 @@ class mercadolibre_shipment(models.Model):
                             image.save(image_filename, "JPEG")
                             if images.index(image) == 0:
                                 imgdata = urlopen("file://" + image_filename).read()
-                                vals["pdfimage_file"] = base64.b64encode(imgdata)
+                                vals["pdfimage_file"] = base64.b64encode(imgdata).decode()  # 20.0: Binary no acepta bytes
                                 vals["pdfimage_filename"] = "Shipment_" + shipping_id + ".jpg"
                 except Exception as img_e:
                     _logger.debug("Error generating PDF preview: %s", str(img_e))
@@ -2340,7 +2340,7 @@ class mercadolibre_shipment(models.Model):
             else:
                 # "ZPL (zip)": se conserva el paquete tal cual lo entrega ML.
                 vals["pdf_filename"] = "Shipment_"+shipping_id+(".zip" if is_zip else ".zpl")
-            vals["pdf_file"] = base64.b64encode(data)
+            vals["pdf_file"] = base64.b64encode(data).decode()  # 20.0: Binary no acepta bytes
         return vals
 
     def shipment_print( self, meli=None, config=None, include_ready_to_print=None ):
@@ -2411,7 +2411,7 @@ class AccountInvoice(models.Model):
                     shipment = order.meli_shipment
                     ret["shipping_id"] = order.meli_shipment.shipping_id
                     ret["pdfimage_filename"] = shipment.pdfimage_filename
-                    ret["pdfimage_file"] = shipment.pdfimage_file
+                    ret["pdfimage_file"] = b64_of_binary(shipment.pdfimage_file)  # 20.0: el reporte espera base64
                     ret["receiver_address_name"] = shipment.receiver_address_name
                     ret["receiver_address_line"] = shipment.receiver_address_line
                     ret["receiver_address_phone"] = (shipment.receiver_address_phone and not "XXXX" in shipment.receiver_address_phone and shipment.receiver_address_phone)

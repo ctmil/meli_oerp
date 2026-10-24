@@ -1389,9 +1389,9 @@ class sale_order(models.Model):
             bom = boms.get(product) if isinstance(boms, dict) else boms[:1]
             if not bom:
                 return None
-            factor = product.uom_id._compute_quantity(qty, bom.product_uom_id) / (bom.product_qty or 1.0)
+            factor = product.uom_id._compute_quantity(qty, bom.uom_id) / (bom.product_qty or 1.0)  # 20.0: product_uom_id -> uom_id
             _boms, lines = bom.explode(product, factor)
-            return [(bl.product_id, bl.product_uom_id._compute_quantity(data['qty'], bl.product_id.uom_id))
+            return [(bl.product_id, bl.uom_id._compute_quantity(data['qty'], bl.product_id.uom_id))
                     for bl, data in lines]
         except Exception as e:
             _logger.warning("MELI confirm: no se pudo explotar el kit %s (SO id=%s): %s", product.display_name, self.id, e)
@@ -1434,8 +1434,8 @@ class sale_order(models.Model):
         for pid in order:
             comp, qty = needed[pid]
             free = comp.with_context(**ctx).free_qty
-            rounding = comp.uom_id.rounding or 0.01
-            if _meli_float_compare(free, qty, precision_rounding=rounding) >= 0:
+            # 20.0: uom.uom.rounding eliminado -> uom.compare() (misma precision 'Product Unit')
+            if comp.uom_id.compare(free, qty) >= 0:
                 continue
             missing = qty - max(free, 0.0)
             shortages.append((comp, qty, free, missing))

@@ -116,7 +116,7 @@ class MeliImage(models.Model):
     def _onchange_video_url(self):
         if not self.image_1920:
             thumbnail = get_video_thumbnail(self.video_url)
-            self.image_1920 = thumbnail and base64.b64encode(thumbnail) or False
+            self.image_1920 = thumbnail and base64.b64encode(thumbnail).decode() or False  # 20.0: Binary no acepta bytes
 
     @api.depends('video_url')
     def _compute_embed_code(self):

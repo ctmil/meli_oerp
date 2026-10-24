@@ -689,11 +689,11 @@ class product_template(models.Model):
         # PRIORIDAD 1: Imagen principal de cada variante que sea propia
         for variant in product_tmpl.product_variant_ids:
             if hasattr(variant, 'image_variant_1920') and variant.image_variant_1920:
-                priority_1_variant_main.append((variant.image_variant_1920, 'variant_main', variant.id))
+                priority_1_variant_main.append((b64_of_binary(variant.image_variant_1920), 'variant_main', variant.id))
 
         # PRIORIDAD 2: Imagen principal del template
         if product_tmpl.image_1920:
-            priority_2_template_main.append((product_tmpl.image_1920, 'template_main', None))
+            priority_2_template_main.append((b64_of_binary(product_tmpl.image_1920), 'template_main', None))
 
         # PRIORIDAD 3: Imagenes adicionales del template
         tpl_image_ids = template_image_ids(product_tmpl)
@@ -3278,7 +3278,7 @@ class product_product(models.Model):
                             "product_id": variant.id,
                             "type": "phantom",
                             "product_qty": 1,
-                            "product_uom_id": product_uom_id
+                            "uom_id": product_uom_id  # 20.0: mrp.bom.product_uom_id -> uom_id
                         }
                         bom_list = bom.create(bl_fields)
                         #_logger.info("bom_list created:")
@@ -3297,7 +3297,7 @@ class product_product(models.Model):
                             bomline_fields = {
                                 'bom_id': bom_list.id,
                                 'product_id': pse.id,
-                                'product_uom_id': product_uom_id,
+                                'uom_id': product_uom_id,  # 20.0: mrp.bom.line.product_uom_id -> uom_id
                                 'product_qty': 1.0
                             }
                             lineids = bom_l.create(bomline_fields)

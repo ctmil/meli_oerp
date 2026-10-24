@@ -4,6 +4,22 @@
 
 ---
 
+### 20.0.26.300 — PORT 19.0 → 20.0, 2.ª pasada (24-oct-2026, F3: runtime que `-i/-u` no ve)
+El piloto (01d5a6f3) instalaba limpio, pero el diff de registry 19 vs 20 y una prueba en shell mostraron rupturas EN RUNTIME
+(no fallan al instalar). Mismo build (sin cambio de features). `-u` c+e 0 WARNING / 0 ERROR; tests del módulo en 20 con el suite
+instalado: **84, 0 failed, 0 error** (`test_26278` ahora corre porque accounting está instalado).
+- **Binary/Image 20** (se leen como `BinaryValue` crudo; escribir `bytes` ⇒ `TypeError`): `versions.get_image_full` devuelve
+  base64 como en 19 (`b64_of_binary`) y `set_image_full` escribe str base64 (`b64_for_binary_write`) ⇒ importación de fotos de
+  ML y subida de imágenes siguen con el contrato de 19. Colector de imágenes (`image_variant_1920`/`image_1920` directos) pasa
+  por `b64_of_binary`. Miniatura de video: `.decode()`. Etiquetas: `pdf_file`/`pdfimage_file` se escriben como str base64, la
+  lectura del PDF es `bytes(...)`, y `_get_shipment` entrega base64 al reporte. Smoke en shell 20: ida/vuelta de imagen,
+  `get_first_image_to_publish`, PDF de etiqueta OK.
+- **`ir.attachment.datas`** (ignorado en 20 ⇒ adjunto vacío): CSV de `product_post` con `'raw'`.
+- **`mrp.bom(.line).product_uom_id` → `uom_id`:** `_meli_kit_components` (explosión de kits en la confirmación de stock) y la
+  creación de BOM kit. Sin esto el `except` devolvía `None` y el kit se trataba como producto simple EN SILENCIO. Smoke: kit
+  2×comp, qty 3 ⇒ `[('comp20', 6.0)]`.
+- **`uom.uom.rounding` eliminado** ⇒ `comp.uom_id.compare(free, qty)` en el chequeo de faltantes de componentes.
+
 ### 20.0.26.300 — PORT 19.0 → 20.0 (24-oct-2026, agente migrador-20, rama `claude/port-20.0` desde origin/19.0 a30d1752)
 Core 20 medido: odoo 632c2d6c · enterprise f6513ecb. `-i` y `-u` en `meli20_test` (community) y `meli20e_test`
 (+enterprise, `web_enterprise`): **0 WARNING / 0 ERROR**. Mismas features que 19.0.26.300 ⇒ mismo build.
