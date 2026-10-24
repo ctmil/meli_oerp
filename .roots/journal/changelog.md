@@ -4,6 +4,11 @@
 
 ---
 
+## 19.0.26.302 — 24-oct-2026 · Reserva de stock con Fabricación y dependencias
+- Reserva de stock compatible con Fabricación (mrp): `stock.move._action_assign` acepta y pasa `force_qty` como el core (antes, con mrp instalado, la reserva podía fallar con TypeError).
+- `requirements.txt` sin `Pillow>=12.0.0`: Odoo ya fija su versión de Pillow; forzar otra hacía que Odoo.sh reinstalara una librería del core.
+- Build único 26.302 en 16/17/18/19/20 para meli_oerp, meli_oerp_stock, meli_oerp_multiple, meli_oerp_accounting y meli_oerp_autofacturacion.
+
 ## 19.0.26.300 — 24-oct-2026 · Contacto de facturación del 2do pack con el DNI + teléfono también en «Móvil» [#682]
 - Venta de un pack (carrito) de un comprador que ya tenía otro pack: la venta ahora toma el contacto de facturación con su DNI/CUIT (buscado por el documento de facturación del comprador) en vez del contacto principal, que no lleva DNI. Antes sólo se buscaba por el número del pack y el contacto de facturación conservaba el del primer pack.
 - El teléfono que manda MercadoLibre se escribe en «Teléfono» y también en «Móvil» (contacto del comprador y contacto de entrega), para que WhatsApp/SMS lo encuentren. Un móvil cargado a mano (distinto del teléfono) no se pisa. En 19.0 el contacto no tiene campo «Móvil»: sólo se escribe «Teléfono».
