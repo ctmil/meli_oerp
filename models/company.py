@@ -2179,9 +2179,11 @@ class res_company(models.Model):
         """
         Diagnostic safety check: compare Odoo stock vs ML stock for all published products.
         Runs at the end of each stock cron cycle. Detects and corrects:
-          - Items paused in ML but with available stock in Odoo (reactivates them).
-          - Items active in ML with quantity=0 and stock available in Odoo (pushes correction).
-          - Stock drift: Odoo meli_available_quantity differs from ML's available_quantity.
+
+        - Items paused in ML but with available stock in Odoo (reactivates them).
+        - Items active in ML with quantity=0 and stock available in Odoo (pushes correction).
+        - Stock drift: Odoo meli_available_quantity differs from ML's available_quantity.
+
         Does NOT make API calls per-product — reuses the stored meli_available_quantity
         and triggers product_post_stock only for products needing correction.
         Posts a summary to the mercadolibre.account chatter when meli_cron_log_chatter=True.

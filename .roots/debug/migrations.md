@@ -4,6 +4,22 @@
 
 ---
 
+### 20.0.26.301 — reglas de Odoo 20 (`test_lint`) aplicadas (24-oct-2026, F8b, rama `claude/lint-20.0` desde 20.0 4ceb33de)
+Vara: `.roots/scripts/odoo-lint.sh` del workspace (pylint con las opciones de `test_lint/test_pylint.py` + `test_lint` del core
+20 corrido de verdad). Varas de error: **175 → 57**; lo que queda está justificado regla por regla en
+`.roots/docs/compat-20-backport.md` del workspace (bugs latentes `undefined-variable`, parámetros `context` de métodos
+públicos y `shipment.update` = cambios de API del suite entero; licencia = decisión de FCA). Sube a 301 porque cambian vistas.
+`-u` c+e 0 WARNING / 0 ERROR; tests 84, 0 failed, 0 error (igual que 26.300).
+- **Íconos:** 40 botones `icon="fa-*"` ⇒ Material Symbols con el mapeo oficial (`odoo-bin upgrade_code` 19.5-00). En 20 un
+  `fa-*` en `icon=` se pinta con la fuente Material ⇒ salía roto sin error.
+- **Firmas:** `stock.move._action_assign(force_qty=False)` (con `mrp` arriba en el MRO era `TypeError`), `meli.warning.copy(default=None)`;
+  borrado `sale.order.action_done` (sin padre desde 17) y `grid.row.col.name_get` (no se llama desde 17).
+- **SQL:** 3 consultas con datos de ML ahora parametrizadas (mismo SQL para valores válidos); 5 concatenaciones de constantes
+  con `# pylint: disable=sql-injection` + motivo.
+- **Índices:** `btree_not_null` en 17 many2one (inversos de o2m / saltos de `depends`). En 20 el `-u` los crea (verificado).
+- Manifest sin `demo_xml`/`active`/`installable`; `_()` en 2 excepciones; código muerto tras `return` fuera; docstring RST;
+  `tests/__init__` importa los 6 tests puros (Odoo no los ejecuta: no son `odoo.tests.TestCase`).
+
 ### 20.0.26.300 — PORT 19.0 → 20.0, 2.ª pasada (24-oct-2026, F3: runtime que `-i/-u` no ve)
 El piloto (01d5a6f3) instalaba limpio, pero el diff de registry 19 vs 20 y una prueba en shell mostraron rupturas EN RUNTIME
 (no fallan al instalar). Mismo build (sin cambio de features). `-u` c+e 0 WARNING / 0 ERROR; tests del módulo en 20 con el suite

@@ -172,7 +172,7 @@
                         <field name="picking_ids" invisible="1"/>
                         <button name="meli_repair_missing_pickings" type="object"
                                 string="Reparar entrega"
-                                icon="fa-wrench"
+                                icon="build"
                                 class="oe_stat_button"
                                 invisible="state not in ('sale','done') or picking_ids"
                                 confirm="¿Reparar los movimientos de stock huérfanos y crear la entrega faltante?"
@@ -186,12 +186,12 @@
                             string="Actualizar"
                             invisible="meli_order_id==False"
                             class="oe_stat_button"
-                            icon="fa-refresh"/>
+                            icon="refresh"/>
                             <button name='meli_oerp_print' type="object"
                               string="Imprimir guia"
                               invisible="meli_order_id==False"
                               class="oe_stat_button"
-                              icon="fa-print"/>
+                              icon="print"/>
                             <field name="meli_orders" invisible="0"/>
                             <group>
                               <field name="meli_order"/>
@@ -305,7 +305,7 @@
                       string="Actualizar"
                       invisible="order_id == False"
                       class="oe_stat_button"
-                      icon="fa-refresh"/>
+                      icon="refresh"/>
                   </div>
                   <group>
                     <group>

@@ -33,7 +33,9 @@ def migrate(cr, version):
         if not _has_column(cr, table, column):
             continue
         # quita "access_token=<valor>" con su separador; si quedaba "?&" o "?"/"&" colgando, se acomoda
-        cr.execute(r"""
+        # {t}/{c} salen de _URL_COLUMNS (constante de este archivo)
+        cr.execute(  # pylint: disable=sql-injection
+            r"""
             UPDATE {t}
                SET {c} = regexp_replace(
                            regexp_replace(

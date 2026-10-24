@@ -120,24 +120,24 @@
                             title="Publicar/Actualizar en ML"
                             confirm="¿Está seguro que quiere publicar/actualizar los datos en ML?"
                             class="oe_stat_button"
-                            icon="fa-globe"/>
+                            icon="public"/>
                           <button name='%(action_product_template_update)d' type="action"
                             string="Importar"
                             title="Importar datos desde ML"
                             confirm="¿Está seguro que quiere importar los datos desde ML?"
                             class="oe_stat_button"
-                          icon="fa-cloud-download"/>
+                          icon="cloud_download"/>
                           <button name='action_meli_backfill_template_fields' type="object"
                             string="Traer medidas"
                             title="Rellenar campos de la plantilla (medidas del paquete, marca, modelo, genero) desde ML"
                             confirm="¿Traer/actualizar los campos de la plantilla (medidas del paquete, marca, modelo, genero) desde ML? No pisa valores cargados a mano si ML no los trae."
                             class="oe_stat_button"
-                            icon="fa-download"/>
+                            icon="download"/>
                           <button name='action_category_predictor' type="object"
             								string="Sugerir Categoria"
                             invisible="meli_category != False"
                             class="oe_stat_button"
-                            icon="fa-refresh"/>
+                            icon="refresh"/>
                         </div>
                       <group name="ML actions"></group>
                       <separator string="Variants" colspan="1"/>
@@ -399,72 +399,72 @@
                               title="Importar desde ML"
                               invisible="meli_state == True or meli_id == False"
                               class="oe_stat_button"
-              								icon="fa-cloud-download"/>
+              								icon="cloud_download"/>
                               <button name='action_category_predictor' type="object"
                 								string="Sugerir Categoria"
                                 class="oe_stat_button"
-                                icon="fa-refresh"
+                                icon="refresh"
                 								invisible="meli_state == True or meli_category != False" />
                             <button name='%(action_product_post)d' type="action"
                               string="Publicar"
                               title="Publicar producto en ML"
                               invisible="meli_state == True or meli_id != False"
                               class="oe_stat_button"
-              								icon="fa-globe"/>
+              								icon="public"/>
                             <button name='%(action_product_post)d' type="action"
                               string="Actualizar"
                               title="Actualizar producto en ML"
                               invisible="meli_state == True or meli_id == False"
                               class="oe_stat_button"
-              								icon="fa-globe"/>
+              								icon="public"/>
                             <button name='product_post_stock' type="object"
                               string="Publicar Stock"
                               title="Publicar Stock en ML"
                               invisible="meli_state == True or meli_id == False"
                               class="oe_stat_button"
-              								icon="fa-globe"/>
+              								icon="public"/>
                               <button name='product_post_price' type="object"
                                 string="Publicar Price"
                                 title="Publicar Price en ML"
                                 invisible="meli_state == True or meli_id == False"
                                 class="oe_stat_button"
-                								icon="fa-globe"/>
+                								icon="public"/>
                             <button name='product_meli_status_active' type="object"
                               string="Activar"
                               title="Activar producto en ML"
                               invisible="meli_state == True or meli_id == False"
                               class="oe_stat_button"
-              								icon="fa-check-square"
+              								icon="check_box" icon_class="oi-filled"
               								confirm="Esta seguro de Activar este Producto en Mercado Libre?"/>
                             <button name='product_meli_status_pause' type="object"
                               string="Pausar"
                               title="Pausar producto en ML"
                               invisible="meli_state == True or meli_id == False"
                               class="oe_stat_button"
-                              icon="fa-pause-circle"
+                              icon="pause_circle" icon_class="oi-filled"
               		      confirm="Esta seguro de Pausar este Producto en Mercado Libre, esto bloqueara la publicacion?"/>
                             <button name='product_meli_status_close' type="object"
                               string="Cerrar"
                               title="Cerrar producto en ML"
                               invisible="meli_state == True or meli_id == False"
-                              icon="fa-times-circle-o"
+                              icon="cancel"
                               class="oe_stat_button"
               								confirm="¿Esta seguro de Cerrar este Producto en Mercado Libre?"/>
                             <button name='product_meli_delete' type="object"
                               string="Eliminar"
                               title="Eliminar producto de ML"
                               invisible="meli_state == True or meli_id == False"
-                              icon="fa-trash-o"
+                              icon="delete"
                               class="oe_stat_button"
               								confirm="¿Esta seguro de Eliminar este Producto en Mercado Libre?. Esta accion no podra revertirse"/>
                             <button name='product_meli_upload_image' type="object"
                               string="Subir"
                               title="Subir imagen a ML"
                               invisible="meli_state == True"
-                              class="oe_stat_button" icon="fa-cloud-upload"/>
+                              class="oe_stat_button" icon="cloud_upload"/>
                             <button name='product_meli_login' type="object"
                               class="oe_stat_button"
-                              icon="fa-user-circle"
+                              icon="account_circle" icon_class="oi-filled"
                               string="Iniciar Sesión"
                               title="Se requiere Iniciar Sesión en ML"
                               invisible="meli_state == False"/>

@@ -30,7 +30,7 @@
     											string="Copiar de Cia"
     											title="Copiar de Cia"
     											class="oe_stat_button"
-    											icon="fa-user-circle"/>
+    											icon="account_circle" icon_class="oi-filled"/>
                     </div-->
                   <div class="alert alert-info" role="alert">
                     <b>Se puede escribir con formato y con datos del producto.</b><br/>

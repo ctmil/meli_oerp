@@ -24,19 +24,19 @@
                                 title="Iniciar sesión en ML"
                                 invisible="mercadolibre_state == False"
                                 class="btn btn-primary oe_stat_button"
-                                icon="fa-user-circle"/>
+                                icon="account_circle" icon_class="oi-filled"/>
 
             								<button name='meli_logout' type="object"
                                 string="Cerrar sesión"
                                 title="Cerrar sesión con ML"
                                 invisible="mercadolibre_state == True"
                                 class="btn btn-primary oe_stat_button"
-                                icon="fa-user-circle"/>
+                                icon="account_circle" icon_class="oi-filled"/>
 
                             <button name='meli_query_orders' type="object"
             										string="Importar pedidos"
                                 title="Iniciar búsqueda de órdenes/pedidos de ML a Odoo"
-                                icon="fa-cloud-download"
+                                icon="cloud_download"
                                 invisible="mercadolibre_state == True"
                                 class="btn btn-primary oe_stat_button"/>
 
@@ -44,27 +44,27 @@
                                 string="Importar todos los productos"
                                 title="Iniciar importación de todos los productos desde ML a Odoo"
                                 invisible="mercadolibre_state == True"
-                                icon="fa-cloud-download"
+                                icon="cloud_download"
                                 class="oe_stat_button"/-->
                                 <button type="action" name="%(action_product_template_import)d"
                                   string="Importar Masivamente"
                                   title="Importar Masivamente"
                                   invisible="mercadolibre_state == True"
                                   class="btn btn-primary oe_stat_button"
-                                  icon="fa-cloud-download"></button>
+                                  icon="cloud_download"></button>
 
                             <button name='meli_update_local_products' type="object"
                                 string="Actualizar productos"
                                 title="Iniciar actualización de productos y stock desde ML a Odoo"
                                 invisible="mercadolibre_state == True"
-                                icon="fa-cloud-download"
+                                icon="cloud_download"
                                 class="btn btn-primary oe_stat_button"/>
 
                             <button name='meli_import_categories' type="object"
                                 string="Importar categorías"
                                 title="Iniciar importación de categorías de ML a Odoo (eCommerce)"
                                 invisible="mercadolibre_state == True"
-                                icon="fa-cloud-download"
+                                icon="cloud_download"
                                 class="btn btn-primary oe_stat_button"/>
 
                             <button name='meli_pause_all' type="object"
@@ -72,7 +72,7 @@
                                     title="Pausar todos los productos publicados en ML que no estan en Odoo"
                                     confirm="¿Está seguro que quiere pausar todos sus productos de ML?"
                                     invisible="mercadolibre_state == True"
-                                    icon="fa-pause"
+                                    icon="pause"
                                     class="btn btn-primary oe_stat_button"/>
                             </div>
                           <group col="1">

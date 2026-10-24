@@ -46,7 +46,7 @@
 								title="Procesar notificación"
 								confirm="¿Está seguro que necesita procesar esta notificación?"
 								class="oe_stat_button"
-								icon="fa-refresh"/>
+								icon="refresh"/>
 						</div>
 						<group>
 							<group>

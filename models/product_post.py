@@ -557,7 +557,7 @@ class product_template_import(models.TransientModel):
                 self.report_import = csv_report_attachment.id
                 csv_report_attachment_link = "/web/content/"+str(csv_report_attachment.id)+"?download=true&access_token="+str(csv_report_attachment.access_token)
                 self.report_import_link = csv_report_attachment_link
-                #<a class="fa fa-download" t-attf-title="Download Attachment {{asset.name}}" t-attf-href="/web/content/#{asset.attachment.id}?download=true&amp;access_token=#{asset.attachment.access_token}" target="_blank"></a>
+                #<a class="oi" data-icon="download" t-attf-title="Download Attachment {{asset.name}}" t-attf-href="/web/content/#{asset.attachment.id}?download=true&amp;access_token=#{asset.attachment.access_token}" target="_blank"></a>
 
             res.update({'csv_report':  csv_report, 'csv_report_attachment':  csv_report_attachment, 'csv_report_attachment_link': csv_report_attachment_link })
 

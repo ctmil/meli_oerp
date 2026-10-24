@@ -5,6 +5,7 @@
 # sobre Postgres REAL (db efimera t_motivos, suite 19.0 de las ramas sello-19.0). SIN red: el
 # `meli` del resync es un doble que responde /orders/<id>; por_estado_ml con la foto simulada.
 # Todo dentro de UNA transaccion que se revierte al final.
+env = globals()["env"]  # lo inyecta `odoo shell`: declarado para el lint de Odoo (undefined-variable)
 import json
 from unittest.mock import patch
 from odoo import fields

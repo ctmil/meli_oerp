@@ -347,7 +347,7 @@ class warning(models.TransientModel):
 
                         #message_html+= "<br/>Causa: "+str(ecause)
 
-                #message_html+= '<br/><button click="alert(%s)"><i class="fa fa-copy"></i>Copy Error</button>'
+                #message_html+= '<br/><button click="alert(%s)"><i class="oi" data-icon="content_copy"></i>Copy Error</button>'
 
 
 
@@ -456,7 +456,7 @@ class warning(models.TransientModel):
         }
         return res
 
-    def copy(self):
+    def copy(self, default=None):
         self.ensure_one()
         _logger.info("copy_error:"+str(self.copy_error))
         return {'type': 'ir.actions.act_window_close'}

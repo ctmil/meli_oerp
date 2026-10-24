@@ -55,7 +55,7 @@ class mercadolibre_claim(models.Model):
     # Vinculacion con la venta/orden ML
     resource = fields.Char(string="Resource", help="Tipo de recurso reclamado (order / purchase / shipment).")
     resource_id = fields.Char(string="Resource Id", index=True, help="Id del recurso (ej. order_id o pack_id).")
-    order_id = fields.Many2one("mercadolibre.orders", string="Orden ML")
+    order_id = fields.Many2one("mercadolibre.orders", string="Orden ML", index='btree_not_null')
 
     # Clasificacion del reclamo
     type = fields.Selection([

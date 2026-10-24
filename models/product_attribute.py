@@ -13,7 +13,7 @@ class ProductAttribute(models.Model):
     _inherit = 'product.attribute'
 
     meli_att_id = fields.Char(string=u'Id Attribute ML',related='meli_default_id_attribute.att_id')
-    meli_default_id_attribute = fields.Many2one('mercadolibre.category.attribute',string="ML Attribute default")
+    meli_default_id_attribute = fields.Many2one('mercadolibre.category.attribute',string="ML Attribute default", index='btree_not_null')
     meli_id_attributes = fields.Many2many('mercadolibre.category.attribute',string="ML Attributes")
 
     meli_default_id_attribute_hidden = fields.Boolean( related="meli_default_id_attribute.hidden", string="Hidden")

@@ -55,7 +55,7 @@
                         string="Fix attribute"
                         title="Fix attribute"
                         class="btn btn-primary oe_stat_button"
-                        icon="fa-refresh"/>
+                        icon="refresh"/>
                   </div>
 
                   <field name="product_attributes" readonly="1">
@@ -74,7 +74,7 @@
                         string="Fix products reimport"
                         title="Fix products reimport"
                         class="btn btn-primary oe_stat_button"
-                        icon="fa-refresh"/>
+                        icon="refresh"/>
                   </div>
                   <field name="products_to_fix" readonly="1">
                     <list>
