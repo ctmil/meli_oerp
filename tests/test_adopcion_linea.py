@@ -82,8 +82,10 @@ class TestAdopcionLinea(TestImportCuponLinea):
         self._product_lines(so).write({'product_id': other.id})
         so.action_confirm()
         n = len(so.order_line)
-        self._run(oj, ROUTES)
-        self._run(oj, ROUTES)
+        with self.assertLogs('odoo.addons.meli_oerp.models.orders', level='WARNING') as cm:
+            self._run(oj, ROUTES)
+            self._run(oj, ROUTES)
+        self.assertTrue(any('NO se agrega' in m for m in cm.output))
         self.assertEqual(len(so.order_line), n, "se agrego una linea a la venta confirmada")
         self.assertEqual(len(self._notes(so)), 1, "la nota de control tiene que quedar una sola vez")
 
@@ -93,9 +95,10 @@ class TestAdopcionLinea(TestImportCuponLinea):
         self._cancel_and_requote_by_hand(so, 959.99)
         self.env['sale.order.line'].create({'order_id': so.id, 'product_id': self.product.id,
                                             'product_uom_qty': 2, 'price_unit': 959.99})
-        line = self.env['mercadolibre.orders']._meli_adopt_unlinked_sale_line(
-            so, {'product_id': self.product.id, 'product_uom_qty': 1, 'meli_order_item_id': 'MLM000TEST',
-                 'meli_order_item_variation_id': False})
+        with self.assertLogs('odoo.addons.meli_oerp.models.orders', level='WARNING'):
+            line = self.env['mercadolibre.orders']._meli_adopt_unlinked_sale_line(
+                so, {'product_id': self.product.id, 'product_uom_qty': 1, 'meli_order_item_id': 'MLM000TEST',
+                     'meli_order_item_variation_id': False})
         self.assertEqual(len(line), 1)
         self.assertEqual(line.product_uom_qty, 1, "debe adoptar la de la misma cantidad")
         self.assertEqual(len(self._product_lines(so).filtered('meli_order_item_id')), 1)

@@ -7,6 +7,7 @@ Con product_sequence (OCA) la referencia nueva no era ENVIO-ME1, asi que nunca l
 Y el producto creado no se usaba: la linea toma el producto del transportista.
 """
 from odoo.tests import TransactionCase, tagged
+from odoo.tools import mute_logger
 
 
 @tagged('post_install', '-at_install', 'meli_452')
@@ -65,7 +66,10 @@ class TestMeli452EnvioArchivado(TransactionCase):
         sorder = self.env['sale.order'].create({'partner_id': partner.id, 'company_id': self.company.id})
         morder = self.env['mercadolibre.orders'].create({'order_id': '452%d' % sorder.id})
         ship = self.Ship.create({'sale_order': sorder.id, 'mode': 'me1', 'shipping_cost': 0.0})
-        ship._update_sale_order_shipping_info(morder, config=self.company)
+        # el flujo consulta /sites (company._get_ML_sites): en tests no hay red (Odoo la bloquea)
+        # y cae al mapa local de sitios; el WARNING de red no es parte de lo que se mide.
+        with mute_logger('odoo.addons.meli_oerp.models.meli_util'):
+            ship._update_sale_order_shipping_info(morder, config=self.company)
 
     def _me1_count(self):
         # sin filtro de compania: el flujo puede reasignar la compania del servicio/transportista
