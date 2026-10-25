@@ -57,6 +57,7 @@ class TestMeli26309VentaBloqueada(common.TransactionCase):
         so.meli_update_forbidden = True
         return so
 
+    @mute_logger('odoo.addons.meli_oerp.models.orders')  # 20: log esperado del escenario (vara 0 W/E)
     def test_1_retorno_marcado_y_sin_escritura(self):
         so = self._bloqueada()
         street = so.partner_shipping_id.street
