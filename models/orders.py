@@ -687,7 +687,7 @@ class sale_order(models.Model):
     meli_shipping_list_cost = fields.Float(string='Shipping List Cost',help='Gastos de envío, costo de lista/interno')
     meli_paid_amount = fields.Float(string='Paid amount',help='Paid amount (include shipping cost)')
     meli_fee_amount = fields.Float(string='Fee amount',help="Comisión")
-    meli_coupon_amount = fields.Float(string='Coupont amount',help="Descuento",default=0.0)
+    meli_coupon_amount = fields.Float(string='Coupon amount',help="Descuento",default=0.0)
     meli_discount_seller_amount = fields.Float(string='Discount Seller Amount',help="Monto del descuento que absorbe el vendedor (desde /orders/{id}/discounts)",default=0.0)
     meli_financing_fee_amount = fields.Float(string='Financing fee amount',help="Financiamiento",default=0.0)
 
