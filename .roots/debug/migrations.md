@@ -267,3 +267,14 @@ Odoo.sh (dev build, demo, `--test-enable --log-level=test --test-tags /<suite>`)
 y con 165 líneas W/E, todas emitidas DESDE TESTS (la instalación estaba limpia). Fix sin cambio de comportamiento:
 tests: MP falso 503 en vez de ConnectionError (test_513/542/import_cupon; 431 y adopcion heredan) + mute del 'no account' de multiple cuando el suite está instalado; assertLogs en los WARNING esperados (525 diag full, cupon_envio backstop, 26278 x2, adopcion c/d); mute_logger de meli_util en test_452 (consulta /sites sin red).
 Verificado: banco e+demo y c sin demo `0 failed, 0 error(s) of 236`, 0 líneas W/E; -u c/e limpio. Versión sin cambio (20.0.26.301: sin vistas/data).
+
+---
+
+## 20.0 — smoke de UI (F7b, 25-oct-2026): forms nuevos de `mercadolibre.category`
+`odoo20-ui-smoke.mjs` abre en blanco los forms de modelos sin datos demo: `Categorías > Nuevo` rompía con
+`ValueError: Compute method failed to assign ...meli_category_url` (y luego `meli_category_attributes`): `_get_category_url`
+y `_get_attributes` sólo asignaban dentro del `if meli_category_id` (y `meli_father_category_id` sólo si `path_from_root>=2`).
+Fix mínimo: asignar `False` al inicio de cada vuelta; con datos válidos el valor final es el mismo. NO es salto 19→20
+(mismo código en 16–19) ⇒ **clase A, backport en la próxima release**. Build 26.303 (acompaña al suite: autofacturación toca vistas).
+Abierto (pre-existente, igual en 19): abrir producto / compañía / forms ML sin cuenta conectada hace `GET /sites` a ML
+(`res.company` site lookup) y meli_util loguea `WARNING ... Auth error status=403` en cada pantalla.

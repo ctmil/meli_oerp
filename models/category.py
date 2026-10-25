@@ -437,6 +437,11 @@ class mercadolibre_category(models.Model):
         meli = self.get_meli(meli=meli)
 
         for category in self:
+            # Los dos campos computados por este método se asignan siempre: sin esto, una categoría
+            # nueva (form en blanco) o una raíz (path_from_root < 2) rompe con "Compute method failed
+            # to assign" (visto en el smoke de UI de 20.0; el mismo código está en 16–19).
+            category.meli_category_url = False
+            category.meli_father_category_id = False
             if (category and category.meli_category_id):
                 #_logger.info("_get_category_url:"+str(category.meli_category_id))
                 response_cat = meli.get("/categories/"+str(category.meli_category_id), {'access_token':meli.access_token})
@@ -468,6 +473,8 @@ class mercadolibre_category(models.Model):
         meli = self.get_meli(meli=meli)
 
         for category in self:
+            # Igual que en _get_category_url: el computado se asigna siempre (categoría nueva / rama).
+            category.meli_category_attributes = False
             if (category.meli_category_id
                 and category.is_branch==False
                 and ( 1==1 or category.meli_category_attribute_ids==None or len(category.meli_category_attribute_ids)==0 )):
