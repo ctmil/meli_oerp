@@ -66,3 +66,54 @@ class TestMeli526EnvioFacturada(AccountTestInvoicingCommon):
         so, dl = self._venta('2000018616975583')
         self.assertFalse(_meli_guard_delivery_write(so, dl, 0.0), "sin factura el guard no interviene")
         self.assertFalse(_meli_guard_delivery_write(so, dl, 3353.98), "sin cambio de precio no hay nada que frenar")
+
+
+@tagged('post_install', '-at_install', 'meli_526_envio')
+class TestMeli526EnvioResync(AccountTestInvoicingCommon):
+    """Escenario 9593 por el camino real: shipment._update_sale_order_shipping_info sobre venta facturada,
+    con cupon 7.000 y lo-cobrable (31.271,33) por debajo del producto => residual del envio < 0."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        gfield = 'group_ids' if 'group_ids' in cls.env.user._fields else 'groups_id'
+        cls.env.user.write({gfield: [(4, cls.env.ref('sales_team.group_sale_manager').id)]})
+        P = cls.env['product.product']
+        cls.prod = P.create({'name': 'Cortina', 'type': 'service', 'invoice_policy': 'order', 'taxes_id': [(5, 0, 0)]})
+        cls.ship = P.create({'name': 'Andreani Estandar 526', 'default_code': 'Andreani Estandar 526',
+                             'type': 'service', 'invoice_policy': 'order', 'taxes_id': [(5, 0, 0)]})
+        cls.carrier = cls.env['delivery.carrier'].create({'name': 'Andreani Estandar 526', 'product_id': cls.ship.id})
+        co = cls.env.company
+        for f, v in (('mercadolibre_order_total_config', 'paid_amount'), ('mercadolibre_including_shipping_cost', 'always'),
+                     ('meli_coupon_discount_on_invoice', True)):
+            if f in co._fields:
+                co[f] = v
+
+    def test_resync_no_baja_envio_de_venta_facturada(self):
+        from unittest.mock import patch
+        tf = 'tax_ids' if 'tax_ids' in self.env['sale.order.line']._fields else 'tax_id'
+        so = self.env['sale.order'].create({
+            'partner_id': self.partner_a.id, 'carrier_id': self.carrier.id,
+            'order_line': [(0, 0, {'product_id': self.prod.id, 'product_uom_qty': 1, 'price_unit': 34917.35, tf: [(5, 0, 0)]}),
+                           (0, 0, {'product_id': self.ship.id, 'product_uom_qty': 1, 'price_unit': 3353.98,
+                                   'is_delivery': True, tf: [(5, 0, 0)]})]})
+        so.action_confirm()
+        inv = so._create_invoices()
+        inv.action_post()
+        so.meli_coupon_amount = 7000.0
+        mo = self.env['mercadolibre.orders'].create({'order_id': '2000018616975582', 'name': '2000018616975582', 'sale_order': so.id})
+        self.env['mercadolibre.payments'].create({
+            'order_id': mo.id, 'payment_id': '180592010042', 'status': 'approved', 'currency_id': self.env.company.currency_id.name,
+            'transaction_amount': 34917.35, 'total_paid_amount': 31271.33, 'coupon_amount': 7000.0, 'shipping_amount': 3353.98})
+        so.meli_orders = [(6, 0, [mo.id])]
+        sh = self.env['mercadolibre.shipment'].create({
+            'sale_order': so.id, 'tracking_method': 'Andreani Estandar 526', 'mode': 'me2',
+            'shipping_cost': 3353.98, 'shipping_seller_cost': 13847.5, 'shipping_list_cost': 13847.5})
+        SO = type(so)
+        with patch.object(SO, 'meli_amount_to_invoice', lambda self, meli=None, config=None: 31271.33, create=True), \
+             patch.object(type(mo), '_ensure_payment_shipping_amounts', lambda self, meli=None, config=None: None, create=True):
+            sh._update_sale_order_shipping_info(mo, meli=None, config=self.env.company)
+        dl = so.order_line.filtered('is_delivery')
+        self.assertAlmostEqual(sum(dl.mapped('price_unit')), 3353.98, places=2,
+                               msg="re-sync de venta facturada: el envio NO se baja a 0 (ML 2000018616975582)")
+        self.assertAlmostEqual(so.amount_total, inv.amount_total, places=2)
