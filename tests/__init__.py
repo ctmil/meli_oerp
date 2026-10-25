@@ -24,3 +24,4 @@ from . import test_cancel_decision_pure
 from . import test_mlm_cfdi_pure
 from . import test_receiver_cost_pure
 from . import test_sku_token_pure
+from . import test_26309_venta_bloqueada

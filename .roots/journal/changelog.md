@@ -4,6 +4,9 @@
 
 ---
 
+## 19.0.26.309 — 25-oct-2026 · Ventas marcadas «No actualizar desde ML»: sin errores repetidos en el registro
+- Una venta con «No actualizar desde ML» sigue sin tocarse, pero ya no deja un error en el registro cada vez que llega una novedad de MercadoLibre: se avisa una vez y la notificación se da por procesada.
+
 ## 19.0.26.308 — 25-oct-2026 · Etiquetas de la venta en español y limpieza de código compartida con Odoo 20
 - Pestaña MercadoLibre de la venta y lista de órdenes ML con etiquetas en español: monto del cupón (se corrigió el error de tipeo «Coupont amount»), descuento a cargo del vendedor, provincia/localidad/barrio/código postal del comprador, orden, id de envío, producto, SKU, IVA e ids de ML del producto; también monto de envío, detalle del estado y archivo PDF de la etiqueta.
 - Consultas a la base con datos de MercadoLibre como parámetros (no armadas como texto) y 17 índices nuevos en relaciones muy usadas. ⚠️ Al actualizar se crean esos índices: en bases grandes conviene hacerlo fuera del horario de ventas.
