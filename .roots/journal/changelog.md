@@ -4,6 +4,11 @@
 
 ---
 
+## 18.0.26.306 — 25-oct-2026 · Devolución automática de envíos FULL con el parámetro `meli_oerp.cancel_return_full` [#607]
+- Con el parámetro del sistema `meli_oerp.cancel_return_full = 1`, cuando MercadoLibre cancela una venta FULL con la salida ya hecha, la devolución se crea (y se valida si «Devoluciones» está en «Crear y validar») hacia la ubicación de origen de la salida. Antes sólo funcionaba junto con la política por motivo (`meli_oerp.cancel_reason_policy = by_reason`); ahora vale solo.
+- Sin el parámetro en 1 no cambia nada: las ventas FULL siguen sin devolución automática.
+- Siguen aplicando los motivos de `meli_oerp.cancel_return_reasons`, el pack dividido (`pack_splitted`, nunca devuelve solo en el modo de siempre) y el control de «ya devuelta» (no se duplica).
+
 ## 18.0.26.305 — 25-oct-2026 · Release de flota 26.305 (acompaña el cobro automático de meli_oerp_accounting)
 - Test de regresión: re-sincronizar una venta ya facturada no cambia la línea de envío.
 
