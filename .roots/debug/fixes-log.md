@@ -1736,3 +1736,16 @@ confirmar con el usuario.
 
 ## 16.0.26.222 — 13-oct-2026 · migración SLA renombrada (26.188 → 26.222)
 - La migración de #431 (llenar `meli_handling_limit` almacenado por SQL) vivía en `migrations/16.0.26.188/`: ninguna base por encima de 26.188 la habría corrido y Odoo recalcularía el related registro por registro. Se movió a `16.0.26.222/`; es idempotente (`ADD COLUMN IF NOT EXISTS` + `UPDATE`). Probado: instalado 26.221 → `-u` 26.222 en 16/17/18/19, la migración corre (banco Postgres, 13-oct).
+
+## 26.306 (25-oct-2026) — #607 PetMarkt 393: `cancel_return_full=1` sin `by_reason`
+**Causa:** `models/orders.py` `_meli_return_done_pickings`, guard FULL (26.171/26.278): sólo se levantaba con el
+context `meli_cancel_return_full`, que arma únicamente `_meli_cancel_by_reason` (política by_reason). En el modo
+legacy el parámetro no tenía efecto ⇒ FULL nunca devolvía. Medido en la 393 (pase 26.294): 129 de 131 salidas
+de ventas canceladas son FULL.
+**Fix:** el guard se levanta con el context **o** con el parámetro (`_meli_cancel_return_full_on()`). Sin el
+parámetro: idéntico. Motivos, pack_splitted legacy y anti-duplicado siguen igual.
+**Tests:** `tests/test_26306_full_return_legacy.py` (tag meli_26306, 7 casos: FULL legacy sin/con param,
+no duplica, motivo fuera de lista, pack_splitted, by_reason+param = 1 devolución, no-FULL sin cambios).
+Fix 7/7 en 16-19; control origin 26.305 rojo en 02/03. Suites /meli_oerp,/accounting,/multiple,/stock: 0
+regresiones (preexistentes idénticas fix/ctl). Accounting: `tests/test_26306_sign_invoice.py` (regresión de
+meli_sign_invoice, fix de 26.302): 4/4; control accounting pre-302 ⇒ NameError: name 'config' is not defined.

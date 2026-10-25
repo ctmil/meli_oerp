@@ -11,6 +11,7 @@ from . import test_adopcion_linea
 from . import test_513_direcciones_manuales
 
 from . import test_26278_cancel_por_motivo
+from . import test_26306_full_return_legacy
 from . import test_431_import_lock
 from . import test_452_envio_archivado
 from . import test_682_dni_movil
