@@ -1,0 +1,68 @@
+# -*- coding: utf-8 -*-
+"""26.305 (#526 Deco, 25-oct-2026): re-sincronizar una venta YA FACTURADA no toca el envio.
+
+En el fork de Deco (meli_oerp 19.0.26.86, anterior al guard del #493) el re-sync de la venta
+ML 2000018616975582 (FA-B 00006-00000160 pagada, $46.308,31) llevo la linea de envio de
+$3.353,98 a $0: el bloque "envio con cupon" calculaba el residual lo-cobrable - producto (< 0)
+y la escritura directa `delivery_line.price_unit = 0.0` no tenia guard.
+
+El source ya lo cubre (`_meli_guard_delivery_write`, versions.py, desde 26.94): este test lo deja
+fijado para que no vuelva. Cubre los dos caminos: set_delivery_line y el chequeo que usan las
+escrituras directas de shipment.py.
+"""
+from odoo.addons.account.tests.common import AccountTestInvoicingCommon
+from odoo.addons.meli_oerp.models.versions import set_delivery_line, _meli_guard_delivery_write
+from odoo.tests import tagged
+
+
+def _sales_user(env):
+    gfield = 'group_ids' if 'group_ids' in env.user._fields else 'groups_id'
+    env.user.write({gfield: [(4, env.ref('sales_team.group_sale_manager').id)]})
+
+
+@tagged('post_install', '-at_install', 'meli_526_envio')
+class TestMeli526EnvioFacturada(AccountTestInvoicingCommon):
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        _sales_user(cls.env)
+        Product = cls.env['product.product']
+        cls.prod = Product.create({'name': 'Cortina 526', 'type': 'service',
+                                   'invoice_policy': 'order', 'taxes_id': [(5, 0, 0)]})
+        cls.ship = Product.create({'name': 'Andreani 526', 'type': 'service',
+                                   'invoice_policy': 'order', 'taxes_id': [(5, 0, 0)]})
+        co = cls.env.company
+        if 'mercadolibre_protect_invoiced_orders' in co._fields:
+            co.mercadolibre_protect_invoiced_orders = True
+
+    def _venta(self, ref):
+        tf = 'tax_ids' if 'tax_ids' in self.env['sale.order.line']._fields else 'tax_id'
+        so = self.env['sale.order'].create({
+            'partner_id': self.partner_a.id,
+            'meli_order_id': ref,
+            'order_line': [
+                (0, 0, {'product_id': self.prod.id, 'product_uom_qty': 1, 'price_unit': 42249.99, tf: [(5, 0, 0)]}),
+                (0, 0, {'product_id': self.ship.id, 'product_uom_qty': 1, 'price_unit': 3353.98,
+                        'is_delivery': True, tf: [(5, 0, 0)]}),
+            ],
+        })
+        so.action_confirm()
+        return so, so.order_line.filtered('is_delivery')
+
+    def test_venta_facturada_no_baja_el_envio(self):
+        so, dl = self._venta('2000018616975582')
+        inv = so._create_invoices()
+        inv.action_post()
+        self.assertEqual(inv.state, 'posted')
+        self.assertTrue(_meli_guard_delivery_write(so, dl, 0.0),
+                        "con factura posteada el guard tiene que frenar la escritura del envio")
+        set_delivery_line(so, 0.0, "Defined by MELI")
+        self.assertAlmostEqual(dl.price_unit, 3353.98, places=2, msg="el envio NO se baja a 0")
+        self.assertAlmostEqual(so.amount_total, inv.amount_total, places=2,
+                               msg="la venta queda igual a su factura")
+
+    def test_venta_sin_factura_si_se_actualiza(self):
+        so, dl = self._venta('2000018616975583')
+        self.assertFalse(_meli_guard_delivery_write(so, dl, 0.0), "sin factura el guard no interviene")
+        self.assertFalse(_meli_guard_delivery_write(so, dl, 3353.98), "sin cambio de precio no hay nada que frenar")
