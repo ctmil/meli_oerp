@@ -15,3 +15,4 @@ from . import test_431_import_lock
 from . import test_452_envio_archivado
 from . import test_682_dni_movil
 from . import test_526_envio_facturada
+from . import test_158_envio_a_facturar
