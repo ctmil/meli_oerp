@@ -214,7 +214,7 @@
                               <field name="meli_receiver_city" readonly="1"/>
                               <field name="meli_receiver_neighborhood" readonly="1"/>
                               <field name="meli_receiver_zip_code" readonly="1"/>
-                              <field name="meli_shipment_pdf_file" filename="meli_shipment_pdf_filename" invisible="0"/>
+                              <field name="meli_shipment_pdf_file" filename="meli_shipment_pdf_filename" invisible="not meli_shipment_pdf_file"/>
                               <field name="meli_shipment_pdf_filename" invisible="0"/>
                               <field name="meli_shipment_logistic_type" invisible="0"/>
                               <field name="meli_handling_limit" readonly="1"

@@ -112,6 +112,15 @@ fecha de cancelación se lee del texto de `meli_status_detail`.
 ### 19.0.26.170 — sin script (30-sep-2026, #645)
 `mercadolibre_order_confirm_no_stock_mode` (Selection, default `confirm`) en `res.company` (meli_oerp) y en
 `mercadolibre.configuration` (meli_oerp_multiple). El ORM crea la columna con el default ⇒ comportamiento idéntico al anterior.
+## 20.0.26.303 → 20.0.26.304 (25-oct-2026, bugs de UI del video demo 20)
+
+| # | Cambio | Por qué | Clase |
+|---|---|---|---|
+| 1 | `views/orders_view.xml`: `meli_shipment_pdf_file` con `invisible="not meli_shipment_pdf_file"` (antes `invisible="0"`) · `views/shipment_view.xml` (lista): `pdf_file` con `invisible="not pdf_file"` | En la pestaña MercadoLibre de la Venta "Pdf File" mostraba el literal `false`: en 20 el `BinaryField` readonly con `filename=` y sin archivo hace `t-out` de `fileName`, que devuelve `false` (core 19: no pintaba nada). Con PDF se ve igual que antes (enlace + nombre) | B (en 16–19 no se ve el bug; aplicarlo sólo oculta la etiqueta vacía) |
+| 2 | `i18n/es_AR.po` +4: Shipping Amount, Status detail…, Pdf File, Pdf Filename (refs del export del banco) | Etiquetas en inglés en la Venta (video demo) | A |
+
+Verificación (banco 20, logs `leaves/2026-10-25-suite-20-E/` del workspace): `-u` 26.30x→26.304 en `camp20_c`/`camp20_e` rc=0 0 W/E; tests con demo `--log-level=test` de los 7 en base nueva c y e: `0 failed, 0 error(s) of 341 tests`, 0 W/E; `odoo20-ui-smoke.mjs` 0 hallazgos propios (sólo el 500 conocido de `/AUTOFACTURA/address`).
+
 ## 5 oct 2026 — `sale.order.meli_handling_limit` almacenado (v19.0.26.188) [#431]
 
 - El related `meli_shipment.estimated_handling_limit` pasa a `store=True, index=True`.
