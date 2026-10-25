@@ -118,7 +118,7 @@ class product_public_category(models.Model):
 
     _inherit="product.public.category"
 
-    mercadolibre_category = fields.Many2one( "mercadolibre.category", string="Mercado Libre Category")
+    mercadolibre_category = fields.Many2one( "mercadolibre.category", string="Mercado Libre Category", index='btree_not_null')
 
 
 class mercadolibre_category_attribute(models.Model):
@@ -885,7 +885,7 @@ class mercadolibre_grid_value(models.Model):
     meli_id = fields.Char(string="Id",required=True,index=True)
     name = fields.Char(string="Nombre",index=True)
     value = fields.Char(string="Value",index=True)
-    att_id = fields.Many2one("mercadolibre.grid.attribute", string="Attribute")
+    att_id = fields.Many2one("mercadolibre.grid.attribute", string="Attribute", index='btree_not_null')
 
 
     def prepare_vals( self, djson ):
@@ -912,7 +912,7 @@ class mercadolibre_grid_attribute_line(models.Model):
     _name = "mercadolibre.grid.attribute.line"
     _description = "Linea de atributo de Guia de talles de MercadoLibre"
 
-    grid_chart_id = fields.Many2one("mercadolibre.grid.chart", string="row id")
+    grid_chart_id = fields.Many2one("mercadolibre.grid.chart", string="row id", index='btree_not_null')
     att_id = fields.Many2one("mercadolibre.grid.attribute", string="Attribute")
     val_id = fields.Many2one("mercadolibre.grid.value", string="Values")
 
@@ -928,7 +928,7 @@ class mercadolibre_grid_row_col(models.Model):
     _name = "mercadolibre.grid.row.col"
     _description = "Col de atributo de Guia de talles de MercadoLibre"
 
-    grid_row_id = fields.Many2one("mercadolibre.grid.row", string="Row id")
+    grid_row_id = fields.Many2one("mercadolibre.grid.row", string="Row id", index='btree_not_null')
     #att_id = fields.Many2one("mercadolibre.grid.attribute", string="Attribute")
     #val_id = fields.Many2one("mercadolibre.grid.value", string="Values")
     att_id = fields.Char(string="Id",required=True,index=True)
@@ -976,7 +976,7 @@ class mercadolibre_grid_row(models.Model):
     _description = "Fila de guia de talles de MercadoLibre"
 
     row_id = fields.Char(string="Id",required=True,index=True)
-    grid_chart_id = fields.Many2one("mercadolibre.grid.chart", string="Chart id")
+    grid_chart_id = fields.Many2one("mercadolibre.grid.chart", string="Chart id", index='btree_not_null')
     attribute_values = fields.One2many("mercadolibre.grid.row.col", "grid_row_id", string="Attributes Values")
 
     def prepare_vals( self, djson ):

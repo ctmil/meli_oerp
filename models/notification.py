@@ -150,7 +150,6 @@ class MercadolibreNotification(models.Model):
             _logger.error("Error connecting to Meli, myfeeds")
             _logger.info(e, exc_info=True)
             return {"error": "Error connecting to Meli.", "status": "520" }
-            pass;
 
         #process all notifications
         for n in messages:
@@ -194,7 +193,6 @@ class MercadolibreNotification(models.Model):
                 _logger.error("Error creating notification.")
                 _logger.info(e, exc_info=True)
                 return {"error": "Error creating notification.", "status": "520" }
-                pass;
 
         self.process_notifications(limit=1)
 

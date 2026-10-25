@@ -63,12 +63,13 @@ def meli_import_stale(env, checks):
     found = []
     with env.registry.cursor() as fresh:
         for table, column, values in pending:
+            # table/column son literales de los llamadores (orders/shipment); los valores van como parámetro
             query = 'SELECT id FROM "%s" WHERE "%s" = ANY(%%s)' % (table, column)
-            fresh.execute(query, (values,))
+            fresh.execute(query, (values,))  # pylint: disable=sql-injection
             committed = {r[0] for r in fresh.fetchall()}
             if not committed:
                 continue
-            env.cr.execute(query, (values,))
+            env.cr.execute(query, (values,))  # pylint: disable=sql-injection
             visible = {r[0] for r in env.cr.fetchall()}
             unseen = committed - visible
             if unseen:

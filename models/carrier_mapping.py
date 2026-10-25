@@ -24,6 +24,7 @@ class MeliCarrierMapping(models.Model):
     carrier_id = fields.Many2one(
         "delivery.carrier",
         string="Transportista en Odoo",
+        index='btree_not_null',
         domain="[('active', '=', True)]",
         help="Carrier existente en Odoo al que se mapea este nombre de ML. "
              "Si está vacío, se creará uno automáticamente al recibir un envío con este nombre.",
