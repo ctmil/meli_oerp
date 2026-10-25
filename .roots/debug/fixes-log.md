@@ -4,6 +4,10 @@
 
 ---
 
+## 25 oct 2026 — test de regresión: envío de una venta facturada no se baja a 0 [#526] (v18.0.26.305)
+**Causa (fork Deco 19.0.26.86, NO el source):** re-sync de la venta ML 2000018616975582 (FA-B pagada 46.308,31) llevó el envío 3.353,98 → 0: residual "envío con cupón" < 0 + `delivery_line.price_unit = 0.0` sin guard. El source tiene `_meli_guard_delivery_write` (versions.py) desde 26.94.
+**Fix:** sin cambio de código; `tests/test_526_envio_facturada.py` (tag `meli_526_envio`) fija el guard (set_delivery_line no baja el envío con factura posteada). Verde en 16/17/18/19 (fix y origin).
+
 ## 24 oct 2026 — release 26.302: _action_assign(force_qty) / Pillow (v18.0.26.302)
 **Causa:** override `_action_assign(self)` sin `force_qty`; el core stock 16–19 es `_action_assign(self, force_qty=False)` y mrp llama `super()._action_assign(force_qty=...)` ⇒ TypeError si mrp queda encima en el MRO. **Fix:** firma y super con `force_qty` (port de 20.0, lint test_override_signatures).
 **Pillow:** fuera de requirements.txt (compat-20 clase A).
