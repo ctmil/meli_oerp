@@ -4,6 +4,12 @@
 
 ---
 
+## 25 oct 2026 — línea de envío ML en $0 «A facturar» en venta ya facturada [158] (v17.0.26.307)
+**Síntoma (158, SO ML 2000019153738674):** factura del producto posteada; línea de envío «ME1 - zip» $0 con qty_to_invoice=1 / «to invoice» (escrita por el sistema 25-oct 13:53Z); el compute (26.268) evaluado en memoria da 0 / invoiced. Chatter: «ML quiso modificar… ya facturada. Cambio no aplicado: envío 0.0 -> 51222.31».
+**Causa:** models/shipment.py, rama `elif delivery_price > 0.0` (17/18/19 L1175-1188; 16 L1216-1237): escribía `qty_to_invoice = pedida - facturada` DIRECTO sobre el campo calculado aunque el guard de venta facturada (`_meli_guard_delivery_write`, versions.py) hubiera frenado el precio ⇒ línea $0 a facturar. En 16.0 la rama ya tenía guard (no reproducía por ese camino). Un «Crear factura» manual (sale_order.py `_get_invoiceable_lines`, no mira `_can_be_invoiced_alone`) armaba factura con una sola línea de envío $0.
+**Fix:** `sale.order.line._meli_refresh_shipping_invoice_qty` (orders.py): envío ML ⇒ no se escribe, se pide recompute (línea + pedido); otro envío ⇒ comportamiento previo sólo con precio > 0. migrations/17.0.26.307/post-migrate.py: recompute de envíos ML $0 con qty_to_invoice != 0 (envíos con precio NO se tocan).
+**Prueba:** tests/test_158_envio_a_facturar.py (tag meli_158_envio): refresh, re-sync real `_update_sale_order_shipping_info` sobre venta facturada, migración acotada. Fix verde 16-19; control origin 26.306 rojo en 17/18/19 (`1.0 != 0.0`).
+
 ## 25 oct 2026 — test de regresión: envío de una venta facturada no se baja a 0 [#526] (v17.0.26.305)
 **Causa (fork Deco 19.0.26.86, NO el source):** re-sync de la venta ML 2000018616975582 (FA-B pagada 46.308,31) llevó el envío 3.353,98 → 0: residual "envío con cupón" < 0 + `delivery_line.price_unit = 0.0` sin guard. El source tiene `_meli_guard_delivery_write` (versions.py) desde 26.94.
 **Fix:** sin cambio de código; `tests/test_526_envio_facturada.py` (tag `meli_526_envio`) fija el guard (set_delivery_line no baja el envío con factura posteada). Verde en 16/17/18/19 (fix y origin).
