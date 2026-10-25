@@ -140,6 +140,41 @@ def meli_message_already_posted(record, once_key):
         return False
 
 
+# ---------------------------------------------------------------------------
+# 26.309 (158): venta BLOQUEADA para actualizar desde ML (`sale.order.meli_update_forbidden`).
+# El freno es correcto (no escribe nada), pero se logueaba ERROR en CADA llamada y la notificacion
+# quedaba FAILED => el cron de notificaciones (RECEIVED + FAILED) la reintentaba en cada corrida,
+# para siempre. Ahora: WARNING una vez por venta y por proceso (despues DEBUG) y el retorno trae la
+# marca `meli_update_forbidden` para que la notificacion se cierre como SUCCESS sin reintento.
+MELI_UPDATE_FORBIDDEN_ERRORS = ('Forbidden to upate by meli_oerp', 'Forbidden to update sale order by meli_oerp')
+_MELI_UPDATE_FORBIDDEN_WARNED = set()
+
+
+def meli_is_update_forbidden_error(err):
+    """True si `err` (str o dict de retorno) es el freno de venta bloqueada."""
+    if isinstance(err, dict):
+        if err.get('meli_update_forbidden'):
+            return True
+        err = err.get('error')
+    return any(m in str(err or '') for m in MELI_UPDATE_FORBIDDEN_ERRORS)
+
+
+def meli_log_update_forbidden(logger, sorder, where=''):
+    """WARNING la primera vez por venta en este proceso; las siguientes DEBUG."""
+    key = (getattr(sorder, '_name', ''), getattr(sorder, 'id', None))
+    if key in _MELI_UPDATE_FORBIDDEN_WARNED:
+        logger.debug("MELI_UPDATE_FORBIDDEN: venta %s bloqueada (ya avisado)%s",
+                     getattr(sorder, 'name', key[1]), where)
+        return False
+    if len(_MELI_UPDATE_FORBIDDEN_WARNED) > 50000:
+        _MELI_UPDATE_FORBIDDEN_WARNED.clear()
+    _MELI_UPDATE_FORBIDDEN_WARNED.add(key)
+    logger.warning("MELI_UPDATE_FORBIDDEN: venta %s bloqueada para actualizar desde ML "
+                   "(No actualizar desde ML = activo): no se escribe nada%s",
+                   getattr(sorder, 'name', key[1]), where)
+    return True
+
+
 def meli_message_body_with_marker(body, once_key):
     """Devuelve `body` con la marca `once_key` pegada al final, invisible en el chatter.
 
