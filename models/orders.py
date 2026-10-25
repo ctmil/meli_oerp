@@ -2644,7 +2644,11 @@ class sale_order(models.Model):
         # decidía `por_estado_ml` (SHIP_FULFILLMENT => no mover stock) y lo que dice la ayuda.
         # 26.278 (#624): con la politica por motivo y meli_oerp.cancel_return_full=1 el cliente
         # lleva el stock del deposito FULL en Odoo: la devolucion vuelve a la ubicacion de origen.
-        if self.is_meli_order_fulfillment() and not self.env.context.get('meli_cancel_return_full') and self.picking_ids.filtered(
+        # 26.306 (#607): el parametro vale SOLO, tambien en modo legacy (sin by_reason). Sin el
+        # parametro en 1 nada cambia. Siguen mandando cancel_return_reasons, pack_splitted y
+        # mercadolibre_return_mode, y el chequeo de "ya devuelta" evita duplicar.
+        full_return = self.env.context.get('meli_cancel_return_full') or self._meli_cancel_return_full_on()
+        if self.is_meli_order_fulfillment() and not full_return and self.picking_ids.filtered(
                 lambda p: p.state == "done" and p.picking_type_code == "outgoing"):
             _logger.info("_meli_return_done_pickings: %s es FULL -> no se crea devolucion", self.name)
             meli_message_post(self, "Cancelación de ML: envío FULL (el stock lo gestiona MercadoLibre en su "
