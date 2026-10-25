@@ -4,6 +4,10 @@
 
 ---
 
+## 20.0.26.307 → 20.0.26.308 (25-oct-2026, release de armonización de flota, plan armonización 26308 P6) [MINT, rama `claude/armonia-26308-20.0`]
+- Forward de 19.0 f29ca7ff (P4): 14 etiquetas es_AR de `sale.order`/`mercadolibre.orders` + typo `Coupont amount` → `Coupon amount` (string del campo; sin migración: sólo i18n). Clase A (mismo commit en 16–19).
+- Sin scripts de migración (no hay cambios de datos ni de esquema).
+
 ## 20.0.26.304 → 20.0.26.307 (25-oct-2026, forward-port de 19.0 26.305/306/307) [migrador-20, rama `claude/fp-26307-20.0`]
 
 Cherry-pick commit por commit de origin/19.0 (c1d3b3bc, 43c18bb1, f6d8fd0e, 61d6a3f3). Código idéntico a 19 salvo lo listado.
