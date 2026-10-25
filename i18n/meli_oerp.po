@@ -1075,13 +1075,8 @@ msgid "Country"
 msgstr ""
 
 #. module: meli_oerp
-#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__coupon_amount
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__coupon_amount model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_coupon_amount
 msgid "Coupon amount"
-msgstr ""
-
-#. module: meli_oerp
-#: model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_coupon_amount
-msgid "Coupont amount"
 msgstr ""
 
 #. module: meli_oerp
