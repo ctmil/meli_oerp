@@ -303,6 +303,38 @@ class sale_order_line(models.Model):
                 line.invoice_status = 'invoiced'
         return res
 
+    def _meli_refresh_shipping_invoice_qty(self):
+        """[158, 26.307] Deja la cantidad a facturar de la linea de envio en manos del compute.
+
+        Antes shipment.py escribia `qty_to_invoice = pedida - facturada` DIRECTO cada vez que ML
+        informaba un envio con precio, aunque el guard de venta facturada hubiera frenado el
+        cambio de precio: la linea quedaba en $0 con qty_to_invoice=1 / "A facturar" (158, SO
+        ML 2000019153738674, 25-oct). Un valor escrito a mano sobre un campo calculado no lo
+        recalcula nadie hasta que cambie una dependencia.
+
+        - Linea de envio ML (`_meli_is_ml_shipping_line`): NO se escribe; se pide el recompute de
+          qty_to_invoice/invoice_status de la linea y del pedido (si nada cambio, Odoo no escribe).
+        - Otra linea de envio (metodo de entrega por stock, fuera del alcance de 26.231): el
+          comportamiento previo, pero SOLO si la linea tiene precio.
+        """
+        Line = self.env['sale.order.line']
+        for line in self:
+            if line.state == 'cancel' or not line.is_delivery:
+                continue
+            if line._meli_is_ml_shipping_line():
+                self.env.add_to_compute(Line._fields['qty_to_invoice'], line)
+                self.env.add_to_compute(Line._fields['invoice_status'], line)
+                self.env.add_to_compute(line.order_id._fields['invoice_status'], line.order_id)
+                continue
+            if (line.price_unit or 0.0) <= 0.0:
+                continue
+            expected = max((line.product_uom_qty or 1.0) - (line.qty_invoiced or 0.0), 0.0)
+            if line.qty_to_invoice != expected:
+                line.qty_to_invoice = expected
+                _logger.info("MELI shipment: restored qty_to_invoice=%.2f on delivery line for SO %s "
+                             "(price=%.2f, product=%s)", expected, line.order_id.name, line.price_unit,
+                             line.product_id.default_code or line.product_id.name)
+
     def _can_be_invoiced_alone(self):
         # (16.0 no tiene este hook: ahi lo resuelve delivery._compute_invoice_status)
         if self._meli_is_ml_shipping_line():

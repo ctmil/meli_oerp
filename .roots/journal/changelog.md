@@ -4,6 +4,10 @@
 
 ---
 
+## 18.0.26.307 — 25-oct-2026 · La línea de envío en $0 de una venta ya facturada ya no queda «A facturar» [158]
+- Cuando MercadoLibre informa un costo de envío sobre una venta que ya tiene factura emitida, el envío no se modifica (protección de venta facturada) y ahora tampoco se marca para facturar: la venta sigue «Facturada». Antes la línea de envío en $0 quedaba «A facturar» y un «Crear factura» manual armaba una factura con sólo el envío en $0.
+- Al actualizar, se recalcula el estado de las líneas de envío de ventas ML en $0 que hubieran quedado así. Las líneas de envío con precio no se tocan.
+
 ## 18.0.26.306 — 25-oct-2026 · Devolución automática de envíos FULL con el parámetro `meli_oerp.cancel_return_full` [#607]
 - Con el parámetro del sistema `meli_oerp.cancel_return_full = 1`, cuando MercadoLibre cancela una venta FULL con la salida ya hecha, la devolución se crea (y se valida si «Devoluciones» está en «Crear y validar») hacia la ubicación de origen de la salida. Antes sólo funcionaba junto con la política por motivo (`meli_oerp.cancel_reason_policy = by_reason`); ahora vale solo.
 - Sin el parámetro en 1 no cambia nada: las ventas FULL siguen sin devolución automática.

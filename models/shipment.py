@@ -1179,24 +1179,15 @@ class mercadolibre_shipment(models.Model):
                     # picking is done — but for MeLi we invoice on payment, not on delivery.
                     delivery_line = get_delivery_line(sorder)
                     if delivery_line and delivery_line.state not in ('cancel',):
-                        # [26.231] lo que FALTA facturar, no la cantidad pedida: despues
-                        # de facturar el envio volver a escribir 1 lo dejaba "A facturar".
-                        _expected_qty = max((delivery_line.product_uom_qty or 1.0)
-                                            - (delivery_line.qty_invoiced or 0.0), 0.0)
-                        if delivery_line.qty_to_invoice != _expected_qty:
-                            try:
-                                delivery_line.qty_to_invoice = _expected_qty
-                                _logger.info(
-                                    "MELI shipment: restored qty_to_invoice=%.2f on delivery line "
-                                    "for SO %s (price=%.2f, product=%s)",
-                                    _expected_qty, sorder.name, delivery_price,
-                                    delivery_line.product_id.default_code or delivery_line.product_id.name,
-                                )
-                            except Exception as _e:
-                                _logger.warning(
-                                    "MELI shipment: could not restore qty_to_invoice for SO %s: %s",
-                                    sorder.name, _e,
-                                )
+                        # [158, 26.307] ya no se escribe qty_to_invoice a mano: si el guard de venta
+                        # facturada freno el precio, la linea seguia en $0 y quedaba "A facturar".
+                        try:
+                            delivery_line._meli_refresh_shipping_invoice_qty()
+                        except Exception as _e:
+                            _logger.warning(
+                                "MELI shipment: could not refresh qty_to_invoice for SO %s: %s",
+                                sorder.name, _e,
+                            )
                 #_logger.info("Finished _update_sale_order_shipping_info")
             return
 
