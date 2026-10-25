@@ -469,7 +469,7 @@ msgid "Country"
 msgstr "País"
 
 #. module: meli_oerp
-#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__coupon_amount
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__coupon_amount model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_coupon_amount
 msgid "Coupon amount"
 msgstr "Monto del cupón"
 
@@ -2091,3 +2091,63 @@ msgstr "Archivo PDF"
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__pdf_filename model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_shipment_pdf_filename
 msgid "Pdf Filename"
 msgstr "Nombre del archivo PDF"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_discount_seller_amount model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__discount_seller_amount
+msgid "Discount Seller Amount"
+msgstr "Descuento a cargo del vendedor"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_receiver_state
+msgid "ML Receiver Provincia"
+msgstr "Provincia (ML)"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_receiver_city
+msgid "ML Receiver Localidad"
+msgstr "Localidad (ML)"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_receiver_neighborhood
+msgid "ML Receiver Barrio"
+msgstr "Barrio (ML)"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_receiver_zip_code
+msgid "ML Receiver CP"
+msgstr "Código postal (ML)"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__name
+msgid "Order Name"
+msgstr "Orden"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__shipping_id
+msgid "Shipping id"
+msgstr "Id de envío"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__order_product
+msgid "Order Product"
+msgstr "Producto"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__order_product_sku
+msgid "Order Product Sku"
+msgstr "SKU del producto"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__order_product_iva
+msgid "Order Product IVA"
+msgstr "IVA del producto"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__order_product_meli_id
+msgid "Order Product Meli Id"
+msgstr "Id ML del producto"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__order_product_meli_variation_id
+msgid "Order Product Meli Full Id"
+msgstr "Id ML completo del producto"
