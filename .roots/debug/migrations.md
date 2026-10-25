@@ -4,6 +4,20 @@
 
 ---
 
+## 20.0.26.304 → 20.0.26.307 (25-oct-2026, forward-port de 19.0 26.305/306/307) [migrador-20, rama `claude/fp-26307-20.0`]
+
+Cherry-pick commit por commit de origin/19.0 (c1d3b3bc, 43c18bb1, f6d8fd0e, 61d6a3f3). Código idéntico a 19 salvo lo listado.
+- **26.305/526:** sólo test (`test_526_envio_facturada`). **26.306/393:** `_meli_return_done_pickings` levanta el guard FULL también con `meli_oerp.cancel_return_full=1` (sin by_reason).
+- **26.307/158:** `sale.order.line._meli_refresh_shipping_invoice_qty` + `shipment.py` ya no escribe `qty_to_invoice` a mano.
+  Migración **`migrations/20.0.26.307/post-migrate.py`** (en 19: `19.0.26.307`; las carpetas `19.0.*` no corren en 20 porque
+  comparan contra `20.0.*`). Probada con dato: envío ML $0 con `qty_to_invoice=1` sembrado en 26.304 ⇒ log
+  «MELI 26.307: 1 lineas de envio ML $0 recalculadas en 1 ventas; quedan con cantidad a facturar: 0», línea `0.00|invoiced|invoiced`.
+- **Sólo 20 (B):** `test_26306_full_return_legacy` usa `ICP.set_str` (cheatsheet fila 48: `set_param` no existe en 20 ⇒ el
+  setUpClass daba AttributeError). Los WARNING esperados de los tests nuevos (protect_invoiced, MELI_CANCEL_RETURN_SKIP) se
+  afirman con `assertLogs` en vez de quedar sueltos (criterio F7: build sin WARNING).
+
+Verificación (banco 20 community, logs `.roots/workbench/leaves/2026-10-25-suite-20-fp307/` del workspace): `-u` 20.0.26.304→26.307 de los 7 sobre base con demo + caso sembrado: EXIT 0, 0 W/E; `-i` de los 7 en base nueva con demo + `--test-enable`: **0 failed, 0 error(s) of 370 tests**, 0 W/E.
+
 ### 20.0.26.301 — reglas de Odoo 20 (`test_lint`) aplicadas (24-oct-2026, F8b, rama `claude/lint-20.0` desde 20.0 4ceb33de)
 Vara: `.roots/scripts/odoo-lint.sh` del workspace (pylint con las opciones de `test_lint/test_pylint.py` + `test_lint` del core
 20 corrido de verdad). Varas de error: **175 → 57**; lo que queda está justificado regla por regla en

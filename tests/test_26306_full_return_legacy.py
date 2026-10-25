@@ -30,9 +30,9 @@ class TestFullReturnLegacy(TransactionCase):
         if "mercadolibre_notification_mode" in cls.co._fields:
             cls.co.mercadolibre_notification_mode = "internal_note"
         cls.ICP = cls.env["ir.config_parameter"].sudo()
-        cls.ICP.set_param("meli_oerp.cancel_reason_policy", "")
-        cls.ICP.set_param("meli_oerp.cancel_return_full", "")
-        cls.ICP.set_param("meli_oerp.cancel_return_reasons", "buyer_cancel_express,fraud")
+        cls.ICP.set_str("meli_oerp.cancel_reason_policy", "")
+        cls.ICP.set_str("meli_oerp.cancel_return_full", "")
+        cls.ICP.set_str("meli_oerp.cancel_return_reasons", "buyer_cancel_express,fraud")
         cls.SO = cls.env["sale.order"]
 
     def setUp(self):
@@ -99,7 +99,7 @@ class TestFullReturnLegacy(TransactionCase):
         self.assertEqual(self._qty(prod), 48)
 
     def test_02_full_legacy_con_parametro_devuelve_en_hecho(self):
-        self.ICP.set_param("meli_oerp.cancel_return_full", "1")
+        self.ICP.set_str("meli_oerp.cancel_return_full", "1")
         so, prod = self._mkso()
         out = self._out(so)
         self.assertTrue(self._cancel(so, _oj("buyer_cancel_express", ["bpp_refunded"])))
@@ -111,7 +111,7 @@ class TestFullReturnLegacy(TransactionCase):
         self.assertFalse(so.meli_cancel_return_skipped)
 
     def test_03_full_legacy_con_parametro_no_duplica(self):
-        self.ICP.set_param("meli_oerp.cancel_return_full", "1")
+        self.ICP.set_str("meli_oerp.cancel_return_full", "1")
         so, prod = self._mkso()
         self._cancel(so, _oj("buyer_cancel_express", ["bpp_refunded"]))
         so._meli_return_done_pickings()
@@ -120,16 +120,18 @@ class TestFullReturnLegacy(TransactionCase):
         self.assertEqual(self._qty(prod), 50)
 
     def test_04_full_legacy_con_parametro_motivo_fuera_de_lista(self):
-        self.ICP.set_param("meli_oerp.cancel_return_full", "1")
+        self.ICP.set_str("meli_oerp.cancel_return_full", "1")
         so, prod = self._mkso()
-        self.assertTrue(self._cancel(so, _oj("mediations", ["bpp_refunded"])))
+        # 20.0: WARNING esperado (MELI_CANCEL_RETURN_SKIP), afirmado en vez de suelto en el log
+        with self.assertLogs('odoo.addons.meli_oerp.models.orders', level='WARNING'):
+            self.assertTrue(self._cancel(so, _oj("mediations", ["bpp_refunded"])))
         self.assertEqual(so.state, "cancel")
         self.assertFalse(self._returns(so), "cancel_return_reasons sigue mandando")
         self.assertTrue(so.meli_cancel_return_skipped)
 
     def test_05_full_legacy_con_parametro_pack_splitted_sin_devolucion(self):
-        self.ICP.set_param("meli_oerp.cancel_return_full", "1")
-        self.ICP.set_param("meli_oerp.cancel_return_reasons", "buyer_cancel_express,fraud,pack_splitted")
+        self.ICP.set_str("meli_oerp.cancel_return_full", "1")
+        self.ICP.set_str("meli_oerp.cancel_return_reasons", "buyer_cancel_express,fraud,pack_splitted")
         so, prod = self._mkso()
         self.assertFalse(self._cancel(so, _oj("pack_splitted", ["bpp_refunded"])))
         self.assertNotEqual(so.state, "cancel", "pack_splitted con salida hecha queda retenida, como antes")
@@ -137,8 +139,8 @@ class TestFullReturnLegacy(TransactionCase):
         self.assertEqual(self._qty(prod), 48)
 
     def test_06_by_reason_con_parametro_una_sola_devolucion(self):
-        self.ICP.set_param("meli_oerp.cancel_reason_policy", "by_reason")
-        self.ICP.set_param("meli_oerp.cancel_return_full", "1")
+        self.ICP.set_str("meli_oerp.cancel_reason_policy", "by_reason")
+        self.ICP.set_str("meli_oerp.cancel_return_full", "1")
         so, prod = self._mkso()
         self.assertTrue(self._cancel(so, _oj("buyer_cancel_express", ["bpp_refunded"])))
         self._cancel(so, _oj("buyer_cancel_express", ["bpp_refunded"]))

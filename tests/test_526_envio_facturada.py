@@ -55,9 +55,11 @@ class TestMeli526EnvioFacturada(AccountTestInvoicingCommon):
         inv = so._create_invoices()
         inv.action_post()
         self.assertEqual(inv.state, 'posted')
-        self.assertTrue(_meli_guard_delivery_write(so, dl, 0.0),
-                        "con factura posteada el guard tiene que frenar la escritura del envio")
-        set_delivery_line(so, 0.0, "Defined by MELI")
+        # 20.0: WARNING esperado (protect_invoiced), afirmado en vez de suelto en el log
+        with self.assertLogs('odoo.addons.meli_oerp.models.orders', level='WARNING'):
+            self.assertTrue(_meli_guard_delivery_write(so, dl, 0.0),
+                            "con factura posteada el guard tiene que frenar la escritura del envio")
+            set_delivery_line(so, 0.0, "Defined by MELI")
         self.assertAlmostEqual(dl.price_unit, 3353.98, places=2, msg="el envio NO se baja a 0")
         self.assertAlmostEqual(so.amount_total, inv.amount_total, places=2,
                                msg="la venta queda igual a su factura")

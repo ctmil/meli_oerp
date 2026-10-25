@@ -86,7 +86,9 @@ class TestMeli158EnvioAFacturar(AccountTestInvoicingCommon):
         SO = type(so)
         with patch.object(SO, 'meli_amount_to_invoice', lambda self, meli=None, config=None: 789900.0, create=True), \
              patch.object(type(mo), '_ensure_payment_shipping_amounts', lambda self, meli=None, config=None: None,
-                          create=True):
+                          create=True), \
+             self.assertLogs('odoo.addons.meli_oerp.models.orders', level='WARNING'):
+            # 20.0: WARNING esperado (protect_invoiced), afirmado en vez de suelto en el log
             sh._update_sale_order_shipping_info(mo, meli=None, config=self.env.company)
         sl = so.order_line.filtered('is_delivery')
         self.assertEqual(len(sl), 1)
