@@ -4,6 +4,10 @@
 
 ---
 
+## 20.0.26.309 — 25-oct-2026 · Ventas marcadas «No actualizar desde ML»: un aviso por venta, sin reintentos
+- Una venta con «No actualizar desde ML» ya no deja un error en el registro en cada actualización: queda un aviso una sola vez y la notificación se da por procesada.
+- Release de flota 26.309: mismo número en 16, 17, 18, 19 y 20 para meli_oerp, meli_oerp_stock, meli_oerp_accounting, meli_oerp_multiple y meli_oerp_autofacturacion (meli_oerp_campaign y odoo_connector_api siguen en 26.308).
+
 ## 20.0.26.308 — 25-oct-2026 · Etiquetas de la venta en español
 - Pestaña MercadoLibre de la venta y lista de órdenes ML con etiquetas en español: monto del cupón (se corrigió el error de tipeo «Coupont amount»), descuento a cargo del vendedor, provincia/localidad/barrio/código postal del comprador, orden, id de envío, producto, SKU, IVA e ids de ML del producto.
 - Release de armonización: mismo número 26.308 en 16, 17, 18, 19 y 20 para meli_oerp, meli_oerp_stock, meli_oerp_accounting, meli_oerp_multiple, meli_oerp_autofacturacion, meli_oerp_campaign y odoo_connector_api.

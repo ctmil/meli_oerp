@@ -4,6 +4,10 @@
 
 ---
 
+## 20.0.26.308 → 20.0.26.309 (25-oct-2026, forward-port de 19.0 26.309, plan armonización P14) [MINT, rama `claude/fp-26309-20.0`]
+- Forward de 19.0 51d2da3f (158 `meli_update_forbidden`): versions.py `meli_is_update_forbidden_error`/`meli_log_update_forbidden`, notification/orders/shipment + test `test_26309_venta_bloqueada`. `shipment.py`: sólo los 2 hunks, CRLF preservado (en 19.0 el commit lo pasó a LF).
+- Sin scripts de migración.
+
 ## 20.0.26.307 → 20.0.26.308 (25-oct-2026, release de armonización de flota, plan armonización 26308 P6) [MINT, rama `claude/armonia-26308-20.0`]
 - Forward de 19.0 f29ca7ff (P4): 14 etiquetas es_AR de `sale.order`/`mercadolibre.orders` + typo `Coupont amount` → `Coupon amount` (string del campo; sin migración: sólo i18n). Clase A (mismo commit en 16–19).
 - Sin scripts de migración (no hay cambios de datos ni de esquema).
