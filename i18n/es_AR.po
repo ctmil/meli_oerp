@@ -2071,3 +2071,23 @@ msgstr "Historial de comunicación web"
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__receiver_zip_code
 msgid "Zip Code"
 msgstr "Código Postal"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_payments__shipping_amount model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__shipping_amount model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_shipping_amount
+msgid "Shipping Amount"
+msgstr "Monto de envío"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__status_detail model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_status_detail
+msgid "Status detail, in case the order was cancelled."
+msgstr "Detalle del estado (si la orden fue cancelada)"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__pdf_file model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_shipment_pdf_file
+msgid "Pdf File"
+msgstr "Archivo PDF"
+
+#. module: meli_oerp
+#: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__pdf_filename model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_shipment_pdf_filename
+msgid "Pdf Filename"
+msgstr "Nombre del archivo PDF"
