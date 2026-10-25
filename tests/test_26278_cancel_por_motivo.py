@@ -220,7 +220,9 @@ class TestCancelPorMotivo(TransactionCase):
         so, prod = self._mkso()
         so.meli_cancel_reason_code = "shipment_not_delivered"
         self.photo = None   # GET falla
-        self.assertFalse(self._cancel(so))
+        with self.assertLogs("odoo.addons.meli_oerp.models.orders", level="WARNING") as cm:
+            self.assertFalse(self._cancel(so))
+        self.assertTrue(any("sin dato de pago" in m for m in cm.output))
         self.assertNotEqual(so.state, "cancel")
         self.assertFalse(so.meli_cancel_covered)
         self.assertFalse(self._returns(so))
@@ -252,7 +254,9 @@ class TestCancelPorMotivo(TransactionCase):
     def test_politica_apagada_comportamiento_de_siempre(self):
         self.ICP.set_param("meli_oerp.cancel_reason_policy", "")
         so, prod = self._mkso()
-        self.assertTrue(self._cancel(so, _oj("mediations", ["bpp_covered"])))
+        with self.assertLogs("odoo.addons.meli_oerp.models.orders", level="WARNING") as cm:
+            self.assertTrue(self._cancel(so, _oj("mediations", ["bpp_covered"])))
+        self.assertTrue(any("MELI_CANCEL_RETURN_SKIP" in m for m in cm.output))
         self.assertEqual(so.state, "cancel", "sin la politica, una mediacion cubierta se cancela como antes")
         self.assertFalse(so.meli_cancel_covered)
         self.assertFalse(self._returns(so), "mediations fuera de cancel_return_reasons: sin devolucion")
