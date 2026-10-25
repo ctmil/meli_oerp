@@ -4,6 +4,9 @@
 
 ---
 
+## 19.0.26.305 — 25-oct-2026 · Release de flota 26.305 (acompaña el cobro automático de meli_oerp_accounting)
+- Test de regresión: re-sincronizar una venta ya facturada no cambia la línea de envío.
+
 ## 19.0.26.302 — 24-oct-2026 · Reserva de stock con Fabricación y dependencias
 - Reserva de stock compatible con Fabricación (mrp): `stock.move._action_assign` acepta y pasa `force_qty` como el core (antes, con mrp instalado, la reserva podía fallar con TypeError).
 - `requirements.txt` sin `Pillow>=12.0.0`: Odoo ya fija su versión de Pillow; forzar otra hacía que Odoo.sh reinstalara una librería del core.

@@ -13,3 +13,4 @@ from . import test_26278_cancel_por_motivo
 from . import test_431_import_lock
 from . import test_452_envio_archivado
 from . import test_682_dni_movil
+from . import test_526_envio_facturada
