@@ -4,6 +4,13 @@
 
 ---
 
+## 19.0.26.308 — 25-oct-2026 · Etiquetas de la venta en español y limpieza de código compartida con Odoo 20
+- Pestaña MercadoLibre de la venta y lista de órdenes ML con etiquetas en español: monto del cupón (se corrigió el error de tipeo «Coupont amount»), descuento a cargo del vendedor, provincia/localidad/barrio/código postal del comprador, orden, id de envío, producto, SKU, IVA e ids de ML del producto; también monto de envío, detalle del estado y archivo PDF de la etiqueta.
+- Consultas a la base con datos de MercadoLibre como parámetros (no armadas como texto) y 17 índices nuevos en relaciones muy usadas. ⚠️ Al actualizar se crean esos índices: en bases grandes conviene hacerlo fuera del horario de ventas.
+- Crear una categoría ML nueva desde «Categorías» ya no da error.
+- Se eliminó código que nunca se ejecutaba y los tests no salen a internet. En esta versión se quitaron además dos métodos que Odoo ya no llamaba (sin cambio visible).
+- Release de armonización: mismo número 26.308 en 16, 17, 18, 19 y 20 para meli_oerp, meli_oerp_stock, meli_oerp_accounting, meli_oerp_multiple, meli_oerp_autofacturacion, meli_oerp_campaign y odoo_connector_api.
+
 ## 19.0.26.307 — 25-oct-2026 · La línea de envío en $0 de una venta ya facturada ya no queda «A facturar» [158]
 - Cuando MercadoLibre informa un costo de envío sobre una venta que ya tiene factura emitida, el envío no se modifica (protección de venta facturada) y ahora tampoco se marca para facturar: la venta sigue «Facturada». Antes la línea de envío en $0 quedaba «A facturar» y un «Crear factura» manual armaba una factura con sólo el envío en $0.
 - Al actualizar, se recalcula el estado de las líneas de envío de ventas ML en $0 que hubieran quedado así. Las líneas de envío con precio no se tocan.
