@@ -826,8 +826,8 @@ class mercadolibre_shipment(models.Model):
             including_shipping_cost = including_shipping_cost or "always"
 
             if (sorder and sorder.meli_update_forbidden):
-                _logger.error("Forbidden to update sale order by meli_oerp" )
-                return {'error': 'Forbidden to update sale order by meli_oerp' }
+                meli_log_update_forbidden(_logger, sorder, " (envio)")  # 26.309 (158): WARNING una vez
+                return {'error': 'Forbidden to update sale order by meli_oerp', 'meli_update_forbidden': True}
 
             sorder.meli_shipping_cost = shipment.shipping_cost
             #sorder.meli_shipping_seller_cost = shipment.shipping_seller_cost
@@ -1890,8 +1890,8 @@ class mercadolibre_shipment(models.Model):
                         #sorder_pack = self.env["sale.order"].search( [ '|',('meli_order_id','=',packed_order_ids), ('name','like', str(oname)) ], order="id asc", limit=1 )
                         sorder_pack = self.env["sale.order"].search( [ ('meli_order_id','=',packed_order_ids) ], order="id asc", limit=1 )
                         if (sorder_pack and sorder_pack.meli_update_forbidden):
-                            _logger.error("Forbidden to update sale order by meli_oerp" )
-                            return {'error': 'Forbidden to update sale order by meli_oerp' }
+                            meli_log_update_forbidden(_logger, sorder_pack, " (envio)")  # 26.309 (158): WARNING una vez
+                            return {'error': 'Forbidden to update sale order by meli_oerp', 'meli_update_forbidden': True}
 
                         sorder = sorder_pack
                         totales = {}

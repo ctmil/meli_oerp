@@ -279,7 +279,12 @@ class MercadolibreNotification(models.Model):
                     rsjson = morder.with_context(meli_skip_invoice_validation=True).orders_update_order_json( pdata )
                     _logger.info("rsjson:"+str(rsjson))
 
-                    if (rsjson and 'error' in rsjson):
+                    if (rsjson and 'error' in rsjson and meli_is_update_forbidden_error(rsjson)):
+                        # 26.309 (158): venta bloqueada (meli_update_forbidden) => no es un fallo y
+                        # reintentar no cambia nada: se cierra sin reintento.
+                        noti.state = 'SUCCESS'
+                        noti.processing_errors = "Skipped: venta bloqueada para actualizar desde ML (meli_update_forbidden)"
+                    elif (rsjson and 'error' in rsjson):
                         noti.state = 'FAILED'
                         noti.processing_errors = str(rsjson['error'])
                     else:
