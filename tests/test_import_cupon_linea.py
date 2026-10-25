@@ -8,9 +8,22 @@ confirmada a la que le falta encontrar su linea (ML 2000000000000004).
 """
 from unittest.mock import patch
 
-import requests
-
 from odoo.tests import common, tagged
+from odoo.tools import mute_logger
+
+
+class _MPNoDisponible:
+    """Respuesta de MercadoPago no disponible (503): mismo resultado que sin red (no hay datos
+    de MP y la orden sigue), sin el WARNING de red que ensucia el log del build."""
+    ok = False
+    status_code = 503
+
+    def __bool__(self):
+        return False
+
+    def json(self):
+        return {}
+
 
 OID = 2000000000000001
 
@@ -90,7 +103,8 @@ class TestImportCuponLinea(common.TransactionCase):
     def _run(self, order_json, routes, records=None):
         meli = _FakeMeli(routes)
         Orders = records if records is not None else self.env['mercadolibre.orders']
-        with patch('odoo.addons.meli_oerp.models.orders.requests.get', side_effect=requests.exceptions.ConnectionError('sin red')):
+        with patch('odoo.addons.meli_oerp.models.orders.requests.get', return_value=_MPNoDisponible()), \
+                mute_logger('odoo.addons.meli_oerp_multiple.models.sale'):
             res = Orders.orders_update_order_json({'id': False, 'order_json': order_json}, meli=meli, config=self.company)
         return res, meli
 
