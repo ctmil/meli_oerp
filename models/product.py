@@ -1122,7 +1122,7 @@ class product_template(models.Model):
     meli_family_name = fields.Char(string='Nombre de la familia del user product en Mercado Libre',size=256)
     meli_family_id = fields.Char(string='ID de familia ML (user_product_seller)',size=128,index=True)
     meli_description = fields.Text(string='Descripción')
-    meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre")
+    meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre", index='btree_not_null')
     meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
     meli_price = fields.Char(string='Precio de venta', size=128)
     meli_currency = fields.Selection([("ARS","Peso Argentino (ARS)"),
@@ -3839,25 +3839,6 @@ class product_product(models.Model):
 
     def _validate_category_settings( self, body ):
         return body
-        for product in self:
-            if (product.meli_category and
-                str(product.meli_category.meli_father_category_id) in ["MLA122201","MLA1540"]):
-                body["price"] = None
-                body["currency_id"] = None
-                body["condition"] = None
-                body["location"] = {
-                    "address_line": "mi direccion 1111",
-                    "city": {
-                        "name": "Capital Federal"
-                    },
-                    "state": {
-                        "name": "Capital Federal"
-                    },
-                    "country": {
-                        "name": "Argentina"
-                    }
-                }
-                return body
 
     def product_post_variant(self,variant_principal):
 
@@ -5774,7 +5755,8 @@ class product_product(models.Model):
                 ['product_id', 'state', 'date', 'write_date', 'create_date'])
         except Exception:
             pass
-        self.env.cr.execute(
+        # _MELI_MOVE_STAMP_SQL es una constante de la clase; el dato (ids) va como parámetro
+        self.env.cr.execute(  # pylint: disable=sql-injection
             "SELECT product_id, MAX(" + self._MELI_MOVE_STAMP_SQL + ") "
             "FROM stock_move WHERE product_id IN %s GROUP BY product_id",
             (ids,)

@@ -1,5 +1,6 @@
 # Test #529/#543 (descuento del vendedor doble, IVA de todas las compañias, `auto`, 401) —
 # `odoo shell -d <db_de_prueba> < este_archivo`. Bloquea la red y hace ROLLBACK. NO correr contra produccion.
+env = globals()["env"]  # lo inyecta `odoo shell`: declarado para el lint de Odoo (undefined-variable)
 import requests
 requests.Session.request = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("RED BLOQUEADA"))
 R = []

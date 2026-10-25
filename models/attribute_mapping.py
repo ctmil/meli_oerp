@@ -26,6 +26,7 @@ Sin traduccion de valores el mapeo no sirve para esa categoria.
 
 from odoo import fields, models, api
 from odoo.exceptions import ValidationError
+from odoo.tools.translate import _
 from . import versions
 
 import json
@@ -240,12 +241,12 @@ class MeliAttributeMapping(models.Model):
         """
         for rec in self:
             if not rec.meli_att_id:
-                raise ValidationError(
+                raise ValidationError(_(
                     "El mapeo de «%s» no tiene atributo de MercadoLibre, así que no mandaría nada.\n\n"
                     "Elegí un atributo en «Atributo de MercadoLibre» (el «ID del atributo» se "
                     "completa solo), o escribí el id a mano si el atributo todavía no fue importado "
-                    "de MercadoLibre." % (rec.field_id.field_description or rec.field_id.name or "?")
-                )
+                    "de MercadoLibre.", rec.field_id.field_description or rec.field_id.name or "?"
+                ))
 
     @api.onchange("model_name")
     def _onchange_model_name(self):

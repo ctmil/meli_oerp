@@ -11,6 +11,7 @@
 #   B importa la misma orden y commitea.
 # Esperado SIN el fix: 2 sale.order / 2 mercadolibre.orders. CON el fix: 1 y 1 (B devuelve SKIP).
 # Caso 2 (carrera solapada): A importa SIN commitear (tiene el lock), B intenta ⇒ CON el fix B saltea.
+env = globals()["env"]  # lo inyecta `odoo shell`: declarado para el lint de Odoo (undefined-variable)
 from unittest.mock import patch
 import requests
 from odoo import api, SUPERUSER_ID

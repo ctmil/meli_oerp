@@ -11,6 +11,7 @@
 #   AHORA (_meli_partner_vals_changed + _meli_partner_fiscal_sql_fix): sin cambios no hay UPDATE ⇒ B pasa.
 #   Y si el valor SI cambia, se sigue escribiendo (no se pierde la actualizacion).
 # Esperado con el fix: RESUMEN 4 OK / 0 FAIL. Sin el fix (codigo anterior): el caso AHORA no corre (SKIP).
+env = globals()["env"]  # lo inyecta `odoo shell`: declarado para el lint de Odoo (undefined-variable)
 import psycopg2
 from odoo import api, SUPERUSER_ID
 from odoo.addons.meli_oerp.models import orders as mo
@@ -39,7 +40,7 @@ def import_write(cr, nuevo, vals):
     else:                                   # lo que hacia el import antes de 26.228
         p.write(dict(vals))
         p.invalidate_recordset()
-        cr.execute("UPDATE res_partner SET " + ", ".join(FIX_FIELDS) + " WHERE id = %s",
+        cr.execute("UPDATE res_partner SET " + ", ".join(FIX_FIELDS) + " WHERE id = %s",  # pylint: disable=sql-injection
                    tuple(FIX_VALS + [p.id]))
 
 

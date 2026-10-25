@@ -22,6 +22,7 @@
 from odoo import fields, models, api
 from odoo.tools import html_escape
 from odoo.exceptions import UserError
+from odoo.tools.translate import _
 from markupsafe import Markup
 import logging
 import re
@@ -189,7 +190,8 @@ def _meli_partner_fiscal_sql_fix(cr, partner_id, set_clauses, values):
     que imports concurrentes sobre un mismo contacto se maten entre sí. Devuelve filas tocadas.
     """
     cols = [clause.split('=')[0].strip() for clause in set_clauses]
-    cr.execute(
+    # set_clauses son literales del código ("vat = %s", ...); los valores van como parámetros
+    cr.execute(  # pylint: disable=sql-injection
         "UPDATE res_partner SET " + ", ".join(set_clauses) + " WHERE id = %s AND ("
         + " OR ".join("%s IS DISTINCT FROM %%s" % col for col in cols) + ")",
         tuple(list(values) + [partner_id] + list(values)))
@@ -693,7 +695,7 @@ class sale_order(models.Model):
 #        'buyer': fields.many2one( "mercadolibre.buyers","Buyer"),
 #       'meli_seller': fields.text( string='Seller' ),
     meli_shipping_id =  fields.Char('Meli Shipping Id')
-    meli_shipment = fields.Many2one('mercadolibre.shipment',string='Meli Shipment Obj')
+    meli_shipment = fields.Many2one('mercadolibre.shipment',string='Meli Shipment Obj', index='btree_not_null')
     meli_shipment_pdf_file = fields.Binary(string='Pdf File',attachment=True, related="meli_shipment.pdf_file",readonly=True)
     meli_shipment_pdf_filename = fields.Char(string='Pdf Filename',related="meli_shipment.pdf_filename",readonly=True)
     # Zona del receiver (comprador) expuesta en la propia orden para buscar/filtrar/agrupar.
@@ -950,35 +952,6 @@ class sale_order(models.Model):
             #            if line.product_id and line.product_id.meli_id and line.product_id.meli_pub:
             #                _logger.info("Order done: product_post_stock: "+str(line.product_id.meli_id))
             #                #line.product_id.product_post_stock()
-        except:
-            pass;
-        return res
-
-    def action_done(self):
-        #_logger.info(meli order action done: " + str(self.mapped("name")) )
-        res = super(sale_order,self).action_done()
-        try:
-            for order in self:
-                if(order.meli_order_id):
-                    for line in order.order_line:
-                        if ((line.is_delivery and line.price_unit<=0.0) and line.qty_to_invoice>0):
-                            #_logger.info(line)
-                            line.write({ "qty_to_invoice": 0.0 })
-                            #_logger.info(line.qty_to_invoice)
-                            pass;
-        except:
-            pass;
-
-        try:
-            company = self.env.user.company_id
-            #_logger.info(Company: "+str(company))
-            #_logger.info(Order done: company.mercadolibre_cron_post_update_stock: "+str(company.mercadolibre_cron_post_update_stock))
-            #for order in self:
-            #    for line in order.order_line:
-            #        if (company.mercadolibre_cron_post_update_stock):
-            #            if line.product_id and line.product_id.meli_id and line.product_id.meli_pub:
-            #                #_logger.info(Order done: product_post_stock: "+str(line.product_id.meli_id))
-            #                line.product_id.product_post_stock()
         except:
             pass;
         return res
@@ -1556,7 +1529,7 @@ class sale_order(models.Model):
                 self.with_context(meli_force_mts_product_ids=forced_ids).action_confirm()
                 # Nunca venta confirmada SIN albarán.
                 if self._meli_draft_moves_without_picking():
-                    raise UserError("quedaron movimientos sin albarán")
+                    raise UserError(_("quedaron movimientos sin albarán"))
         except Exception as e2:
             _logger.warning("MELI confirm waiting: reintento en make_to_stock FALLÓ en SO %s (id=%s): %s",
                             self.name, self.id, self._meli_exception_text(e2))
@@ -4872,10 +4845,10 @@ class mercadolibre_orders(models.Model):
             query = """SELECT id
             FROM   mercadolibre_buyers
             WHERE
-            buyer_id = '%s'
-            """ % (buyer_fields['buyer_id'])
+            buyer_id = %s
+            """
             cr = MeliCr( self )
-            respquery = cr.execute(query)
+            respquery = cr.execute(query, (str(buyer_fields['buyer_id']),))
             results = cr.fetchall()
             buyer_ids = results
             #_logger.info("Buyer ids: "+str(buyer_ids))
@@ -6579,11 +6552,11 @@ class mercadolibre_orders(models.Model):
                 query = """SELECT id
                 FROM   mercadolibre_order_items
                 WHERE
-                order_item_id = '%s'
-                AND order_id = %i
-                """ % ( order_item_fields['order_item_id'], order and order.id)
+                order_item_id = %s
+                AND order_id = %s
+                """
                 cr = MeliCr( self )
-                respquery = cr.execute(query)
+                respquery = cr.execute(query, (str(order_item_fields['order_item_id']), int(order and order.id)))
                 results = cr.fetchall()
                 order_item_ids = results
 
@@ -7974,7 +7947,7 @@ class mercadolibre_orders(models.Model):
 
     shipping = fields.Text(string="Shipping")
     shipping_id = fields.Char(string="Shipping id")
-    shipment = fields.Many2one('mercadolibre.shipment',string='Shipment')
+    shipment = fields.Many2one('mercadolibre.shipment',string='Shipment', index='btree_not_null')
     shipment_logistic_type = fields.Char(string="Logistic Type",index=True)
 
     fee_amount = fields.Float(string='Fee total amount')
@@ -8042,7 +8015,7 @@ class mercadolibre_payments(models.Model):
     _name = "mercadolibre.payments"
     _description = "Pagos en MercadoLibre"
 
-    order_id = fields.Many2one("mercadolibre.orders",string="Order")
+    order_id = fields.Many2one("mercadolibre.orders",string="Order", index='btree_not_null')
     payment_id = fields.Char('Payment Id')
     transaction_amount = fields.Float('Transaction Amount')
     total_paid_amount = fields.Float('Total Paid Amount')
