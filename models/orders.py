@@ -4706,8 +4706,10 @@ class mercadolibre_orders(models.Model):
             #    sorder = saleorder_obj.browse(sorder_s[0] )
 
         if (sorder and sorder.meli_update_forbidden):
-            _logger.error("Forbidden to upate by meli_oerp" )
-            return {'error': 'Forbidden to upate by meli_oerp' }
+            # 26.309 (158): freno sin escritura. WARNING una vez por venta (era ERROR en cada
+            # llamada) + marca para que la notificacion se cierre sin reintentar.
+            meli_log_update_forbidden(_logger, sorder, " (orden ML %s)" % order_json.get("id"))
+            return {'error': 'Forbidden to upate by meli_oerp', 'meli_update_forbidden': True}
 
         seller_id = None
         if config.mercadolibre_seller_user:
