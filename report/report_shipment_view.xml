@@ -127,8 +127,7 @@
 							<t t-call="meli_oerp.internal_layout">
     						<div class="page">
     							<t t-foreach="docs" t-as="o">
-    										<t t-call="meli_oerp.report_shipment_document">
-                        </t>
+    										<t t-call="meli_oerp.report_shipment_document"/>
     							</t>
     						</div>
   						</t>
@@ -142,7 +141,7 @@
                 <t t-foreach="docs" t-as="o">
                     <t t-if="o.meli_shipment">
                       <t t-set="o" t-value="o.meli_shipment"/>
-                      <t t-call="meli_oerp.report_shipment_document"></t>
+                      <t t-call="meli_oerp.report_shipment_document"/>
                     </t>
                 </t>
               </div>

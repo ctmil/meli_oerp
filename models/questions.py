@@ -33,7 +33,7 @@ class mercadolibre_questions(models.Model):
     _description = "Preguntas en MercadoLibre"
 
     name = fields.Char(string="Name")
-    posting_id = fields.Many2one("mercadolibre.posting","Posting")
+    posting_id = fields.Many2one("mercadolibre.posting","Posting", index='btree_not_null')
     company_id = fields.Many2one("res.company",string="Empresa")
     #product_id = fields.Many2one("product.product","Product")
     question_id = fields.Char('Question Id')
