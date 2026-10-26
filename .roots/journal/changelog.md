@@ -4,6 +4,10 @@
 
 ---
 
+## 16.0.26.313 — 26-oct-2026 · Reserva de stock compatible con módulos de terceros
+- La reserva de stock (`stock.move._action_assign`) ya no falla cuando hay instalado otro módulo que también la personaliza sin el parámetro `force_qty` (p. ej. conectores Shopify o Producteca): el parámetro sólo se pasa cuando trae un valor. Con Fabricación (mrp) sigue funcionando como en 26.302.
+- Release de flota 26.313: mismo número en 16, 17, 18, 19 y 20 para meli_oerp, meli_oerp_stock, meli_oerp_accounting, meli_oerp_multiple y meli_oerp_autofacturacion.
+
 ## 16.0.26.312 — 26-oct-2026 · Brasil: revisión de la traducción portuguesa
 - Traducción pt_BR corregida: textos que en la traducción anterior seguían en castellano (p. ej. «Importar Masivamente», «Agrupar por Barcode», «Estado ML», campos de actividades) y nombres de los módulos en Apps en portugués.
 - Release de flota 26.312: mismo número en 16, 17, 18, 19 y 20 para los 7 módulos del suite.
