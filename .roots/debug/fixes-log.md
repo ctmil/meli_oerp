@@ -4,6 +4,12 @@
 
 ---
 
+## 26 oct 2026 — empresa BR sin moneda ML caía en el sitio MLA (Brasil A) (v20.0.26.310)
+**Síntoma:** empresa con país Brasil y «Moneda predeterminada» ML vacía ⇒ login a auth.mercadolibre.com.ar, links .com.ar, categorías del sitio AR.
+**Causa:** models/company.py `_get_ML_sites`: resolvía por país UY/VE/MX/CL/CO, después por moneda, y si no `return "MLA"`.
+**Fix:** antes del `return "MLA"`, fallback por `MELI_COUNTRY_SITE` (ya tenía BR→MLB). Con moneda configurada no cambia.
+**Prueba:** tests/test_26310_mlb_site.py (tag meli_26310). Además tests/test_26310_mlb_ids_alfanumericos.py: import real (sin red) con payment_id/order_id alfanuméricos. Verde 16-20.
+
 ## 25 oct 2026 — línea de envío ML en $0 «A facturar» en venta ya facturada [158] (v20.0.26.307)
 **Síntoma (158, SO ML 2000019153738674):** factura del producto posteada; línea de envío «ME1 - zip» $0 con qty_to_invoice=1 / «to invoice» (escrita por el sistema 25-oct 13:53Z); el compute (26.268) evaluado en memoria da 0 / invoiced. Chatter: «ML quiso modificar… ya facturada. Cambio no aplicado: envío 0.0 -> 51222.31».
 **Causa:** models/shipment.py, rama `elif delivery_price > 0.0` (17/18/19 L1175-1188; 16 L1216-1237): escribía `qty_to_invoice = pedida - facturada` DIRECTO sobre el campo calculado aunque el guard de venta facturada (`_meli_guard_delivery_write`, versions.py) hubiera frenado el precio ⇒ línea $0 a facturar. En 16.0 la rama ya tenía guard (no reproducía por ese camino). Un «Crear factura» manual (sale_order.py `_get_invoiceable_lines`, no mira `_can_be_invoiced_alone`) armaba factura con una sola línea de envío $0.
