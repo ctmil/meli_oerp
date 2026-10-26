@@ -186,8 +186,12 @@ class StockMove(models.Model):
         return skip_stock
 
     def _action_assign(self, force_qty=False):
+        # 26.313: force_qty se pasa a super() SOLO si viene con valor. Un override ajeno que
+        # redefine _action_assign(self) sin el parametro (shopify_ept, odoo_connector_api_producteca...)
+        # y queda debajo en el MRO revienta con TypeError en cada reserva si se lo pasamos siempre.
+        assign_kwargs = {'force_qty': force_qty} if force_qty else {}
         t_start = time.time()
-        res = super(StockMove, self)._action_assign(force_qty=force_qty)
+        res = super(StockMove, self)._action_assign(**assign_kwargs)
         t_super_end = time.time()
 
         if not self._should_skip_meli_stock_update():
