@@ -241,7 +241,7 @@ msgstr "Ação Requerida"
 #. module: meli_oerp
 #: model:ir.model.fields,help:meli_oerp.field_mercadolibre_product_template_post__force_meli_active
 msgid "Activa en ML las publicaciones de todos los productos seleccionados"
-msgstr "Ativa no ML as publicações de todos os produtos selecionados"
+msgstr "Ativa no ML os anúncios de todos os produtos selecionados"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_template_post__force_meli_active
@@ -286,13 +286,13 @@ msgstr "Decoração de Exceção de Atividade"
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__activity_state
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__activity_state
 msgid "Activity State"
-msgstr "Estado de Actividad"
+msgstr "Status da atividade"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__activity_type_icon
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__activity_type_icon
 msgid "Activity Type Icon"
-msgstr "Ícono de Tipo de Actividad"
+msgstr "Ícone do tipo de atividade"
 
 #. module: meli_oerp
 #: model:ir.model.fields.selection,name:meli_oerp.selection__mercadolibre_product_template_import__post_state__active
@@ -315,7 +315,7 @@ msgstr ""
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_res_company__mercadolibre_update_existings_variants
 msgid "Actualiza/agrega variantes"
-msgstr "Actualiza/agrega variantes"
+msgstr "Atualiza/adiciona variantes"
 
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.product_normal_ml_form_view
@@ -639,7 +639,7 @@ msgstr "Atributos a publicar (JSON)"
 #: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_pub_variant_attributes
 #: model:ir.model.fields,field_description:meli_oerp.field_product_template__meli_pub_variant_attributes
 msgid "Atributos a publicar en ML"
-msgstr "Atributos para publicar no ML"
+msgstr "Atributos a publicar no ML"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category_attribute__product_attributes
@@ -742,7 +742,7 @@ msgstr "Aviso de venda faturada já lançado"
 #: model:ir.model.fields.selection,name:meli_oerp.selection__product_template__meli_currency__pab
 #: model:ir.model.fields.selection,name:meli_oerp.selection__res_company__mercadolibre_currency__pab
 msgid "Balboa Panameño (PAB)"
-msgstr "Balboa Panameño (PAB)"
+msgstr "Balboa panamenho (PAB)"
 
 #. module: meli_oerp
 #: model:ir.model.fields.selection,name:meli_oerp.selection__mercadolibre_questions__answer_status__banned
@@ -912,7 +912,7 @@ msgstr "Comprador"
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_buyers__buyer_id
 msgid "Buyer ID"
-msgstr "ID do Comprador"
+msgstr "ID do comprador"
 
 #. module: meli_oerp
 #: model:ir.model.fields,help:meli_oerp.field_res_partner__meli_buyer_partner_id
@@ -957,7 +957,7 @@ msgstr ""
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_image__can_image_1024_be_zoomed
 msgid "Can Image 1024 be zoomed"
-msgstr "¿Se puede ampliar la imagem 1024?"
+msgstr "A imagem 1024 pode ser ampliada"
 
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.view_meli_category_import
@@ -1047,7 +1047,7 @@ msgstr ""
 #. module: meli_oerp
 #: model:ir.model.fields,help:meli_oerp.field_product_product__meli_available_quantity
 msgid "Cantidad disponible a publicar en ML"
-msgstr "Quantidade disponible a publicar no ML"
+msgstr "Quantidade disponível a publicar no ML"
 
 #. module: meli_oerp
 #: model:ir.model.fields.selection,name:meli_oerp.selection__res_company__mercadolibre_product_invoice_policy__delivery
@@ -1063,7 +1063,7 @@ msgstr "Quantidade inicial (Apenas para atualizar estoque)[meli]"
 #. module: meli_oerp
 #: model:ir.model.fields,help:meli_oerp.field_product_product__meli_max_purchase_quantity
 msgid "Cantidad maxima por compra en ML"
-msgstr "Quantidade maxima por compra no ML"
+msgstr "Quantidade máxima por compra no ML"
 
 #. module: meli_oerp
 #: model:ir.model.fields.selection,name:meli_oerp.selection__res_company__mercadolibre_product_invoice_policy__order
@@ -1180,7 +1180,7 @@ msgstr "Categoria"
 msgid ""
 "Category Code to Import, check Recursive Import to import the full tree"
 msgstr ""
-"Código de Categoria a Importar, marque Importação Recursiva para importar a "
+"Código da categoria a importar; marque Importação recursiva para importar a "
 "árvore completa"
 
 #. module: meli_oerp
@@ -1460,7 +1460,7 @@ msgstr "Com produto atribuído"
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.product_tpl_ml_form_view
 msgid "Condiciones de venta"
-msgstr "Condiciones de venda"
+msgstr "Condições de venda"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_res_company__mercadolibre_condition
@@ -1528,7 +1528,7 @@ msgstr "Contato Padrão"
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_res_company__mercadolibre_shipping_partner
 msgid "Contacto de Envio Predeterminado"
-msgstr "Contato de Envio Padrão"
+msgstr "Contato de envio padrão"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_res_company__mercadolibre_invoice_partner
@@ -1639,7 +1639,7 @@ msgstr "Criar Atributos de Produto"
 msgid ""
 "Create Website eCommerce Categories from imported products ML categories"
 msgstr ""
-"Criar Categorias de E-commerce do Sitio Web desde as categorias de ML de "
+"Criar categorias do e-commerce do site a partir das categorias ML dos "
 "produtos importados"
 
 #. module: meli_oerp
@@ -1741,7 +1741,7 @@ msgstr "Criado em"
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_questions__date_created
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__date_created
 msgid "Creation date"
-msgstr "Fecha de criação"
+msgstr "Data de criação"
 
 #. module: meli_oerp
 #: model:ir.model.fields,help:meli_oerp.field_res_company__mercadolibre_cron_refresh
@@ -1776,7 +1776,7 @@ msgstr "Cron Obtener Perguntas"
 #. module: meli_oerp
 #: model:ir.model.fields,help:meli_oerp.field_res_company__mercadolibre_cron_get_new_products
 msgid "Cron Import New Products, Product Templates or Variants"
-msgstr "Cron Importar Novos Produtos, Modelos ou Variantes"
+msgstr "Cron importar novos produtos, modelos ou variantes"
 
 #. module: meli_oerp
 #: model:ir.actions.server,name:meli_oerp.ir_cron_module_cron_meli_orders_ir_actions_server
@@ -1826,7 +1826,7 @@ msgstr "Cron Perguntas Meli"
 #. module: meli_oerp
 #: model:ir.model.fields,help:meli_oerp.field_res_company__mercadolibre_cron_get_update_products
 msgid "Cron Update Products already imported"
-msgstr "Cron Atualizar Produtos ya importados"
+msgstr "Cron atualizar produtos já importados"
 
 #. module: meli_oerp
 #: model:ir.model.fields,help:meli_oerp.field_res_company__mercadolibre_cron_get_orders_status
@@ -2207,19 +2207,19 @@ msgstr "Disputa (o ML interveio)"
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_res_company__mercadolibre_do_not_use_first_image
 msgid "Do not use first image"
-msgstr "No usar primera imagem"
+msgstr "Não usar a primeira imagem"
 
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.meli_buyers_search_view
 msgid "Documento Id ML"
-msgstr "Documento Id ML"
+msgstr "Id do documento ML"
 
 #. module: meli_oerp
 #: model:ir.model.fields.selection,name:meli_oerp.selection__product_product__meli_currency__usd
 #: model:ir.model.fields.selection,name:meli_oerp.selection__product_template__meli_currency__usd
 #: model:ir.model.fields.selection,name:meli_oerp.selection__res_company__mercadolibre_currency__usd
 msgid "Dolar Estadounidense (USD)"
-msgstr "Dolar Estadounidense (USD)"
+msgstr "Dólar americano (USD)"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category__catalog_domain_chart_active
@@ -2449,12 +2449,12 @@ msgstr "Enviado"
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__shipping_id
 msgid "Envio Id"
-msgstr "Envio Id"
+msgstr "Id do envio"
 
 #. module: meli_oerp
 #: model:ir.model,name:meli_oerp.model_mercadolibre_shipment
 msgid "Envio de MercadoLibre"
-msgstr "Envio de MercadoLibre"
+msgstr "Envio do Mercado Livre"
 
 #. module: meli_oerp
 #: model:ir.actions.act_window,name:meli_oerp.action_meli_shipment_tree
@@ -2559,12 +2559,12 @@ msgstr "Estado"
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__receiver_state_code
 msgid "Estado ID"
-msgstr "Estado ID"
+msgstr "ID do estado"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_products_import_line__meli_status
 msgid "Estado ML"
-msgstr "Último Estado"
+msgstr "Status ML"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__meli_status_checked_at
@@ -2595,7 +2595,7 @@ msgstr "Status dos produtos a importar (todos, ativos ou pausados)"
 #. module: meli_oerp
 #: model:ir.model.fields,help:meli_oerp.field_product_product__meli_status
 msgid "Estado del producto en ML"
-msgstr "Estado do produto no ML"
+msgstr "Status do produto no ML"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_posting__meli_status
@@ -2622,7 +2622,7 @@ msgstr ""
 #. module: meli_oerp
 #: model:ir.model.fields,help:meli_oerp.field_product_product__meli_post_required
 msgid "Este producto es publicable en Mercado Libre"
-msgstr "Este produto é publicável no Mercado Livre"
+msgstr "Este produto pode ser publicado no Mercado Livre"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__estimated_delivery_date
@@ -2685,7 +2685,7 @@ msgid ""
 "Esto se aplica al importar ordenes, productos y tambien al publicar, sobre "
 "la lista de precio seleccionada o sobre el precio de lista."
 msgstr ""
-"Isso se aplica ao importar pedidos, produtos e também ao publicar, sobre a "
+"Isto se aplica ao importar pedidos, produtos e também ao publicar, sobre a "
 "lista de preços selecionada ou sobre o preço de lista."
 
 #. module: meli_oerp
@@ -2732,7 +2732,7 @@ msgstr "Id ML Pai"
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.view_meli_proxy_audit_list
 msgid "Fecha"
-msgstr "Fecha"
+msgstr "Data"
 
 #. module: meli_oerp
 #: model:ir.model.fields,help:meli_oerp.field_res_company__mercadolibre_filter_order_datetime_start
@@ -2761,7 +2761,7 @@ msgstr "Data da primeira visita de entrega"
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_template_post__posting_date
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_template_update__posting_date
 msgid "Fecha del posting"
-msgstr "Fecha do posting"
+msgstr "Data do posting"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__date_shipped
@@ -2998,7 +2998,7 @@ msgstr "Forçar Categorias do Site"
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_template_import__force_meli_website_published
 msgid "Force Website Published"
-msgstr "Forçar Publicado no Site"
+msgstr "Forçar publicado no site"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_post__force_meli_active
@@ -3055,7 +3055,7 @@ msgstr "Fulfillment"
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment_item__data
 msgid "Full Item Data"
-msgstr "Datos Completos do Ítem"
+msgstr "Dados completos do item"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment_print__full_links
@@ -3072,7 +3072,7 @@ msgstr "Preço unitario completo"
 #: model:ir.model.fields,field_description:meli_oerp.field_product_template__meli_warranty
 #: model:ir.model.fields,field_description:meli_oerp.field_res_company__mercadolibre_warranty
 msgid "Garantía"
-msgstr "Garantía"
+msgstr "Garantia"
 
 #. module: meli_oerp
 #: model:ir.model.fields,help:meli_oerp.field_res_company__mercadolibre_warranty
@@ -3080,8 +3080,8 @@ msgid ""
 "Garantía del producto predeterminado. Es obligatorio y debe ser un número "
 "seguido por una unidad temporal. Ej. 2 meses, 3 años."
 msgstr ""
-"Garantía do produto padrão. Es obligatorio y debe ser um número seguido por "
-"uma unidad temporal. Ej. 2 meses, 3 años."
+"Garantia padrão do produto. É obrigatória e deve ser um número seguido de "
+"uma unidade de tempo. Ex.: 2 meses, 3 anos."
 
 #. module: meli_oerp
 #: model:ir.model.fields,help:meli_oerp.field_product_template__meli_warranty
@@ -3096,19 +3096,19 @@ msgstr ""
 #: model:ir.model.fields,help:meli_oerp.field_mercadolibre_orders__shipping_cost
 #: model:ir.model.fields,help:meli_oerp.field_sale_order__meli_shipping_cost
 msgid "Gastos de envío"
-msgstr "Gastos de envio"
+msgstr "Custos de frete"
 
 #. module: meli_oerp
 #: model:ir.model.fields,help:meli_oerp.field_mercadolibre_orders__shipping_seller_cost
 #: model:ir.model.fields,help:meli_oerp.field_sale_order__meli_shipping_seller_cost
 msgid "Gastos de envío (Vendedor)"
-msgstr "Gastos de envio (Vendedor)"
+msgstr "Custos de frete (vendedor)"
 
 #. module: meli_oerp
 #: model:ir.model.fields,help:meli_oerp.field_mercadolibre_orders__shipping_list_cost
 #: model:ir.model.fields,help:meli_oerp.field_sale_order__meli_shipping_list_cost
 msgid "Gastos de envío, costo de lista/interno"
-msgstr "Gastos de envio, custo de lista/interno"
+msgstr "Custos de frete, custo de lista/interno"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_autogenerate_gtin
@@ -3141,18 +3141,18 @@ msgstr "Gold Premium"
 #. module: meli_oerp
 #: model:ir.model.fields.selection,name:meli_oerp.selection__res_company__mercadolibre_listing_type__gold_premium
 msgid "Gold Premium/Oro Premium"
-msgstr "Gold Premium/Oro Premium"
+msgstr "Gold Premium/Premium"
 
 #. module: meli_oerp
 #: model:ir.model.fields.selection,name:meli_oerp.selection__product_product__meli_listing_type__gold_special
 #: model:ir.model.fields.selection,name:meli_oerp.selection__product_template__meli_listing_type__gold_special
 msgid "Gold Special/Clásica"
-msgstr "Gold Special/Clásica"
+msgstr "Gold Special/Clássico"
 
 #. module: meli_oerp
 #: model:ir.model.fields.selection,name:meli_oerp.selection__res_company__mercadolibre_listing_type__gold_special
 msgid "Gold Special/Clásica/Premium-(UY)"
-msgstr "Gold Special/Clásica/Premium-(UY)"
+msgstr "Gold Special/Clássico/Premium-(UY)"
 
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.view_meli_grid_chart_form
@@ -3163,7 +3163,7 @@ msgstr "Guia de Tamanhos"
 #: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_grid_chart_id
 #: model:ir.model.fields,field_description:meli_oerp.field_product_template__meli_grid_chart_id
 msgid "Guia de talles"
-msgstr "Guia de talles"
+msgstr "Guia de tamanhos"
 
 #. module: meli_oerp
 #: model:ir.model,name:meli_oerp.model_mercadolibre_grid_chart
@@ -3186,7 +3186,7 @@ msgstr "Guias de tamanhos"
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__has_message
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__has_message
 msgid "Has Message"
-msgstr "Tiene Mensagem"
+msgstr "Tem mensagem"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_category_attribute__hidden
@@ -3333,7 +3333,7 @@ msgstr "Id da empresa"
 #. module: meli_oerp
 #: model:ir.model.fields,help:meli_oerp.field_product_product__meli_id_variation
 msgid "Id de Variante de Meli"
-msgstr "Id de Variante de Meli"
+msgstr "Id da variante Meli"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_grid_chart__meli_id
@@ -3373,7 +3373,7 @@ msgstr "Se marcado, há mensagens novas que requerem sua atenção."
 #: model:ir.model.fields,help:meli_oerp.field_mercadolibre_shipment__message_has_error
 #: model:ir.model.fields,help:meli_oerp.field_mercadolibre_shipment__message_has_sms_error
 msgid "If checked, some messages have a delivery error."
-msgstr "Se marcado, algumas mensagens têm um erro de envio."
+msgstr "Se marcado, algumas mensagens têm um erro de entrega."
 
 #. module: meli_oerp
 #: model:ir.model.fields,help:meli_oerp.field_mercadolibre_posting__product_id_active
@@ -3474,7 +3474,7 @@ msgstr "Importar"
 #. module: meli_oerp
 #: model:ir.model.fields,help:meli_oerp.field_res_company__mercadolibre_recursive_import
 msgid "Import all the category tree from Category Code"
-msgstr "Importar toda a árvore de categorias do Código de Categoria"
+msgstr "Importar toda a árvore de categorias a partir do código de categoria"
 
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.view_product_template_import
@@ -3484,7 +3484,7 @@ msgstr "Importar do MELI"
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.view_product_template_import
 msgid "Import from MercadoLibre"
-msgstr "Importar do MercadoLibre"
+msgstr "Importar do Mercado Livre"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_template_import__import_lines
@@ -3494,12 +3494,12 @@ msgstr "Importar linhas"
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.view_product_product_update
 msgid "Import/Update from MELI"
-msgstr "Importar/Atualizar do MELI"
+msgstr "Importar/atualizar do MELI"
 
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.view_product_product_update
 msgid "Import/Update from MercadoLibre"
-msgstr "Importar/Atualizar do MercadoLibre"
+msgstr "Importar/atualizar do Mercado Livre"
 
 #. module: meli_oerp
 #: model:ir.model.fields.selection,name:meli_oerp.selection__mercadolibre_products_import_line__import_status__imported
@@ -3522,12 +3522,12 @@ msgstr "Importar guias"
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.view_company_page_mercadolibre
 msgid "Importar Masivamente"
-msgstr "Importar Masivamente"
+msgstr "Importar em massa"
 
 #. module: meli_oerp
 #: model:ir.actions.act_window,name:meli_oerp.action_product_template_import
 msgid "Importar Masivamente ML"
-msgstr "Importar Masivamente ML"
+msgstr "Importar em massa do ML"
 
 #. module: meli_oerp
 #. odoo-python
@@ -3568,14 +3568,14 @@ msgstr "Importar clientes"
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.product_tpl_ml_form_view
 msgid "Importar datos desde ML"
-msgstr "Importar datos desde ML"
+msgstr "Importar dados do ML"
 
 #. module: meli_oerp
 #: model:ir.actions.act_window,name:meli_oerp.action_product_product_update
 #: model:ir.actions.act_window,name:meli_oerp.action_product_template_update
 #: model_terms:ir.ui.view,arch_db:meli_oerp.product_normal_ml_form_view
 msgid "Importar desde ML"
-msgstr "Importar desde ML"
+msgstr "Importar do ML"
 
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.view_meli_category_import
@@ -3621,7 +3621,8 @@ msgstr "Importar perguntas"
 #. module: meli_oerp
 #: model:ir.model.fields,help:meli_oerp.field_res_company__mercadolibre_create_product_from_order
 msgid "Importar productos desde la orden si no se encuentran en la base."
-msgstr "Importar produtos do pedido se não forem encontrados na base."
+msgstr ""
+"Importar produtos a partir do pedido se não forem encontrados na base."
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_res_company__mercadolibre_create_product_from_order
@@ -3636,7 +3637,7 @@ msgstr "Importar todos os sub-ramos"
 #. module: meli_oerp
 #: model:ir.model,name:meli_oerp.model_mercadolibre_shipment_print
 msgid "Impresión de etiquetas"
-msgstr "Impresión de etiquetas"
+msgstr "Impressão de etiquetas"
 
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.view_mercadolibre_stock_picking_print
@@ -3683,7 +3684,7 @@ msgstr "Impostos excluídos do preço de lista"
 #. module: meli_oerp
 #: model:ir.model.fields.selection,name:meli_oerp.selection__res_company__mercadolibre_tax_included__tax_included
 msgid "Impuestos ya incluídos del precio de lista"
-msgstr "Impostos ya incluídos do preço de lista"
+msgstr "Impostos já incluídos no preço de lista"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment_print__include_ready_to_print
@@ -3693,7 +3694,7 @@ msgstr "Incluir Prontos para Imprimir"
 #. module: meli_oerp
 #: model:ir.model.fields,help:meli_oerp.field_mercadolibre_orders__paid_amount
 msgid "Includes shipping cost"
-msgstr "Incluye custo de envio"
+msgstr "Inclui custo de frete"
 
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.view_mercadolibre_shipment_print
@@ -3714,7 +3715,7 @@ msgstr "Índice"
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.product_normal_ml_form_view
 msgid "Informacion de ML"
-msgstr "Informacion de ML"
+msgstr "Informações do ML"
 
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.view_company_page_mercadolibre
@@ -3734,12 +3735,12 @@ msgstr "Iniciar Sessão"
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.view_company_page_mercadolibre
 msgid "Iniciar actualización de productos y stock desde ML a Odoo"
-msgstr "Iniciar atualização de produtos y estoque desde ML a Odoo"
+msgstr "Iniciar atualização de produtos e estoque do ML para o Odoo"
 
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.view_company_page_mercadolibre
 msgid "Iniciar búsqueda de órdenes/pedidos de ML a Odoo"
-msgstr "Iniciar búsqueda de órdenes/pedidos de ML a Odoo"
+msgstr "Iniciar busca de pedidos do ML para o Odoo"
 
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.view_company_page_mercadolibre
@@ -3792,7 +3793,7 @@ msgstr "Id de Estoque"
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__message_is_follower
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__message_is_follower
 msgid "Is Follower"
-msgstr "Es Seguidor"
+msgstr "É seguidor"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_payments__issuer_id
@@ -3802,7 +3803,7 @@ msgstr "Issuer ID"
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_order_items__order_item_category_id
 msgid "Item Category Id"
-msgstr "Id de Categoria do Ítem"
+msgstr "Id da categoria do item"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_questions__item_id
@@ -3812,12 +3813,12 @@ msgstr "ID do Item"
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_order_items__order_item_iva
 msgid "Item IVA"
-msgstr "IVA do Ítem"
+msgstr "IVA do item"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_order_items__order_item_id
 msgid "Item Id"
-msgstr "Id do Ítem"
+msgstr "Id do item"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment_item__item_id
@@ -3827,12 +3828,12 @@ msgstr "ID do Item (ID de MercadoLibre)"
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_order_items__order_item_title
 msgid "Item Title"
-msgstr "Título do Ítem"
+msgstr "Título do item"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_order_items__order_item_variation_id
 msgid "Item Variation Id"
-msgstr "Id de Variação do Ítem"
+msgstr "Id da variação do item"
 
 #. module: meli_oerp
 #: model:ir.model,name:meli_oerp.model_mercadolibre_shipment_item
@@ -4084,7 +4085,7 @@ msgstr "Produto MercadoLibre"
 #: model:ir.model.fields,help:meli_oerp.field_product_product__meli_master
 #: model:ir.model.fields,help:meli_oerp.field_product_template__meli_master
 msgid "MELI Product Maestro"
-msgstr "Produto Maestro MELI"
+msgstr "Produto master MELI"
 
 #. module: meli_oerp
 #: model:ir.actions.server,name:meli_oerp.action_meli_relaunch_procurement_server
@@ -4201,7 +4202,7 @@ msgstr "ID de ML"
 #: model:ir.model.fields,help:meli_oerp.field_product_product__meli_ids
 #: model:ir.model.fields,help:meli_oerp.field_product_template__meli_ids
 msgid "ML Ids de variantes separados por coma."
-msgstr "ML Ids de variantes separados por coma."
+msgstr "ML Ids das variantes separados por vírgula."
 
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.view_product_image_form_meli
@@ -4510,9 +4511,9 @@ msgid ""
 " unicamente los atributos marcados en Odoo que crean variantes, aunque "
 "exista una sola combinacion."
 msgstr ""
-"Marca la publicação para ser publicada como variante, intentara especificar "
-"unicamente os atributos marcados no Odoo que crean variantes, aunque exista "
-"uma sola combinacion."
+"Marca o anúncio para ser publicado como variante; tentará especificar "
+"somente os atributos marcados no Odoo que criam variantes, mesmo que exista "
+"uma única combinação."
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_template_post__force_meli_pub
@@ -4525,7 +4526,7 @@ msgid ""
 "Marcar producto y sus variantes para publicación en ML, y de todos los "
 "seleccionados"
 msgstr ""
-"Marcar produto e suas variantes para publicação no ML, e de todos os "
+"Marcar o produto e suas variantes para publicação no ML, e todos os "
 "selecionados"
 
 #. module: meli_oerp
@@ -4586,13 +4587,13 @@ msgstr "Comprador Meli"
 #: model:ir.model.fields,field_description:meli_oerp.field_res_partner__meli_buyer_id
 #: model:ir.model.fields,field_description:meli_oerp.field_res_users__meli_buyer_id
 msgid "Meli Buyer Id"
-msgstr "Id do Comprador Meli"
+msgstr "Id do comprador Meli"
 
 #. module: meli_oerp
 #: model:ir.model.constraint,message:meli_oerp.constraint_mercadolibre_buyers_unique_buyer_id
 #: model:ir.model.constraint,message:meli_oerp.constraint_mercadolibre_client_unique_buyer_id
 msgid "Meli Buyer id already exists!"
-msgstr "O Id do Comprador Meli já existe!"
+msgstr "O Id do comprador Meli já existe!"
 
 #. module: meli_oerp
 #: model:ir.model.constraint,message:meli_oerp.constraint_mercadolibre_category_unique_meli_category_id
@@ -4697,13 +4698,13 @@ msgstr "O Id do Pedido Meli já existe!"
 #. module: meli_oerp
 #: model:ir.model.constraint,message:meli_oerp.constraint_res_partner_unique_partner_meli_buyer_id
 msgid "Meli Partner Buyer id already exists in this company!"
-msgstr "O Id do Comprador já existe nesta empresa!"
+msgstr "O Id do comprador Meli já existe nesta empresa!"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_master
 #: model:ir.model.fields,field_description:meli_oerp.field_product_template__meli_master
 msgid "Meli Producto Maestro"
-msgstr "Meli Produto Maestro"
+msgstr "Produto master Meli"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_pub
@@ -4714,18 +4715,18 @@ msgstr "Publicação Meli"
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_shipment
 msgid "Meli Shipment Obj"
-msgstr "Objeto de Envio MercadoLibre"
+msgstr "Objeto de envio Meli"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_shipping_id
 msgid "Meli Shipping Id"
-msgstr "Id do Envio Meli"
+msgstr "Id do envio Meli"
 
 #. module: meli_oerp
 #: model:ir.model.constraint,message:meli_oerp.constraint_mercadolibre_bind_shipment_unique_shipping_id
 #: model:ir.model.constraint,message:meli_oerp.constraint_mercadolibre_shipment_unique_shipping_id
 msgid "Meli Shipping id already exists!"
-msgstr "O Id do Envio Meli já existe!"
+msgstr "O Id do envio Meli já existe!"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_status_brief
@@ -4892,7 +4893,7 @@ msgstr "Id do Pedido MercadoLibre"
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.sale_order_view_search_inherit_meli
 msgid "MercadoLibre Orders"
-msgstr "Pedidos do MercadoLibre"
+msgstr "Pedidos Mercado Livre"
 
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.product_tpl_ml_form_view
@@ -4902,7 +4903,7 @@ msgstr "Modelo Mercado Livre"
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.sale_order_view_search_inherit_quotation_meli
 msgid "MercadoLibre Quotations"
-msgstr "Presupuestos MercadoLibre"
+msgstr "Cotações Mercado Livre"
 
 #. module: meli_oerp
 #: model:res.groups,name:meli_oerp.group_mercadolibre_manager
@@ -5146,7 +5147,7 @@ msgstr "Município"
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__my_activity_date_deadline
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__my_activity_date_deadline
 msgid "My Activity Deadline"
-msgstr "Mi Fecha Límite de Actividad"
+msgstr "Meu prazo de atividade"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_meli_proxy_audit__method
@@ -5213,19 +5214,19 @@ msgstr ""
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__activity_date_deadline
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__activity_date_deadline
 msgid "Next Activity Deadline"
-msgstr "Fecha Límite de Siguiente Actividad"
+msgstr "Prazo da próxima atividade"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__activity_summary
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__activity_summary
 msgid "Next Activity Summary"
-msgstr "Resumo de Siguiente Actividad"
+msgstr "Resumo da próxima atividade"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__activity_type_id
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__activity_type_id
 msgid "Next Activity Type"
-msgstr "Tipo de Siguiente Actividad"
+msgstr "Tipo da próxima atividade"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_buyers__nickname
@@ -5322,7 +5323,7 @@ msgstr "Não criar produtos (encontrar por SKU)"
 #: model:ir.model.fields.selection,name:meli_oerp.selection__product_template__meli_condition__not_specified
 #: model:ir.model.fields.selection,name:meli_oerp.selection__res_company__mercadolibre_condition__not_specified
 msgid "No especificado"
-msgstr "No especificado"
+msgstr "Não especificado"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_res_company__mercadolibre_protect_invoiced_orders
@@ -5405,7 +5406,7 @@ msgstr "Notificações (caixa de entrada do usuário)"
 #. module: meli_oerp
 #: model:ir.model,name:meli_oerp.model_mercadolibre_notification
 msgid "Notificaciones en MercadoLibre"
-msgstr "Notificações no MercadoLibre"
+msgstr "Notificações no Mercado Livre"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_notification__notification_id
@@ -5572,12 +5573,12 @@ msgstr "Pedido"
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_res_company__mercadolibre_filter_order_datetime
 msgid "Order Closed Date From"
-msgstr "Data de Fechamento de Pedido Desde"
+msgstr "Data de fechamento do pedido desde"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_res_company__mercadolibre_filter_order_datetime_to
 msgid "Order Closed Date To"
-msgstr "Data de Fechamento de Pedido Hasta"
+msgstr "Data de fechamento do pedido até"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__order_cost
@@ -5587,7 +5588,7 @@ msgstr "Custo do Pedido"
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__catalog_order
 msgid "Order From Catalog"
-msgstr "Pedido desde Catálogo"
+msgstr "Pedido a partir do catálogo"
 
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.meli_orders_search_view
@@ -5782,7 +5783,7 @@ msgstr "Pagamentos"
 #. module: meli_oerp
 #: model:ir.model,name:meli_oerp.model_mercadolibre_payments
 msgid "Pagos en MercadoLibre"
-msgstr "Pagamentos no MercadoLibre"
+msgstr "Pagamentos no Mercado Livre"
 
 #. module: meli_oerp
 #: model:ir.model.fields.selection,name:meli_oerp.selection__res_company__mercadolibre_order_total_config__paid_amount
@@ -5918,7 +5919,7 @@ msgstr "Pagamentos"
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__payments_shipment_amount
 msgid "Payments Shipment Amount"
-msgstr "Valor de Envio de Pagamentos"
+msgstr "Valor de frete dos pagamentos"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__pdf_file
@@ -5960,7 +5961,7 @@ msgstr "Pedido de venda relacionado no Odoo"
 #. module: meli_oerp
 #: model:ir.model,name:meli_oerp.model_mercadolibre_orders
 msgid "Pedidos en MercadoLibre"
-msgstr "Pedidos no MercadoLibre"
+msgstr "Pedidos no Mercado Livre"
 
 #. module: meli_oerp
 #: model:ir.model.fields.selection,name:meli_oerp.selection__mercadolibre_products_import_line__import_status__pending
@@ -5977,18 +5978,20 @@ msgstr "Pendente de cancelar"
 #. module: meli_oerp
 #: model:ir.model.fields,help:meli_oerp.field_product_product__meli_permalink_api
 msgid "PermaLink Api in MercadoLibre"
-msgstr "Link Permanente API no MercadoLibre"
+msgstr "Permalink da API no Mercado Livre"
 
 #. module: meli_oerp
 #: model:ir.model.fields,help:meli_oerp.field_product_product__meli_permalink_edit
 #: model:ir.model.fields,help:meli_oerp.field_product_template__meli_permalink_edit
 msgid "PermaLink Edit in MercadoLibre"
-msgstr "Link Permanente de Edição no MercadoLibre"
+msgstr "Permalink de edição no Mercado Livre"
 
 #. module: meli_oerp
 #: model:ir.model.fields,help:meli_oerp.field_product_product__meli_permalink
 msgid "PermaLink en MercadoLibre (calculado desde meli_id, sin llamada API)"
-msgstr "Link Permanente no MercadoLibre"
+msgstr ""
+"Permalink no Mercado Livre (calculado a partir do meli_id, sem chamada à "
+"API)"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_posting__meli_permalink
@@ -6002,44 +6005,44 @@ msgid ""
 "recomendable cuando se está ya en modo Odoo a ML, solo usar cuando se "
 "importa por primera vez de ML a Odoo, para no romper el stock)"
 msgstr ""
-"Permite adicionar e atualizar variantes de um produto existente (Não "
-"recomendável quando já está no modo Odoo a ML, usar somente quando se "
-"importa pela primeira vez de ML a Odoo, para não quebrar o estoque)"
+"Permite adicionar e atualizar variantes de um produto existente (não "
+"recomendado quando já se está no modo Odoo para ML; use somente na primeira "
+"importação do ML para o Odoo, para não quebrar o estoque)"
 
 #. module: meli_oerp
 #: model:ir.model.fields.selection,name:meli_oerp.selection__product_product__meli_currency__ars
 #: model:ir.model.fields.selection,name:meli_oerp.selection__product_template__meli_currency__ars
 #: model:ir.model.fields.selection,name:meli_oerp.selection__res_company__mercadolibre_currency__ars
 msgid "Peso Argentino (ARS)"
-msgstr "Peso Argentino (ARS)"
+msgstr "Peso argentino (ARS)"
 
 #. module: meli_oerp
 #: model:ir.model.fields.selection,name:meli_oerp.selection__product_product__meli_currency__clp
 #: model:ir.model.fields.selection,name:meli_oerp.selection__product_template__meli_currency__clp
 #: model:ir.model.fields.selection,name:meli_oerp.selection__res_company__mercadolibre_currency__clp
 msgid "Peso Chileno (CLP)"
-msgstr "Peso Chileno (CLP)"
+msgstr "Peso chileno (CLP)"
 
 #. module: meli_oerp
 #: model:ir.model.fields.selection,name:meli_oerp.selection__product_product__meli_currency__cop
 #: model:ir.model.fields.selection,name:meli_oerp.selection__product_template__meli_currency__cop
 #: model:ir.model.fields.selection,name:meli_oerp.selection__res_company__mercadolibre_currency__cop
 msgid "Peso Colombiano (COP)"
-msgstr "Peso Colombiano (COP)"
+msgstr "Peso colombiano (COP)"
 
 #. module: meli_oerp
 #: model:ir.model.fields.selection,name:meli_oerp.selection__product_product__meli_currency__mxn
 #: model:ir.model.fields.selection,name:meli_oerp.selection__product_template__meli_currency__mxn
 #: model:ir.model.fields.selection,name:meli_oerp.selection__res_company__mercadolibre_currency__mxn
 msgid "Peso Mexicano (MXN)"
-msgstr "Peso Mexicano (MXN)"
+msgstr "Peso mexicano (MXN)"
 
 #. module: meli_oerp
 #: model:ir.model.fields.selection,name:meli_oerp.selection__product_product__meli_currency__uyu
 #: model:ir.model.fields.selection,name:meli_oerp.selection__product_template__meli_currency__uyu
 #: model:ir.model.fields.selection,name:meli_oerp.selection__res_company__mercadolibre_currency__uyu
 msgid "Peso Uruguayo (UYU)"
-msgstr "Peso Uruguayo (UYU)"
+msgstr "Peso uruguaio (UYU)"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_seller_package_weight
@@ -6149,7 +6152,7 @@ msgid ""
 "Post Odoo default_code field for templates or variants to "
 "seller_custom_field in ML"
 msgstr ""
-"Publicar campo default_code de Odoo para modelos o variantes como "
+"Publicar o campo default_code do Odoo de modelos ou variantes em "
 "seller_custom_field no ML"
 
 #. module: meli_oerp
@@ -6244,7 +6247,7 @@ msgstr "Perguntas"
 #. module: meli_oerp
 #: model:ir.model,name:meli_oerp.model_mercadolibre_questions
 msgid "Preguntas en MercadoLibre"
-msgstr "Perguntas no MercadoLibre"
+msgstr "Perguntas no Mercado Livre"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_price_error
@@ -6603,14 +6606,14 @@ msgid ""
 "Publicar variantes como variantes de la misma publicación, no como "
 "publicaciones independientes."
 msgstr ""
-"Publicar variantes como variantes da misma publicação, no como publicações "
+"Publicar variantes como variações do mesmo anúncio, não como anúncios "
 "independentes."
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_pub_as_variant
 #: model:ir.model.fields,field_description:meli_oerp.field_product_template__meli_pub_as_variant
 msgid "Publicar variantes como variantes en ML"
-msgstr "Publicar variantes como variantes no ML"
+msgstr "Publicar variantes como variações no ML"
 
 #. module: meli_oerp
 #: model:ir.actions.act_window,name:meli_oerp.action_product_post
@@ -6873,8 +6876,8 @@ msgid ""
 "Removing unsync images (ml id defined for image but no longer in ML "
 "publication)"
 msgstr ""
-"Eliminando imagems desincronizadas (ID de ML definido para imagem pero ya no"
-" está na publicação ML)"
+"Removendo imagens dessincronizadas (ml id definido para a imagem, mas que já"
+" não está no anúncio do ML)"
 
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.view_sale_order_form_meli
@@ -7093,7 +7096,7 @@ msgstr "Buscar informações de notificações do Mercado Livre"
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.meli_orders_search_view
 msgid "Search MercadoLibre Orders Information"
-msgstr "Buscar Informações de Pedidos MercadoLibre"
+msgstr "Buscar informações de pedidos do Mercado Livre"
 
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.meli_posting_search_view
@@ -7123,7 +7126,7 @@ msgstr "Buscar SKU por token"
 #. module: meli_oerp
 #: model:ir.model.fields,help:meli_oerp.field_res_company__mercadolibre_import_search_sku
 msgid "Search product by default_code"
-msgstr "Buscar produto por código interno"
+msgstr "Buscar produto por default_code"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_res_company__mercadolibre_secret_key
@@ -7180,8 +7183,7 @@ msgstr "Selecionar os atributos para publicar"
 #: model:ir.model.fields,help:meli_oerp.field_res_company__mercadolibre_exclude_attributes
 msgid ""
 "Seleccionar valores que serán excluidos para las publicaciones de variantes"
-msgstr ""
-"Seleccionar valores que serán excluidos para as publicações de variantes"
+msgstr "Selecionar valores que serão excluídos dos anúncios de variantes"
 
 #. module: meli_oerp
 #. odoo-python
@@ -7197,12 +7199,15 @@ msgstr "Selecione uma das categorias sugeridas."
 #. module: meli_oerp
 #: model:ir.model.fields,help:meli_oerp.field_res_company__mercadolibre_pricelist
 msgid "Select price list for ML productwhen published from Odoo to ML"
-msgstr "Seleccionar lista de preços para produto ML ao publicar desde Odoo"
+msgstr ""
+"Selecione a lista de preços do produto ML ao publicar do Odoo para o ML"
 
 #. module: meli_oerp
 #: model:ir.model.fields,help:meli_oerp.field_res_company__mercadolibre_cron_mail
 msgid "Select the email template that will be sent when cron refresh fails."
-msgstr "Seleccionar modelo de email cuando falle la atualização do cron."
+msgstr ""
+"Selecione o modelo de e-mail que será enviado quando a renovação pelo cron "
+"falhar."
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_product_attribute__meli_family_selector
@@ -7234,7 +7239,7 @@ msgstr "Seller ID"
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__seller
 msgid "Seller Name"
-msgstr "Nome do Vendedor"
+msgstr "Nome do vendedor"
 
 #. module: meli_oerp
 #: model:ir.model.fields,help:meli_oerp.field_res_company__mercadolibre_multiwarehouse
@@ -7344,12 +7349,12 @@ msgstr "Relatório de envio"
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__shipment_status
 msgid "Shipment Status"
-msgstr "Estado de Envio"
+msgstr "Status do envio"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__shipment_substatus
 msgid "Shipment SubStatus"
-msgstr "Sub-estado de Envio"
+msgstr "Subestado do envio"
 
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.view_meli_orders_form
@@ -7360,34 +7365,34 @@ msgstr "Envios"
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__shipping
 #: model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_shipping
 msgid "Shipping"
-msgstr "Envio"
+msgstr "Frete"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_payments__shipping_amount
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__shipping_amount
 #: model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_shipping_amount
 msgid "Shipping Amount"
-msgstr "Valor de Envio"
+msgstr "Valor do frete"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__shipping_cost
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__shipping_cost
 #: model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_shipping_cost
 msgid "Shipping Cost"
-msgstr "Custo de Envio"
+msgstr "Custo do frete"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__shipping_list_cost
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__shipping_list_cost
 #: model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_shipping_list_cost
 msgid "Shipping List Cost"
-msgstr "Custo de Lista de Envio"
+msgstr "Custo de lista do frete"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_shipping_method
 #: model:ir.model.fields,field_description:meli_oerp.field_product_template__meli_shipping_method
 msgid "Shipping Method"
-msgstr "Método de Envio"
+msgstr "Método de envio"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__shipping_method_id
@@ -7408,7 +7413,7 @@ msgstr "Tipo do método de envio"
 #: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_shipping_mode
 #: model:ir.model.fields,field_description:meli_oerp.field_product_template__meli_shipping_mode
 msgid "Shipping Mode"
-msgstr "Modo de Envio"
+msgstr "Modo de envio"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__shipping_receiver_cost
@@ -7421,12 +7426,12 @@ msgstr "Custo de frete do comprador"
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__shipping_seller_cost
 #: model:ir.model.fields,field_description:meli_oerp.field_sale_order__meli_shipping_seller_cost
 msgid "Shipping Seller Cost"
-msgstr "Custo de Envio do Vendedor"
+msgstr "Custo do frete do vendedor"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__shipping_id
 msgid "Shipping id"
-msgstr "Id de envio"
+msgstr "Id do envio"
 
 #. module: meli_oerp
 #: model:ir.model.fields,help:meli_oerp.field_product_product__meli_shipping_method
@@ -7620,7 +7625,7 @@ msgstr "Sobrescrever apenas o título"
 #: model:ir.model.fields.selection,name:meli_oerp.selection__product_template__meli_currency__pen
 #: model:ir.model.fields.selection,name:meli_oerp.selection__res_company__mercadolibre_currency__pen
 msgid "Sol Peruano (PEN)"
-msgstr "Sol Peruano (PEN)"
+msgstr "Sol peruano (PEN)"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_res_company__mercadolibre_filter_order_datetime_start
@@ -7683,12 +7688,12 @@ msgstr "Status processo em lotes"
 #: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_stock_error
 #: model:ir.model.fields,field_description:meli_oerp.field_product_template__meli_stock_error
 msgid "Stock Error"
-msgstr "Erro ao publicar estoque no ML"
+msgstr "Erro de estoque"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_stock_moves_update
 msgid "Stock Last Move"
-msgstr "Último movimento de estoque no Odoo"
+msgstr "Última movimentação de estoque"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_products_import_line__meli_qty
@@ -7719,7 +7724,7 @@ msgstr "Store id do depósito ML de origem desta linha (Item.stock.store_id)."
 #. module: meli_oerp
 #: model:ir.model.fields,help:meli_oerp.field_product_product__meli_sub_status
 msgid "Sub Estado del producto en ML"
-msgstr "Sub Estado do produto no ML"
+msgstr "Subestado do produto no ML"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_shipment__substatus
@@ -7756,7 +7761,7 @@ msgstr "Enviar imagem a ML"
 #: model_terms:ir.ui.view,arch_db:meli_oerp.product_normal_ml_form_view
 #: model_terms:ir.ui.view,arch_db:meli_oerp.product_tpl_ml_form_view
 msgid "Sugerir Categoria"
-msgstr "Sugerir Categoria"
+msgstr "Sugerir categoria"
 
 #. module: meli_oerp
 #: model:ir.model,name:meli_oerp.model_product_supplierinfo
@@ -8009,7 +8014,7 @@ msgstr "Tipo"
 #: model:ir.model.fields,help:meli_oerp.field_mercadolibre_orders__activity_exception_decoration
 #: model:ir.model.fields,help:meli_oerp.field_mercadolibre_shipment__activity_exception_decoration
 msgid "Type of the exception activity on record."
-msgstr "Tipo de atividade de exceção no registro."
+msgstr "Tipo da atividade de exceção no registro."
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_res_company__meli_api_url
@@ -8031,7 +8036,7 @@ msgstr "URL de um video para exibir su produto."
 #: model:ir.model.fields,help:meli_oerp.field_res_company__mercadolibre_pricelist_usd
 msgid "USD Select price list for ML productwhen published from Odoo to ML"
 msgstr ""
-"USD Seleccionar lista de preços para produto ML ao publicar desde Odoo a ML"
+"USD: selecione a lista de preços do produto ML ao publicar do Odoo para o ML"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_claim__last_updated
@@ -8192,7 +8197,7 @@ msgstr "Id do Usuário"
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_res_company__mercadolibre_user_product_seller
 msgid "User Product Seller"
-msgstr "Vendedor de Produto de Usuário"
+msgstr "User Product Seller"
 
 #. module: meli_oerp
 #: model:ir.model.fields.selection,name:meli_oerp.selection__meli_proxy_audit__event__request
@@ -8217,12 +8222,12 @@ msgstr "Usuário ML"
 #. module: meli_oerp
 #: model:ir.model.fields,help:meli_oerp.field_res_company__mercadolibre_seller_user
 msgid "Usuario con el que se registrarán las órdenes automáticamente"
-msgstr "Usuário com o que se registrarán as órdenes automáticamente"
+msgstr "Usuário com o qual os pedidos serão registrados automaticamente"
 
 #. module: meli_oerp
 #: model:ir.model,name:meli_oerp.model_meli_util
 msgid "Utilidades para Mercado Libre"
-msgstr "Utilidades para Mercado Libre"
+msgstr "Utilitários para o Mercado Livre"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_res_company__mercadolibre_generic_vats
@@ -8266,7 +8271,7 @@ msgstr ""
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_res_company__mercadolibre_exclude_attributes
 msgid "Valores excluidos"
-msgstr "Valores excluidos"
+msgstr "Valores excluídos"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_meli_oerp_attribute_mapping__value_mapping_summary
@@ -8419,7 +8424,7 @@ msgstr "Vendas lançadas"
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_product_product__meli_video
 msgid "Video (id de youtube)"
-msgstr "Video (id de youtube)"
+msgstr "Vídeo (id do YouTube)"
 
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_image__video_url
@@ -8505,17 +8510,17 @@ msgstr "Assistente de Product Product Update no Mercado Livre"
 #. module: meli_oerp
 #: model:ir.model,name:meli_oerp.model_mercadolibre_product_template_import
 msgid "Wizard de Product Template Import en MercadoLibre"
-msgstr "Assistente de Importação de Modelo de Produto no MercadoLibre"
+msgstr "Assistente de importação de modelo de produto no Mercado Livre"
 
 #. module: meli_oerp
 #: model:ir.model,name:meli_oerp.model_mercadolibre_product_template_post
 msgid "Wizard de Product Template Posting en MercadoLibre"
-msgstr "Assistente de Publicação de Modelo de Produto no MercadoLibre"
+msgstr "Assistente de publicação de modelo de produto no Mercado Livre"
 
 #. module: meli_oerp
 #: model:ir.model,name:meli_oerp.model_mercadolibre_product_template_update
 msgid "Wizard de Product Template Update en MercadoLibre"
-msgstr "Assistente de Atualização de Modelo de Produto no MercadoLibre"
+msgstr "Assistente de atualização de modelo de produto no Mercado Livre"
 
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.view_company_page_mercadolibre
@@ -8599,7 +8604,7 @@ msgstr "aviso"
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.product_normal_ml_form_view
 msgid "¿Esta seguro de Cerrar este Producto en Mercado Libre?"
-msgstr "Tem certeza que deseja Fechar este Produto no Mercado Livre?"
+msgstr "Tem certeza de que quer fechar este produto no Mercado Livre?"
 
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.product_normal_ml_form_view
@@ -8607,8 +8612,8 @@ msgid ""
 "¿Esta seguro de Eliminar este Producto en Mercado Libre?. Esta accion no "
 "podra revertirse"
 msgstr ""
-"Tem certeza que deseja Excluir este Produto no Mercado Livre?. Esta ação não"
-" poderá ser revertida"
+"Tem certeza de que quer excluir este produto no Mercado Livre? Esta ação não"
+" poderá ser desfeita"
 
 #. module: meli_oerp
 #: model_terms:ir.ui.view,arch_db:meli_oerp.view_meli_notification_form
@@ -8688,4 +8693,4 @@ msgstr "Cabeçalho"
 #. module: meli_oerp
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_product_template_import__import_status
 msgid "Import Status"
-msgstr "Status de Importação"
+msgstr "Estado de Importação"
