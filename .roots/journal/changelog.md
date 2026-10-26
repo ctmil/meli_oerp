@@ -4,6 +4,12 @@
 
 ---
 
+## 17.0.26.310 — 26-oct-2026 · Brasil: interfaz completa en portugués y sitio Mercado Livre por país
+- Traducción pt_BR completa de todos los textos del módulo (menús, campos, ayudas, vistas, mensajes): ya no quedan textos en castellano con el idioma Português (BR).
+- Una empresa de Brasil que todavía no eligió la «Moneda predeterminada» de MercadoLibre usa el sitio Mercado Livre (MLB): el inicio de sesión va a auth.mercadolivre.com.br y los links a mercadolivre.com.br. Antes caía en el sitio de Argentina. Con la moneda elegida no cambia nada.
+- Probado: ventas de Mercado Livre Brasil con ID de pago alfanumérico se importan con el ID tal cual y un re-sync no duplica el pago.
+- Release de flota 26.310: mismo número en 16, 17, 18, 19 y 20 para meli_oerp, meli_oerp_stock, meli_oerp_accounting, meli_oerp_multiple, meli_oerp_campaign, odoo_connector_api y meli_oerp_autofacturacion.
+
 ## 17.0.26.309 — 25-oct-2026 · Ventas marcadas «No actualizar desde ML»: sin errores repetidos en el registro
 - Una venta con «No actualizar desde ML» sigue sin tocarse, pero ya no deja un error en el registro cada vez que llega una novedad de MercadoLibre: se avisa una vez y la notificación se da por procesada.
 

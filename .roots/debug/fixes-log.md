@@ -4,6 +4,12 @@
 
 ---
 
+## 26 oct 2026 — empresa BR sin moneda ML caía en el sitio MLA (Brasil A) (v17.0.26.310)
+**Síntoma:** empresa con país Brasil y «Moneda predeterminada» ML vacía ⇒ login a auth.mercadolibre.com.ar, links .com.ar, categorías del sitio AR.
+**Causa:** models/company.py `_get_ML_sites`: resolvía por país UY/VE/MX/CL/CO, después por moneda, y si no `return "MLA"`.
+**Fix:** antes del `return "MLA"`, fallback por `MELI_COUNTRY_SITE` (ya tenía BR→MLB). Con moneda configurada no cambia.
+**Prueba:** tests/test_26310_mlb_site.py (tag meli_26310). Además tests/test_26310_mlb_ids_alfanumericos.py: import real (sin red) con payment_id/order_id alfanuméricos. Verde 16-20.
+
 ## 25 oct 2026 — venta bloqueada (meli_update_forbidden): WARNING una vez + marca en el retorno [158] (v17.0.26.309)
 **Síntoma (158, prod 17.0.26.294):** `Forbidden to upate by meli_oerp` 60-99/h antes del pase, 131-238/h después; eco igual en meli_oerp_multiple connection_notification.
 **Causa:** models/orders.py `orders_update_order_json` (guard `sorder.meli_update_forbidden`): `_logger.error` en cada llamada y un `{'error'}` indistinguible de un fallo ⇒ la notificación queda FAILED y el cron la retoma siempre (ver meli_oerp_multiple). Ídem shipment.py (2 guards "Forbidden to update sale order").
