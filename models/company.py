@@ -201,6 +201,11 @@ class res_company(models.Model):
         if (currency and currency in ML_sites):
             return ML_sites[currency]["id"]
 
+        # Brasil A (26.310): sin moneda ML configurada, el sitio sale del pais de la compania
+        # (antes caia siempre en MLA: una empresa BR iniciaba sesion y armaba links en Argentina).
+        if country_code and country_code.upper() in self.MELI_COUNTRY_SITE:
+            return self.MELI_COUNTRY_SITE[country_code.upper()]
+
         return "MLA"
 
     def get_meli_state( self ):
