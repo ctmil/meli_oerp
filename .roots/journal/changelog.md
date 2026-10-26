@@ -4,6 +4,10 @@
 
 ---
 
+## 18.0.26.312 — 26-oct-2026 · Brasil: revisión de la traducción portuguesa
+- Traducción pt_BR corregida: textos que en la traducción anterior seguían en castellano (p. ej. «Importar Masivamente», «Agrupar por Barcode», «Estado ML», campos de actividades) y nombres de los módulos en Apps en portugués.
+- Release de flota 26.312: mismo número en 16, 17, 18, 19 y 20 para los 7 módulos del suite.
+
 ## 18.0.26.310 — 26-oct-2026 · Brasil: interfaz completa en portugués y sitio Mercado Livre por país
 - Traducción pt_BR completa de todos los textos del módulo (menús, campos, ayudas, vistas, mensajes): ya no quedan textos en castellano con el idioma Português (BR).
 - Una empresa de Brasil que todavía no eligió la «Moneda predeterminada» de MercadoLibre usa el sitio Mercado Livre (MLB): el inicio de sesión va a auth.mercadolivre.com.br y los links a mercadolivre.com.br. Antes caía en el sitio de Argentina. Con la moneda elegida no cambia nada.
