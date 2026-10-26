@@ -4,6 +4,11 @@
 
 ---
 
+## 26 oct 2026 — _action_assign pasaba force_qty SIEMPRE a super(): TypeError con overrides ajenos [158] (v19.0.26.313)
+**Causa:** models/stock_move.py:188-190 (desde 26.302) llamaba `super()._action_assign(force_qty=force_qty)` aunque force_qty fuera False. Un override de terceros con firma `_action_assign(self)` debajo en el MRO (158 Elvimarta: meli_oerp_multiple → shopify_ept → meli_oerp → mrp → stock, medido en prod) ⇒ TypeError en cada reserva ⇒ ventas ML sin confirmar. Mismo riesgo con odoo_connector_api_producteca (Grupo Alfie, Justdistribution).
+**Fix:** `assign_kwargs = {'force_qty': force_qty} if force_qty else {}` y `super()._action_assign(**assign_kwargs)`; la firma sigue igual al core (mrp/lint de 20.0 OK).
+**Prueba:** tests/test_26313_action_assign_compat.py (tag meli_26313): override ajeno sin force_qty parcheado debajo en el MRO; control origin 26.312 ⇒ TypeError; fix verde 16-20. Con valor, force_qty se sigue reenviando.
+
 ## 26 oct 2026 — empresa BR sin moneda ML caía en el sitio MLA (Brasil A) (v19.0.26.310)
 **Síntoma:** empresa con país Brasil y «Moneda predeterminada» ML vacía ⇒ login a auth.mercadolibre.com.ar, links .com.ar, categorías del sitio AR.
 **Causa:** models/company.py `_get_ML_sites`: resolvía por país UY/VE/MX/CL/CO, después por moneda, y si no `return "MLA"`.
