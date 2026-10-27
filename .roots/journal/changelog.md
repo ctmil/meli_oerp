@@ -4,6 +4,12 @@
 
 ---
 
+## 20.0.26.319 — 27-oct-2026 · Envío de ventas en carrito: se factura el flete que cobró el vendedor
+- En ventas de carrito (pack), la línea de envío vuelve a llevar el flete cuando el comprador lo pagó y lo cobró el vendedor. El dato sale del pago del envío en MercadoPago, no del detalle de costos del envío (que nombra al vendedor también cuando paga el comprador).
+- Si el envío lo cobra MercadoLibre y no el vendedor (por ejemplo, Full Súper), la línea queda en 0 como hasta ahora.
+- Si la consulta a MercadoPago falla, no se cambia el valor que ya tenía el envío.
+- Release de flota 26.319: mismo número en 16, 17, 18, 19 y 20 para los 7 módulos del suite.
+
 ## 20.0.26.316 — 27-oct-2026 · El precio de la venta de MercadoLibre no lo cambia una personalización
 - Si la base tiene una personalización (por ejemplo, un campo de Studio en la línea de venta) que escribe el precio de la línea cuando cambia el producto, la sincronización con MercadoLibre ya no la dispara en cada actualización: sólo se escribe lo que cambió.
 - Si aun así el precio de la línea queda distinto del de MercadoLibre, se restituye el precio de MercadoLibre y queda un aviso en la venta (una vez). Aplica a ventas en presupuesto; las confirmadas no se tocan.
