@@ -4,6 +4,12 @@
 
 ---
 
+## 18.0.26.319 — 27-oct-2026 · Envío de ventas en carrito: se factura el flete que cobró el vendedor
+- En ventas de carrito (pack), la línea de envío vuelve a llevar el flete cuando el comprador lo pagó y lo cobró el vendedor. El dato sale del pago del envío en MercadoPago, no del detalle de costos del envío (que nombra al vendedor también cuando paga el comprador).
+- Si el envío lo cobra MercadoLibre y no el vendedor (por ejemplo, Full Súper), la línea queda en 0 como hasta ahora.
+- Si la consulta a MercadoPago falla, no se cambia el valor que ya tenía el envío.
+- Release de flota 26.319: mismo número en 16, 17, 18, 19 y 20 para los 7 módulos del suite.
+
 ## 18.0.26.318 — 27-oct-2026 · Carrito con cupón del vendedor: la venta queda en lo que cobró MercadoLibre
 - En una compra de carrito (varias publicaciones en un mismo pago) con un cupón que paga el vendedor, la venta ya no queda a precio lleno: el descuento del carrito se reparte entre sus productos según el importe de cada uno, y la venta queda en lo que cobró MercadoLibre.
 - Un descuento del carrito nunca se resta entero en cada línea, y si no es coherente con el importe del carrito no se aplica (la venta queda a precio lleno, con aviso en el registro).
