@@ -84,7 +84,7 @@ def _meli_label_download(url, access_token, timeout=60, session=None):
 # `import *` no trae los nombres con guion bajo: este guard se importa explicito [un caso]
 from .versions import _meli_guard_delivery_write
 from .meli_util import meli_instance_url, meli_instance_session
-from .receiver_cost import receiver_buyer_cost
+from .receiver_cost import receiver_buyer_cost, seller_collected_shipping, pack_receiver_cost, receiver_gross_cost
 
 #
 #     https://www.odoo.com/fr_FR/forum/aide-1/question/solved-call-report-and-save-result-to-attachment-133244
@@ -692,6 +692,40 @@ class mercadolibre_shipment(models.Model):
                 st_pick.carrier_tracking_ref = tracking
                 updated += 1
         return updated
+
+    def _meli_pack_receiver_cost(self, meli, ship_id, rcosts):
+        """[#158/#462/#535] Flete del comprador que COBRO el vendedor (shipping_receiver_cost).
+
+        Un GET a MercadoPago (/v1/payments/search?external_reference=<envio>, token en el header,
+        timeout corto) y SOLO si /costs trae receiver.cost > 0. Corre antes de escribir el envio y no
+        escribe nada. Si la consulta falla, NO se asume: queda el valor que el envio ya tenia (o, si es
+        nuevo, el criterio anterior) y queda en el log."""
+        if receiver_gross_cost(rcosts) <= 0.0:
+            return 0.0
+        collected = None
+        token = getattr(meli, 'access_token', None)
+        if token and token != "PASIVA":
+            try:
+                resp = requests.get("https://api.mercadopago.com/v1/payments/search",
+                                    params={'external_reference': str(ship_id)},
+                                    headers={'Authorization': 'Bearer %s' % token, 'Accept': 'application/json'},
+                                    timeout=10)
+                if resp is not None and resp.status_code == 200:
+                    collected = seller_collected_shipping(resp.json(), ship_id)
+                else:
+                    _logger.warning("MELI envio %s: consulta MP del flete cobrado devolvio %s; no se asume nada",
+                                    ship_id, getattr(resp, 'status_code', None))
+            except Exception as e:
+                _logger.warning("MELI envio %s: consulta MP del flete cobrado fallo (%s); no se asume nada", ship_id, e)
+        previous = None
+        if collected is None:
+            self.env.cr.execute("SELECT shipping_receiver_cost FROM mercadolibre_shipment WHERE shipping_id=%s LIMIT 1",
+                                (str(ship_id),))
+            row = self.env.cr.fetchone()
+            previous = row[0] if row else None
+            _logger.warning("MELI envio %s: shipping_receiver_cost sin dato de cobro, queda %s",
+                            ship_id, previous if previous is not None else 'el criterio anterior')
+        return pack_receiver_cost(rcosts, collected, previous)
 
     def _meli_buyer_shipping_amount(self, order=None, config=None):
         """un caso - Flete que paga el COMPRADOR segun MercadoLibre (>= 0). Sin red.
@@ -1511,7 +1545,9 @@ class mercadolibre_shipment(models.Model):
                     # shipping_option.cost — sí acá, en /costs → receiver.cost.
                     # Descontando lo que cubre el vendedor (receiver.cost_details): con envío
                     # gratis subsidiado, receiver.cost viene lleno y el comprador pagó 0.
-                    ship_json['receiver_cost'] = receiver_buyer_cost(rcosts)
+                    # [#158/#462/#535] ...pero cost_details NO dice quien cobro: lo dice el pago MP
+                    # marketplace_shipment del envio (ver receiver_cost.py y _meli_pack_receiver_cost).
+                    ship_json['receiver_cost'] = self._meli_pack_receiver_cost(meli, ship_id, rcosts)
 
                 seller_id = None
                 if config.mercadolibre_seller_user:
