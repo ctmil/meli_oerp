@@ -1916,6 +1916,11 @@ class mercadolibre_shipment(models.Model):
                             else:
                                 totales['shipping_amount'] = shipment.shipping_cost
 
+                        # 26.318 (#431 B): descuento del vendedor del PACK (suma de los miembros) y bruto
+                        # para prorratearlo por ítem. Va también a la venta (meli_discount_seller_amount) para
+                        # que el importe a facturar sepa que el descuento ya está en las líneas.
+                        _pack_disc, _pack_gross = self.env['mercadolibre.orders']._meli_pack_seller_discount(all_orders)
+
                         #fix ML order_json... for pack_order "shipping_cost" added
                         if not mercadolibre_use_payment_shipping_amount and shipment.shipping_cost:
                             totales['paid_amount']+= shipment.shipping_cost
@@ -1968,6 +1973,8 @@ class mercadolibre_shipment(models.Model):
                             'meli_date_created': ml_datetime(all_orders[0]["date_created"]) or all_orders[0]["date_created"],
                             'meli_date_closed': ml_datetime(all_orders[0]["date_closed"]) or all_orders[0]["date_created"],
                         })
+                        if 'meli_discount_seller_amount' in self.env['sale.order']._fields:
+                            meli_order_fields['meli_discount_seller_amount'] = _pack_disc
                         #TODO: agregar un campo para diferencia cada delivery res partner al shipment y orden asociado, crear un binding usando values diferentes... y listo
                         #_logger.info("ship_json[receiver_address]:"+str(ship_json["receiver_address"]) )
                         if ('account.payment.term' in self.env):
@@ -2064,7 +2071,10 @@ class mercadolibre_shipment(models.Model):
                                 if (mOrder.fee_amount):
                                     sorder_pack.meli_fee_amount = sorder_pack.meli_fee_amount + mOrder.fee_amount
 
-                                saleorderline_item_fields.update( order._set_product_unit_price( product_related_obj, mOrder.order_items[0], config=config ) )
+                                # 26.318 (#431 B): el descuento del PACK prorrateado por el bruto de ESTE ítem
+                                # (antes: el de la orden que disparó el sync, entero, en cada línea).
+                                saleorderline_item_fields.update( mOrder._set_product_unit_price( product_related_obj, mOrder.order_items[0], config=config,
+                                                                                                   items_total=_pack_gross or None, seller_discount=_pack_disc ) )
 
                                 saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),
                                                                                     ('meli_order_item_variation_id','=',saleorderline_item_fields['meli_order_item_variation_id']),

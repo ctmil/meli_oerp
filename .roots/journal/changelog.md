@@ -4,6 +4,12 @@
 
 ---
 
+## 16.0.26.318 — 27-oct-2026 · Carrito con cupón del vendedor: la venta queda en lo que cobró MercadoLibre
+- En una compra de carrito (varias publicaciones en un mismo pago) con un cupón que paga el vendedor, la venta ya no queda a precio lleno: el descuento del carrito se reparte entre sus productos según el importe de cada uno, y la venta queda en lo que cobró MercadoLibre.
+- Un descuento del carrito nunca se resta entero en cada línea, y si no es coherente con el importe del carrito no se aplica (la venta queda a precio lleno, con aviso en el registro).
+- Aplica a ventas en presupuesto; las confirmadas no se tocan.
+- Release de flota 26.318: mismo número en 16, 17, 18 y 19 para los 7 módulos del suite.
+
 ## 16.0.26.316 — 27-oct-2026 · El precio de la venta de MercadoLibre no lo cambia una personalización
 - Si la base tiene una personalización (por ejemplo, un campo de Studio en la línea de venta) que escribe el precio de la línea cuando cambia el producto, la sincronización con MercadoLibre ya no la dispara en cada actualización: sólo se escribe lo que cambió.
 - Si aun así el precio de la línea queda distinto del de MercadoLibre, se restituye el precio de MercadoLibre y queda un aviso en la venta (una vez). Aplica a ventas en presupuesto; las confirmadas no se tocan.
