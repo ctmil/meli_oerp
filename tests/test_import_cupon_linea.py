@@ -127,15 +127,18 @@ class TestImportCuponLinea(common.TransactionCase):
         so = self.env['sale.order'].search([('meli_order_id', '=', str(OID))], limit=1)
         self.assertAlmostEqual(so.amount_total, 5057.80, places=2)
 
-    def test_1_pack_member_coupon_only_in_payments_does_not_fetch(self):
-        """Orden miembro de un PACK con el cupon solo en los pagos: NO se consulta /discounts (el cupon
-        es del pack y no se resta por linea sin prorratear)."""
+    def test_1_pack_member_coupon_only_in_payments_fetches_own_discount(self):
+        """26.318 (#431 B): la orden miembro de un PACK con el cupon solo en los pagos SI consulta
+        /discounts y guarda SU descuento; el armado del pack lo prorratea por item (ver
+        test_431_cupon_pack). Hasta 26.316 no se consultaba y el carrito quedaba a precio lleno."""
         oj = _order_json()
         oj['coupon'] = {'id': None, 'amount': 0}
         oj['pack_id'] = 2000000000000099
         routes = [('/orders/%s/discounts' % OID, _discounts()), ('/items/', {'id': 'MLM000TEST'})]
         res, meli = self._run(oj, routes)
-        self.assertNotIn('/orders/%s/discounts' % OID, meli.calls)
+        self.assertIn('/orders/%s/discounts' % OID, meli.calls)
+        mo = self.env['mercadolibre.orders'].search([('order_id', '=', str(OID))], limit=1)
+        self.assertAlmostEqual(mo.discount_seller_amount, 266.20, places=2)
 
     def test_6_resync_does_not_add_line_to_confirmed_sale(self):
         oid = 2000000000000004
