@@ -4,6 +4,8 @@
 
 ---
 
+## 19.0.26.325 — 27-oct-2026 · Release de flota 26.325 (acompaña el enmascarado de tokens en los registros de estado de meli_oerp_multiple y odoo_connector_api, sin cambios propios)
+
 ## 19.0.26.324 — 27-oct-2026 · Release de flota 26.324 (acompaña el enmascarado de tokens en los registros del conector de odoo_connector_api y meli_oerp_multiple, sin cambios propios)
 
 ## 19.0.26.321 — 27-oct-2026 · Release de flota 26.321 (acompaña la corrección de seguridad del estado del conector en odoo_connector_api, sin cambios propios)
