@@ -344,6 +344,87 @@ class sale_order_line(models.Model):
         sup = getattr(super(sale_order_line, self), '_can_be_invoiced_alone', None)
         return sup() if sup else True
 
+    # ------------------------------------------------------------------
+    # [#526, 26.316] Precio de la linea de PRODUCTO de una venta ML: lo manda ML.
+    # Medido en prod de Deco (27-oct, SO 13151 y 34 ventas mas desde el 19-oct): un campo
+    # Studio del cliente (`x_studio_precio_por_medida`, depends product_id/ancho/largo) termina
+    # su compute con `record['price_unit'] = <formula>`. Como la sincronizacion reescribia
+    # `product_id` en CADA re-sync (aunque no cambiara), ese compute corria DENTRO del write del
+    # conector y pisaba el precio de ML: con la formula en 0 la venta quedaba en $0, y si no, con
+    # un precio de fabrica que no es lo cobrado. Tambien pisaba la correccion manual del operador
+    # en cada re-sync. Dos reglas:
+    #  1) no se reescribe lo que no cambio (no dispara computes ajenos en cada re-sync);
+    #  2) si despues del write el precio no es el de ML, se restituye escribiendo SOLO price_unit
+    #     (no toca las dependencias del compute ajeno) y se avisa UNA vez en la venta.
+    # Solo en ventas no confirmadas/bloqueadas: es el mismo alcance del write de siempre.
+    # ------------------------------------------------------------------
+    def _meli_vals_changed(self, vals):
+        """Subconjunto de `vals` que cambia algo en la linea (self, un registro)."""
+        self.ensure_one()
+        upd = {}
+        for key, val in vals.items():
+            field = self._fields.get(key)
+            if field is None or field.type in ('one2many', 'many2many'):
+                upd[key] = val
+                continue
+            cur = self[key]
+            if field.type == 'many2one':
+                if (cur.id or False) != (val or False):
+                    upd[key] = val
+            elif field.type in ('float', 'monetary'):
+                if abs(float(cur or 0.0) - float(val or 0.0)) > 1e-6:
+                    upd[key] = val
+            elif field.type == 'integer':
+                if int(cur or 0) != int(val or 0):
+                    upd[key] = val
+            elif field.type in ('char', 'text', 'selection', 'html'):
+                if str(cur or '') != str(val or ''):
+                    upd[key] = val
+            elif cur != val:
+                upd[key] = val
+        return upd
+
+    def _meli_write_ml_line(self, vals, config=None):
+        """Write de la linea de producto ML desde la sincronizacion (ver bloque [#526, 26.316])."""
+        for line in self:
+            upd = line._meli_vals_changed(vals)
+            if upd:
+                line.write(upd)
+            if 'price_unit' in vals:
+                line._meli_enforce_ml_price(vals.get('price_unit'), config=config)
+        return True
+
+    def _meli_enforce_ml_price(self, price_unit, config=None):
+        """Si una personalizacion piso el precio de ML durante el write, se restituye."""
+        if price_unit is None:
+            return False
+        restored = False
+        for line in self:
+            so = line.order_id
+            if not so or so.state in ('sale', 'done', 'cancel') or ('locked' in so._fields and so.locked):
+                continue
+            current = float(line.price_unit or 0.0)
+            if abs(current - float(price_unit)) <= 0.005:
+                continue
+            line.with_context(meli_enforce_ml_price=True).write({'price_unit': price_unit})
+            after = float(line.price_unit or 0.0)
+            ok = abs(after - float(price_unit)) <= 0.005
+            restored = restored or ok
+            _logger.warning("MELI #526: %s linea %s (%s): el precio de ML %.6f quedo en %.6f despues del write "
+                            "(personalizacion que escribe price_unit): %s",
+                            so.name, line.id, line.product_id.default_code or line.product_id.display_name,
+                            float(price_unit), current, ok and "restituido" or "NO se pudo restituir (%.6f)" % after)
+            if ok:
+                msg = _("MercadoLibre: el precio de la linea %s quedo en %s despues de sincronizar (lo cambio una "
+                        "personalizacion de la base que escribe el precio de la linea). Se restituyo el precio de "
+                        "MercadoLibre: %s.") % (line.product_id.display_name, round(current, 2), round(float(price_unit), 2))
+            else:
+                msg = _("MercadoLibre: el precio de la linea %s no es el de MercadoLibre (%s) y no se pudo restituir: "
+                        "queda en %s. Revise las personalizaciones que escriben el precio de la linea.") % (
+                            line.product_id.display_name, round(float(price_unit), 2), round(after, 2))
+            meli_message_post(so, msg, config=config, once_key="precio-ml-pisado-%s" % line.id)
+        return restored
+
 class sale_order(models.Model):
     _inherit = "sale.order"
 
@@ -6757,7 +6838,8 @@ class mercadolibre_orders(models.Model):
                             pass;
                         else:
                             _logger.info("Sale Order line write")
-                            saleorderline_item_ids.write( ( saleorderline_item_fields ) )
+                            # [#526, 26.316] solo lo que cambio + precio de ML restituido si lo pisan
+                            saleorderline_item_ids._meli_write_ml_line( saleorderline_item_fields, config=config )
 
         if 'payments' in order_json:
             payments = order_json['payments']

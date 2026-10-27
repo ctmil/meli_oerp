@@ -24,6 +24,7 @@ from . import test_receiver_cost_pure
 from . import test_sku_token_pure
 from . import test_526_envio_facturada
 from . import test_158_envio_a_facturar
+from . import test_526_precio_linea_ml
 from . import test_26309_venta_bloqueada
 from . import test_26310_mlb_ids_alfanumericos
 from . import test_26310_mlb_site
