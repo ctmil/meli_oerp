@@ -4,6 +4,8 @@
 
 ---
 
+## 17.0.26.320 — 27-oct-2026 · Release de flota 26.320 (acompaña la corrección del GTIN en publicaciones con variantes de meli_oerp_multiple, sin cambios propios)
+
 ## 17.0.26.319 — 27-oct-2026 · Envío de ventas en carrito: se factura el flete que cobró el vendedor
 - En ventas de carrito (pack), la línea de envío vuelve a llevar el flete cuando el comprador lo pagó y lo cobró el vendedor. El dato sale del pago del envío en MercadoPago, no del detalle de costos del envío (que nombra al vendedor también cuando paga el comprador).
 - Si el envío lo cobra MercadoLibre y no el vendedor (por ejemplo, Full Súper), la línea queda en 0 como hasta ahora.
