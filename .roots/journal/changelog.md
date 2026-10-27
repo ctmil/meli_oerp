@@ -4,6 +4,8 @@
 
 ---
 
+## 16.0.26.315 — 27-oct-2026 · Release de flota 26.315 (acompaña la corrección del diario de factura de otra compañía en meli_oerp_accounting, sin cambios propios)
+
 ## 16.0.26.314 — 26-oct-2026 · Release de flota 26.314
 - Sin cambios en este módulo.
 - Release de flota 26.314: mismo número en 16, 17, 18, 19 y 20 para los 7 módulos del suite.
