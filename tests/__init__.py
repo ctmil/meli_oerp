@@ -16,6 +16,7 @@ from . import test_452_envio_archivado
 from . import test_682_dni_movil
 from . import test_526_envio_facturada
 from . import test_158_envio_a_facturar
+from . import test_526_precio_linea_ml
 # Tests puros (unittest.TestCase, se corren con `python3 tests/<archivo>.py`). Importados para que el
 # lint de Odoo (test_test_holes) los vea; el runner de Odoo no los ejecuta (no heredan odoo.tests.TestCase).
 from . import test_address_lock_pure

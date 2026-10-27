@@ -4,6 +4,11 @@
 
 ---
 
+## 19.0.26.316 — 27-oct-2026 · El precio de la venta de MercadoLibre no lo cambia una personalización
+- Si la base tiene una personalización (por ejemplo, un campo de Studio en la línea de venta) que escribe el precio de la línea cuando cambia el producto, la sincronización con MercadoLibre ya no la dispara en cada actualización: sólo se escribe lo que cambió.
+- Si aun así el precio de la línea queda distinto del de MercadoLibre, se restituye el precio de MercadoLibre y queda un aviso en la venta (una vez). Aplica a ventas en presupuesto; las confirmadas no se tocan.
+- Release de flota 26.316: mismo número en 16, 17, 18, 19 y 20 para los 7 módulos del suite.
+
 ## 19.0.26.315 — 27-oct-2026 · Release de flota 26.315 (acompaña la corrección del diario de factura de otra compañía en meli_oerp_accounting, sin cambios propios)
 
 ## 19.0.26.314 — 26-oct-2026 · Release de flota 26.314
