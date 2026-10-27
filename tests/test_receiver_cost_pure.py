@@ -89,5 +89,91 @@ class TestShippingMissingInPaid(unittest.TestCase):
         self.assertEqual(a, b)
 
 
+def _costs(cost, buyer, seller, seller_cost=0.0, gross=None):
+    return {"receiver": {"cost": cost, "user_id": buyer, "cost_details": [{"sender_id": seller, "amount": cost}]},
+            "gross_amount": gross if gross is not None else cost + seller_cost,
+            "senders": [{"user_id": seller, "cost": seller_cost}]}
+
+
+def _ship_pay(pid, amount, ship_id, status="approved", desc="marketplace_shipment"):
+    return {"id": pid, "status": status, "transaction_amount": amount, "description": desc,
+            "external_reference": str(ship_id)}
+
+
+class TestFletePackCobrado(unittest.TestCase):
+    """[#158/#462/#535, 27-oct-2026] Payloads REALES (GET /shipments/<id>/costs y
+    /v1/payments/search?external_reference=<envio> con el token de cada vendedor).
+    En los 7 casos cost_details nombra al vendedor por receiver.cost entero: no discrimina.
+    Lo que discrimina es el pago MP marketplace_shipment cobrado por el vendedor."""
+
+    CASES = [
+        # (nombre, envio, rcosts, search_json, use_payment, payment_shipping, option_cost, esperado_receiver, esperado_linea)
+        ("158 pack ME1 ML 2000015698286111", 48345423784,
+         _costs(102089, 3731085, 196350138),
+         {"results": [_ship_pay(185004403007, 102089, 48345423784)]}, True, 0.0, 102089, 102089, 102089),
+        ("158 pack ME2 KETER ML 2000015701836497", 48347069726,
+         _costs(8692, 380406917, 337163020, seller_cost=23390, gross=82060),
+         {"results": [_ship_pay(185039582613, 8692, 48347069726)]}, True, 0.0, 8692, 8692, 8692),
+        ("Olpa 462 pack Full SO 6708", 48266301364,
+         _costs(1299.8, 175181508, 570653807),
+         {"results": [_ship_pay(183298296955, 1299.8, 48266301364)]}, True, 0.0, 1299.8, 1299.8, 1299.8),
+        ("Olpa 462 pack Full SO 6766", 48298700614,
+         _costs(4999, 222948840, 570653807),
+         {"results": [_ship_pay(185054666366, 4999, 48298700614)]}, True, 0.0, 4999, 4999, 4999),
+        ("535 pack Full Super SO 1212 (lo cobra ML, no el vendedor)", 48021478119,
+         _costs(79, 3485303698, 573976600, seller_cost=6, gross=85),
+         {"results": []}, True, 0.0, 79, 0.0, 0.0),
+        ("535 pack Full Super SO 1841", 48021517705,
+         _costs(99, 1136045267, 573976600, seller_cost=6, gross=105),
+         {"results": []}, True, 0.0, 99, 0.0, 0.0),
+        # Control positivo: no-pack con el flete DENTRO del pago de la orden (no hay pago aparte).
+        ("158 NO-pack ME1 ML 2000019163457792 (control)", 48345440000,
+         _costs(200640, 835204409, 196350138),
+         {"results": []}, True, 200640.0, 200640, 0.0, 200640),
+    ]
+
+    def test_casos_reales(self):
+        for name, ship, rcosts, search, use_pay, pay_ship, opt, exp_rc, exp_line in self.CASES:
+            with self.subTest(name):
+                collected = rc.seller_collected_shipping(search, ship)
+                got_rc = rc.pack_receiver_cost(rcosts, collected, previous=None)
+                self.assertAlmostEqual(got_rc, exp_rc, places=2)
+                self.assertAlmostEqual(rc.buyer_shipping_amount(use_pay, pay_ship, opt, got_rc), exp_line, places=2)
+
+    def test_cost_details_no_discrimina(self):
+        # El criterio anterior (26.166..26.316) da 0 en los 7: por eso 158 y Olpa perdian el flete cobrado.
+        for name, ship, rcosts, *_ in self.CASES:
+            with self.subTest(name):
+                self.assertEqual(rc.receiver_buyer_cost(rcosts), 0.0)
+
+    def test_ignora_pagos_que_no_son_el_flete_de_este_envio(self):
+        ship = 48345423784
+        search = {"results": [
+            _ship_pay(1, 102089, ship, status="refunded"),
+            _ship_pay(2, 102089, ship, desc="Sombrilla Jardin"),
+            _ship_pay(3, 50, 99999999999),
+            _ship_pay(4, 102089, ship),
+        ]}
+        self.assertEqual(rc.seller_collected_shipping(search, ship), 102089)
+
+    def test_consulta_fallida_no_asume(self):
+        rcosts = _costs(4999, 222948840, 570653807)
+        for bad in (None, {}, {"error": "unauthorized"}, {"results": None}, "x"):
+            with self.subTest(bad=bad):
+                self.assertIsNone(rc.seller_collected_shipping(bad, 48298700614))
+        # queda lo que habia
+        self.assertEqual(rc.pack_receiver_cost(rcosts, None, previous=4999.0), 4999.0)
+        self.assertEqual(rc.pack_receiver_cost(rcosts, None, previous=0.0), 0.0)
+        # envio nuevo: el criterio anterior
+        self.assertEqual(rc.pack_receiver_cost(rcosts, None, previous=None), rc.receiver_buyer_cost(rcosts))
+
+    def test_sin_flete_del_comprador_no_consulta_y_da_0(self):
+        # envio gratis real (431 MLM: receiver.cost 0, option.cost 0)
+        rcosts = {"receiver": {"cost": 0, "user_id": 1537271697, "cost_details": []}, "senders": [{"cost": 190}]}
+        self.assertEqual(rc.receiver_gross_cost(rcosts), 0.0)
+        self.assertEqual(rc.pack_receiver_cost(rcosts, None, previous=123.0), 0.0)
+        self.assertEqual(rc.pack_receiver_cost({"algo": True}, None, previous=None), 0.0)
+
+
 if __name__ == "__main__":
     unittest.main()
