@@ -4,6 +4,12 @@
 
 ---
 
+## 27 oct 2026 — línea ML en $0 / precio de fórmula: una personalización pisaba el precio DENTRO del write del conector [#526] (v18.0.26.316)
+**Síntoma (526 Deco, prod 19.0.26.86.2, SO 13151 del 27-oct y 34 ventas más desde el 19-oct):** línea de producto de la venta ML en pu 0, o con un precio de fórmula que no es lo cobrado; `technical_price_unit` = precio ML correcto. El re-sync volvía a pisar el precio que corregía el operador (12529). No era el descuento del vendedor (orders `_set_product_unit_price`): `discount_seller_amount` = 0 en los 18 casos.
+**Causa (traza en seco sobre 13151, con rollback):** campo Studio del cliente `x_studio_precio_por_medida` (sale.order.line, depends product_id/ancho/largo) termina su compute con `record['price_unit'] = precio_final`. orders.py (no-pack) y shipment.py (pack) escribían `product_id` en cada write de la línea ⇒ el compute corría dentro de ese write y dejaba 0 / precio de fórmula.
+**Fix:** `sale.order.line._meli_write_ml_line` (escribe sólo lo que cambió) + `_meli_enforce_ml_price` (si el precio no es el de ML tras el write, lo restituye escribiendo sólo price_unit y avisa una vez: once_key `precio-ml-pisado-<línea>`). Sólo ventas no confirmadas/bloqueadas, mismo alcance del write previo.
+**Prueba:** tests/test_526_precio_linea_ml.py (tag meli_526_precio_linea): import real `orders_update_order_json` con create/write parcheados como el compute Studio. Control origin 26.315: 3 FAIL (`0.0 != 27500.0`) + 2 ERROR; fix 6/6 en 16-20; suites sin regresión (mismos errores preexistentes que origin).
+
 ## 26 oct 2026 — _action_assign pasaba force_qty SIEMPRE a super(): TypeError con overrides ajenos [158] (v18.0.26.313)
 **Causa:** models/stock_move.py:188-190 (desde 26.302) llamaba `super()._action_assign(force_qty=force_qty)` aunque force_qty fuera False. Un override de terceros con firma `_action_assign(self)` debajo en el MRO (158 Elvimarta: meli_oerp_multiple → shopify_ept → meli_oerp → mrp → stock, medido en prod) ⇒ TypeError en cada reserva ⇒ ventas ML sin confirmar. Mismo riesgo con odoo_connector_api_producteca (Grupo Alfie, Justdistribution).
 **Fix:** `assign_kwargs = {'force_qty': force_qty} if force_qty else {}` y `super()._action_assign(**assign_kwargs)`; la firma sigue igual al core (mrp/lint de 20.0 OK).
