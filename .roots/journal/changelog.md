@@ -4,6 +4,8 @@
 
 ---
 
+## 16.0.26.321 — 27-oct-2026 · Release de flota 26.321 (acompaña la corrección de seguridad del estado del conector en odoo_connector_api, sin cambios propios)
+
 ## 16.0.26.320 — 27-oct-2026 · Release de flota 26.320 (acompaña la corrección del GTIN en publicaciones con variantes de meli_oerp_multiple, sin cambios propios)
 
 ## 16.0.26.319 — 27-oct-2026 · Envío de ventas en carrito: se factura el flete que cobró el vendedor
