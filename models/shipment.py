@@ -2127,7 +2127,8 @@ class mercadolibre_shipment(models.Model):
                                         pass;
                                     else:
                                         #_logger.info("sale order line to write")
-                                        saleorderline_item_ids.write( ( saleorderline_item_fields ) )
+                                        # [#526, 26.316] solo lo que cambio + precio de ML restituido si lo pisan
+                                        saleorderline_item_ids._meli_write_ml_line( saleorderline_item_fields, config=config )
                     else:
                         #_logger.info("partner receiver id not founded:"+str(ship_fields['receiver_id']))
                         pass;
