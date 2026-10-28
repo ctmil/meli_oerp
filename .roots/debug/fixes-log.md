@@ -4,6 +4,13 @@
 
 ---
 
+## 28 oct 2026 — carrito (pack) con cupón del vendedor seguía a precio lleno con 26.318 [#431 B] (v26.330)
+**Síntoma:** 431 (prod 18.0.26.250.2, que trae 26.318): desde el pase, 51 de 51 carritos con cupón entraron sin el descuento (ej. pack 2000015746467903: 942.00 vs 894.90 cobrado); las ventas simples con cupón, bien.
+**Causa (medida en prod, RO):** en la orden miembro de un pack ML manda `coupon: null` y `payments[].coupon_amount: 0`; el cupón sólo está en `/orders/{id}/discounts`. La guarda de `orders_update_order_json` (`order.coupon_amount > 0 or _payments_coupon > 0`) daba False ⇒ `_fetch_order_discounts` nunca corría para los miembros (0 líneas `MELI discounts` en el log) ⇒ `discount_seller_amount` 0 ⇒ el prorrateo de 26.318 en `mercadolibre.shipment` no tenía nada que repartir. El test de 26.318 suponía el cupón en los pagos.
+**Fix:** la guarda también entra con `pack_id` + tag `order_has_discount` (la única señal en la orden). Una consulta por orden miembro, la misma que ya hace la venta simple; la venta simple no cambia. El reparto sigue siendo el de 26.318 (por bruto de cada ítem, nunca el importe del pack en una línea).
+**Prueba:** tests/test_431_cupon_pack.py +5 con el payload real (miembros 2000019213687240/2000019213698218: 18.25+28.85; armado 894.90; controles: pack sin tag no consulta, simple sólo-tag sin cambio, simple real 2000019211761592 = 1880.05). Control origin 26.328: 1 failed (el del payload real) en 16/17/18/19; fix 0 failed; suite /meli_oerp,/meli_oerp_multiple 18: 0 de 262.
+**No cubre:** ventas ya confirmadas (el sync no reescribe líneas de una venta confirmada): se reparan con meli-reparar-montos.py.
+
 ## 28 oct 2026 — sin cuenta ML, la UI dejaba 12 `GET /sites: Auth error status=403` por recorrido + C-1 NameError latentes (v26.328)
 **Síntoma:** smoke de UI (Odoo.sh 20, builds 40520031/40547250, y banco 20) sin cuenta ML: 12 WARNING `meli_util GET /sites 403` (preexistente en 16–19).
 **Causa:** `res.company._get_ML_sites` consultaba `/sites` aunque el token estuviera vacío; lo llama `meli.util.get_new_instance` (vía `get_ML_AUTH_URL`) en cada instancia, y `get_ML_LINK_URL`; las instancias salen de computes de producto/categoría/preguntas/posting/compañía.

@@ -112,6 +112,82 @@ class TestCuponPack431(common.TransactionCase):
         self.assertTrue(so)
         self.assertAlmostEqual(so.amount_total, 2033.95, places=2)
 
+    # -- 4. 26.330: payload REAL de un miembro de pack (431, medido en prod el 28-oct) ----------
+    # Pack 2000015746467903 (SO 60040): ML manda `coupon: null` y `payments[].coupon_amount: 0` en cada
+    # orden miembro; el cupón (18.25 + 28.85 = 47.10) SÓLO está en /orders/{id}/discounts, junto a la
+    # oferta de precio (type `discount`, ya en unit_price). La única señal en la orden: tag order_has_discount.
+    PACK60040 = 2000015746467903
+    M60040 = ((2000019213687240, 365.00, 18.25, 64.99), (2000019213698218, 577.00, 28.85, 102.99))
+
+    def _member_json(self, oid, unit, pack, tags):
+        oj = _order_json(oid=oid, unit=unit, paid=unit, coupon=0)
+        oj['coupon'] = None
+        oj['payments'][0]['coupon_amount'] = 0.0
+        oj['pack_id'] = pack
+        oj['tags'] = list(tags)
+        return oj
+
+    def _disc_real(self, item, cupon, oferta):
+        d = _disc(item, cupon)
+        d['details'].append({'type': 'discount', 'items': [{'id': item, 'quantity': 1,
+                                                            'amounts': {'total': oferta, 'seller': oferta}}]})
+        return d
+
+    def _import(self, oj, routes):
+        meli = _FakeMeli(routes + [('/items/', {'id': 'MLM000TEST'})])
+        with patch('odoo.addons.meli_oerp.models.orders.requests.get', return_value=_MPNoDisponible()), \
+                mute_logger('odoo.addons.meli_oerp_multiple.models.sale'):
+            self.Orders.orders_update_order_json({'id': False, 'order_json': oj}, meli=meli, config=self.company)
+        return meli, self.Orders.search([('order_id', '=', str(oj['id']))], limit=1)
+
+    def test_4_pack_real_60040_miembros_buscan_su_cupon(self):
+        """Hasta 26.329 la guarda (cupón en la orden o en los pagos) no entraba: 0 consultas a /discounts,
+        discount_seller_amount 0 en los dos miembros y el carrito a 942.00 en vez de 894.90."""
+        total = 0.0
+        for oid, unit, cupon, oferta in self.M60040:
+            oj = self._member_json(oid, unit, self.PACK60040,
+                                   ['order_has_discount', 'paid', 'not_delivered', 'pack_order'])
+            meli, mo = self._import(oj, [('/orders/%s/discounts' % oid, self._disc_real('MLM000TEST', cupon, oferta))])
+            self.assertIn('/orders/%s/discounts' % oid, meli.calls)
+            self.assertAlmostEqual(mo.discount_seller_amount, cupon, places=2)
+            total += mo.discount_seller_amount
+        self.assertAlmostEqual(total, 47.10, places=2)
+
+    def test_4_pack_sin_tag_de_descuento_no_consulta(self):
+        """Control: miembro de pack sin cupón ni tag order_has_discount => no hay consulta de red nueva."""
+        oid = 2000019299999001
+        oj = self._member_json(oid, 500.00, 2000015799999001, ['paid', 'not_delivered', 'pack_order'])
+        meli, mo = self._import(oj, [])
+        self.assertNotIn('/orders/%s/discounts' % oid, meli.calls)
+        self.assertAlmostEqual(mo.discount_seller_amount or 0.0, 0.0, places=2)
+
+    def test_4_venta_simple_solo_tag_no_cambia(self):
+        """Control: venta SIMPLE con tag order_has_discount y sin cupón (sólo oferta de precio) => igual
+        que antes, no consulta /discounts y queda al precio de ML."""
+        oid = 2000019299999002
+        oj = _order_json(oid=oid, unit=1200.00, paid=1200.00, coupon=0)
+        oj['tags'] = ['order_has_discount', 'paid', 'not_delivered']
+        meli, mo = self._import(oj, [])
+        self.assertNotIn('/orders/%s/discounts' % oid, meli.calls)
+        so = self.env['sale.order'].search([('meli_order_id', '=', str(oid))], limit=1)
+        self.assertTrue(so)
+        self.assertAlmostEqual(so.amount_total, 1200.00, places=2)
+
+    def test_4_venta_simple_real_60021_sigue_bien(self):
+        """Control real: venta simple 2000019211761592 (SO 60021), cupón 98.95 en el pago y oferta 220.99
+        en el precio => 1880.05 (lo que cobró ML), igual que con 26.250.2 en prod."""
+        oid = 2000019211761592
+        oj = _order_json(oid=oid, unit=1979.00, paid=1880.05, coupon=0)
+        oj['coupon'] = None
+        oj['payments'][0].update({'transaction_amount': 1979.00, 'coupon_amount': 98.95, 'total_paid_amount': 1880.05})
+        oj['tags'] = ['order_has_discount', 'paid', 'not_delivered']
+        meli, mo = self._import(oj, [('/orders/%s/discounts' % oid, self._disc_real('MLM000TEST', 98.95, 220.99))])
+        self.assertIn('/orders/%s/discounts' % oid, meli.calls)
+        self.assertAlmostEqual(mo.discount_seller_amount, 98.95, places=2)
+        so = self.env['sale.order'].search([('meli_order_id', '=', str(oid))], limit=1)
+        self.assertTrue(so)
+        self.assertAlmostEqual(so.amount_total, 1880.05, places=2)
+
     # -- 2. armado de las líneas del pack (shipment): prorrateo del total del pack ---------------
     def test_2_single_order_pack_real(self):
         mo = self._mo(OID1, 3259.99, disc=163.00)
@@ -230,3 +306,13 @@ class TestCuponPackArmado431(common.TransactionCase):
         so, lines = self._armar(mos)
         self.assertAlmostEqual(sum(l.price_unit * l.product_uom_qty for l in lines), 1486.00, places=2)
         self.assertEqual(so.meli_discount_seller_amount or 0.0, 0.0)
+
+    def test_3_pack_real_60040_dos_ordenes(self):
+        """26.330: pack 2000015746467903 con los descuentos que ahora guarda el import (18.25 + 28.85):
+        942.00 - 47.10 = 894.90 (lo que cobró ML), prorrateado por el bruto de cada ítem."""
+        mos = self._pack(2000015746467903, [365.00, 577.00], [18.25, 28.85], ship='48369540558')
+        so, lines = self._armar(mos)
+        self.assertEqual(len(lines), 2)
+        self.assertAlmostEqual(sum(l.price_unit * l.product_uom_qty for l in lines), 894.90, delta=0.02)
+        self.assertTrue(all(l.price_unit > 0 for l in lines))
+        self.assertAlmostEqual(so.meli_discount_seller_amount, 47.10, places=2)
