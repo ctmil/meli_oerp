@@ -384,6 +384,33 @@ class sale_order_line(models.Model):
                 upd[key] = val
         return upd
 
+    # ------------------------------------------------------------------
+    # [26.326, regresion 26.316 — fix de referencia fork Deco #526 d3b7b4a] Impuestos de la linea de
+    # PRODUCTO de una venta ML. Medido en prod (28-oct, SO 13275, pack NUEVO): el bloque viejo comparaba
+    # contra la compania de `sorder`, que en un pack nuevo esta vacio => quitaba el IVA correcto y no
+    # agregaba ninguno. Hasta 26.315 lo tapaba el write completo (product_id recomputa los impuestos);
+    # 26.316 (`_meli_write_ml_line`, solo lo que cambio) lo destapo: la linea quedaba sin IVA
+    # (total = cobrado/1,21) y en el sync siguiente `tid` sin asignar => UnboundLocalError.
+    # Regla: impuestos = los del producto de la COMPANIA DE LA VENTA; el IVA informado por ML elige entre
+    # ellos; una linea nunca queda sin impuestos si el producto los tiene para esa compania.
+    # ------------------------------------------------------------------
+    def _meli_sync_line_taxes(self, product, sale_order, tax_field):
+        for line in self:
+            company = (sale_order and sale_order.company_id) or line.order_id.company_id or line.company_id
+            if not company or not product:
+                continue
+            ptaxes = product.sudo().taxes_id.filtered(lambda t: t.company_id.id == company.id)
+            iva_name = line.meli_order_item_iva
+            tax_iva = ptaxes.filtered(lambda t: tax_names_equivalent(t.name, iva_name))[:1] if (iva_name and ptaxes) else ptaxes.browse()
+            current = line[tax_field]
+            keep = current.filtered(lambda t: t.company_id.id == company.id and (not tax_iva or t == tax_iva))
+            if not keep and ptaxes:
+                keep = tax_iva or ptaxes
+            if set(keep.ids) != set(current.ids):
+                _logger.info("MELI 26.326: %s linea %s impuestos %s -> %s", line.order_id.name, line.id, current.ids, keep.ids)
+                line[tax_field] = [(6, 0, keep.ids)]
+        return True
+
     def _meli_write_ml_line(self, vals, config=None):
         """Write de la linea de producto ML desde la sincronizacion (ver bloque [#526, 26.316])."""
         for line in self:
@@ -7020,32 +7047,8 @@ class mercadolibre_orders(models.Model):
                         #_logger.info(product_related_obj taxes_id:"+str(product_related_obj.taxes_id and product_related_obj.taxes_id.company_id))
                         #_logger.info(saleorderline_item_ids tax:"+str(saleorderline_item_ids[tax_field]))
                         #_logger.info(saleorderline_item_ids tax company_id:"+str(saleorderline_item_ids[tax_field].company_id))
-                        tax_iva_name = saleorderline_item_ids.meli_order_item_iva
-                        tax_iva_name = tax_iva_name
-                        tax_iva_id = None
-                        if tax_iva_name and product_related_obj.taxes_id:
-                            for txid in product_related_obj.taxes_id:
-                                if ( tax_names_equivalent(txid.name,tax_iva_name) ):
-                                    tax_iva_id = txid
-
-                        tid = None  # un caso: si la línea no trae impuestos el for no corre y abajo se usaba tid sin definir
-                        for tid in saleorderline_item_ids[tax_field]:
-
-                            if (tid.company_id.id!=sorder.company_id.id 
-                                or (tax_iva_id and tax_iva_id!=tid) ):
-                                #remove
-                                saleorderline_item_ids[tax_field] = [(3, tid.id)]
-
-                        if not saleorderline_item_ids[tax_field] and product_related_obj.taxes_id:
-                            for txid in product_related_obj.taxes_id:
-                                if (txid.company_id.id==sorder.company_id.id):
-                                    if (tax_iva_id):
-                                        if (tax_iva_id!=tid):
-                                            #add
-                                            saleorderline_item_ids[tax_field] = [(4, txid.id)]
-                                    else:
-                                        #add
-                                        saleorderline_item_ids[tax_field] = [(4, txid.id)]
+                        # [26.326] impuestos de la compania de la venta (ver sale.order.line._meli_sync_line_taxes)
+                        saleorderline_item_ids._meli_sync_line_taxes( product_related_obj, sorder, tax_field )
 
                         if (sorder.state and sorder.state in ['done','sale']) or ("locked" in sorder._fields and sorder.locked):
                             #_logger.warning("Orden bloqueada no se puede actualizar")
