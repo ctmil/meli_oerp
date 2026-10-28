@@ -40,7 +40,7 @@ if 'is_storable' in _prod._fields:
 CONFIG = ('mercadolibre.configuration', None)
 if 'mercadolibre.configuration' in env and 'accounts' not in company._fields:
     _Conf = env['mercadolibre.configuration']
-    _vals = {k: v for k, v in {'name': 'Prueba carrera 431', 'mercadolibre_pricelist': pricelist.id,
+    _vals = {k: v for k, v in {'name': 'Prueba carrera K13', 'mercadolibre_pricelist': pricelist.id,
                                 'mercadolibre_cron_get_orders_shipment_client': True,
                                 'company_id': company.id}.items() if k in _Conf._fields}
     for _fn, _f in _Conf._fields.items():          # m2o obligatorios (almacen, etc.): el primero que haya

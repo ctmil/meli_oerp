@@ -7,7 +7,7 @@ _meli_mx_apply_cfdi (no importa odoo). ORDERS_PY=<ruta> apunta a otra copia (p.e
 
 Gap (hasta 26.290, legacy y v2 por igual): ML informa en MLM taxes.taxpayer_type.id (601/612/616) y
 taxes.cfdi.id (G01/G03/S01) y el modulo nunca los escribia en l10n_mx_edi_fiscal_regime /
-l10n_mx_edi_usage. Payloads anonimizados de PLAN-2026-10-23-535-verificar-billing-v2-mlm (T3LC).
+l10n_mx_edi_usage. Payloads anonimizados de PLAN-2026-10-23-K22-verificar-billing-v2-mlm (T3LC).
 """
 import ast
 import contextlib

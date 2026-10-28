@@ -1848,8 +1848,8 @@ class mercadolibre_shipment(models.Model):
                     original_contact_partner_id = partner_id
                     partner_shipping_id = None
                     # [#caso-K03] si la entrega del pedido del pack se fijo a mano no se busca / actualiza el contacto
-                    _meli513_pack_so = self.env["sale.order"].search([('meli_order_id', '=', packed_order_ids)], order="id asc", limit=1)
-                    if "receiver_address" in ship_json and not (_meli513_pack_so and _meli513_pack_so._meli_address_locked('partner_shipping_id')):
+                    _meli_k03_pack_so = self.env["sale.order"].search([('meli_order_id', '=', packed_order_ids)], order="id asc", limit=1)
+                    if "receiver_address" in ship_json and not (_meli_k03_pack_so and _meli_k03_pack_so._meli_address_locked('partner_shipping_id')):
                         if config.mercadolibre_cron_get_orders_shipment_client:
                             partner_shipping_id = self.partner_delivery_id( partner_id=original_contact_partner_id, Receiver=ship_json["receiver_address"], config=config )
 
