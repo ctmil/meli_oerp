@@ -4,6 +4,7 @@
 
 ---
 
+## 20.0.26.334 — 28-oct-2026 · Corrección: una lista de precios elegida al publicar gana sobre la de la configuración de la cuenta; el aviso genérico de atributos faltantes indica dónde se carga cada uno (acompaña a meli_oerp_multiple 26.334)
 ## 20.0.26.333 — 28-oct-2026 · Nuevo: cambios de producto de Mercado Libre (llega a 20.0 lo de 26.332). La venta de reemplazo queda ligada a la venta original (aviso en las dos) y, cuando la devolución llega, se registra el reingreso del artículo según la configuración de devoluciones (FULL incluido). Se activa con la tarea programada «MELI: cambios de producto». (La corrección del carrito con cupón de 26.330 todavía no está en 20.0: requiere 26.318.)
 
 ## 20.0.26.330 — 28-oct-2026 · Release de flota 26.330 (en 16–19 trae la corrección del carrito con cupón; en 20.0 todavía no: falta portar 26.318, sin cambios propios)

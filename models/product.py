@@ -1653,7 +1653,9 @@ class product_product(models.Model):
         #_logger.info("set_meli_price: "+str(product_tmpl.list_price)+ " >> "+str(product_tmpl.display_name)+": "+str(product_tmpl.meli_price)+" | "+str(product.display_name)+": "+str(product.meli_price) )
 
         pl = (product.meli_currency and product.meli_currency in ["USD"] and "mercadolibre_pricelist_usd" in config._fields and config.mercadolibre_pricelist_usd and config.mercadolibre_pricelist_usd.currency_id.name=="USD" and config.mercadolibre_pricelist_usd)
-        pl = pl or config.mercadolibre_pricelist or plist
+        # [26.334] una lista EXPLICITA (p.ej. «Nueva Lista de Precios» del asistente de publicar) gana
+        # sobre la de la configuracion de la cuenta. Antes `plist` iba ultima y nunca se usaba.
+        pl = plist or pl or config.mercadolibre_pricelist
 
 
         # NEW OR NULL
