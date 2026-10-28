@@ -4,6 +4,7 @@
 
 ---
 
+## 17.0.26.333 — 28-oct-2026 · Release de flota 26.333 (alinea el suite en 16–20: lleva a 20.0 los cambios de producto de Mercado Libre de 26.332; sin cambios propios en 17.0)
 ## 17.0.26.332 — 28-oct-2026 · Nuevo: cambios de producto de Mercado Libre. La venta de reemplazo queda ligada a la venta original (aviso en las dos) y, cuando la devolución llega, se registra el reingreso del artículo según la configuración de devoluciones (FULL incluido). Se activa con la tarea programada «MELI: cambios de producto».
 ## 17.0.26.330 — 28-oct-2026 · Corrección: la venta de un carrito (pack) con cupón del vendedor entra con el monto que cobró Mercado Libre (el cupón se reparte entre las líneas del carrito)
 ## 17.0.26.329 — 28-oct-2026 · Seguridad: los errores de MercadoLibre guardados en el producto y en las notificaciones ya no conservan el token de acceso; y la sincronización de reclamos ya no trae los reclamos donde la cuenta es la compradora
