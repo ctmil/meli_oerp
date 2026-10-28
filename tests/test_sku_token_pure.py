@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Casos de la regla de match de SKU por TOKEN (#543) — SIN Odoo.
+"""Casos de la regla de match de SKU por TOKEN (#caso-K10) — SIN Odoo.
 
 Correr:  python3 meli_oerp/tests/test_sku_token_pure.py   (desde la raiz de addons)
 NO esta en tests/__init__.py a proposito: carga models/sku_token.py por ruta para no

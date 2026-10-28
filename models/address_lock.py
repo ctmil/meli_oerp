@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""[#513 TYL, 26.282] Respetar direcciones cambiadas a mano en ventas de ML — lógica PURA.
+"""[#caso-K03 cliente A, 26.282] Respetar direcciones cambiadas a mano en ventas de ML — lógica PURA.
 
 Sin Odoo: se prueba con `python3 meli_oerp/tests/test_address_lock_pure.py`.
 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""26.309 (158 Elvimarta) -- venta BLOQUEADA para actualizar desde ML (`meli_update_forbidden`).
+"""26.309 (caso-K02 cliente H) -- venta BLOQUEADA para actualizar desde ML (`meli_update_forbidden`).
 
 El freno es correcto (no escribe nada) pero:
   - logueaba ERROR "Forbidden to upate by meli_oerp" en CADA llamada, y
@@ -17,7 +17,7 @@ from odoo.tests import common, tagged
 from odoo.tools import mute_logger
 
 from odoo.addons.meli_oerp.models import versions as meli_versions
-from .test_513_direcciones_manuales import _FakeMeli, _MPNoDisponible, _order_json, OID
+from .test_k03_direcciones_manuales import _FakeMeli, _MPNoDisponible, _order_json, OID
 
 LOGGER = "odoo.addons.meli_oerp.models.orders"
 

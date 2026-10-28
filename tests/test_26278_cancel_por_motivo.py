@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""26.278 (#624) -- politica de cancelacion por MOTIVO (meli_oerp.cancel_reason_policy=by_reason).
+"""26.278 (#caso-K04) -- politica de cancelacion por MOTIVO (meli_oerp.cancel_reason_policy=by_reason).
 
 Casos A-F tal como los especifico la clienta y como se MIDIERON en sus ventas reales (22-oct-2026):
 el codigo de ML no separa B/F ni D/E; los separa payments[].status_detail (bpp_covered = ML le
@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 from odoo.tests import TransactionCase, tagged
 
-ORDER_ID = "2000099990001"
+ORDER_ID = "2000153290941"
 
 
 class _FakeMeli:
@@ -158,19 +158,19 @@ class TestCancelPorMotivo(TransactionCase):
 
     def _pack_split(self, twin_deliver=True, with_twin=True):
         prod = self._prod()
-        so, _ = self._mkso(prod=prod, oid="2000099990011")
+        so, _ = self._mkso(prod=prod, oid="2000646010065")
         twin = self.SO
         MO = self.env["mercadolibre.orders"]
         buyer = self.env["mercadolibre.buyers"].create({"name": "Comprador 624", "buyer_id": "650423053"})
-        mo1 = MO.create({"order_id": "2000099990011", "pack_id": "2000014788491255", "status": "cancelled",
+        mo1 = MO.create({"order_id": "2000646010065", "pack_id": "2000221040055112", "status": "cancelled",
                          "buyer": buyer.id, "date_created": "2026-08-31 05:08:18", "sale_order": so.id})
-        self.env["mercadolibre.order_items"].create({"order_id": mo1.id, "order_item_id": "MLM1922940117"})
+        self.env["mercadolibre.order_items"].create({"order_id": mo1.id, "order_item_id": "MLM1095102445"})
         if with_twin:
-            twin, _ = self._mkso(prod=prod, oid="2000099990012", deliver=twin_deliver)
+            twin, _ = self._mkso(prod=prod, oid="2000321340597", deliver=twin_deliver)
             twin.meli_status = "paid"
-            mo2 = MO.create({"order_id": "2000099990012", "pack_id": "2000014788999259", "status": "paid",
+            mo2 = MO.create({"order_id": "2000321340597", "pack_id": "2000336276407236", "status": "paid",
                              "buyer": buyer.id, "date_created": "2026-08-31 07:33:25", "sale_order": twin.id})
-            self.env["mercadolibre.order_items"].create({"order_id": mo2.id, "order_item_id": "MLM1922940117"})
+            self.env["mercadolibre.order_items"].create({"order_id": mo2.id, "order_item_id": "MLM1095102445"})
         so.meli_orders = [(6, 0, mo1.ids)]
         return so, twin, prod
 
@@ -179,7 +179,7 @@ class TestCancelPorMotivo(TransactionCase):
         so, twin, prod = self._pack_split(twin_deliver=True)
         self.assertEqual(so._meli_pack_splitted_twins(), twin)
         self.assertEqual(self._qty(prod), 46, "doble salida antes de procesar")
-        self.assertTrue(self._cancel(so, _oj("pack_splitted", ["by_admin"], oid="2000099990011")))
+        self.assertTrue(self._cancel(so, _oj("pack_splitted", ["by_admin"], oid="2000646010065")))
         self.assertEqual(so.state, "cancel")
         self.assertEqual(self._returns(so).mapped("state"), ["done"])
         self.assertEqual(self._qty(prod), 48, "queda una sola salida: la de la gemela")
@@ -189,7 +189,7 @@ class TestCancelPorMotivo(TransactionCase):
 
     def test_c_pack_splitted_gemela_sin_salida_no_devuelve(self):
         so, twin, prod = self._pack_split(twin_deliver=False)
-        self.assertFalse(self._cancel(so, _oj("pack_splitted", ["by_admin"], oid="2000099990011")))
+        self.assertFalse(self._cancel(so, _oj("pack_splitted", ["by_admin"], oid="2000646010065")))
         self.assertNotEqual(so.state, "cancel")
         self.assertFalse(self._returns(so))
         self.assertIn(twin.name, so.meli_cancel_decision)
@@ -197,7 +197,7 @@ class TestCancelPorMotivo(TransactionCase):
 
     def test_c_pack_splitted_sin_gemela_no_devuelve(self):
         so, twin, prod = self._pack_split(with_twin=False)
-        self.assertFalse(self._cancel(so, _oj("pack_splitted", ["by_admin"], oid="2000099990011")))
+        self.assertFalse(self._cancel(so, _oj("pack_splitted", ["by_admin"], oid="2000646010065")))
         self.assertNotEqual(so.state, "cancel")
         self.assertFalse(self._returns(so))
         self.assertIn("no se encontró la venta gemela", so.meli_cancel_decision)

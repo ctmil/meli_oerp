@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
-"""26.332 (525 ROEN, ticket id 700 / portal #701) -- cambios de producto de MercadoLibre.
+"""26.332 (caso-K01 cliente B, ticket id caso-K06 / portal #caso-K05) -- cambios de producto de MercadoLibre.
 
-Payloads REALES de la cuenta MLM de ROEN (GET de solo lectura, 28-oct-2026), recortados en
-tests/data/meli_change_roen.json. Red mockeada: `_meli_change_get` sirve el JSON por path.
+Payloads REALES de la cuenta MLM de cliente B (GET de solo lectura, 28-oct-2026), recortados en
+tests/data/meli_change_cliente_b.json. Red mockeada: `_meli_change_get` sirve el JSON por path.
 Casos:
-  - 2000018619790226 (reclamo 5582489788, orden original 2000018593964050): cambio VENCIDO.
-  - 2000018354408968 (original 2000018105212692): FULL, return ENTREGADO.
-  - 2000017558967286 (original 2000017495222820): return ENTREGADO; las 10 originales de ROEN son FULL,
+  - 2000553234638327 (reclamo 5759242653, orden original 2000214454182585): cambio VENCIDO.
+  - 2000237645213616 (original 2000495284482240): FULL, return ENTREGADO.
+  - 2000122963381564 (original 2000324725753585): return ENTREGADO; las 10 originales de cliente B son FULL,
     asi que el caso NO-FULL es VARIANTE de este payload con logistic_type=cross_docking (marcado en el test).
-  - 2000017308748828: el GET del return dio 429 => no se decide a ciegas.
+  - 2000301642313281: el GET del return dio 429 => no se decide a ciegas.
 """
 import json
 import os
@@ -18,7 +18,7 @@ from odoo.tests import TransactionCase, tagged
 
 from ..models import change as C
 
-_FX = json.load(open(os.path.join(os.path.dirname(__file__), "data", "meli_change_roen.json")))["cases"]
+_FX = json.load(open(os.path.join(os.path.dirname(__file__), "data", "meli_change_cliente_b.json")))["cases"]
 
 
 class _FakeMeli:
@@ -45,8 +45,8 @@ class TestCambiosProductoPuro(TransactionCase):
             link = C.meli_change_find_link(oid, c["changes"])
             self.assertTrue(link, oid)
             self.assertEqual(link["orig_order_id"], str(c["orig_order"]["id"]), oid)
-        link = C.meli_change_find_link("2000018619790226", _FX["2000018619790226"]["changes"])
-        self.assertEqual((link["claim_id"], link["type"], link["return_id"]), ("5582489788", "replace", "164015208"))
+        link = C.meli_change_find_link("2000706551143353", _FX["2000706551143353"]["changes"])
+        self.assertEqual((link["claim_id"], link["type"], link["return_id"]), ("5545233832", "replace", "164015208"))
         self.assertEqual(C.meli_change_outcome(link), "closed")
 
     def test_resultado_vs_plata_de_ml(self):
@@ -60,16 +60,16 @@ class TestCambiosProductoPuro(TransactionCase):
                 self.assertEqual(c["new_order"]["status"], "cancelled", oid)
 
     def test_return_429_es_desconocido_no_negativo(self):
-        ret = _FX["2000017308748828"]["returns"]
+        ret = _FX["2000393090469383"]["returns"]
         self.assertIsNone(C.meli_change_return_status(ret))
-        self.assertIsNone(C.meli_change_return_is_total(ret, "2000017279469180"))
+        self.assertIsNone(C.meli_change_return_is_total(ret, "2000090263827142"))
 
     def test_return_total(self):
-        c = _FX["2000018354408968"]
+        c = _FX["2000042362327525"]
         self.assertEqual(C.meli_change_return_status(c["returns"]), "delivered")
-        self.assertTrue(C.meli_change_return_is_total(c["returns"], "2000018105212692", {"MLM1877982585": 1}))
-        self.assertFalse(C.meli_change_return_is_total(c["returns"], "2000018105212692",
-                                                       {"MLM1877982585": 1, "MLM999": 1}))
+        self.assertTrue(C.meli_change_return_is_total(c["returns"], "2000947363495130", {"MLM1111022880": 1}))
+        self.assertFalse(C.meli_change_return_is_total(c["returns"], "2000947363495130",
+                                                       {"MLM1111022880": 1, "MLM999": 1}))
 
 
 @tagged("post_install", "-at_install", "meli_26332")
@@ -173,24 +173,24 @@ class TestCambiosProducto(TransactionCase):
 
     # --------------------------------------------------------------- casos --
     def test_01_caso_5582489788_vencido(self):
-        """orden 2000018593964050 -> 2000018619790226 (vencido): vincula, no mueve stock, no toca importes."""
-        orig_so, new_so, new_mo, prod = self._par("2000018619790226", "sale", "cancel")
+        """orden 2000214454182585 -> 2000553234638327 (vencido): vincula, no mueve stock, no toca importes."""
+        orig_so, new_so, new_mo, prod = self._par("2000706551143353", "sale", "cancel")
         before = self._amounts(orig_so, new_so)
         n = new_mo.meli_change_sync(meli=_FakeMeli())
         self.assertEqual(n, 1)
         self.assertEqual(new_mo.meli_change_state, "closed")
-        self.assertEqual(new_mo.meli_change_claim_id, "5582489788")
-        self.assertEqual(new_mo.meli_change_origin_order_id, "2000018593964050")
+        self.assertEqual(new_mo.meli_change_claim_id, "5545233832")
+        self.assertEqual(new_mo.meli_change_origin_order_id, "2000459505421451")
         self.assertEqual(new_mo.meli_change_return_id, "164015208")
         self.assertEqual(new_so.meli_change_origin_sale_id, orig_so)
         self.assertIn(new_so, orig_so.meli_change_replacement_ids)
         self.assertFalse(self._returns(orig_so))
         self.assertEqual(orig_so.state, "sale")
         self.assertEqual(self._amounts(orig_so, new_so), before)
-        self.assertEqual(self._msgs(orig_so, "5582489788"), 2)  # vinculo + vencido
+        self.assertEqual(self._msgs(orig_so, "5545233832"), 2)  # vinculo + vencido
 
     def test_02_full_entregado_sin_parametro_respeta_full(self):
-        orig_so, new_so, new_mo, prod = self._par("2000018354408968", "cancel", "sale")
+        orig_so, new_so, new_mo, prod = self._par("2000042362327525", "cancel", "sale")
         before = self._amounts(orig_so, new_so)
         new_mo.meli_change_sync(meli=_FakeMeli())
         self.assertEqual(new_mo.meli_change_state, "done")
@@ -201,7 +201,7 @@ class TestCambiosProducto(TransactionCase):
 
     def test_03_full_entregado_con_parametro_reingresa_y_es_idempotente(self):
         self.ICP.set_str("meli_oerp.cancel_return_full", "1")
-        orig_so, new_so, new_mo, prod = self._par("2000018354408968", "cancel", "sale")
+        orig_so, new_so, new_mo, prod = self._par("2000042362327525", "cancel", "sale")
         before = self._amounts(orig_so, new_so)
         new_mo.meli_change_sync(meli=_FakeMeli())
         rets = self._returns(orig_so)
@@ -218,8 +218,8 @@ class TestCambiosProducto(TransactionCase):
         self.assertEqual(self._amounts(orig_so, new_so), before)
 
     def test_04_no_full_entregado_reingresa(self):
-        # VARIANTE: payload real, logistica de la original cambiada a no-FULL (ROEN no tiene un caso asi).
-        orig_so, new_so, new_mo, prod = self._par("2000017558967286", "cancel", "sale", orig_logistic="cross_docking")
+        # VARIANTE: payload real, logistica de la original cambiada a no-FULL (cliente B no tiene un caso asi).
+        orig_so, new_so, new_mo, prod = self._par("2000020658320246", "cancel", "sale", orig_logistic="cross_docking")
         self.assertFalse(orig_so.is_meli_order_fulfillment())
         new_mo.meli_change_sync(meli=_FakeMeli())
         rets = self._returns(orig_so)
@@ -229,15 +229,15 @@ class TestCambiosProducto(TransactionCase):
 
     def test_05_return_429_no_decide(self):
         self.ICP.set_str("meli_oerp.cancel_return_full", "1")
-        orig_so, new_so, new_mo, prod = self._par("2000017308748828", "cancel", "sale")
+        orig_so, new_so, new_mo, prod = self._par("2000393090469383", "cancel", "sale")
         new_mo.meli_change_sync(meli=_FakeMeli())
         self.assertEqual(new_mo.meli_change_state, "linked")
         self.assertFalse(self._returns(orig_so))
         self.assertIn(new_mo, self.MO._meli_change_candidates())
 
     def test_06_original_no_es_candidata_y_cron_procesa(self):
-        orig_so, new_so, new_mo, prod = self._par("2000018619790226", "sale", "cancel")
-        orig_mo = self.MO.search([("order_id", "=", "2000018593964050")])
+        orig_so, new_so, new_mo, prod = self._par("2000706551143353", "sale", "cancel")
+        orig_mo = self.MO.search([("order_id", "=", "2000459505421451")])
         cands = self.MO._meli_change_candidates()
         self.assertIn(new_mo, cands)
         self.assertNotIn(orig_mo, cands)

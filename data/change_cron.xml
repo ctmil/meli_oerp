@@ -2,7 +2,7 @@
 <odoo>
     <data noupdate="1">
         <!--
-            26.332 (525): cambios de producto de MercadoLibre (ordenes con tag `change`).
+            26.332 (caso-K01): cambios de producto de MercadoLibre (ordenes con tag `change`).
             Vincula la orden de reemplazo con la venta original (via reclamo /changes) y, cuando la
             devolucion de ML figura entregada, registra el reingreso en la venta ORIGINAL segun la
             politica de devoluciones (FULL / cancel_return_full / mercadolibre_return_mode).

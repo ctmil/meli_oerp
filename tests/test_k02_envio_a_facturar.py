@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""[158, 26.307] Linea de envio ML en $0 que quedaba "A facturar" en una venta ya facturada.
+"""[caso-K02, 26.307] Linea de envio ML en $0 que quedaba "A facturar" en una venta ya facturada.
 
-Caso de produccion (158 Elvimarta, SO ML 2000019153738674, 25-oct-2026): factura del producto
+Caso de produccion (caso-K02 cliente H, SO ML 2000402644338137, 25-oct-2026): factura del producto
 posteada; ML informa despues un envio de 51.222,31 y el guard de venta facturada frena el cambio
 de precio (la linea sigue en $0), pero la rama "envio con precio" de shipment.py escribia igual
 qty_to_invoice=1 directo sobre el campo calculado => linea $0 "A facturar" y pedido "A facturar".
@@ -17,8 +17,8 @@ from odoo.modules.module import get_module_path
 from odoo.tests import tagged
 
 
-@tagged('post_install', '-at_install', 'meli_158_envio')
-class TestMeli158EnvioAFacturar(AccountTestInvoicingCommon):
+@tagged('post_install', '-at_install', 'meli_K02_envio')
+class TestMeliK02EnvioAFacturar(AccountTestInvoicingCommon):
 
     @classmethod
     def setUpClass(cls):
@@ -60,11 +60,11 @@ class TestMeli158EnvioAFacturar(AccountTestInvoicingCommon):
         self.assertEqual(so.invoice_status, 'invoiced', "la venta facturada no puede figurar 'A facturar'")
 
     def test_01_refresh_corrige_valor_escrito_a_mano(self):
-        so, sl, inv = self._venta_facturada('2000019153738674')
+        so, sl, inv = self._venta_facturada('2000424231350253')
         self._assert_facturada(so, sl)
         sl.qty_to_invoice = 1.0          # lo que escribia shipment.py hasta 26.306
         self.env.flush_all()
-        # control: reproduce el estado medido en 158 ('to invoice' en 17+; en 16 el delivery del core
+        # control: reproduce el estado medido en caso-K02 ('to invoice' en 17+; en 16 el delivery del core
         # lo baja a 'no' porque solo queda el envio) => nunca 'invoiced'
         self.assertNotEqual(so.invoice_status, 'invoiced', "control: reproduce el estado medido en 158")
         self.assertEqual(sl.qty_to_invoice, 1.0)
@@ -72,8 +72,8 @@ class TestMeli158EnvioAFacturar(AccountTestInvoicingCommon):
         self._assert_facturada(so, sl)
 
     def test_02_resync_real_de_venta_facturada_no_deja_envio_a_facturar(self):
-        so, sl, inv = self._venta_facturada('2000019153738675')
-        mo = self.env['mercadolibre.orders'].create({'order_id': '2000019153738675', 'name': '2000019153738675',
+        so, sl, inv = self._venta_facturada('2000050515033242')
+        mo = self.env['mercadolibre.orders'].create({'order_id': '2000050515033242', 'name': '2000050515033242',
                                                      'sale_order': so.id})
         self.env['mercadolibre.payments'].create({
             'order_id': mo.id, 'payment_id': '158000001', 'status': 'approved',
@@ -106,9 +106,9 @@ class TestMeli158EnvioAFacturar(AccountTestInvoicingCommon):
         self.env.invalidate_all()
 
     def test_03_migracion_repara_solo_envios_en_cero(self):
-        so0, sl0, _i0 = self._venta_facturada('2000019153738676', 0.0)
-        so1, sl1, _i1 = self._venta_facturada('2000019153738677', 0.0)
-        # envio con precio sin facturar (como las 16 IHSA de 158): NO se toca
+        so0, sl0, _i0 = self._venta_facturada('2000272434239135', 0.0)
+        so1, sl1, _i1 = self._venta_facturada('2000101489836809', 0.0)
+        # envio con precio sin facturar (como las 16 producto 2 de caso-K02): NO se toca
         sl1.price_unit = 900.0
         self.env.flush_all()
         before_priced = (sl1.qty_to_invoice, sl1.invoice_status)

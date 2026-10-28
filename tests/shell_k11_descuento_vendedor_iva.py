@@ -1,4 +1,4 @@
-# Test #529/#543 (descuento del vendedor doble, IVA de todas las compañias, `auto`, 401) —
+# Test #caso-K11/#caso-K10 (descuento del vendedor doble, IVA de todas las compañias, `auto`, 401) —
 # `odoo shell -d <db_de_prueba> < este_archivo`. Bloquea la red y hace ROLLBACK. NO correr contra produccion.
 env = globals()["env"]  # lo inyecta `odoo shell`: declarado para el lint de Odoo (undefined-variable)
 import requests
@@ -53,14 +53,14 @@ prod.product_tmpl_id.sudo().write({'taxes_id': [(6, 0, [tA.id, tB.id])]})
 prod_notax = env['product.product'].create({'name': 'Prod sin IVA banco 529'})
 prod_notax.product_tmpl_id.sudo().write({'taxes_id': [(5, 0, 0)]})
 
-# --- Bug 3: descuento del vendedor (payload real de la orden Kindon 2000019046887762) ---
-KINDON = {'details': [
+# --- Bug 3: descuento del vendedor (payload real de la orden producto 1 2000062952505125) ---
+producto 1 = {'details': [
     {'type': 'discount', 'items': [{'id': 'MLA1', 'quantity': 1, 'amounts': {'total': 687.5, 'seller': 687.5}}],
      'supplier': {'funding_mode': 'seller'}},
     {'type': 'coupon', 'coupon': {'id': 1}, 'items': [{'id': 'MLA1', 'quantity': 1, 'amounts': {'total': 2062.5, 'seller': 0.0}}]}]}
 order = fill('mercadolibre.orders', {'order_id': 'T529A', 'name': 'T529A', 'coupon_amount': 2062.5})
-order._fetch_order_discounts(meli=_M(KINDON))
-check('B3-1 Kindon: la oferta de precio (type discount, ya en unit_price) NO cuenta como descuento a restar',
+order._fetch_order_discounts(meli=_M(producto 1))
+check('B3-1 producto 1: la oferta de precio (type discount, ya en unit_price) NO cuenta como descuento a restar',
       abs(order.discount_seller_amount - 0.0) < 0.01)
 COUPON_SELLER = {'details': [{'type': 'coupon', 'coupon': {'id': 2}, 'items': [{'id': 'MLM1', 'quantity': 2, 'amounts': {'seller': 118.9, 'total': 118.9}}]}]}
 order2 = fill('mercadolibre.orders', {'order_id': 'T529B', 'name': 'T529B', 'coupon_amount': 118.9})
@@ -69,7 +69,7 @@ check('B3-2 cupon financiado por el vendedor SIGUE contando (no esta en unit_pri
 
 Item = {'unit_price': 54312.5, 'quantity': 1, 'item': {'id': 'MLA1'}}
 pu = order._set_product_unit_price(prod, Item, config=A)['price_unit']
-check('B3-3 Kindon: price_unit neto x 1,21 = 54.312,50 (precio ML), no 53.625 (%.2f)' % (pu * 1.21), abs(pu * 1.21 - 54312.5) < 0.05)
+check('B3-3 producto 1: price_unit neto x 1,21 = 54.312,50 (precio ML), no 53.625 (%.2f)' % (pu * 1.21), abs(pu * 1.21 - 54312.5) < 0.05)
 
 # prorrateo: orden de 2 items (1000 y 3000), descuento del vendedor 400 => 100 y 300
 o3 = fill('mercadolibre.orders', {'order_id': 'T529C', 'name': 'T529C', 'discount_seller_amount': 400.0})

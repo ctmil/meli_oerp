@@ -24,7 +24,7 @@ from datetime import datetime
 from .versions import *
 from . import versions as _versions
 
-# Seguridad (comms 2026-10-05T15:22:47Z, 542): los tokens/secretos NUNCA van en claro al chatter,
+# Seguridad (comms 2026-10-05T15:22:47Z, caso-K14): los tokens/secretos NUNCA van en claro al chatter,
 # al log ni a mercadolibre.notification.logs.
 _MELI_SECRET_KEYS = ('access_token', 'refresh_token', 'client_secret', 'secret_key', 'code')
 
@@ -49,10 +49,10 @@ def _meli_redact(data, omit=False):
 
 
 def meli_is_auth_error(rjson):
-    """[529] (19-oct-2026) ¿La respuesta de ML es un rechazo del TOKEN?
+    """[caso-K11] (19-oct-2026) ¿La respuesta de ML es un rechazo del TOKEN?
 
     Con el token vencido ML responde HTTP 401 {"code": "unauthorized", "message": "invalid access token"},
-    SIN las claves `error` ni `status` (medido en Kindon 19-oct). Los chequeos de siempre
+    SIN las claves `error` ni `status` (medido en producto 1 19-oct). Los chequeos de siempre
     (`"error" in rjson`, `status and cause`) no lo veian: no se refrescaba el token y el barrido de
     ordenes lo leia como "no hay ordenes nuevas".
     """
@@ -1460,7 +1460,7 @@ class MeliUtil(models.AbstractModel):
                     return api_rest_client
 
                 #_logger.info(rjson)
-                # [529] un 401 de token vencido viene sin "error": tambien dispara el refresh
+                # [caso-K11] un 401 de token vencido viene sin "error": tambien dispara el refresh
                 if ( rjson and "error" in rjson) or meli_is_auth_error(rjson) or refresh_force==True:
 
                     if company.mercadolibre_cron_refresh or api_rest_client.access_token:
@@ -1480,7 +1480,7 @@ class MeliUtil(models.AbstractModel):
 
                         #_logger.error(rjson)
 
-                        if rjson.get("error")=="not_found":  # [529] 26.287: un 401 sin clave "error" tambien entra aca (antes KeyError)
+                        if rjson.get("error")=="not_found":  # [caso-K11] 26.287: un 401 sin clave "error" tambien entra aca (antes KeyError)
                             api_rest_client.needlogin_state = True
                             logs+= "NOT FOUND"+"\n"
 

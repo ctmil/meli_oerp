@@ -276,7 +276,7 @@ class MercadolibreNotification(models.Model):
                     _logger.info("rsjson:"+str(rsjson))
 
                     if (rsjson and 'error' in rsjson and meli_is_update_forbidden_error(rsjson)):
-                        # 26.309 (158): venta bloqueada (meli_update_forbidden) => no es un fallo y
+                        # 26.309 (caso-K02): venta bloqueada (meli_update_forbidden) => no es un fallo y
                         # reintentar no cambia nada: se cierra sin reintento.
                         noti.state = 'SUCCESS'
                         noti.processing_errors = "Skipped: venta bloqueada para actualizar desde ML (meli_update_forbidden)"
