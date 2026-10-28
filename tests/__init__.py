@@ -35,3 +35,4 @@ from . import test_26326_pack_iva
 from . import test_26328_sin_cuenta_y_c1
 from . import test_26329_secretos_en_errores
 from . import test_26329_claims_rol
+from . import test_26332_cambios_producto

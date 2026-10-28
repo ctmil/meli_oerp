@@ -34,3 +34,4 @@ from . import product_template_attribute_line
 from . import meli_proxy_audit
 #from . import res_config_settings
 from . import meli_secrets
+from . import change
