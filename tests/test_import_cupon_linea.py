@@ -2,9 +2,9 @@
 """26.229 -- integracion: orders_update_order_json con ML simulado (sin red).
 
 Reproduce el camino REAL del import de una orden NUEVA (self = recordset vacio, como en la
-notificacion / el cron) con el cupon a cargo del vendedor de ML 2000000000000001
+notificacion / el cron) con el cupon a cargo del vendedor de ML 2000798423224402
 (5.324, cupon 266,20, amounts.seller = 266,20, pagado 5.057,80), y el re-sync de una venta
-confirmada a la que le falta encontrar su linea (ML 2000000000000004).
+confirmada a la que le falta encontrar su linea (ML 2000805511692354).
 """
 from unittest.mock import patch
 
@@ -25,7 +25,7 @@ class _MPNoDisponible:
         return {}
 
 
-OID = 2000000000000001
+OID = 2000325942484262
 
 
 class _Resp:
@@ -128,12 +128,12 @@ class TestImportCuponLinea(common.TransactionCase):
         self.assertAlmostEqual(so.amount_total, 5057.80, places=2)
 
     def test_1_pack_member_coupon_only_in_payments_fetches_own_discount(self):
-        """26.318 (#431 B): la orden miembro de un PACK con el cupon solo en los pagos SI consulta
+        """26.318 (#caso-K13 B): la orden miembro de un PACK con el cupon solo en los pagos SI consulta
         /discounts y guarda SU descuento; el armado del pack lo prorratea por item (ver
-        test_431_cupon_pack). Hasta 26.316 no se consultaba y el carrito quedaba a precio lleno."""
+        test_k13_cupon_pack). Hasta 26.316 no se consultaba y el carrito quedaba a precio lleno."""
         oj = _order_json()
         oj['coupon'] = {'id': None, 'amount': 0}
-        oj['pack_id'] = 2000000000000099
+        oj['pack_id'] = 2000760703308009
         routes = [('/orders/%s/discounts' % OID, _discounts()), ('/items/', {'id': 'MLM000TEST'})]
         res, meli = self._run(oj, routes)
         self.assertIn('/orders/%s/discounts' % OID, meli.calls)
@@ -141,7 +141,7 @@ class TestImportCuponLinea(common.TransactionCase):
         self.assertAlmostEqual(mo.discount_seller_amount, 266.20, places=2)
 
     def test_6_resync_does_not_add_line_to_confirmed_sale(self):
-        oid = 2000000000000004
+        oid = 2000210332457165
         routes = [('/items/', {'id': 'MLM000TEST'})]
         oj = _order_json(oid=oid, unit=1610.0, paid=1610.0, coupon=0)
         self._run(oj, routes)

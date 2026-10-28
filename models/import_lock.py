@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""26.27x (#431) -- una orden de ML se importa UNA vez aunque dos procesos la traigan a la vez.
+"""26.27x (#caso-K13) -- una orden de ML se importa UNA vez aunque dos procesos la traigan a la vez.
 
 Medido en produccion (Odoo 18): `Cron Meli Orders` (barrido "ordenes de las ultimas 24 h que no
 estan en Odoo") y `Meli Process Order Notifications` importaban la MISMA orden en paralelo:
@@ -12,7 +12,7 @@ Dos piezas, las dos necesarias:
    importan la misma orden/carrito al mismo tiempo. Es *try*: si otro proceso la esta importando,
    esta pasada la saltea (el otro la deja hecha; si fallara, el barrido la retoma). NO se espera
    el lock: la importacion ya hace llamadas de red dentro de la transaccion y esperar alargaria
-   las dos (incidente Shoppy 26.131: latencia ⇒ deadlocks ⇒ ventas sin confirmar).
+   las dos (incidente cliente D 26.131: latencia ⇒ deadlocks ⇒ ventas sin confirmar).
 2. **Snapshot vencido**: Odoo trabaja en REPEATABLE READ. Si el otro proceso COMMITEO la orden
    despues de que esta transaccion tomo su snapshot, el lock ya esta libre pero el `search` sigue
    sin verla. Se compara contra un cursor nuevo: si hay filas commiteadas que esta transaccion no

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""#682 (158 International Home / Elvimarta, 23-oct-2026; al source en 26.300).
+"""#caso-K17 (caso-K02 cliente J / cliente H, 23-oct-2026; al source en 26.300).
 
 (a) DNI: el contacto de facturacion (type=invoice, con el DNI/CUIT) se reutiliza por VAT entre packs del mismo
     comprador y conserva el meli_order_id del PRIMER pack. shipment.py lo buscaba solo por pack_id, asi que la
@@ -29,7 +29,7 @@ class TestPackInvoicePartner682(TransactionCase):
         # contacto de facturacion creado con el PRIMER pack del comprador
         self.factura = self.Partner.create({
             'name': 'Comprador ML 682 (factura)', 'type': 'invoice', 'vat': '96314392',
-            'meli_order_id': '2000015537590633'})
+            'meli_order_id': '2000274377563134'})
         self.env['mercadolibre.buyers'].create({
             'buyer_id': self.buyer_ml_id, 'nickname': 'COMPRADOR682',
             'billing_info_doc_number': '96314392'})
@@ -39,22 +39,22 @@ class TestPackInvoicePartner682(TransactionCase):
             self.Partner.with_user(1), pack_ref, self.buyer_ml_id, self.principal, self.company)
 
     def test_primer_pack_por_pack_id(self):
-        self.assertEqual(self._resolver('2000015537590633'), self.factura)
+        self.assertEqual(self._resolver('2000274377563134'), self.factura)
 
     def test_segundo_pack_mismo_comprador_usa_contacto_con_dni(self):
         """El caso del ticket: 2do pack, sin contacto con ese pack_id => el de facturacion por DNI, no el principal."""
-        res = self._resolver('2000015537590629')
+        res = self._resolver('2000233773023476')
         self.assertEqual(res, self.factura)
         self.assertEqual(res.vat, '96314392')
 
     def test_sin_documento_cae_al_principal(self):
         self.env['mercadolibre.buyers'].search([('buyer_id', '=', self.buyer_ml_id)]).billing_info_doc_number = False
-        self.assertEqual(self._resolver('2000015537590629'), self.principal)
+        self.assertEqual(self._resolver('2000233773023476'), self.principal)
 
     def test_no_toma_contacto_de_otra_compania(self):
         otra = self.env['res.company'].create({'name': 'Otra compania 682'})
         self.factura.company_id = otra
-        self.assertEqual(self._resolver('2000015537590629'), self.principal)
+        self.assertEqual(self._resolver('2000233773023476'), self.principal)
 
 
 @tagged('post_install', '-at_install', 'meli_682_dni_movil')

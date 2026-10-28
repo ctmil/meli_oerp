@@ -1240,7 +1240,7 @@ class res_company(models.Model):
                                     posting_id.meli_id = item_id
                                 if (len(posting_id)>1):
                                     _logger.error("Founded templates more than 2 default code: seller_sku: "+str(seller_sku)+" template: "+str(posting_id.mapped('name')))
-                            # [#543] Respaldo por TOKEN del SKU (mercadolibre_sku_token_match):
+                            # [#caso-K10] Respaldo por TOKEN del SKU (mercadolibre_sku_token_match):
                             # solo si la busqueda exacta no encontro nada. Apagado = no hace nada.
                             if (not posting_id or len(posting_id)==0):
                                 token_id = self.env['product.product']._meli_sku_token_resolve( seller_sku, company, company_domain )
@@ -1298,7 +1298,7 @@ class res_company(models.Model):
                                         if (len(posting_id.product_tmpl_id.product_variant_ids)>1):
                                             posting_id.meli_id_variation = var['id']
 
-                                # [#543] Respaldo por TOKEN del SKU de la variacion (apagado = no hace nada).
+                                # [#caso-K10] Respaldo por TOKEN del SKU de la variacion (apagado = no hace nada).
                                 if (company.mercadolibre_import_search_sku and not posting_id):
                                     var_sku = ( var.get('seller_custom_field') or var.get('seller_sku') )
                                     token_id = var_sku and self.env['product.product']._meli_sku_token_resolve( var_sku, company, company_domain )
@@ -2097,7 +2097,7 @@ class res_company(models.Model):
                           meli_id, _st_err)
 
     def _meli_stock_safety_resolver(self):
-        """[529] Devuelve f(sku) -> stock de seguridad vigente para esta compania.
+        """[caso-K11] Devuelve f(sku) -> stock de seguridad vigente para esta compania.
 
         El diagnostico compara contra el stock de Odoo y tiene que descontar LO MISMO que descuenta
         el envio (_meli_available_quantity); si no, reactiva o "corrige" publicaciones que el
@@ -2139,11 +2139,11 @@ class res_company(models.Model):
         return _resolve
 
     def _meli_stock_safety_qty(self, sku=None):
-        """[529] N vigente para `sku` (ver _meli_stock_safety_resolver)."""
+        """[caso-K11] N vigente para `sku` (ver _meli_stock_safety_resolver)."""
         return self._meli_stock_safety_resolver()(sku)
 
     def _meli_diag_publishable_qty(self, product, meli_id, meli, rjson):
-        """[525 #611] Cantidad que PUBLICARIA el push para esta publicacion.
+        """[caso-K01 #caso-K12] Cantidad que PUBLICARIA el push para esta publicacion.
 
         Misma funcion que usa el push (_meli_available_quantity), con la configuracion de la
         cuenta de la vinculacion (si hay meli_oerp_multiple) y por lo tanto las MISMAS
@@ -2178,7 +2178,7 @@ class res_company(models.Model):
             return None
 
     def _meli_diag_status_after_activate(self, meli, meli_id):
-        """[525 #611] Estado REAL en ML despues de pedir la activacion: (status, sub_status).
+        """[caso-K01 #caso-K12] Estado REAL en ML despues de pedir la activacion: (status, sub_status).
         status=None si no se pudo verificar."""
         try:
             response = meli.get("/items/%s" % meli_id, {'access_token': meli.access_token})
@@ -2254,7 +2254,7 @@ class res_company(models.Model):
             AND (pp.meli_shipping_logistic_type IS NULL OR pp.meli_shipping_logistic_type != 'fulfillment')
         """, (company.id,))
         rows = self.env.cr.fetchall()
-        # [529] el stock de Odoo se compara YA descontado el stock de seguridad (mismo calculo que el envio),
+        # [caso-K11] el stock de Odoo se compara YA descontado el stock de seguridad (mismo calculo que el envio),
         # por SKU segun las reglas de stock de la configuracion.
         _safety_for = company._meli_stock_safety_resolver()
 
@@ -2318,7 +2318,7 @@ class res_company(models.Model):
                 for pid2, sku2, meli_id2, meli_qty2, odoo_qty2 in self.env.cr.fetchall():
                     odoo_qty2 = max((odoo_qty2 or 0.0) - _safety_for(sku2), 0.0)
                     if odoo_qty2 <= 0:
-                        # [529] todo su stock esta resguardado por la regla: nada que reactivar
+                        # [caso-K11] todo su stock esta resguardado por la regla: nada que reactivar
                         continue
                     # Skip if already in reactivate_candidates or fulfillment_user_candidates
                     already = (
@@ -2439,7 +2439,7 @@ class res_company(models.Model):
                             checked_items_log.append(f"⏭ {item_log} → paused, NO se reactiva (modo={reactivate}, sub_status={_ml_sub})")
                             continue
                         product = self.env['product.product'].browse(pid)
-                        # [525 #611] El SQL de arriba suma TODAS las ubicaciones internas (Full incluida),
+                        # [caso-K01 #caso-K12] El SQL de arriba suma TODAS las ubicaciones internas (Full incluida),
                         # pero el push publica solo las de la configuracion. Si lo publicable es 0, activar
                         # no sirve: ML la vuelve a pausar y esto se repetia cada 30 min anotando REACTIVADA.
                         _publishable = self._meli_diag_publishable_qty(product, meli_id, meli, rjson)
@@ -2469,7 +2469,7 @@ class res_company(models.Model):
                             product.product_post_stock(meli=meli)
                             try:
                                 product.product_meli_status_active(meli=meli)
-                                # [525 #611] Se anota REACTIVADA solo si ML la muestra activa.
+                                # [caso-K01 #caso-K12] Se anota REACTIVADA solo si ML la muestra activa.
                                 _after, _after_sub = self._meli_diag_status_after_activate(meli, meli_id)
                                 if _after:
                                     self._meli_diag_persist_ml_status(pid, meli_id, _after, ml_qty)

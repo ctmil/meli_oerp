@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Match de SKU de Mercado Libre por TOKEN (opcion `mercadolibre_sku_token_match`).
 
-Caso que lo origina (#543 Petswagon, 19-oct-2026): en ML el SKU se carga como
+Caso que lo origina (#caso-K10 cliente G, 19-oct-2026): en ML el SKU se carga como
 "codigo-descripcion" ("21342-VITAL PREMIUM PERRO ADULTO 20K") y en Odoo la referencia
 interna es solo el codigo ("21342"). Todo el matching del suite es exacto
 (`default_code =ilike sku`), asi que ninguna publicacion vinculaba.

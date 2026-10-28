@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""#542-661 (build 26.264) -- tres correcciones genericas de orders_update_order_json, con ML simulado.
+"""#caso-K14-K19 (build 26.264) -- tres correcciones genericas de orders_update_order_json, con ML simulado.
 
 1. En una orden NUEVA el comprador (mercadolibre.buyers) queda vinculado a la orden (antes solo se
    vinculaba si la orden ya existia al entrar).
@@ -28,7 +28,7 @@ class _MPNoDisponible:
         return {}
 
 
-OID = 2000000054266101
+OID = 2000512596412225
 BUYER_ID = 54266101
 
 
@@ -97,7 +97,7 @@ def _billing_cf_dni(dni='28000000'):
     ]}}
 
 
-@tagged('post_install', '-at_install', 'meli', 'meli_542_661')
+@tagged('post_install', '-at_install', 'meli', 'meli_K14_661')
 class TestMeli542661Generico(common.TransactionCase):
 
     @classmethod

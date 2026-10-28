@@ -199,7 +199,7 @@ class TestCancelReturnReasons(unittest.TestCase):
 
 
 class TestClassifyCancelReason624(unittest.TestCase):
-    """26.278 (#624): tabla A-F MEDIDA sobre 16 cancelaciones reales etiquetadas por la clienta
+    """26.278 (#caso-K04): tabla A-F MEDIDA sobre 16 cancelaciones reales etiquetadas por la clienta
     (texto del panel de ML) — status_detail del pago tal como lo devolvio GET /orders/{id}."""
 
     MEDIDO = [

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""address_lock (#513 TYL) — SIN Odoo.
+"""address_lock (#caso-K03 cliente A) — SIN Odoo.
 
 Correr:  python3 meli_oerp/tests/test_address_lock_pure.py   (desde la raiz de addons)
 NO esta en tests/__init__.py a proposito (carga models/address_lock.py por ruta).
@@ -32,7 +32,7 @@ class TestDecideOrderContact(unittest.TestCase):
         self.assertEqual(al.decide_order_contact(False, ML_DELIV, ML_DELIV, BUYER, ML_DELIV), al.SAME)
 
     def test_cambio_manual_se_respeta(self):
-        # 513: el usuario cambio la entrega; ML sigue diciendo la original
+        # caso-K03: el usuario cambio la entrega; ML sigue diciendo la original
         self.assertEqual(al.decide_order_contact(False, MANUAL_DELIV, ML_DELIV, BUYER, ML_DELIV), al.MANUAL)
 
     def test_factura_manual_se_respeta(self):

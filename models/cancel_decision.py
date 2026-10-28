@@ -392,7 +392,7 @@ def cancel_return_allowed(reason_code, raw_param=None):
 
 
 # ====================================================================================== #
-#  26.278 (#624) -- POLITICA POR MOTIVO DE CANCELACION (opt-in, modo legacy)              #
+#  26.278 (#caso-K04) -- POLITICA POR MOTIVO DE CANCELACION (opt-in, modo legacy)              #
 # ====================================================================================== #
 # Pedido de un cliente (motivos A-F), medido sobre 16 cancelaciones reales etiquetadas por
 # la clienta con el texto del panel de ML (22-oct-2026):

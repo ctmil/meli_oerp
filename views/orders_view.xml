@@ -47,7 +47,7 @@
                        meli_oerp.cancel_return_reasons => la mercaderia NO se devolvio sola. -->
                   <filter string='ML: cancelada sin devolución de stock' name="meli_cancel_return_skipped_filter"
                           domain="[('meli_cancel_return_skipped', '=', True)]"/>
-                  <!-- 26.278 (#624): ML canceló pero le pagó la venta al vendedor (bpp_covered). -->
+                  <!-- 26.278 (#caso-K04): ML canceló pero le pagó la venta al vendedor (bpp_covered). -->
                   <filter string='ML: cancelada con venta cubierta por ML' name="meli_cancel_covered_filter"
                           domain="[('meli_cancel_covered', '=', True)]"/>
                 </xpath>
@@ -104,7 +104,7 @@
                        meli_oerp.cancel_return_reasons => la mercaderia NO se devolvio sola. -->
                   <filter string='ML: cancelada sin devolución de stock' name="meli_cancel_return_skipped_filter"
                           domain="[('meli_cancel_return_skipped', '=', True)]"/>
-                  <!-- 26.278 (#624): ML canceló pero le pagó la venta al vendedor (bpp_covered). -->
+                  <!-- 26.278 (#caso-K04): ML canceló pero le pagó la venta al vendedor (bpp_covered). -->
                   <filter string='ML: cancelada con venta cubierta por ML' name="meli_cancel_covered_filter"
                           domain="[('meli_cancel_covered', '=', True)]"/>
                   <filter string='MercadoLibre Status' domain="[]"
@@ -647,7 +647,7 @@
             <field name="code">action = records.action_meli_relaunch_procurement()</field>
         </record>
 
-        <!-- 26.171 (E2, 431): procesar a mano las cancelaciones RETENIDAS por la fecha de
+        <!-- 26.171 (E2, caso-K13): procesar a mano las cancelaciones RETENIDAS por la fecha de
              corte ('Cancelaciones automáticas desde'), como lo haría el cron. -->
         <record id="action_meli_cancel_process_held_server" model="ir.actions.server">
             <field name="name">MercadoLibre: procesar cancelación ignorando la fecha de corte</field>

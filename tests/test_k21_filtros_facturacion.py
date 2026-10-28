@@ -14,8 +14,8 @@ from odoo.tests import tagged
 from odoo.tools.safe_eval import safe_eval
 
 
-@tagged('post_install', '-at_install', 'meli_462')
-class TestMeli462FiltrosFacturacion(AccountTestInvoicingCommon):
+@tagged('post_install', '-at_install', 'meli_K21')
+class TestMeliK21FiltrosFacturacion(AccountTestInvoicingCommon):
 
     @classmethod
     def setUpClass(cls):

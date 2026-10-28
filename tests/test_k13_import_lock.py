@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""#431 -- la MISMA orden de ML importada por dos procesos a la vez no crea dos ventas.
+"""#caso-K13 -- la MISMA orden de ML importada por dos procesos a la vez no crea dos ventas.
 
 Medido en produccion (Odoo 18, octubre 2026): el barrido de `Cron Meli Orders` y
 `Meli Process Order Notifications` importaron la misma orden en paralelo y quedaron DOS
@@ -21,8 +21,8 @@ from ..models.import_lock import PARALLEL_TAG, _key64
 ROUTES = [('/items/', {'id': 'MLM000TEST'})]
 
 
-@tagged('post_install', '-at_install', 'meli', 'meli_431_lock')
-class TestImportLock431(TestImportCuponLinea):
+@tagged('post_install', '-at_install', 'meli', 'meli_K13_lock')
+class TestImportLockK13(TestImportCuponLinea):
 
     # no re-ejecutar los tests heredados
     test_1_new_order_seller_coupon_line_is_net = None
@@ -43,7 +43,7 @@ class TestImportLock431(TestImportCuponLinea):
 
     def test_a_same_transaction_twice_one_sale(self):
         """Dos pasadas en la MISMA transaccion (el lock es re-entrante): una venta, una orden."""
-        oid = 2000000000431001
+        oid = 2000215884134036
         oj = _order_json(oid=oid, unit=500.0, paid=500.0, coupon=0)
         res1, _m = self._run(oj, ROUTES)
         res2, _m = self._run(_order_json(oid=oid, unit=500.0, paid=500.0, coupon=0), ROUTES)
@@ -54,7 +54,7 @@ class TestImportLock431(TestImportCuponLinea):
 
     def test_b_other_process_holds_the_order(self):
         """Otro proceso tiene la orden tomada: esta pasada no crea nada y devuelve SKIP."""
-        oid = 2000000000431002
+        oid = 2000069034869019
         other = self._other_connection()
         other.execute("SELECT pg_advisory_lock(%s)", (_key64(str(oid)),))
         self.addCleanup(other.execute, "SELECT pg_advisory_unlock_all()")
@@ -65,7 +65,7 @@ class TestImportLock431(TestImportCuponLinea):
 
     def test_b_other_process_holds_the_cart(self):
         """Otra orden del MISMO carrito se esta importando: el carrito se serializa entero."""
-        oid, pack = 2000000000431003, 2000000000431900
+        oid, pack = 2000501410124481, 2000708010532469
         other = self._other_connection()
         other.execute("SELECT pg_advisory_lock(%s)", (_key64(str(pack)),))
         self.addCleanup(other.execute, "SELECT pg_advisory_unlock_all()")
@@ -77,7 +77,7 @@ class TestImportLock431(TestImportCuponLinea):
 
     def test_c_committed_after_our_snapshot(self):
         """El otro proceso COMMITEO la orden despues de nuestro snapshot: no se crea la segunda."""
-        oid = 2000000000431004
+        oid = 2000958936354088
         self.env.cr.execute("SELECT 1")  # nuestro snapshot ya esta tomado (como en el barrido)
         other = self._other_connection()
         other.execute("INSERT INTO mercadolibre_orders (order_id, name) VALUES (%s, %s) RETURNING id",
