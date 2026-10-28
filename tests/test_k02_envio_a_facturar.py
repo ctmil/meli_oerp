@@ -26,11 +26,11 @@ class TestMeliK02EnvioAFacturar(AccountTestInvoicingCommon):
         gfield = 'group_ids' if 'group_ids' in cls.env.user._fields else 'groups_id'
         cls.env.user.write({gfield: [(4, cls.env.ref('sales_team.group_sale_manager').id)]})
         P = cls.env['product.product']
-        cls.prod = P.create({'name': 'Deposito 158', 'type': 'service', 'invoice_policy': 'order',
+        cls.prod = P.create({'name': 'Deposito K02', 'type': 'service', 'invoice_policy': 'order',
                              'taxes_id': [(5, 0, 0)]})
-        cls.ship = P.create({'name': 'ME1 - zip 158', 'default_code': 'ENVIO-ME1-158', 'type': 'service',
+        cls.ship = P.create({'name': 'ME1 - zip K02', 'default_code': 'ENVIO-ME1-K02', 'type': 'service',
                              'invoice_policy': 'delivery', 'taxes_id': [(5, 0, 0)]})
-        cls.carrier = cls.env['delivery.carrier'].create({'name': 'ME1 - zip 158', 'product_id': cls.ship.id})
+        cls.carrier = cls.env['delivery.carrier'].create({'name': 'ME1 - zip K02', 'product_id': cls.ship.id})
         co = cls.env.company
         if 'mercadolibre_protect_invoiced_orders' in co._fields:
             co.mercadolibre_protect_invoiced_orders = True
@@ -66,7 +66,7 @@ class TestMeliK02EnvioAFacturar(AccountTestInvoicingCommon):
         self.env.flush_all()
         # control: reproduce el estado medido en caso-K02 ('to invoice' en 17+; en 16 el delivery del core
         # lo baja a 'no' porque solo queda el envio) => nunca 'invoiced'
-        self.assertNotEqual(so.invoice_status, 'invoiced', "control: reproduce el estado medido en 158")
+        self.assertNotEqual(so.invoice_status, 'invoiced', "control: reproduce el estado medido en K02")
         self.assertEqual(sl.qty_to_invoice, 1.0)
         sl._meli_refresh_shipping_invoice_qty()
         self._assert_facturada(so, sl)
@@ -81,7 +81,7 @@ class TestMeliK02EnvioAFacturar(AccountTestInvoicingCommon):
             'transaction_amount': 738677.69, 'total_paid_amount': 789900.0, 'shipping_amount': 51222.31})
         so.meli_orders = [(6, 0, [mo.id])]
         sh = self.env['mercadolibre.shipment'].create({
-            'sale_order': so.id, 'tracking_method': 'ME1 - zip 158', 'mode': 'me1',
+            'sale_order': so.id, 'tracking_method': 'ME1 - zip K02', 'mode': 'me1',
             'shipping_cost': 51222.31, 'shipping_list_cost': 51222.31})
         SO = type(so)
         with patch.object(SO, 'meli_amount_to_invoice', lambda self, meli=None, config=None: 789900.0, create=True), \
@@ -97,7 +97,7 @@ class TestMeliK02EnvioAFacturar(AccountTestInvoicingCommon):
     def _migrate(self):
         path = os.path.join(get_module_path('meli_oerp'), 'migrations',
                             '%s.26.307' % release.series, 'post-migrate.py')
-        spec = importlib.util.spec_from_file_location('meli_158_mig', path)
+        spec = importlib.util.spec_from_file_location('meli_K02_mig', path)
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         mod.migrate(self.env.cr, '%s.26.306' % release.series)

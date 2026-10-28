@@ -110,7 +110,7 @@ class TestMeliK21FiltrosFacturacion(AccountTestInvoicingCommon):
         self.assertEqual(self._ids(base + by_name['meli_462_no_posted_invoice']), {so_full.id, so_flex.id})
         # reclamo de devolucion abierto sobre la orden Full
         self.env['mercadolibre.claim'].sudo().create({
-            'name': 'R1', 'claim_id': 'C462', 'order_id': so_full.meli_orders.id,
+            'name': 'R1', 'claim_id': 'CK21', 'order_id': so_full.meli_orders.id,
             'type': 'returns', 'status': 'opened'})
         self.assertEqual(self._ids(base + by_name['meli_462_claim_return']), {so_full.id})
         self.assertEqual(self._ids(base + by_name['meli_462_claim_open']), {so_full.id})

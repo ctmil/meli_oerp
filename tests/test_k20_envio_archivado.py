@@ -45,24 +45,24 @@ class TestMeliK20EnvioArchivado(TransactionCase):
         self.assertEqual(self._find('ME1 - zip', 'me1'), act)
 
     def test_producto_del_transportista(self):
-        prod = self._prod('Transporte 452', 'X452', active=False)
+        prod = self._prod('Transporte K20', 'XK20', active=False)
         self.env['delivery.carrier'].create({
-            'name': 'MEL Distribution 452', 'product_id': prod.id, 'company_id': self.company.id})
-        self.assertEqual(self._find('MEL Distribution 452', 'me2'), prod,
+            'name': 'MEL Distribution K20', 'product_id': prod.id, 'company_id': self.company.id})
+        self.assertEqual(self._find('MEL Distribution K20', 'me2'), prod,
                          "sin producto propio, se usa el del transportista (el que va a la linea)")
 
     def test_no_me1_archivado_por_nombre(self):
-        arch = self._prod('Places Pickup 452', 'Places Pickup 452', active=False)
-        self.assertEqual(self._find('Places Pickup 452', 'me2'), arch)
+        arch = self._prod('Places Pickup K20', 'Places Pickup K20', active=False)
+        self.assertEqual(self._find('Places Pickup K20', 'me2'), arch)
 
     def test_sin_nada_devuelve_vacio(self):
-        self.assertFalse(self._find('Inexistente 452', 'me2'))
+        self.assertFalse(self._find('Inexistente K20', 'me2'))
 
     # --- comportamiento del flujo real (sin el helper): falla en origin <= 26.290 ---
 
     def _sync_envio_me1(self):
         """Una pasada de _update_sale_order_shipping_info para una venta ME1 sin transportista."""
-        partner = self.env['res.partner'].create({'name': 'Comprador 452'})
+        partner = self.env['res.partner'].create({'name': 'Comprador K20'})
         sorder = self.env['sale.order'].create({'partner_id': partner.id, 'company_id': self.company.id})
         morder = self.env['mercadolibre.orders'].create({'order_id': '452%d' % sorder.id})
         ship = self.Ship.create({'sale_order': sorder.id, 'mode': 'me1', 'shipping_cost': 0.0})
