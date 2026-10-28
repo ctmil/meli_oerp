@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-"""[158, 26.307] Recalcula las lineas de envio ML en $0 que quedaron "A facturar".
+"""[caso-K02, 26.307] Recalcula las lineas de envio ML en $0 que quedaron "A facturar".
 
 Hasta 26.306 shipment.py escribia `qty_to_invoice = pedida - facturada` DIRECTO sobre la linea
 de envio cuando ML informaba un envio con precio, aunque el guard de venta facturada hubiera
 frenado el cambio de precio: la linea quedaba en $0 con qty_to_invoice=1 / "A facturar" y el
-pedido figuraba "A facturar" estando facturado (158, 25-oct). La regla del compute (26.268) da
+pedido figuraba "A facturar" estando facturado (caso-K02, 25-oct). La regla del compute (26.268) da
 0 / "Facturado" para esas lineas.
 
 Alcance ACOTADO: solo lineas de envio ML (`_meli_is_ml_shipping_line`) confirmadas, con precio

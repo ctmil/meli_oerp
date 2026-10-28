@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""#513 TYL (build 26.282) -- la re-sincronizacion de una orden ML respeta la direccion cambiada a mano.
+"""#caso-K03 cliente A (build 26.282) -- la re-sincronizacion de una orden ML respeta la direccion cambiada a mano.
 
 Recorre el camino real orders_update_order_json con ML simulado (sin red):
 1. orden nueva: el pedido toma la entrega de ML (y queda registrada como puesta por el conector).
@@ -29,7 +29,7 @@ class _MPNoDisponible:
         return {}
 
 
-OID = 2000000051300101
+OID = 2000282043025486
 BUYER_ID = 51300101
 STREET_ML = 'Calle Falsa 123'
 STREET_ML2 = 'Avenida Nueva 456'
@@ -91,8 +91,8 @@ def _order_json(street=STREET_ML):
     }
 
 
-@tagged('post_install', '-at_install', 'meli', 'meli_513')
-class TestMeli513DireccionesManuales(common.TransactionCase):
+@tagged('post_install', '-at_install', 'meli', 'meli_K03')
+class TestMeliK03DireccionesManuales(common.TransactionCase):
 
     @classmethod
     def setUpClass(cls):

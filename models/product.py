@@ -1293,7 +1293,7 @@ class product_product(models.Model):
 
         if ( tax_excluded and product_template.taxes_id ):
             _logger.info("Adjust taxes")
-            # [543] solo los impuestos de la compania de la config (antes sumaba los de todas: /1,42 con dos)
+            # [caso-K10] solo los impuestos de la compania de la config (antes sumaba los de todas: /1,42 con dos)
             txpercent, txfixed = ml_sale_tax_rates(product_template.taxes_id, company)
             if (txfixed>0 or txpercent>0):
                 #_logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_converted))
@@ -1313,7 +1313,7 @@ class product_product(models.Model):
 
         if ( tax_excluded and product_template.taxes_id ):
             _logger.info("Adjust taxes")
-            # [543] solo los impuestos de la compania de la config (antes sumaba los de todas: /1,42 con dos)
+            # [caso-K10] solo los impuestos de la compania de la config (antes sumaba los de todas: /1,42 con dos)
             txpercent, txfixed = ml_sale_tax_rates(product_template.taxes_id, company)
             if (txfixed>0 or txpercent>0):
                 #_logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_converted))
@@ -1456,7 +1456,7 @@ class product_product(models.Model):
         tax_excluded = ml_tax_excluded(self, config=config)
         if ( price_list_apply_tax and tax_excluded and product_tmpl.taxes_id ):
             _logger.info("Adjust taxes for publish")
-            # [543] solo los impuestos de la compania de la config (antes sumaba los de todas: /1,42 con dos)
+            # [caso-K10] solo los impuestos de la compania de la config (antes sumaba los de todas: /1,42 con dos)
             txpercent, txfixed = ml_sale_tax_rates(product_tmpl.taxes_id, company)
             if (txfixed>0 or txpercent>0):
                 #_logger.info("Tx Total:"+str(txtotal)+" to Price:"+str(ml_price_converted))
@@ -2503,7 +2503,7 @@ class product_product(models.Model):
         if "variations" in rjson and len(rjson["variations"])>1:
             force_price_for_variant = False
 
-        # [452] Con una oferta activa ML devuelve en 'price' el precio CON DESCUENTO y en
+        # [caso-K20] Con una oferta activa ML devuelve en 'price' el precio CON DESCUENTO y en
         # 'original_price' el de lista. Al importar, el precio de Odoo es el de LISTA: la oferta
         # es de ML y vence; si se copia a la lista de precios, Odoo queda con el precio rebajado.
         meli_list_price = rjson.get('price')

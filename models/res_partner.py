@@ -30,7 +30,7 @@ class ResPartner(models.Model):
     meli_buyer = fields.Many2one('mercadolibre.buyers',string='Meli Buyer')
     meli_update_forbidden = fields.Boolean(string='Meli Update Forbiden')
     meli_order_id = fields.Char('Meli Order Id',index=True)
-    # [#513 TYL, 26.282] huella de la ultima direccion que escribio la sincronizacion de ML en este
+    # [#caso-K03 cliente A, 26.282] huella de la ultima direccion que escribio la sincronizacion de ML en este
     # contacto. Si la direccion actual no coincide, se edito a mano y la sincronizacion no la pisa.
     meli_address_sync_hash = fields.Char('Huella direccion ML', copy=False, readonly=True)
 

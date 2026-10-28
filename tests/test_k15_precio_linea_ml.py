@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""#526 / 26.316 -- el precio de la linea de producto de una venta ML lo manda ML.
+"""#caso-K15 / 26.316 -- el precio de la linea de producto de una venta ML lo manda ML.
 
-Reproduce la SO 13151 de Deco (27-oct-2026): ML 2000015726991437, 1 x 27.500, sin cupon. En prod un
+Reproduce la SO 11806 de cliente E (27-oct-2026): ML 2000499184416134, 1 x 27.500, sin cupon. En prod un
 campo Studio de sale.order.line (`x_studio_precio_por_medida`, depends product_id/ancho/largo) termina
 su compute con `record['price_unit'] = <formula>`; la sincronizacion reescribia `product_id` en cada
 write y ese compute dejaba la linea en 0 (o en un precio de formula) DENTRO del write del conector.
@@ -16,12 +16,12 @@ from odoo.tools import mute_logger
 
 from .test_import_cupon_linea import _FakeMeli, _MPNoDisponible, _order_json
 
-OID = 2000019193083052
+OID = 2000055153543301
 UNIT = 27500.0
 MARK = 'meli-once:precio-ml-pisado-'
 
 
-@tagged('post_install', '-at_install', 'meli', 'meli_526_precio_linea')
+@tagged('post_install', '-at_install', 'meli', 'meli_K15_precio_linea')
 class TestPrecioLineaMl(common.TransactionCase):
 
     @classmethod
@@ -35,7 +35,7 @@ class TestPrecioLineaMl(common.TransactionCase):
             cls.company.mercadolibre_contact_partner = cls.contact
         if 'mercadolibre_cron_get_orders_shipment_client' in cls.company._fields:
             cls.company.mercadolibre_cron_get_orders_shipment_client = True
-        # como en Deco: la venta queda en presupuesto (no se confirma en la sincronizacion)
+        # como en cliente E: la venta queda en presupuesto (no se confirma en la sincronizacion)
         cls.company.mercadolibre_order_confirmation = 'manual'
         cls.product = cls.env['product.product'].create({
             'name': 'Cuadro Decorativo', 'taxes_id': [(5, 0, 0)], 'meli_id': 'MLM000TEST', 'default_code': 'YNPQ87632'})

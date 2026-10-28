@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""26.329 (533 DT TEC, bus 2026-09-25T11:30:34Z): cron_sync_claims traia reclamos donde la cuenta es
+"""26.329 (caso-K09 cliente C, bus 2026-09-25T11:30:34Z): cron_sync_claims traia reclamos donde la cuenta es
 COMPRADORA (complainant): 403 en el detalle + ERROR por corrida + reclamo ajeno. Sin red."""
 from unittest.mock import patch
 
@@ -52,10 +52,10 @@ class TestClaimsRol(TransactionCase):
     def test_sync_omite_los_de_comprador(self):
         Claims = self.env['mercadolibre.claim']
         procesados = []
-        meli = _Meli([_claim(5579468315, 'complainant'), _claim(5000000001, 'respondent')])
+        meli = _Meli([_claim(5378034971, 'complainant'), _claim(5990450019, 'respondent')])
         with patch.object(type(Claims), 'fetch_claim', lambda self, claim_id=None, meli=None, config=None: None), \
                 patch.object(type(Claims), 'process_claim',
                              lambda self, claim_id=None, Claim=None, meli=None, config=None: procesados.append(Claim['id'])):
             n = Claims.sync_claims(meli=meli, config=self.env.company)
-        self.assertEqual(procesados, [5000000001])
+        self.assertEqual(procesados, [5990450019])
         self.assertEqual(n, 1)

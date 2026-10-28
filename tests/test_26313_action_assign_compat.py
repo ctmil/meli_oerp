@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # 26.313 — compat de stock.move._action_assign con overrides AJENOS sin `force_qty`.
-# Caso real (158 Elvimarta, 26-oct-2026): MRO meli_oerp_multiple -> shopify_ept._action_assign(self) -> meli_oerp -> mrp -> stock.
+# Caso real (caso-K02 cliente H, 26-oct-2026): MRO meli_oerp_multiple -> shopify_ept._action_assign(self) -> meli_oerp -> mrp -> stock.
 # Desde 26.302 el suite pasaba force_qty=... SIEMPRE a super() => TypeError en cada reserva => ventas sin confirmar.
 # El test pone, justo debajo de la clase de meli_oerp en el MRO, un _action_assign(self) SIN el parametro.
 from unittest.mock import patch
