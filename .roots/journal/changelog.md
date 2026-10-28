@@ -4,6 +4,8 @@
 
 ---
 
+## 17.0.26.327 — 28-oct-2026 · Release de flota 26.327 (acompaña la corrección de meli_oerp_multiple: una venta que se reintentaba por un conflicto de concurrencia ya no se pierde; sin cambios propios)
+
 ## 17.0.26.326 — 28-oct-2026 · Corrección: la línea de producto de un pack nuevo ya no queda sin IVA (y el sincronizado siguiente ya no falla), regresión de 26.316
 
 ## 17.0.26.325 — 27-oct-2026 · Release de flota 26.325 (acompaña el enmascarado de tokens en los registros de estado de meli_oerp_multiple y odoo_connector_api, sin cambios propios)
