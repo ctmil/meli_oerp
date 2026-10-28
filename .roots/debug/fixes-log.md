@@ -4,6 +4,14 @@
 
 ---
 
+## 28 oct 2026 — sin cuenta ML, la UI dejaba 12 `GET /sites: Auth error status=403` por recorrido + C-1 NameError latentes (v26.328)
+**Síntoma:** smoke de UI (Odoo.sh 20, builds 40520031/40547250, y banco 20) sin cuenta ML: 12 WARNING `meli_util GET /sites 403` (preexistente en 16–19).
+**Causa:** `res.company._get_ML_sites` consultaba `/sites` aunque el token estuviera vacío; lo llama `meli.util.get_new_instance` (vía `get_ML_AUTH_URL`) en cada instancia, y `get_ML_LINK_URL`; las instancias salen de computes de producto/categoría/preguntas/posting/compañía.
+**Fix:** sin access_token (o `PASIVA`) no se consulta `/sites`: se usa el mapa local (lo mismo que quedaba tras el 403). Con token: igual que antes.
+**C-1 (pylint undefined-variable 10 ⇒ 0; `get_ref_view` era falso positivo):** `_get_ML_currencies` `ML`⇒`ML_currencies`; `fetch_list_meli_ids` `account.write(tokens='')`⇒ se devuelve el login SIN borrar tokens; `product_meli_get_products` `rjson`⇒`rjson3` (tienda oficial); `get_all_items_from_existing_sku` `RATE_LIMIT` inexistente ⇒ `MELI_SKU_RATE_LIMIT=0.5`; `meli_pause_all` `ioff` inicializado; `meli_get_category` `cat_fields`⇒ `ml_cat.write(public_category…)`; `set_meli_price` `product_tmpl_id`⇒`product_tmpl`; `stock_inventory_action_done` `_stock`⇒`stock`, apply sobre el quant (no el producto), depósito de la compañía, create en inventory_mode.
+**Prueba:** tests/test_26328_sin_cuenta_y_c1.py (tag meli_26328). Banco 20: smoke ANTES 12/1/1 ⇒ DESPUÉS 0/0/0 (mismo recorrido); control origin 3 failed + 6 error de 11.
+**Abierto:** `create_ecommerce_category` hace `if not www_cats` sobre recordset vacío ⇒ nunca crea/enlaza categorías del sitio (decisión aparte).
+
 ## 28 oct 2026 — la línea de producto de un PACK NUEVO quedaba sin IVA; el sync siguiente fallaba con UnboundLocalError 'tid' [#526] (v26.326, regresión de 26.316)
 **Síntoma (526 Deco, fork 19.0.26.86.3 = source 26.316, 28-oct 06:53Z):** SO 13275 (pack nuevo de DELTA) con la línea de producto sin impuestos (total 62.190,08 vs 75.250 cobrado = ×1,21); cada re-sync: `cannot access local variable 'tid'`. 0 casos los 8 días previos.
 **Causa (reproducida en seco en prod 3/3):** en `fetch_shipment` el bloque de impuestos comparaba `tid.company_id != sorder.company_id`, y en un pack NUEVO `sorder` es el recordset vacío ⇒ quitaba el IVA correcto y no agregaba ninguno. Bug latente: hasta 26.315 lo tapaba el write completo de la línea (reescribir `product_id` recomputa los impuestos); 26.316 (`_meli_write_ml_line`, sólo lo que cambió) lo destapó. En el sync siguiente el `for tid` no itera y `if (tax_iva_id!=tid)` lee `tid` sin asignar (shipment.py; orders.py ya tenía `tid = None`).

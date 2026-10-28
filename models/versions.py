@@ -590,20 +590,29 @@ def stock_picking_set_quantities( picking ):
 def stock_inventory_action_done( self, product, stock, config ):
     return_id = False
     uomobj = self.env[uom_model]
-    whid = self.env['stock.location'].search([('usage','=','internal')]).id
+    # `.id` sobre TODAS las ubicaciones internas (ValueError con mas de una): la del deposito de la compania.
+    _company = (config and 'company_id' in config._fields and config.company_id) or self.env.company
+    whid = self.env['stock.warehouse'].search([('company_id','=',_company.id)], limit=1).lot_stock_id.id \
+        or self.env['stock.location'].search([('usage','=','internal')], limit=1).id
     product_uom_id = uomobj.search([('name','=','Unidad(es)')])
     if (product_uom_id.id==False):
         product_uom_id = 1
     else:
         product_uom_id = product_uom_id.id
 
-    stock_inventory_fields = get_inventory_fields( product, whid, quantity=_stock )
+    # C-1: decia `quantity=_stock` (NameError: `_stock` es local del llamador, que lo pasa como `stock`)
+    # y aplicaba el inventario sobre `self` (el producto). Desde el port 15.0 (28057b33) la funcion
+    # recibia el registro de inventario: se aplica sobre el quant creado. Unico llamador: product.py
+    # product_update_stock, hoy detras de `1==2` (no corre).
+    stock_inventory_fields = get_inventory_fields( product, whid, quantity=stock )
 
     _logger.info("stock_inventory_fields:")
     _logger.info(stock_inventory_fields)
-    StockInventory = self.env[stock_inv_model].create(stock_inventory_fields)
+    # inventory_mode en el CREATE: asi el quant existente de esa ubicacion toma inventory_quantity (y queda
+    # marcado para aplicar); sin el contexto se creaba un quant aparte en 0 y el apply no movia nada.
+    StockInventory = self.env[stock_inv_model].with_context(inventory_mode=True).create(stock_inventory_fields)
     if (StockInventory):
-        return_id = self.with_context(inventory_mode=True)._apply_inventory()
+        return_id = StockInventory.with_context(inventory_mode=True)._apply_inventory()
     return return_id
 
 def ml_datetime(datestr):

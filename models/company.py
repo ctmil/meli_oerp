@@ -133,13 +133,15 @@ class res_company(models.Model):
                             ("VES","Peso Venezolano (VES)"),
                             ("PAB","Balboa Panameño (PAB)"),
                             ("USD","Dolar Estadounidense (USD)")]
-        if (meli):
+        # C-1: decia `ML.append` (NameError si corria). Sin llamadores en el suite: se deja coherente con
+        # _get_ML_sites (sin token no se consulta ML) y sólo se reemplaza la lista si ML devolvio una lista.
+        if (meli and meli.access_token and meli.access_token != "PASIVA"):
             response = meli.get("/currencies")
-            if (response):
+            currencies = response and response.json()
+            if (currencies and isinstance(currencies, list)):
                 ML_currencies = []
-                currencies = response.json()
                 for k in currencies:
-                    ML.append(( k["id"], k["description"] ))
+                    ML_currencies.append(( k["id"], k["description"] ))
 
         return ML_currencies
 
@@ -168,7 +170,11 @@ class res_company(models.Model):
             "PAB": { "name": "Panamá", "id": "MPA", "default_currency_id": "PAB" },
             "USD": { "name": "Uruguay", "id": "MLU", "default_currency_id": "UYU" },
         }
-        response = meli and meli.get("/sites",{ "access_token": str(meli.access_token) } )
+        # Sin cuenta conectada (token vacio/PASIVA) ML responde 403 a /sites y dejaba un WARNING por cada
+        # get_new_instance (12 por recorrido de UI). Sin token se usa el mapa local de arriba, que es lo
+        # mismo que quedaba tras el 403. Con token: igual que antes.
+        _atok = meli and meli.access_token
+        response = _atok and _atok != "PASIVA" and meli.get("/sites",{ "access_token": str(_atok) } )
         if (response):
             sites = response.json()
             #_logger.info(sites)
@@ -812,9 +818,10 @@ class res_company(models.Model):
             if (rjson2 and 'error' in rjson2):
                 _logger.error(rjson2)
                 if rjson2['message']=='invalid_token' or rjson2['message']=='expired_token':
-                    ACCESS_TOKEN = ''
-                    REFRESH_TOKEN = ''
-                    account.write({'access_token': ACCESS_TOKEN, 'refresh_token': REFRESH_TOKEN, 'code': '' } )
+                    # C-1: aca decia `account.write({'access_token': '', ...})` (copia del metodo de la CUENTA en
+                    # multiple; en res.company `account` no existe => NameError y rollback). No se borran los
+                    # tokens: el refresh_token sigue sirviendo para que el cron recupere la sesion (mismo
+                    # criterio que get_new_instance). Se devuelve el login, que es lo que el camino pide.
                     condition = True
                     url_login_meli = meli.auth_url()
                     return {
@@ -1199,7 +1206,9 @@ class res_company(models.Model):
                     #elif (not company.mercadolibre_import_search_sku):
                     else:
                         #idcreated = self.pool.get('product.product').create(cr,uid,{ 'name': rjson3['title'], 'meli_id': rjson3['id'] })
-                        if (official_store_id and "official_store_id" in rjson and str(official_store_id)!=str(rjson["official_store_id"])):
+                        # C-1: decia `rjson` (no existe en este metodo => NameError con tienda oficial configurada);
+                        # el item que se esta mirando es rjson3.
+                        if (official_store_id and "official_store_id" in rjson3 and str(official_store_id)!=str(rjson3["official_store_id"])):
                             continue;
 
                         if 'id' in rjson3:
@@ -1433,6 +1442,11 @@ class res_company(models.Model):
         self.product_meli_update_remote_products(post_new=post_new)
         return {}
 
+    # C-1: get_all_items_from_existing_sku hacia time.sleep(RATE_LIMIT) sin que RATE_LIMIT existiera nunca (NameError
+    # despues del PRIMER producto: el primero se procesaba y el resto no). Pausa entre SKUs (2 GET por SKU):
+    # 0,5 s = 4 req/s, lejos del limite de ML por aplicacion. Sin llamadores en el suite (se usa por RPC/accion).
+    MELI_SKU_RATE_LIMIT = 0.5
+
     @api.model
     def get_all_items_from_existing_sku(self, products):
         company = self.env.company
@@ -1471,7 +1485,7 @@ class res_company(models.Model):
                             continue
                     else:
                         _logger.warning("Sin información disponible.")
-            time.sleep(RATE_LIMIT)
+            time.sleep(self.MELI_SKU_RATE_LIMIT)
                 
     @api.model
     def get_all_items_from_ML(self):
@@ -2678,6 +2692,7 @@ class res_company(models.Model):
             rjson = response.json()
             #_logger.info( rjson )
             condition_last_off = True
+            ioff = 0  # C-1: contador de la paginacion scan; se fija abajo si ML devuelve scroll_id
             if ('scroll_id' in rjson):
                 scroll_id = rjson['scroll_id']
                 ioff = rjson['paging']['limit']

@@ -4,6 +4,8 @@
 
 ---
 
+## 17.0.26.328 — 28-oct-2026 · Corrección: sin cuenta de MercadoLibre conectada, abrir productos, la compañía o los formularios de ML ya no llena el registro de avisos «GET /sites 403»; y se corrigen caminos que podían cortar con error (importación con tienda oficial, re-login del listado de publicaciones, sincronización por SKU, precio fijo menor a 1, enlace de categoría del sitio)
+
 ## 17.0.26.327 — 28-oct-2026 · Release de flota 26.327 (acompaña la corrección de meli_oerp_multiple: una venta que se reintentaba por un conflicto de concurrencia ya no se pierde; sin cambios propios)
 
 ## 17.0.26.326 — 28-oct-2026 · Corrección: la línea de producto de un pack nuevo ya no queda sin IVA (y el sincronizado siguiente ya no falla), regresión de 26.316
