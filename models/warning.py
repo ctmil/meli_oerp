@@ -62,8 +62,9 @@ MELI_PUBLISH_ERROR_PATTERNS = [
     # Llega como message STRING: "...resource /decorations/build-title... message:attributes are required"
     # (también cubre el "attributes are required" pelado que puede venir en `cause`).
     (r"(?:build-title.*?)?\battributes?\s+are\s+required\b",
-     "Faltan atributos obligatorios de la categoría. Completá la ficha técnica del producto "
-     "(marca, modelo, código universal, etc.) en la pestaña MercadoLibre para poder publicar en MercadoLibre."),
+     "Faltan atributos obligatorios de la categoría. Marca, modelo y medidas del paquete van en la "
+     "pestaña MercadoLibre del producto; el código universal, en Código de barras; los demás (p.ej. "
+     "Fabricante) como línea en la pestaña «Atributos y variantes». Después volvé a publicar."),
     # --- Catálogo: falta family_name (u otras propiedades del body del catálogo) ---
     (r"body\s+does\s+not\s+contains?\s+some\s+or\s+none\s+of\s+the\s+following\s+properties\s*\[?\s*family_name",
      "Falta el Nombre de la familia (Family Name) del producto, requerido para publicar en el "

@@ -1757,3 +1757,17 @@ no duplica, motivo fuera de lista, pack_splitted, by_reason+param = 1 devolució
 Fix 7/7 en 16-19; control origin 26.305 rojo en 02/03. Suites /meli_oerp,/accounting,/multiple,/stock: 0
 regresiones (preexistentes idénticas fix/ctl). Accounting: `tests/test_26306_sign_invoice.py` (regresión de
 meli_sign_invoice, fix de 26.302): 4/4; control accounting pre-302 ⇒ NameError: name 'config' is not defined.
+
+## 26.334 (28-oct-2026) — «Nueva Lista de Precios» ignorada al publicar + aviso de atributos faltantes
+**Causa:** `meli_oerp_multiple` `_product_post` llamaba a `set_meli_price(config)` sin la lista; en `meli_oerp`
+`set_meli_price` un `plist` explícito iba ÚLTIMO (`pl_usd or config.mercadolibre_pricelist or plist`) ⇒ nunca
+se usaba. `force_meli_new_pricelist` sólo llegaba al binding (`update_price`): en modo familia / sin binding
+(cuenta user_product_seller) el body salía con la lista de la cuenta y el binding mostraba la de la regla.
+Medido en un cliente: lista elegida ⇒ body 64.040 (lista de la cuenta) vs 70.436,52 (regla costo×2,2 + IVA).
+**Fix:** `set_meli_price`: `pl = plist or pl_usd or config.mercadolibre_pricelist` (nadie pasaba `plist`: sin
+cambio para el resto); `_product_post` pasa `plist=_meli_resolve_new_pricelist(force_meli_new_pricelist)`
+(record o id). Aviso del pre-flight: `_meli_missing_attributes_where` separa campo de la pestaña ML
+(BRAND/MODEL/SELLER_PACKAGE_*), Código de barras (GTIN) y línea en «Atributos y variantes» (resto).
+**Tests:** `meli_oerp_multiple/tests/test_26334_lista_ml_y_aviso_atributos.py` (tag meli_26334, 5 casos).
+Fix 5/5 en 16-19; control origin 26.333 en 18: 5 FAIL de 5. Suites /meli_oerp,/meli_oerp_multiple: 18 0/293,
+17 0/329, 19 0/280; 16 0F+3E/333 (test_meli_cancel: base sin plan contable, ajeno).
