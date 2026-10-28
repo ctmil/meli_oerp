@@ -415,8 +415,10 @@ class mercadolibre_category(models.Model):
             if www_cat_id:
                 p_cat_id = www_cats.search([('id','=',www_cat_id)],limit=1)
                 if (len(p_cat_id)):
-                    cat_fields['public_category_id'] = www_cat_id
-                    cat_fields['public_category'] = p_cat_id.id
+                    # C-1: aca quedaban `cat_fields[...] = ...` de cuando este metodo CREABA la categoria (fcd59b15,
+                    # antes de import_category) => NameError. Lo que el camino necesita es dejar la categoria ML
+                    # enlazada a la del sitio, para que la proxima vez salga de ml_cat.public_category_id.
+                    ml_cat.write({'public_category_id': www_cat_id, 'public_category': p_cat_id.id})
 
         # Guardar en cache solo lookups exitosos (mlcatid real). Cachear un mlcatid
         # vacio (login pendiente / categoria inexistente en ML / fallo transitorio)
