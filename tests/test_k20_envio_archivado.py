@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""[26.291 #452] Servicio de envio archivado => se creaba uno nuevo por venta.
+"""[26.291 #caso-K20] Servicio de envio archivado => se creaba uno nuevo por venta.
 
-Caso real (Global Value 452, 18.0): el cliente archivo el producto "ME1 - zip" (ENVIO-ME1) y los
+Caso real (cliente I caso-K20, 18.0): el cliente archivo el producto "ME1 - zip" (ENVIO-ME1) y los
 de los transportistas; la busqueda sólo miraba activos y creaba uno nuevo en cada pasada del cron.
 Con product_sequence (OCA) la referencia nueva no era ENVIO-ME1, asi que nunca lo volvia a encontrar.
 Y el producto creado no se usaba: la linea toma el producto del transportista.
@@ -10,8 +10,8 @@ from odoo.tests import TransactionCase, tagged
 from odoo.tools import mute_logger
 
 
-@tagged('post_install', '-at_install', 'meli_452')
-class TestMeli452EnvioArchivado(TransactionCase):
+@tagged('post_install', '-at_install', 'meli_K20')
+class TestMeliK20EnvioArchivado(TransactionCase):
 
     @classmethod
     def setUpClass(cls):

@@ -104,7 +104,7 @@ class TestMLBIdsAlfanumericos26310(common.TransactionCase):
         return self.env['mercadolibre.payments'].search([('payment_id', '=', pay_id)])
 
     def test_payment_id_alfanumerico_se_guarda_tal_cual(self):
-        oid = 2000012345670001
+        oid = 2000938035690764
         self._run(_order_json(oid))
         so = self.env['sale.order'].search([('meli_order_id', '=', str(oid))], limit=1)
         self.assertTrue(so, 'no se creo la venta MLB')
@@ -115,7 +115,7 @@ class TestMLBIdsAlfanumericos26310(common.TransactionCase):
         self.assertTrue(pay.mercadopago_url.endswith('/' + PAY_ID))
 
     def test_resync_no_duplica_pago_alfanumerico(self):
-        oid = 2000012345670002
+        oid = 2000444354000604
         self._run(_order_json(oid))
         self._run(_order_json(oid))
         self.assertEqual(len(self._payments()), 1)

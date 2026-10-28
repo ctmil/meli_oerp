@@ -168,7 +168,7 @@ class TestMeliCancelOnMlCancel(common.TransactionCase):
             })],
         })
         order.write({
-            'meli_order_id': '2000099900000001',
+            'meli_order_id': '2000108233203945',
             'meli_status': meli_status,
         })
         return order
@@ -256,7 +256,7 @@ class TestMeliCancelOnMlCancel(common.TransactionCase):
         )
         self.assertEqual(order.state, 'cancel')
 
-    def test_641_devolucion_cancelada_no_se_regenera(self):
+    def test_k26_devolucion_cancelada_no_se_regenera(self):
         """[caso de un cliente] Si el usuario cancela la devolucion automatica, el ciclo
         siguiente (confirm_ml -> meli_cancel_with_detail) NO la vuelve a crear."""
         # El caso de un caso es la devolucion PENDIENTE que el usuario cancela: con el modo
@@ -284,7 +284,7 @@ class TestMeliCancelOnMlCancel(common.TransactionCase):
             self.assertFalse(order._meli_cancel_return_pending_pickings() & salidas,
                              "Con la devolucion cancelada a mano, la salida no esta pendiente")
 
-    def test_640_confirmar_conserva_la_fecha_de_ml(self):
+    def test_k27_confirmar_conserva_la_fecha_de_ml(self):
         """[caso de un cliente] Confirmar una venta ML no pisa date_order con now(): el
         date_deadline de los movimientos queda igual a la fecha de ML y un reemplazo de
         producto posterior se fusiona en vez de generar RET + transferencias internas."""
@@ -300,7 +300,7 @@ class TestMeliCancelOnMlCancel(common.TransactionCase):
         from datetime import timedelta
         self.assertTrue(all(m.date_deadline == fecha_ml + timedelta(days=lead) for m in movs))
 
-    def test_640_venta_no_ml_sigue_tomando_now(self):
+    def test_k27_venta_no_ml_sigue_tomando_now(self):
         order = self.env['sale.order'].create({
             'partner_id': self.partner.id,
             'order_line': [(0, 0, {'product_id': self.product.id, 'product_uom_qty': 1.0,
@@ -380,7 +380,7 @@ class TestMeliCancelOnMlCancel(common.TransactionCase):
         invoice = self._create_posted_invoice(order)
 
         ml_order = self.env['mercadolibre.orders'].create({
-            'order_id': '2000099900000001',
+            'order_id': '2000108233203945',
             'status': 'cancelled',
             'sale_order': order.id,
             # date_created NO es decorativo: _orders_redrain_pending_cancels() filtra por

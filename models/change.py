@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 ##############################################################################
-# 26.332 (525 ROEN, ticket id 700 / portal #701) -- CAMBIOS de producto de MercadoLibre.
+# 26.332 (caso-K01 cliente B, ticket id caso-K06 / portal #caso-K05) -- CAMBIOS de producto de MercadoLibre.
 #
 # COMO LO MODELA ML (medido el 28-oct-2026 sobre las 10 ordenes `change` de una cuenta MLM):
 #   - El cambio cuelga de un reclamo (mediations/returns) del comprador:
@@ -19,7 +19,7 @@
 #     reingresaba. Se procesa con `_meli_return_done_pickings` sobre la VENTA ORIGINAL, que ya respeta
 #     FULL / meli_oerp.cancel_return_full, mercadolibre_return_mode y el guard de "ya devuelta".
 #
-# RED FUERA DE LA ESCRITURA (leccion 502): fase 1 = solo GET, sin escribir nada (sin locks);
+# RED FUERA DE LA ESCRITURA (leccion caso-K07): fase 1 = solo GET, sin escribir nada (sin locks);
 # fase 2 = escrituras cortas por orden, con savepoint. Idempotente: estado meli_change_state +
 # mensajes once_key + guard de devolucion existente.
 ##############################################################################

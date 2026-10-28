@@ -694,7 +694,7 @@ class mercadolibre_shipment(models.Model):
         return updated
 
     def _meli_pack_receiver_cost(self, meli, ship_id, rcosts):
-        """[#158/#462/#535] Flete del comprador que COBRO el vendedor (shipping_receiver_cost).
+        """[#caso-K02/#caso-K21/#caso-K22] Flete del comprador que COBRO el vendedor (shipping_receiver_cost).
 
         Un GET a MercadoPago (/v1/payments/search?external_reference=<envio>, token en el header,
         timeout corto) y SOLO si /costs trae receiver.cost > 0. Corre antes de escribir el envio y no
@@ -755,7 +755,7 @@ class mercadolibre_shipment(models.Model):
     def _meli_find_shipping_product(self, ship_name, mode, company, company_domain):
         """Producto de servicio de envio EXISTENTE para ``ship_name`` (vacio si no hay).
 
-        [26.291 #452] Orden de busqueda, para no crear un producto nuevo por venta:
+        [26.291 #caso-K20] Orden de busqueda, para no crear un producto nuevo por venta:
           1. activos, por referencia (ENVIO-ME1 / ENVIO / el nombre) y por nombre;
           2. el producto del transportista de ese nombre (mapeo o delivery.carrier):
              es el que la linea de envio termina usando;
@@ -860,7 +860,7 @@ class mercadolibre_shipment(models.Model):
             including_shipping_cost = including_shipping_cost or "always"
 
             if (sorder and sorder.meli_update_forbidden):
-                meli_log_update_forbidden(_logger, sorder, " (envio)")  # 26.309 (158): WARNING una vez
+                meli_log_update_forbidden(_logger, sorder, " (envio)")  # 26.309 (caso-K02): WARNING una vez
                 return {'error': 'Forbidden to update sale order by meli_oerp', 'meli_update_forbidden': True}
 
             sorder.meli_shipping_cost = shipment.shipping_cost
@@ -875,11 +875,11 @@ class mercadolibre_shipment(models.Model):
 
             if (sorder.partner_shipping_id):
                 partner_shipping_id = sorder.partner_shipping_id
-                # [#513 TYL] no se pisa la direccion si la entrega del pedido se cambio a mano o si el
+                # [#caso-K03 cliente A] no se pisa la direccion si la entrega del pedido se cambio a mano o si el
                 # contacto se edito a mano (huella distinta de la ultima que escribio la sincronizacion)
                 if (partner_shipping_id and "meli_update_forbidden" in partner_shipping_id._fields and not partner_shipping_id.meli_update_forbidden):
                     if sorder._meli_address_locked('partner_shipping_id'):
-                        _logger.info("MELI #513 SO %s: contacto de entrega id=%s fijado/editado a mano, no se actualiza desde ML",
+                        _logger.info("MELI #caso-K03 SO %s: contacto de entrega id=%s fijado/editado a mano, no se actualiza desde ML",
                                      sorder.name, partner_shipping_id.id)
                     else:
                         _ship_addr = {
@@ -888,7 +888,7 @@ class mercadolibre_shipment(models.Model):
                             'city': shipment.receiver_city,
                         }
                         if shipment.receiver_address_phone and not ("XXXX" in shipment.receiver_address_phone):
-                            # [#682] phone Y mobile (sin pisar un mobile cargado a mano)
+                            # [#caso-K17] phone Y mobile (sin pisar un mobile cargado a mano)
                             _ship_addr.update(self.env['mercadolibre.orders']._meli_phone_mobile_vals(
                                 shipment.receiver_address_phone, partner_shipping_id ))
                         if any((partner_shipping_id[k] or False) != (v or False) for k, v in _ship_addr.items()):
@@ -904,7 +904,7 @@ class mercadolibre_shipment(models.Model):
 
             ship_default_code = (shipment.mode=="me1" and 'ENVIO-ME1') or ship_name
 
-            # [26.291 #452] reutilizar el servicio de envio aunque este ARCHIVADO o con la
+            # [26.291 #caso-K20] reutilizar el servicio de envio aunque este ARCHIVADO o con la
             # referencia interna cambiada (p.ej. product_sequence): antes se creaba uno nuevo
             # por cada pasada del cron, y ese producto ni siquiera se usaba en la linea.
             product_shipping_id = shipment._meli_find_shipping_product(
@@ -1262,7 +1262,7 @@ class mercadolibre_shipment(models.Model):
                     if delivery_line and _meli_guard_delivery_write(sorder, delivery_line, delivery_price):
                         delivery_line = None
                     if delivery_line and delivery_line.state not in ('cancel',):
-                        # [158, 26.307] ya no se escribe qty_to_invoice a mano: si el guard de venta
+                        # [caso-K02, 26.307] ya no se escribe qty_to_invoice a mano: si el guard de venta
                         # facturada freno el precio, la linea seguia en $0 y quedaba "A facturar".
                         try:
                             delivery_line._meli_refresh_shipping_invoice_qty()
@@ -1299,14 +1299,14 @@ class mercadolibre_shipment(models.Model):
         return Partner
 
     def _meli_pack_invoice_partner( self, rp, pack_ref, receiver_id, partner_id, company ):
-        """[#682] Contacto de facturacion para la venta de un pack.
+        """[#caso-K17] Contacto de facturacion para la venta de un pack.
 
         1) el contacto creado para ese pack (meli_order_id == pack_id), de la compania o sin compania;
         2) si no hay: el contacto de facturacion (type=invoice) cuyo VAT es el documento de facturacion
            del comprador (mercadolibre.buyers.billing_info_doc_number). orders.py reutiliza ese contacto
            entre packs ("un CUIT = un contacto") y le deja el meli_order_id del PRIMER pack, asi que el
            2do pack del mismo comprador no lo encontraba por pack_id y la venta quedaba facturando al
-           contacto principal, que no lleva DNI (158 IHSA, 20 ventas desde ago-2026);
+           contacto principal, que no lleva DNI (caso-K02 producto 2, 20 ventas desde ago-2026);
         3) si tampoco: el contacto principal (comportamiento anterior).
         """
         company_only_domain = [('company_id','=',company.id)] if company else []
@@ -1321,7 +1321,7 @@ class mercadolibre_shipment(models.Model):
                 partner_invoice_id = rp.search([('vat','=',doc_number), ('type','=','invoice'),
                     ('company_id','in',[company.id, False] if company else [False])], limit=1)
                 if partner_invoice_id:
-                    _logger.info("MELI #682 pack %s: contacto de facturacion id=%s encontrado por documento del comprador",
+                    _logger.info("MELI #caso-K17 pack %s: contacto de facturacion id=%s encontrado por documento del comprador",
                                  pack_ref, partner_invoice_id.id)
         return partner_invoice_id or partner_id
 
@@ -1369,7 +1369,7 @@ class mercadolibre_shipment(models.Model):
 
         full_phone = orders_obj.full_phone( Receiver )
         if full_phone and not ("XXXX" in full_phone):
-            # [#682] el telefono va a phone Y a mobile (WhatsApp/SMS leen mobile)
+            # [#caso-K17] el telefono va a phone Y a mobile (WhatsApp/SMS leen mobile)
             pdelivery_fields.update(orders_obj._meli_phone_mobile_vals( full_phone ))
         if partner_id and partner_id.lang:
             pdelivery_fields["lang"] =  partner_id.lang
@@ -1391,7 +1391,7 @@ class mercadolibre_shipment(models.Model):
                 deliv_id = respartner_obj.create(pdelivery_fields)
                 if deliv_id:
                     #_logger.info("Created Res Partner Delivery "+str(deliv_id))
-                    deliv_id._meli_address_mark_synced()  # [#513]
+                    deliv_id._meli_address_mark_synced()  # [#caso-K03]
                     partner_shipping_id = deliv_id
             except Exception as e:
                 _logger.error("Created res.partner delivery issue.")
@@ -1408,7 +1408,7 @@ class mercadolibre_shipment(models.Model):
                 del pdelivery_fields["country_id"]
                 del pdelivery_fields["state_id"]
                 del pdelivery_fields["type"]
-                # [#682] no pisar un mobile cargado a mano (distinto del phone)
+                # [#caso-K17] no pisar un mobile cargado a mano (distinto del phone)
                 if "mobile" in pdelivery_fields and "mobile" not in orders_obj._meli_phone_mobile_vals( pdelivery_fields.get("phone"), deliv_id ):
                     del pdelivery_fields["mobile"]
                 for f in pdelivery_fields:
@@ -1416,8 +1416,8 @@ class mercadolibre_shipment(models.Model):
                         if pdelivery_fields[f] != deliv_id[f]:
                             hchanges = True
                 if hchanges and deliv_id._meli_address_manually_edited():
-                    # [#513 TYL] direccion editada a mano: se usa el contacto pero no se pisa
-                    _logger.info("MELI #513 partner_delivery_id: contacto id=%s editado a mano, no se actualiza", deliv_id.id)
+                    # [#caso-K03 cliente A] direccion editada a mano: se usa el contacto pero no se pisa
+                    _logger.info("MELI #caso-K03 partner_delivery_id: contacto id=%s editado a mano, no se actualiza", deliv_id.id)
                 elif hchanges:
                     deliv_id.write(pdelivery_fields)
                     deliv_id._meli_address_mark_synced()
@@ -1462,7 +1462,7 @@ class mercadolibre_shipment(models.Model):
             _logger.info("No hay orden o shipping_id")
             return None
 
-        # #431: el envio y la venta del CARRITO se crean una sola vez aunque dos procesos lo importen
+        # #caso-K13: el envio y la venta del CARRITO se crean una sola vez aunque dos procesos lo importen
         # a la vez (re-entrante con el lock que ya tomo orders_update_order_json). Ver import_lock.py.
         _ml_pack = ("pack_id" in order._fields and order.pack_id) or None
         _busy = _meli_import_guard(self.env, [_ml_pack, order.order_id], [
@@ -1545,7 +1545,7 @@ class mercadolibre_shipment(models.Model):
                     # shipping_option.cost — sí acá, en /costs → receiver.cost.
                     # Descontando lo que cubre el vendedor (receiver.cost_details): con envío
                     # gratis subsidiado, receiver.cost viene lleno y el comprador pagó 0.
-                    # [#158/#462/#535] ...pero cost_details NO dice quien cobro: lo dice el pago MP
+                    # [#caso-K02/#caso-K21/#caso-K22] ...pero cost_details NO dice quien cobro: lo dice el pago MP
                     # marketplace_shipment del envio (ver receiver_cost.py y _meli_pack_receiver_cost).
                     ship_json['receiver_cost'] = self._meli_pack_receiver_cost(meli, ship_id, rcosts)
 
@@ -1890,13 +1890,13 @@ class mercadolibre_shipment(models.Model):
                     if not partner_id:
                         partner_id = _rp_su.search([  ('meli_buyer_id','=',ship_fields['receiver_id'] ) ]+company_none_domain, limit=1 )
 
-                    # [#682] contacto de facturacion del pack: por pack_id y, si no, por el DNI/CUIT del comprador
+                    # [#caso-K17] contacto de facturacion del pack: por pack_id y, si no, por el DNI/CUIT del comprador
                     partner_invoice_id = self._meli_pack_invoice_partner( _rp_su, partner_invoice_meli_order_id,
                         ship_fields['receiver_id'], partner_id, company )
 
                     original_contact_partner_id = partner_id
                     partner_shipping_id = None
-                    # [#513] si la entrega del pedido del pack se fijo a mano no se busca / actualiza el contacto
+                    # [#caso-K03] si la entrega del pedido del pack se fijo a mano no se busca / actualiza el contacto
                     _meli513_pack_so = self.env["sale.order"].search([('meli_order_id', '=', packed_order_ids)], order="id asc", limit=1)
                     if "receiver_address" in ship_json and not (_meli513_pack_so and _meli513_pack_so._meli_address_locked('partner_shipping_id')):
                         if config.mercadolibre_cron_get_orders_shipment_client:
@@ -1926,7 +1926,7 @@ class mercadolibre_shipment(models.Model):
                         #sorder_pack = self.env["sale.order"].search( [ '|',('meli_order_id','=',packed_order_ids), ('name','like', str(oname)) ], order="id asc", limit=1 )
                         sorder_pack = self.env["sale.order"].search( [ ('meli_order_id','=',packed_order_ids) ], order="id asc", limit=1 )
                         if (sorder_pack and sorder_pack.meli_update_forbidden):
-                            meli_log_update_forbidden(_logger, sorder_pack, " (envio)")  # 26.309 (158): WARNING una vez
+                            meli_log_update_forbidden(_logger, sorder_pack, " (envio)")  # 26.309 (caso-K02): WARNING una vez
                             return {'error': 'Forbidden to update sale order by meli_oerp', 'meli_update_forbidden': True}
 
                         sorder = sorder_pack
@@ -1952,7 +1952,7 @@ class mercadolibre_shipment(models.Model):
                             else:
                                 totales['shipping_amount'] = shipment.shipping_cost
 
-                        # 26.318 (#431 B): descuento del vendedor del PACK (suma de los miembros) y bruto
+                        # 26.318 (#caso-K13 B): descuento del vendedor del PACK (suma de los miembros) y bruto
                         # para prorratearlo por ítem. Va también a la venta (meli_discount_seller_amount) para
                         # que el importe a facturar sepa que el descuento ya está en las líneas.
                         _pack_disc, _pack_gross = self.env['mercadolibre.orders']._meli_pack_seller_discount(all_orders)
@@ -2024,7 +2024,7 @@ class mercadolibre_shipment(models.Model):
                             if not partner_already_set:
                                 meli_order_fields.update({'partner_id': (partner_id and partner_id.id)})
 
-                        # [#513 TYL] factura / entrega: al crear o si estan vacias; despues solo si nadie las cambio a mano
+                        # [#caso-K03 cliente A] factura / entrega: al crear o si estan vacias; despues solo si nadie las cambio a mano
                         sorder = sorder_pack
                         self.env["sale.order"].browse(sorder_pack[:1].ids)._meli_merge_ml_addresses(
                             meli_order_fields, invoice_partner=partner_invoice_id or None,
@@ -2107,7 +2107,7 @@ class mercadolibre_shipment(models.Model):
                                 if (mOrder.fee_amount):
                                     sorder_pack.meli_fee_amount = sorder_pack.meli_fee_amount + mOrder.fee_amount
 
-                                # 26.318 (#431 B): el descuento del PACK prorrateado por el bruto de ESTE ítem
+                                # 26.318 (#caso-K13 B): el descuento del PACK prorrateado por el bruto de ESTE ítem
                                 # (antes: el de la orden que disparó el sync, entero, en cada línea).
                                 saleorderline_item_fields.update( mOrder._set_product_unit_price( product_related_obj, mOrder.order_items[0], config=config,
                                                                                                    items_total=_pack_gross or None, seller_discount=_pack_disc ) )
@@ -2118,7 +2118,7 @@ class mercadolibre_shipment(models.Model):
 
                                 _adopted_line = False
                                 if not saleorderline_item_ids:
-                                    # 26.250 (#431 bug 6): adoptar la linea del mismo producto sin vinculo ML
+                                    # 26.250 (#caso-K13 bug 6): adoptar la linea del mismo producto sin vinculo ML
                                     # (la deja el usuario al cancelar y reconfirmar el carrito) en vez de crear otra.
                                     saleorderline_item_ids = order._meli_adopt_unlinked_sale_line(sorder_pack, saleorderline_item_fields)
                                     _adopted_line = bool(saleorderline_item_ids)
@@ -2151,7 +2151,7 @@ class mercadolibre_shipment(models.Model):
                                         pass;
                                     else:
                                         #_logger.info("sale order line to write")
-                                        # [#526, 26.316] solo lo que cambio + precio de ML restituido si lo pisan
+                                        # [#caso-K15, 26.316] solo lo que cambio + precio de ML restituido si lo pisan
                                         saleorderline_item_ids._meli_write_ml_line( saleorderline_item_fields, config=config )
                     else:
                         #_logger.info("partner receiver id not founded:"+str(ship_fields['receiver_id']))

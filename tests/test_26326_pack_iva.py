@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """26.326 (28-oct-2026): la linea de un PACK NUEVO no queda sin IVA — regresion destapada en 26.316.
 
-Fix de referencia: fork Deco #526 d3b7b4a (SO 13275, pack nuevo de DELTA, producto con VAT 21 % de 3 companias).
+Fix de referencia: fork cliente E #caso-K15 d3b7b4a (SO 18021, pack nuevo de DELTA, producto con VAT 21 % de 3 companias).
 El bloque de impuestos comparaba contra la compania de `sorder`, vacio en un pack nuevo => quitaba el IVA y no
 agregaba ninguno; hasta 26.315 lo tapaba el write completo de la linea, 26.316 (`_meli_write_ml_line`) lo destapo.
 En el sync siguiente `tid` sin asignar => UnboundLocalError. `_old_block` = copia literal del bloque de
