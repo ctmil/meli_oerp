@@ -62,7 +62,7 @@ class _FakeMeli:
 
 
 def _buyer(full=True):
-    b = {'id': BUYER_ID, 'nickname': 'COMPRADOR542'}
+    b = {'id': BUYER_ID, 'nickname': 'COMPRADORK14'}
     if full:
         b.update({'first_name': 'Juana', 'last_name': 'Prueba', 'name': 'Juana Prueba',
                   'email': 'juana@example.com', 'phone': {'area_code': '11', 'number': '45556666'}})
@@ -75,8 +75,8 @@ def _order_json(oid=OID, full_buyer=True):
         'date_created': '2026-10-22T10:00:00.000-03:00', 'date_closed': '2026-10-22T10:00:01.000-03:00',
         'total_amount': 1000.0, 'paid_amount': 1000.0, 'currency_id': 'ARS',
         'coupon': {'id': None, 'amount': 0},
-        'order_items': [{'item': {'id': 'MLA542661', 'title': 'Prueba 542', 'variation_id': None,
-                                  'seller_sku': 'SKU542661', 'category_id': 'MLA1'},
+        'order_items': [{'item': {'id': 'MLA512577', 'title': 'Prueba K14', 'variation_id': None,
+                                  'seller_sku': 'SKU512577', 'category_id': 'MLA1'},
                          'quantity': 1, 'unit_price': 1000.0, 'full_unit_price': 1000.0, 'currency_id': 'ARS'}],
         'payments': [{'id': 99542661, 'transaction_amount': 1000.0, 'total_paid_amount': 1000.0,
                       'currency_id': 'ARS', 'status': 'approved', 'coupon_amount': 0,
@@ -97,7 +97,7 @@ def _billing_cf_dni(dni='28000000'):
     ]}}
 
 
-@tagged('post_install', '-at_install', 'meli', 'meli_K14_661')
+@tagged('post_install', '-at_install', 'meli', 'meli_K14_K19')
 class TestMeli542661Generico(common.TransactionCase):
 
     @classmethod
@@ -110,7 +110,7 @@ class TestMeli542661Generico(common.TransactionCase):
         if 'mercadolibre_cron_get_orders_shipment_client' in cls.company._fields:
             cls.company.mercadolibre_cron_get_orders_shipment_client = True
         cls.product = cls.env['product.product'].create({
-            'name': 'Prueba 542', 'taxes_id': [(5, 0, 0)], 'meli_id': 'MLA542661', 'default_code': 'SKU542661'})
+            'name': 'Prueba K14', 'taxes_id': [(5, 0, 0)], 'meli_id': 'MLA512577', 'default_code': 'SKU512577'})
 
     def _run(self, data, routes):
         meli = _FakeMeli(routes)
@@ -123,7 +123,7 @@ class TestMeli542661Generico(common.TransactionCase):
         return [('/orders/%s/billing_info' % oid, billing or {}),
                 ('/orders/%s/discounts' % oid, {}),
                 ('/orders/%s' % oid, _order_json(oid)),
-                ('/items/', {'id': 'MLA542661', 'title': 'Prueba 542'})]
+                ('/items/', {'id': 'MLA512577', 'title': 'Prueba K14'})]
 
     def _order(self, oid=OID):
         return self.env['mercadolibre.orders'].search([('order_id', '=', str(oid))], limit=1)

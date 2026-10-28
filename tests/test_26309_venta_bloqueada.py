@@ -8,7 +8,7 @@ El freno es correcto (no escribe nada) pero:
 Ahora: WARNING una vez por venta (despues DEBUG) y el retorno trae `meli_update_forbidden` para
 que quien llama cierre la notificacion sin reintento. El pedido sigue SIN tocarse.
 
-Camino real orders_update_order_json con ML simulado (sin red), mismo armado que test_513.
+Camino real orders_update_order_json con ML simulado (sin red), mismo armado que test_K03.
 Control (origin sin el fix): test_1 y test_2 FALLAN.
 """
 from unittest.mock import patch
@@ -35,7 +35,7 @@ class TestMeli26309VentaBloqueada(common.TransactionCase):
         if 'mercadolibre_cron_get_orders_shipment_client' in cls.company._fields:
             cls.company.mercadolibre_cron_get_orders_shipment_client = True
         cls.product = cls.env['product.product'].create({
-            'name': 'Prueba 513', 'taxes_id': [(5, 0, 0)], 'meli_id': 'MLA513001', 'default_code': 'SKU513001'})
+            'name': 'Prueba K03', 'taxes_id': [(5, 0, 0)], 'meli_id': 'MLA554523', 'default_code': 'SKU554523'})
 
     def setUp(self):
         super().setUp()
@@ -44,7 +44,7 @@ class TestMeli26309VentaBloqueada(common.TransactionCase):
     def _sync(self, street='Calle Falsa 123'):
         oj = _order_json(street)
         routes = [('/orders/%s/billing_info' % OID, {}), ('/orders/%s/discounts' % OID, {}),
-                  ('/orders/%s' % OID, oj), ('/items/', {'id': 'MLA513001', 'title': 'Prueba 513'})]
+                  ('/orders/%s' % OID, oj), ('/items/', {'id': 'MLA554523', 'title': 'Prueba K03'})]
         with patch('odoo.addons.meli_oerp.models.orders.requests.get', return_value=_MPNoDisponible()), \
                 mute_logger('odoo.addons.meli_oerp_multiple.models.sale'):
             return self.env['mercadolibre.orders'].orders_update_order_json(

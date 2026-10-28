@@ -28,9 +28,9 @@ class TestMeliK15EnvioFacturada(AccountTestInvoicingCommon):
         super().setUpClass()
         _sales_user(cls.env)
         Product = cls.env['product.product']
-        cls.prod = Product.create({'name': 'Cortina 526', 'type': 'service',
+        cls.prod = Product.create({'name': 'Cortina K15', 'type': 'service',
                                    'invoice_policy': 'order', 'taxes_id': [(5, 0, 0)]})
-        cls.ship = Product.create({'name': 'Andreani 526', 'type': 'service',
+        cls.ship = Product.create({'name': 'Andreani K15', 'type': 'service',
                                    'invoice_policy': 'order', 'taxes_id': [(5, 0, 0)]})
         co = cls.env.company
         if 'mercadolibre_protect_invoiced_orders' in co._fields:
@@ -82,9 +82,9 @@ class TestMeliK15EnvioResync(AccountTestInvoicingCommon):
         cls.env.user.write({gfield: [(4, cls.env.ref('sales_team.group_sale_manager').id)]})
         P = cls.env['product.product']
         cls.prod = P.create({'name': 'Cortina', 'type': 'service', 'invoice_policy': 'order', 'taxes_id': [(5, 0, 0)]})
-        cls.ship = P.create({'name': 'Andreani Estandar 526', 'default_code': 'Andreani Estandar 526',
+        cls.ship = P.create({'name': 'Andreani Estandar K15', 'default_code': 'Andreani Estandar K15',
                              'type': 'service', 'invoice_policy': 'order', 'taxes_id': [(5, 0, 0)]})
-        cls.carrier = cls.env['delivery.carrier'].create({'name': 'Andreani Estandar 526', 'product_id': cls.ship.id})
+        cls.carrier = cls.env['delivery.carrier'].create({'name': 'Andreani Estandar K15', 'product_id': cls.ship.id})
         co = cls.env.company
         for f, v in (('mercadolibre_order_total_config', 'paid_amount'), ('mercadolibre_including_shipping_cost', 'always'),
                      ('meli_coupon_discount_on_invoice', True)):
@@ -109,7 +109,7 @@ class TestMeliK15EnvioResync(AccountTestInvoicingCommon):
             'transaction_amount': 34917.35, 'total_paid_amount': 31271.33, 'coupon_amount': 7000.0, 'shipping_amount': 3353.98})
         so.meli_orders = [(6, 0, [mo.id])]
         sh = self.env['mercadolibre.shipment'].create({
-            'sale_order': so.id, 'tracking_method': 'Andreani Estandar 526', 'mode': 'me2',
+            'sale_order': so.id, 'tracking_method': 'Andreani Estandar K15', 'mode': 'me2',
             'shipping_cost': 3353.98, 'shipping_seller_cost': 13847.5, 'shipping_list_cost': 13847.5})
         SO = type(so)
         with patch.object(SO, 'meli_amount_to_invoice', lambda self, meli=None, config=None: 31271.33, create=True), \

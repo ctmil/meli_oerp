@@ -67,7 +67,7 @@ class TestCancelPorMotivo(TransactionCase):
     # -------------------------------------------------------------- helpers --
     def _prod(self):
         Product = self.env["product.product"]
-        pvals = {"name": "P-624", "list_price": 100.0, "invoice_policy": "order"}
+        pvals = {"name": "P-K04", "list_price": 100.0, "invoice_policy": "order"}
         if "is_storable" in Product._fields:
             pvals.update(type="consu", is_storable=True)
         elif "detailed_type" in Product._fields:

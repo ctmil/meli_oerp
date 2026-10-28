@@ -10,12 +10,12 @@
     sin pisar un mobile cargado a mano.
 
 Sin red: no se llama a ML. Correr:
-  odoo-bin ... -u meli_oerp --test-enable --test-tags meli_682_dni_movil --stop-after-init
+  odoo-bin ... -u meli_oerp --test-enable --test-tags meli_K17_dni_movil --stop-after-init
 """
 from odoo.tests import TransactionCase, tagged
 
 
-@tagged('post_install', '-at_install', 'meli_682_dni_movil')
+@tagged('post_install', '-at_install', 'meli_K17_dni_movil')
 class TestPackInvoicePartner682(TransactionCase):
 
     def setUp(self):
@@ -31,7 +31,7 @@ class TestPackInvoicePartner682(TransactionCase):
             'name': 'Comprador ML 682 (factura)', 'type': 'invoice', 'vat': '96314392',
             'meli_order_id': '2000274377563134'})
         self.env['mercadolibre.buyers'].create({
-            'buyer_id': self.buyer_ml_id, 'nickname': 'COMPRADOR682',
+            'buyer_id': self.buyer_ml_id, 'nickname': 'COMPRADORK17',
             'billing_info_doc_number': '96314392'})
 
     def _resolver(self, pack_ref):
@@ -57,7 +57,7 @@ class TestPackInvoicePartner682(TransactionCase):
         self.assertEqual(self._resolver('2000233773023476'), self.principal)
 
 
-@tagged('post_install', '-at_install', 'meli_682_dni_movil')
+@tagged('post_install', '-at_install', 'meli_K17_dni_movil')
 class TestTelefonoMovil682(TransactionCase):
 
     def setUp(self):
