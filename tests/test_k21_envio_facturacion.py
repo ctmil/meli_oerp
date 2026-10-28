@@ -16,7 +16,7 @@ def _sales_user(env):
     env.user.write({gfield: [(4, env.ref('sales_team.group_sale_manager').id)]})
 
 
-@tagged('post_install', '-at_install', 'meli_462e1')
+@tagged('post_install', '-at_install', 'meli_K21e1')
 class TestMeliK21EnvioFacturacion(AccountTestInvoicingCommon):
 
     @classmethod
@@ -26,10 +26,10 @@ class TestMeliK21EnvioFacturacion(AccountTestInvoicingCommon):
         Product = cls.env['product.product']
         # producto vendido: servicio con politica "entregadas" (sin stock => la entrega se simula
         # con qty_delivered, igual que la valida el albaran)
-        cls.prod = Product.create({'name': 'Mochila 462', 'type': 'service',
+        cls.prod = Product.create({'name': 'Mochila K21', 'type': 'service',
                                    'invoice_policy': 'delivery', 'list_price': 1000.0})
         # producto de envio: como "MEL Distribution" en un cliente
-        cls.ship = Product.create({'name': 'MEL Distribution 462', 'type': 'service',
+        cls.ship = Product.create({'name': 'MEL Distribution K21', 'type': 'service',
                                    'invoice_policy': 'delivery', 'list_price': 1.0})
 
     def _ml_order(self, ref, ship_price, ml=True):
@@ -83,7 +83,7 @@ class TestMeliK21EnvioFacturacion(AccountTestInvoicingCommon):
         self.assertEqual(sl.qty_to_invoice, 0.0, "fuera de ML el envio sigue la politica del producto")
 
 
-@tagged('post_install', '-at_install', 'meli_462e1')
+@tagged('post_install', '-at_install', 'meli_K21e1')
 class TestMeliK21PackItemFaltante(AccountTestInvoicingCommon):
     """Pack con un item sin producto en Odoo: el aviso lo nombra y no se repite cada ciclo."""
 

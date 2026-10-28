@@ -45,25 +45,25 @@ class _M:
 
 from odoo.addons.meli_oerp.models import versions as V
 A = env.company
-B = env['res.company'].create({'name': 'Cia B banco 529', 'currency_id': A.currency_id.id, 'country_id': (A.country_id or env.ref('base.ar')).id})
+B = env['res.company'].create({'name': 'Cia B banco K11', 'currency_id': A.currency_id.id, 'country_id': (A.country_id or env.ref('base.ar')).id})
 env.user.company_ids = [(4, B.id)]
 tA = tax('IVA 21 A banco', A); tB = tax('IVA 21 B banco', B)
-prod = env['product.product'].create({'name': 'Prod banco 529', 'list_price': 100.0})
+prod = env['product.product'].create({'name': 'Prod banco K11', 'list_price': 100.0})
 prod.product_tmpl_id.sudo().write({'taxes_id': [(6, 0, [tA.id, tB.id])]})
-prod_notax = env['product.product'].create({'name': 'Prod sin IVA banco 529'})
+prod_notax = env['product.product'].create({'name': 'Prod sin IVA banco K11'})
 prod_notax.product_tmpl_id.sudo().write({'taxes_id': [(5, 0, 0)]})
 
 # --- Bug 3: descuento del vendedor (payload real de la orden producto 1 2000062952505125) ---
-producto 1 = {'details': [
+PRODUCTO_1 = {'details': [
     {'type': 'discount', 'items': [{'id': 'MLA1', 'quantity': 1, 'amounts': {'total': 687.5, 'seller': 687.5}}],
      'supplier': {'funding_mode': 'seller'}},
     {'type': 'coupon', 'coupon': {'id': 1}, 'items': [{'id': 'MLA1', 'quantity': 1, 'amounts': {'total': 2062.5, 'seller': 0.0}}]}]}
-order = fill('mercadolibre.orders', {'order_id': 'T529A', 'name': 'T529A', 'coupon_amount': 2062.5})
-order._fetch_order_discounts(meli=_M(producto 1))
+order = fill('mercadolibre.orders', {'order_id': 'TK11A', 'name': 'TK11A', 'coupon_amount': 2062.5})
+order._fetch_order_discounts(meli=_M(PRODUCTO_1))
 check('B3-1 producto 1: la oferta de precio (type discount, ya en unit_price) NO cuenta como descuento a restar',
       abs(order.discount_seller_amount - 0.0) < 0.01)
 COUPON_SELLER = {'details': [{'type': 'coupon', 'coupon': {'id': 2}, 'items': [{'id': 'MLM1', 'quantity': 2, 'amounts': {'seller': 118.9, 'total': 118.9}}]}]}
-order2 = fill('mercadolibre.orders', {'order_id': 'T529B', 'name': 'T529B', 'coupon_amount': 118.9})
+order2 = fill('mercadolibre.orders', {'order_id': 'TK11B', 'name': 'TK11B', 'coupon_amount': 118.9})
 order2._fetch_order_discounts(meli=_M(COUPON_SELLER))
 check('B3-2 cupon financiado por el vendedor SIGUE contando (no esta en unit_price)', abs(order2.discount_seller_amount - 118.9) < 0.01)
 
@@ -72,7 +72,7 @@ pu = order._set_product_unit_price(prod, Item, config=A)['price_unit']
 check('B3-3 producto 1: price_unit neto x 1,21 = 54.312,50 (precio ML), no 53.625 (%.2f)' % (pu * 1.21), abs(pu * 1.21 - 54312.5) < 0.05)
 
 # prorrateo: orden de 2 items (1000 y 3000), descuento del vendedor 400 => 100 y 300
-o3 = fill('mercadolibre.orders', {'order_id': 'T529C', 'name': 'T529C', 'discount_seller_amount': 400.0})
+o3 = fill('mercadolibre.orders', {'order_id': 'TK11C', 'name': 'TK11C', 'discount_seller_amount': 400.0})
 for uid, up in (('I1', 1000.0), ('I2', 3000.0)):
     fill('mercadolibre.order_items', {'order_id': o3.id, 'order_item_id': uid, 'unit_price': str(up), 'quantity': 1})
 _it = {'items_total': 4000.0} if 'items_total' in o3._set_product_unit_price.__code__.co_varnames else {}  # 26.229: el llamador pasa el bruto de la orden
