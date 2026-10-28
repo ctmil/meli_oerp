@@ -4,6 +4,8 @@
 
 ---
 
+## 20.0.26.333 — 28-oct-2026 · Nuevo: cambios de producto de Mercado Libre (llega a 20.0 lo de 26.332). La venta de reemplazo queda ligada a la venta original (aviso en las dos) y, cuando la devolución llega, se registra el reingreso del artículo según la configuración de devoluciones (FULL incluido). Se activa con la tarea programada «MELI: cambios de producto». (La corrección del carrito con cupón de 26.330 todavía no está en 20.0: requiere 26.318.)
+
 ## 20.0.26.330 — 28-oct-2026 · Release de flota 26.330 (en 16–19 trae la corrección del carrito con cupón; en 20.0 todavía no: falta portar 26.318, sin cambios propios)
 
 ## 20.0.26.329 — 28-oct-2026 · Seguridad: los errores de MercadoLibre guardados en el producto y en las notificaciones ya no conservan el token de acceso; y la sincronización de reclamos ya no trae los reclamos donde la cuenta es la compradora

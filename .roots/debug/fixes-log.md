@@ -4,6 +4,13 @@
 
 ---
 
+## 28 oct 2026 — cambios de producto de ML (orden con tag `change`) llega a 20.0 [525 #701] (v26.333)
+**Qué:** port a 20.0 de 26.332 (bd6d3952, 19.0): `models/change.py`, `data/change_cron.xml` (cron `ir_cron_meli_change_sync` INACTIVO), tests/test_26332_cambios_producto.py + fixture. Síntoma, modelo de ML y fix: ver la entrada 26.332 de 16–19.
+**Dependencias en 20.0 (verificadas):** `_meli_return_done_pickings`, `is_meli_order_fulfillment`, `_meli_sale_ml_orders`, `_meli_cancel_return_full_on` / `meli_oerp.cancel_return_full`, `mercadolibre_return_mode`.
+**Diferencia de API 20:** `ir.config_parameter` no tiene `set_param` en 20 ⇒ el test usa `set_str` (el código del modelo no lee parámetros directo).
+**Prueba:** banco 20 efímero: 11/11 · `-u meli_oerp` rc=0 y 0 WARNING/ERROR · control origin/20.0 + el test = ImportError (no existe `change`).
+**No incluye:** el fix de carrito con cupón 26.330 (#431), que necesita 26.318 (ausente en 20.0).
+
 ## 28 oct 2026 — sin cuenta ML, la UI dejaba 12 `GET /sites: Auth error status=403` por recorrido + C-1 NameError latentes (v26.328)
 **Síntoma:** smoke de UI (Odoo.sh 20, builds 40520031/40547250, y banco 20) sin cuenta ML: 12 WARNING `meli_util GET /sites 403` (preexistente en 16–19).
 **Causa:** `res.company._get_ML_sites` consultaba `/sites` aunque el token estuviera vacío; lo llama `meli.util.get_new_instance` (vía `get_ML_AUTH_URL`) en cada instancia, y `get_ML_LINK_URL`; las instancias salen de computes de producto/categoría/preguntas/posting/compañía.
