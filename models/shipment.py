@@ -2092,31 +2092,9 @@ class mercadolibre_shipment(models.Model):
                                     #_logger.info(product_related_obj taxes_id:"+str(product_related_obj.taxes_id and product_related_obj.taxes_id.company_id))
                                     #_logger.info(saleorderline_item_ids tax:"+str(saleorderline_item_ids[tax_field]))
                                     #_logger.info(saleorderline_item_ids tax company_id:"+str(saleorderline_item_ids[tax_field].company_id))
-                                    tax_iva_name = saleorderline_item_ids.meli_order_item_iva
-                                    tax_iva_name = tax_iva_name
-                                    tax_iva_id = None
-                                    if tax_iva_name and product_related_obj.taxes_id:
-                                        for txid in product_related_obj.taxes_id:
-                                            if ( tax_names_equivalent(txid.name,tax_iva_name) ):
-                                                tax_iva_id = txid
-
-                                    for tid in saleorderline_item_ids[tax_field]:
-
-                                        if (tid.company_id.id!=sorder.company_id.id 
-                                            or (tax_iva_id and tax_iva_id!=tid) ):
-                                            #remove
-                                            saleorderline_item_ids[tax_field] = [(3, tid.id)]
-
-                                    if not saleorderline_item_ids[tax_field] and product_related_obj.taxes_id:
-                                        for txid in product_related_obj.taxes_id:
-                                            if (txid.company_id.id==sorder.company_id.id):
-                                                if (tax_iva_id):
-                                                    if (tax_iva_id!=tid):
-                                                        #add
-                                                        saleorderline_item_ids[tax_field] = [(4, txid.id)]
-                                                else:
-                                                    #add
-                                                    saleorderline_item_ids[tax_field] = [(4, txid.id)]
+                                    # [26.326] pack: la compania es la de sorder_pack (sorder esta vacio si el pack es nuevo)
+                                    # — ver sale.order.line._meli_sync_line_taxes
+                                    saleorderline_item_ids._meli_sync_line_taxes( product_related_obj, sorder_pack, tax_field )
                                     is_locked = ((sorder_pack and sorder_pack.state in ["done","sale"]) 
                                                 or ("locked" in sorder_pack._fields and sorder_pack.locked))
                                     if (is_locked):
