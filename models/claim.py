@@ -114,7 +114,7 @@ class mercadolibre_claim(models.Model):
     site_id = fields.Char(string="Site", help="Sitio de MercadoLibre del reclamo (MLA, MLM, ...).")
 
     def _meli_claim_ref(self):
-        """[#615 ROEN 26.259] Id de la conversacion de la venta en el panel del vendedor:
+        """[#caso-K08 cliente B 26.259] Id de la conversacion de la venta en el panel del vendedor:
         el PACK si la venta es un carrito, si no la ORDEN. Primero la orden vinculada; si no
         esta vinculada, el recurso del reclamo cuando es una orden."""
         self.ensure_one()
@@ -129,7 +129,7 @@ class mercadolibre_claim(models.Model):
     def compute_claim_link(self):
         # [caso de un cliente] Dominio por el site del reclamo, sin API (get_ML_LINK_URL consultaba
         # /sites por cada registro) y sin dejar el campo sin asignar cuando no hay claim_id.
-        # [#615 ROEN 26.259] Mediacion => la mediacion en el panel del vendedor:
+        # [#caso-K08 cliente B 26.259] Mediacion => la mediacion en el panel del vendedor:
         #   https://vendedores.<dominio>/ventas/nueva/mensajeria/<pack|orden>/mediacion/<claim_id>
         # (formato confirmado por la cliente sobre un reclamo type=mediations). Para los otros
         # tipos (returns, cancel_*) el formato del panel NO esta confirmado: se deja el enlace
@@ -251,7 +251,7 @@ class mercadolibre_claim(models.Model):
             cid = Claim.get("id")
             if not cid:
                 continue
-            # 26.329 (533 DT TEC, bus 2026-09-25T11:30:34Z): /claims/search trae tambien los reclamos
+            # 26.329 (caso-K09 cliente C, bus 2026-09-25T11:30:34Z): /claims/search trae tambien los reclamos
             # donde la cuenta es COMPRADORA (complainant). El GET del detalle da 403 y quedaba un ERROR
             # por corrida + un reclamo ajeno en la base. Solo se sincronizan los que nos tienen de parte
             # reclamada; sin seller_id conocido, comportamiento anterior.

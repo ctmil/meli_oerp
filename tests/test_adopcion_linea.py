@@ -48,7 +48,7 @@ class TestAdopcionLinea(TestImportCuponLinea):
 
     def test_a_reconfirmed_by_hand_resync_adopts_line(self):
         """Cancelada y reconfirmada a mano: el re-sync NO agrega otra linea, vincula la del usuario."""
-        oid = 2000000000000101
+        oid = 2000696554923115
         so, oj = self._import(oid)
         self._cancel_and_requote_by_hand(so, 959.99)
         so.action_confirm()
@@ -61,7 +61,7 @@ class TestAdopcionLinea(TestImportCuponLinea):
 
     def test_b_resync_between_quotation_and_confirm(self):
         """La sincronizacion cae con la venta en cotizacion: adopta y re-precia la linea, no crea otra."""
-        oid = 2000000000000102
+        oid = 2000015138026200
         so, oj = self._import(oid)
         self._cancel_and_requote_by_hand(so, 959.99)
         self.assertEqual(so.state, 'draft')
@@ -75,7 +75,7 @@ class TestAdopcionLinea(TestImportCuponLinea):
 
     def test_c_confirmed_without_candidate_posts_one_note(self):
         """Venta confirmada sin ninguna linea del producto: no se agrega linea y queda UNA nota de control."""
-        oid = 2000000000000103
+        oid = 2000323771537355
         so, oj = self._import(oid)
         other = self.env['product.product'].create({'name': 'Otro', 'taxes_id': [(5, 0, 0)]})
         self._cancel_and_requote_by_hand(so, 959.99)
@@ -90,7 +90,7 @@ class TestAdopcionLinea(TestImportCuponLinea):
         self.assertEqual(len(self._notes(so)), 1, "la nota de control tiene que quedar una sola vez")
 
     def test_d_two_unlinked_candidates_adopts_one_never_creates(self):
-        oid = 2000000000000104
+        oid = 2000340553973742
         so, oj = self._import(oid)
         self._cancel_and_requote_by_hand(so, 959.99)
         self.env['sale.order.line'].create({'order_id': so.id, 'product_id': self.product.id,
@@ -114,7 +114,7 @@ class TestCarritoCancelacion(TestImportCuponLinea):
     test_1_pack_member_coupon_only_in_payments_does_not_fetch = None
     test_6_resync_does_not_add_line_to_confirmed_sale = None
 
-    def _cart(self, statuses, pack='2000000000000201'):
+    def _cart(self, statuses, pack='2000460463933812'):
         so = self.env['sale.order'].create({
             'partner_id': self.contact.id, 'company_id': self.company.id,
             'order_line': [(0, 0, {'product_id': self.product.id, 'product_uom_qty': 1, 'price_unit': 100.0})]})

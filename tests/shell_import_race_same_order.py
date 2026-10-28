@@ -1,9 +1,9 @@
-# Prueba con Postgres REAL (#431): la MISMA orden de ML importada por dos procesos en paralelo.
+# Prueba con Postgres REAL (#caso-K13): la MISMA orden de ML importada por dos procesos en paralelo.
 # NO es un TestCase de Odoo (necesita dos transacciones reales que commitean). Se corre con
 #   odoo-bin shell -c <conf> -d <db EFIMERA con meli_oerp> < meli_oerp/tests/shell_import_race_same_order.py
 # Sin red (ML simulado). Deja datos de prueba en la base: usar SOLO una base descartable.
 #
-# Escenario medido en produccion (22-oct-2026, venta ML 2000015653366305): el barrido de
+# Escenario medido en produccion (22-oct-2026, venta ML 2000644717164304): el barrido de
 # `Cron Meli Orders` ya tenia su snapshot tomado cuando `Meli Process Order Notifications` importo y
 # commiteo la orden; el barrido no la vio (REPEATABLE READ) y la importo de nuevo ⇒ DOS ventas.
 #   B = barrido: abre su transaccion y toma snapshot.
@@ -21,7 +21,7 @@ reg = env.registry
 company = env.company
 pricelist = env['product.pricelist'].search([], limit=1) or env['product.pricelist'].create({'name': 'Lista ML'})
 company.mercadolibre_pricelist = pricelist
-# Como en produccion: SIN contacto fijo, cada import crea/busca el contacto del comprador (en la 431
+# Como en produccion: SIN contacto fijo, cada import crea/busca el contacto del comprador (en la caso-K13
 # quedo "Contacto principal creado" dos veces). Con un contacto fijo las dos transacciones escriben la
 # misma fila y Postgres aborta la segunda: eso NO es lo que pasa en produccion.
 if 'mercadolibre_contact_partner' in company._fields:
@@ -80,7 +80,7 @@ def check(name, oid, expect_so):
 
 
 # Caso 1: snapshot vencido (el mecanismo de produccion)
-OID1 = 2000000000431101
+OID1 = 2000249442298414
 crB = reg.cursor()
 crB.execute("SELECT count(*) FROM mercadolibre_orders")   # B toma su snapshot (el barrido ya consulto antes)
 with reg.cursor() as crA:
@@ -97,7 +97,7 @@ OUT.append('caso1 B=%s' % (str(rB)[:160],))
 check('caso1 snapshot vencido', OID1, 1)
 
 # Caso 2: carrera solapada (A tiene la orden a medio importar, sin commitear)
-OID2 = 2000000000431102
+OID2 = 2000193764088544
 crA = reg.cursor()
 rA = do_import(crA, OID2, buyer=123002)                                 # A importo pero NO commiteo todavia
 crB = reg.cursor()
@@ -123,7 +123,7 @@ try:
 except Exception:
     HAS_GUARD = False
 if HAS_INDEX and HAS_GUARD:
-    OID3 = 2000000000431103
+    OID3 = 2000569100331333
     with patch.object(_mo_mod, '_meli_import_guard', return_value=None):
         crB = reg.cursor()
         crB.execute("SELECT count(*) FROM mercadolibre_orders")
@@ -141,5 +141,5 @@ if HAS_INDEX and HAS_GUARD:
 else:
     OUT.append('SKIP caso3: indice=%s guard=%s' % (HAS_INDEX, HAS_GUARD))
 
-print('\n'.join(['RESUMEN #431 carrera misma orden:'] + OUT))
+print('\n'.join(['RESUMEN #caso-K13 carrera misma orden:'] + OUT))
 print('RESUMEN %d OK / %d FAIL' % (sum(1 for o in OUT if o.startswith('OK')), sum(1 for o in OUT if o.startswith('FAIL'))))

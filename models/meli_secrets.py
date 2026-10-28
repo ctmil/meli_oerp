@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""26.329 (bus 2026-09-25T14:30:56Z, medido en 529): los campos de error que se PERSISTEN (meli_stock_error,
+"""26.329 (bus 2026-09-25T14:30:56Z, medido en caso-K11): los campos de error que se PERSISTEN (meli_stock_error,
 meli_price_error, processing_errors/logs de la notificacion) guardaban el JSON crudo de ML con
 "access_token": "APP_USR-...". Quedaba en la base y visible en la ficha.
 

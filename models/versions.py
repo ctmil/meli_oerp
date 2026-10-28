@@ -141,7 +141,7 @@ def meli_message_already_posted(record, once_key):
 
 
 # ---------------------------------------------------------------------------
-# 26.309 (158): venta BLOQUEADA para actualizar desde ML (`sale.order.meli_update_forbidden`).
+# 26.309 (caso-K02): venta BLOQUEADA para actualizar desde ML (`sale.order.meli_update_forbidden`).
 # El freno es correcto (no escribe nada), pero se logueaba ERROR en CADA llamada y la notificacion
 # quedaba FAILED => el cron de notificaciones (RECEIVED + FAILED) la reintentaba en cada corrida,
 # para siempre. Ahora: WARNING una vez por venta y por proceso (despues DEBUG) y el retorno trae la
@@ -635,14 +635,14 @@ def ml_datetime(datestr):
 def ml_tax_excluded(self, config=None ):
     """True = el precio de lista de Odoo es NETO (al publicar se suma el IVA; al importar se netea).
 
-    [529/543] (19-oct-2026) `auto` ("Configuracion del sistema") se resolvia con el grupo
+    [caso-K11/caso-K10] (19-oct-2026) `auto` ("Configuracion del sistema") se resolvia con el grupo
     account.group_show_line_subtotals_tax_excluded, que existe SOLO hasta Odoo 16 (17 lo movio a
     website_sale; 18/19 usan res.company.account_price_include). En 17+ has_group() de un xmlid
     inexistente da False, asi que `auto` ya era "lista con impuestos incluidos" para publicar e
     importar precios. Se deja EXPLICITO y sin depender de un xmlid que no existe; NO se cambia el
     significado: este flag gobierna el precio PUBLICADO (price_list_apply_tax=True) y atarlo a
     account_price_include (default 'tax_excluded') subiria x1,21 lo publicado de todo cliente 17+
-    con `auto`. Las ORDENES no dependen de esto: ver ml_product_price_conversion [#486].
+    con `auto`. Las ORDENES no dependen de esto: ver ml_product_price_conversion [#caso-K23].
     """
     company = (config and "company_id" in config._fields and config.company_id) or self.env.user.company_id
     config = config or company
@@ -656,7 +656,7 @@ def ml_tax_excluded(self, config=None ):
 def ml_sale_tax_rates(taxes, company=None):
     """(porcentaje, fijo) de los impuestos de VENTA no incluidos en precio, SOLO de `company`.
 
-    [543] (19-oct-2026) Un producto compartido entre compañias lleva en taxes_id el IVA de CADA
+    [caso-K10] (19-oct-2026) Un producto compartido entre compañias lleva en taxes_id el IVA de CADA
     una: sumarlos todos dividia/multiplicaba por 1,42 en vez de 1,21 con dos compañias. Sin
     compañia (llamador viejo) se suman todos, como antes.
     """

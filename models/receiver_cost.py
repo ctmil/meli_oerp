@@ -28,12 +28,12 @@ def receiver_buyer_cost(rcosts):
 
 
 
-# [#158/#462/#535, 27-oct-2026] Quien COBRA el flete de un pack/ME2 no se lee en /costs: ML pone
+# [#caso-K02/#caso-K21/#caso-K22, 27-oct-2026] Quien COBRA el flete de un pack/ME2 no se lee en /costs: ML pone
 # receiver.cost_details a nombre del VENDEDOR por el monto entero tanto si el vendedor lo cobro como si no
-# (medido: 158 no-pack con el flete DENTRO del pago, 200.640, tambien lo trae). Lo que si lo dice es la plata:
+# (medido: caso-K02 no-pack con el flete DENTRO del pago, 200.640, tambien lo trae). Lo que si lo dice es la plata:
 # cuando el vendedor cobra el flete, MercadoPago le acredita un pago APARTE con
-# description="marketplace_shipment" y external_reference=<id del envio> (158: 102.089 y 8.692; Olpa 462:
-# 1.299,8 y 4.999). Si el flete lo cobro ML y no el vendedor (Full Super MLM, 535), ese pago no existe para el
+# description="marketplace_shipment" y external_reference=<id del envio> (caso-K02: 102.089 y 8.692; cliente F caso-K21:
+# 1.299,8 y 4.999). Si el flete lo cobro ML y no el vendedor (Full Super MLM, caso-K22), ese pago no existe para el
 # vendedor. El pago de la ORDEN trae shipping_amount 0 en los tres casos: no sirve para decidir.
 SHIPMENT_PAYMENT_DESCRIPTION = 'marketplace_shipment'
 

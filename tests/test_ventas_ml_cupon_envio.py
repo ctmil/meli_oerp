@@ -84,8 +84,8 @@ class TestVentasMLCuponEnvio(common.TransactionCase):
 
     # ------------------------------------------- 1. cupon a cargo del vendedor
     def test_1_unit_price_net_of_seller_coupon(self):
-        """ML 2000000000000001: 5.324 con cupon 266,20 del vendedor -> la linea nace en 5.057,80."""
-        mo = self.env['mercadolibre.orders'].create({'order_id': '2000000000000001', 'name': 'x',
+        """ML 2000798423224402: 5.324 con cupon 266,20 del vendedor -> la linea nace en 5.057,80."""
+        mo = self.env['mercadolibre.orders'].create({'order_id': '2000325942484262', 'name': 'x',
                                                       'discount_seller_amount': 266.20})
         item = {'unit_price': 5324.0, 'quantity': 1}
         res = mo._set_product_unit_price(self.product, item, config=self.company)
@@ -122,16 +122,16 @@ class TestVentasMLCuponEnvio(common.TransactionCase):
     def test_1_so_with_seller_coupon_invoices_paid_amount(self):
         """Con la linea en 5.057,80, el importe a facturar es lo pagado (5.057,80) y confirma."""
         so = self._so([5057.80], paid=5057.80, disc=266.20, coupon=266.20, meli_total_amount=5324.0)
-        self._morder(so, '2000000000000001')
+        self._morder(so, '2000325942484262')
         self.assertAlmostEqual(so.meli_amount_to_invoice(config=self._cfg()), 5057.80, places=2)
         ready, reason = so.meli_confirm_ready(config=self._cfg())
         self.assertTrue(ready, reason)
 
     # ------------------------------------------- 4. envio pagado por el comprador
     def test_4_buyer_shipping_from_payments(self):
-        """ML 2000000000000002: 152 + 85 de envio = 237; la venta no tenia meli_shipping_amount."""
+        """ML 2000334542108265: 152 + 85 de envio = 237; la venta no tenia meli_shipping_amount."""
         so = self._so([152.0], paid=237.0, ship=0.0)
-        self._morder(so, '2000000000000002', pay_ship=85.0)
+        self._morder(so, '2000733445471610', pay_ship=85.0)
         self.assertAlmostEqual(so._meli_so_buyer_shipping(), 85.0, places=2)
         ready, reason = so.meli_confirm_ready(config=self._cfg())
         self.assertTrue(ready, reason)
@@ -144,9 +144,9 @@ class TestVentasMLCuponEnvio(common.TransactionCase):
         self.assertFalse(ready)
 
     def test_4_other_cases_of_the_capture(self):
-        for oid, prod, ship in (('2000000000000010', 254.0, 89.0), ('2000000000000011', 594.0, 35.0),
-                                ('2000000000000012', 212.0, 89.0), ('2000000000000013', 1359.0, 62.41),
-                                ('2000000000000014', 407.0, 57.58)):
+        for oid, prod, ship in (('2000232041625035', 254.0, 89.0), ('2000883593933571', 594.0, 35.0),
+                                ('2000316100604060', 212.0, 89.0), ('2000709031281364', 1359.0, 62.41),
+                                ('2000682990062672', 407.0, 57.58)):
             so = self._so([prod], paid=prod + ship)
             self._morder(so, oid, pay_ship=ship)
             ready, reason = so.meli_confirm_ready(config=self._cfg())
@@ -154,10 +154,10 @@ class TestVentasMLCuponEnvio(common.TransactionCase):
 
     # ------------------------------------------- 7. cupon + descuento del vendedor
     def test_7_coupon_plus_seller_discount(self):
-        """ML 2000000000000003: linea 339 (399,99 - 60,99), pagado 388,18 (339 + 49,18 de envio),
+        """ML 2000210915044105: linea 339 (399,99 - 60,99), pagado 388,18 (339 + 49,18 de envio),
         cupon 16,95. El calculo de siempre da 371,23; el bueno es 388,18 (con envio, modo always)."""
         so = self._so([339.0], paid=388.18, disc=60.99, coupon=16.95, meli_total_amount=399.99)
-        self._morder(so, '2000000000000003', pay_ship=49.18)
+        self._morder(so, '2000746151448028', pay_ship=49.18)
         self.assertAlmostEqual(so._meli_amount_to_invoice_legacy(config=self._cfg()), 371.23, places=2)
         self.assertAlmostEqual(so.meli_amount_to_invoice(config=self._cfg()), 388.18, places=2)
         ready, reason = so.meli_confirm_ready(config=self._cfg())
@@ -190,8 +190,8 @@ class TestVentasMLCuponEnvio(common.TransactionCase):
     def _pack(self, s1, s2):
         so = self._so([100.0, 200.0], paid=300.0, meli_status='paid')
         so.action_confirm()
-        self._morder(so, 'T-P1', status=s1, pack_id='2000000000000005')
-        self._morder(so, 'T-P2', status=s2, pack_id='2000000000000005')
+        self._morder(so, 'T-P1', status=s1, pack_id='2000901658202046')
+        self._morder(so, 'T-P2', status=s2, pack_id='2000901658202046')
         return so
 
     def test_3_pack_all_cancelled_marks_sale(self):

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""#611 (ROEN 525, 21-oct-2026): "Meli Stock Diagnostic" anotaba "REACTIVADA" cada 30 min
+"""#caso-K12 (cliente B caso-K01, 21-oct-2026): "Meli Stock Diagnostic" anotaba "REACTIVADA" cada 30 min
 sobre las mismas publicaciones, que seguian pausadas.
 
 (1) El SQL del diagnostico suma la existencia de TODAS las ubicaciones internas (Full incluida),
@@ -46,7 +46,7 @@ def _item(meli_id, status):
             'shipping': {'logistic_type': 'xd_drop_off'}}
 
 
-@tagged('post_install', '-at_install', 'meli_525')
+@tagged('post_install', '-at_install', 'meli_K01')
 class TestStockDiagFull(TransactionCase):
 
     def setUp(self):
@@ -94,18 +94,18 @@ class TestStockDiagFull(TransactionCase):
 
     def test_1_stock_solo_en_full_no_reactiva(self):
         """PMG9378/PMG8009/PMG5630_10: existencia solo en MLF => no se pide activar (publicaria 0)."""
-        self._producto('T525F', 'MLM525100001', self.loc_full, 3.0)
-        meli = _FakeMeli({'MLM525100001': [_item('MLM525100001', 'paused')]})
+        self._producto('T525F', 'MLM534572500', self.loc_full, 3.0)
+        meli = _FakeMeli({'MLM534572500': [_item('MLM534572500', 'paused')]})
         with self.assertLogs('odoo.addons.meli_oerp.models.company', level='WARNING'):
             res = self.env.company.meli_stock_diagnostic(meli=meli, reactivate='all')
-        self.assertIn('MLM525100001', meli.calls, "control: la publicacion tiene que haber entrado al diagnostico")
+        self.assertIn('MLM534572500', meli.calls, "control: la publicacion tiene que haber entrado al diagnostico")
         self.assertFalse(self.activate.called, "con stock solo en Full no hay nada publicable que reactivar")
         self.assertEqual(res.get('actions_taken'), 0)
 
     def test_2_no_anota_reactivada_si_ml_sigue_pausada(self):
         """Stock publicable > 0, se pide activar, ML sigue pausada => 'NO QUEDO ACTIVA', no 'REACTIVADA'."""
-        self._producto('T525W', 'MLM525100002', self.loc_wh, 2.0)
-        meli = _FakeMeli({'MLM525100002': [_item('MLM525100002', 'paused')]})
+        self._producto('T525W', 'MLM536252582', self.loc_wh, 2.0)
+        meli = _FakeMeli({'MLM536252582': [_item('MLM536252582', 'paused')]})
         with self.assertLogs('odoo.addons.meli_oerp.models.company', level='WARNING') as cm:
             self.env.company.meli_stock_diagnostic(meli=meli, reactivate='all')
         self.assertEqual(self.activate.call_count, 1)
@@ -113,8 +113,8 @@ class TestStockDiagFull(TransactionCase):
 
     def test_3_reactiva_cuando_ml_la_activa(self):
         """Control positivo: stock publicable y ML queda activa => se reactiva como siempre."""
-        self._producto('T525A', 'MLM525100003', self.loc_wh, 2.0)
-        meli = _FakeMeli({'MLM525100003': [_item('MLM525100003', 'paused'), _item('MLM525100003', 'active')]})
+        self._producto('T525A', 'MLM532576711', self.loc_wh, 2.0)
+        meli = _FakeMeli({'MLM532576711': [_item('MLM532576711', 'paused'), _item('MLM532576711', 'active')]})
         with self.assertLogs('odoo.addons.meli_oerp.models.company', level='WARNING') as cm:
             res = self.env.company.meli_stock_diagnostic(meli=meli, reactivate='all')
         self.assertEqual(self.activate.call_count, 1)

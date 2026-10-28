@@ -17,7 +17,7 @@ def _sales_user(env):
 
 
 @tagged('post_install', '-at_install', 'meli_462e1')
-class TestMeli462EnvioFacturacion(AccountTestInvoicingCommon):
+class TestMeliK21EnvioFacturacion(AccountTestInvoicingCommon):
 
     @classmethod
     def setUpClass(cls):
@@ -84,7 +84,7 @@ class TestMeli462EnvioFacturacion(AccountTestInvoicingCommon):
 
 
 @tagged('post_install', '-at_install', 'meli_462e1')
-class TestMeli462PackItemFaltante(AccountTestInvoicingCommon):
+class TestMeliK21PackItemFaltante(AccountTestInvoicingCommon):
     """Pack con un item sin producto en Odoo: el aviso lo nombra y no se repite cada ciclo."""
 
     @classmethod

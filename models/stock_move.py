@@ -264,7 +264,7 @@ class StockMove(models.Model):
     # esos productos que nacen de una regla "mts_else_mto" NO disparan la regla
     # siguiente (la COMPRA que no puede generarse): quedan make_to_stock, en espera
     # de existencia. Sin el contexto no cambia nada.
-    # 26.171 (E1, 431): también las reglas "make_to_order" PURAS (la ruta MTO estándar
+    # 26.171 (E1, caso-K13): también las reglas "make_to_order" PURAS (la ruta MTO estándar
     # de Odoo). Antes sólo se miraba mts_else_mto y con MTO puro el modo 'waiting'
     # volvía a cotización (medido en Odoo 18 demo, 30-sep).
     #   16/17: _run_pull decide 'make_to_order' al crear el move -> se corrige en create.
