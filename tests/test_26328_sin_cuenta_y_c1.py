@@ -71,7 +71,10 @@ class TestSinCuentaYC1(TransactionCase):
                {'error': 'x', 'message': 'invalid_token'}]
         meli = _Meli('TOK-123')
         meli.get = lambda path, params=None, **kw: _Resp(seq.pop(0))
-        res = company.fetch_list_meli_ids(meli=meli)
+        # el ERROR del token invalido es el log esperado del escenario: se verifica y no ensucia el log del build
+        with self.assertLogs('odoo.addons.meli_oerp.models.company', level='ERROR') as logs:
+            res = company.fetch_list_meli_ids(meli=meli)
+        self.assertTrue(any('invalid_token' in m for m in logs.output), logs.output)
         self.assertEqual(res.get('type'), 'ir.actions.act_url')
         self.assertEqual(company.mercadolibre_refresh_token, 'RT')
 
