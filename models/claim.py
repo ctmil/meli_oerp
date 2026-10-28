@@ -43,6 +43,18 @@ from .versions import *
 _logger = logging.getLogger(__name__)
 
 
+
+def meli_claim_we_are_complainant(claim, seller_id):
+    """True si en `claim['players']` la cuenta (seller_id) figura como reclamante (complainant)."""
+    if not seller_id or not isinstance(claim, dict):
+        return False
+    for player in (claim.get('players') or []):
+        if not isinstance(player, dict):
+            continue
+        if str(player.get('user_id') or '') == str(seller_id) and str(player.get('role') or '').lower() == 'complainant':
+            return True
+    return False
+
 class mercadolibre_claim(models.Model):
     _name = "mercadolibre.claim"
     _description = "Reclamos / disputas post-venta en MercadoLibre"
@@ -233,9 +245,19 @@ class mercadolibre_claim(models.Model):
             return 0
         data = rjson.get("data") if isinstance(rjson, dict) else rjson
         count = 0
+        seller_id = str(getattr(meli, 'seller_id', '') or (
+            config and 'mercadolibre_seller_id' in config._fields and config.mercadolibre_seller_id) or '')
         for Claim in (data or []):
             cid = Claim.get("id")
             if not cid:
+                continue
+            # 26.329 (533 DT TEC, bus 2026-09-25T11:30:34Z): /claims/search trae tambien los reclamos
+            # donde la cuenta es COMPRADORA (complainant). El GET del detalle da 403 y quedaba un ERROR
+            # por corrida + un reclamo ajeno en la base. Solo se sincronizan los que nos tienen de parte
+            # reclamada; sin seller_id conocido, comportamiento anterior.
+            if meli_claim_we_are_complainant(Claim, seller_id):
+                _logger.info("sync_claims: reclamo %s omitido: la cuenta %s es la parte reclamante (compradora)",
+                             cid, seller_id)
                 continue
             # El search a veces trae el detalle parcial; refrescar el completo
             full = self.fetch_claim(claim_id=cid, meli=meli, config=config) or Claim
