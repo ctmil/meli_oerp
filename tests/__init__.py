@@ -30,3 +30,4 @@ from . import test_26309_venta_bloqueada
 from . import test_26310_mlb_ids_alfanumericos
 from . import test_26310_mlb_site
 from . import test_26313_action_assign_compat
+from . import test_26326_pack_iva
