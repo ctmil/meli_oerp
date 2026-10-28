@@ -1419,7 +1419,7 @@ class product_product(models.Model):
         else:
             #_logger.info( "new_price: " +str(new_price))
             if ( product.meli_price_fixed and product.meli_price):
-                new_price = int(float(product.meli_price)) or int(float(product_tmpl_id.meli_price)) or 0
+                new_price = int(float(product.meli_price)) or int(float(product_tmpl.meli_price or 0)) or 0  # C-1: era product_tmpl_id (NameError con precio fijo < 1)
             else:
                 if ( product.lst_price ):
                     new_price = product.lst_price
