@@ -1,0 +1,1186 @@
+{
+ "_origen": "ROEN 525 (MLM), GET read-only 2026-10-28; recortado a los campos que usa models/change.py",
+ "cases": {
+  "2000014335918840": {
+   "new_order": {
+    "id": 2000014335918840,
+    "status": "cancelled",
+    "tags": [
+     "catalog",
+     "change",
+     "no_add_tag_change",
+     "not_delivered",
+     "not_paid",
+     "pack_order"
+    ],
+    "pack_id": 2000010598903857,
+    "total_amount": 849.0,
+    "buyer_id": 1035325102,
+    "logistic_type": "fulfillment",
+    "items": [
+     {
+      "item_id": "MLM2861244540",
+      "sku": "PMG2547_B7",
+      "quantity": 1,
+      "unit_price": 849.0
+     }
+    ]
+   },
+   "orig_order": {
+    "id": 2000014224650928,
+    "status": "paid",
+    "tags": [
+     "no_add_tag_change",
+     "paid",
+     "delivered",
+     "pack_order"
+    ],
+    "pack_id": 2000010473821685,
+    "total_amount": 849.0,
+    "buyer_id": 1035325102,
+    "logistic_type": "fulfillment",
+    "items": [
+     {
+      "item_id": "MLM866194067",
+      "sku": "PMG2547_B7",
+      "quantity": 1,
+      "unit_price": 849.0
+     }
+    ]
+   },
+   "claims_search": {
+    "data": [
+     {
+      "id": 5447121364,
+      "resource_id": 2000014224650928,
+      "type": "mediations",
+      "status": "closed",
+      "resource": "order"
+     }
+    ]
+   },
+   "changes": {
+    "5447121364": {
+     "data": [
+      {
+       "claim_id": 5447121364,
+       "resource": "order",
+       "resource_id": 2000014224650928,
+       "items": [
+        {
+         "id": "MLM2861244540",
+         "quantity": 1,
+         "variation_id": 0,
+         "price": 849.0,
+         "price_at_creation": 849.0,
+         "currency_id": "MXN"
+        }
+       ],
+       "new_orders_ids": [
+        {
+         "id": 2000014335918840
+        }
+       ],
+       "new_orders_shipments": [
+        {
+         "id": 46100420229
+        }
+       ],
+       "return": {
+        "id": 116899557
+       },
+       "status": "change_expired",
+       "status_detail": "purchase_returned",
+       "type": "replace"
+      }
+     ]
+    }
+   },
+   "returns": {
+    "id": 116899557,
+    "status": "expired",
+    "claim_id": 5447121364,
+    "resource_id": 2000014224650928,
+    "orders": [
+     {
+      "order_id": 2000014224650928,
+      "item_id": "MLM866194067",
+      "context_type": "total",
+      "total_quantity": "1.0",
+      "return_quantity": "1.0",
+      "variation_id": null
+     }
+    ],
+    "refund_at": "shipped",
+    "shipments": [
+     {
+      "shipment_id": 46100366775,
+      "status": "cancelled",
+      "type": "return"
+     }
+    ]
+   }
+  },
+  "2000014513337290": {
+   "new_order": {
+    "id": 2000014513337290,
+    "status": "paid",
+    "tags": [
+     "catalog",
+     "change",
+     "no_add_tag_change",
+     "paid",
+     "delivered",
+     "pack_order"
+    ],
+    "pack_id": 2000010803653951,
+    "total_amount": 339.0,
+    "buyer_id": 510489230,
+    "logistic_type": "fulfillment",
+    "items": [
+     {
+      "item_id": "MLM1995165803",
+      "sku": "PMG9784_16",
+      "quantity": 1,
+      "unit_price": 339.0
+     }
+    ]
+   },
+   "orig_order": {
+    "id": 2000014487628744,
+    "status": "cancelled",
+    "tags": [
+     "catalog",
+     "no_add_tag_change",
+     "delivered",
+     "not_paid",
+     "pack_order"
+    ],
+    "pack_id": 2000010773429159,
+    "total_amount": 339.0,
+    "buyer_id": 510489230,
+    "logistic_type": "fulfillment",
+    "items": [
+     {
+      "item_id": "MLM1995165803",
+      "sku": "PMG9784_16",
+      "quantity": 1,
+      "unit_price": 339.0
+     }
+    ]
+   },
+   "claims_search": {
+    "data": [
+     {
+      "id": 5453230949,
+      "resource_id": 2000014487628744,
+      "type": "mediations",
+      "status": "closed",
+      "resource": "order"
+     }
+    ]
+   },
+   "changes": {
+    "5453230949": {
+     "data": [
+      {
+       "claim_id": 5453230949,
+       "resource": "order",
+       "resource_id": 2000014487628744,
+       "items": [
+        {
+         "id": "MLM1995165803",
+         "quantity": 1,
+         "variation_id": 0,
+         "price": 339.0,
+         "price_at_creation": 339.0,
+         "currency_id": "MXN"
+        }
+       ],
+       "new_orders_ids": [
+        {
+         "id": 2000014513337290
+        }
+       ],
+       "new_orders_shipments": [
+        {
+         "id": 46178543691
+        }
+       ],
+       "return": {
+        "id": 119206041
+       },
+       "status": "change_return_delivered",
+       "status_detail": "return_triage_success",
+       "type": "replace"
+      }
+     ]
+    }
+   },
+   "returns": {
+    "id": 119206041,
+    "status": "delivered",
+    "claim_id": 5453230949,
+    "resource_id": 2000014487628744,
+    "orders": [
+     {
+      "order_id": 2000014487628744,
+      "item_id": "MLM1995165803",
+      "context_type": "total",
+      "total_quantity": "1.0",
+      "return_quantity": "1.0",
+      "variation_id": null
+     }
+    ],
+    "refund_at": "shipped",
+    "shipments": [
+     {
+      "shipment_id": 46178518287,
+      "status": "delivered",
+      "type": "return"
+     }
+    ]
+   }
+  },
+  "2000015435127436": {
+   "new_order": {
+    "id": 2000015435127436,
+    "status": "paid",
+    "tags": [
+     "catalog",
+     "change",
+     "no_add_tag_change",
+     "paid",
+     "delivered",
+     "pack_order"
+    ],
+    "pack_id": 2000011900206287,
+    "total_amount": 399.0,
+    "buyer_id": 1278882208,
+    "logistic_type": "fulfillment",
+    "items": [
+     {
+      "item_id": "MLM3510716434",
+      "sku": "PMG3530",
+      "quantity": 1,
+      "unit_price": 399.0
+     }
+    ]
+   },
+   "orig_order": {
+    "id": 2000015327557870,
+    "status": "cancelled",
+    "tags": [
+     "catalog",
+     "no_add_tag_change",
+     "delivered",
+     "not_paid",
+     "pack_order"
+    ],
+    "pack_id": 2000011771921803,
+    "total_amount": 399.0,
+    "buyer_id": 1278882208,
+    "logistic_type": "fulfillment",
+    "items": [
+     {
+      "item_id": "MLM3510716434",
+      "sku": "PMG3530",
+      "quantity": 1,
+      "unit_price": 399.0
+     }
+    ]
+   },
+   "claims_search": {
+    "data": [
+     {
+      "id": 5480056890,
+      "resource_id": 2000015327557870,
+      "type": "mediations",
+      "status": "closed",
+      "resource": "order"
+     }
+    ]
+   },
+   "changes": {
+    "5480056890": {
+     "data": [
+      {
+       "claim_id": 5480056890,
+       "resource": "order",
+       "resource_id": 2000015327557870,
+       "items": [
+        {
+         "id": "MLM3510716434",
+         "quantity": 1,
+         "variation_id": 0,
+         "price": 399.0,
+         "price_at_creation": 399.0,
+         "currency_id": "MXN"
+        }
+       ],
+       "new_orders_ids": [
+        {
+         "id": 2000015435127436
+        }
+       ],
+       "new_orders_shipments": [
+        {
+         "id": 46601379170
+        }
+       ],
+       "return": {
+        "id": 130519183
+       },
+       "status": "change_return_delivered",
+       "status_detail": null,
+       "type": "replace"
+      }
+     ]
+    }
+   },
+   "returns": {
+    "id": 130519183,
+    "status": "delivered",
+    "claim_id": 5480056890,
+    "resource_id": 2000015327557870,
+    "orders": [
+     {
+      "order_id": 2000015327557870,
+      "item_id": "MLM3510716434",
+      "context_type": "total",
+      "total_quantity": "1.0",
+      "return_quantity": "1.0",
+      "variation_id": null
+     }
+    ],
+    "refund_at": "shipped",
+    "shipments": [
+     {
+      "shipment_id": 46601075827,
+      "status": "delivered",
+      "type": "return"
+     }
+    ]
+   }
+  },
+  "2000017019417622": {
+   "new_order": {
+    "id": 2000017019417622,
+    "status": "paid",
+    "tags": [
+     "catalog",
+     "change",
+     "no_add_tag_change",
+     "paid",
+     "delivered",
+     "pack_order"
+    ],
+    "pack_id": 2000013604132251,
+    "total_amount": 659.0,
+    "buyer_id": 1723540360,
+    "logistic_type": "fulfillment",
+    "items": [
+     {
+      "item_id": "MLM2019045983",
+      "sku": "PMG1216",
+      "quantity": 1,
+      "unit_price": 659.0
+     }
+    ]
+   },
+   "orig_order": {
+    "id": 2000017010136216,
+    "status": "cancelled",
+    "tags": [
+     "catalog",
+     "no_add_tag_change",
+     "delivered",
+     "not_paid",
+     "d2c",
+     "one_shot",
+     "pack_order"
+    ],
+    "pack_id": 2000013594295517,
+    "total_amount": 659.0,
+    "buyer_id": 1723540360,
+    "logistic_type": "fulfillment",
+    "items": [
+     {
+      "item_id": "MLM2019045983",
+      "sku": "PMG1216",
+      "quantity": 1,
+      "unit_price": 659.0
+     }
+    ]
+   },
+   "claims_search": {
+    "data": [
+     {
+      "id": 5530634686,
+      "resource_id": 2000017010136216,
+      "type": "mediations",
+      "status": "closed",
+      "resource": "order"
+     }
+    ]
+   },
+   "changes": {
+    "5530634686": {
+     "data": [
+      {
+       "claim_id": 5530634686,
+       "resource": "order",
+       "resource_id": 2000017010136216,
+       "items": [
+        {
+         "id": "MLM2019045983",
+         "quantity": 1,
+         "variation_id": 0,
+         "price": 659.0,
+         "price_at_creation": 659.0,
+         "currency_id": "MXN"
+        }
+       ],
+       "new_orders_ids": [
+        {
+         "id": 2000017019417622
+        }
+       ],
+       "new_orders_shipments": [
+        {
+         "id": 47338231223
+        }
+       ],
+       "return": {
+        "id": 143869700
+       },
+       "status": "change_return_delivered",
+       "status_detail": null,
+       "type": "replace"
+      }
+     ]
+    }
+   },
+   "returns": {
+    "id": 143869700,
+    "status": "delivered",
+    "claim_id": 5530634686,
+    "resource_id": 2000017010136216,
+    "orders": [
+     {
+      "order_id": 2000017010136216,
+      "item_id": "MLM2019045983",
+      "context_type": "total",
+      "total_quantity": "1.0",
+      "return_quantity": "1.0",
+      "variation_id": null
+     }
+    ],
+    "refund_at": "shipped",
+    "shipments": [
+     {
+      "shipment_id": 47338458964,
+      "status": "delivered",
+      "type": "return"
+     }
+    ]
+   }
+  },
+  "2000017308748828": {
+   "new_order": {
+    "id": 2000017308748828,
+    "status": "paid",
+    "tags": [
+     "b2b",
+     "catalog",
+     "change",
+     "no_add_tag_change",
+     "paid",
+     "delivered",
+     "pack_order"
+    ],
+    "pack_id": 2000013906721737,
+    "total_amount": 189.0,
+    "buyer_id": 592488886,
+    "logistic_type": "fulfillment",
+    "items": [
+     {
+      "item_id": "MLM1968863623",
+      "sku": "PMG5463",
+      "quantity": 1,
+      "unit_price": 189.0
+     }
+    ]
+   },
+   "orig_order": {
+    "id": 2000017279469180,
+    "status": "cancelled",
+    "tags": [
+     "b2b",
+     "catalog",
+     "no_add_tag_change",
+     "delivered",
+     "not_paid",
+     "pack_order"
+    ],
+    "pack_id": 2000013877076129,
+    "total_amount": 189.0,
+    "buyer_id": 592488886,
+    "logistic_type": "fulfillment",
+    "items": [
+     {
+      "item_id": "MLM1968863623",
+      "sku": "PMG5463",
+      "quantity": 1,
+      "unit_price": 189.0
+     }
+    ]
+   },
+   "claims_search": {
+    "data": [
+     {
+      "id": 5539997804,
+      "resource_id": 2000017279469180,
+      "type": "mediations",
+      "status": "closed",
+      "resource": "order"
+     }
+    ]
+   },
+   "changes": {
+    "5539997804": {
+     "data": [
+      {
+       "claim_id": 5539997804,
+       "resource": "order",
+       "resource_id": 2000017279469180,
+       "items": [
+        {
+         "id": "MLM1968863623",
+         "quantity": 1,
+         "variation_id": 0,
+         "price": 189.0,
+         "price_at_creation": 189.0,
+         "currency_id": "MXN"
+        }
+       ],
+       "new_orders_ids": [
+        {
+         "id": 2000017308748828
+        }
+       ],
+       "new_orders_shipments": [
+        {
+         "id": 47473573285
+        }
+       ],
+       "return": {
+        "id": 153950901
+       },
+       "status": "change_return_delivered",
+       "status_detail": null,
+       "type": "replace"
+      }
+     ]
+    }
+   },
+   "returns": {
+    "_http_error": 429
+   }
+  },
+  "2000017319019154": {
+   "new_order": {
+    "id": 2000017319019154,
+    "status": "paid",
+    "tags": [
+     "catalog",
+     "change",
+     "no_add_tag_change",
+     "paid",
+     "delivered",
+     "pack_order"
+    ],
+    "pack_id": 2000013917500161,
+    "total_amount": 329.0,
+    "buyer_id": 301741403,
+    "logistic_type": "fulfillment",
+    "items": [
+     {
+      "item_id": "MLM2845488970",
+      "sku": "PMG7606_RD",
+      "quantity": 1,
+      "unit_price": 329.0
+     }
+    ]
+   },
+   "orig_order": {
+    "id": 2000017075260256,
+    "status": "cancelled",
+    "tags": [
+     "catalog",
+     "no_add_tag_change",
+     "delivered",
+     "not_paid",
+     "d2c",
+     "one_shot",
+     "pack_order"
+    ],
+    "pack_id": 2000013663349573,
+    "total_amount": 329.0,
+    "buyer_id": 301741403,
+    "logistic_type": "fulfillment",
+    "items": [
+     {
+      "item_id": "MLM2845488970",
+      "sku": "PMG7606_RD",
+      "quantity": 1,
+      "unit_price": 329.0
+     }
+    ]
+   },
+   "claims_search": {
+    "data": [
+     {
+      "id": 5538579197,
+      "resource_id": 2000017075260256,
+      "type": "mediations",
+      "status": "closed",
+      "resource": "order"
+     }
+    ]
+   },
+   "changes": {
+    "5538579197": {
+     "data": [
+      {
+       "claim_id": 5538579197,
+       "resource": "order",
+       "resource_id": 2000017075260256,
+       "items": [
+        {
+         "id": "MLM2845488970",
+         "quantity": 1,
+         "variation_id": 0,
+         "price": 329.0,
+         "price_at_creation": 329.0,
+         "currency_id": "MXN"
+        }
+       ],
+       "new_orders_ids": [
+        {
+         "id": 2000017319019154
+        }
+       ],
+       "new_orders_shipments": [
+        {
+         "id": 47478837746
+        }
+       ],
+       "return": {
+        "id": 147638834
+       },
+       "status": "change_return_delivered",
+       "status_detail": null,
+       "type": "replace"
+      }
+     ]
+    }
+   },
+   "returns": {
+    "id": 147638834,
+    "status": "delivered",
+    "claim_id": 5538579197,
+    "resource_id": 2000017075260256,
+    "orders": [
+     {
+      "order_id": 2000017075260256,
+      "item_id": "MLM2845488970",
+      "context_type": "total",
+      "total_quantity": "1.0",
+      "return_quantity": "1.0",
+      "variation_id": null
+     }
+    ],
+    "refund_at": "shipped",
+    "shipments": [
+     {
+      "shipment_id": 47478513613,
+      "status": "delivered",
+      "type": "return"
+     }
+    ]
+   }
+  },
+  "2000017558967286": {
+   "new_order": {
+    "id": 2000017558967286,
+    "status": "paid",
+    "tags": [
+     "catalog",
+     "change",
+     "no_add_tag_change",
+     "paid",
+     "delivered",
+     "pack_order"
+    ],
+    "pack_id": 2000014163556957,
+    "total_amount": 529.0,
+    "buyer_id": 1907922131,
+    "logistic_type": "xd_drop_off",
+    "items": [
+     {
+      "item_id": "MLM2516945949",
+      "sku": "PMG0604_1.14",
+      "quantity": 1,
+      "unit_price": 529.0
+     }
+    ]
+   },
+   "orig_order": {
+    "id": 2000017495222820,
+    "status": "cancelled",
+    "tags": [
+     "catalog",
+     "no_add_tag_change",
+     "delivered",
+     "not_paid",
+     "pack_order"
+    ],
+    "pack_id": 2000014098942921,
+    "total_amount": 529.0,
+    "buyer_id": 1907922131,
+    "logistic_type": "fulfillment",
+    "items": [
+     {
+      "item_id": "MLM2516945949",
+      "sku": "PMG0604_1.14",
+      "quantity": 1,
+      "unit_price": 529.0
+     }
+    ]
+   },
+   "claims_search": {
+    "data": [
+     {
+      "id": 5546582620,
+      "resource_id": 2000017495222820,
+      "type": "mediations",
+      "status": "closed",
+      "resource": "order"
+     }
+    ]
+   },
+   "changes": {
+    "5546582620": {
+     "data": [
+      {
+       "claim_id": 5546582620,
+       "resource": "order",
+       "resource_id": 2000017495222820,
+       "items": [
+        {
+         "id": "MLM2516945949",
+         "quantity": 1,
+         "variation_id": 0,
+         "price": 529.0,
+         "price_at_creation": 529.0,
+         "currency_id": "MXN"
+        }
+       ],
+       "new_orders_ids": [
+        {
+         "id": 2000017558967286
+        }
+       ],
+       "new_orders_shipments": [
+        {
+         "id": 47592122574
+        }
+       ],
+       "return": {
+        "id": 150671604
+       },
+       "status": "change_return_delivered",
+       "status_detail": null,
+       "type": "replace"
+      }
+     ]
+    }
+   },
+   "returns": {
+    "id": 150671604,
+    "status": "delivered",
+    "claim_id": 5546582620,
+    "resource_id": 2000017495222820,
+    "orders": [
+     {
+      "order_id": 2000017495222820,
+      "item_id": "MLM2516945949",
+      "context_type": "total",
+      "total_quantity": "1.0",
+      "return_quantity": "1.0",
+      "variation_id": null
+     }
+    ],
+    "refund_at": "shipped",
+    "shipments": [
+     {
+      "shipment_id": 47592074064,
+      "status": "delivered",
+      "type": "return"
+     }
+    ]
+   }
+  },
+  "2000018354408968": {
+   "new_order": {
+    "id": 2000018354408968,
+    "status": "paid",
+    "tags": [
+     "change",
+     "no_add_tag_change",
+     "paid",
+     "delivered",
+     "pack_order"
+    ],
+    "pack_id": 2000014933485237,
+    "total_amount": 399.0,
+    "buyer_id": 82120875,
+    "logistic_type": "fulfillment",
+    "items": [
+     {
+      "item_id": "MLM1877982585",
+      "sku": "PMG2186_20",
+      "quantity": 1,
+      "unit_price": 399.0
+     }
+    ]
+   },
+   "orig_order": {
+    "id": 2000018105212692,
+    "status": "cancelled",
+    "tags": [
+     "no_add_tag_change",
+     "delivered",
+     "not_paid",
+     "pack_order"
+    ],
+    "pack_id": 2000014695777933,
+    "total_amount": 399.0,
+    "buyer_id": 82120875,
+    "logistic_type": "fulfillment",
+    "items": [
+     {
+      "item_id": "MLM1877982585",
+      "sku": "PMG2186_20",
+      "quantity": 1,
+      "unit_price": 399.0
+     }
+    ]
+   },
+   "claims_search": {
+    "data": [
+     {
+      "id": 5572640794,
+      "resource_id": 2000018105212692,
+      "type": "mediations",
+      "status": "closed",
+      "resource": "order"
+     }
+    ]
+   },
+   "changes": {
+    "5572640794": {
+     "data": [
+      {
+       "claim_id": 5572640794,
+       "resource": "order",
+       "resource_id": 2000018105212692,
+       "items": [
+        {
+         "id": "MLM1877982585",
+         "quantity": 1,
+         "variation_id": 0,
+         "price": 399.0,
+         "price_at_creation": 399.0,
+         "currency_id": "MXN"
+        }
+       ],
+       "new_orders_ids": [
+        {
+         "id": 2000018354408968
+        }
+       ],
+       "new_orders_shipments": [
+        {
+         "id": 47965614369
+        }
+       ],
+       "return": {
+        "id": 167209411
+       },
+       "status": "change_return_delivered",
+       "status_detail": null,
+       "type": "replace"
+      }
+     ]
+    }
+   },
+   "returns": {
+    "id": 167209411,
+    "status": "delivered",
+    "claim_id": 5572640794,
+    "resource_id": 2000018105212692,
+    "orders": [
+     {
+      "order_id": 2000018105212692,
+      "item_id": "MLM1877982585",
+      "context_type": "total",
+      "total_quantity": "1.0",
+      "return_quantity": "1.0",
+      "variation_id": null
+     }
+    ],
+    "refund_at": "shipped",
+    "shipments": [
+     {
+      "shipment_id": 47965563403,
+      "status": "delivered",
+      "type": "return"
+     }
+    ]
+   }
+  },
+  "2000018485455980": {
+   "new_order": {
+    "id": 2000018485455980,
+    "status": "cancelled",
+    "tags": [
+     "catalog",
+     "change",
+     "no_add_tag_change",
+     "delivered",
+     "not_paid",
+     "pack_order"
+    ],
+    "pack_id": 2000015056794965,
+    "total_amount": 219.0,
+    "buyer_id": 3687770125,
+    "logistic_type": "fulfillment",
+    "items": [
+     {
+      "item_id": "MLM4032464958",
+      "sku": "PMG9784_10",
+      "quantity": 1,
+      "unit_price": 219.0
+     }
+    ]
+   },
+   "orig_order": {
+    "id": 2000018473375414,
+    "status": "cancelled",
+    "tags": [
+     "catalog",
+     "no_add_tag_change",
+     "delivered",
+     "not_paid",
+     "pack_order"
+    ],
+    "pack_id": 2000015045349665,
+    "total_amount": 219.0,
+    "buyer_id": 3687770125,
+    "logistic_type": "fulfillment",
+    "items": [
+     {
+      "item_id": "MLM4032464958",
+      "sku": "PMG9784_10",
+      "quantity": 1,
+      "unit_price": 219.0
+     }
+    ]
+   },
+   "claims_search": {
+    "data": [
+     {
+      "id": 5579349270,
+      "resource_id": 2000018485455980,
+      "type": "returns",
+      "status": "closed",
+      "resource": "order"
+     },
+     {
+      "id": 5577877413,
+      "resource_id": 2000018473375414,
+      "type": "mediations",
+      "status": "closed",
+      "resource": "order"
+     }
+    ]
+   },
+   "changes": {
+    "5579349270": {
+     "data": []
+    },
+    "5577877413": {
+     "data": [
+      {
+       "claim_id": 5577877413,
+       "resource": "order",
+       "resource_id": 2000018473375414,
+       "items": [
+        {
+         "id": "MLM4032464958",
+         "quantity": 1,
+         "variation_id": 0,
+         "price": 219.0,
+         "price_at_creation": 219.0,
+         "currency_id": "MXN"
+        }
+       ],
+       "new_orders_ids": [
+        {
+         "id": 2000018485455980
+        }
+       ],
+       "new_orders_shipments": [
+        {
+         "id": 48026610443
+        }
+       ],
+       "return": {
+        "id": 162188286
+       },
+       "status": "change_return_delivered",
+       "status_detail": null,
+       "type": "replace"
+      }
+     ]
+    }
+   },
+   "returns": {
+    "_http_error": 429
+   }
+  },
+  "2000018619790226": {
+   "new_order": {
+    "id": 2000018619790226,
+    "status": "cancelled",
+    "tags": [
+     "catalog",
+     "change",
+     "no_add_tag_change",
+     "not_delivered",
+     "not_paid",
+     "pack_order"
+    ],
+    "pack_id": 2000015185172559,
+    "total_amount": 209.0,
+    "buyer_id": 1329304859,
+    "logistic_type": "fulfillment",
+    "items": [
+     {
+      "item_id": "MLM2258390278",
+      "sku": "PMG0411",
+      "quantity": 1,
+      "unit_price": 209.0
+     }
+    ]
+   },
+   "orig_order": {
+    "id": 2000018593964050,
+    "status": "paid",
+    "tags": [
+     "catalog",
+     "no_add_tag_change",
+     "paid",
+     "delivered",
+     "pack_order"
+    ],
+    "pack_id": 2000015160304647,
+    "total_amount": 209.0,
+    "buyer_id": 1329304859,
+    "logistic_type": "fulfillment",
+    "items": [
+     {
+      "item_id": "MLM2258390278",
+      "sku": "PMG0411",
+      "quantity": 1,
+      "unit_price": 209.0
+     }
+    ]
+   },
+   "claims_search": {
+    "data": [
+     {
+      "id": 5582489788,
+      "resource_id": 2000018593964050,
+      "type": "mediations",
+      "status": "closed",
+      "resource": "order"
+     }
+    ]
+   },
+   "changes": {
+    "5582489788": {
+     "data": [
+      {
+       "claim_id": 5582489788,
+       "resource": "order",
+       "resource_id": 2000018593964050,
+       "items": [
+        {
+         "id": "MLM2258390278",
+         "quantity": 1,
+         "variation_id": 0,
+         "price": 209.0,
+         "price_at_creation": 209.0,
+         "currency_id": "MXN"
+        }
+       ],
+       "new_orders_ids": [
+        {
+         "id": 2000018619790226
+        }
+       ],
+       "new_orders_shipments": [
+        {
+         "id": 48090234972
+        }
+       ],
+       "return": {
+        "id": 164015208
+       },
+       "status": "change_expired",
+       "status_detail": "purchase_returned",
+       "type": "replace"
+      }
+     ]
+    }
+   },
+   "returns": {
+    "id": 164015208,
+    "status": "expired",
+    "claim_id": 5582489788,
+    "resource_id": 2000018593964050,
+    "orders": [
+     {
+      "order_id": 2000018593964050,
+      "item_id": "MLM2258390278",
+      "context_type": "total",
+      "total_quantity": "1.0",
+      "return_quantity": "1.0",
+      "variation_id": null
+     }
+    ],
+    "refund_at": "shipped",
+    "shipments": [
+     {
+      "shipment_id": 48089906019,
+      "status": "cancelled",
+      "type": "return"
+     }
+    ]
+   }
+  }
+ }
+}
