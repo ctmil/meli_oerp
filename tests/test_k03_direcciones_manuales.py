@@ -75,15 +75,15 @@ def _order_json(street=STREET_ML):
         'date_created': '2026-10-22T10:00:00.000-03:00', 'date_closed': '2026-10-22T10:00:01.000-03:00',
         'total_amount': 1000.0, 'paid_amount': 1000.0, 'currency_id': 'ARS',
         'coupon': {'id': None, 'amount': 0},
-        'order_items': [{'item': {'id': 'MLA513001', 'title': 'Prueba 513', 'variation_id': None,
-                                  'seller_sku': 'SKU513001', 'category_id': 'MLA1'},
+        'order_items': [{'item': {'id': 'MLA554523', 'title': 'Prueba K03', 'variation_id': None,
+                                  'seller_sku': 'SKU554523', 'category_id': 'MLA1'},
                          'quantity': 1, 'unit_price': 1000.0, 'full_unit_price': 1000.0, 'currency_id': 'ARS'}],
         'payments': [{'id': 99513001, 'transaction_amount': 1000.0, 'total_paid_amount': 1000.0,
                       'currency_id': 'ARS', 'status': 'approved', 'coupon_amount': 0,
                       'shipping_cost': 0, 'date_created': '2026-10-22T10:00:01.000-03:00',
                       'date_last_modified': '2026-10-22T10:00:01.000-03:00'}],
-        'buyer': {'id': BUYER_ID, 'nickname': 'COMPRADOR513', 'first_name': 'Sebastian',
-                  'last_name': 'Prueba', 'name': 'Sebastian Prueba', 'email': 'seba513@example.com',
+        'buyer': {'id': BUYER_ID, 'nickname': 'COMPRADORK03', 'first_name': 'Sebastian',
+                  'last_name': 'Prueba', 'name': 'Sebastian Prueba', 'email': 'sebaK03@example.com',
                   'phone': {'area_code': '11', 'number': '45556666'}},
         'seller': {'id': 513999},
         'tags': ['paid'], 'context': {'channel': 'marketplace', 'site': 'MLA'},
@@ -104,12 +104,12 @@ class TestMeliK03DireccionesManuales(common.TransactionCase):
         if 'mercadolibre_cron_get_orders_shipment_client' in cls.company._fields:
             cls.company.mercadolibre_cron_get_orders_shipment_client = True
         cls.product = cls.env['product.product'].create({
-            'name': 'Prueba 513', 'taxes_id': [(5, 0, 0)], 'meli_id': 'MLA513001', 'default_code': 'SKU513001'})
+            'name': 'Prueba K03', 'taxes_id': [(5, 0, 0)], 'meli_id': 'MLA554523', 'default_code': 'SKU554523'})
 
     def _sync(self, street=STREET_ML):
         oj = _order_json(street)
         routes = [('/orders/%s/billing_info' % OID, {}), ('/orders/%s/discounts' % OID, {}),
-                  ('/orders/%s' % OID, oj), ('/items/', {'id': 'MLA513001', 'title': 'Prueba 513'})]
+                  ('/orders/%s' % OID, oj), ('/items/', {'id': 'MLA554523', 'title': 'Prueba K03'})]
         with patch('odoo.addons.meli_oerp.models.orders.requests.get', return_value=_MPNoDisponible()), \
                 mute_logger('odoo.addons.meli_oerp_multiple.models.sale'):
             res = self.env['mercadolibre.orders'].orders_update_order_json(

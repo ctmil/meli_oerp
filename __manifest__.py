@@ -27,7 +27,7 @@
         'views/questions_view.xml',
         'views/claims_view.xml',
         'views/orders_view.xml',
-        'views/orders_filters_462.xml',
+        'views/orders_filters_k21.xml',
         'views/atrributes_view.xml',
         'data/cron_jobs.xml',
         'data/claims_cron.xml',

@@ -108,10 +108,10 @@ class TestFletePackCobrado(unittest.TestCase):
 
     CASES = [
         # (nombre, envio, rcosts, search_json, use_payment, payment_shipping, option_cost, esperado_receiver, esperado_linea)
-        ("158 pack ME1 ML 2000384899703529", 42331350052,
+        ("K02 pack ME1 ML 2000384899703529", 42331350052,
          _costs(102089, 3731085, 196350138),
          {"results": [_ship_pay(185004403007, 102089, 42331350052)]}, True, 0.0, 102089, 102089, 102089),
-        ("158 pack ME2 KETER ML 2000535052182916", 42457144866,
+        ("K02 pack ME2 KETER ML 2000535052182916", 42457144866,
          _costs(8692, 380406917, 337163020, seller_cost=23390, gross=82060),
          {"results": [_ship_pay(185039582613, 8692, 42457144866)]}, True, 0.0, 8692, 8692, 8692),
         ("cliente F caso-K21 pack Full SO 6219", 44072759283,
@@ -120,14 +120,14 @@ class TestFletePackCobrado(unittest.TestCase):
         ("cliente F caso-K21 pack Full SO 6232", 44194202845,
          _costs(4999, 222948840, 570653807),
          {"results": [_ship_pay(185054666366, 4999, 44194202845)]}, True, 0.0, 4999, 4999, 4999),
-        ("535 pack Full Super SO 1106 (lo cobra ML, no el vendedor)", 45335115314,
+        ("K22 pack Full Super SO 1106 (lo cobra ML, no el vendedor)", 45335115314,
          _costs(79, 3485303698, 573976600, seller_cost=6, gross=85),
          {"results": []}, True, 0.0, 79, 0.0, 0.0),
-        ("535 pack Full Super SO 1795", 42816333134,
+        ("K22 pack Full Super SO 1795", 42816333134,
          _costs(99, 1136045267, 573976600, seller_cost=6, gross=105),
          {"results": []}, True, 0.0, 99, 0.0, 0.0),
         # Control positivo: no-pack con el flete DENTRO del pago de la orden (no hay pago aparte).
-        ("158 NO-pack ME1 ML 2000754024405310 (control)", 42040239173,
+        ("K02 NO-pack ME1 ML 2000754024405310 (control)", 42040239173,
          _costs(200640, 835204409, 196350138),
          {"results": []}, True, 200640.0, 200640, 0.0, 200640),
     ]

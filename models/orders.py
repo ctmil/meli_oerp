@@ -6138,8 +6138,8 @@ class mercadolibre_orders(models.Model):
 
         if (original_contact_partner_id):
             # [#caso-K03] si la entrega del pedido se fijo a mano no se busca / crea / actualiza el contacto de ML
-            _meli513_ship_locked = bool(sorder and sorder.id and sorder._meli_address_locked('partner_shipping_id'))
-            if config.mercadolibre_cron_get_orders_shipment_client and not _meli513_ship_locked:
+            _meli_k03_ship_locked = bool(sorder and sorder.id and sorder._meli_address_locked('partner_shipping_id'))
+            if config.mercadolibre_cron_get_orders_shipment_client and not _meli_k03_ship_locked:
                 partner_shipping_id = self.env["mercadolibre.shipment"].partner_delivery_id( partner_id=original_contact_partner_id,
                                                                                             Receiver=Receiver,
                                                                                             config=config)
@@ -6269,11 +6269,11 @@ class mercadolibre_orders(models.Model):
         if partner_invoice_id:
             # [#caso-K03] partner_invoice_id se aplica abajo en _meli_merge_ml_addresses (respeta un cambio
             # manual). La posicion fiscal sale de la factura que va a quedar en el pedido.
-            _meli513_inv_eff = partner_invoice_id
+            _meli_k03_inv_eff = partner_invoice_id
             if (sorder and sorder.id and sorder.partner_invoice_id
                     and sorder.partner_invoice_id != partner_invoice_id
                     and sorder._meli_address_locked('partner_invoice_id')):
-                _meli513_inv_eff = sorder.partner_invoice_id
+                _meli_k03_inv_eff = sorder.partner_invoice_id
 
             # Blue Orange / CER: set fiscal_position_id from billing partner's property_account_position_id
             # This ensures the sale order has the correct fiscal position for invoice document type selection.
@@ -6282,8 +6282,8 @@ class mercadolibre_orders(models.Model):
             _set_fp = ('mercadolibre_set_fiscal_position' not in config._fields
                        or config.mercadolibre_set_fiscal_position)
             if _set_fp:
-                if 'property_account_position_id' in _meli513_inv_eff._fields and _meli513_inv_eff.property_account_position_id:
-                    meli_order_fields['fiscal_position_id'] = _meli513_inv_eff.property_account_position_id.id
+                if 'property_account_position_id' in _meli_k03_inv_eff._fields and _meli_k03_inv_eff.property_account_position_id:
+                    meli_order_fields['fiscal_position_id'] = _meli_k03_inv_eff.property_account_position_id.id
             else:
                 meli_order_fields['fiscal_position_id'] = False
 

@@ -62,7 +62,7 @@ class TestStockDiagFull(TransactionCase):
         self.loc_wh = wh.lot_stock_id
         parent = self.env.ref('stock.stock_location_locations', raise_if_not_found=False) or wh.view_location_id.location_id
         self.loc_full = self.env['stock.location'].create({
-            'name': 'MLF525D', 'usage': 'internal', 'location_id': parent.id, 'company_id': company.id,
+            'name': 'MLFK01D', 'usage': 'internal', 'location_id': parent.id, 'company_id': company.id,
             'mercadolibre_logistic_type': 'fulfillment'})
         vals = {'mercadolibre_cron_post_update_stock': True,
                 'mercadolibre_stock_location_to_post': self.loc_wh.id}
@@ -94,7 +94,7 @@ class TestStockDiagFull(TransactionCase):
 
     def test_1_stock_solo_en_full_no_reactiva(self):
         """PMG9378/PMG8009/PMG5630_10: existencia solo en MLF => no se pide activar (publicaria 0)."""
-        self._producto('T525F', 'MLM534572500', self.loc_full, 3.0)
+        self._producto('TK01F', 'MLM534572500', self.loc_full, 3.0)
         meli = _FakeMeli({'MLM534572500': [_item('MLM534572500', 'paused')]})
         with self.assertLogs('odoo.addons.meli_oerp.models.company', level='WARNING'):
             res = self.env.company.meli_stock_diagnostic(meli=meli, reactivate='all')
@@ -104,7 +104,7 @@ class TestStockDiagFull(TransactionCase):
 
     def test_2_no_anota_reactivada_si_ml_sigue_pausada(self):
         """Stock publicable > 0, se pide activar, ML sigue pausada => 'NO QUEDO ACTIVA', no 'REACTIVADA'."""
-        self._producto('T525W', 'MLM536252582', self.loc_wh, 2.0)
+        self._producto('TK01W', 'MLM536252582', self.loc_wh, 2.0)
         meli = _FakeMeli({'MLM536252582': [_item('MLM536252582', 'paused')]})
         with self.assertLogs('odoo.addons.meli_oerp.models.company', level='WARNING') as cm:
             self.env.company.meli_stock_diagnostic(meli=meli, reactivate='all')
@@ -113,7 +113,7 @@ class TestStockDiagFull(TransactionCase):
 
     def test_3_reactiva_cuando_ml_la_activa(self):
         """Control positivo: stock publicable y ML queda activa => se reactiva como siempre."""
-        self._producto('T525A', 'MLM532576711', self.loc_wh, 2.0)
+        self._producto('TK01A', 'MLM532576711', self.loc_wh, 2.0)
         meli = _FakeMeli({'MLM532576711': [_item('MLM532576711', 'paused'), _item('MLM532576711', 'active')]})
         with self.assertLogs('odoo.addons.meli_oerp.models.company', level='WARNING') as cm:
             res = self.env.company.meli_stock_diagnostic(meli=meli, reactivate='all')
