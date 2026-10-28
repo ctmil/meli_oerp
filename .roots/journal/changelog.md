@@ -4,6 +4,7 @@
 
 ---
 
+## 16.0.26.330 — 28-oct-2026 · Corrección: la venta de un carrito (pack) con cupón del vendedor entra con el monto que cobró Mercado Libre (el cupón se reparte entre las líneas del carrito)
 ## 16.0.26.329 — 28-oct-2026 · Seguridad: los errores de MercadoLibre guardados en el producto y en las notificaciones ya no conservan el token de acceso; y la sincronización de reclamos ya no trae los reclamos donde la cuenta es la compradora
 
 ## 16.0.26.328 — 28-oct-2026 · Corrección: sin cuenta de MercadoLibre conectada, abrir productos, la compañía o los formularios de ML ya no llena el registro de avisos «GET /sites 403»; y se corrigen caminos que podían cortar con error (importación con tienda oficial, re-login del listado de publicaciones, sincronización por SKU, precio fijo menor a 1, enlace de categoría del sitio)

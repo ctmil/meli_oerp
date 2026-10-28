@@ -6501,7 +6501,14 @@ class mercadolibre_orders(models.Model):
         # en la mercadolibre.orders de cada miembro. Las líneas del pack las arma
         # mercadolibre.shipment, que PRORRATEA el total del pack por el bruto de cada ítem
         # (_meli_pack_seller_discount): nunca se resta el importe del pack entero en una línea.
-        if order and (order.coupon_amount > 0 or _payments_coupon > 0):
+        # 26.330 (#431 B, medido en prod 28-oct): en la orden miembro de un pack ML manda `coupon: null`
+        # y `payments[].coupon_amount: 0` -- el cupón del carrito sólo aparece en /orders/{id}/discounts.
+        # La guarda de arriba nunca entraba y el pack quedaba a precio lleno (51 de 51 en 431). La única
+        # señal en la orden es el tag `order_has_discount`: con él, la orden miembro busca su descuento.
+        # (Una consulta por orden, la misma que ya hace la venta simple; no cambia la venta simple.)
+        _pack_has_discount = bool(order_json.get('pack_id')) and \
+            'order_has_discount' in (order_json.get('tags') or [])
+        if order and (order.coupon_amount > 0 or _payments_coupon > 0 or _pack_has_discount):
             order._fetch_order_discounts(meli=meli)
             meli_order_fields['meli_discount_seller_amount'] = order.discount_seller_amount or 0.0
 
