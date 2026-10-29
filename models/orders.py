@@ -2089,6 +2089,13 @@ class sale_order(models.Model):
                 not self.env.context.get('meli_cancel_pack_split_return'):
             return self._meli_cancel_pack_splitted_legacy(cancel_msg, config=config)
 
+        # 26.335 (29-oct-2026): GUARDA de entrega / cobro del modo legacy. Ver
+        # cancel_decision.legacy_cancel_block_reason. Va DESPUES de pack_splitted (su pago
+        # acreditado es de la venta gemela: regla propia) y de la politica por motivo (que ya
+        # decidio con el status_detail del pago), y ANTES de tocar stock o facturas.
+        if self._meli_cancel_hold_delivered_or_paid(cancel_msg, order_json=order_json, config=config):
+            return False
+
         # 1. Devolver albaranes ya entregados
         # _meli_return_done_pickings usa hasattr para compatibilidad Odoo 16/17/18
         # (action_create_returns / create_returns) y evita crear devoluciones duplicadas.
@@ -2338,6 +2345,69 @@ class sale_order(models.Model):
             config=config, once_key="cancel-held-%s-%s" % (self.id, fields.Datetime.to_string(cutoff)))
         return True
 
+    def _meli_cancel_guard_inputs(self, order_json=None):
+        """26.335: (envio, pagos) para cancel_decision.legacy_cancel_block_reason.
+
+        Envio: el dato LOCAL (sin red: este camino corre dentro de la transaccion del cron y
+        en el barrido offline). `delivered` es confiable aunque el envio casi nunca se
+        refresque: el estado solo avanza. Pagos: los de `order_json` (foto fresca) cuando el
+        llamador la trae; si no, los locales, y SOLO cuentan si se modificaron despues de la
+        cancelacion (si no, pueden estar viejos: un reintegro posterior no se ve)."""
+        self.ensure_one()
+        morders = self._meli_sale_ml_orders()
+        ship = self.meli_shipment if 'meli_shipment' in self._fields else False
+        if not ship:
+            ship = morders.mapped('shipment')[:1]
+        shipment = None
+        if ship:
+            shipment = {'id': ship.shipping_id or '', 'status': ship.status or '',
+                        'substatus': ship.substatus or ''}
+        payments = []
+        if isinstance(order_json, dict) and 'payments' in order_json:
+            for pay in (order_json.get('payments') or []):
+                payments.append({
+                    'id': str(pay.get('id') or ''), 'status': pay.get('status') or '',
+                    'status_detail': pay.get('status_detail') or '',
+                    'refunded': _meli_cd._payment_refunded(pay), 'fresh': True,
+                })
+        else:
+            cancel_date = self.meli_cancel_date
+            for pay in morders.mapped('payments'):
+                payments.append({
+                    'id': pay.payment_id or '', 'status': pay.status or '', 'status_detail': '',
+                    'refunded': 0.0,
+                    'fresh': bool(cancel_date and pay.date_last_modified
+                                  and pay.date_last_modified >= cancel_date),
+                })
+        return shipment, payments
+
+    def _meli_cancel_hold_delivered_or_paid(self, cancel_msg, order_json=None, config=None):
+        """26.335 (29-oct-2026): ML dice `cancelled` pero el envio esta ENTREGADO o el pago
+        sigue ACREDITADO al vendedor => NO se cancela la venta (ni devolucion, ni factura):
+        queda retenida (meli_cancel_held) con una nota unica. La accion manual 'procesar
+        cancelacion' la fuerza (contexto meli_cancel_ignore_delivered_guard).
+        :return: True si retuvo (no hay que cancelar)."""
+        self.ensure_one()
+        ctx = self.env.context
+        if ctx.get('meli_cancel_ignore_delivered_guard') or ctx.get('meli_cancel_policy_applied'):
+            return False
+        shipment, payments = self._meli_cancel_guard_inputs(order_json=order_json)
+        reason = _meli_cd.legacy_cancel_block_reason(shipment, payments)
+        if not reason:
+            return False
+        _logger.warning("meli_cancel %s: NO cancelada — %s. Queda retenida para decisión manual "
+                        "(MELI_CANCEL_HOLD_DELIVERED).", self.name, reason)
+        if 'meli_cancel_held' in self._fields and not self.meli_cancel_held:
+            self.meli_cancel_held = True
+        meli_message_post(
+            self,
+            "MercadoLibre informa la orden cancelada, pero %s. No se canceló la venta, ni se creó "
+            "la devolución, ni se tocó la factura: puede ser una venta concretada o en reclamo. "
+            "Revisar en MercadoLibre y, si corresponde, usar la acción 'MercadoLibre: procesar "
+            "cancelación'. Motivo ML: %s" % (reason, cancel_msg),
+            config=config, once_key="cancel-hold-delivered-%s" % self.id)
+        return True
+
     def action_meli_cancel_process_held(self):
         """Acción manual: procesa la cancelación de ML de las ventas seleccionadas como lo
         haría el cron, IGNORANDO 'Cancelaciones automáticas desde'."""
@@ -2346,7 +2416,8 @@ class sale_order(models.Model):
             cancel_msg = "Orden cancelada por MercadoLibre."
             if so.meli_status_detail:
                 cancel_msg += " Motivo: %s" % so.meli_status_detail
-            so.with_context(meli_cancel_ignore_cutoff=True, meli_cancel_ignore_partial_pack=True).meli_cancel_with_detail(cancel_msg)
+            so.with_context(meli_cancel_ignore_cutoff=True, meli_cancel_ignore_partial_pack=True,
+                            meli_cancel_ignore_delivered_guard=True).meli_cancel_with_detail(cancel_msg)
             if so.state == 'cancel':
                 so.meli_cancel_held = False
                 done += 1
