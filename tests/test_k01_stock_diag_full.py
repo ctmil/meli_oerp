@@ -31,13 +31,24 @@ class _FakeMeli(object):
         self.script = {k: list(v) for k, v in script.items()}
         self.calls = []
 
-    def get(self, path, *args, **kwargs):
-        meli_id = path.rstrip('/').split('/')[-1]
+    def _one(self, meli_id):
         self.calls.append(meli_id)
         seq = self.script.get(meli_id)
         if not seq:
-            return _Resp({'error': 'not_found', 'status': 404, 'message': 'test'})
-        return _Resp(seq.pop(0) if len(seq) > 1 else seq[0])
+            return {'error': 'not_found', 'status': 404, 'message': 'test'}
+        return seq.pop(0) if len(seq) > 1 else seq[0]
+
+    def get(self, path, *args, **kwargs):
+        # 26.341: el diagnostico lee los candidatos por multiget /items?ids=a,b (de a 20) y
+        # relee de a uno /items/<id> despues de pedir la activacion.
+        if path.startswith('/items?ids='):
+            out = []
+            for mid in path.split('ids=')[1].split('&')[0].split(','):
+                body = self._one(mid)
+                out.append({'code': int(body.get('status')) if str(body.get('status', '')).isdigit() else 200,
+                            'body': body})
+            return _Resp(out)
+        return _Resp(self._one(path.rstrip('/').split('/')[-1]))
 
 
 def _item(meli_id, status):
