@@ -25,7 +25,7 @@ import logging
 _logger = logging.getLogger(__name__)
 
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from odoo import fields, models, api
 from odoo.tools.translate import _
@@ -83,6 +83,31 @@ class MercadolibreNotification(models.Model):
     seller_id = fields.Many2one("res.users",string="Seller")
 
     _unique_notification_id = versions.UniqueIndex('notification_id', message='Notification Id must be unique!')
+
+    @api.autovacuum
+    def _gc_meli_notifications(self):
+        """Retención (#696): borra notificaciones TERMINADAS (SUCCESS/FAILED) más viejas que
+        ICP meli_oerp.notification_days (default 90; 0 = no borrar). Nunca toca RECEIVED/PROCESSING:
+        meli_oerp_multiple guarda en processing_logs datos de trabajo (internal_job / sales)."""
+        try:
+            days = int(self.env['ir.config_parameter'].sudo().get_param('meli_oerp.notification_days', 90))
+        except (TypeError, ValueError):
+            days = 90
+        if days <= 0:
+            return 0
+        limit_dt = fields.Datetime.now() - timedelta(days=days)
+        old = self.sudo().with_context(active_test=False).search([
+            ('state', 'in', ('SUCCESS', 'FAILED')),
+            '|', ('received', '<', limit_dt),
+                 '&', ('received', '=', False), ('create_date', '<', limit_dt),
+        ])
+        total = len(old)
+        for i in range(0, total, 1000):
+            old[i:i + 1000].unlink()
+        if total:
+            _logger.info("_gc_meli_notifications: %s notificaciones terminadas anteriores a %s borradas (%s días)",
+                         total, limit_dt, days)
+        return total
 
     def _prepare_values(self, values):
         company = self.env.user.company_id
@@ -253,7 +278,7 @@ class MercadolibreNotification(models.Model):
             try:
                 res = meli.get(""+str(noti.resource), {'access_token':meli.access_token} )
                 ojson =  res.json()
-                _logger.info(ojson)
+                _logger.debug(ojson)
 
                 # Guardar último JSON de respuesta
                 noti.last_json_response = json.dumps(ojson, indent=2, ensure_ascii=False, default=str) if ojson else None
@@ -273,7 +298,7 @@ class MercadolibreNotification(models.Model):
 
                     # Skip invoice validation on notifications to avoid AFIP concurrent numbering issues
                     rsjson = morder.with_context(meli_skip_invoice_validation=True).orders_update_order_json( pdata )
-                    _logger.info("rsjson:"+str(rsjson))
+                    _logger.debug("rsjson:"+str(rsjson))
 
                     if (rsjson and 'error' in rsjson and meli_is_update_forbidden_error(rsjson)):
                         # 26.309 (caso-K02): venta bloqueada (meli_update_forbidden) => no es un fallo y
