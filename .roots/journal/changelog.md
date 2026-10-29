@@ -4,6 +4,9 @@
 
 ---
 
+## 18.0.26.338 — 29-oct-2026 · Corrección: la limpieza automática de notificaciones de MercadoLibre ya no puede trabar ni demorar la importación de ventas
+- **meli_oerp (#696, limpieza):** la tarea diaria que borra notificaciones viejas trabaja por tandas cortas y saltea las que otro proceso está usando en ese momento (las toma la vuelta siguiente), en vez de esperarlas o hacer fallar al proceso de ventas. Tampoco borra las que el proceso de órdenes todavía puede reintentar (con error y menos de 24 intentos), las de una venta con avisos pendientes, ni las modificadas en las últimas 24 horas.
+
 ## 18.0.26.337 — 29-oct-2026 · Release de flota 26.337 (acompaña la corrección de meli_oerp_multiple: la actualización de stock publica cada variante en UNA sola variación de Mercado Libre; sin cambios propios)
 
 ## 18.0.26.335 — 29-oct-2026 · Release de flota 26.335 (acompaña la novedad de meli_oerp_accounting: retenciones de MercadoPago registradas en el cobro del cliente, opcional por compañía)
