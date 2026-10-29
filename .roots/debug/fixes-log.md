@@ -4,6 +4,12 @@
 
 ---
 
+## 29 oct 2026 — el import de ventas reescribía el contacto de entrega en cada resync (CP vacío ↔ CP del JSON) [#696 T3LC 535] (v20.0.26.335)
+**Síntoma:** 535: 62.022 trackings `res.partner` `contact_address_inline` en oct-2026 (chatter de contactos).
+**Causa:** `models/orders.py::orders_update_order_json` armaba el `Receiver` desde el `mercadolibre.shipment` guardado SIN `zip_code` ⇒ `models/shipment.py::partner_delivery_id` escribía el contacto de entrega con CP vacío; en la misma vuelta el camino de packs (`fetch_shipment`) lo reescribía con el CP del JSON. Con `MeliCommit` entre ambos, cada alternancia = 1 tracking. Además `partner_delivery_id` comparaba `!=` crudo (ids vs records) y `property_product_pricelist` se asignaba en cada import.
+**Fix:** `_meli_receiver_from_shipment` (lleva `zip_code`, street_name/number); `shipment._meli_delivery_vals_to_write`: sólo lo que difiere (`_meli_partner_vals_changed`, de 26.228) y un vacío no pisa lo guardado; pricelist sólo si cambia.
+**Prueba:** `tests/test_696_contacto_sin_writes_redundantes.py` (tag `meli_696_partner`): 2º import idéntico = 0 writes y 0 `mail.tracking.value`. Control sobre origin: 8 writes en 2 vueltas + trackings, CP borrado.
+
 ## 28 oct 2026 — cambios de producto de ML (orden con tag `change`) llega a 20.0 [525 #701] (v26.333)
 **Qué:** port a 20.0 de 26.332 (bd6d3952, 19.0): `models/change.py`, `data/change_cron.xml` (cron `ir_cron_meli_change_sync` INACTIVO), tests/test_26332_cambios_producto.py + fixture. Síntoma, modelo de ML y fix: ver la entrada 26.332 de 16–19.
 **Dependencias en 20.0 (verificadas):** `_meli_return_done_pickings`, `is_meli_order_fulfillment`, `_meli_sale_ml_orders`, `_meli_cancel_return_full_on` / `meli_oerp.cancel_return_full`, `mercadolibre_return_mode`.
