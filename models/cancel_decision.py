@@ -459,3 +459,44 @@ def classify_cancel_reason(reason_code, status_details=None):
             return REASON_REVIEW
         return REASON_RETURN_REVIEW if code == "mediations" else REASON_RETURN
     return REASON_DEFAULT
+
+
+# ====================================================================================== #
+#  26.335 -- GUARDA DE ENTREGA / COBRO EN EL MODO LEGACY (29-oct-2026)                    #
+# ====================================================================================== #
+# Incidente: el barrido de cancelaciones a medio aplicar (_orders_redrain_pending_cancels,
+# 0 llamadas a la API) cancelo en Odoo una venta cuyo envio de ML figuraba ENTREGADO. En el
+# modo legacy la unica condicion era que la orden ML dijera `cancelled`. Una orden cancelada
+# con el envio ENTREGADO, o con un pago ACREDITADO al vendedor (aprobado sin reintegro, o
+# cubierto por ML: bpp_covered), es una venta concretada o en reclamo: cancelarla sola borra
+# la entrega y la factura de algo que se vendio. Regla: nunca se cancela sola; queda retenida
+# para decision humana (la accion "procesar cancelacion" la fuerza).
+# `por_estado_ml` NO pasa por aca: decide con su foto fresca (meli_cancel_decide).
+
+
+def legacy_cancel_block_reason(shipment=None, payments=None):
+    """'' si la cancelacion automatica (modo legacy) puede seguir; si no, el motivo. PURA.
+
+    :param shipment: dict {id, status, substatus} del envio ML (dato local) o None.
+        `delivered` con un substatus de VUELTA (returned...) no retiene: la mercaderia volvio.
+    :param payments: lista de dicts {id, status, status_detail, refunded, fresh}. `fresh`
+        False = el dato del pago es ANTERIOR a la cancelacion (puede estar viejo: el barrido
+        no lo refresca) y no se usa para retener. Sin la clave se toma como fresco.
+    """
+    ship = shipment or {}
+    st = (ship.get("status") or "").strip().lower()
+    sub = (ship.get("substatus") or "").strip().lower()
+    if st == "delivered" and sub not in RETURNED_SUBSTATUS:
+        sid = ship.get("id") or ""
+        return "el envío%s figura ENTREGADO en MercadoLibre" % (sid and " %s" % sid or "")
+    for pay in payments or []:
+        if not pay.get("fresh", True):
+            continue
+        pid = pay.get("id") or ""
+        detail = (pay.get("status_detail") or "").strip().lower()
+        status = (pay.get("status") or "").strip().lower()
+        if detail in PAY_DETAIL_COVERED:
+            return "el pago%s fue cubierto por MercadoLibre al vendedor (%s)" % (pid and " %s" % pid or "", detail)
+        if status in PAY_OK_STATUS and _f(pay.get("refunded")) <= 0.0:
+            return "el pago%s está acreditado sin reintegro (%s)" % (pid and " %s" % pid or "", status)
+    return ""
