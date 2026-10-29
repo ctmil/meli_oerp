@@ -4,6 +4,13 @@
 
 ---
 
+## 29 oct 2026 — el contacto de facturación mezclaba la dirección: estado del ENVÍO + calle/ciudad/CP de FACTURACIÓN [hallazgo de 535 #696] (v16.0.26.335)
+**Síntoma:** contacto de facturación (y el principal cuando hace de facturación: estrategia B / sin hijo) con calle, ciudad y CP de `billing_info` y el estado de la dirección de envío ⇒ domicilio fiscal inexistente (CFDI MX, provincia AR).
+**Causa:** `models/orders.py::state()` devuelve el estado del `Receiver` apenas matchea su código, sin mirar `billing_info.STATE_NAME`; `street()`/`city()`/`zip_code()` sí priorizan billing. Usado así en `meli_buyer_fields` (alta del principal), BILLING_SPLIT (dirección del hijo de facturación) y `parent_update`. Además `STATE_NAME=''` (v2 normalizado) hacía `name ilike ''` ⇒ primer estado del país.
+**Fix:** `_meli_billing_address_vals` (todo de billing_info; estado por código/nombre de billing → `res.city` por CP → mismo CP que el envío → letra del CPA (AR) → `res.city` por ciudad con estado único → vacío; sin claves vacías: un dato ausente no borra lo guardado) y `_meli_partner_address_vals` (billing entero, o envío entero si billing no trae dirección). `_meli_state_by_code_or_name`: código exacto (`MX-YUC`/`YUC`/`CMX`), nunca con valor vacío.
+**Prueba:** `tests/test_billing_address_misma_fuente.py` (tag `meli_billing_addr`, forma real de billing-info v2 MLM de 535): billing completo (Modo 3 y forzado al principal), billing sin estado (CP distinto ⇒ vacío; mismo CP ⇒ estado deducido), sin dirección de facturación ⇒ envío entero. Fix 6/6 verde 16-20; control origin 3 FAIL + 1 ERROR.
+**Nota:** un contacto de facturación YA existente con un estado mal tomado sólo se corrige si billing trae (o permite deducir) el estado; si no, no se vacía (criterio #696). `fix_locals` (BR `city_id` / CO `cities`) no se tocó.
+
 ## 29 oct 2026 — el import de ventas reescribía el contacto de entrega en cada resync (CP vacío ↔ CP del JSON) [#696 T3LC 535] (v16.0.26.335)
 **Síntoma:** 535: 62.022 trackings `res.partner` `contact_address_inline` en oct-2026 (chatter de contactos).
 **Causa:** `models/orders.py::orders_update_order_json` armaba el `Receiver` desde el `mercadolibre.shipment` guardado SIN `zip_code` ⇒ `models/shipment.py::partner_delivery_id` escribía el contacto de entrega con CP vacío; en la misma vuelta el camino de packs (`fetch_shipment`) lo reescribía con el CP del JSON. Con `MeliCommit` entre ambos, cada alternancia = 1 tracking. Además `partner_delivery_id` comparaba `!=` crudo (ids vs records) y `property_product_pricelist` se asignaba en cada import.
