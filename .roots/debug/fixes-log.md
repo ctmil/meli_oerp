@@ -4,6 +4,26 @@
 
 ---
 
+## 29 oct 2026 — Meli Stock Diagnostic con presupuesto por corrida (26.190 re-portado sobre #caso-K12) + venta ML sin producto visible [#598 OrgVit 475] (v20.0.26.341)
+**Síntoma:** el cron "Meli Stock Diagnostic" (reactiva pausadas con stock) terminaba "Interrumpido" 144 veces por día desde el
+12-ago y Odoo lo desactivó solo el 30-ago (475). Las pausadas con stock no volvían solas. Las ventas ML sin producto quedaban en
+presupuesto con un aviso en el chatter que nadie veía.
+**Causa:** `meli_stock_diagnostic` hacía un GET a ML por candidato, sin límite, todo en UNA transacción (`MeliCommit` sólo hace
+flush): al morir el worker se perdía todo, incluido lo que F3 persiste, y la corrida siguiente volvía a morir.
+**Fix (26.190 de oct-6, que nunca se landeó, re-escrito SOBRE el código actual — no revierte #caso-K12/26.257):**
+multiget `/items?ids=` de a 20 (`_meli_diag_multiget`, pide también `sub_status` y `variations`, que usan la verificación de stock
+publicable y la relectura post-activación de K12), tope de ítems `meli_stock_diag_max_items` (def 100) y de segundos
+`meli_stock_diag_time_budget` (def 45), cursor `meli_stock_diag_cursor.<company>.<seller>` que retoma y da la vuelta, commit por
+lote con `commit_batches=True` (lo pasa el cron dedicado de meli_oerp_multiple; en tests nunca: `thread.testing` en 16-18,
+`odoo.modules.module.current_test` en 19+). Devuelve `items_processed`/`items_deferred`; el chatter muestra "Pendientes para la
+próxima corrida". Venta ML sin producto: actividad "Por hacer" al vendedor ML (una por ítem, mismo dedupe que el chatter) + filtro
+"ML: producto no encontrado" en Presupuestos. Sin campos nuevos ni migración (sólo vista: requiere `-u`).
+**Prueba:** `tests/test_26341_stock_diag_presupuesto.py` (tag meli_26341): tope 20 ⇒ 1 multiget/0 GET sueltos, cursor y retoma,
+vuelta al principio, corrida completa limpia cursor, rechazo por ítem = api_error, tope de segundos, commit por lote [1,2,3,3] y
+0 commits sin commit_batches, actividad única + filtro. Control origin (26.339) 8 rojos; fix verde. `test_k01_stock_diag_full`
+(K12) adaptado a multiget y verde en ambos.
+**Activar en un cliente:** el cron es `noupdate`: si Odoo lo desactivó, reactivarlo a mano después del `-u`.
+
 ## 29 oct 2026 — el GC de notificaciones (#696) chocaba con el cron de órdenes: SerializationFailure en el DELETE [staging 393 PetMarkt 19.0] (v20.0.26.338)
 **Síntoma:** staging 393 (19.0, 20c563b9) 11:59:01Z: `SerializationFailure` en `_gc_meli_notifications` (autovacuum) mientras el cron 177 «Meli Process Order Notifications» (meli_oerp_multiple `cron_order_notifications`) marcaba `older_notis.state='SUCCESS'`. En prod el que pierde (o espera) puede ser el cron de ventas.
 **Causa:** el GC de 26.335 hacía `search()` ORM sin tope + `unlink()` por lotes de 1000: el DELETE espera cualquier fila tomada `FOR UPDATE` por otro proceso (sin timeout) y, en REPEATABLE READ, revienta con una fila actualizada después de su snapshot. Además borraba FAILED orders_v2 que el cron todavía reintenta (<24 intentos).
