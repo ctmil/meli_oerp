@@ -64,7 +64,19 @@ class TestCancelGuardaEntregada(TransactionCase):
         return so, mo
 
     def _redrain(self):
-        return self.env["mercadolibre.orders"]._orders_redrain_pending_cancels()
+        """El barrido offline existe en 16.0; en 17+ no hay barrido: se ejercita la misma
+        llamada que hace (meli_cancel_with_detail sin foto, contexto meli_cancel_offline)."""
+        MO = self.env["mercadolibre.orders"]
+        if hasattr(MO, "_orders_redrain_pending_cancels"):
+            return MO._orders_redrain_pending_cancels()
+        pending = 0
+        for mo in MO.search([("status", "=", "cancelled"), ("sale_order", "!=", False),
+                             ("sale_order.state", "!=", "cancel")]):
+            so = mo.sale_order
+            so.with_context(meli_cancel_offline=True).meli_cancel_with_detail(
+                "Orden cancelada por MercadoLibre.")
+            pending += so.state != "cancel"
+        return {"pending": pending}
 
     # ------------------------------------------------------------- el caso
     def test_01_redrain_no_cancela_envio_entregado(self):
