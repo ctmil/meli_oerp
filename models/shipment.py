@@ -1276,6 +1276,24 @@ class mercadolibre_shipment(models.Model):
                                  pack_ref, partner_invoice_id.id)
         return partner_invoice_id or partner_id
 
+    def _meli_delivery_vals_to_write(self, deliv_id, vals):
+        """[#696] Valores del contacto de ENTREGA que hay que escribir.
+
+        - Un valor vacio (None/False/'') no pisa uno guardado: el receiver_address puede llegar
+          incompleto (p. ej. armado desde el envio ya guardado) y eso no es un borrado de ML.
+        - Solo se escribe lo que DIFIERE de lo guardado (_meli_partner_vals_changed): un write con un
+          cambio real genera un mensaje de seguimiento en el contacto (contact_address_inline).
+        """
+        from .orders import _meli_partner_vals_changed
+        out = {}
+        for key, value in (vals or {}).items():
+            if key not in deliv_id._fields:
+                continue
+            if value in (None, False, '') and deliv_id[key]:
+                continue
+            out[key] = value
+        return _meli_partner_vals_changed(deliv_id, out)
+
     def partner_delivery_id( self, partner_id=None, Receiver=None, config=None ):
         #_logger.info("Processing partner_delivery_id for partner:"+str(partner_id and partner_id.name)+" Receiver:"+str(Receiver)+" config:"+str(config) )
         if (not Receiver or not partner_id):
@@ -1362,10 +1380,10 @@ class mercadolibre_shipment(models.Model):
                 # [#caso-K17] no pisar un mobile cargado a mano (distinto del phone)
                 if "mobile" in pdelivery_fields and "mobile" not in orders_obj._meli_phone_mobile_vals( pdelivery_fields.get("phone"), deliv_id ):
                     del pdelivery_fields["mobile"]
-                for f in pdelivery_fields:
-                    if f in deliv_id._fields:
-                        if pdelivery_fields[f] != deliv_id[f]:
-                            hchanges = True
+                # [#696] solo lo que CAMBIA, y un dato ausente/vacio no borra lo guardado (ver
+                # _meli_delivery_vals_to_write): sin esto el contacto alternaba el CP en cada import.
+                pdelivery_fields = self._meli_delivery_vals_to_write(deliv_id, pdelivery_fields)
+                hchanges = bool(pdelivery_fields)
                 if hchanges and deliv_id._meli_address_manually_edited():
                     # [#caso-K03 cliente A] direccion editada a mano: se usa el contacto pero no se pisa
                     _logger.info("MELI #caso-K03 partner_delivery_id: contacto id=%s editado a mano, no se actualiza", deliv_id.id)
