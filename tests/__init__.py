@@ -36,3 +36,4 @@ from . import test_26329_secretos_en_errores
 from . import test_26329_claims_rol
 from . import test_26332_cambios_producto
 from . import test_696_retencion_notificaciones
+from . import test_696_contacto_sin_writes_redundantes
