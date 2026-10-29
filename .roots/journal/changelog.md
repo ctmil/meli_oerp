@@ -4,6 +4,8 @@
 
 ---
 
+## 18.0.26.339 — 29-oct-2026 · Mejora: el asistente «Publicar/Actualizar en Mercado Libre» pide menos clics — cuenta preseleccionada si hay una sola, «Marcar para publicar» y «Activación» tildados, lista de precios de la configuración de la cuenta, IVA 21 % / impuesto interno 0 % (Argentina) sólo donde falten, «Fabricante» completado con la Marca, categoría sugerida si falta, y la lista de TODO lo que falta por producto visible al abrir (no un error por intento).
+
 ## 18.0.26.338 — 29-oct-2026 · Corrección: la limpieza automática de notificaciones de MercadoLibre ya no puede trabar ni demorar la importación de ventas
 - **meli_oerp (#696, limpieza):** la tarea diaria que borra notificaciones viejas trabaja por tandas cortas y saltea las que otro proceso está usando en ese momento (las toma la vuelta siguiente), en vez de esperarlas o hacer fallar al proceso de ventas. Tampoco borra las que el proceso de órdenes todavía puede reintentar (con error y menos de 24 intentos), las de una venta con avisos pendientes, ni las modificadas en las últimas 24 horas.
 
