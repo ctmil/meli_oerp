@@ -3819,6 +3819,124 @@ class mercadolibre_orders(models.Model):
 
         return country_id
 
+    # ------------------------------------------------------------------------------------------
+    # Direccion del contacto de facturacion: TODA de la misma fuente (billing_info).
+    # Antes street/city/zip salian de billing_info y el estado del ENVIO: state() devuelve el del
+    # receiver apenas matchea su codigo, sin mirar STATE_NAME. Resultado: un domicilio fiscal que no
+    # existe (calle de Monterrey en Jalisco) en el CFDI (MX) o la provincia de la factura (AR).
+    # ------------------------------------------------------------------------------------------
+    def _meli_state_by_code_or_name(self, country_id, code=None, name=None):
+        """res.country.state por codigo exacto (acepta 'MX-YUC' / 'YUC' / 'CMX') o por nombre. Nunca con
+        un valor vacio: `name ilike ''` matchea TODOS los estados y devolvia el primero del pais."""
+        State = self.env['res.country.state']
+        if not country_id:
+            return False
+        code = str(code or '').strip()
+        if code:
+            for cand in (code, code.split('-')[-1]):
+                st = cand and State.search([('code', '=ilike', cand), ('country_id', '=', country_id)], limit=1)
+                if st:
+                    return st.id
+        name = str(name or '').strip()
+        if name:
+            if name == "Capital Federal":
+                name = "Ciudad Autónoma de Buenos Aires"
+            st = State.search([('name', '=ilike', name), ('country_id', '=', country_id)], limit=1)
+            if not st:
+                st = State.search([('name', 'ilike', name), ('country_id', '=', country_id)])
+                st = st if len(st) == 1 else State
+            if st:
+                return st.id
+        return False
+
+    def _meli_billing_state_id(self, country_id, binfo, zip_code='', city='', Receiver=None):
+        """Estado de facturacion SOLO desde datos de facturacion.
+        1) codigo/nombre que trae billing_info; 2) res.city por CP (base_address_extended);
+        3) mismo CP que el envio => mismo lugar => estado del envio (deducido por CP, no mezclado);
+        4) AR: primera letra del CPA = codigo de provincia; 5) res.city por nombre, si es de UN solo estado.
+        Si nada alcanza: False (vacio). Nunca el estado del envio a secas."""
+        if not country_id:
+            return False
+        address = binfo.get('address') if isinstance(binfo.get('address'), dict) else {}
+        st_v2 = address.get('state') if isinstance(address.get('state'), dict) else {}
+        state_id = self._meli_state_by_code_or_name(
+            country_id,
+            code=binfo.get('STATE_CODE') or binfo.get('STATE_ID') or st_v2.get('code') or st_v2.get('id'),
+            name=binfo.get('STATE_NAME') or st_v2.get('name'))
+        if state_id:
+            return state_id
+        zip_code = str(zip_code or '').strip()
+        City = 'res.city' in self.env and self.env['res.city']
+        if zip_code and City is not False and 'zipcode' in City._fields:
+            states = City.search([('zipcode', '=', zip_code), ('country_id', '=', country_id)]).mapped('state_id')
+            if len(states) == 1:
+                return states.id
+        if zip_code and Receiver and isinstance(Receiver, dict):
+            r_zip = str(Receiver.get('zip_code') or '').strip()
+            if r_zip and r_zip == zip_code:
+                r_state = Receiver.get('state') if isinstance(Receiver.get('state'), dict) else {}
+                state_id = self._meli_state_by_code_or_name(country_id, code=r_state.get('id'), name=r_state.get('name'))
+                if state_id:
+                    return state_id
+        country = self.env['res.country'].browse(country_id)
+        if zip_code and country.code == 'AR' and zip_code[:1].isalpha():
+            state_id = self._meli_state_by_code_or_name(country_id, code=zip_code[:1].upper())
+            if state_id:
+                return state_id
+        city = str(city or '').strip()
+        if city and City is not False:
+            states = City.search([('name', '=ilike', city), ('country_id', '=', country_id)]).mapped('state_id')
+            if len(states) == 1:
+                return states.id
+        return False
+
+    def _meli_billing_address_vals(self, Receiver=None, Buyer=None):
+        """Direccion de facturacion, toda desde billing_info. {} si billing_info no trae direccion.
+        Sin claves vacias: un dato ausente no borra lo guardado (mismo criterio que #696)."""
+        binfo = (Buyer and isinstance(Buyer, dict) and Buyer.get('billing_info')) or {}
+        if not isinstance(binfo, dict):
+            return {}
+        address = binfo.get('address') if isinstance(binfo.get('address'), dict) else {}
+        street_name = str(binfo.get('STREET_NAME') or address.get('street_name') or '').strip()
+        street_number = str(binfo.get('STREET_NUMBER') or address.get('street_number') or '').strip()
+        city = str(binfo.get('CITY_NAME') or address.get('city_name') or '').strip()
+        zip_code = str(binfo.get('ZIP_CODE') or address.get('zip_code') or '').strip()
+        st_v2 = address.get('state') if isinstance(address.get('state'), dict) else {}
+        has_state = bool(binfo.get('STATE_NAME') or binfo.get('STATE_CODE') or st_v2.get('code') or st_v2.get('name'))
+        if not (street_name or city or zip_code or has_state):
+            return {}
+        country_id = False
+        b_country = str(binfo.get('COUNTRY_ID') or address.get('country_id') or '').strip()
+        if b_country:
+            country = self.env['res.country'].search([('code', '=ilike', b_country)], limit=1)
+            country_id = country.id
+        if not country_id:
+            # el pais del sitio de ML (el del envio o el de la compania): mismo pais, no mezcla de domicilio
+            country_id = self.country(Receiver=Receiver, Buyer=Buyer)
+        vals = {
+            'street': (street_name + ' ' + street_number).strip(),
+            'city': city,
+            'zip': zip_code,
+            'country_id': country_id,
+            'state_id': self._meli_billing_state_id(country_id, binfo, zip_code=zip_code, city=city, Receiver=Receiver),
+        }
+        return {k: v for k, v in vals.items() if v}
+
+    def _meli_partner_address_vals(self, Receiver=None, Buyer=None):
+        """Direccion para un contacto: la de facturacion entera si billing_info la trae; si no, la del envio
+        entera (como antes). Nunca campos de una fuente mezclados con los de la otra."""
+        vals = self._meli_billing_address_vals(Receiver=Receiver, Buyer=Buyer)
+        if vals:
+            return vals
+        country_id = self.country(Receiver=Receiver)
+        return {
+            'street': self.street(Receiver),
+            'city': self.city(Receiver),
+            'country_id': country_id,
+            'state_id': self.state(country_id, Receiver),
+            'zip': (Receiver and isinstance(Receiver, dict) and str(Receiver.get('zip_code') or '').strip()) or '',
+        }
+
     def buyer_additional_info(self, billing_info={} ):
         ret = {}
 
@@ -4978,13 +5096,16 @@ class mercadolibre_orders(models.Model):
             #_logger.info(order_json)
             #_logger.info("Buyer:"+str(Buyer) )
             #_logger.info("Receiver:"+str(Receiver) )
+            # Direccion de UNA sola fuente: facturacion entera o envio entero (nunca el estado del envio
+            # con la calle de facturacion). Ver _meli_partner_address_vals.
+            _meli_addr = self._meli_partner_address_vals(Receiver, Buyer)
             meli_buyer_fields = {
                 'name': self.buyer_full_name(Buyer),
-                'street': self.street(Receiver,Buyer),
-                'city': self.city(Receiver,Buyer),
-                'country_id': self.country(Receiver,Buyer),
-                'state_id': self.state(self.country(Receiver,Buyer),Receiver,Buyer),
-                'zip': self.zip_code(Receiver,Buyer),
+                'street': _meli_addr.get('street', ''),
+                'city': _meli_addr.get('city', ''),
+                'country_id': _meli_addr.get('country_id') or self.country(Receiver,Buyer),
+                'state_id': _meli_addr.get('state_id', False),
+                'zip': _meli_addr.get('zip', ''),
                 'phone': self.full_phone( Buyer ),
                 #'email': Buyer['email'],
                 'meli_buyer_id': Buyer['id'],
@@ -5644,14 +5765,9 @@ class mercadolibre_orders(models.Model):
                          list(billing_child_fields.keys()), list(meli_buyer_fields.keys()))
 
             # Dirección de facturación (va al contacto hijo)
+            # Toda desde billing_info (calle, ciudad, CP, pais Y estado): ver _meli_billing_address_vals.
             if ("billing_info_street_name" in buyer_fields and buyer_fields["billing_info_street_name"]):
-                billing_child_fields.update({
-                    'street': self.street(Receiver, Buyer),
-                    'city': self.city(Receiver, Buyer),
-                    'country_id': self.country(Receiver, Buyer),
-                    'state_id': self.state(self.country(Receiver, Buyer), Receiver, Buyer),
-                    'zip': self.zip_code(Receiver, Buyer),
-                })
+                billing_child_fields.update(self._meli_billing_address_vals(Receiver, Buyer))
 
             if ("fe_regimen_fiscal" in self.env['res.partner']._fields):
                 billing_child_fields['fe_regimen_fiscal'] = '49'
@@ -5730,14 +5846,15 @@ class mercadolibre_orders(models.Model):
             elif ("meli_update_forbidden" in partner_id._fields and not partner_id.meli_update_forbidden):
                 # Actualizar contacto principal: solo campos de identidad, NO nombre ni datos fiscales
                 parent_update = {}
-                if not partner_id.country_id:
-                    parent_update['country_id'] = self.country(Receiver, Buyer)
-                if not partner_id.state_id:
-                    parent_update['state_id'] = self.state(self.country(Receiver, Buyer), Receiver, Buyer)
-                if not partner_id.street or partner_id.street == "no street":
-                    parent_update['street'] = self.street(Receiver, Buyer)
-                if not partner_id.city or partner_id.city == "":
-                    parent_update['city'] = self.city(Receiver, Buyer)
+                _meli_addr = self._meli_partner_address_vals(Receiver, Buyer)  # una sola fuente
+                if not partner_id.country_id and _meli_addr.get('country_id'):
+                    parent_update['country_id'] = _meli_addr['country_id']
+                if not partner_id.state_id and _meli_addr.get('state_id'):
+                    parent_update['state_id'] = _meli_addr['state_id']
+                if (not partner_id.street or partner_id.street == "no street") and _meli_addr.get('street'):
+                    parent_update['street'] = _meli_addr['street']
+                if (not partner_id.city or partner_id.city == "") and _meli_addr.get('city'):
+                    parent_update['city'] = _meli_addr['city']
                 if not partner_id.phone and 'phone' in meli_buyer_fields and meli_buyer_fields['phone']:
                     parent_update['phone'] = meli_buyer_fields['phone']
                 # [#caso-K17] mobile vacio: toma el telefono que manda ML (no pisa uno cargado a mano)
