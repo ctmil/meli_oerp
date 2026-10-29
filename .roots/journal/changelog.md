@@ -4,6 +4,8 @@
 
 ---
 
+## 17.0.26.335 — 29-oct-2026 · Release de flota 26.335 (acompaña la novedad de meli_oerp_accounting: retenciones de MercadoPago registradas en el cobro del cliente, opcional por compañía; sin cambios propios)
+
 ## 17.0.26.334 — 28-oct-2026 · Corrección: una lista de precios elegida al publicar gana sobre la de la configuración de la cuenta; el aviso genérico de atributos faltantes indica dónde se carga cada uno (acompaña a meli_oerp_multiple 26.334)
 ## 17.0.26.333 — 28-oct-2026 · Release de flota 26.333 (alinea el suite en 16–20: lleva a 20.0 los cambios de producto de Mercado Libre de 26.332; sin cambios propios en 17.0)
 ## 17.0.26.332 — 28-oct-2026 · Nuevo: cambios de producto de Mercado Libre. La venta de reemplazo queda ligada a la venta original (aviso en las dos) y, cuando la devolución llega, se registra el reingreso del artículo según la configuración de devoluciones (FULL incluido). Se activa con la tarea programada «MELI: cambios de producto».
