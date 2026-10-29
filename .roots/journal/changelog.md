@@ -6,6 +6,7 @@
 
 ## 18.0.26.335 — 29-oct-2026 · Release de flota 26.335 (acompaña la novedad de meli_oerp_accounting: retenciones de MercadoPago registradas en el cobro del cliente, opcional por compañía)
 - **meli_oerp (#696):** las notificaciones de MercadoLibre ya procesadas (correctas o con error) se borran solas pasados 90 días — parámetro del sistema `meli_oerp.notification_days` (0 = no borrar nunca); las pendientes no se tocan. El registro del servidor deja de anotar en cada venta importada el JSON completo y el detalle de contactos/facturación (pasa a nivel DEBUG).
+- **meli_oerp (#696, contactos):** volver a importar una venta sin cambios ya no reescribe los contactos del comprador: el contacto de entrega dejaba de alternar el código postal en cada actualización (se borraba y se volvía a escribir, y cada cambio quedaba como mensaje de seguimiento en el contacto); un dato que no viene en la actualización ya no borra el guardado, y la lista de precios del comprador sólo se escribe si cambia.
 
 ## 18.0.26.334 — 28-oct-2026 · Corrección: una lista de precios elegida al publicar gana sobre la de la configuración de la cuenta; el aviso genérico de atributos faltantes indica dónde se carga cada uno (acompaña a meli_oerp_multiple 26.334)
 ## 18.0.26.333 — 28-oct-2026 · Release de flota 26.333 (alinea el suite en 16–20: lleva a 20.0 los cambios de producto de Mercado Libre de 26.332; sin cambios propios en 18.0)

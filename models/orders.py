@@ -3890,6 +3890,36 @@ class mercadolibre_orders(models.Model):
 
         return updated
 
+    def _meli_receiver_from_shipment(self, Shipment):
+        """[#696] receiver_address armado desde el envio ya guardado (mismo formato que el JSON de ML).
+
+        Antes no llevaba `zip_code`: en cada import el contacto de ENTREGA se escribia con CP vacio
+        (partner_delivery_id) y, en la misma vuelta, el camino de packs de shipment.py lo volvia a escribir
+        con el CP del JSON. Dos cambios reales de direccion por import = dos mensajes de seguimiento
+        (contact_address_inline) en el contacto, en cada resync.
+        """
+        return {
+            'receiver_address': Shipment.receiver_address_line,
+            'address_line': Shipment.receiver_address_line,
+            'receiver_name': Shipment.receiver_address_name,
+            'receiver_phone': Shipment.receiver_address_phone,
+            'zip_code': Shipment.receiver_zip_code or '',
+            'street_name': Shipment.receiver_street_name,
+            'street_number': Shipment.receiver_street_number,
+            'country': {
+                'id': Shipment.receiver_country_code,
+                'name': Shipment.receiver_country
+            },
+            'state': {
+                'name': Shipment.receiver_state,
+                'id': Shipment.receiver_state_code
+            },
+            'city': {
+                'name': Shipment.receiver_city,
+                'id': Shipment.receiver_city_code
+            }
+        }
+
     def street(self, Receiver={}, Buyer={} ):
         full_street = 'no street'
         if (Receiver and 'address_line' in Receiver):
@@ -5108,24 +5138,7 @@ class mercadolibre_orders(models.Model):
                     Shipment = self.env["mercadolibre.shipment"].search([('shipping_id','=',order_json['shipping']["id"])],limit=1)
                     #_logger.info("Shipment:"+str(Shipment))
                     if (len(Shipment)==1):
-                        Receiver = {
-                            'receiver_address': Shipment.receiver_address_line,
-                            'address_line': Shipment.receiver_address_line,
-                            'receiver_name': Shipment.receiver_address_name,
-                            'receiver_phone': Shipment.receiver_address_phone,
-                            'country': {
-                                'id': Shipment.receiver_country_code,
-                                'name': Shipment.receiver_country
-                            },
-                            'state': {
-                                'name': Shipment.receiver_state,
-                                'id': Shipment.receiver_state_code
-                            },
-                            'city': {
-                                'name': Shipment.receiver_city,
-                                'id': Shipment.receiver_city_code
-                            }
-                        }
+                        Receiver = self._meli_receiver_from_shipment(Shipment)
                     else:
                         shipres = meli.get("/shipments/"+ str(order_json['shipping']['id']),  {'access_token':meli.access_token })
                         if shipres:
@@ -6300,8 +6313,11 @@ class mercadolibre_orders(models.Model):
         if original_contact_partner_id:
             #fix Just, fijar la lista de precio predeterminada de cada cliente
             try:
-                with self.env.cr.savepoint():
-                    original_contact_partner_id.property_product_pricelist = (config and config.mercadolibre_pricelist)
+                # [#696] sin cambio no se escribe: el write igual toca la fila del contacto en cada import
+                _meli_pl = (config and config.mercadolibre_pricelist) or self.env['product.pricelist']
+                if original_contact_partner_id.property_product_pricelist != _meli_pl:
+                    with self.env.cr.savepoint():
+                        original_contact_partner_id.property_product_pricelist = _meli_pl
             except Exception as e:
                 _logger.warning('Could not set pricelist on partner %s (id:%s): %s',
                                 original_contact_partner_id.name, original_contact_partner_id.id, e)
