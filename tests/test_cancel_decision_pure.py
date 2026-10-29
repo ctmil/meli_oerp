@@ -242,5 +242,41 @@ class TestClassifyCancelReason624(unittest.TestCase):
         for raw in (None, "", "0", "false", "no"):
             self.assertFalse(cd.param_is_true(raw))
 
+
+class TestLegacyCancelGuard26335(unittest.TestCase):
+    """26.335: guarda de entrega / cobro del modo legacy (legacy_cancel_block_reason)."""
+    G = staticmethod(cd.legacy_cancel_block_reason)
+
+    def test_envio_entregado_retiene(self):
+        self.assertIn("ENTREGADO", self.G({"id": "48242125959", "status": "delivered"}, []))
+
+    def test_envio_entregado_y_vuelto_no_retiene(self):
+        self.assertEqual(self.G({"status": "delivered", "substatus": "returned_to_sender"}, []), "")
+
+    def test_envio_cancelado_o_sin_envio_no_retiene(self):
+        self.assertEqual(self.G({"status": "cancelled"}, []), "")
+        self.assertEqual(self.G(None, None), "")
+        self.assertEqual(self.G({"status": "ready_to_ship"}, []), "")
+
+    def test_pago_aprobado_sin_reintegro_retiene(self):
+        self.assertIn("acreditado", self.G(None, [{"id": "1", "status": "approved", "refunded": 0.0}]))
+
+    def test_pago_aprobado_con_reintegro_parcial_no_retiene(self):
+        self.assertEqual(self.G(None, [{"status": "approved", "refunded": 50.0}]), "")
+
+    def test_pago_cubierto_por_ml_retiene(self):
+        self.assertIn("bpp_covered", self.G(None, [{"status": "refunded", "status_detail": "bpp_covered",
+                                                     "refunded": 200.0}]))
+
+    def test_pago_reintegrado_o_muerto_no_retiene(self):
+        self.assertEqual(self.G(None, [{"status": "refunded", "status_detail": "bpp_refunded", "refunded": 200.0}]), "")
+        self.assertEqual(self.G(None, [{"status": "cancelled"}, {"status": "rejected"}]), "")
+
+    def test_pago_local_viejo_no_retiene(self):
+        self.assertEqual(self.G(None, [{"status": "approved", "refunded": 0.0, "fresh": False}]), "")
+
+    def test_entregado_gana_aunque_el_pago_este_reintegrado(self):
+        self.assertIn("ENTREGADO", self.G({"status": "delivered"}, [{"status": "refunded", "refunded": 230.0}]))
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
