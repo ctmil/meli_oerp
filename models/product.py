@@ -4132,6 +4132,20 @@ class product_product(models.Model):
 
         return res
 
+    def _meli_attr_manufacturer_from_brand(self, attributes, attributes_ids):
+        """26.339 W5 (462): MANUFACTURER = Marca cuando falta (muta las listas)."""
+        self.ensure_one()
+        if "MANUFACTURER" in attributes_ids:
+            return False
+        _brand = attributes_ids.get("BRAND") or self.meli_brand or self.product_tmpl_id.meli_brand
+        if not _brand:
+            return False
+        attribute = {"id": "MANUFACTURER", "value_name": str(_brand)}
+        attributes_ids["MANUFACTURER"] = _brand
+        attributes.append(attribute)
+        _logger.info("manufacturer attribute added from brand: " + str(attribute))
+        return True
+
     def _product_post( self, meli=None, config=None ):
 
         #import pdb;pdb.set_trace();
@@ -4497,6 +4511,11 @@ class product_product(models.Model):
                     attributes_ids[_att_id] = _val
                     attributes.append(attribute)
                     _logger.info("tax attribute added: "+str(attribute))
+
+        # 26.339 W5 (462): «Fabricante» (MANUFACTURER) obligatorio en muchas
+        # categorías; si falta, se completa con la Marca en vez de cortar la
+        # publicación con "faltan atributos obligatorios: Fabricante".
+        product._meli_attr_manufacturer_from_brand(attributes, attributes_ids)
 
         #_product_post_set_category
         if www_cats:
