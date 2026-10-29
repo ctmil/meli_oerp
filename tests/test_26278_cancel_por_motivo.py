@@ -255,9 +255,23 @@ class TestCancelPorMotivo(TransactionCase):
         self.ICP.set_param("meli_oerp.cancel_reason_policy", "")
         so, prod = self._mkso()
         with self.assertLogs("odoo.addons.meli_oerp.models.orders", level="WARNING") as cm:
-            self.assertTrue(self._cancel(so, _oj("mediations", ["bpp_covered"])))
+            # 26.335: con la politica apagada una mediacion CUBIERTA (bpp_covered) ya no se
+            # cancela (guarda de cobro del modo legacy, ver el test de abajo); el camino de
+            # siempre se mide con una mediacion REINTEGRADA.
+            self.assertTrue(self._cancel(so, _oj("mediations", ["bpp_refunded"])))
         self.assertTrue(any("MELI_CANCEL_RETURN_SKIP" in m for m in cm.output))
-        self.assertEqual(so.state, "cancel", "sin la politica, una mediacion cubierta se cancela como antes")
+        self.assertEqual(so.state, "cancel", "sin la politica, una mediacion reintegrada se cancela como antes")
         self.assertFalse(so.meli_cancel_covered)
         self.assertFalse(self._returns(so), "mediations fuera de cancel_return_reasons: sin devolucion")
         self.assertTrue(so.meli_cancel_return_skipped)
+
+    def test_politica_apagada_mediacion_cubierta_queda_retenida_26335(self):
+        """26.335: sin la politica, legacy tampoco cancela un pago cubierto por ML al vendedor."""
+        self.ICP.set_param("meli_oerp.cancel_reason_policy", "")
+        so, prod = self._mkso()
+        with self.assertLogs("odoo.addons.meli_oerp.models.orders", level="WARNING") as cm:
+            self.assertFalse(self._cancel(so, _oj("mediations", ["bpp_covered"])))
+        self.assertTrue(any("MELI_CANCEL_HOLD_DELIVERED" in m for m in cm.output), cm.output)
+        self.assertNotEqual(so.state, "cancel")
+        self.assertTrue(so.meli_cancel_held)
+        self.assertFalse(self._returns(so))
