@@ -4,7 +4,8 @@
 
 ---
 
-## 20.0.26.335 — 29-oct-2026 · Release de flota 26.335 (acompaña la novedad de meli_oerp_accounting: retenciones de MercadoPago registradas en el cobro del cliente, opcional por compañía; sin cambios propios)
+## 20.0.26.335 — 29-oct-2026 · Release de flota 26.335 (acompaña la novedad de meli_oerp_accounting: retenciones de MercadoPago registradas en el cobro del cliente, opcional por compañía)
+- **meli_oerp (#696):** las notificaciones de MercadoLibre ya procesadas (correctas o con error) se borran solas pasados 90 días — parámetro del sistema `meli_oerp.notification_days` (0 = no borrar nunca); las pendientes no se tocan. El registro del servidor deja de anotar en cada venta importada el JSON completo y el detalle de contactos/facturación (pasa a nivel DEBUG).
 
 ## 20.0.26.334 — 28-oct-2026 · Corrección: una lista de precios elegida al publicar gana sobre la de la configuración de la cuenta; el aviso genérico de atributos faltantes indica dónde se carga cada uno (acompaña a meli_oerp_multiple 26.334)
 ## 20.0.26.333 — 28-oct-2026 · Nuevo: cambios de producto de Mercado Libre (llega a 20.0 lo de 26.332). La venta de reemplazo queda ligada a la venta original (aviso en las dos) y, cuando la devolución llega, se registra el reingreso del artículo según la configuración de devoluciones (FULL incluido). Se activa con la tarea programada «MELI: cambios de producto». (La corrección del carrito con cupón de 26.330 todavía no está en 20.0: requiere 26.318.)
