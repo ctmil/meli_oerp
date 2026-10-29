@@ -4902,7 +4902,7 @@ class mercadolibre_orders(models.Model):
 
             Buyer['billing_info'] = self.get_billing_info(order_id=order_json['id'],meli=meli,data=order_json)
             _mx_cfdi_billing_info = Buyer['billing_info'] or {}
-            _logger.info("BUYER_DATA: order=%s buyer_id=%s billing_info_keys=%s doc_type=%s doc_number=%s",
+            _logger.debug("BUYER_DATA: order=%s buyer_id=%s billing_info_keys=%s doc_type=%s doc_number=%s",
                          order_json.get('id','?'), _buyer_id_raw,
                          list(Buyer.get('billing_info', {}).keys()),
                          Buyer.get('billing_info', {}).get('doc_type', 'N/A'),
@@ -5627,7 +5627,7 @@ class mercadolibre_orders(models.Model):
                 if _bf in BILLING_ONLY_FIELDS or _bf.startswith('fe_'):
                     billing_child_fields[_bf] = meli_buyer_fields.pop(_bf)
             billing_child_fields['name'] = billing_full_name
-            _logger.info("BILLING_SPLIT: billing_child_fields=%s | buyer_fields_remaining=%s",
+            _logger.debug("BILLING_SPLIT: billing_child_fields=%s | buyer_fields_remaining=%s",
                          list(billing_child_fields.keys()), list(meli_buyer_fields.keys()))
 
             # Dirección de facturación (va al contacto hijo)
@@ -5894,7 +5894,7 @@ class mercadolibre_orders(models.Model):
                             _protected_skipped.append(_fp)
                             del invoice_update[_fp]
                     if _protected_skipped:
-                        _logger.info(
+                        _logger.debug(
                             "FISCAL_PROTECT: contacto id:%s ya tiene valores para %s "
                             "— no sobreescritos (ML no envió datos explícitos en esta corrida)",
                             partner_invoice_id.id, _protected_skipped)
@@ -6044,7 +6044,7 @@ class mercadolibre_orders(models.Model):
                     _fix_fields.append("l10n_ar_afip_responsibility_type_id = %s")
                     _fix_vals.append(partner_invoice_id.l10n_ar_afip_responsibility_type_id.id)
                 if _fix_fields and _meli_partner_fiscal_sql_fix(self.env.cr, partner_invoice_id.id, _fix_fields, _fix_vals):
-                    _logger.info("COMMERCIAL_FIELDS_FIX SQL: datos fiscales en billing child id:%s (%s)",
+                    _logger.debug("COMMERCIAL_FIELDS_FIX SQL: datos fiscales en billing child id:%s (%s)",
                                  partner_invoice_id.id, ", ".join(_fix_fields))
 
             # Modo 3: detectar VAT duplicado en buyer y limpiar / avisar
