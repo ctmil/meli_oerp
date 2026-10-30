@@ -4,6 +4,8 @@
 
 ---
 
+## 19.0.26.344 — 30-oct-2026 · Release de flota 26.344 (acompaña la corrección de meli_oerp_campaign: el asistente «Publicar/Actualizar en ML» vuelve a abrir cuando trae la lista de precios precargada; sin cambios propios)
+
 ## 19.0.26.342 — 30-oct-2026 · Corrección del envío cobrado y opción para el cupón del vendedor
 - **meli_oerp (envío):** la línea de envío de una venta lleva sólo el flete que efectivamente pagó el comprador y cobró el vendedor. Un pago de envío de Mercado Pago en el que el vendedor es quien paga (o que cobra otro) ya no se suma a la venta.
 - **meli_oerp (cupón del vendedor):** nuevo parámetro del sistema `meli_oerp.seller_coupon_mode`. Con `discount` (valor por defecto, igual que hasta ahora) la venta queda en el precio de los artículos menos el cupón que financia el vendedor; con `collected` queda en lo cobrado por Mercado Pago y el cupón no se resta. Se puede fijar por compañía con `meli_oerp.seller_coupon_mode.company_<id>`.
