@@ -683,7 +683,7 @@ class mercadolibre_shipment(models.Model):
                 updated += 1
         return updated
 
-    def _meli_pack_receiver_cost(self, meli, ship_id, rcosts):
+    def _meli_pack_receiver_cost(self, meli, ship_id, rcosts, seller_id=None):
         """[#caso-K02/#caso-K21/#caso-K22] Flete del comprador que COBRO el vendedor (shipping_receiver_cost).
 
         Un GET a MercadoPago (/v1/payments/search?external_reference=<envio>, token en el header,
@@ -701,7 +701,8 @@ class mercadolibre_shipment(models.Model):
                                     headers={'Authorization': 'Bearer %s' % token, 'Accept': 'application/json'},
                                     timeout=10)
                 if resp is not None and resp.status_code == 200:
-                    collected = seller_collected_shipping(resp.json(), ship_id)
+                    # 26.342 (535): sólo los pagos que COBRA el vendedor (no los que paga él).
+                    collected = seller_collected_shipping(resp.json(), ship_id, seller_id=seller_id)
                 else:
                     _logger.warning("MELI envio %s: consulta MP del flete cobrado devolvio %s; no se asume nada",
                                     ship_id, getattr(resp, 'status_code', None))
@@ -1516,7 +1517,10 @@ class mercadolibre_shipment(models.Model):
                     # gratis subsidiado, receiver.cost viene lleno y el comprador pagó 0.
                     # [#caso-K02/#caso-K21/#caso-K22] ...pero cost_details NO dice quien cobro: lo dice el pago MP
                     # marketplace_shipment del envio (ver receiver_cost.py y _meli_pack_receiver_cost).
-                    ship_json['receiver_cost'] = self._meli_pack_receiver_cost(meli, ship_id, rcosts)
+                    _ship_seller = ship_json.get('sender_id') or (config.mercadolibre_seller_id
+                                    if config and 'mercadolibre_seller_id' in config._fields else None)
+                    ship_json['receiver_cost'] = self._meli_pack_receiver_cost(meli, ship_id, rcosts,
+                                                                               seller_id=_ship_seller)
 
                 seller_id = None
                 if config.mercadolibre_seller_user:

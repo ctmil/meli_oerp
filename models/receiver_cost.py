@@ -46,15 +46,36 @@ def receiver_gross_cost(rcosts):
     return max(float(receiver.get('cost') or 0.0), 0.0)
 
 
-def seller_collected_shipping(search_json, shipment_id):
+def _payment_party_id(pay, key):
+    """id del pagador / cobrador de un pago MP: `payer.id` / `collector_id` (o `collector.id`)."""
+    if key == 'payer':
+        party = pay.get('payer')
+        if isinstance(party, dict):
+            return party.get('id')
+        return party
+    cid = pay.get('collector_id')
+    if cid in (None, '') and isinstance(pay.get('collector'), dict):
+        cid = pay['collector'].get('id')
+    return cid
+
+
+def seller_collected_shipping(search_json, shipment_id, seller_id=None):
     """Flete del envio que COBRO el vendedor segun /v1/payments/search?external_reference=<envio>
-    (consultado con el token del vendedor: sólo devuelve sus cobros).
+    (consultado con el token del vendedor).
 
     Devuelve la suma de los pagos approved con description=marketplace_shipment y
     external_reference == shipment_id (>= 0), o None si la respuesta no permite decidir
-    (sin 'results'): el llamador NO asume nada en ese caso."""
+    (sin 'results'): el llamador NO asume nada en ese caso.
+
+    26.342 (535, 30-oct-2026): el search devuelve los pagos en los que el usuario PARTICIPA, no sólo
+    los que cobra. Un pago marketplace_shipment en el que el vendedor es el PAGADOR (o que cobra
+    otro) no es flete que haya pagado el comprador: contarlo agregaba a la venta una línea de envío
+    que el comprador no pagó (SO 181677: 188 + 53). Con `seller_id` se cuentan SÓLO los pagos
+    cobrados por el vendedor: se descarta payer == vendedor y collector_id != vendedor (cuando el
+    pago lo trae). Sin `seller_id`, el criterio de 26.319."""
     if not isinstance(search_json, dict) or not isinstance(search_json.get('results'), list):
         return None
+    seller = str(seller_id) if seller_id not in (None, '', False) else None
     total = 0.0
     for pay in search_json['results']:
         if not isinstance(pay, dict):
@@ -65,6 +86,13 @@ def seller_collected_shipping(search_json, shipment_id):
             continue
         if str(pay.get('external_reference') or '') != str(shipment_id):
             continue
+        if seller:
+            payer = _payment_party_id(pay, 'payer')
+            if payer not in (None, '') and str(payer) == seller:
+                continue
+            collector = _payment_party_id(pay, 'collector')
+            if collector not in (None, '') and str(collector) != seller:
+                continue
         total += float(pay.get('transaction_amount') or 0.0)
     return round(max(total, 0.0), 2)
 

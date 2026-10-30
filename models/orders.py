@@ -4414,6 +4414,48 @@ class mercadolibre_orders(models.Model):
 
         return full_phone
 
+    # 26.342 (535 / caso-K13, 30-oct-2026): criterio contable del descuento del VENDEDOR, por cliente.
+    # En el carrito ML manda coupon null y payments[].coupon_amount 0 tanto en caso-K13 como en 535: el pago
+    # de la orden trae los items enteros y el cupon del vendedor solo esta en /orders/{id}/discounts.
+    # Ningun dato separa los dos casos; es una decision de como concilia cada cliente:
+    #   'discount'  (default, = 26.229..26.341): la venta = items - descuento del vendedor (caso-K13, #547).
+    #   'collected': el descuento del vendedor NO se resta; la venta = lo cobrado por MercadoPago (535).
+    # Parametro de sistema: meli_oerp.seller_coupon_mode.company_<id> (por compania) y, si no esta,
+    # meli_oerp.seller_coupon_mode (toda la base). Cualquier otro valor = 'discount'.
+    SELLER_COUPON_MODE_PARAM = 'meli_oerp.seller_coupon_mode'
+
+    @api.model
+    def _meli_seller_coupon_mode(self, config=None, company=None):
+        if not company and config:
+            if getattr(config, '_name', '') == 'res.company':
+                company = config
+            elif 'company_id' in config._fields:
+                company = config.company_id
+        if not company:
+            company = ('company_id' in self._fields and self[:1].company_id) or self.env.company
+        ICP = self.env['ir.config_parameter'].sudo()
+        val = (company and ICP.get_str('%s.company_%s' % (self.SELLER_COUPON_MODE_PARAM, company.id))) \
+            or ICP.get_str(self.SELLER_COUPON_MODE_PARAM) or 'discount'
+        return 'collected' if str(val).strip().lower() == 'collected' else 'discount'
+
+    def _meli_apply_seller_coupon_mode(self, config=None):
+        """En modo 'collected' deja en 0 el descuento del vendedor de la orden (no se resta del precio ni
+        del importe a facturar). En 'discount' no toca nada. Devuelve el modo."""
+        mode = self._meli_seller_coupon_mode(config=config)
+        if mode != 'collected':
+            return mode
+        for mo in self:
+            vals = {}
+            if mo.discount_seller_amount:
+                vals['discount_seller_amount'] = 0.0
+            if 'discount_seller_coupon_amount' in mo._fields and mo.discount_seller_coupon_amount:
+                vals['discount_seller_coupon_amount'] = 0.0
+            if vals:
+                _logger.info("MELI order %s: descuento del vendedor %.2f NO se resta (seller_coupon_mode=collected)",
+                             mo.order_id, mo.discount_seller_amount or 0.0)
+                mo.write(vals)
+        return mode
+
     def _fetch_order_discounts(self, meli=None):
         """Fetch /orders/{order_id}/discounts to determine seller-funded discount amount.
         Sets discount_seller_amount = sum of amounts.seller from all discount items.
@@ -6546,6 +6588,7 @@ class mercadolibre_orders(models.Model):
         # su descuento no se puede restar por línea sin prorratear (incidente 26.131, revertido en 26.135).
         if order and (order.coupon_amount > 0 or (_payments_coupon > 0 and not order.pack_id)):
             order._fetch_order_discounts(meli=meli)
+            order._meli_apply_seller_coupon_mode(config=config)  # 26.342: 'collected' no resta el descuento
             meli_order_fields['meli_discount_seller_amount'] = order.discount_seller_amount or 0.0
 
         if (sorder and sorder.id):
