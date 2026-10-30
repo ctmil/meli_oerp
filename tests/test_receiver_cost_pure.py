@@ -175,5 +175,81 @@ class TestFletePackCobrado(unittest.TestCase):
         self.assertEqual(rc.pack_receiver_cost({"algo": True}, None, previous=None), 0.0)
 
 
+class TestFleteCobradoPorElVendedor(unittest.TestCase):
+    """26.342 (caso-K22, 30-oct-2026, SO 181677 tras el pase a 26.335): la venta quedo en 188 + 53 de envio y
+    la orden ML cobro 188 (pago con shipping 0). /costs REAL de ese envio: receiver.cost 53 con cost_details
+    del VENDEDOR 53, senders.cost 6. Con use_payment_shipping_amount=True el 53 solo puede salir de un pago
+    MP marketplace_shipment de 53 que el search devolvio con el token del vendedor.
+
+    El search de MP devuelve los pagos en los que el usuario PARTICIPA, no solo los que cobra: un pago
+    del flete que PAGA el vendedor (o que cobra otro) no es flete del comprador. El 26.342 cuenta solo lo
+    que cobra el vendedor (payer != vendedor y, si viene, collector_id == vendedor).
+    ⚠️ El /costs es real; los pagos del search del caso-K22 NO estan medidos (payer/collector del pago de 53
+    pendientes de UN GET): las variantes de abajo son SINTETICAS y cubren las dos lecturas posibles."""
+
+    SELLER, BUYER, SHIP = 520031706, 301184213, 45822913407   # caso-K22 (ids anonimizados, importes reales)
+
+    def _costs(self):
+        return {"receiver": {"compensations": [], "fees": [], "cost": 53, "discounts": [], "user_id": self.BUYER,
+                             "cost_details": [{"sender_id": self.SELLER, "amount": 53}], "save": 0, "compensation": 0},
+                "senders": [{"cost": 6, "compensation": 0, "save": 0}]}
+
+    def _pay(self, payer, collector=None):
+        p = _ship_pay(990001, 53, self.SHIP)
+        p["payer"] = {"id": payer}
+        if collector is not None:
+            p["collector_id"] = collector
+        return {"results": [p]}
+
+    def _linea(self, search):
+        collected = rc.seller_collected_shipping(search, self.SHIP, seller_id=self.SELLER)
+        rcv = rc.pack_receiver_cost(self._costs(), collected, previous=None)
+        return rc.buyer_shipping_amount(True, 0.0, 0.0, rcv)
+
+    def test_a_comprador_paga_y_cobra_el_vendedor_queda_53(self):
+        # lectura (a): el comprador pago el flete y lo cobro el vendedor => la linea de 53 es correcta
+        self.assertAlmostEqual(self._linea(self._pay(self.BUYER, self.SELLER)), 53.0, places=2)
+        self.assertAlmostEqual(self._linea(self._pay(self.BUYER)), 53.0, places=2)  # sin collector_id
+
+    def test_b_el_vendedor_es_el_pagador_no_es_flete_del_comprador(self):
+        # lectura (b): el vendedor PAGA el flete => antes 53 (rojo con 26.319..26.341), ahora 0
+        self.assertEqual(self._linea(self._pay(self.SELLER)), 0.0)
+
+    def test_c_lo_cobra_otro_no_el_vendedor(self):
+        self.assertEqual(self._linea(self._pay(self.BUYER, collector=111222333)), 0.0)
+
+    def test_d_payer_como_id_suelto_y_collector_objeto(self):
+        p = _ship_pay(990002, 53, self.SHIP)
+        p["payer"] = self.SELLER
+        self.assertEqual(rc.seller_collected_shipping({"results": [p]}, self.SHIP, seller_id=self.SELLER), 0.0)
+        p = _ship_pay(990003, 53, self.SHIP)
+        p["payer"] = {"id": self.BUYER}
+        p["collector"] = {"id": self.SELLER}
+        self.assertEqual(rc.seller_collected_shipping({"results": [p]}, self.SHIP, seller_id=self.SELLER), 53.0)
+
+    def test_e_casos_reales_k02_k21_siguen_contando_con_seller_id(self):
+        # los pagos reales del 27-oct (payer = el comprador) no cambian al pasar el vendedor
+        reales = [  # (envio, vendedor, comprador-pagador, monto)
+            (42331350052, 196350138, 3793491584, 102089), (42457144866, 337163020, 3793979704, 8692),
+            (44072759283, 570653807, 3764998521, 1299.8), (44194202845, 570653807, 3778914384, 4999)]
+        for ship, seller, payer, amount in reales:
+            with self.subTest(ship=ship):
+                p = _ship_pay(1, amount, ship)
+                p["payer"] = payer
+                self.assertAlmostEqual(rc.seller_collected_shipping({"results": [p]}, ship, seller_id=seller), amount, places=2)
+
+    def test_f_ab_158_pack_sin_envio(self):
+        """A/B del pack de caso-K02 (158, ML 2000384899703529, payload real): con el criterio de 26.172..26.318
+        (receiver_buyer_cost, el que corre en su prod 26.313) la linea da 0 = el pack sin envio que reporta el
+        cliente; con 26.319+ (pago marketplace_shipment cobrado) da 102.089 = lo que pago el comprador."""
+        rcosts = _costs(102089, 3731085, 196350138)
+        search = {"results": [dict(_ship_pay(185004403007, 102089, 42331350052), payer={"id": 3793491584})]}
+        antes = rc.buyer_shipping_amount(True, 0.0, 102089, rc.receiver_buyer_cost(rcosts))
+        despues = rc.buyer_shipping_amount(True, 0.0, 102089, rc.pack_receiver_cost(
+            rcosts, rc.seller_collected_shipping(search, 42331350052, seller_id=196350138), previous=None))
+        self.assertEqual(antes, 0.0)
+        self.assertAlmostEqual(despues, 102089.0, places=2)
+
+
 if __name__ == "__main__":
     unittest.main()
