@@ -4,6 +4,29 @@
 
 ---
 
+## 30 oct 2026 — flete del envío: sólo lo que COBRA el vendedor · descuento del vendedor configurable por cliente [caso-K22 535 / caso-K02 158 / caso-K13 431] (v19.0.26.342)
+**Síntoma (caso-K22, tras el pase a 26.335):** SO 181677 = 188 + 53 de envío con la orden ML cobrada en 188 (pago con shipping 0); SO 181678 y 181690
+quedaron por debajo de lo cobrado por MercadoPago (436,99 → 403,59; 589,27 → 550,97) por el cupón del vendedor restado (26.330). caso-K02: packs con
+flete cobrado sin línea de envío (corre 26.313).
+**Causa flete:** con `use_payment_shipping_amount=True` el flete sale de `shipping_receiver_cost`, cuyo único escritor es `_meli_pack_receiver_cost`
+(26.319): suma los pagos MP `marketplace_shipment` del envío que devuelve `/v1/payments/search` con el token del vendedor. Ese search trae los pagos
+en los que el usuario PARTICIPA, y el filtro no miraba quién pagaba ni quién cobraba. `cost_details` del vendedor NO discrimina (medido 27-oct:
+aparece también con el flete dentro del pago) — no se usa.
+**Fix flete:** `seller_collected_shipping(search, ship_id, seller_id)` cuenta sólo los pagos COBRADOS por el vendedor: descarta `payer.id == vendedor`
+y `collector_id != vendedor` (cuando vienen). Vendedor = `sender_id` del envío (o `mercadolibre_seller_id`). Sin vendedor, el criterio de 26.319.
+Criterio único para 535 y 158: la línea de envío va sólo si el comprador pagó el flete (en el pago de la orden o en un pago aparte cobrado por el
+vendedor) y por ese monto. caso-K02 ya lo tiene desde 26.319 (le falta el pase).
+**Causa cupón:** en un carrito ML manda `coupon: null` y `payments[].coupon_amount: 0` en caso-K13 Y en caso-K22: el pago trae los ítems enteros. No
+hay dato que separe los dos; es cómo concilia cada cliente (caso-K13 #547: ítems − cupón; caso-K22: lo cobrado por MP).
+**Fix cupón:** parámetro de sistema `meli_oerp.seller_coupon_mode` (toda la base) / `meli_oerp.seller_coupon_mode.company_<id>` (por compañía):
+`discount` (default = 26.229..26.341, sin cambios para nadie) | `collected` (el descuento del vendedor no se resta: venta = cobrado). Se aplica tras
+`_fetch_order_discounts` (`_meli_apply_seller_coupon_mode`) y en `_meli_pack_seller_discount` (aunque haya quedado guardado). Una venta confirmada no
+se reescribe (guarda #caso-K11 de siempre): las ya entradas se reparan con resync tras setear el parámetro, un caso primero.
+**Prueba:** `tests/test_receiver_cost_pure.py::TestFleteCobradoPorElVendedor` (6; /costs real de 181677, pagos sintéticos etiquetados para las dos
+lecturas; pagos reales caso-K02/K21 siguen contando; A/B caso-K02 26.313=0 vs 26.319+=102.089). Control origin 26.341: 3 rojos (53 != 0); fix verde.
+`tests/test_26342_cupon_modo.py` (tag meli_26342, 6; payloads reales 181678/181690 en los dos modos + resolución del parámetro).
+**Activar en un cliente que concilia contra lo cobrado:** Ajustes › Técnico › Parámetros del sistema: `meli_oerp.seller_coupon_mode` = `collected`.
+
 ## 29 oct 2026 — Meli Stock Diagnostic con presupuesto por corrida (26.190 re-portado sobre #caso-K12) + venta ML sin producto visible [#598 OrgVit 475] (v19.0.26.341)
 **Síntoma:** el cron "Meli Stock Diagnostic" (reactiva pausadas con stock) terminaba "Interrumpido" 144 veces por día desde el
 12-ago y Odoo lo desactivó solo el 30-ago (475). Las pausadas con stock no volvían solas. Las ventas ML sin producto quedaban en
