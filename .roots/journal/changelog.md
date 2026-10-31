@@ -4,6 +4,8 @@
 
 ---
 
+## 17.0.26.346 — 31-oct-2026 · Release de flota 26.346 (acompaña la corrección de meli_oerp_accounting: una venta ya no se pierde cuando falla el registro de su cobro; sin cambios propios)
+
 ## 17.0.26.344 — 30-oct-2026 · Release de flota 26.344 (acompaña la corrección de meli_oerp_campaign: el asistente «Publicar/Actualizar en ML» vuelve a abrir cuando trae la lista de precios precargada; sin cambios propios)
 
 ## 17.0.26.342 — 30-oct-2026 · Corrección del envío cobrado y opción para el cupón del vendedor
