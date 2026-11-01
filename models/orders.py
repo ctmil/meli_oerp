@@ -5108,6 +5108,43 @@ class mercadolibre_orders(models.Model):
 
         return order_item_impuesto_interno
 
+    def _meli_ar_default_consumidor_final(self, partner, company=None):
+        """#153: comprador AR sin documento en billing_info ⇒ Consumidor Final + 'Sigd'.
+
+        Sin documento la factura va al contacto principal, que se crea sin datos fiscales
+        (tipo 'VAT' por default de l10n_latam_base, responsabilidad vacía) y ARCA la rechaza.
+        Sólo actúa si la compañía es AR, l10n_ar está instalado y el contacto comercial no tiene
+        ni responsabilidad ni vat: un contacto con DNI/CUIT o con responsabilidad cargada no se toca.
+        Nunca rompe el import. Devuelve True si escribió.
+        """
+        company = company or self.env.company
+        if not partner or not company or (company.country_id.code or '') != 'AR':
+            return False
+        Partner = self.env['res.partner']
+        if ('l10n_ar_afip_responsibility_type_id' not in Partner._fields
+                or 'l10n_latam_identification_type_id' not in Partner._fields):
+            return False
+        target = partner.commercial_partner_id or partner
+        if target.l10n_ar_afip_responsibility_type_id or (target.vat or '').strip():
+            return False
+        res_cf = self.env.ref('l10n_ar.res_CF', raise_if_not_found=False)
+        it_sigd = self.env.ref('l10n_ar.it_Sigd', raise_if_not_found=False)
+        vals = {}
+        if res_cf:
+            vals['l10n_ar_afip_responsibility_type_id'] = res_cf.id
+        if it_sigd and target.l10n_latam_identification_type_id != it_sigd:
+            vals['l10n_latam_identification_type_id'] = it_sigd.id
+        if not vals:
+            return False
+        try:
+            with self.env.cr.savepoint():
+                target.write(vals)
+            _logger.info("MELI_AR_CF_SIN_DOC: contacto id:%s sin documento ⇒ Consumidor Final + Sigd", target.id)
+            return True
+        except Exception as e:
+            _logger.warning("MELI_AR_CF_SIN_DOC: no se pudo marcar CF al contacto id:%s: %s", target.id, e)
+            return False
+
     def orders_update_order_json( self, data, context=None, config=None, meli=None ):
 
         oid = data["id"]
@@ -6493,6 +6530,9 @@ class mercadolibre_orders(models.Model):
             # Si no hay VAT en billing_info, usar contacto principal para facturación
             if not partner_invoice_id:
                 partner_invoice_id = partner_id
+                # #153: sin documento ⇒ AR: Consumidor Final + Sigd (si no tiene datos fiscales)
+                if partner_invoice_id:
+                    self._meli_ar_default_consumidor_final(partner_invoice_id, company)
 
             # fe_habilitada va al contacto que se usa para facturación
             if partner_invoice_id:
