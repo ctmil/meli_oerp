@@ -4,6 +4,9 @@
 
 ---
 
+## 19.0.26.358 — 2-nov-2026 · Corrección: en bases con varias compañías, una venta de Mercado Libre ya no se pierde por tomar el transportista de otra compañía
+- **meli_oerp (envío, multiempresa):** el transportista de la venta se busca entre los de la compañía del pedido y los compartidos (sin compañía); si no hay ninguno con ese nombre, se crea en la compañía del pedido. Antes se podía tomar el de otra compañía y Odoo rechazaba la venta ("company inconsistencies"), que no llegaba a importarse. Lo mismo vale para la tabla de mapeo de transportistas y para el producto de envío que sale del transportista.
+
 ## 19.0.26.352 — 2-nov-2026 · Mejora: datos que se completan solos al publicar en Mercado Libre
 - **IVA:** si el producto no tiene «IVA [meli]», se envía el IVA de su impuesto de venta de Odoo (21 %, 10.5 %, 0 %, 27 % o Exento), en el formato que pide Mercado Libre. Antes el asistente ponía 21 % a todos. Si el producto no tiene impuesto de IVA, se usa 21 % (Argentina).
 - **Impuesto interno:** si está vacío, se envía 0 % (Argentina), también al publicar fuera del asistente.
