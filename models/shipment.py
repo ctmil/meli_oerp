@@ -93,6 +93,31 @@ from .receiver_cost import receiver_buyer_cost, seller_collected_shipping, pack_
 
 #
 # https://api.mercadolibre.com/shipment_labels?shipment_ids=<shipment_id>,<shipment_id>&response_type=pdf&access_token=
+
+def meli_carrier_company_ok(carrier, company):
+    """[26.348 #543] Un transportista sirve para ``company`` si es de esa compania o compartido.
+
+    Con varias empresas, el de OTRA compania terminaba en el pedido y Odoo lo rechazaba
+    ("company inconsistencies"): la venta de ML se revertia entera.
+    """
+    return bool(carrier) and (not company or not carrier.company_id or carrier.company_id == company)
+
+
+def meli_carrier_by_name(env, name, company):
+    """[26.348 #543] delivery.carrier por nombre: primero el de ``company``, despues el compartido.
+
+    Nunca el de otra compania (antes: busqueda sin filtro, ``order company_id asc`` => ganaba la 1).
+    """
+    Carrier = env['delivery.carrier']
+    if not name:
+        return Carrier
+    if company:
+        found = Carrier.search([('name', '=ilike', name), ('company_id', '=', company.id)], limit=1)
+        if found:
+            return found
+    return Carrier.search([('name', '=ilike', name), ('company_id', '=', False)], limit=1)
+
+
 class mercadolibre_shipment_print(models.TransientModel):
     _name = "mercadolibre.shipment.print"
     _description = "Impresión de etiquetas"
@@ -788,15 +813,12 @@ class mercadolibre_shipment(models.Model):
                 mapping = self.env['meli_oerp.carrier.mapping'].search(
                     [('meli_name', '=ilike', ship_name),
                      '|', ('company_id', '=', company.id), ('company_id', '=', False)], limit=1)
-                if mapping and mapping.carrier_id and mapping.carrier_id.active:
+                if mapping and mapping.carrier_id and mapping.carrier_id.active \
+                        and meli_carrier_company_ok(mapping.carrier_id, company):
                     carrier = mapping.carrier_id
             if not carrier:
-                carrier = self.env['delivery.carrier'].search(
-                    [('name', '=ilike', ship_name)] + company_domain,
-                    order="company_id asc", limit=1)
-            if not carrier:
-                carrier = self.env['delivery.carrier'].search(
-                    [('name', '=ilike', ship_name)], order="company_id asc", limit=1)
+                # [26.348 #543] de la compania o compartido, nunca el de otra compania
+                carrier = meli_carrier_by_name(self.env, ship_name, company)
             if carrier and carrier.product_id:
                 return carrier.product_id
 
@@ -908,8 +930,12 @@ class mercadolibre_shipment(models.Model):
             # [26.291 #caso-K20] reutilizar el servicio de envio aunque este ARCHIVADO o con la
             # referencia interna cambiada (p.ej. product_sequence): antes se creaba uno nuevo
             # por cada pasada del cron, y ese producto ni siquiera se usaba en la linea.
+            # [26.348 #543] el transportista tiene que ser de la compania del PEDIDO
+            # (o compartido): es la que Odoo controla al asignarlo a la venta.
+            ship_company = sorder.company_id or company
+
             product_shipping_id = shipment._meli_find_shipping_product(
-                ship_name, shipment.mode, company, company_domain)
+                ship_name, shipment.mode, ship_company, company_domain)
 
             if len(product_shipping_id):
                 #_logger.info("_update_sale_order_shipping_info ")
@@ -949,28 +975,26 @@ class mercadolibre_shipment(models.Model):
 
             ship_carrier = {
                 "name": ship_name,
-                "company_id": (self.company_id and self.company_id.id),
+                "company_id": ship_company.id,
             }
             ship_carrier["product_id"] = product_shipping_id.id
 
             # 1) Buscar en tabla de mapeo meli_oerp.carrier.mapping
             ship_carrier_id = self.env["meli_oerp.carrier.mapping"].resolve_carrier(
                 meli_name=ship_name,
-                company=company,
+                company=ship_company,
                 product_shipping_id=product_shipping_id,
             )
+            if ship_carrier_id and not meli_carrier_company_ok(ship_carrier_id, ship_company):
+                ship_carrier_id = self.env["delivery.carrier"]
 
             # 2) Fallback: buscar delivery.carrier por nombre
+            #    [26.348 #543] de la compania del pedido o compartido; antes, sin filtro,
+            #    ganaba el de la compania 1 y la venta de otra compania se revertia entera.
             if not ship_carrier_id:
-                ship_carrier_id = self.env["delivery.carrier"].search(
-                    [('name', '=ilike', ship_carrier['name'])] + company_domain,
-                    order="company_id asc", limit=1)
-            if not ship_carrier_id:
-                ship_carrier_id = self.env["delivery.carrier"].search(
-                    [('name', '=ilike', ship_carrier['name'])],
-                    order="company_id asc", limit=1)
+                ship_carrier_id = meli_carrier_by_name(self.env, ship_carrier['name'], ship_company)
 
-            # 3) Último recurso: crear carrier nuevo
+            # 3) Último recurso: crear carrier nuevo (en la compania del pedido)
             if not ship_carrier_id:
                 ship_carrier_id = self.env["delivery.carrier"].create(ship_carrier)
 
