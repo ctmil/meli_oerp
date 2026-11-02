@@ -27,6 +27,7 @@ import logging
 _logger = logging.getLogger(__name__)
 
 import hashlib
+import re
 import math
 import requests
 import base64
@@ -1068,6 +1069,97 @@ class product_template(models.Model):
     # publish (un caso); imported so they need not be entered by hand. Ej: '21 %'.
     meli_vat = fields.Char(string="IVA [meli]", help="Atributo VALUE_ADDED_TAX de la publicación (ej. '21 %').")
     meli_import_duty = fields.Char(string="Impuesto interno [meli]", help="Atributo IMPORT_DUTY de la publicación (ej. '0 %').")
+
+    # ------------------------------------------------------------------ 26.352 (462 C): DATOS AUTOMÁTICOS
+    # IVA desde el impuesto de VENTA del producto, impuesto interno '0 %', Marca desde la marca del
+    # producto (product_brand_id, si el módulo está) y Fabricante desde el proveedor principal. Todo
+    # sólo cuando el dato [meli] está vacío: lo cargado a mano o importado de ML manda siempre.
+    # Formatos verificados contra GET /categories/MLA40513/attributes (2-nov-2026): VALUE_ADDED_TAX
+    # admite 'Exento', '0 %', '10.5 %' (PUNTO), '21 %', '27 %'; IMPORT_DUTY '0 %'.
+    _MELI_VAT_BY_AFIP_CODE = {'2': 'Exento', '3': '0 %', '4': '10.5 %', '5': '21 %', '6': '27 %'}
+    _MELI_VAT_BY_AMOUNT = {0.0: '0 %', 10.5: '10.5 %', 21.0: '21 %', 27.0: '27 %'}
+
+    def _meli_vat_from_taxes(self, company=None):
+        """Valor de VALUE_ADDED_TAX (formato ML Argentina) a partir del impuesto de venta del producto,
+        o False si no hay uno de IVA reconocible. Ignora percepciones y otros impuestos."""
+        self.ensure_one()
+        company = company or self.company_id or self.env.company
+        taxes = self.sudo().taxes_id.filtered(
+            lambda t: (not t.company_id or t.company_id == company or t.company_id == company.parent_id)
+            and t.amount_type == 'percent' and t.type_tax_use == 'sale')
+        for tax in taxes.sorted(lambda t: (t.sequence, t.id)):
+            grp = tax.tax_group_id
+            if grp and 'l10n_ar_vat_afip_code' in grp._fields:
+                val = self._MELI_VAT_BY_AFIP_CODE.get(grp.l10n_ar_vat_afip_code or '')
+                if val:
+                    return val
+                continue  # grupo sin código de IVA = percepción / otro impuesto
+            val = self._MELI_VAT_BY_AMOUNT.get(round(tax.amount, 2))
+            if val:
+                return val
+        return False
+
+    def _meli_brand_auto(self):
+        """Marca para ML: meli_brand, si no la marca del producto (product_brand_id, OCA brand)."""
+        self.ensure_one()
+        if self.meli_brand:
+            return self.meli_brand
+        brand = 'product_brand_id' in self._fields and self.product_brand_id
+        name = brand and brand.name
+        return (name or '').strip() or False
+
+    # S.A., S. A, SA, S.R.L., SRL, S.A.S., S.A.C.I., S.A.C.I.F., S.A.U., S.C.A., S.H., LTDA, INC, LLC
+    _MELI_SOCIETY_SUFFIX_RE = re.compile(
+        r"[\s,]+(S\.?\s?A\.?\s?C\.?\s?I\.?(\s?F\.?)?(\s?I\.?)?(\s?(Y|E)\s?A\.?)?|S\.?\s?R\.?\s?L\.?|S\.?\s?A\.?\s?S\.?"
+        r"|S\.?\s?A\.?\s?U\.?|S\.?\s?C\.?\s?A\.?|S\.?\s?A\.?|S\.?\s?H\.?|LTDA\.?|INC\.?|LLC\.?)\s*$", re.IGNORECASE)
+
+    @api.model
+    def _meli_strip_society_suffix(self, name):
+        name = (name or '').strip()
+        clean = self._MELI_SOCIETY_SUFFIX_RE.sub('', name).strip(' ,.-')
+        return clean or name
+
+    def _meli_main_supplier_name(self, variant=None, company=None):
+        """Proveedor principal (primera línea de compra por secuencia) sin el sufijo societario."""
+        self.ensure_one()
+        company = company or self.company_id or self.env.company
+        sellers = self.sudo().seller_ids.filtered(
+            lambda s: (not s.company_id or s.company_id == company)
+            and (not variant or not s.product_id or s.product_id == variant))
+        seller = sellers.sorted(lambda s: (s.sequence, s.id))[:1]
+        partner = seller and seller.partner_id
+        if not partner:
+            return False
+        partner = partner.commercial_partner_id or partner
+        return self._meli_strip_society_suffix(partner.name) or False
+
+    def _meli_manufacturer_auto(self, config=None, variant=None):
+        """Fabricante: según la configuración de la cuenta (proveedor principal por defecto), con la
+        Marca como respaldo."""
+        self.ensure_one()
+        mode = (config is not None and 'mercadolibre_manufacturer_source' in config._fields
+                and config.mercadolibre_manufacturer_source) or 'supplier'
+        if mode == 'supplier':
+            company = (config is not None and 'company_id' in config._fields and config.company_id) or None
+            if config is not None and config._name == 'res.company':
+                company = config
+            name = self._meli_main_supplier_name(variant=variant, company=company)
+            if name:
+                return name
+        return self._meli_brand_auto()
+
+    def _meli_publish_site(self, config=None):
+        """Sitio de ML de la publicación: prefijo de la categoría ML; si no hay, MLA si la compañía es
+        argentina. Sólo informa (los defaults de impuestos aplican únicamente a MLA)."""
+        self.ensure_one()
+        cat = 'meli_category' in self._fields and self.meli_category
+        cid = (cat and cat.meli_category_id or '').upper()
+        if len(cid) >= 3 and cid[:2] == 'ML':
+            return cid[:3]
+        company = (config is not None and config._name == 'res.company' and config) or \
+                  (config is not None and 'company_id' in config._fields and config.company_id) or \
+                  self.company_id or self.env.company
+        return 'MLA' if (company.country_id.code or '') == 'AR' else False
 
 class product_product(models.Model):
 
@@ -3806,11 +3898,12 @@ class product_product(models.Model):
         return res
 
     def _meli_attr_manufacturer_from_brand(self, attributes, attributes_ids):
-        """26.339 W5 (462): MANUFACTURER = Marca cuando falta (muta las listas)."""
+        """26.339 W5 (462): MANUFACTURER = Marca cuando falta (muta las listas).
+        Se conserva por compatibilidad; desde 26.352 el armado usa `_meli_attr_auto_fill`."""
         self.ensure_one()
         if "MANUFACTURER" in attributes_ids:
             return False
-        _brand = attributes_ids.get("BRAND") or self.meli_brand or self.product_tmpl_id.meli_brand
+        _brand = attributes_ids.get("BRAND") or self.meli_brand or self.product_tmpl_id._meli_brand_auto()
         if not _brand:
             return False
         attribute = {"id": "MANUFACTURER", "value_name": str(_brand)}
@@ -3818,6 +3911,44 @@ class product_product(models.Model):
         attributes.append(attribute)
         _logger.info("manufacturer attribute added from brand: " + str(attribute))
         return True
+
+    def _meli_attr_auto_fill(self, attributes, attributes_ids, config=None, product_tmpl=None):
+        """26.352 (462 C): completa lo que el usuario no tiene que cargar a mano (muta las listas).
+        Nunca pisa un atributo ya armado (línea de atributo, campo [meli] o importado de ML):
+          BRAND           <- meli_brand, si no la marca del producto (product_brand_id)
+          VALUE_ADDED_TAX <- meli_vat, si no el IVA del impuesto de venta, si no '21 %'   (sólo MLA)
+          IMPORT_DUTY     <- meli_import_duty, si no '0 %'                              (sólo MLA)
+          MANUFACTURER    <- proveedor principal (o Marca, según la cuenta), si no la Marca
+        `product_tmpl` puede ser un binding de plantilla (multi-cuenta): los campos [meli] se leen de
+        ahí primero y los datos de Odoo (impuestos, proveedores, marca) de la plantilla real."""
+        self.ensure_one()
+        tmpl = self.product_tmpl_id
+        added = []
+
+        def _first(field):
+            for obj in (self, product_tmpl, tmpl):
+                if obj is not None and obj and field in obj._fields and obj[field]:
+                    return obj[field]
+            return False
+
+        def _add(att_id, val):
+            if att_id in attributes_ids or not val:
+                return
+            attributes.append({"id": att_id, "value_name": str(val)})
+            attributes_ids[att_id] = val
+            added.append(att_id)
+
+        _add("BRAND", _first("meli_brand") or tmpl._meli_brand_auto())
+        if tmpl._meli_publish_site(config) == 'MLA':
+            _add("VALUE_ADDED_TAX", _first("meli_vat") or tmpl._meli_vat_from_taxes() or '21 %')
+            _add("IMPORT_DUTY", _first("meli_import_duty") or '0 %')
+        if "MANUFACTURER" not in attributes_ids:
+            _add("MANUFACTURER", tmpl._meli_manufacturer_auto(config=config, variant=self)
+                 or attributes_ids.get("BRAND"))
+        if added:
+            _logger.info("auto-fill de atributos ML (%s): %s", self.id,
+                         {k: attributes_ids[k] for k in added})
+        return added
 
     def _product_post( self, meli=None, config=None ):
 
@@ -4178,7 +4309,9 @@ class product_product(models.Model):
         # 26.339 W5 (462): «Fabricante» (MANUFACTURER) obligatorio en muchas
         # categorías; si falta, se completa con la Marca en vez de cortar la
         # publicación con "faltan atributos obligatorios: Fabricante".
-        product._meli_attr_manufacturer_from_brand(attributes, attributes_ids)
+        # 26.352 (462 C): además Marca desde la marca del producto, IVA desde el impuesto de venta,
+        # impuesto interno '0 %' y Fabricante desde el proveedor principal (ver _meli_attr_auto_fill).
+        product._meli_attr_auto_fill(attributes, attributes_ids, config=config, product_tmpl=product_tmpl)
 
         #_product_post_set_category
         if www_cats:

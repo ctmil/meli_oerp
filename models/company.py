@@ -595,6 +595,11 @@ class res_company(models.Model):
     mercadolibre_process_offset = fields.Char('Offset for pause all')
     mercadolibre_post_default_code = fields.Boolean(string='Post SKU',default=True,help='Post Odoo default_code field for templates or variants to seller_custom_field in ML')
     mercadolibre_post_barcode = fields.Boolean(string='Post Barcode',default=True,help='Post Odoo barcode as GTIN')
+    # 26.352 (462 C): de dónde sale el «Fabricante» (MANUFACTURER) cuando no está cargado.
+    mercadolibre_manufacturer_source = fields.Selection([('supplier', 'Proveedor principal'), ('brand', 'Marca')],
+        string='Fabricante desde', default='supplier',
+        help='Si el producto no tiene el atributo Fabricante, se completa con el proveedor principal de la '
+             'compra (sin S.A./S.R.L.) o con la Marca. Sin proveedor, se usa la Marca.')
     mercadolibre_import_search_sku = fields.Boolean(string='Search SKU',default=True,help='Search product by default_code')
 
     mercadolibre_seller_user = fields.Many2one("res.users", string="Vendedor", help="Usuario con el que se registrarán las órdenes automáticamente")
