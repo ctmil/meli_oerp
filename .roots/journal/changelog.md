@@ -4,6 +4,8 @@
 
 ---
 
+## 20.0.26.349 — 2-nov-2026 · Mejora: el botón «Publicar» de la pestaña MercadoLibre abre directo el asistente (sin la confirmación previa: el asistente ES la confirmación) y el asistente abre en un diálogo amplio.
+
 ## 20.0.26.344 — 30-oct-2026 · Release de flota 26.344 (acompaña la corrección de meli_oerp_campaign: el asistente «Publicar/Actualizar en ML» vuelve a abrir cuando trae la lista de precios precargada; sin cambios propios)
 
 ## 20.0.26.342 — 30-oct-2026 · Corrección del envío cobrado y opción para el cupón del vendedor
