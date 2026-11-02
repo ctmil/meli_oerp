@@ -4,6 +4,8 @@
 
 ---
 
+## 16.0.26.361 — 2-nov-2026 · Corrección: la comisión de Mercado Libre de cada pago se toma también del nuevo formato de cargos de MercadoPago (antes podía quedar en 0,00).
+
 ## 16.0.26.358 — 2-nov-2026 · Opción para que el flete de Mercado Libre no descuente del margen
 - Nueva opción en la configuración de la cuenta (con el multi-cuenta): **«Imputar el flete como coste del envío»**. Activada (default) todo sigue igual: la línea de envío lleva como coste el flete que Mercado Libre le cobra al vendedor. Desactivada, la línea de envío se crea y se factura igual pero sin coste, y el margen del pedido no descuenta el flete — también en las ventas ya confirmadas, donde el flete suele llegar después, y limpiando el coste que hubiera quedado cuando la venta se vuelve a procesar.
 - Requiere actualizar los módulos (`-u meli_oerp_multiple,meli_oerp`).
