@@ -116,8 +116,7 @@
                           </button>
                           <button name='%(action_product_template_post)d' type="action"
                             string="Publicar"
-                            title="Publicar/Actualizar en ML"
-                            confirm="¿Está seguro que quiere publicar/actualizar los datos en ML?"
+                            title="Publicar/Actualizar en ML (el asistente es la confirmación: nada sale a ML hasta apretar Publicar)"
                             class="oe_stat_button"
                             icon="fa-globe"/>
                           <button name='%(action_product_template_update)d' type="action"
