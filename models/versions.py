@@ -1081,3 +1081,43 @@ def meli_money_block_post(record, body, config=None, once_key=None):
                     record and record.ids, body)
     if record and hasattr(record, 'message_post'):
         meli_message_post(record, body, config=config, once_key=once_key, force_chatter=True)
+
+
+def meli_payment_commission_from_json(full_payment):
+    """[26.361] Comision de MercadoLibre de un pago de MercadoPago, para cuando la suma de los
+    cargos con nombre conocido (meli_percentage_fee / flat_fee / financing_add_on_fee) da 0.
+
+    Caso 430 (OFF 720, 2-nov-2026): MercadoPago empezo a informar la comision en charges_details
+    con el nombre `meli_fee` (source deferred-charges/fees-api). La ingesta ponia fee_amount=0 al
+    ver charges_details y solo sumaba los nombres conocidos: el pago quedaba con comision 0 aunque
+    fee_details dijera 300.30, y el pago a proveedor de comision se creaba por 0.00.
+
+    Orden: (1) fee_details application_fee que paga el vendedor (collector); (2) si no hay,
+    cargos type=fee que salen del vendedor, sin `financing_fee` (financiacion en cuotas: no es
+    comision). Devuelve 0.0 si no hay nada; nunca un negativo."""
+    fp = full_payment if isinstance(full_payment, dict) else {}
+    total = 0.0
+    for fd in (fp.get("fee_details") or []):
+        if not isinstance(fd, dict):
+            continue
+        if fd.get("type") == "application_fee" and fd.get("fee_payer") == "collector":
+            try:
+                total += float(fd.get("amount") or 0.0)
+            except (TypeError, ValueError):
+                pass
+    if total > 0.0:
+        return round(total, 2)
+    total = 0.0
+    for ch in (fp.get("charges_details") or []):
+        if not isinstance(ch, dict) or ch.get("type") != "fee":
+            continue
+        if (ch.get("name") or "").strip().lower() == "financing_fee":
+            continue
+        acc_from = (ch.get("accounts") or {}).get("from")
+        if acc_from and acc_from != "collector":
+            continue
+        try:
+            total += float((ch.get("amounts") or {}).get("original") or 0.0)
+        except (TypeError, ValueError):
+            pass
+    return round(total, 2) if total > 0.0 else 0.0
