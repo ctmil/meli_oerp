@@ -4,6 +4,13 @@
 
 ---
 
+## 19.0.26.352 — 2-nov-2026 · Mejora: datos que se completan solos al publicar en Mercado Libre
+- **IVA:** si el producto no tiene «IVA [meli]», se envía el IVA de su impuesto de venta de Odoo (21 %, 10.5 %, 0 %, 27 % o Exento), en el formato que pide Mercado Libre. Antes el asistente ponía 21 % a todos. Si el producto no tiene impuesto de IVA, se usa 21 % (Argentina).
+- **Impuesto interno:** si está vacío, se envía 0 % (Argentina), también al publicar fuera del asistente.
+- **Marca:** si «Marca [meli]» está vacía, se usa la marca del producto (campo Marca del módulo de marcas, si está instalado).
+- **Fabricante:** si no está cargado, se envía el proveedor principal del producto (sin S.A., S.R.L., etc.) o la Marca, según la nueva opción «Fabricante desde» de la configuración de la cuenta (por defecto: proveedor principal; sin proveedor, la Marca).
+- Nada de esto pisa un valor cargado a mano o importado de Mercado Libre.
+
 ## 19.0.26.349 — 2-nov-2026 · Mejora: el botón «Publicar» de la pestaña MercadoLibre abre directo el asistente (sin la confirmación previa: el asistente ES la confirmación) y el asistente abre en un diálogo amplio.
 
 ## 19.0.26.344 — 30-oct-2026 · Release de flota 26.344 (acompaña la corrección de meli_oerp_campaign: el asistente «Publicar/Actualizar en ML» vuelve a abrir cuando trae la lista de precios precargada; sin cambios propios)
