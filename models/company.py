@@ -641,6 +641,11 @@ class res_company(models.Model):
         'ir.sequence', string='Secuencia para GTIN generado',
         help="Secuencia que da el número correlativo. Si está vacía se usa el id del producto, "
              "que también es único y no necesita configuración.")
+    # 26.352 (462 C): de dónde sale el «Fabricante» (MANUFACTURER) cuando no está cargado.
+    mercadolibre_manufacturer_source = fields.Selection([('supplier', 'Proveedor principal'), ('brand', 'Marca')],
+        string='Fabricante desde', default='supplier',
+        help='Si el producto no tiene el atributo Fabricante, se completa con el proveedor principal de la '
+             'compra (sin S.A./S.R.L.) o con la Marca. Sin proveedor, se usa la Marca.')
     mercadolibre_import_search_sku = fields.Boolean(string='Search SKU',default=True,help='Search product by default_code')
     mercadolibre_import_search_barcode = fields.Boolean(
         string='Search Barcode',

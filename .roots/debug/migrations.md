@@ -26,6 +26,9 @@ Cherry-pick commit por commit de origin/19.0 (c1d3b3bc, 43c18bb1, f6d8fd0e, 61d6
 
 Verificación (banco 20 community, logs `.roots/workbench/leaves/2026-10-25-suite-20-fp307/` del workspace): `-u` 20.0.26.304→26.307 de los 7 sobre base con demo + caso sembrado: EXIT 0, 0 W/E; `-i` de los 7 en base nueva con demo + `--test-enable`: **0 failed, 0 error(s) of 370 tests**, 0 W/E.
 
+### 20.0.26.352 — sin script de migración (2-nov-2026, 462 C datos automáticos)
+- Campo nuevo `mercadolibre_manufacturer_source` (selection, default `supplier`) en res.company: el ORM crea la columna y completa las filas existentes con el default. Rollback por código: el campo queda huérfano en la base, inocuo.
+
 ### 20.0.26.301 — reglas de Odoo 20 (`test_lint`) aplicadas (24-oct-2026, F8b, rama `claude/lint-20.0` desde 20.0 4ceb33de)
 Vara: `.roots/scripts/odoo-lint.sh` del workspace (pylint con las opciones de `test_lint/test_pylint.py` + `test_lint` del core
 20 corrido de verdad). Varas de error: **175 → 57**; lo que queda está justificado regla por regla en

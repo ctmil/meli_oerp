@@ -191,6 +191,7 @@
                                 <field name="mercadolibre_post_barcode" invisible="0"/>
                                 <field name="mercadolibre_gtin_prefix" invisible="0"/>
                                 <field name="mercadolibre_gtin_sequence_id" invisible="0" options="{'no_create': True}"/>
+                                <field name="mercadolibre_manufacturer_source"/>
                                 <field name="mercadolibre_product_template_override_variant" invisible="0"/>
                                 <field name="mercadolibre_product_template_override_method" invisble="0"/>
                                 <hr/>
