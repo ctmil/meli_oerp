@@ -4,6 +4,10 @@
 
 ---
 
+## 2 nov 2026 — comisión del pago en 0 cuando MP informa `meli_fee` [430 Aztec Medic, OFF 720] (v19.0.26.361)
+**Causa:** bloque payments de la ingesta: con charges_details se pone fee_amount=0 y sólo se suman cargos fee con nombre meli_percentage_fee/flat_fee/financing_add_on_fee; MP informa ahora `meli_fee` (deferred-charges/fees-api) ⇒ comisión 0 aunque fee_details application_fee=300.3.
+**Fix:** si ningún cargo de nombre conocido aportó comisión, `meli_payment_commission_from_json` (versions.py): fee_details application_fee collector; si no, cargos type=fee from collector sin financing_fee. Con nombres conocidos no cambia nada. Test en meli_oerp_accounting (TestComisionDesdeJson26361).
+
 ## 2 nov 2026 — cancelación de ML con factura publicada: actividad SIEMPRE [153 BA Vending, pack_splitted] (v19.0.26.354)
 **Síntoma:** ML canceló 3 órdenes con `internal / pack_splitted / meli` y las re-creó (mismo comprador, ítem MLA2512253164, 68.890): 2000019270134014→2000019281411680, 2000019276075288→2000019289037380, 2000019281735806→2000019289046854. Las originales tenían factura publicada (CAE); la venta original quedó abierta (por diseño, 26.171) con aviso SÓLO en el chatter y la gemela se facturó encima.
 **Causa:** `_meli_cancel_pack_splitted_legacy` creaba la actividad sólo con `meli_oerp.cancel_reason_policy=by_reason` (BA no lo tiene). Lo mismo en el legacy genérico (factura que no vuelve a borrador) y en `por_estado_ml` (INV_MANUAL / paso 5): sólo chatter.

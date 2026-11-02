@@ -7329,6 +7329,7 @@ class mercadolibre_orders(models.Model):
                         fee_details = payment_fields["full_payment"]["charges_details"]
                         
                         payment_fields["fee_amount"] = 0
+                        _commission_found = False  # [26.361] ver meli_payment_commission_from_json
 
                         for fee_detail in fee_details:
                             
@@ -7343,6 +7344,8 @@ class mercadolibre_orders(models.Model):
                                 if ( fee_type=="fee" and (fee_name == "meli_percentage_fee" or fee_name=="flat_fee" or fee_name=="financing_add_on_fee" ) ):
                                     payment_fields["fee_amount"]+= fee_detail["amounts"] and fee_detail["amounts"]["original"]
                                     #_logger.info("fee_amount:"+str(payment_fields["fee_amount"]))
+                                    if fee_detail["amounts"] and fee_detail["amounts"].get("original"):
+                                        _commission_found = True
                                     if (order):
                                         order.fee_amount = payment_fields["fee_amount"]
 
@@ -7373,6 +7376,15 @@ class mercadolibre_orders(models.Model):
                                 #    payment_fields["financing_fee_amount"] = fee_detail["amount"]
                                 #    if ('status' in Payment and Payment['status'] == "approved"):
                                 #        financing_fee_amount+= payment_fields["financing_fee_amount"]
+
+                        # [26.361] 430 OFF 720: ningun cargo con nombre conocido (MP ahora informa
+                        # `meli_fee`) => no dejar la comision en 0: se toma de fee_details / cargos fee.
+                        if not _commission_found:
+                            _fb_fee = meli_payment_commission_from_json(payment_fields["full_payment"])
+                            if _fb_fee > 0.0:
+                                payment_fields["fee_amount"] += _fb_fee
+                                if (order):
+                                    order.fee_amount = payment_fields["fee_amount"]
 
                         if (order):
                             order.financing_fee_amount = financing_fee_amount
