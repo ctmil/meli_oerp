@@ -4,6 +4,9 @@
 
 ---
 
+### 18.0.26.352 — sin script de migración (2-nov-2026, 462 C datos automáticos)
+- Campo nuevo `mercadolibre_manufacturer_source` (selection, default `supplier`) en res.company: el ORM crea la columna y completa las filas existentes con el default. Rollback por código: el campo queda huérfano en la base, inocuo.
+
 ### 18.0.26.282 — sin script de migración (20-oct-2026, #513 direcciones manuales)
 - Campos nuevos, vacíos tras el `-u`: `sale.order.meli_partner_invoice_auto_id`, `sale.order.meli_partner_shipping_auto_id`
   (Many2one res.partner, copy=False, ondelete set null) y `res.partner.meli_address_sync_hash` (Char). Sin backfill: los
