@@ -1919,3 +1919,9 @@ cambio para el resto); `_product_post` pasa `plist=_meli_resolve_new_pricelist(f
 **Tests:** `meli_oerp_multiple/tests/test_26334_lista_ml_y_aviso_atributos.py` (tag meli_26334, 5 casos).
 Fix 5/5 en 16-19; control origin 26.333 en 18: 5 FAIL de 5. Suites /meli_oerp,/meli_oerp_multiple: 18 0/293,
 17 0/329, 19 0/280; 16 0F+3E/333 (test_meli_cancel: base sin plan contable, ajeno).
+
+## 26.348 (2-nov-2026) — #543 transportista de OTRA compañía en venta ML multiempresa
+- **Síntoma:** cía 2 recibe venta con envío "Estándar"; el único carrier con ese nombre es de la cía 1 ⇒ `sorder.carrier_id = …` levanta UserError "company inconsistencies" ⇒ se revierte la importación entera (ni `mercadolibre.orders`).
+- **Causa:** `_update_sale_order_shipping_info` 2º fallback `delivery.carrier.search([name])` SIN filtro de compañía (`order company_id asc` ⇒ gana la 1); mismo patrón en `_meli_find_shipping_product` (paso 2); `resolve_carrier` devolvía el carrier de un mapeo compartido aunque fuera de otra cía; el create usaba `self.company_id` (recordset).
+- **Fix:** helpers `meli_carrier_by_name` (cía del pedido ⇒ compartido, nunca otra) y `meli_carrier_company_ok`; la compañía es la del PEDIDO (`sorder.company_id`); el carrier nuevo se crea en esa compañía.
+- **Test:** `tests/test_26348_carrier_compania.py` (7). Sin el fix reproduce el UserError de producción.
