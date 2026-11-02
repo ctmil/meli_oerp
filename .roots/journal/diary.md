@@ -97,3 +97,8 @@ Sesión larga cubriendo múltiples áreas del módulo:
 Se corrigió el permalink de la API de MercadoLibre para incluir el `access_token` directamente en la URL del item. Esto permite que el link funcione desde el backend de Odoo sin necesidad de autenticación adicional. Se inicializó la estructura `.roots/` para documentación persistente del proyecto.
 
 ---
+
+## 2026-11-02 — 26.350: el flete como coste vuelve a respetar la config (#715 Score 361)
+- `mercadolibre_shipping_cost_as_purchase_price` (multiple) + `meli_shipping_cost_as_purchase_price()` (versions.py) + gate en los 2 puntos de `shipment._update_sale_order_shipping_info` (orden bloqueada y camino normal). Mismo nombre de campo que el port del cliente del 27-jul (d534363 en sistemas-score/scoremx) ⇒ la columna que ya existe en esa base vuelve a mandar sin migración.
+- Lección de proceso: el control vivía SÓLO en el repo del cliente (ramas `claude/envio-no-imputa-coste-19.0` nunca landeadas); el siguiente sync del source (26.116.2, 29-sep) lo borró sin error. Un fix de cliente que no sube al source se pierde en el próximo sync.
+- Test: `tests/test_26350_envio_costo.py` (helper + bloqueada/normal × True/False). Control (origin + sólo el helper): los 2 casos False en rojo (653,6 ≠ 0).

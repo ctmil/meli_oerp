@@ -4,6 +4,10 @@
 
 ---
 
+## 19.0.26.350 — 2-nov-2026 · Opción para que el flete de Mercado Libre no descuente del margen
+- Nueva opción en la configuración de la cuenta (con el multi-cuenta): **«Imputar el flete como coste del envío»**. Activada (default) todo sigue igual: la línea de envío lleva como coste el flete que Mercado Libre le cobra al vendedor. Desactivada, la línea de envío se crea y se factura igual pero sin coste, y el margen del pedido no descuenta el flete — también en las ventas ya confirmadas, donde el flete suele llegar después, y limpiando el coste que hubiera quedado cuando la venta se vuelve a procesar.
+- Requiere actualizar los módulos (`-u meli_oerp_multiple,meli_oerp`).
+
 ## 19.0.26.349 — 2-nov-2026 · Mejora: el botón «Publicar» de la pestaña MercadoLibre abre directo el asistente (sin la confirmación previa: el asistente ES la confirmación) y el asistente abre en un diálogo amplio.
 
 ## 19.0.26.344 — 30-oct-2026 · Release de flota 26.344 (acompaña la corrección de meli_oerp_campaign: el asistente «Publicar/Actualizar en ML» vuelve a abrir cuando trae la lista de precios precargada; sin cambios propios)
