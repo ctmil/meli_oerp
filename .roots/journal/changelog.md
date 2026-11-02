@@ -4,6 +4,9 @@
 
 ---
 
+## 18.0.26.348 — 2-nov-2026 · Corrección: en bases con varias compañías, una venta de Mercado Libre ya no se pierde por tomar el transportista de otra compañía
+- **meli_oerp (envío, multiempresa):** el transportista de la venta se busca entre los de la compañía del pedido y los compartidos (sin compañía); si no hay ninguno con ese nombre, se crea en la compañía del pedido. Antes se podía tomar el de otra compañía y Odoo rechazaba la venta ("company inconsistencies"), que no llegaba a importarse. Lo mismo vale para la tabla de mapeo de transportistas y para el producto de envío que sale del transportista.
+
 ## 18.0.26.344 — 30-oct-2026 · Release de flota 26.344 (acompaña la corrección de meli_oerp_campaign: el asistente «Publicar/Actualizar en ML» vuelve a abrir cuando trae la lista de precios precargada; sin cambios propios)
 
 ## 18.0.26.342 — 30-oct-2026 · Corrección del envío cobrado y opción para el cupón del vendedor
