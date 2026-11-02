@@ -157,6 +157,7 @@
             <field name="type">ir.actions.act_window</field>
             <field name="binding_model_id" ref="model_product_template"/>
             <field name="res_model">mercadolibre.product.template.post</field>
+            <field name="context">{'dialog_size': 'extra-large'}</field>
             <field name="binding_type">action</field>
             <field name="binding_view_types">list,form</field>
             <field name="view_mode">form</field>
