@@ -1816,3 +1816,14 @@ Fix 5/5 en 16-19; control origin 26.333 en 18: 5 FAIL de 5. Suites /meli_oerp,/m
 - **Causa:** `_update_sale_order_shipping_info` 2º fallback `delivery.carrier.search([name])` SIN filtro de compañía (`order company_id asc` ⇒ gana la 1); mismo patrón en `_meli_find_shipping_product` (paso 2); `resolve_carrier` devolvía el carrier de un mapeo compartido aunque fuera de otra cía; el create usaba `self.company_id` (recordset).
 - **Fix:** helpers `meli_carrier_by_name` (cía del pedido ⇒ compartido, nunca otra) y `meli_carrier_company_ok`; la compañía es la del PEDIDO (`sorder.company_id`); el carrier nuevo se crea en esa compañía.
 - **Test:** `tests/test_26348_carrier_compania.py` (7). Sin el fix reproduce el UserError de producción.
+
+## 26.367 (3-nov-2026) — pack_splitted legacy: gemela despachada ⇒ devolver el duplicado y cancelar [502]
+- Síntoma (502 Shoppy, FULL, cancel_mode legacy): ML divide el carrito, cancela la original y crea la gemela; las dos
+  MLF/OUT quedan done al importar. E3 26.171 dejaba la original abierta por "salida hecha" ⇒ venta doble, factura
+  manual doble, stock FULL descontado dos veces. El remedio (#624, 26.288) existía sólo con cancel_reason_policy=by_reason.
+- Fix: `_meli_cancel_pack_split_twin_ctx` en `meli_cancel_with_detail`: salida propia done + sin factura publicada +
+  gemela con salida done ⇒ devolución (FULL incluida, ignora guarda 26.335) y cancelación. Opt-out
+  `meli_oerp.cancel_pack_split_twin_return=0`. Con factura publicada: igual que antes (aviso + actividad 26.354).
+- Tests: tests/test_26367_pack_split_gemela_legacy.py (tag meli_26367, 6). Control origin 26.363: 2F/6.
+- Relacionado: en 16.0 prod 502 corría 26.239 SIN 26.229 `_meli_pack_sync_cancelled` (carrito de ≥2 órdenes canceladas
+  quedaba meli_status=paid ⇒ sin camino de cancelación ni guarda de factura #148). Ya está en origin desde 26.229.
