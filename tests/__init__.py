@@ -48,3 +48,4 @@ from . import test_26354_cancel_actividad_factura
 from . import test_26347_cf_sin_doc
 from . import test_26348_carrier_compania
 from . import test_26350_envio_costo
+from . import test_26367_pack_split_gemela_legacy
