@@ -416,6 +416,13 @@ def cancel_return_allowed(reason_code, raw_param=None):
 CANCEL_POLICY_PARAM = "meli_oerp.cancel_reason_policy"
 CANCEL_POLICY_BY_REASON = "by_reason"
 CANCEL_RETURN_FULL_PARAM = "meli_oerp.cancel_return_full"
+# 26.367 (502, 3-nov-2026): pack_splitted en modo legacy con la gemela ya despachada => se
+# devuelve la salida de la cancelada y se cancela la venta. Default ACTIVO; "0" lo apaga.
+CANCEL_PACK_SPLIT_TWIN_RETURN_PARAM = "meli_oerp.cancel_pack_split_twin_return"
+
+
+def param_is_false(raw_param):
+    return str(raw_param or "").strip().lower() in ("0", "false", "no", "off")
 
 REASON_RETURN = "return"                # A, B
 REASON_RETURN_REVIEW = "return_review"  # D

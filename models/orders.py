@@ -2091,9 +2091,18 @@ class sale_order(models.Model):
         # regla que `por_estado_ml` (pago acreditado sin reintegro): ML re-creó la venta con
         # otro número, la mercadería y la plata siguen con la gemela => nunca devolución ni
         # nota de crédito automática.
+        # 26.367 (502, 3-nov-2026): EXCEPCION -- la gemela ya tiene SU PROPIA salida hecha y esta
+        # venta no tiene factura publicada => la salida de esta venta es un DUPLICADO (la
+        # mercaderia salio una sola vez, con la gemela). Se devuelve y se cancela la venta, con o
+        # sin la politica por motivo (antes sólo con by_reason, #624). Medido en un cliente FULL:
+        # la salida FULL queda 'done' al importar, la original nunca se cancelaba y se facturaba
+        # a mano => venta, factura y salida de stock DOBLES.
         if self._meli_cancel_is_pack_splitted(order_json=order_json) and \
                 not self.env.context.get('meli_cancel_pack_split_return'):
-            return self._meli_cancel_pack_splitted_legacy(cancel_msg, config=config)
+            twin_ctx = self._meli_cancel_pack_split_twin_ctx(cancel_msg, config=config)
+            if not twin_ctx:
+                return self._meli_cancel_pack_splitted_legacy(cancel_msg, config=config)
+            self = self.with_context(**twin_ctx)
 
         # 26.335 (29-oct-2026): GUARDA de entrega / cobro del modo legacy. Ver
         # cancel_decision.legacy_cancel_block_reason. Va DESPUES de pack_splitted (su pago
@@ -2443,6 +2452,43 @@ class sale_order(models.Model):
             return code == 'pack_splitted'
         # Ventas importadas antes de la OLA 3: el código sólo está en el texto.
         return 'pack_splitted' in (self.meli_status_detail or '')
+
+    def _meli_cancel_pack_split_twin_ctx(self, cancel_msg, config=None):
+        """26.367 (502, 3-nov-2026): pack_splitted en modo legacy. Si esta venta tiene salida
+        hecha, NINGUNA factura publicada sin revertir, y su venta gemela (la que ML creó al
+        dividir el carrito) ya tiene su PROPIA salida hecha => contexto para devolver la salida
+        de esta venta (también FULL: es el duplicado de una salida que ya hizo la gemela) y
+        cancelarla. Si no => None (sigue la regla de siempre: venta abierta + aviso).
+        Con factura publicada nunca: la nota de crédito es una decisión fiscal del vendedor.
+        Parámetro meli_oerp.cancel_pack_split_twin_return = 0 lo apaga."""
+        self.ensure_one()
+        ICP = self.env["ir.config_parameter"].sudo()
+        if _meli_cd.param_is_false(ICP.get_param(_meli_cd.CANCEL_PACK_SPLIT_TWIN_RETURN_PARAM)):
+            return None
+        own_out = self.picking_ids.filtered(
+            lambda pk: pk.state == "done" and pk.picking_type_code == "outgoing")
+        if not own_out or self._meli_unresolved_posted_invoices():
+            return None
+        try:
+            twins = self._meli_pack_splitted_twins()
+        except Exception as e:
+            _logger.warning("meli_cancel %s: no se pudo buscar la venta gemela: %s", self.name, e)
+            return None
+        twin_out = twins.mapped("picking_ids").filtered(
+            lambda pk: pk.state == "done" and pk.picking_type_code == "outgoing")
+        if not twin_out:
+            return None
+        text = ("pack dividido por MercadoLibre (pack_splitted): la venta gemela %s tiene su propia salida "
+                "hecha (%s), así que se cancela esta venta y se devuelve su salida (%s) para que la "
+                "mercadería no salga dos veces." % (
+                    ", ".join(twins.mapped("name")), ", ".join(twin_out.mapped("name")),
+                    ", ".join(own_out.mapped("name"))))
+        if self.meli_cancel_decision != text:
+            self.meli_cancel_decision = text
+        meli_message_post(self, "Cancelación de MercadoLibre: %s Motivo ML: %s" % (text, cancel_msg),
+                          config=config, once_key="cancel-packsplit-twin-%s" % self.id)
+        return {"meli_cancel_return_any_reason": True, "meli_cancel_pack_split_return": True,
+                "meli_cancel_return_full": True, "meli_cancel_ignore_delivered_guard": True}
 
     def _meli_cancel_pack_splitted_legacy(self, cancel_msg, config=None):
         """pack_splitted (modo legacy): sin devolución y sin nota de crédito. La venta se
