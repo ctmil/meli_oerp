@@ -4,6 +4,11 @@
 
 ---
 
+## 18.0.26.371 — 4-nov-2026 · Ventas de ML: el precio de la línea ya no se recalcula a la tarifa; diagnóstico de stock más robusto; KIT de ML (462)
+- El precio de una línea de venta que viene de Mercado Libre queda fijo: cambiar la cantidad o el producto de la línea ya no lo recalcula con la lista de precios (Odoo 17.2+/18). Tampoco se reescribe la lista de precios de la venta cuando es la misma.
+- El diagnóstico de stock ya no pierde la corrida entera si choca con el cron de stock al guardar el estado de una publicación.
+- Publicaciones KIT de Mercado Libre (stock calculado por ML con sus componentes): el diagnóstico ya no intenta reactivarlas.
+
 ## 18.0.26.361 — 2-nov-2026 · Corrección: la comisión de Mercado Libre de cada pago se toma también del nuevo formato de cargos de MercadoPago (antes podía quedar en 0,00).
 
 ## 18.0.26.358 — 2-nov-2026 · Opción para que el flete de Mercado Libre no descuente del margen

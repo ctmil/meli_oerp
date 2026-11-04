@@ -4,6 +4,13 @@
 
 ---
 
+## 4 nov 2026 — armonización Matices 462 en 18.0 (B1) (v18.0.26.371)
+**Qué:** lo que corría sólo en Matices (`ctmil/olpagroup` main `f6156db`) entra al source 18.0. ESTUDIO `.roots/docs/ESTUDIO-2026-11-04-matices-publicar-campaign.md` (P1–P3).
+- P1 (`30de2f8`): `_set_product_unit_price` agrega `technical_price_unit = -1` si el campo existe (Odoo 18 lo usa para decidir si recalcula `price_unit` en writes de product_id/qty/uom; SO 6212 de Olpa 133.881→183.912). `orders_update_order` y el pack de `shipment` no reescriben `pricelist_id` con el MISMO valor (un compute con `@api.depends('order_id.pricelist_id')` recalculaba las líneas).
+- P2 (`b53781b`): los 2 UPDATE del diagnóstico de stock (`meli_last_status`, `meli_available_quantity`) en `cr.savepoint(flush=False)`: un 40001 contra el cron de stock abortaba la transacción y `cron_meli_stock_diagnostic` descartaba la corrida (Olpa 2-nov: 3 de 5).
+- P3 (`5c6394e`, parte meli_oerp): pausada con tag `bundle` ⇒ skip de la reactivación.
+**Prueba:** `tests/test_26371_462_matices.py` (tag `meli_b462`): T4 precio, T5 savepoint. origin/18.0 + test: ROJO 2/2; rama: verde. Suites 3 módulos banco 18: 661/661.
+
 ## 2 nov 2026 — comisión del pago en 0 cuando MP informa `meli_fee` [430 Aztec Medic, OFF 720] (v18.0.26.361)
 **Causa:** bloque payments de la ingesta: con charges_details se pone fee_amount=0 y sólo se suman cargos fee con nombre meli_percentage_fee/flat_fee/financing_add_on_fee; MP informa ahora `meli_fee` (deferred-charges/fees-api) ⇒ comisión 0 aunque fee_details application_fee=300.3.
 **Fix:** si ningún cargo de nombre conocido aportó comisión, `meli_payment_commission_from_json` (versions.py): fee_details application_fee collector; si no, cargos type=fee from collector sin financing_fee. Con nombres conocidos no cambia nada. Test en meli_oerp_accounting (TestComisionDesdeJson26361).
