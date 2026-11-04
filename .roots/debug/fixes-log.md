@@ -4,6 +4,13 @@
 
 ---
 
+## 4 nov 2026 — venta cancelada en ML que sigue en sale/done: la reparación de entregas le re-creaba el albarán [157 Hito Fusion, Smarttrack #5121] (v18.0.26.374)
+**Síntoma (reportado por Hito, partner, con módulo puente propio `meli_cancel_guard`):** órdenes que ML canceló vuelven a tener albarán listo para despachar.
+**Causa:** cuando la cancelación de ML no se puede aplicar en Odoo (`_meli_action_cancel` "NO quedó cancelada"; banner `meli_cancel_pending_banner`), la venta queda `state=sale` con `meli_status=cancelled` y, si la entrega se canceló/borró, con `stock.move` huérfanos (`picking_id` NULL). `meli_repair_missing_pickings` sólo salteaba por `state` de Odoo y la auto-reparación de `meli_oerp_update` (`state in sale/done and not picking_ids`) la disparaba en cada actualización ⇒ `_assign_picking()` re-creaba el albarán. (`confirm_ml` ya cortaba antes para canceladas.)
+**Fix:** guarda `so.meli_status == 'cancelled'` DENTRO de los dos métodos del source (no override): repair saltea con log y aviso "La venta está cancelada en MercadoLibre: no se re-crea la entrega. Procesá la cancelación."; la auto-reparación no corre. Pack con órdenes canceladas sólo en parte: `meli_status` no pasa a `cancelled` ⇒ se repara como antes. `pending_cancel` no se incluye (sin uso operativo en el source). La pieza 3 de Hito (`cron_batch_update_marked_orders` en `sale.order`) NO se trae: el cron vive en `mercadolibre.orders` (multiple) y filtrar canceladas impediría sincronizar la cancelación.
+**Prueba:** `tests/test_157_cancel_guard_repair.py` (tag `meli_157_cancel_guard`, 5: repair, auto-repair de `meli_oerp_update`, lote mixto + 2 controles con venta pagada). Banco 16/17/18/19/20: control origin 3 rojos/5 (los 3 del caso), fix 5/5; suite completa `meli_oerp` fix vs origin: mismo conjunto de fallas preexistentes (campos de accounting ausentes en el banco), 0 regresiones.
+**Para Hito:** al próximo sync pueden desinstalar `meli_cancel_guard` (su override de `meli_oerp_update` reemplaza sin `super()` y taparía cambios futuros del método).
+
 ## 4 nov 2026 — release de flota 26.373 (v18.0.26.373)
 **Qué:** bump manifest-only en 18.0 (el contenido 462 entró en 26.371, B1). 16/17/19/20 reciben ese mismo contenido en 26.373 (B2).
 
