@@ -2826,9 +2826,25 @@ class sale_order(models.Model):
         """
         repaired = 0
         skipped = 0
+        skipped_cancelled = 0
         for so in self:
             if so.state not in ('sale', 'done'):
                 skipped += 1
+                continue
+            # 157 (Hito, Smarttrack #5121): una venta CANCELADA en ML que en Odoo
+            # sigue en sale/done (la cancelacion no se pudo aplicar: _meli_action_cancel
+            # "NO quedo cancelada", banner meli_cancel_pending_banner) suele tener los
+            # moves huerfanos de la entrega cancelada. Repararla le RE-CREA el albaran y
+            # la mercaderia vuelve a reservarse/despacharse para una venta que ML ya no
+            # cobra. La cancelacion se resuelve por su flujo (meli_cancel_with_detail);
+            # aca no se repara.
+            if so.meli_status == 'cancelled':
+                skipped += 1
+                skipped_cancelled += 1
+                _logger.info(
+                    "meli_repair_missing_pickings: SO %s (id=%d) cancelada en ML (meli_status=cancelled) — no se re-crea la entrega",
+                    so.name, so.id
+                )
                 continue
             orphan_moves = self.env['stock.move'].search([
                 ('picking_id', '=', False),
@@ -2859,6 +2875,9 @@ class sale_order(models.Model):
         if repaired:
             msg = "Entrega reparada correctamente. Recargá la página para ver el botón de entrega."
             msg_type = 'success'
+        elif skipped_cancelled:
+            msg = "La venta está cancelada en MercadoLibre: no se re-crea la entrega. Procesá la cancelación."
+            msg_type = 'warning'
         else:
             msg = "No se encontraron movimientos de stock huérfanos para reparar."
             msg_type = 'warning'
@@ -3436,7 +3455,8 @@ class sale_order(models.Model):
             if order.meli_orders:
                 res = order.meli_orders[0].orders_update_order()
             # Auto-repair: if SO is confirmed but has no picking, fix orphan moves
-            if order.state in ('sale', 'done') and not order.picking_ids:
+            # 157 (Hito): nunca para una venta cancelada en ML (ver meli_repair_missing_pickings).
+            if order.state in ('sale', 'done') and not order.picking_ids and order.meli_status != 'cancelled':
                 orphan = self.env['stock.move'].search([
                     ('picking_id', '=', False),
                     ('state', 'in', ['confirmed', 'waiting', 'partially_available', 'assigned']),
