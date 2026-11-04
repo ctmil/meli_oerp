@@ -4,6 +4,9 @@
 
 ---
 
+## 18.0.26.373 — 4-nov-2026 · Release de flota (mismo contenido que 26.371 en este módulo)
+- Sin cambios funcionales respecto de 26.371 en 18.0: el número sube para alinear el suite en 16–20 (lo de Matices 462 ya entró en 26.371).
+
 ## 18.0.26.371 — 4-nov-2026 · Ventas de ML: el precio de la línea ya no se recalcula a la tarifa; diagnóstico de stock más robusto; KIT de ML (462)
 - El precio de una línea de venta que viene de Mercado Libre queda fijo: cambiar la cantidad o el producto de la línea ya no lo recalcula con la lista de precios (Odoo 17.2+/18). Tampoco se reescribe la lista de precios de la venta cuando es la misma.
 - El diagnóstico de stock ya no pierde la corrida entera si choca con el cron de stock al guardar el estado de una publicación.

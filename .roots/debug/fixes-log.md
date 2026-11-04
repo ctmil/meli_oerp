@@ -4,6 +4,9 @@
 
 ---
 
+## 4 nov 2026 — release de flota 26.373 (v18.0.26.373)
+**Qué:** bump manifest-only en 18.0 (el contenido 462 entró en 26.371, B1). 16/17/19/20 reciben ese mismo contenido en 26.373 (B2).
+
 ## 4 nov 2026 — armonización Matices 462 en 18.0 (B1) (v18.0.26.371)
 **Qué:** lo que corría sólo en Matices (`ctmil/olpagroup` main `f6156db`) entra al source 18.0. ESTUDIO `.roots/docs/ESTUDIO-2026-11-04-matices-publicar-campaign.md` (P1–P3).
 - P1 (`30de2f8`): `_set_product_unit_price` agrega `technical_price_unit = -1` si el campo existe (Odoo 18 lo usa para decidir si recalcula `price_unit` en writes de product_id/qty/uom; SO 6212 de Olpa 133.881→183.912). `orders_update_order` y el pack de `shipment` no reescriben `pricelist_id` con el MISMO valor (un compute con `@api.depends('order_id.pricelist_id')` recalculaba las líneas).
