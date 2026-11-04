@@ -4,6 +4,13 @@
 
 ---
 
+## 4 nov 2026 — venta cancelada en ML que sigue en sale/done: la reparación de entregas le re-creaba el albarán [157 Hito Fusion, Smarttrack #5121] (v17.0.26.374)
+**Síntoma (reportado por Hito, partner, con módulo puente propio `meli_cancel_guard`):** órdenes que ML canceló vuelven a tener albarán listo para despachar.
+**Causa:** cuando la cancelación de ML no se puede aplicar en Odoo (`_meli_action_cancel` "NO quedó cancelada"; banner `meli_cancel_pending_banner`), la venta queda `state=sale` con `meli_status=cancelled` y, si la entrega se canceló/borró, con `stock.move` huérfanos (`picking_id` NULL). `meli_repair_missing_pickings` sólo salteaba por `state` de Odoo y la auto-reparación de `meli_oerp_update` (`state in sale/done and not picking_ids`) la disparaba en cada actualización ⇒ `_assign_picking()` re-creaba el albarán. (`confirm_ml` ya cortaba antes para canceladas.)
+**Fix:** guarda `so.meli_status == 'cancelled'` DENTRO de los dos métodos del source (no override): repair saltea con log y aviso "La venta está cancelada en MercadoLibre: no se re-crea la entrega. Procesá la cancelación."; la auto-reparación no corre. Pack con órdenes canceladas sólo en parte: `meli_status` no pasa a `cancelled` ⇒ se repara como antes. `pending_cancel` no se incluye (sin uso operativo en el source). La pieza 3 de Hito (`cron_batch_update_marked_orders` en `sale.order`) NO se trae: el cron vive en `mercadolibre.orders` (multiple) y filtrar canceladas impediría sincronizar la cancelación.
+**Prueba:** `tests/test_157_cancel_guard_repair.py` (tag `meli_157_cancel_guard`, 5: repair, auto-repair de `meli_oerp_update`, lote mixto + 2 controles con venta pagada). Banco 16/17/18/19/20: control origin 3 rojos/5 (los 3 del caso), fix 5/5; suite completa `meli_oerp` fix vs origin: mismo conjunto de fallas preexistentes (campos de accounting ausentes en el banco), 0 regresiones.
+**Para Hito:** al próximo sync pueden desinstalar `meli_cancel_guard` (su override de `meli_oerp_update` reemplaza sin `super()` y taparía cambios futuros del método).
+
 ## 4 nov 2026 — armonización Matices 462 en 17.0 (B2, port de 18.0) (v17.0.26.373)
 **Qué:** lo que corría sólo en Matices (`ctmil/olpagroup` main `f6156db`) entra al source 18.0. ESTUDIO `.roots/docs/ESTUDIO-2026-11-04-matices-publicar-campaign.md` (P1–P3).
 - P1 (`30de2f8`): `_set_product_unit_price` agrega `technical_price_unit = -1` si el campo existe (Odoo 18 lo usa para decidir si recalcula `price_unit` en writes de product_id/qty/uom; SO 6212 de Olpa 133.881→183.912). `orders_update_order` y el pack de `shipment` no reescriben `pricelist_id` con el MISMO valor (un compute con `@api.depends('order_id.pricelist_id')` recalculaba las líneas).
