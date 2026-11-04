@@ -1928,15 +1928,25 @@ class res_company(models.Model):
         """
         if ml_status not in ('active', 'paused', 'closed', 'under_review', 'inactive'):
             return
+        # 26.371 (#462): el UPDATE va dentro de un SAVEPOINT. Este diagnostico corre a la par del
+        # cron de stock, que escribe las MISMAS filas de mercadolibre_product: Postgres responde
+        # 'could not serialize access due to concurrent update' (40001). Sin savepoint, el except
+        # de abajo se tragaba el error pero la transaccion quedaba ABORTADA: cada consulta
+        # siguiente del loop fallaba ('current transaction is aborted') y al final
+        # cron_meli_stock_diagnostic descartaba la corrida entera (Olpa 2-nov: 3 de 5 corridas).
+        # Con el savepoint, si choca se pierde SOLO este dato de telemetria (el push de stock lo
+        # vuelve a escribir) y el diagnostico sigue.
         try:
             if 'mercadolibre.product' in self.env and meli_id:
-                self.env.cr.execute("""
-                    UPDATE mercadolibre_product
-                    SET meli_last_status = %s
-                    WHERE conn_id = %s
-                      AND (meli_last_status IS DISTINCT FROM %s)
-                """, (ml_status, meli_id, ml_status))
-                if self.env.cr.rowcount:
+                with self.env.cr.savepoint(flush=False):
+                    self.env.cr.execute("""
+                        UPDATE mercadolibre_product
+                        SET meli_last_status = %s
+                        WHERE conn_id = %s
+                          AND (meli_last_status IS DISTINCT FROM %s)
+                    """, (ml_status, meli_id, ml_status))
+                    _rows = self.env.cr.rowcount
+                if _rows:
                     self.env['mercadolibre.product'].invalidate_model(['meli_last_status'])
         except Exception as _st_err:
             _logger.debug("MELI_STOCK_DIAG: no se pudo persistir meli_last_status de %s: %s",
@@ -2396,6 +2406,11 @@ class res_company(models.Model):
                         if ml_logistic == 'fulfillment' and not ml_user_product_id:
                             checked_items_log.append(f"⏭ {item_log} → paused pero FULFILLMENT ML puro (skip)")
                             continue
+                        # 26.371 (#462): KIT de ML (tag 'bundle'): el stock lo calcula ML con los componentes y
+                        # rechaza el PUT; reactivarlo desde acá no tiene efecto y deja un error por corrida.
+                        if 'bundle' in (rjson.get('tags') or []):
+                            checked_items_log.append(f"⏭ {item_log} → paused, KIT de ML (stock por componentes, skip)")
+                            continue
                         _ml_sub = rjson.get('sub_status') or []
                         if reactivate == 'never' or (reactivate == 'out_of_stock' and 'out_of_stock' not in _ml_sub):
                             _logger.info("MELI_STOCK_DIAG: NO reactiva [%s] %s (paused, sub_status=%s, modo=%s)", sku, meli_id, _ml_sub, reactivate)
@@ -2475,10 +2490,13 @@ class res_company(models.Model):
                             sku, meli_id, ml_qty
                         )
                         try:
-                            self.env.cr.execute(
-                                "UPDATE product_product SET meli_available_quantity = %s WHERE id = %s",
-                                (ml_qty, pid)
-                            )
+                            # 26.371 (#462): savepoint — mismo caso que _meli_diag_persist_ml_status:
+                            # un 40001 contra el cron de stock no puede dejar abortada la transaccion.
+                            with self.env.cr.savepoint(flush=False):
+                                self.env.cr.execute(
+                                    "UPDATE product_product SET meli_available_quantity = %s WHERE id = %s",
+                                    (ml_qty, pid)
+                                )
                             self.env['product.product'].invalidate_model(['meli_available_quantity'])
                             actions_taken.append(f"🔄 QTY STALE [{sku}] {meli_id} — qty actualizada 0→{ml_qty} (Odoo←ML)")
                             checked_items_log.append(f"🔄 {item_log} → qty stale actualizada a {ml_qty}")
