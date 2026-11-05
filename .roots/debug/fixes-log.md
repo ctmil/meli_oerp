@@ -4,6 +4,21 @@
 
 ---
 
+## 5 nov 2026 — 26.377: confirm_ml espera el envío cuando su tipo logístico es desconocido `[17.0]`
+
+**Archivos:** `models/orders.py` (`meli_confirm_wait_shipment`, llamada en `confirm_ml` después de `meli_confirm_ready`).
+**Origen:** 420 #707 (duda del dev del cliente): con `meli_shipping_id` y `meli_shipment_logistic_type` vacío (falló
+fetch_shipment en el alta; un envío leído siempre deja `logistic_type or mode`) `is_meli_order_fulfillment()` daba False
+⇒ confirmación con la regla NO FULL ⇒ una FULL reservaba stock propio y `_meli_sot_fix_provisional_type`
+(meli_oerp_sale_order_type) ya no podía corregir el tipo porque la venta estaba confirmada.
+**Fix:** draft/sent + shipping.id + sin tipo ⇒ `{'error'}` + nota única (once_key `wait-shipment-<id>`); tope
+`meli_oerp.confirm_wait_shipment_hours` (default 6 h desde create_date; 0 = sin espera) ⇒ confirma NO FULL + aviso
+(once_key `wait-shipment-limit-<id>`). Sin llamadas de red nuevas (Shoppy 502: nada de red dentro de la transacción).
+**Re-intento:** lo hace la próxima actualización de la orden (notificación de ML / cron de órdenes), que vuelve a leer el envío.
+**Tests:** meli_oerp_sale_order_type `tests/test_420_707_guarda_envio.py` (A-F, camino real con meli_oerp_multiple y cuenta enlazada).
+
+---
+
 ## 4 nov 2026 — venta cancelada en ML que sigue en sale/done: la reparación de entregas le re-creaba el albarán [157 Hito Fusion, Smarttrack #5121] (v17.0.26.374)
 **Síntoma (reportado por Hito, partner, con módulo puente propio `meli_cancel_guard`):** órdenes que ML canceló vuelven a tener albarán listo para despachar.
 **Causa:** cuando la cancelación de ML no se puede aplicar en Odoo (`_meli_action_cancel` "NO quedó cancelada"; banner `meli_cancel_pending_banner`), la venta queda `state=sale` con `meli_status=cancelled` y, si la entrega se canceló/borró, con `stock.move` huérfanos (`picking_id` NULL). `meli_repair_missing_pickings` sólo salteaba por `state` de Odoo y la auto-reparación de `meli_oerp_update` (`state in sale/done and not picking_ids`) la disparaba en cada actualización ⇒ `_assign_picking()` re-creaba el albarán. (`confirm_ml` ya cortaba antes para canceladas.)
