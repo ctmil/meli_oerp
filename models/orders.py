@@ -3228,7 +3228,7 @@ class sale_order(models.Model):
 
     # 26.377: guarda "envío desconocido" antes de confirmar.
     MELI_WAIT_SHIPMENT_PARAM = "meli_oerp.confirm_wait_shipment_hours"
-    MELI_WAIT_SHIPMENT_DEFAULT_HOURS = 6.0
+    MELI_WAIT_SHIPMENT_DEFAULT_HOURS = 1.0  # 420 #707: 6 -> 1 h a pedido del cliente (reputación)
     MELI_WAIT_SHIPMENT_TAG = "MELI: envío sin tipo logístico"
     MELI_WAIT_SHIPMENT_TAG_LIMIT = "MELI: tope de espera del envío"
 
@@ -3264,7 +3264,7 @@ class sale_order(models.Model):
         shipping.id y SIN la marca, el envío todavía no existe (ML lo crea después) y podría ser FULL:
         espera igual que con envío sin leer, con el mismo tope.
 
-        TOPE: ir.config_parameter ``meli_oerp.confirm_wait_shipment_hours`` (default 6 h, contadas
+        TOPE: ir.config_parameter ``meli_oerp.confirm_wait_shipment_hours`` (default 1 h, contadas
         desde la creación de la venta en Odoo; 0 = no esperar, comportamiento anterior). Pasado el
         tope se confirma con la regla NO FULL y se avisa en el chatter para revisar tipo y depósito.
         """
