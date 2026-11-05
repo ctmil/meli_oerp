@@ -4,6 +4,15 @@
 
 ---
 
+## 5 nov 2026 — 26.379: tope de espera del envío desconocido 6 h → 1 h por default `[19.0]`
+
+**Archivos:** `models/orders.py` (`MELI_WAIT_SHIPMENT_DEFAULT_HOURS`).
+**Origen:** 420 #707 — el cliente pidió bajar el tope: 6 h en presupuesto atrasan la entrega y afectan la reputación.
+**Fix:** default 6.0 → 1.0. El ICP `meli_oerp.confirm_wait_shipment_hours` manda si existe (get_param con default).
+**Tests:** meli_oerp_sale_order_type `tests/test_420_707_tope_1h.py` (L 90 min confirma · M 30 min espera · N ICP=6 manda).
+
+---
+
 ## 5 nov 2026 — 26.377: confirm_ml espera el envío cuando su tipo logístico es desconocido `[19.0]`
 
 **Archivos:** `models/orders.py` (`meli_confirm_wait_shipment`, llamada en `confirm_ml` después de `meli_confirm_ready`).
