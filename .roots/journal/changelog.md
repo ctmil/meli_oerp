@@ -4,6 +4,11 @@
 
 ---
 
+## 16.0.26.377 — 5-nov-2026 · Una venta de Mercado Libre con envío de tipo desconocido espera en presupuesto antes de confirmarse (420 #707)
+- Si la venta tiene envío pero su tipo logístico todavía no se conoce (falló la consulta del envío al entrar), **ya no se confirma**: queda en presupuesto con una nota en el chatter. La siguiente actualización de la orden lee el envío y recién ahí confirma con la regla FULL o no FULL que corresponda. Antes una venta FULL se confirmaba con la regla no FULL y reservaba stock del depósito propio.
+- **Tope:** parámetro de sistema `meli_oerp.confirm_wait_shipment_hours` (default **6 h** desde que la venta se creó en Odoo; `0` = sin espera, como antes). Vencido el tope se confirma con la regla no FULL y se avisa en el chatter para revisar tipo de pedido y depósito.
+- Ventas sin envío de ML (acordar con el comprador) no esperan. Sin llamadas de red nuevas. Requiere `-u meli_oerp`.
+
 ## 16.0.26.373 — 4-nov-2026 · Ventas de ML: no se reescribe la lista de precios si es la misma; diagnóstico de stock más robusto; KIT de ML (462)
 - No se reescribe la lista de precios de la venta cuando es la misma.
 - El diagnóstico de stock ya no pierde la corrida entera si choca con el cron de stock al guardar el estado de una publicación.
