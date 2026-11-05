@@ -4,6 +4,12 @@
 
 ---
 
+## 17.0.26.378 — 5-nov-2026 · Las ventas «acordar la entrega» se confirman al instante; una venta cuyo envío todavía no existe espera (420 #707)
+
+Mercado Libre marca las ventas sin envío («acordar la entrega» con el comprador) con `shipping.id` nulo y la etiqueta `no_shipping`: esas se confirman en el alta con la regla no FULL, sin esperar. Una venta **sin `shipping.id` y sin esa etiqueta** (el envío todavía no fue creado y podría ser FULL) ahora espera en presupuesto como la venta con envío sin leer, con el mismo tope (`meli_oerp.confirm_wait_shipment_hours`, 6 h); antes se confirmaba al instante como no FULL.
+
+---
+
 ## 17.0.26.377 — 5-nov-2026 · Una venta de Mercado Libre con envío de tipo desconocido espera en presupuesto antes de confirmarse (420 #707)
 - Si la venta tiene envío pero su tipo logístico todavía no se conoce (falló la consulta del envío al entrar), **ya no se confirma**: queda en presupuesto con una nota en el chatter. La siguiente actualización de la orden lee el envío y recién ahí confirma con la regla FULL o no FULL que corresponda. Antes una venta FULL se confirmaba con la regla no FULL y reservaba stock del depósito propio.
 - **Tope:** parámetro de sistema `meli_oerp.confirm_wait_shipment_hours` (default **6 h** desde que la venta se creó en Odoo; `0` = sin espera, como antes). Vencido el tope se confirma con la regla no FULL y se avisa en el chatter para revisar tipo de pedido y depósito.
