@@ -3375,6 +3375,20 @@ class sale_order(models.Model):
     MELI_WAIT_SHIPMENT_TAG = "MELI: envío sin tipo logístico"
     MELI_WAIT_SHIPMENT_TAG_LIMIT = "MELI: tope de espera del envío"
 
+    def meli_order_no_shipping( self ):
+        """26.378: ¿ML marcó la venta SIN envío («acordar la entrega»)? Tag ``no_shipping`` en TODOS
+        los pedidos ML de la venta (un pack sin envío lo trae en cada pedido). Sin red: lee los tags
+        guardados del último pedido leído."""
+        self.ensure_one()
+        orders = self.meli_orders
+        if not orders:
+            return False
+        for mo in orders:
+            tags = mo.tags or ""
+            if "'no_shipping'" not in tags and '"no_shipping"' not in tags:
+                return False
+        return True
+
     def meli_confirm_wait_shipment( self, config=None ):
         """26.377: ¿hay que esperar al envío antes de confirmar? Devuelve el motivo (str) o False.
 
@@ -3385,8 +3399,13 @@ class sale_order(models.Model):
         en la próxima actualización de la orden, que vuelve a leer el envío.
 
         Un envío leído nunca queda vacío (se guarda logistic_type o, si no hay, mode), así que la
-        espera sólo ocurre cuando la consulta falló. Ventas sin envío (acordar con el comprador) no
-        esperan. Sin llamadas de red: sólo lee la venta.
+        espera sólo ocurre cuando la consulta falló. Sin llamadas de red: sólo lee la venta.
+
+        SIN shipping.id (26.378): ML marca la venta sin envío («acordar la entrega» con el comprador)
+        con el tag ``no_shipping`` en el pedido (``shipping={"id": null}`` + ``no_shipping``). Con esa
+        marca NO se espera: no habrá envío y la venta se confirma en el alta por la regla NO FULL. Sin
+        shipping.id y SIN la marca, el envío todavía no existe (ML lo crea después) y podría ser FULL:
+        espera igual que con envío sin leer, con el mismo tope.
 
         TOPE: ir.config_parameter ``meli_oerp.confirm_wait_shipment_hours`` (default 6 h, contadas
         desde la creación de la venta en Odoo; 0 = no esperar, comportamiento anterior). Pasado el
@@ -3395,11 +3414,15 @@ class sale_order(models.Model):
         self.ensure_one()
         if self.state not in ("draft", "sent"):
             return False
-        if not self.meli_shipping_id or self.meli_shipment_logistic_type:
+        if not self.meli_shipping_id:
+            if self.meli_order_no_shipping():
+                return False  # acordar entrega: ML no va a crear envío
+        elif self.meli_shipment_logistic_type:
             return False
-        ship = self.meli_shipment
-        if ship and (ship.logistic_type or ship.mode):
-            return False
+        else:
+            ship = self.meli_shipment
+            if ship and (ship.logistic_type or ship.mode):
+                return False
 
         ICP = self.env["ir.config_parameter"].sudo()
         try:
@@ -3412,20 +3435,21 @@ class sale_order(models.Model):
         start = self.create_date or fields.Datetime.now()
         elapsed = (fields.Datetime.now() - start).total_seconds() / 3600.0
 
+        ship_ref = self.meli_shipping_id or "todavía no creado por ML"
         if elapsed < hours:
             msg = ("%s (envío %s): la venta queda en presupuesto hasta conocer si es FULL o no FULL. "
                    "Se confirma sola en la próxima actualización de la orden. Tope de espera: %s h."
-                   % (self.MELI_WAIT_SHIPMENT_TAG, self.meli_shipping_id, ("%g" % hours)))
+                   % (self.MELI_WAIT_SHIPMENT_TAG, ship_ref, ("%g" % hours)))
             meli_message_post(self, msg, config=config, once_key="wait-shipment-%s" % self.id)
-            _logger.info("MELI SO %s espera envío %s (%.2f/%s h)", self.id, self.meli_shipping_id, elapsed, hours)
+            _logger.info("MELI SO %s espera envío %s (%.2f/%s h)", self.id, ship_ref, elapsed, hours)
             return msg
 
         meli_message_post(self, (
             "%s (envío %s): pasaron %s h sin poder leer el envío; se confirma con la regla NO FULL. "
             "Si la venta era FULL, revisar el tipo de pedido y el depósito del albarán."
-            % (self.MELI_WAIT_SHIPMENT_TAG_LIMIT, self.meli_shipping_id, ("%g" % hours))),
+            % (self.MELI_WAIT_SHIPMENT_TAG_LIMIT, ship_ref, ("%g" % hours))),
             config=config, once_key="wait-shipment-limit-%s" % self.id)
-        _logger.warning("MELI SO %s: tope de espera del envío %s vencido, confirma NO FULL", self.id, self.meli_shipping_id)
+        _logger.warning("MELI SO %s: tope de espera del envío %s vencido, confirma NO FULL", self.id, ship_ref)
         return False
 
     def confirm_ml( self, meli=None, config=None ):

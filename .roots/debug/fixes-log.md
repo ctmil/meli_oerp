@@ -297,6 +297,10 @@ reescrito; lo de SteelTigers vive en su módulo `steeltiger_meli_contacts` (here
 **Causa:** `mercadolibre.claim.compute_claim_link` armaba `www.<dominio>/reclamos/<claim_id>`. El fix de 26.133 (dc6f4b47) sólo había corregido el link de mensajería de la orden.
 **Fix:** `_meli_claim_ref` (pack de la orden > orden > `resource_id` si `resource='order'`) y, **sólo para `type='mediations'`**, el link del panel del vendedor. Otros tipos o sin referencia ⇒ link anterior (no hay formato confirmado para returns/cancel_*). Dominio con la compañía del reclamo.
 **Prueba:** `tests/test_525_claim_link.py` (tag `meli_525`), caso real claim 5597226476 / pack 2000015578976049: banco 17 y 19 con fix 4/4; control origin 3 FAIL + 1 OK (control: tipos no mediación sin cambio). 16/18 py_compile.
+### 5 nov 2026 — «acordar entrega» (no_shipping) vs envío todavía no creado [420 #707] (v18.0.26.378)
+
+`meli_order_no_shipping()` (tag `no_shipping` en todos los `meli_orders`) y `meli_confirm_wait_shipment`: sin shipping.id + no_shipping ⇒ no espera; sin shipping.id y sin la marca ⇒ espera con el mismo tope. Verificado en prod Dannok (GET /orders RO): 31006/31896 = `{"id": null}` + `no_shipping`; 32221 = `{"id": null}` sin la marca; `context.flows` no discrimina. Antes (26.377) toda venta sin shipping.id confirmaba al instante como no FULL. sale_order_type marca el tipo como provisorio en ese caso. Banco 18 (cliente): control 4 FAIL (I,J,K,F), fix 27/27, suite 48/48.
+
 ### 6 oct 2026 — Precisión "Product Price" a 6 dígitos ahora es opcional [#542 SteelTiger / #659] (v19.0.26.193)
 
 `__init__.py` `post_init_hook`: forzaba 'Product Price' a 6 dígitos al instalar. Ahora lee el parámetro de sistema
