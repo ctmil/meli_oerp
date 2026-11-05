@@ -301,6 +301,10 @@ reescrito; lo de SteelTigers vive en su módulo `steeltiger_meli_contacts` (here
 **Causa:** todo el matching del suite es exacto (`default_code =ilike sku`).
 **Fix:** opción `mercadolibre_sku_token_match` (+ `_separators`), default apagada, como RESPALDO después del exacto. Helper único: `models/sku_token.py` (regla pura) + `product.product._meli_sku_token_resolve/_matches` (ORM; apagada ⇒ 0 queries). Puntos: `company.product_meli_get_products` (ítem y variación), `mercadolibre.orders.search_meli_product` y 2.º intento de `orders_update_order_json`.
 **Prueba:** banco Odoo 16, 17, 18 y 19 (PG privado, shell ORM 39/39 en CADA serie): test puro contra la lista medida de 543 (1338 filas, 0 discrepancias: 586 activas/415 pausadas resuelven) + shell ORM 39/39 (único, sin match, ambiguo de tokens, código duplicado, comodín `_` escapado, otra compañía, separador custom, opción apagada ⇒ resultados de hoy y 0 queries, `bind_to` real: apagada no crea binding de variante, encendida sí).
+### 5 nov 2026 — «acordar entrega» (no_shipping) vs envío todavía no creado [420 #707] (v19.0.26.378)
+
+`meli_order_no_shipping()` (tag `no_shipping` en todos los `meli_orders`) y `meli_confirm_wait_shipment`: sin shipping.id + no_shipping ⇒ no espera; sin shipping.id y sin la marca ⇒ espera con el mismo tope. Verificado en prod Dannok (GET /orders RO): 31006/31896 = `{"id": null}` + `no_shipping`; 32221 = `{"id": null}` sin la marca; `context.flows` no discrimina. Antes (26.377) toda venta sin shipping.id confirmaba al instante como no FULL. sale_order_type marca el tipo como provisorio en ese caso. Banco 18 (cliente): control 4 FAIL (I,J,K,F), fix 27/27, suite 48/48.
+
 ### 6 oct 2026 — Precisión "Product Price" a 6 dígitos ahora es opcional [#542 SteelTiger / #659] (v19.0.26.193)
 
 `__init__.py` `post_init_hook`: forzaba 'Product Price' a 6 dígitos al instalar. Ahora lee el parámetro de sistema
