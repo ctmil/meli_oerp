@@ -4,6 +4,11 @@
 
 ---
 
+## 20.0.26.379 — 5-nov-2026 · Tope de espera del envío desconocido: 6 h → 1 h por default (420)
+- Una venta con envío todavía desconocido espera como máximo **1 h** (antes 6 h) antes de confirmarse con la regla no FULL. El parámetro `meli_oerp.confirm_wait_shipment_hours` sigue mandando si existe en la base.
+
+---
+
 ## 20.0.26.378 — 5-nov-2026 · Las ventas «acordar la entrega» se confirman al instante; una venta cuyo envío todavía no existe espera (420 #707)
 
 Mercado Libre marca las ventas sin envío («acordar la entrega» con el comprador) con `shipping.id` nulo y la etiqueta `no_shipping`: esas se confirman en el alta con la regla no FULL, sin esperar. Una venta **sin `shipping.id` y sin esa etiqueta** (el envío todavía no fue creado y podría ser FULL) ahora espera en presupuesto como la venta con envío sin leer, con el mismo tope (`meli_oerp.confirm_wait_shipment_hours`, 6 h); antes se confirmaba al instante como no FULL.
