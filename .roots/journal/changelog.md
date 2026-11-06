@@ -4,6 +4,10 @@
 
 ---
 
+## 19.0.26.381 — 6-nov-2026 · Release de flota 26.381 (acompaña el cambio de meli_oerp_stock: el cierre automático de entregas ML re-reserva con lote las salidas que quedaron reservadas sin lote; sin cambios propios)
+
+---
+
 ## 19.0.26.380 — 6-nov-2026 · Release de flota 26.380 (acompaña el cambio de meli_oerp_multiple: precio del binding por variación en publicaciones multivariante; sin cambios propios)
 
 ---
