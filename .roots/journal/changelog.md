@@ -4,6 +4,10 @@
 
 ---
 
+## 17.0.26.380 — 6-nov-2026 · Release de flota 26.380 (acompaña el cambio de meli_oerp_multiple: precio del binding por variación en publicaciones multivariante; sin cambios propios)
+
+---
+
 ## 17.0.26.379 — 5-nov-2026 · Tope de espera del envío desconocido: 6 h → 1 h por default (420)
 - Una venta con envío todavía desconocido espera como máximo **1 h** (antes 6 h) antes de confirmarse con la regla no FULL. El parámetro `meli_oerp.confirm_wait_shipment_hours` sigue mandando si existe en la base.
 
