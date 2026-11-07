@@ -16,6 +16,22 @@ MELI_BENCHMARK_THRESHOLD = 0.5
 _meli_log_cache = {}
 
 
+
+def _meli_moves_vivos(moves, ret):
+    """[#755 543, 26.383] moves sobre los que corre el hook de meli DESPUES del super()._action_done.
+
+    mrp (18+: mrp/models/stock_move.py _action_done -> action_explode) explota los moves de KIT
+    que llegan sin explotar y BORRA el move original: `self` queda con un registro inexistente y
+    leerle cualquier campo tira MissingError ("El registro no existe o fue eliminado"), que
+    revierte la validacion del picking entero. Se usan los moves de `self` que siguen existiendo
+    mas los que devolvio el super (los hechos, incluye los componentes del kit). Para productos
+    normales `ret` esta contenido en `self`: el conjunto no cambia.
+    """
+    vivos = moves.exists()
+    if isinstance(ret, models.BaseModel) and ret._name == 'stock.move':
+        vivos |= ret.exists().with_env(moves.env)
+    return vivos
+
 class StockMove(models.Model):
     _inherit = "stock.move"
 
@@ -212,7 +228,8 @@ class StockMove(models.Model):
         t_super_end = time.time()
 
         if not self._should_skip_meli_stock_update():
-            self.meli_update_boms()
+            # [#755 543] el move de KIT que mrp explota se BORRA dentro del super: solo los vivos
+            _meli_moves_vivos(self, moves_todo).meli_update_boms()
         t_meli_end = time.time()
 
         t_total = time.time() - t_start
