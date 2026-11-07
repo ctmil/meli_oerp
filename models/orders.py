@@ -415,11 +415,32 @@ class sale_order_line(models.Model):
         """Write de la linea de producto ML desde la sincronizacion (ver bloque [#caso-K15, 26.316])."""
         for line in self:
             upd = line._meli_vals_changed(vals)
+            # [#525 SO 8152] write de product/cantidad/uom recomputa `discount` desde la tarifa
+            # (_compute_discount); se conserva el que tenia la linea (0 de ML, cupon o manual).
+            _disc_before = line.discount if 'discount' in line._fields else None
             if upd:
                 line.write(upd)
+            if _disc_before is not None and 'discount' not in upd and abs((line.discount or 0.0) - (_disc_before or 0.0)) > 1e-6:
+                _logger.warning("MELI #525: %s linea %s (%s): el write recomputo discount %.4f -> %.4f desde la tarifa; se restituye",
+                                line.order_id.name, line.id, line.product_id.default_code or '', _disc_before or 0.0, line.discount or 0.0)
+                line.write({'discount': _disc_before})
             if 'price_unit' in vals:
                 line._meli_enforce_ml_price(vals.get('price_unit'), config=config)
         return True
+
+    @api.model
+    def _meli_ml_line_create_vals(self, vals):
+        """[#525 SO 8152, 7-nov-2026] Vals de CREATE de una linea de producto ML.
+
+        El precio de la linea ya es el de ML (unit_price, menos la parte del vendedor). Si la tarifa
+        de la venta tiene una regla `percentage` para ese producto, Odoo 17+/18/19 la vuelca a
+        `discount` en el create (_compute_discount) y la venta queda por debajo de lo cobrado
+        (ROEN: 15 % ⇒ 700,11 vs 823,65 cobrado ⇒ "Condition not met", venta en presupuesto).
+        Se crea con discount 0; el cupon de ML (modo product_discount) lo imputa despues su bloque."""
+        vals = dict(vals)
+        if 'discount' in self._fields and 'discount' not in vals:
+            vals['discount'] = 0.0
+        return vals
 
     def _meli_enforce_ml_price(self, price_unit, config=None):
         """Si una personalizacion piso el precio de ML durante el write, se restituye."""
@@ -7556,7 +7577,7 @@ class mercadolibre_orders(models.Model):
                                             sorder.name, sorder.state, saleorderline_item_fields['meli_order_item_id'], _var)
                             order._meli_note_line_not_added(sorder, saleorderline_item_fields, config=config)
                         elif sorder.meli_paid_amount==0.0 or 1.1<abs((sorder.meli_paid_amount-(sorder.meli_discount_seller_amount or 0))-sorder.amount_total):
-                            saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
+                            saleorderline_item_ids = saleorderline_obj.create( saleorderline_obj._meli_ml_line_create_vals( saleorderline_item_fields ) )
                     
                     # [caso de un cliente] El chequeo de orden bloqueada va ARRIBA de todo el bloque.
                     # Motivo: mas abajo hay tres asignaciones saleorderline_item_ids[tax_field] = [(3|4, ...)]
