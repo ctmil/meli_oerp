@@ -2145,7 +2145,7 @@ class mercadolibre_shipment(models.Model):
                                         order._meli_note_line_not_added(sorder_pack, saleorderline_item_fields, config=config)
                                     elif sorder_pack.amount_total<(sorder_pack.meli_paid_amount-(sorder_pack.meli_discount_seller_amount or sorder_pack.meli_coupon_amount)):
                                         #_logger.info("Sale Order Pack Create line")
-                                        saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
+                                        saleorderline_item_ids = saleorderline_obj.create( saleorderline_obj._meli_ml_line_create_vals( saleorderline_item_fields ) )
                                 
                                 
                                 if saleorderline_item_ids and _adopted_line and ((sorder_pack.state in ('sale', 'done')) or ("locked" in sorder_pack._fields and sorder_pack.locked)):
