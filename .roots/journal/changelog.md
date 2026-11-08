@@ -4,6 +4,15 @@
 
 ---
 
+## 16.0.26.384 — 8-nov-2026 · Release de flota 26.384 (acompaña los cambios de meli_oerp_multiple: re-vincular mantiene la lista «Bindings» (26.382) y una publicación bloqueada no se reactiva por el stock de su hermana (26.384); y de 26.383: validar entregas con KIT; sin cambios propios en 26.384)
+
+---
+
+## 16.0.26.383 — 7-nov-2026 · Validar una entrega con un producto KIT ya no da error (543)
+- Al validar una entrega con un KIT, Odoo reemplaza el kit por sus componentes; la validación ya no se corta con un error de «registro inexistente» por ese reemplazo.
+
+---
+
 ## 16.0.26.381 — 6-nov-2026 · Release de flota 26.381 (acompaña el cambio de meli_oerp_stock: el cierre automático de entregas ML re-reserva con lote las salidas que quedaron reservadas sin lote; sin cambios propios)
 
 ---
