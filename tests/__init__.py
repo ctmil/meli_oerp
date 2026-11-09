@@ -54,3 +54,4 @@ from . import test_157_cancel_guard_repair
 from . import test_26385_credenciales_visibles
 from . import test_26386_carrito_595
 from . import test_26387_525_ml_line_discount
+from . import test_26389_515_barcode_gtin_y_reintento

@@ -346,6 +346,11 @@ class res_company(models.Model):
         if (company.mercadolibre_cron_get_orders):
             #_logger.info("company.mercadolibre_cron_get_orders")
             self.meli_query_orders()
+            # 26.389 (515): ordenes que quedaron sin items -- unas pocas por corrida, con tope.
+            try:
+                self.env['mercadolibre.orders']._meli_retry_orders_without_items(meli=apistate, config=company)
+            except Exception as e:
+                _logger.error("cron_meli_orders: reintento de ordenes sin items fallo: %s", e, exc_info=True)
 
     def cron_meli_questions(self):
         #_logger.info('company cron_meli_questions() ')
