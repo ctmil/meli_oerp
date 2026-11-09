@@ -2202,7 +2202,7 @@ class mercadolibre_shipment(models.Model):
                                         # 26.386 (#595): antes `amount_total < paid - cupon` dejaba afuera, en silencio, el
                                         # ultimo item mas barato que el cupon del carrito. Ahora entra si cabe en lo pagado.
                                         #_logger.info("Sale Order Pack Create line")
-                                        saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
+                                        saleorderline_item_ids = saleorderline_obj.create( saleorderline_obj._meli_ml_line_create_vals( saleorderline_item_fields ) )
                                     else:
                                         _line_amount = float(mOrder.order_items[0]["unit_price"] or 0.0) * float(mOrder.order_items[0]["quantity"] or 0.0)
                                         _skip_msg = ("MELI #595: NO se agrego la linea de la sub-orden %s (%s, $%.2f): "
