@@ -203,6 +203,7 @@ from odoo.exceptions import ValidationError
 from . import posting
 from . import product
 from . import shipment
+from . import meli_prorate
 from dateutil.parser import *
 from datetime import *
 from urllib.request import urlopen
@@ -4722,11 +4723,42 @@ class mercadolibre_orders(models.Model):
             or ICP.get_param(self.SELLER_COUPON_MODE_PARAM) or 'discount'
         return 'collected' if str(val).strip().lower() == 'collected' else 'discount'
 
+    # 26.386 (#603 F5b Shoppy 502): tope del descuento del vendedor al CUPON de la orden (opt-in).
+    # Parametro: meli_oerp.seller_discount_cap_coupon.company_<id> o meli_oerp.seller_discount_cap_coupon
+    # ('1'/'true'/'yes'/'on' = activo; default apagado = comportamiento de la flota sin cambios).
+    # Se aplica donde se ESCRIBE discount_seller_amount (no solo en el precio de linea) para que la linea,
+    # el pack (_meli_pack_seller_discount) y meli_discount_seller_amount de la venta usen el MISMO valor:
+    # si difieren, el control de importe deja la venta sin confirmar.
+    SELLER_DISCOUNT_CAP_COUPON_PARAM = 'meli_oerp.seller_discount_cap_coupon'
+
+    @api.model
+    def _meli_seller_discount_cap_coupon(self, config=None, company=None):
+        if not company and config:
+            if getattr(config, '_name', '') == 'res.company':
+                company = config
+            elif 'company_id' in config._fields:
+                company = config.company_id
+        if not company:
+            company = ('company_id' in self._fields and self[:1].company_id) or self.env.company
+        ICP = self.env['ir.config_parameter'].sudo()
+        val = (company and ICP.get_param('%s.company_%s' % (self.SELLER_DISCOUNT_CAP_COUPON_PARAM, company.id))) \
+            or ICP.get_param(self.SELLER_DISCOUNT_CAP_COUPON_PARAM) or ''
+        return str(val).strip().lower() in ('1', 'true', 'yes', 'on')
+
     def _meli_apply_seller_coupon_mode(self, config=None):
         """En modo 'collected' deja en 0 el descuento del vendedor de la orden (no se resta del precio ni
-        del importe a facturar). En 'discount' no toca nada. Devuelve el modo."""
+        del importe a facturar). En 'discount' no toca nada, salvo el tope al cupon (26.386, opt-in).
+        Devuelve el modo."""
         mode = self._meli_seller_coupon_mode(config=config)
         if mode != 'collected':
+            if self[:1] and self._meli_seller_discount_cap_coupon(config=config):
+                for mo in self:
+                    _cap = meli_prorate.bounded_order_discount(mo.discount_seller_amount, mo.coupon_amount)
+                    if abs(_cap - float(mo.discount_seller_amount or 0.0)) > 0.005:
+                        _logger.info("MELI order %s: descuento del vendedor %.2f acotado al cupon %.2f -> %.2f "
+                                     "(seller_discount_cap_coupon)", mo.order_id, mo.discount_seller_amount or 0.0,
+                                     mo.coupon_amount or 0.0, _cap)
+                        mo.write({'discount_seller_amount': _cap})
             return mode
         for mo in self:
             vals = {}
