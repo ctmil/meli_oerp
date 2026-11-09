@@ -102,10 +102,8 @@ class MercadoLibreLogin(http.Controller):
         if codes['code']!='none':
             _logger.info( "Meli: Authorize: REDIRECT_URI: %s" % ( company.mercadolibre_redirect_uri ) )
             resp = meli.authorize( codes['code'], company.mercadolibre_redirect_uri)
-            company.write( { 'mercadolibre_access_token': meli.access_token,
-                             'mercadolibre_refresh_token': meli.refresh_token,
-                             'mercadolibre_code': codes['code'],
-                             'mercadolibre_cron_refresh': True } )
+            # [26.385] tokens + Vendedor Id (si está vacío) desde la respuesta de ML
+            company._meli_store_login( resp, codes['code'], meli )
             # [un caso] La página de login nunca muestra el código ni los tokens.
             return 'CONECTADO A MERCADOLIBRE <br>MercadoLibre Publisher for Odoo - Copyright Moldeo Interactive <br><a href="javascript:window.history.go(-2);">Volver a Odoo</a> <script>window.history.go(-2)</script>'
         else:
