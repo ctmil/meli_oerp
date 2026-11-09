@@ -48,6 +48,7 @@ from . import product
 from . import product_post
 from . import posting
 from . import res_partner
+from . import meli_prorate
 
 # pdf2image es opcional - solo se usa para generar preview JPG de etiquetas PDF
 PDF2IMAGE_AVAILABLE = False
@@ -2143,9 +2144,26 @@ class mercadolibre_shipment(models.Model):
                                     if (sorder_pack.state in ('sale', 'done')) or ("locked" in sorder_pack._fields and sorder_pack.locked):
                                         _logger.warning("MELI: pack %s confirmado (state=%s): NO se agrega la linea del item %s desde la sincronizacion", sorder_pack.name, sorder_pack.state, saleorderline_item_fields['meli_order_item_id'])
                                         order._meli_note_line_not_added(sorder_pack, saleorderline_item_fields, config=config)
-                                    elif sorder_pack.amount_total<(sorder_pack.meli_paid_amount-(sorder_pack.meli_discount_seller_amount or sorder_pack.meli_coupon_amount)):
+                                    elif mOrder.status in ('cancelled', 'invalid'):
+                                        # 26.386 (#595 Shoppy 502): la sub-orden cancelada por ML no suma linea al carrito.
+                                        _logger.info("MELI #595 pack %s: sub-orden %s cancelada, no se agrega linea.",
+                                                     sorder_pack.name, mOrder.order_id)
+                                    elif meli_prorate.pack_line_fits(sorder_pack.amount_total, sorder_pack.meli_paid_amount,
+                                                                     float(mOrder.order_items[0]["unit_price"] or 0.0) * float(mOrder.order_items[0]["quantity"] or 0.0)):
+                                        # 26.386 (#595): antes `amount_total < paid - cupon` dejaba afuera, en silencio, el
+                                        # ultimo item mas barato que el cupon del carrito. Ahora entra si cabe en lo pagado.
                                         #_logger.info("Sale Order Pack Create line")
                                         saleorderline_item_ids = saleorderline_obj.create( ( saleorderline_item_fields ))
+                                    else:
+                                        _line_amount = float(mOrder.order_items[0]["unit_price"] or 0.0) * float(mOrder.order_items[0]["quantity"] or 0.0)
+                                        _skip_msg = ("MELI #595: NO se agrego la linea de la sub-orden %s (%s, $%.2f): "
+                                                     "el pedido ya suma %.2f y lo pagado es %.2f. Revisar si el producto "
+                                                     "se reemplazo a mano o si falta una linea.") % (
+                                                     mOrder.order_id, mOrder.order_items[0]["order_item_title"], _line_amount,
+                                                     sorder_pack.amount_total, sorder_pack.meli_paid_amount)
+                                        _logger.warning(_skip_msg)
+                                        meli_message_post(sorder_pack, _skip_msg, config=config,
+                                                          once_key="595-linea-no-agregada-%s" % mOrder.order_id)
                                 
                                 
                                 if saleorderline_item_ids and _adopted_line and ((sorder_pack.state in ('sale', 'done')) or ("locked" in sorder_pack._fields and sorder_pack.locked)):
