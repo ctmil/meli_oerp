@@ -4,6 +4,11 @@
 
 ---
 
+## 9 nov 2026 — 26.387: la regla % de la tarifa no rebaja la línea de ML (#525 ROEN, SO 8152/7578) `[19.0]`
+**Síntoma:** tarifa de ML con regla `percentage 15` para un producto ⇒ `_compute_discount` volcaba 15 % a la línea creada con el precio de ML ⇒ venta 15 % por debajo de lo cobrado (700,11 vs 823,65) ⇒ "Condition not met" ⇒ venta en presupuesto. Re-sincronizar no lo corregía.
+**Fix:** `sale.order.line._meli_ml_line_create_vals` (create de la línea ML en `orders.py` y del pack en `shipment.py`): `discount 0.0` si no viene en los vals; el cupón de ML (modo product_discount) lo imputa después su bloque. `_meli_write_ml_line`: si el write (product/qty/uom) recomputó `discount` desde la tarifa, se restituye el previo (0, cupón o manual).
+**Prueba:** `tests/test_26387_525_ml_line_discount.py` (meli_26387_525), sin red. Control en origin sin el fix: 3F/5 (test_1 nace con 15, test_2 re-sync, test_4 manual) en 16–20; con el fix 0F/0E.
+
 ## 9 nov 2026 — 26.386: #595 línea de carrito + tope del descuento al cupón (opt-in) — port de prod Shoppy 502 `[19.0]`
 **Síntoma:** prod 502 (26.239) tiene 3fb82c5a (F5b + #595) y el source no: instalar el source se lo sacaba. Guard viejo del carrito `amount_total < paid - (descuento or cupón)` dejaba afuera, sin aviso, el último ítem más barato que el cupón (ML 2000014963729457).
 **Fix:** `models/meli_prorate.py` (puro): `pack_line_fits` (la línea entra si cabe en lo PAGADO; sub-orden cancelada por ML no suma línea; si no entra, chatter con once_key) y `bounded_order_discount`. Tope al cupón = parámetro opt-in `meli_oerp.seller_discount_cap_coupon[.company_<id>]` aplicado en `_meli_apply_seller_coupon_mode` (donde se escribe `discount_seller_amount`: línea, pack y venta usan el mismo valor). El prorrateo de 3fb82c5a NO se trae: lo cubren 26.229/26.249/26.318.
