@@ -52,3 +52,4 @@ from . import test_26367_pack_split_gemela_legacy
 from . import test_26371_462_matices
 from . import test_157_cancel_guard_repair
 from . import test_26385_credenciales_visibles
+from . import test_26386_carrito_595
