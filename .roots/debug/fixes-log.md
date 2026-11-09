@@ -4,6 +4,11 @@
 
 ---
 
+## 9 nov 2026 — 26.389: match por barcode GTIN normalizado + reintento de órdenes sin items (deuda 515 Natural Dry, #442) `[17.0]`
+**Síntoma:** (1) SKU de ML `07502300970043` (GTIN-14) y barcode en Odoo `7502300970043` (EAN-13) ⇒ línea sin producto (515: 191 líneas medidas el 21-ago). El respaldo SKU→barcode de 2022 era igualdad exacta, y con `meli_oerp_multiple` ni corría (redefine `search_meli_product` sin barcode, `#TODO: 3RD attempt using barcode`). (2) `mercadolibre.orders` sin `order_items` no las reintentaba nadie (515: 257 de 270 con write_date = create_date).
+**Fix:** `models/gtin.py` (puro: `meli_gtin_keys`, `meli_item_gtins`, `meli_gtin_same`) + `models/meli_gtin.py`: `product.product._meli_search_by_barcode_gtin` (único o nada); `search_meli_product` base: fallback normalizado tras el exacto; `orders_update_order_json`: 3er intento = SKU como barcode y GTIN del aviso (variación vendida o aviso). Campo `mercadolibre.orders.meli_items_retry_count` + `_meli_retry_orders_without_items` (5 por corrida, tope 5 intentos, commit por orden, rollback sólo de la que falla), enganchado en `res.company.cron_meli_orders` y en el cron por cuenta de multiple (paso 2b).
+**Prueba:** `tests/test_26389_515_barcode_gtin_y_reintento.py` (meli_26389_515), sin red. Control en origin sin el fix: 2F+4E/7 (stack) en 16–20; con el fix 0/7.
+
 ## 9 nov 2026 — 26.387: la regla % de la tarifa no rebaja la línea de ML (#525 ROEN, SO 8152/7578) `[17.0]`
 **Síntoma:** tarifa de ML con regla `percentage 15` para un producto ⇒ `_compute_discount` volcaba 15 % a la línea creada con el precio de ML ⇒ venta 15 % por debajo de lo cobrado (700,11 vs 823,65) ⇒ "Condition not met" ⇒ venta en presupuesto. Re-sincronizar no lo corregía.
 **Fix:** `sale.order.line._meli_ml_line_create_vals` (create de la línea ML en `orders.py` y del pack en `shipment.py`): `discount 0.0` si no viene en los vals; el cupón de ML (modo product_discount) lo imputa después su bloque. `_meli_write_ml_line`: si el write (product/qty/uom) recomputó `discount` desde la tarifa, se restituye el previo (0, cupón o manual).
