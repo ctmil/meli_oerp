@@ -4,6 +4,11 @@
 
 ---
 
+## 17.0.26.387 — 9-nov-2026 · Las ventas de Mercado Libre no toman el descuento de la tarifa
+- Si la tarifa de Mercado Libre tiene una regla de descuento en % para un producto, la línea de la venta ya no hereda ese descuento: el precio es el que cobró Mercado Libre y la venta cuadra con lo pagado (antes quedaba en presupuesto). Re-sincronizar tampoco lo reintroduce, y los descuentos cargados a mano se conservan.
+
+---
+
 ## 17.0.26.386 — 9-nov-2026 · Carrito: no se pierde el último ítem barato · tope opcional del descuento al cupón
 - En un carrito con cupón, el último producto más barato que el cupón ya no queda afuera de la venta: la línea entra si cabe en lo pagado. Si no entra, se avisa en la venta. Las sub-órdenes canceladas por Mercado Libre no agregan línea.
 - Nuevo parámetro opcional `meli_oerp.seller_discount_cap_coupon` (por compañía con `.company_<id>`): acota el descuento del vendedor al cupón de la orden. Apagado por defecto (sin cambios para quien no lo active).
