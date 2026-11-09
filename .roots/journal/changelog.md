@@ -4,6 +4,12 @@
 
 ---
 
+## 19.0.26.386 — 9-nov-2026 · Carrito: no se pierde el último ítem barato · tope opcional del descuento al cupón
+- En un carrito con cupón, el último producto más barato que el cupón ya no queda afuera de la venta: la línea entra si cabe en lo pagado. Si no entra, se avisa en la venta. Las sub-órdenes canceladas por Mercado Libre no agregan línea.
+- Nuevo parámetro opcional `meli_oerp.seller_discount_cap_coupon` (por compañía con `.company_<id>`): acota el descuento del vendedor al cupón de la orden. Apagado por defecto (sin cambios para quien no lo active).
+
+---
+
 ## 19.0.26.384 — 8-nov-2026 · Release de flota 26.384 (acompaña los cambios de meli_oerp_multiple: re-vincular mantiene la lista «Bindings» (26.382) y una publicación bloqueada no se reactiva por el stock de su hermana (26.384); y de 26.383: validar entregas con KIT; sin cambios propios en 26.384)
 
 ---
