@@ -32,6 +32,7 @@ from .receiver_cost import shipping_missing_in_paid as _meli_shipping_missing_in
 from . import address_lock as _meli_addr
 from time import monotonic as _mono
 from .import_lock import meli_import_guard as _meli_import_guard
+from .gtin import meli_item_gtins
 
 # Traducción de códigos de cancelación ML → español
 _MELI_CANCEL_CODES_ES = {
@@ -5061,6 +5062,10 @@ class mercadolibre_orders(models.Model):
             if ((not product_related) or len(product_related)>1):
                 product_related = product_obj.search([ ('barcode','=ilike',meli_seller_sku)]
                                                         +company_domain)
+            # 26.389 (515): el mismo GTIN con otro ancho ('07502300970043' en ML, '7502300970043'
+            # en Odoo). Solo si el exacto no encontro nada, y solo con UN producto.
+            if not product_related:
+                product_related = product_obj._meli_search_by_barcode_gtin(meli_seller_sku, company_domain)
 
         if ((not product_related) or len(product_related)>1):
             if (meli_id_variation):
@@ -7114,9 +7119,20 @@ class mercadolibre_orders(models.Model):
                         product_related = product_obj._meli_sku_token_resolve( seller_sku, config, company_domain )
 
 
-                    #TODO: 3RD attempt using barcode
-                    #if (not product_related):
-                    #   search using item attributes GTIN and SELLER_SKU
+                    # 26.389 (515): 3er intento por CODIGO DE BARRAS. Primero el SKU como barcode
+                    # (hay vendedores que cargan el GTIN como SKU), despues el GTIN del aviso
+                    # (variacion vendida o aviso). Normalizado GTIN-8/12/13/14 y solo con UN producto.
+                    # `meli_oerp_multiple` redefine search_meli_product sin barcode: este es el unico
+                    # punto por el que pasan las ventas de los dos modulos.
+                    if (not product_related):
+                        _bc_codes = [c for c in (Item['item'].get('seller_sku'), Item['item'].get('seller_custom_field')) if c]
+                        product_related = product_obj._meli_search_by_barcode_gtin(_bc_codes, company_domain)
+                        if (not product_related and rjson3):
+                            _gtins = meli_item_gtins(rjson3, Item['item'].get('variation_id'))
+                            product_related = product_obj._meli_search_by_barcode_gtin(_gtins, company_domain)
+                        if product_related:
+                            _logger.info("Orden %s: item %s vinculado por codigo de barras -> %s",
+                                         order_json.get("id"), Item['item'].get('id'), product_related.display_name)
                     #_logger.info(2nd attempt: "+str(Item["item"]) + " seller_sku:"+str(seller_sku))
 
                     if (len(product_related)):

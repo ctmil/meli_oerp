@@ -340,6 +340,11 @@ class res_company(models.Model):
         if (company.mercadolibre_cron_get_orders):
             #_logger.info("company.mercadolibre_cron_get_orders")
             self.meli_query_orders()
+            # 26.389 (515): ordenes que quedaron sin items -- unas pocas por corrida, con tope.
+            try:
+                self.env['mercadolibre.orders']._meli_retry_orders_without_items(meli=apistate, config=company)
+            except Exception as e:
+                _logger.error("cron_meli_orders: reintento de ordenes sin items fallo: %s", e, exc_info=True)
 
     def cron_meli_questions(self):
         #_logger.info('company cron_meli_questions() ')
@@ -1143,6 +1148,9 @@ class res_company(models.Model):
         found = self.env['product.product'].search([('barcode','=ilike',code)] + company_domain)
         if len(found) == 1:
             return found
+        if not found:
+            # 26.389 (515): el mismo GTIN con otro ancho (cero de relleno). Unico o nada.
+            return self.env['product.product']._meli_search_by_barcode_gtin(code, company_domain)
         if len(found) > 1:
             _logger.error("Search Barcode: %s coincidencias para barcode '%s' (%s) -> NO se vincula",
                           len(found), code, found.mapped('default_code'))
