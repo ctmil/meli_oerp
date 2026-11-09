@@ -4,6 +4,12 @@
 
 ---
 
+## 16.0.26.389 — 9-nov-2026 · Ventas que entran por código de barras · reintento de órdenes sin productos
+- Si el SKU de la publicación es un código de barras (o la publicación no tiene SKU pero declara su GTIN), la venta encuentra el producto por su **código de barras**, aunque esté cargado con otro largo (por ejemplo `07502300970043` en Mercado Libre y `7502300970043` en Odoo). Solo se vincula si hay **un único** producto con ese código.
+- Las órdenes de Mercado Libre que quedaron **sin productos** se vuelven a importar solas: unas pocas por corrida del cron de órdenes, hasta 5 intentos cada una.
+
+---
+
 ## 16.0.26.387 — 9-nov-2026 · Las ventas de Mercado Libre no toman el descuento de la tarifa
 - Si la tarifa de Mercado Libre tiene una regla de descuento en % para un producto, la línea de la venta ya no hereda ese descuento: el precio es el que cobró Mercado Libre y la venta cuadra con lo pagado (antes quedaba en presupuesto). Re-sincronizar tampoco lo reintroduce, y los descuentos cargados a mano se conservan.
 
