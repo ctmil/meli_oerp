@@ -1601,8 +1601,7 @@ class MeliUtil(models.AbstractModel):
 
     @api.model
     def get_url_meli_login(self, app_instance):
-        if not company:
-            company = self.env.user.company_id
+        company = self.env.user.company_id  # [26.385] antes: 'company' sin definir (UnboundLocalError)
         REDIRECT_URI = company.mercadolibre_redirect_uri
         url_login_meli = app_instance.auth_url(redirect_URI=REDIRECT_URI)
         return {

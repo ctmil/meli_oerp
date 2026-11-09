@@ -4,6 +4,24 @@
 
 ---
 
+## 9 nov 2026 — 26.385: credenciales ML visibles sin modo desarrollador + Vendedor Id desde el login `[17.0]`
+
+**Archivos:** `views/company_view.xml`, `models/company.py` (`mercadolibre_redirect_uri_suggested`,
+`_meli_suggested_redirect_uri`, `_meli_store_login`, `meli_login`), `controllers/main.py` (`/meli_login`),
+`models/meli_util.py` (`get_url_meli_login`).
+**Origen:** @MINT (video de capacitación 02 «instalar y conectar»), medido en pantalla en odoo19mint como admin sin
+modo dev: la pestaña MercadoLibre de la compañía mostraba la Clave Secreta pero no App Id / Redirect Uri / Vendedor Id
+(`groups="base.group_no_one"`). Y el login de la versión Base **nunca completaba `mercadolibre_seller_id`**: con él
+vacío `get_new_instance` queda en «necesita login» ⇒ sin modo dev no se podía quedar conectado.
+**Fix:** los 3 campos pasan a `base.group_system` (como la Clave Secreta). «Redirect Uri sugerida» no almacenada
+(`<url base de la compañía>/meli_login`, visible sólo si la Redirect Uri está vacía); `meli_login` la completa si está
+vacía (nunca pisa). El controller guarda vía `_meli_store_login`: Vendedor Id = `user_id` de `/oauth/token` (o sufijo
+numérico del token) **sólo si está vacío**; si difiere, warning y no se pisa. `get_url_meli_login`: `company` sin
+definir (UnboundLocalError latente, 0 callers). `res_config_settings.xml` sigue comentado (no se reactiva).
+**Tests:** `tests/test_26385_credenciales_visibles.py` (tag `meli_26385`) — rojo sobre origin 26.384, verde en 26.385.
+
+---
+
 ## 5 nov 2026 — 26.379: tope de espera del envío desconocido 6 h → 1 h por default `[17.0]`
 
 **Archivos:** `models/orders.py` (`MELI_WAIT_SHIPMENT_DEFAULT_HOURS`).

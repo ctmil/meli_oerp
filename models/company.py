@@ -379,7 +379,45 @@ class res_company(models.Model):
     mercadolibre_access_token = fields.Char( string='Access Token', help='Access Token', size=256)
     mercadolibre_refresh_token = fields.Char( string='Refresh Token', help='Refresh Token', size=256)
     mercadolibre_code = fields.Char( string='Code', help='Code', size=256)
-    mercadolibre_seller_id = fields.Char( string='Vendedor Id', size=256)
+    mercadolibre_seller_id = fields.Char( string='Vendedor Id', size=256,
+        help='Id numérico del usuario vendedor en Mercado Libre. Se completa solo al iniciar sesión si está vacío.')
+    # [26.385] Redirect Uri sugerida (no almacenada): la que hay que registrar en la aplicación del DevCenter de ML.
+    mercadolibre_redirect_uri_suggested = fields.Char( string='Redirect Uri sugerida',
+        compute='_compute_mercadolibre_redirect_uri_suggested',
+        help='Registre esta URL como Redirect URI en su aplicación de Mercado Libre (DevCenter). '
+             'Si la Redirect Uri está vacía, se usa ésta al iniciar sesión.')
+
+    def _compute_mercadolibre_redirect_uri_suggested(self):
+        for comp in self:
+            comp.mercadolibre_redirect_uri_suggested = comp._meli_suggested_redirect_uri()
+
+    def _meli_suggested_redirect_uri(self):
+        """[26.385] <url base de la compañía>/meli_login (la ruta del controller de login de meli_oerp)."""
+        self.ensure_one()
+        base_url = (self.get_base_url() or '').rstrip('/')
+        return (base_url + '/meli_login') if base_url else ''
+
+    def _meli_store_login(self, resp, code, meli):
+        """[26.385] Guarda el resultado del OAuth de /meli_login.
+        Completa el Vendedor Id con el user_id que devuelve ML (o el sufijo del token) SÓLO si está vacío:
+        sin él get_new_instance queda en 'necesita login' aunque el login haya salido bien. Nunca lo pisa."""
+        self.ensure_one()
+        vals = { 'mercadolibre_access_token': meli.access_token,
+                 'mercadolibre_refresh_token': meli.refresh_token,
+                 'mercadolibre_code': code,
+                 'mercadolibre_cron_refresh': True }
+        user_id = isinstance(resp, dict) and resp.get('user_id')
+        if not user_id and meli.access_token:
+            tail = str(meli.access_token).rsplit('-', 1)[-1]
+            user_id = tail if tail.isdigit() else False
+        if user_id:
+            if not self.mercadolibre_seller_id:
+                vals['mercadolibre_seller_id'] = str(user_id)
+            elif str(self.mercadolibre_seller_id) != str(user_id):
+                _logger.warning("meli_login: el usuario ML que inició sesión (%s) no es el Vendedor Id de %s (%s); no se pisa.",
+                                user_id, self.name, self.mercadolibre_seller_id)
+        self.write(vals)
+        return vals
     mercadolibre_user_product_seller = fields.Boolean( string='User Product Seller',index=True)
     mercadolibre_multiwarehouse = fields.Boolean( string='Multi Warehouse Seller', index=True,
         help='Seller uses multiple warehouses in MercadoLibre. Stock updates require warehouse-specific API.')
@@ -951,6 +989,11 @@ class res_company(models.Model):
         #_logger.info('company.meli_login() ')
         self.ensure_one()
         company = self.env.user.company_id
+        # [26.385] sin Redirect Uri el OAuth no puede volver: se completa con la sugerida (nunca se pisa una cargada)
+        if not company.mercadolibre_redirect_uri:
+            suggested = company._meli_suggested_redirect_uri()
+            if suggested:
+                company.mercadolibre_redirect_uri = suggested
 
         meli = self.env['meli.util'].get_new_instance(company)
 
