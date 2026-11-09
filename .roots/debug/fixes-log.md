@@ -4,6 +4,11 @@
 
 ---
 
+## 9 nov 2026 — 26.386: #595 línea de carrito + tope del descuento al cupón (opt-in) — port de prod Shoppy 502 `[20.0]`
+**Síntoma:** prod 502 (26.239) tiene 3fb82c5a (F5b + #595) y el source no: instalar el source se lo sacaba. Guard viejo del carrito `amount_total < paid - (descuento or cupón)` dejaba afuera, sin aviso, el último ítem más barato que el cupón (ML 2000014963729457).
+**Fix:** `models/meli_prorate.py` (puro): `pack_line_fits` (la línea entra si cabe en lo PAGADO; sub-orden cancelada por ML no suma línea; si no entra, chatter con once_key) y `bounded_order_discount`. Tope al cupón = parámetro opt-in `meli_oerp.seller_discount_cap_coupon[.company_<id>]` aplicado en `_meli_apply_seller_coupon_mode` (donde se escribe `discount_seller_amount`: línea, pack y venta usan el mismo valor). El prorrateo de 3fb82c5a NO se trae: lo cubren 26.229/26.249/26.318.
+**Prueba:** `tests/test_26386_carrito_595.py` (meli_f5b, meli_26386). Odoo 16: control origin 1E (setUpClass) / fix 0F. Suites 26367/26354/26278/26306/f5b/524/K15 verdes en 16–19; 20: 1E preexistente de test_26278 (`ICP.set_param` no existe en Odoo 20, también en origin).
+
 ## 9 nov 2026 — 26.385: credenciales ML visibles sin modo desarrollador + Vendedor Id desde el login `[20.0]`
 
 **Archivos:** `views/company_view.xml`, `models/company.py` (`mercadolibre_redirect_uri_suggested`,
