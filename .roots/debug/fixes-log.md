@@ -4,6 +4,14 @@
 
 ---
 
+## 10 nov 2026 — 26.394: avisos de envío repetidos en el chatter (#696, 535) `[20.0]`
+**Síntoma:** cada sincronización de la venta dejaba «Sin servicio de envio o carrier.» en el chatter; «Companias Coinciden OK…» iba por `message_post` directo (ignoraba `mercadolibre_notification_mode`), salía aunque las compañías no coincidieran y su guarda recorría el chatter entero.
+**Fix:** ambos por `meli_message_post(once_key=…, legacy_text=…)`. Nuevo kwarg `legacy_text` + helper `meli_message_text_posted` (versions.py): ventas viejas con el texto sin marca no reabren la ronda. El «Monto correcto…» ya era una-vez desde 26.171.
+**Medido en prod 535 (10-nov, 7 días):** ahí los avisos YA salían una vez por venta (max 1/venta); el problema es el VOLUMEN (~3 de rutina por venta + 2 por orden ML) con modo `notification`, y `none` apagaría también los «⚠️ ACCIÓN REQUERIDA». ⇒ modo nuevo **`important`**: `meli_message_post(routine=True)` ⇒ log; lo demás ⇒ nota interna. Rutina: Coinciden OK, Monto correcto, Pack Order dont create, Sale order created / (pack), ML(stock) Almacen. Default sin cambio.
+**Prueba:** tests/test_26394_chatter_once.py (camino real `_update_sale_order_shipping_info` ×3 ⇒ 1 aviso; modo none ⇒ 0; legado; modo important ⇒ rutina 0 y lo accionable como nota). Control sin fix (19.0): 1F+3E (antes de agregar los 3 de important).
+
+---
+
 ## 10 nov 2026 — 26.393: niveles ML en inglés en es_AR/es_* `[20.0]`
 **Síntoma:** «MercadoLibre Sale Reader» / «MercadoLibre Sale Manager» sin traducción en `es_AR.po` y sin `es.po` ⇒ el selector mezclaba inglés y castellano.
 **Fix:** Entradas en `es_AR.po` + `es.po` mínimo nuevo: «Lector de MercadoLibre» / «Encargado de MercadoLibre».

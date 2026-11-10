@@ -141,6 +141,24 @@ def meli_message_already_posted(record, once_key):
         return False
 
 
+
+def meli_message_text_posted(record, text):
+    """True si el chatter de `record` ya tiene un mensaje que contiene `text` (con o sin marca).
+
+    26.394 (un caso): guarda de legado para los avisos que pasaron a `once_key` — las ventas
+    anteriores los tienen sin marca. Búsqueda por (model, res_id), indexada; sólo lectura."""
+    if not record or not text or not record.id:
+        return False
+    try:
+        return bool(record.env['mail.message'].sudo().search_count([
+            ('model', '=', record._name),
+            ('res_id', '=', record.id),
+            ('body', 'like', text),
+        ], limit=1))
+    except Exception as e:
+        _logger.warning("meli_message_text_posted failed on %s(%s): %s", record._name, record.id, e)
+        return False
+
 # ---------------------------------------------------------------------------
 # 26.309 (caso-K02): venta BLOQUEADA para actualizar desde ML (`sale.order.meli_update_forbidden`).
 # El freno es correcto (no escribe nada), pero se logueaba ERROR en CADA llamada y la notificacion
@@ -191,7 +209,7 @@ def meli_message_body_with_marker(body, once_key):
     return markup_escape(body) + Markup(meli_once_marker(once_key))
 
 
-def meli_message_post(record, body, config=None, once_key=None, force_chatter=False):
+def meli_message_post(record, body, config=None, once_key=None, force_chatter=False, legacy_text=None, routine=False):
     """Post a message respecting the MeLi notification mode setting.
 
     config: res.company or connection_account record with mercadolibre_notification_mode field.
@@ -205,10 +223,19 @@ def meli_message_post(record, body, config=None, once_key=None, force_chatter=Fa
            aviso se repetía cada ~5 min para siempre — visto en prod con 1215 y 832
            mensajes en el chatter de dos órdenes.
 
+    legacy_text: (26.394) sólo con `once_key`. Texto del aviso tal como se posteaba
+           ANTES de llevar marca: si el chatter ya lo tiene (venta vieja, sin marca), tampoco
+           se repostea. Así el cambio a once_key no reabre una ronda de avisos en ventas viejas.
+
+    routine: (26.394) aviso de RUTINA de la sincronización (venta creada, almacén asignado, monto
+           correcto, compañías coinciden). Sólo cambia algo con el modo 'important'.
+
     Modes:
       - 'notification': standard notification (appears in user inbox)
       - 'internal_note': logged in chatter as internal note (no inbox notification)
       - 'none': only server log, no chatter message at all
+      - 'important': (26.394) los avisos `routine` van sólo al log; el resto como nota interna
+        (lo que pide una acción sigue visible en el chatter, sin inbox).
     """
     if not record:
         return
@@ -218,6 +245,9 @@ def meli_message_post(record, body, config=None, once_key=None, force_chatter=Fa
     if config and 'mercadolibre_notification_mode' in config._fields:
         mode = config.mercadolibre_notification_mode or 'notification'
 
+    if mode == 'important':
+        # 26.394 (un caso): bajar el volumen del chatter sin esconder lo accionable.
+        mode = 'none' if (routine and not force_chatter) else 'internal_note'
     if mode == 'none' and force_chatter:
         # [26.270] Aviso de DINERO BLOQUEADO (cobro/pago que no se registro): el modo 'none'
         # existe para bajar ruido, no para esconder plata sin registrar. Va como nota interna
@@ -228,7 +258,8 @@ def meli_message_post(record, body, config=None, once_key=None, force_chatter=Fa
         return
 
     if once_key:
-        if meli_message_already_posted(record, once_key):
+        if meli_message_already_posted(record, once_key) or (
+                legacy_text and meli_message_text_posted(record, legacy_text)):
             _logger.info("MELI [%s] %s (ya posteado, once_key=%s): %s",
                          record._name, getattr(record, 'name', record.id), once_key, body)
             return

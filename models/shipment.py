@@ -84,6 +84,10 @@ def _meli_label_download(url, access_token, timeout=60, session=None):
     return resp.content
 # `import *` no trae los nombres con guion bajo: este guard se importa explicito [un caso]
 from .versions import _meli_guard_delivery_write
+
+# 26.394 (un caso): textos de los avisos de envío que se postean una vez por venta.
+MELI_SHIP_COMPANY_OK_NOTE = "Companias Coinciden OK, Carrier, Servicio de envio y Pedido"
+MELI_SHIP_NO_CARRIER_NOTE = "Sin servicio de envio o carrier."
 from .meli_util import meli_instance_url, meli_instance_session
 from .receiver_cost import receiver_buyer_cost, seller_collected_shipping, pack_receiver_cost, receiver_gross_cost
 
@@ -1017,11 +1021,14 @@ class mercadolibre_shipment(models.Model):
             all_company_ok = False
             if ship_carrier_id and product_shipping_id:
                 all_company_ok = ship_carrier_id.company_id == sorder.company_id and product_shipping_id.company_id == sorder.company_id
-                already_notified = sorder.message_ids.filtered(
-                    lambda m: m.body and "Companias Coinciden OK" in (m.body or "")
-                )
-                if not already_notified:
-                    sorder.message_post(body=str("Companias Coinciden OK, Carrier, Servicio de envio y Pedido"))
+                # 26.394 (un caso): antes se posteaba con message_post directo (saltaba
+                # mercadolibre_notification_mode), aunque las compañías NO coincidieran, y la
+                # guarda recorría el chatter entero. Ahora: sólo si coinciden, una vez por venta
+                # (once_key + guarda de legado para ventas viejas sin marca) y respetando el modo.
+                if all_company_ok:
+                    meli_message_post(sorder, MELI_SHIP_COMPANY_OK_NOTE, config=config,
+                                      once_key="ship-company-ok-%s" % sorder.id,
+                                      legacy_text=MELI_SHIP_COMPANY_OK_NOTE, routine=True)
 
                 if all_company_ok == False:
                     #try and check to set or change products and carriers
@@ -1033,7 +1040,10 @@ class mercadolibre_shipment(models.Model):
                         message_str_error+= str( (product_shipping_id and str(product_shipping_id.company_id or "Servicio de envio sin Empresa")) or "Sin servicio de envio" )
                         sorder.message_post(body=message_str_error)
             else:
-                sorder.message_post(body=str("Sin servicio de envio o carrier."))
+                # 26.394 (un caso): se posteaba en CADA sincronización. Una vez por venta y por modo.
+                meli_message_post(sorder, MELI_SHIP_NO_CARRIER_NOTE, config=config,
+                                  once_key="ship-no-carrier-%s" % sorder.id,
+                                  legacy_text=MELI_SHIP_NO_CARRIER_NOTE)
 
 
 
@@ -2074,7 +2084,7 @@ class mercadolibre_shipment(models.Model):
                             #_logger.info("Create sale.order pack: ALL PASS OK")
                             if sorder_pack:
                                 sorder_pack.meli_fix_team( meli=meli, config=config )
-                                meli_message_post(order, "Sale order created (pack)!", config=config)
+                                meli_message_post(order, "Sale order created (pack)!", config=config, routine=True)
                     
                         if (sorder_pack.id):
                             shipment.sale_order = sorder_pack

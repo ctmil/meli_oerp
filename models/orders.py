@@ -3392,7 +3392,7 @@ class sale_order(models.Model):
                 # CADA pasada (prod de un cliente: 4 veces en 25 min en la misma venta). Una vez por venta.
                 if not self._meli_ready_note_posted():
                     meli_message_post(self, self._MELI_READY_NOTE, config=config,
-                                      once_key="confirm-ready-%s" % self.id)
+                                      once_key="confirm-ready-%s" % self.id, routine=True)
 
             #check currency
             pricelist_is_meli = self.is_pricelist_meli(meli=meli, config=config)
@@ -7046,7 +7046,8 @@ class mercadolibre_orders(models.Model):
             if 'pack_order' in order_json["tags"] and order and order.shipping_id:
                 #_logger.info("Pack Order, dont create sale.order, leave it to mercadolibre.shipment")
                 if not order.sale_order:
-                    meli_message_post(order, "Pack Order, dont create sale.order, leave it to mercadolibre.shipment", config=config)
+                    meli_message_post(order, "Pack Order, dont create sale.order, leave it to mercadolibre.shipment", config=config,
+                                      routine=True)
             elif not meli_order_fields.get('partner_id'):
                 # SAFETY GUARD: sale.order.partner_id is NOT NULL en la BD. Si
                 # llegamos aca sin partner_id, llamar a create() levanta
@@ -7087,7 +7088,7 @@ class mercadolibre_orders(models.Model):
                 if sorder:
                     sorder.meli_fix_team( meli=meli, config=config )
                     if order:
-                        meli_message_post(order, "Sale order created!", config=config)
+                        meli_message_post(order, "Sale order created!", config=config, routine=True)
 
 
         #check error
