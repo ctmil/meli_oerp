@@ -4,6 +4,13 @@
 
 ---
 
+## 10 nov 2026 — 26.393: niveles ML en inglés en es_AR/es_* `[17.0]`
+**Síntoma:** «MercadoLibre Sale Reader» / «MercadoLibre Sale Manager» sin traducción en `es_AR.po` y sin `es.po` ⇒ el selector mezclaba inglés y castellano.
+**Fix:** Entradas en `es_AR.po` + `es.po` mínimo nuevo: «Lector de MercadoLibre» / «Encargado de MercadoLibre».
+**Prueba:** test_03 de meli_oerp_multiple/tests/test_26393_token_enmascarado.py (es_AR y es_MX).
+
+---
+
 ## 10 nov 2026 — 26.392: grupos ML con categoría/privilegio propio, Tax Included visible, Redirect sugerida https `[17.0]`
 **Síntoma:** (pedido MINT e-learning) los grupos `group_mercadolibre_reader` / `group_mercadolibre_manager` estaban en `base.module_category_sales_sales` sin cadena de implied ⇒ el core 16-18 (`get_groups_by_application.linearize`) pasaba TODA la categoría Ventas a casillas, que van en el bloque `groups=base.group_no_one` del form de usuario: Ventas y ML sólo en modo dev. `mercadolibre_tax_included` con `groups=base.group_no_one` en `views/company_view.xml`. `_meli_suggested_redirect_uri` devolvía `http://…/meli_login` si `web.base.url` es http (ML exige https).
 **Fix:** categoría `module_category_mercadolibre` «Mercado Libre» (parent `base.module_category_sales`) ⇒ selector. Lector < Encargado (`group_mercadolibre_manager` implica reader); multiple agrega el nivel Administrador. Tax Included → `base.group_system`. Helper `_meli_https_url` (http + host no local ⇒ https; no toca `web.base.url`).
