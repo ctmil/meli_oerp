@@ -4,6 +4,11 @@
 
 ---
 
+## 20.0.26.393 — 10-nov-2026 · Niveles de acceso de Mercado Libre en castellano
+- Los niveles del selector «Mercado Libre» del usuario se ven como **«Lector de MercadoLibre»** y **«Encargado de MercadoLibre»** (antes en inglés junto a «Administrador de MercadoLibre»).
+
+---
+
 ## 20.0.26.392 — 10-nov-2026 · Permisos de Mercado Libre asignables sin modo desarrollador
 - En **Ajustes > Usuarios > (usuario) > Permisos**, sección Ventas, aparece el selector **«Mercado Libre»**: *MercadoLibre Sale Reader* (lector, sólo consulta) < *MercadoLibre Sale Manager* (encargado) < *MercadoLibre Manager* (administrador, con Mercado Libre Multiple). Antes estos permisos sólo se podían asignar con el modo desarrollador.
 - Los usuarios que ya tenían algún permiso de Mercado Libre lo conservan; el encargado ahora incluye al lector.

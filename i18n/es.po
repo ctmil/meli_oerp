@@ -1,0 +1,29 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* meli_oerp
+#
+# [26.393] Base castellana para TODO es_* (Odoo carga es.po y después es_419/es_XX.po). Mínimo a propósito:
+# sólo los niveles del selector «Mercado Libre» del usuario, que es_MX / es_419 / es_ES veían en inglés.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server\n"
+"Report-Msgid-Bugs-To: \n"
+"PO-Revision-Date: 2026-11-10 18:00+0000\n"
+"Last-Translator: Moldeo Interactive <info@moldeointeractive.com.ar>\n"
+"Language-Team: Spanish\n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#. module: meli_oerp
+#: model:res.groups,name:meli_oerp.group_mercadolibre_reader
+msgid "MercadoLibre Sale Reader"
+msgstr "Lector de MercadoLibre"
+
+#. module: meli_oerp
+#: model:res.groups,name:meli_oerp.group_mercadolibre_manager
+msgid "MercadoLibre Sale Manager"
+msgstr "Encargado de MercadoLibre"
