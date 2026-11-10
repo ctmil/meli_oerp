@@ -2151,3 +2151,13 @@ msgstr "Id ML del producto"
 #: model:ir.model.fields,field_description:meli_oerp.field_mercadolibre_orders__order_product_meli_variation_id
 msgid "Order Product Meli Full Id"
 msgstr "Id ML completo del producto"
+
+#. module: meli_oerp
+#: model:res.groups,name:meli_oerp.group_mercadolibre_reader
+msgid "MercadoLibre Sale Reader"
+msgstr "Lector de MercadoLibre"
+
+#. module: meli_oerp
+#: model:res.groups,name:meli_oerp.group_mercadolibre_manager
+msgid "MercadoLibre Sale Manager"
+msgstr "Encargado de MercadoLibre"
