@@ -641,12 +641,15 @@ class res_company(models.Model):
         ("notification", "Notificaciones (inbox del usuario)"),
         ("internal_note", "Notas internas (sin notificación)"),
         ("none", "Desactivadas (solo log del servidor)"),
+        ("important", "Sólo lo que requiere atención (avisos de rutina al log)"),
     ], string="Modo de notificaciones MeLi",
        default="notification",
        help="Controla cómo se registran los mensajes de MeLi en pedidos y productos:\n"
             "- Notificaciones: aparecen en el inbox del usuario (comportamiento actual)\n"
             "- Notas internas: se registran en el chatter pero sin notificar al usuario\n"
             "- Desactivadas: solo se registran en el log del servidor\n"
+            "- Sólo lo que requiere atención: los avisos de rutina de cada sincronización (venta creada, almacén asignado, "
+            "monto correcto, compañías coinciden) van sólo al log; los que piden una acción quedan como nota interna\n"
             "Excepción: los avisos de cobros/pagos de MercadoLibre que NO se pudieron registrar (dinero sin registrar) quedan siempre como nota interna.")
 
     mercadolibre_create_product_from_order = fields.Boolean(string='Importar productos inexistentes',help='Importar productos desde la orden si no se encuentran en la base.')
