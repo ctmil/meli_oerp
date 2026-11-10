@@ -1,16 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <record id="group_mercadolibre_manager" model="res.groups">
-        <field name="name">MercadoLibre Sale Manager</field>
-        <!--field name="category_id" ref="base.module_category_sales_sales"/-->
-        <!--field name="users" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/-->
+    <!-- [26.392] Privilegio propio «Mercado Libre» (Odoo 19+: res.groups.privilege) en la sección Ventas del
+         form de usuario. Niveles en cadena (implied_ids) => el form muestra UN selector, sin modo desarrollador:
+         Lector < Encargado (meli_oerp) < Administrador (meli_oerp_multiple, si está instalado). -->
+    <record model="res.groups.privilege" id="res_groups_privilege_mercadolibre">
+        <field name="name">Mercado Libre</field>
+        <field name="sequence">25</field>
+        <field name="category_id" ref="base.module_category_sales"/>
+        <field name="placeholder">Sin acceso</field>
+        <field name="description">Acceso a Mercado Libre: Lector (sólo consulta), Encargado (opera ventas, publicaciones y stock), Administrador (cuentas y configuración, con Mercado Libre Multiple).</field>
     </record>
 
     <record id="group_mercadolibre_reader" model="res.groups">
         <field name="name">MercadoLibre Sale Reader</field>
-        <!--field name="category_id" ref="base.module_category_sales_sales"/-->
-        <!--field name="users" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/-->
+        <field name="privilege_id" ref="res_groups_privilege_mercadolibre"/>
+        <field name="sequence">10</field>
+        <field name="comment">Lector: consulta órdenes, envíos, pagos, preguntas y reclamos de Mercado Libre (sólo lectura).</field>
+    </record>
+
+    <record id="group_mercadolibre_manager" model="res.groups">
+        <field name="name">MercadoLibre Sale Manager</field>
+        <field name="privilege_id" ref="res_groups_privilege_mercadolibre"/>
+        <field name="sequence">20</field>
+        <field name="implied_ids" eval="[(4, ref('group_mercadolibre_reader'))]"/>
+        <field name="comment">Encargado: opera Mercado Libre (órdenes, publicaciones, stock, preguntas). Incluye Lector.</field>
     </record>
 
     <!-- 20.0: los ir.rule multi-company pasaron a security/ir.access.csv (restricciones sin grupo). -->
