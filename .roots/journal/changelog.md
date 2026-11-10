@@ -4,6 +4,14 @@
 
 ---
 
+## 16.0.26.392 — 10-nov-2026 · Permisos de Mercado Libre asignables sin modo desarrollador
+- En **Ajustes > Usuarios > (usuario) > Permisos**, sección Ventas, aparece el selector **«Mercado Libre»**: *MercadoLibre Sale Reader* (lector, sólo consulta) < *MercadoLibre Sale Manager* (encargado) < *MercadoLibre Manager* (administrador, con Mercado Libre Multiple). Antes estos permisos sólo se podían asignar con el modo desarrollador (y como iban dentro de la categoría Ventas, también dejaban los permisos de Ventas sólo en modo desarrollador).
+- Los usuarios que ya tenían algún permiso de Mercado Libre lo conservan; el encargado ahora incluye al lector.
+- **«Tax Included»** (si la lista de precios incluye impuestos) visible para el administrador sin modo desarrollador, en Compañía > pestaña MercadoLibre.
+- La **«Redirect Uri sugerida»** sale con **https** cuando la dirección de Odoo está configurada con http (Mercado Libre no acepta redirect sin https).
+
+---
+
 ## 16.0.26.391 — 10-nov-2026 · Una venta pagada sin precio informado por Mercado Libre ya no queda vacía
 - Si Mercado Libre informa una venta pagada **sin el precio del producto** (ni el total), la venta igual se importa: con un solo producto, el precio se toma del **pago aprobado**. Antes la venta quedaba en presupuesto, en $0 y sin líneas, y volver a importarla repetía el error.
 - Si la venta tiene **varios productos sin precio**, no se reparte el pago a ciegas: las líneas se crean en $0, se deja un aviso en la venta («ML no informó el precio del ítem») y la venta no se confirma sola hasta que se revise el precio.

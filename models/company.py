@@ -36,6 +36,26 @@ from .versions import *
 import requests
 import time
 
+
+_MELI_LOCAL_HOSTS = ('localhost', '127.0.0.1', '::1', '[::1]')
+
+
+def _meli_https_url(url):
+    """[26.392] http://<host no local>... => https://<host>... (ML rechaza Redirect URI sin https)."""
+    from urllib.parse import urlsplit
+    try:
+        parts = urlsplit(url or '')
+    except ValueError:
+        return url
+    host = (parts.hostname or '').lower()
+    if parts.scheme == 'http' and host and host not in _MELI_LOCAL_HOSTS:
+        netloc = parts.netloc
+        if parts.port == 80:
+            netloc = netloc.rsplit(':', 1)[0]
+        return 'https://' + netloc + url[len(parts.scheme + '://' + parts.netloc):]
+    return url
+
+
 class res_company(models.Model):
     _name = "res.company"
     _inherit = "res.company"
@@ -384,17 +404,23 @@ class res_company(models.Model):
     mercadolibre_redirect_uri_suggested = fields.Char( string='Redirect Uri sugerida',
         compute='_compute_mercadolibre_redirect_uri_suggested',
         help='Registre esta URL como Redirect URI en su aplicación de Mercado Libre (DevCenter). '
-             'Si la Redirect Uri está vacía, se usa ésta al iniciar sesión.')
+             'Si la Redirect Uri está vacía, se usa ésta al iniciar sesión. '
+             'Mercado Libre exige https: si la URL base de Odoo es http, se sugiere la misma dirección con https '
+             '(el sitio tiene que responder por https).')
 
     def _compute_mercadolibre_redirect_uri_suggested(self):
         for comp in self:
             comp.mercadolibre_redirect_uri_suggested = comp._meli_suggested_redirect_uri()
 
     def _meli_suggested_redirect_uri(self):
-        """[26.385] <url base de la compañía>/meli_login (la ruta del controller de login de meli_oerp)."""
+        """[26.385] <url base de la compañía>/meli_login (la ruta del controller de login de meli_oerp).
+        [26.392] Mercado Libre sólo acepta Redirect URI con https: si la url base es http y el host no es
+        local (localhost / 127.0.0.1 / ::1), se sugiere https. No toca web.base.url."""
         self.ensure_one()
         base_url = (self.get_base_url() or '').rstrip('/')
-        return (base_url + '/meli_login') if base_url else ''
+        if not base_url:
+            return ''
+        return _meli_https_url(base_url) + '/meli_login'
 
     def _meli_store_login(self, resp, code, meli):
         """[26.385] Guarda el resultado del OAuth de /meli_login.
