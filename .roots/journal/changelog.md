@@ -4,6 +4,13 @@
 
 ---
 
+## 19.0.26.394 — 10-nov-2026 · Menos avisos repetidos de sincronización en el chatter de la venta
+- «Companias Coinciden OK…» y «Sin servicio de envio o carrier.» se anotan **una sola vez por venta** (antes, el segundo en cada sincronización) y respetan el ajuste **Modo de notificación** de Mercado Libre (con «Ninguno» van sólo al registro del servidor).
+- «Companias Coinciden OK» ya no se anota cuando las compañías no coinciden.
+- Nuevo valor del **Modo de notificación** de Mercado Libre: **«Sólo lo que requiere atención»**. Los avisos de rutina de cada sincronización (venta creada, almacén asignado, monto correcto, compañías coinciden) van sólo al registro del servidor; los que piden una acción (p. ej. «ACCIÓN REQUERIDA» en cancelaciones) siguen en la venta como nota interna. El valor por defecto no cambia.
+
+---
+
 ## 19.0.26.393 — 10-nov-2026 · Niveles de acceso de Mercado Libre en castellano
 - Los niveles del selector «Mercado Libre» del usuario se ven como **«Lector de MercadoLibre»** y **«Encargado de MercadoLibre»** (antes en inglés junto a «Administrador de MercadoLibre»).
 
