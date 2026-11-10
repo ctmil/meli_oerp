@@ -53,3 +53,4 @@ from . import test_26385_credenciales_visibles
 from . import test_26386_carrito_595
 from . import test_26387_525_ml_line_discount
 from . import test_26389_515_barcode_gtin_y_reintento
+from . import test_26391_unit_price_nulo
