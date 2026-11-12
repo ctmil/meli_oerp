@@ -4,6 +4,14 @@
 
 ---
 
+## 12 nov 2026 — 853de3e7 (sin bump, sólo Python): selector de privilegios en inglés con usuario es_AR `[19.0]`
+**Síntoma:** en odoo19mint (core 19.1a1) la ficha de usuario mostraba secciones, privilegio «Mercado Libre» y niveles en inglés («MercadoLibre Sale Reader/Manager», «SALES») aunque la base tiene es_AR (el fix 26.393 SÍ estaba cargado).
+**Causa (core, no el .po):** `res.groups._get_view_group_hierarchy` del 19.1a1 está decorado `@ormcache(cache='groups')` **sin `self.env.lang`** en la clave (19.0 estable y 20.0 lo tienen). El primer idioma que lo calcula tras restart/limpieza queda servido a todos; un cron/usuario en_US lo llena en inglés. Reproducido en shell: en_US→es_AR devuelve inglés; tras limpiar el cache y entrar primero en es_AR, en_US salía en castellano.
+**Fix:** `models/res_groups.py`: override guardado — si la clave del ormcache del core no menciona `lang` (`__cache__.args`), re-cachea por idioma (`_meli_view_group_hierarchy_por_idioma`, mismo cache `groups`) llamando al cuerpo crudo del core (`__cache__.method`). En cores sanos devuelve `super()` (no-op). 20.0 no lo necesita.
+**Prueba:** odoo19mint (ef39a7f32 en moldeomint `claude/meli19-demo-26394`): RPC en_US→es_AR→en_US tras restart y tras limpiar el cache ⇒ cada idioma lo suyo; en pantalla (admin es_AR): «VENTAS · Mercado Libre: Administrador de MercadoLibre».
+
+---
+
 ## 10 nov 2026 — 26.394: avisos de envío repetidos en el chatter (#696, 535) `[19.0]`
 **Síntoma:** cada sincronización de la venta dejaba «Sin servicio de envio o carrier.» en el chatter; «Companias Coinciden OK…» iba por `message_post` directo (ignoraba `mercadolibre_notification_mode`), salía aunque las compañías no coincidieran y su guarda recorría el chatter entero.
 **Fix:** ambos por `meli_message_post(once_key=…, legacy_text=…)`. Nuevo kwarg `legacy_text` + helper `meli_message_text_posted` (versions.py): ventas viejas con el texto sin marca no reabren la ronda. El «Monto correcto…» ya era una-vez desde 26.171.
