@@ -6983,18 +6983,14 @@ class mercadolibre_orders(models.Model):
                 order_fields['shipping_id'] = order_json["shipping"]["id"]
                 meli_order_fields['meli_shipping_id'] = order_json["shipping"]["id"]
 
-                # Agregar ID envío o nro seguimiento al nombre de la venta (opcional)
-                _include_tracking = (
-                    'mercadolibre_so_name_tracking' in config._fields
-                    and config.mercadolibre_so_name_tracking
-                )
-                if _include_tracking:
-                    shipping_label = str(order_json["shipping"]["id"])
-                    if order and order.shipment and order.shipment.tracking_number:
-                        shipping_label = str(order.shipment.tracking_number)
-                    current_name = meli_order_fields.get('name', '')
-                    if current_name:
-                        meli_order_fields['name'] = current_name + " | " + shipping_label
+                # Agregar ID envío o nro seguimiento al nombre de la venta (opcional).
+                # [un caso] modo en mercadolibre_so_name_label: 'tracking' (historico) | 'shipping_id'.
+                shipping_label = meli_so_name_label(
+                    config, shipping_id=order_json["shipping"]["id"],
+                    tracking_number=(order and order.shipment and order.shipment.tracking_number) or None)
+                current_name = meli_order_fields.get('name', '')
+                if shipping_label and current_name:
+                    meli_order_fields['name'] = meli_so_name_with_label(current_name, shipping_label)
 
         #create or update order
         if (order and order.id):
