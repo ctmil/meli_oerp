@@ -1054,17 +1054,14 @@ class mercadolibre_shipment(models.Model):
             # Solo si la cuenta tiene mercadolibre_so_name_tracking activado.
             # Antes de f943fcd este bloque no existia; se agregó sin el gate
             # causando rename incondicional de todas las órdenes.
-            _so_name_tracking = (
-                config
-                and 'mercadolibre_so_name_tracking' in config._fields
-                and config.mercadolibre_so_name_tracking
-            )
-            if sorder and _so_name_tracking:
-                base_name = (sorder.name or "").split(" | ")[0]
-                if shipment.tracking_number:
-                    sorder.name = base_name + " | " + str(shipment.tracking_number)
-                elif shipment.shipping_id:
-                    sorder.name = base_name + " | " + str(shipment.shipping_id)
+            # [un caso] con mercadolibre_so_name_label = 'shipping_id' el sufijo es el ID de envio:
+            # un cambio de tracking (colecta / Flex) ya no renombra la venta.
+            _so_label = sorder and meli_so_name_label(
+                config, shipping_id=shipment.shipping_id, tracking_number=shipment.tracking_number)
+            if _so_label:
+                _so_new_name = meli_so_name_with_label(sorder.name or "", _so_label)
+                if _so_new_name != sorder.name:
+                    sorder.name = _so_new_name
 
             if (shipment.tracking_method == "MEL Distribution"):
                 #_logger.info('MEL Distribution, not adding to order')
@@ -2057,6 +2054,15 @@ class mercadolibre_shipment(models.Model):
                         if ("pack_id" in all_orders[0] and all_orders[0]["pack_id"]):
                             meli_order_fields['name'] = "ML %s" % ( str(all_orders[0]["pack_id"]) )
                             #meli_order_fields['pack_id'] = all_orders[0]["pack_id"]
+                            # [un caso] el carrito nace con el sufijo si ya se conoce el envio (igual que
+                            # orders.py en la venta simple): si se confirma antes del renombre, el
+                            # origin del albaran igual lleva el dato.
+                            _pack_label = meli_so_name_label(
+                                config, shipping_id=shipment.shipping_id,
+                                tracking_number=shipment.tracking_number)
+                            if _pack_label:
+                                meli_order_fields['name'] = meli_so_name_with_label(
+                                    meli_order_fields['name'], _pack_label)
 
                         if (not sorder_pack and config.mercadolibre_seller_user):
                             meli_order_fields["user_id"] = config.mercadolibre_seller_user.id

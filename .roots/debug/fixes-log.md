@@ -4,6 +4,13 @@
 
 ---
 
+## 12 nov 2026 — 26.398: nombre de venta con el ID de envío (opción) + carrito nace con sufijo (#757, 502) `19.0`
+**Síntoma:** el cliente escanea la etiqueta de ML (trae el ID de envío) para buscar el albarán por documento de origen, que Odoo copia del nombre de la venta AL CONFIRMAR. (B) con `mercadolibre_so_name_tracking` el sufijo era el TRACKING: en colecta ML lo cambia por un código de 26 caracteres al despachar (y el módulo renombraba la venta) y en Flex nunca contiene el ID de envío ⇒ no coincide con la etiqueta. (A) el carrito (`shipment.py`, «ML <pack_id>») nacía SIN sufijo: confirmado antes del renombre, el origin quedaba sin dato.
+**Fix:** helpers `meli_so_name_label` / `meli_so_name_with_label` (versions.py). Modo nuevo `mercadolibre_so_name_label` (meli_oerp_multiple): `tracking` (default, histórico) | `shipping_id` (siempre el ID de envío; un cambio de tracking ya NO renombra). Los tres puntos (orders.py alta/re-sync de venta simple, `_update_sale_order_shipping_info`, alta/re-sync del carrito en `fetch_shipment`) usan el mismo helper; el carrito nace con el sufijo si el envío ya se conoce. `_get_meli_invoices` (invoice.origin = so.name) sin cambios.
+**Prueba:** `tests/shell_757_so_name_shipping_id.py` (odoo-bin shell, base descartable, ML simulado; camino real `orders_update_order_json` → `fetch_shipment`). Banco 16: fix 18 OK/0 FAIL (off · tracking · shipping_id × venta simple alta/re-sync/origin del albarán + carrito alta/nace/re-sync); control origin/16.0 9 OK/1 FAIL (el carrito nace sin sufijo = bug A); off y tracking idénticos fix vs control.
+
+---
+
 ## 12 nov 2026 — 853de3e7 (sin bump, sólo Python): selector de privilegios en inglés con usuario es_AR `[19.0]`
 **Síntoma:** en odoo19mint (core 19.1a1) la ficha de usuario mostraba secciones, privilegio «Mercado Libre» y niveles en inglés («MercadoLibre Sale Reader/Manager», «SALES») aunque la base tiene es_AR (el fix 26.393 SÍ estaba cargado).
 **Causa (core, no el .po):** `res.groups._get_view_group_hierarchy` del 19.1a1 está decorado `@ormcache(cache='groups')` **sin `self.env.lang`** en la clave (19.0 estable y 20.0 lo tienen). El primer idioma que lo calcula tras restart/limpieza queda servido a todos; un cron/usuario en_US lo llena en inglés. Reproducido en shell: en_US→es_AR devuelve inglés; tras limpiar el cache y entrar primero en es_AR, en_US salía en castellano.
