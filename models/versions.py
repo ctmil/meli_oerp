@@ -1225,3 +1225,40 @@ def meli_payment_commission_from_json(full_payment):
         except (TypeError, ValueError):
             pass
     return round(total, 2) if total > 0.0 else 0.0
+
+
+# [un caso] Sufijo del nombre de la venta: tracking (historico) o ID de envio.
+# El albaran toma su `origin` del nombre de la venta AL CONFIRMAR; la etiqueta de ML trae el
+# ID de envio (shipping_id). En colecta ML el tracking cambia al despachar y en Flex nunca
+# contiene el ID de envio => con 'shipping_id' el nombre coincide con la etiqueta y no se mueve.
+MELI_SO_NAME_SEP = " | "
+
+
+def meli_so_name_label(config, shipping_id=None, tracking_number=None):
+    """Sufijo para el nombre de la venta, o None si no corresponde agregar ninguno.
+
+    Gate: mercadolibre_so_name_tracking (meli_oerp_multiple). Sin el campo o apagado -> None.
+    Modo: mercadolibre_so_name_label = 'tracking' (default, historico: tracking si existe,
+    si no el ID de envio) | 'shipping_id' (siempre el ID de envio; no cambia con el tracking).
+    """
+    try:
+        if not (config and 'mercadolibre_so_name_tracking' in config._fields
+                and config.mercadolibre_so_name_tracking):
+            return None
+        mode = ('mercadolibre_so_name_label' in config._fields
+                and config.mercadolibre_so_name_label) or 'tracking'
+    except Exception as e:
+        _logger.warning("MELI so_name_label: no se pudo leer la config: %s", e)
+        return None
+    if mode == 'shipping_id':
+        return str(shipping_id) if shipping_id else None
+    if tracking_number:
+        return str(tracking_number)
+    return str(shipping_id) if shipping_id else None
+
+
+def meli_so_name_with_label(name, label):
+    """'ML 123 | X' -> 'ML 123 | <label>'. Sin label devuelve el nombre sin tocar."""
+    if not label or not name:
+        return name
+    return name.split(MELI_SO_NAME_SEP)[0] + MELI_SO_NAME_SEP + str(label)
