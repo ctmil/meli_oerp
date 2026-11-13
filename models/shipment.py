@@ -1089,7 +1089,8 @@ class mercadolibre_shipment(models.Model):
             # para que meli_amount_to_invoice use exactamente el mismo numero.
             del_price = shipment._meli_buyer_shipping_amount(order, config=config)
 
-            delivery_price = ml_product_price_conversion( self, product_related_obj=product_shipping_id, price=del_price, config=config ),
+            delivery_price = ml_product_price_conversion( self, product_related_obj=product_shipping_id, price=del_price, config=config,
+                                                taxes=meli_predict_line_taxes(product_shipping_id, sorder, ml_line=False) ),
             if type(delivery_price)==tuple and len(delivery_price):
                 delivery_price = delivery_price[0]
 
@@ -1134,7 +1135,8 @@ class mercadolibre_shipment(models.Model):
                 _ship_residual = received_amount - _product_total
                 if _ship_residual < 0.0:
                     _ship_residual = 0.0
-                _dp = ml_product_price_conversion( self, product_related_obj=product_shipping_id, price=_ship_residual, config=config )
+                _dp = ml_product_price_conversion( self, product_related_obj=product_shipping_id, price=_ship_residual, config=config,
+                                                taxes=meli_predict_line_taxes(product_shipping_id, sorder, ml_line=False) )
                 if type(_dp) == tuple and len(_dp):
                     _dp = _dp[0]
                 delivery_price = _dp
@@ -2127,7 +2129,7 @@ class mercadolibre_shipment(models.Model):
                                 if (mOrder.fee_amount):
                                     sorder_pack.meli_fee_amount = sorder_pack.meli_fee_amount + mOrder.fee_amount
 
-                                saleorderline_item_fields.update( order._set_product_unit_price( product_related_obj, mOrder.order_items[0], config=config ) )
+                                saleorderline_item_fields.update( order._set_product_unit_price( product_related_obj, mOrder.order_items[0], config=config, sale_order=shipment.sale_order, iva_name=mOrder.order_items[0]["order_item_iva"] ) )
 
                                 saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),
                                                                                     ('meli_order_item_variation_id','=',saleorderline_item_fields['meli_order_item_variation_id']),

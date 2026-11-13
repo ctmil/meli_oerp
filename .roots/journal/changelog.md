@@ -4,6 +4,11 @@
 
 ---
 
+## 20.0.26.402 — 13-nov-2026 · El total de la venta coincide con Mercado Libre aunque la venta tenga posición fiscal
+- Cuando la venta lleva una **posición fiscal que cambia el IVA del producto** (exento, exportación, zona franca, «Foreign Trade» → «0% Exports»), el precio de Mercado Libre se netea ahora por el impuesto que la línea **lleva de verdad**. Antes se descontaba el IVA del producto y se aplicaba el de la posición fiscal: el pedido quedaba por debajo de lo cobrado (ej. 125.216,52 contra 143.999) y no se confirmaba («Condition not met»). Vale para la línea del producto y para la del envío. Sin posición fiscal, nada cambia.
+
+---
+
 ## 20.0.26.401 — 13-nov-2026 · Un rechazo de Mercado Libre ya no se lee como «publicado»
 - Cuando Mercado Libre rechaza una escritura (precio, stock, publicación) con un código de error que **no** trae el campo `error` —por ejemplo el token vencido: `401 invalid access token`—, ahora se trata como **error**. Antes ese rechazo se contaba como publicado y los contadores de los crons decían «OK».
 
