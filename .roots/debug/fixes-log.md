@@ -4,6 +4,14 @@
 
 ---
 
+## 13 nov 2026 — 26.400: modo SIMULACIÓN de ventas de ML (demo/test/soporte) `[16.0–20.0]`
+**Pedido:** FCA vía MINT (e-learning video 06 «Importar una venta»): simular ventas con JSON de ventas reales, manejado por OCAPI. Plan: `.roots/tasks/PLAN-2026-11-13-meli-modo-simulacion-ordenes.md` (workspace).
+**Diseño:** `models/meli_sim_client.py` — `MeliSimClient` (interfaz de MeliApiNoSDK: GET desde el bundle, POST/PUT/DELETE/upload ⇒ no salen, 403 «meli_simulation» + `blocked`; ruta faltante ⇒ `{}` + `missing`; `fallback_real_reads` sólo GET). Activo en un **thread-local** ⇒ `meli.util.get_new_instance` (base y multiple) devuelve el simulado (el import crea clientes nuevos en ~200 lugares). Guarda perezosa en `requests.adapters.HTTPAdapter.send` y `urllib3 HTTPConnectionPool.urlopen`, sólo en el hilo que simula y sólo hosts ML/MP: MercadoPago (`requests.get` directo) sale del bundle. `models/meli_sim.py`: interruptor `res.company.meli_simulation_enabled` (default False, group_system), `mercadolibre.orders.meli_simulated/meli_sim_bundle/meli_sim_log`, `sale.order.meli_simulated`, entrada `meli_simulate_order(bundle, config)`, re-sync de simuladas desde su bundle (`orders_update_order`, `update_order_status`, dominio de `orders_resync_status`), asistente `mercadolibre.orders.simulate`. Rehúsa: interruptor apagado, no-admin, `order_id` de una orden REAL.
+**Prueba:** `tests/test_meli_simulacion.py` (tag `meli_simulacion`, 7) + multiple 3: «sin red» medido con patch de `socket`. Banco 16/17/18/19/20 10/10; suite completa 19 fix vs ctl: mismo único error preexistente (k02 test_03, ruta de migración del banco).
+**Ojo tests Odoo 17+:** el framework bloquea `requests.Session.send` ARRIBA de la guarda ⇒ los tests redefinen `_request_handler` para bajar al adapter.
+
+---
+
 ## 12 nov 2026 — 853de3e7 (sin bump, sólo Python): selector de privilegios en inglés con usuario es_AR `[19.0]`
 **Síntoma:** en odoo19mint (core 19.1a1) la ficha de usuario mostraba secciones, privilegio «Mercado Libre» y niveles en inglés («MercadoLibre Sale Reader/Manager», «SALES») aunque la base tiene es_AR (el fix 26.393 SÍ estaba cargado).
 **Causa (core, no el .po):** `res.groups._get_view_group_hierarchy` del 19.1a1 está decorado `@ormcache(cache='groups')` **sin `self.env.lang`** en la clave (19.0 estable y 20.0 lo tienen). El primer idioma que lo calcula tras restart/limpieza queda servido a todos; un cron/usuario en_US lo llena en inglés. Reproducido en shell: en_US→es_AR devuelve inglés; tras limpiar el cache y entrar primero en es_AR, en_US salía en castellano.
