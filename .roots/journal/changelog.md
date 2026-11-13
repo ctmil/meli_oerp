@@ -4,6 +4,11 @@
 
 ---
 
+## 18.0.26.401 — 13-nov-2026 · Un rechazo de Mercado Libre ya no se lee como «publicado»
+- Cuando Mercado Libre rechaza una escritura (precio, stock, publicación) con un código de error que **no** trae el campo `error` —por ejemplo el token vencido: `401 invalid access token`—, ahora se trata como **error**. Antes ese rechazo se contaba como publicado y los contadores de los crons decían «OK».
+
+---
+
 ## 18.0.26.400 — 13-nov-2026 · Simular ventas de Mercado Libre (bases de demostración y de prueba)
 - Nuevo **modo simulación**: en una base de demo o de prueba se puede importar una venta de Mercado Libre a partir de un JSON, sin que la venta exista en Mercado Libre. Entra por el mismo camino que una venta real (cliente, pedido, pagos, envío) y queda marcada **«SIMULADA»** (cinta en la venta y en la orden ML, filtro «Simuladas»).
 - Mercado Libre **no recibe ninguna escritura** desde una venta simulada: ni mensajes, ni factura, ni cambios de publicación. «Actualizar» una simulada vuelve a leer su JSON, nunca a Mercado Libre.
