@@ -208,11 +208,35 @@ def meli_message_body_with_marker(body, once_key):
     return markup_escape(body) + Markup(meli_once_marker(once_key))
 
 
+def meli_notification_mode(record, config=None):
+    """Modo de notificaciones MeLi que aplica a `record` (26.403).
+
+    El campo `mercadolibre_notification_mode` vive SOLO en res.company. Con meli_oerp_multiple
+    `_get_config` devuelve un `mercadolibre.configuration` (sin el campo): antes de 26.403 eso
+    dejaba el modo en 'notification' y el modo elegido en la compania se ignoraba en silencio.
+    Orden: config (si tiene el campo) -> config.company_id -> record.company_id -> env.company.
+    """
+    F = 'mercadolibre_notification_mode'
+    candidates = []
+    if config:
+        candidates.append(config)
+        if 'company_id' in config._fields:
+            candidates.append(config.company_id)
+    if record and 'company_id' in record._fields:
+        candidates.append(record[:1].company_id)
+    candidates.append(record.env.company)
+    for c in candidates:
+        if c and F in c._fields:
+            return c[:1][F] or 'notification'
+    return 'notification'
+
+
 def meli_message_post(record, body, config=None, once_key=None, force_chatter=False, legacy_text=None, routine=False):
     """Post a message respecting the MeLi notification mode setting.
 
-    config: res.company or connection_account record with mercadolibre_notification_mode field.
-           If None, falls back to the record's company.
+    config: res.company, or any config record (e.g. mercadolibre.configuration); if it lacks
+           mercadolibre_notification_mode the mode comes from its company_id, then the record's
+           company, then env.company (26.403, see meli_notification_mode).
 
     once_key: si viene, el mensaje se postea UNA SOLA VEZ por record. El body se
            marca con `<!-- meli-once:<once_key> -->` y en las llamadas siguientes,
@@ -238,11 +262,7 @@ def meli_message_post(record, body, config=None, once_key=None, force_chatter=Fa
     """
     if not record:
         return
-    if not config:
-        config = getattr(record, 'company_id', None) or record.env.user.company_id
-    mode = 'notification'
-    if config and 'mercadolibre_notification_mode' in config._fields:
-        mode = config.mercadolibre_notification_mode or 'notification'
+    mode = meli_notification_mode(record, config)
 
     if mode == 'important':
         # 26.394 (un caso): bajar el volumen del chatter sin esconder lo accionable.
