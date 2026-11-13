@@ -1950,3 +1950,12 @@ Fix 5/5 en 16-19; control origin 26.333 en 18: 5 FAIL de 5. Suites /meli_oerp,/m
 - Tests: tests/test_26367_pack_split_gemela_legacy.py (tag meli_26367, 6). Control origin 26.363: 2F/6.
 - Relacionado: en 16.0 prod 502 corría 26.239 SIN 26.229 `_meli_pack_sync_cancelled` (carrito de ≥2 órdenes canceladas
   quedaba meli_status=paid ⇒ sin camino de cancelación ni guarda de factura #148). Ya está en origin desde 26.229.
+
+## 26.401 (13-nov-2026) — un 4xx/5xx sin clave «error» se leía como éxito
+- **Síntoma:** en una instancia nuestra (cuenta con token muerto) cientos de `PUT /items … 401 invalid access token`
+  en una semana y el cron de precio reportando cada corrida «success» con N publicaciones OK.
+- **Causa:** ML manda el 401 como `{"code": "unauthorized", "message": "invalid access token"}`, sin `error`.
+  Todos los llamadores deciden con `"error" in rjson` ⇒ el rechazo pasaba como publicado.
+- **Fix:** `models/meli_util.py:MeliApiNoSDK._parse_response` — todo dict de un status >= 400 sale con
+  `error` (el `code` de ML o `http_<status>`) y `status`. El caso «body vacío» (4-ago) queda igual.
+- **Test:** `tests/test_put_rechazado_no_es_exito.py` (tag `meli_put_rechazado`).
