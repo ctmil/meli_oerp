@@ -442,7 +442,7 @@ class MeliApiNoSDK:
         Ahora un status >= 400 con body vacío se convierte en un dict de error explícito.
         """
         try:
-            return resp.json()
+            data = resp.json()
         except Exception:
             texto = resp.text
             status = getattr(resp, "status_code", 200) or 200
@@ -454,6 +454,21 @@ class MeliApiNoSDK:
                         "status": status,
                         "message": "respuesta vacia con status %s" % status}
             return texto
+        # 26.401 (13-nov-2026, odoo19mint) — UN STATUS >= 400 TAMPOCO SE LEE COMO ÉXITO SI EL CUERPO NO TRAE «error».
+        # ML responde el token vencido/inválido con HTTP 401 {"code": "unauthorized", "message":
+        # "invalid access token"} — SIN clave `error`. Todos los llamadores deciden éxito con
+        # `"error" in rjson`, así que el PUT de precio rechazado se contaba como «Posted price ok»
+        # (332 PUT 401 del 6 al 13-nov en odoo19mint, el cron de precio los reportaba success).
+        # Ahora el dict de un 4xx/5xx sale siempre con `error` (el `code` de ML o http_<status>) y `status`.
+        try:
+            status = int(getattr(resp, "status_code", 200) or 200)
+        except (TypeError, ValueError):
+            status = 200
+        if status >= 400 and isinstance(data, dict) and "error" not in data:
+            data = dict(data)
+            data["error"] = str(data.get("code") or "http_%s" % status)
+            data.setdefault("status", status)
+        return data
 
     def need_login(self):
         return self.needlogin_state

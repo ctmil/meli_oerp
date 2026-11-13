@@ -57,3 +57,4 @@ from . import test_26391_unit_price_nulo
 from . import test_26392_grupos_categoria
 from . import test_26394_chatter_once
 from . import test_meli_simulacion
+from . import test_put_rechazado_no_es_exito
