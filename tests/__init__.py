@@ -58,3 +58,4 @@ from . import test_26389_515_barcode_gtin_y_reintento
 from . import test_26391_unit_price_nulo
 from . import test_26392_grupos_categoria
 from . import test_26394_chatter_once
+from . import test_meli_simulacion

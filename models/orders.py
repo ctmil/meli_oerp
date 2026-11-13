@@ -8527,6 +8527,8 @@ class mercadolibre_orders(models.Model):
             ("sale_order", "!=", False),
             ("sale_order.state", "!=", "cancel"),
             ("status", "not in", ("cancelled", "invalid")),
+            # modo simulación: una orden simulada no existe en ML; su re-sync sale de su bundle.
+            ("meli_simulated", "!=", True),
             # un caso: SIN filtro por shipment_status. El estado del envio en Odoo casi
             # nunca se refresca (un cliente 1-oct: 25.273 de 25.659 seguian ready_to_ship), asi
             # que el filtro no achicaba el pool; y ademas dejaba afuera las canceladas
