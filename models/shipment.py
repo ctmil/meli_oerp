@@ -1114,7 +1114,8 @@ class mercadolibre_shipment(models.Model):
                         "calculado %.2f.", sorder.name, _ml_forced_ship, float(del_price or 0.0))
                 del_price = _ml_forced_ship
 
-            delivery_price = ml_product_price_conversion( self, product_related_obj=product_shipping_id, price=del_price, config=config ),
+            delivery_price = ml_product_price_conversion( self, product_related_obj=product_shipping_id, price=del_price, config=config,
+                                                taxes=meli_predict_line_taxes(product_shipping_id, sorder, ml_line=False) ),
             if type(delivery_price)==tuple and len(delivery_price):
                 delivery_price = delivery_price[0]
 
@@ -1159,7 +1160,8 @@ class mercadolibre_shipment(models.Model):
                 _ship_residual = received_amount - _product_total
                 if _ship_residual < 0.0:
                     _ship_residual = 0.0
-                _dp = ml_product_price_conversion( self, product_related_obj=product_shipping_id, price=_ship_residual, config=config )
+                _dp = ml_product_price_conversion( self, product_related_obj=product_shipping_id, price=_ship_residual, config=config,
+                                                taxes=meli_predict_line_taxes(product_shipping_id, sorder, ml_line=False) )
                 if type(_dp) == tuple and len(_dp):
                     _dp = _dp[0]
                 delivery_price = _dp
@@ -2186,7 +2188,8 @@ class mercadolibre_shipment(models.Model):
                                 # 26.318 (#caso-K13 B): el descuento del PACK prorrateado por el bruto de ESTE ítem
                                 # (antes: el de la orden que disparó el sync, entero, en cada línea).
                                 saleorderline_item_fields.update( mOrder._set_product_unit_price( product_related_obj, mOrder.order_items[0], config=config,
-                                                                                                   items_total=_pack_gross or None, seller_discount=_pack_disc ) )
+                                                                                                   items_total=_pack_gross or None, seller_discount=_pack_disc,
+                                                                                                   sale_order=shipment.sale_order, iva_name=mOrder.order_items[0]["order_item_iva"] ) )
 
                                 saleorderline_item_ids = saleorderline_obj.search( [('meli_order_item_id','=',saleorderline_item_fields['meli_order_item_id']),
                                                                                     ('meli_order_item_variation_id','=',saleorderline_item_fields['meli_order_item_variation_id']),

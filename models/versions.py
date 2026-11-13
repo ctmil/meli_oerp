@@ -713,7 +713,34 @@ def ml_sale_tax_rates(taxes, company=None):
                 txfixed = txfixed + txid.amount
     return txpercent, txfixed
 
-def ml_product_price_conversion( self, product_related_obj, price, config=None):
+def meli_predict_line_taxes(product, sale_order, iva_name=None, ml_line=True):
+    """Impuestos que la linea de `sale_order` va a llevar de verdad, para netear el precio de ML.
+
+    26.402 (venta simulada odoo19mint, 13-nov-2026): el unitario de ML se neteaba por los impuestos
+    del PRODUCTO y la linea quedaba con los MAPEADOS por la posicion fiscal de la venta (15 % ->
+    «0% Exports»): dividia por 1,15 y aplicaba 0 % => total 125.216,52 contra 143.999 cobrado.
+    Reproduce la decision real: impuestos del producto de la compania -> map de la posicion fiscal
+    (lo que hace el core al crear la linea / la linea de envio) y, para la linea de PRODUCTO, la
+    regla de sale.order.line._meli_sync_line_taxes (el IVA de la publicacion gana; si el mapeo deja
+    la linea sin impuestos vuelven los del producto). Devuelve None si no hay venta o posicion
+    fiscal: el llamador netea como siempre.
+    """
+    fpos = sale_order and "fiscal_position_id" in sale_order._fields and sale_order.fiscal_position_id
+    if not product or not fpos:
+        return None
+    company = sale_order.company_id
+    tmpl = product.product_tmpl_id if "product_tmpl_id" in product._fields else product
+    ptaxes = tmpl.sudo().taxes_id.filtered(lambda t: t.company_id.id == company.id)
+    current = map_tax_compat(fpos, ptaxes, product, sale_order.partner_id)
+    if not ml_line:
+        return current
+    tax_iva = ptaxes.filtered(lambda t: tax_names_equivalent(t.name, iva_name))[:1] if (iva_name and ptaxes) else ptaxes.browse()
+    keep = current.filtered(lambda t: t.company_id.id == company.id and (not tax_iva or t == tax_iva))
+    if not keep and ptaxes:
+        keep = tax_iva or ptaxes
+    return keep
+
+def ml_product_price_conversion( self, product_related_obj, price, config=None, taxes=None):
     """Importe que COBRA ML (unitario de una orden, o flete) -> price_unit de la linea de venta.
 
     [caso de un cliente] El precio de una venta de ML es SIEMPRE final, con impuestos incluidos.
@@ -726,17 +753,21 @@ def ml_product_price_conversion( self, product_related_obj, price, config=None):
     cual, que ya trae IVA), las ordenes importadas dejaron de netearse y entraron x1,16
     (impuesto de 16 % no incluido sumado encima), y el control de montos de confirm_ml las
     frenaba en presupuesto. La PUBLICACION sigue usando ml_tax_excluded() sin cambios.
+
+    `taxes` (26.402): los impuestos que la linea va a llevar (meli_predict_line_taxes). None = los
+    del producto, como antes.
     """
     company_id = ("company_id" in config._fields and config.company_id) or config
     product_template = product_related_obj.product_tmpl_id
     ml_price_converted = float(price)
     # Sin depender de ml_tax_excluded(): ver docstring [un caso].
     #_logger.info("Taxes:"+str(product_template.taxes_id))
-    if ( product_template.taxes_id ):
+    _ml_taxes = product_template.taxes_id if taxes is None else taxes
+    if ( _ml_taxes ):
         txfixed = 0
         txpercent = 0
         #_logger.info("Adjust taxes")
-        for txid in product_template.taxes_id:
+        for txid in _ml_taxes:
             if (txid.company_id!=company_id):
                 continue;
             if (txid.type_tax_use=="sale" and not txid.price_include):
