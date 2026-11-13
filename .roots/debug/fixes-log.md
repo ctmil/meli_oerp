@@ -2,6 +2,19 @@
 
 > Historial de correcciones implementadas.
 
+## 26.402 (13-nov-2026) — con posición fiscal, el total de la venta no cuadraba con ML
+- **Síntoma:** venta simulada en odoo19mint (Taza, 143.999 ARS): pedido 125.216,52 con «0% Exports»; chatter
+  «Condition not met: meli_paid_amount and amount_total doesn't match … diff=18782.48» ⇒ queda en presupuesto.
+- **Causa:** `ml_product_price_conversion` neteaba el unitario por los impuestos del PRODUCTO (15 %) y la línea
+  quedaba con los MAPEADOS por la posición fiscal de la venta («Foreign Trade»: 15 % → 0 %). Mismo camino en el flete.
+  Disparador en la demo: compañía con partner AR y país fiscal US (plan genérico) ⇒ todo comprador AR es «extranjero».
+- **Fix:** `models/versions.py:meli_predict_line_taxes` reproduce el impuesto final de la línea (map de la FP +
+  regla de `_meli_sync_line_taxes`: IVA de la publicación gana, mapeo vacío ⇒ vuelven los del producto; envío = sólo
+  map) y `ml_product_price_conversion(taxes=…)` netea por ése. Llamadores: `_set_product_unit_price(sale_order,
+  iva_name)` en orders.py y pack de shipment.py; flete en shipment.py. Sin posición fiscal: idéntico.
+- **Test:** `tests/test_26402_neteo_posicion_fiscal.py` (tag `meli_26402_neteo_fp`, 6). Control con los llamadores
+  viejos: «1000.0 != 1150.0». Verificado en odoo19mint 19.1.26.402: «ML 9000000000001101» total 143.999.
+
 ---
 
 ## 13 nov 2026 — 26.400: modo SIMULACIÓN de ventas de ML (demo/test/soporte) `[16.0–20.0]`
