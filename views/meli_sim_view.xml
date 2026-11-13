@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Modo SIMULACION de ventas de Mercado Libre (demo/test). Interruptor por compañía, default apagado. -->
+
+    <record model="ir.ui.view" id="view_company_meli_simulation">
+        <field name="name">res.company.form.meli.simulation</field>
+        <field name="model">res.company</field>
+        <field name="inherit_id" ref="meli_oerp.view_company_page_mercadolibre"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='mercadolibre_cron_get_orders']/ancestor::group[@name='autoget']" position="after">
+                <group string="Simulación de ventas (demo / test)" name="meli_simulation" groups="base.group_system">
+                    <group>
+                        <field name="meli_simulation_enabled"/>
+                        <field name="meli_simulation_fallback_real_reads" invisible="not meli_simulation_enabled"/>
+                    </group>
+                    <group>
+                        <button name="action_meli_simulate_wizard" type="object" string="Simular venta"
+                                icon="fa-flask" class="btn-secondary" invisible="not meli_simulation_enabled"/>
+                    </group>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_meli_orders_form_simulation">
+        <field name="name">mercadolibre.orders.form.simulation</field>
+        <field name="model">mercadolibre.orders</field>
+        <field name="inherit_id" ref="meli_oerp.view_meli_orders_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <field name="meli_simulated" invisible="1"/>
+                <widget name="web_ribbon" title="SIMULADA" bg_color="text-bg-warning" invisible="not meli_simulated"/>
+            </xpath>
+            <xpath expr="//notebook" position="inside">
+                <page string="Simulación" name="meli_simulation" invisible="not meli_simulated">
+                    <field name="meli_sim_log"/>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_sale_order_form_meli_simulation">
+        <field name="name">sale.order.form.meli.simulation</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <field name="meli_simulated" invisible="1"/>
+                <widget name="web_ribbon" title="SIMULADA" bg_color="text-bg-warning" invisible="not meli_simulated"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="meli_orders_search_view_simulation" model="ir.ui.view">
+        <field name="name">mercadolibre.orders.search.simulation</field>
+        <field name="model">mercadolibre.orders</field>
+        <field name="inherit_id" ref="meli_oerp.meli_orders_search_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//search" position="inside">
+                <separator/>
+                <filter name="filter_meli_simulated" string="Simuladas" domain="[('meli_simulated','=',True)]"/>
+                <filter name="filter_meli_real" string="Reales (no simuladas)" domain="[('meli_simulated','=',False)]"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_meli_orders_simulate_wizard" model="ir.ui.view">
+        <field name="name">mercadolibre.orders.simulate.form</field>
+        <field name="model">mercadolibre.orders.simulate</field>
+        <field name="arch" type="xml">
+            <form string="Simular venta de Mercado Libre">
+                <field name="state" invisible="1"/>
+                <div class="alert alert-warning" role="alert" invisible="state != 'draft'">
+                    La venta se importa por el mismo camino que una venta real, queda marcada
+                    <strong>SIMULADA</strong> y Mercado Libre no recibe ninguna escritura.
+                    Usar sólo en bases de demostración o de prueba.
+                </div>
+                <group invisible="state != 'draft'">
+                    <field name="company_id" options="{'no_create': True}"/>
+                    <field name="bundle_file" filename="bundle_filename"/>
+                    <field name="bundle_filename" invisible="1"/>
+                    <field name="bundle_text" placeholder='{"order": {...}, "routes": {...}}'/>
+                </group>
+                <group invisible="state != 'done'">
+                    <field name="result_text" nolabel="1" colspan="2"/>
+                    <field name="sale_order_id"/>
+                    <field name="meli_order_id"/>
+                </group>
+                <footer>
+                    <button name="action_simulate" type="object" string="Simular" class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_open_sale" type="object" string="Abrir la venta" class="btn-primary"
+                            invisible="state != 'done' or not sale_order_id"/>
+                    <button string="Cerrar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

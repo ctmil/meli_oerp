@@ -4,6 +4,14 @@
 
 ---
 
+## 13 nov 2026 — 26.400: modo SIMULACIÓN de ventas de ML (demo/test/soporte) `[16.0–20.0]`
+**Pedido:** FCA vía MINT (e-learning video 06 «Importar una venta»): simular ventas con JSON de ventas reales, manejado por OCAPI. Plan: `.roots/tasks/PLAN-2026-11-13-meli-modo-simulacion-ordenes.md` (workspace).
+**Diseño:** `models/meli_sim_client.py` — `MeliSimClient` (interfaz de MeliApiNoSDK: GET desde el bundle, POST/PUT/DELETE/upload ⇒ no salen, 403 «meli_simulation» + `blocked`; ruta faltante ⇒ `{}` + `missing`; `fallback_real_reads` sólo GET). Activo en un **thread-local** ⇒ `meli.util.get_new_instance` (base y multiple) devuelve el simulado (el import crea clientes nuevos en ~200 lugares). Guarda perezosa en `requests.adapters.HTTPAdapter.send` y `urllib3 HTTPConnectionPool.urlopen`, sólo en el hilo que simula y sólo hosts ML/MP: MercadoPago (`requests.get` directo) sale del bundle. `models/meli_sim.py`: interruptor `res.company.meli_simulation_enabled` (default False, group_system), `mercadolibre.orders.meli_simulated/meli_sim_bundle/meli_sim_log`, `sale.order.meli_simulated`, entrada `meli_simulate_order(bundle, config)`, re-sync de simuladas desde su bundle (`orders_update_order`, `update_order_status`, dominio de `orders_resync_status`), asistente `mercadolibre.orders.simulate`. Rehúsa: interruptor apagado, no-admin, `order_id` de una orden REAL.
+**Prueba:** `tests/test_meli_simulacion.py` (tag `meli_simulacion`, 7) + multiple 3: «sin red» medido con patch de `socket`. Banco 16/17/18/19/20 10/10; suite completa 19 fix vs ctl: mismo único error preexistente (k02 test_03, ruta de migración del banco).
+**Ojo tests Odoo 17+:** el framework bloquea `requests.Session.send` ARRIBA de la guarda ⇒ los tests redefinen `_request_handler` para bajar al adapter.
+
+---
+
 ## 10 nov 2026 — 26.394: avisos de envío repetidos en el chatter (#696, 535) `[17.0]`
 **Síntoma:** cada sincronización de la venta dejaba «Sin servicio de envio o carrier.» en el chatter; «Companias Coinciden OK…» iba por `message_post` directo (ignoraba `mercadolibre_notification_mode`), salía aunque las compañías no coincidieran y su guarda recorría el chatter entero.
 **Fix:** ambos por `meli_message_post(once_key=…, legacy_text=…)`. Nuevo kwarg `legacy_text` + helper `meli_message_text_posted` (versions.py): ventas viejas con el texto sin marca no reabren la ronda. El «Monto correcto…» ya era una-vez desde 26.171.
