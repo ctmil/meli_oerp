@@ -2,6 +2,21 @@
 
 > Historial de correcciones implementadas.
 
+## 26.403 (13-nov-2026) — modo de notificaciones de la compañía ignorado con multi-cuenta
+- **Síntoma:** un caso (Odoo 19, meli_oerp 26.394 + meli_oerp_multiple): compañía en `mercadolibre_notification_mode =
+  'important'` y en las 24 h siguientes las 1318 ventas ML nuevas siguieron recibiendo los 3 avisos de RUTINA (Monto
+  correcto / Companias Coinciden OK / ML(stock): Almacen), uno por venta. Medido en la base: el modo estaba guardado.
+- **Causa:** `meli_message_post` arrancaba con `mode='notification'` y sólo leía el modo si `config` tenía el campo.
+  Con multiple, `_get_config` devuelve `connection_account.configuration` (`mercadolibre.configuration`), que NO lo
+  tiene (vive sólo en res.company) ⇒ el modo de la compañía se ignoraba en silencio. Los tests de 26.394 pasaban
+  `config=company` y no lo vieron.
+- **Fix:** `models/versions.py:meli_notification_mode(record, config)` resuelve config (si tiene el campo) →
+  `config.company_id` → `record.company_id` → `env.company`; `meli_message_post` lo usa. Es el único lector del modo
+  en el suite (meli_oerp_stock delega en `meli_message_post`).
+- **Test:** `tests/test_26403_modo_config_sin_campo.py` (tag `meli_26403`, 5; config = `mercadolibre.configuration.new`
+  de la compañía, o un registro sin el campo si multiple no está). Control sin el fix: 3 FAIL (las 3 de rutina,
+  incluido el camino real `_update_sale_order_shipping_info`).
+
 ## 26.402 (13-nov-2026) — con posición fiscal, el total de la venta no cuadraba con ML
 - **Síntoma:** venta simulada en odoo19mint (Taza, 143.999 ARS): pedido 125.216,52 con «0% Exports»; chatter
   «Condition not met: meli_paid_amount and amount_total doesn't match … diff=18782.48» ⇒ queda en presupuesto.
