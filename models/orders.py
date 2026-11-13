@@ -5123,7 +5123,7 @@ class mercadolibre_orders(models.Model):
             disc = 0.0
         return disc, gross
 
-    def _set_product_unit_price( self, product_related_obj, Item, config=None, items_total=None, seller_discount=None ):
+    def _set_product_unit_price( self, product_related_obj, Item, config=None, items_total=None, seller_discount=None , sale_order=None, iva_name=None ):
         """Precio unitario de la línea = precio de ML menos el descuento que paga el VENDEDOR.
 
         26.229 (cupón a cargo del vendedor): `discount_seller_amount` es un importe de la
@@ -5163,7 +5163,8 @@ class mercadolibre_orders(models.Model):
             seller_discount = 0.0
         unit_price = max(_unit - float(seller_discount / _qty), 0.0) if _unit else 0.0
         upd_line = {
-            "price_unit": ml_product_price_conversion( self, product_related_obj=product_related_obj, price=unit_price, config=config )
+            "price_unit": ml_product_price_conversion( self, product_related_obj=product_related_obj, price=unit_price, config=config,
+                                                     taxes=meli_predict_line_taxes(product_related_obj, sale_order, iva_name=iva_name) )
         }
         # [#462 OLPA, SO 6212] Odoo 17.2+/18: una linea creada con price_unit en los vals queda con
         # technical_price_unit == price_unit, y Odoo lo lee como "precio NO fijado a mano": cualquier
@@ -7716,7 +7717,8 @@ class mercadolibre_orders(models.Model):
                             _items_total += float(_it.get('unit_price') or 0.0) * float(_it.get('quantity') or 0.0)
                         except (TypeError, ValueError, AttributeError):
                             pass
-                    saleorderline_item_fields.update( order._set_product_unit_price( product_related_obj=product_related_obj, Item=Item, config=config, items_total=_items_total or None ) )
+                    saleorderline_item_fields.update( order._set_product_unit_price( product_related_obj=product_related_obj, Item=Item, config=config, items_total=_items_total or None,
+                                                                                     sale_order=sorder, iva_name=order_item_iva ) )
                     order._meli_note_item_price_source(sorder, Item, config=config)  # 26.391
 
                     #TODO: agregar meli_order_id !!! (mismo item dos ordenes diferentes...puede pasar...)
