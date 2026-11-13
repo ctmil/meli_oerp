@@ -4,6 +4,11 @@
 
 ---
 
+## 19.0.26.404 — 13-nov-2026 · Release de flota 26.404
+- Sin cambios propios en este módulo: acompaña la versión 26.404 del suite (con varias cuentas, el «Iniciar sesión» de la compañía ya no aparece: la sesión se inicia desde cada cuenta; el cambio está en meli_oerp_multiple).
+
+---
+
 ## 19.0.26.403 — 13-nov-2026 · El modo de notificaciones de la compañía se respeta también con varias cuentas
 - Con **varias cuentas de Mercado Libre** (meli_oerp_multiple), el **Modo de notificaciones** elegido en la compañía (Ajustes de Mercado Libre) se ignoraba: los avisos usaban la configuración de la cuenta, que no tiene ese ajuste, y quedaban siempre en «Notificación». Con «Sólo lo que requiere atención» los avisos de rutina (Monto correcto, Compañías coinciden, Almacén asignado) seguían apareciendo en cada venta. Ahora el modo se toma de la compañía de esa configuración (o de la venta). Con una sola cuenta, nada cambia.
 
