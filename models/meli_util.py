@@ -23,6 +23,7 @@ from urllib3.util.retry import Retry
 from datetime import datetime
 from .versions import *
 from . import versions as _versions
+from .meli_sim_client import meli_sim_active
 
 # Seguridad (comms 2026-10-05T15:22:47Z, caso-K14): los tokens/secretos NUNCA van en claro al chatter,
 # al log ni a mercadolibre.notification.logs.
@@ -1379,6 +1380,12 @@ class MeliUtil(models.AbstractModel):
 
     @api.model
     def get_new_instance(self, company=None, refresh_force=False):
+
+        # Modo simulación: mientras una venta simulada se importa en este hilo, TODO cliente nuevo es
+        # el simulado (lee del bundle, no escribe en ML). Ver meli_sim_client.py.
+        _sim = meli_sim_active(self.env.cr.dbname)
+        if _sim is not None:
+            return _sim
 
         if not company:
             company = self.env.user.company_id
