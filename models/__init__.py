@@ -18,6 +18,7 @@ from . import posting
 from . import product_post
 from . import questions
 from . import orders
+from . import meli_cancel_stock
 from . import res_partner
 #from . import currency
 from . import shipment

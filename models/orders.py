@@ -442,6 +442,8 @@ class sale_order(models.Model):
             if (self.meli_status=="cancelled"):
                 if (self.state in ["draft","sale","sent"]):
                     self.action_cancel()
+                    #26.412 (un caso): ML repone la unidad al cancelar => republicar / retener (post-commit)
+                    self._meli_cancel_stock_followup(config=config)
                     #_logger.info(Confirm Order Cancelled")
                 return res
 
@@ -2396,6 +2398,8 @@ class mercadolibre_orders(models.Model):
 
             if (sorder.meli_status=="cancelled" and sorder.state in ["draft","sale","sent"]):
                 sorder.action_cancel()
+                #26.412 (un caso): ML repone la unidad al cancelar => republicar / retener (post-commit)
+                sorder._meli_cancel_stock_followup(config=config)
 
             #if "confirm_ml_financial" in self.env["mercadolibre.orders"]:
             #sorder.confirm_ml_financial( meli=meli, config=config )

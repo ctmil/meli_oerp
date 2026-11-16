@@ -321,6 +321,23 @@ class res_company(models.Model):
     mercadolibre_cron_get_update_products = fields.Boolean(string='Actualizar productos en Odoo',help='Cron Update Products already imported')
     mercadolibre_cron_post_update_products = fields.Boolean(string='Actualizar productos en ML',help='Cron Update Posted Products, Product Templates or Variants with Meli Publication field checked')
     mercadolibre_cron_post_update_stock = fields.Boolean(string='Publicar Stock',help='Cron Post Updated Stock')
+    # 26.412 (un caso): qué hace Odoo con el stock en ML cuando ML cancela una venta.
+    # ML repone sola la unidad en la publicación al cancelarse la venta. GEMELO en
+    # meli_oerp_multiple/models/connection_configuration.py con el MISMO default: con cuenta de
+    # conexión manda el de la CUENTA.
+    mercadolibre_cancel_stock_mode = fields.Selection([
+        ("republish", "Volver a publicar el stock de Odoo"),
+        ("hold", "Dejar la variante en 0 hasta habilitarla"),
+    ], string="Al cancelarse una venta en ML", default="republish",
+       help="Mercado Libre repone sola la unidad en la publicación cuando se cancela una venta.\n"
+            "- Volver a publicar el stock de Odoo (por defecto): apenas Odoo registra la cancelación, "
+            "publica en ML el stock que tiene Odoo para esos productos, sin esperar al cron.\n"
+            "- Dejar la variante en 0 hasta habilitarla: cada variante de la venta cancelada queda "
+            "marcada 'Stock retenido en ML' y se publica 0 en todas sus publicaciones (la publicación "
+            "no se pausa: las demás variantes siguen a la venta). Vuelve a publicar su stock cuando "
+            "alguien aprieta 'Habilitar stock en ML' en el producto. Sirve para revisar la mercadería "
+            "antes de volver a ofrecerla.\n"
+            "No aplica a envíos FULL (el stock lo maneja ML) ni a ventas de más de 30 días.")
     mercadolibre_cron_post_update_price = fields.Boolean(string='Publicar Precio',help='Cron Post Updated Price')
     mercadolibre_create_website_categories = fields.Boolean(string='Crear categorías',help='Create Website eCommerce Categories from imported products ML categories')
     mercadolibre_pricelist = fields.Many2one( "product.pricelist", "Product Pricelist default", help="Select price list for ML product"
