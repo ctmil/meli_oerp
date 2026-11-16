@@ -1019,6 +1019,18 @@ class product_template(models.Model):
     meli_update_error = fields.Char(string="Update Error",index=True)
 
     meli_update_stock_blocked = fields.Boolean(string="Block Update stock",default=False)
+
+    # 26.412 (un caso): variantes con «Stock retenido en ML» (venta ML cancelada con el modo 'hold').
+    def _compute_meli_stock_hold_count(self):
+        for tmpl in self:
+            tmpl.meli_stock_hold_count = len(tmpl.product_variant_ids.filtered('meli_stock_hold'))
+
+    meli_stock_hold_count = fields.Integer(string="Variantes con stock retenido en ML",
+        compute=_compute_meli_stock_hold_count)
+
+    def action_meli_stock_hold_release(self):
+        """«Habilitar stock en ML» desde la plantilla: habilita TODAS sus variantes retenidas."""
+        return self.mapped('product_variant_ids').action_meli_stock_hold_release()
     meli_mercadolibre_banner = fields.Many2one("mercadolibre.banner",string="Plantilla Descriptiva")
 
     def product_template_permalink(self):
@@ -4837,6 +4849,9 @@ class product_product(models.Model):
         return {}
 
     def _meli_available_quantity( self, meli=False, config=None ):
+        # 26.412 (un caso): variante con 'Stock retenido en ML' ⇒ se publica 0 hasta habilitarla.
+        if self._meli_stock_hold_active():
+            return 0
 
         product = self
         product_tmpl = product.product_tmpl_id
@@ -5704,6 +5719,56 @@ class product_product(models.Model):
     meli_update_error = fields.Char(string="Update Error",index=True)
 
     meli_update_stock_blocked = fields.Boolean(string="Block Update stock",default=False)
+
+    # 26.412 (un caso): STOCK RETENIDO EN ML. Lo marca la cancelación de una venta ML cuando
+    # la config «Al cancelarse una venta en ML» = 'hold'. Mientras esté marcado,
+    # _meli_available_quantity devuelve 0 ⇒ TODO camino de publicación de stock (botón, cron,
+    # binding de cualquier cuenta, re-publicación) manda 0 a ML. Nunca pausa la publicación.
+    # No se usa meli_update_stock_blocked: bloquear deja en ML lo que ML tenga (la unidad que
+    # repuso al cancelar) y en meli_oerp_multiple 13.0 bloquea el binding de PLANTILLA entero.
+    meli_stock_hold = fields.Boolean(string="Stock retenido en ML", default=False, index=True, copy=False,
+        help="Se publica 0 en Mercado Libre para esta variante hasta apretar 'Habilitar stock en ML'. "
+             "Lo marca Odoo cuando ML cancela una venta y la configuración 'Al cancelarse una venta en ML' "
+             "está en 'Dejar la variante en 0 hasta habilitarla'.")
+    meli_stock_hold_date = fields.Datetime(string="Stock retenido desde", copy=False, readonly=True)
+    meli_stock_hold_note = fields.Char(string="Motivo de la retención", copy=False, readonly=True)
+
+    def _meli_stock_hold_active(self):
+        return bool(len(self) == 1 and self.meli_stock_hold)
+
+    def _meli_stock_hold_set(self, note=None):
+        """Marca 'Stock retenido en ML'. Sólo escribe en la base (sin red): lo llama la cancelación
+        de la venta DENTRO de su transacción; la publicación del 0 sale después del commit."""
+        now = fields.Datetime.now()
+        for product in self.filtered(lambda p: not p.meli_stock_hold):
+            product.write({'meli_stock_hold': True, 'meli_stock_hold_date': now,
+                           'meli_stock_hold_note': (note or '')[:250]})
+            try:
+                product.message_post(body="Stock retenido en Mercado Libre: se publica 0 hasta apretar "
+                                          "'Habilitar stock en ML'. Motivo: %s" % (note or '-'))
+            except Exception as e:
+                _logger.warning("meli_stock_hold: no se pudo dejar la nota en %s: %s", product.display_name, e)
+
+    def action_meli_stock_hold_release(self):
+        """«Habilitar stock en ML»: saca la retención y publica YA el stock de Odoo (clic del usuario,
+        transacción corta, igual que 'Publicar Stock'). Si ML falla, lo publica el cron."""
+        held = self.filtered('meli_stock_hold')
+        if not held:
+            return True
+        held.write({'meli_stock_hold': False, 'meli_stock_hold_date': False, 'meli_stock_hold_note': False})
+        for product in held:
+            try:
+                product.message_post(body="Stock en Mercado Libre habilitado por %s: se vuelve a publicar "
+                                          "el stock de Odoo." % self.env.user.name)
+            except Exception:
+                pass
+            try:
+                with self.env.cr.savepoint():
+                    product.product_post_stock()
+            except Exception as e:
+                _logger.error("meli_stock_hold release: no se pudo publicar el stock de %s: %s",
+                              product.display_name, e)
+        return True
     meli_mercadolibre_banner = fields.Many2one("mercadolibre.banner",string="Plantilla Descriptiva")
 
 

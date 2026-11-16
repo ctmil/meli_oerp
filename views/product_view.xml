@@ -617,6 +617,58 @@
             action="action_meli_oerp_pricelist_items_tree"
             parent="menu_meli"
             name="Precios" sequence="9"/>
+        <!-- 26.412 (un caso): «Stock retenido en ML» tras una venta ML cancelada (modo 'hold') -->
+        <record model="ir.ui.view" id="product_normal_meli_stock_hold_form_view">
+            <field name="name">product.product.meli.stock.hold.form</field>
+            <field name="model">product.product</field>
+            <field name="inherit_id" ref="product.product_normal_form_view"/>
+            <field name="arch" type="xml">
+                <xpath expr="//sheet/*[1]" position="before">
+                    <field name="meli_stock_hold" invisible="1"/>
+                    <div class="alert alert-warning" role="alert" invisible="not meli_stock_hold">
+                        <strong>Stock retenido en Mercado Libre:</strong> se publica 0 en todas sus publicaciones
+                        desde <field name="meli_stock_hold_date" readonly="1" class="oe_inline"/>
+                        (<field name="meli_stock_hold_note" readonly="1" class="oe_inline"/>).
+                        Revisá la mercadería y, cuando esté, apretá
+                        <button name="action_meli_stock_hold_release" type="object" string="Habilitar stock en ML"
+                            class="btn-primary oe_inline" confirm="Se vuelve a publicar en Mercado Libre el stock que tiene Odoo para esta variante. ¿Continuar?"/>
+                    </div>
+                </xpath>
+            </field>
+        </record>
+
+        <record model="ir.ui.view" id="product_template_meli_stock_hold_form_view">
+            <field name="name">product.template.meli.stock.hold.form</field>
+            <field name="model">product.template</field>
+            <field name="inherit_id" ref="product.product_template_only_form_view"/>
+            <field name="arch" type="xml">
+                <xpath expr="//sheet/*[1]" position="before">
+                    <field name="meli_stock_hold_count" invisible="1"/>
+                    <div class="alert alert-warning" role="alert" invisible="meli_stock_hold_count == 0">
+                        <strong>Stock retenido en Mercado Libre:</strong>
+                        <field name="meli_stock_hold_count" readonly="1" class="oe_inline"/> variante(s) se publican en 0
+                        por una venta cancelada. Cuando la mercadería esté, apretá
+                        <button name="action_meli_stock_hold_release" type="object" string="Habilitar stock en ML"
+                            class="btn-primary oe_inline" confirm="Se vuelve a publicar en Mercado Libre el stock que tiene Odoo para TODAS las variantes retenidas de este producto. ¿Continuar?"/>
+                        (o desde cada variante, para habilitarlas de a una).
+                    </div>
+                </xpath>
+            </field>
+        </record>
+
+        <record model="ir.ui.view" id="product_search_meli_stock_hold_view">
+            <field name="name">product.product.meli.stock.hold.search</field>
+            <field name="model">product.product</field>
+            <field name="inherit_id" ref="product.product_search_form_view"/>
+            <field name="arch" type="xml">
+                <xpath expr="//search" position="inside">
+                    <separator/>
+                    <filter string="MercadoLibre, Stock retenido" name="meli_stock_hold" domain="[('meli_stock_hold','=',True)]"/>
+                </xpath>
+            </field>
+        </record>
+
+
 
 
     </data>
