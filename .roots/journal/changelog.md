@@ -4,6 +4,15 @@
 
 ---
 
+## 19.0.26.412 — 16-nov-2026 · Al cancelarse una venta en ML: republicar el stock o retenerlo en 0
+- Cuando una venta se **cancela**, Mercado Libre **repone sola** la unidad en la publicación. Odoo cancelaba la venta y no publicaba nada: la variante podía quedar a la venta sin mercadería hasta que el cron de stock volviera a pasar por ella.
+- Nueva opción en la configuración de Mercado Libre (compañía y cuenta): **«Al cancelarse una venta en ML»**.
+  - **Volver a publicar el stock de Odoo** (por defecto): apenas Odoo registra la cancelación, publica el stock que tiene Odoo para esos productos.
+  - **Dejar la variante en 0 hasta habilitarla**: cada variante de la venta queda **«Stock retenido en ML»** y se publica 0 en todas sus publicaciones (la publicación **no** se pausa: las demás variantes siguen a la venta). Se vuelve a publicar cuando alguien aprieta **«Habilitar stock en ML»** en la variante, en el producto (habilita todas sus variantes retenidas) o en la vinculación. Filtro «MercadoLibre, Stock retenido» en Variantes.
+- No aplica a envíos FULL ni a ventas de más de 30 días. La publicación sale **después** de guardar la cancelación (sin alargar el procesamiento de la venta).
+
+---
+
 ## 19.0.26.404 — 13-nov-2026 · Release de flota 26.404
 - Sin cambios propios en este módulo: acompaña la versión 26.404 del suite (con varias cuentas, el «Iniciar sesión» de la compañía ya no aparece: la sesión se inicia desde cada cuenta; el cambio está en meli_oerp_multiple).
 
