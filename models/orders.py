@@ -2778,6 +2778,7 @@ class sale_order(models.Model):
         """Pasos 3-5 de la cancelacion: desbloquear, cancelar la venta DE VERDAD y dejar en
         el chatter lo que realmente paso. Compartido por los modos 'legacy' y 'por_estado_ml'.
         :return: True SOLO si la venta quedo en state == 'cancel'."""
+        was_cancelled = self.state == 'cancel'  # 26.412: sólo la TRANSICIÓN dispara el stock
         # 3. Desbloquear si la orden esta bloqueada o en estado done
         is_locked = self.state == 'done' or ('locked' in self._fields and self.locked)
         if is_locked:
@@ -2821,6 +2822,12 @@ class sale_order(models.Model):
                 % (self.state, cancel_msg),
                 once_key="cancel-so-notcancelled-%s" % self.id,
             )
+
+        # 6. 26.412 (un caso): ML repone sola la unidad al cancelar la venta => republicar el stock
+        #    de Odoo o retener la variante en 0 (config «Al cancelarse una venta en ML»). Sin red
+        #    acá: la publicación sale después del commit (models/meli_cancel_stock.py).
+        if cancelled and not was_cancelled:
+            self._meli_cancel_stock_followup(config=self._meli_cancel_config(None))
 
         return cancelled
 

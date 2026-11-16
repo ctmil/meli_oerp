@@ -762,6 +762,23 @@ class res_company(models.Model):
             "No aplica a los envios FULL, donde el stock vive en el fulfillment de MercadoLibre: "
             "esos albaranes se saltean solos por no tener cantidades que devolver.")
 
+    # 26.412 (un caso): qué hace Odoo con el stock en ML cuando ML cancela una venta.
+    # ML repone sola la unidad en la publicación al cancelarse la venta. GEMELO en
+    # meli_oerp_multiple/models/connection_configuration.py con el MISMO default: con cuenta de
+    # conexión manda el de la CUENTA.
+    mercadolibre_cancel_stock_mode = fields.Selection([
+        ("republish", "Volver a publicar el stock de Odoo"),
+        ("hold", "Dejar la variante en 0 hasta habilitarla"),
+    ], string="Al cancelarse una venta en ML", default="republish",
+       help="Mercado Libre repone sola la unidad en la publicación cuando se cancela una venta.\n"
+            "- Volver a publicar el stock de Odoo (por defecto): apenas Odoo registra la cancelación, "
+            "publica en ML el stock que tiene Odoo para esos productos, sin esperar al cron.\n"
+            "- Dejar la variante en 0 hasta habilitarla: cada variante de la venta cancelada queda "
+            "marcada 'Stock retenido en ML' y se publica 0 en todas sus publicaciones (la publicación "
+            "no se pausa: las demás variantes siguen a la venta). Vuelve a publicar su stock cuando "
+            "alguien aprieta 'Habilitar stock en ML' en el producto. Sirve para revisar la mercadería "
+            "antes de volver a ofrecerla.\n"
+            "No aplica a envíos FULL (el stock lo maneja ML) ni a ventas de más de 30 días.")
     # Cancelaciones decididas con la FOTO FRESCA de ML (29-sep-2026, un frente).
     # GEMELO en meli_oerp_multiple/models/connection_configuration.py con el MISMO
     # default (bug del un caso): con cuenta de conexion manda el de la cuenta.
