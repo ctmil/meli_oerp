@@ -2,6 +2,21 @@
 
 > Historial de correcciones implementadas.
 
+## 26.412 (16-nov-2026) — venta cancelada en ML: la variante volvía a la venta sin mercadería
+- **Síntoma:** un caso (Odoo 13, multi-cuenta): una compradora canceló (`buyer_cancel_express`) y la variación volvió a
+  estar a la venta con 1 unidad que no existía. ML repone sola la unidad al cancelar; Odoo no publicaba nada y el cron
+  de stock tarda en volver a ese binding.
+- **Causa:** la cancelación sólo cancelaba la venta. En 16-20 el `_action_cancel` de los movimientos sella y re-encola
+  (cron), pero no hay forma de que el cliente diga «no la vuelvas a ofrecer hasta que la revise».
+- **Fix:** `mercadolibre_cancel_stock_mode` (compañía y cuenta): `republish` (default) publica el stock de Odoo en un
+  callback post-commit (cursor propio, tope 20; `models/meli_cancel_stock.py`); `hold` marca `product.product.meli_stock_hold`
+  ⇒ `_meli_available_quantity` = 0 (también el override de meli_oerp_stock, que no llama super) hasta «Habilitar stock en
+  ML». Disparo: paso 6 de `_meli_cancel_finish`, sólo en la transición. FULL y ventas >30 días no retienen. Nunca pausa.
+  No usa `meli_update_stock_blocked`: bloquear deja en ML la unidad repuesta (no 0).
+- **Tests:** `tests/test_26412_cancelada_stock.py` 6/6 en bancos Odoo 16/17/18/19 (19: -u sobre base con el suite);
+  control con el orders.py de origin ⇒ 3 FAIL. 20.0: sin core local, diff idéntico a 19.0. 13.0: banco Odoo 13 6/6.
+- **Pase:** campos nuevos ⇒ `-u meli_oerp,meli_oerp_stock,meli_oerp_multiple`.
+
 ## 26.403 (13-nov-2026) — modo de notificaciones de la compañía ignorado con multi-cuenta
 - **Síntoma:** un caso (Odoo 19, meli_oerp 26.394 + meli_oerp_multiple): compañía en `mercadolibre_notification_mode =
   'important'` y en las 24 h siguientes las 1318 ventas ML nuevas siguieron recibiendo los 3 avisos de RUTINA (Monto
