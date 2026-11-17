@@ -4,6 +4,11 @@
 
 ---
 
+## 16.0.26.414 — 17-nov-2026 · Release de flota 26.414
+- Sin cambios propios en este módulo: acompaña la versión 26.414 del suite (meli_oerp_multiple: el import de ventas usa la vinculación existente antes de crear un producto, análisis de estado en ML de a 20, estado de las variantes desde las vinculaciones y acción de precio ML → Odoo).
+
+---
+
 ## 16.0.26.412 — 16-nov-2026 · Al cancelarse una venta en ML: republicar el stock o retenerlo en 0
 - Cuando una venta se **cancela**, Mercado Libre **repone sola** la unidad en la publicación. Odoo cancelaba la venta y no publicaba nada: la variante podía quedar a la venta sin mercadería hasta que el cron de stock volviera a pasar por ella.
 - Nueva opción en la configuración de Mercado Libre (compañía y cuenta): **«Al cancelarse una venta en ML»**.
