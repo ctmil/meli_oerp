@@ -4,6 +4,11 @@
 
 ---
 
+## 16.0.26.415 — 17-nov-2026 · Release de flota 26.415
+- Sin cambios propios en este módulo: acompaña la versión 26.415 del suite (meli_oerp_accounting: reintegros parciales con el pago aprobado y desglose de comisión y financiación en cuotas, ambos opcionales y apagados por defecto).
+
+---
+
 ## 16.0.26.414 — 17-nov-2026 · Release de flota 26.414
 - Sin cambios propios en este módulo: acompaña la versión 26.414 del suite (meli_oerp_multiple: el import de ventas usa la vinculación existente antes de crear un producto, análisis de estado en ML de a 20, estado de las variantes desde las vinculaciones y acción de precio ML → Odoo).
 
