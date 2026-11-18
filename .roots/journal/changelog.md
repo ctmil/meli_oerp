@@ -1,5 +1,10 @@
 # meli_oerp - Changelog
 
+## 19.0.26.419 — 18-nov-2026 · Release de flota 26.419
+- Sin cambios propios en este módulo: acompaña la versión 26.419 del suite (meli_oerp_accounting: importación de las facturas de servicios de Mercado Libre México —CFDI XML/ZIP— a Cuentas por Pagar, sin duplicados, con cuenta por clave SAT y conciliación con los pagos a Mercado Libre por venta).
+
+---
+
 ## 19.0.26.417 — 18-nov-2026 · Release de flota 26.417
 - Sin cambios propios en este módulo: acompaña la versión 26.417 del suite (meli_oerp_accounting: pedidos partidos protegidos antes de anular, reintegros parciales por fecha del reintegro y pago de financiación separado opcional, apagado por defecto).
 
