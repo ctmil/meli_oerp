@@ -1472,7 +1472,7 @@ class mercadolibre_shipment(models.Model):
         else:
             # Safety: never overwrite the buyer/parent partner with shipping data
             if deliv_id.id == partner_id.id:
-                _logger.warning("partner_delivery_id: deliv_id matched buyer partner %s, skipping write to avoid name overwrite", partner_id.name)
+                _logger.warning("partner_delivery_id: deliv_id matched buyer partner id:%s, skipping write to avoid name overwrite", partner_id.id)
                 return None
             try:
                 hchanges = False

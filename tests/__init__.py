@@ -62,3 +62,4 @@ from . import test_put_rechazado_no_es_exito
 from . import test_26402_neteo_posicion_fiscal
 from . import test_26403_modo_config_sin_campo
 from . import test_26412_cancelada_stock
+from . import test_26427_pii_logs
