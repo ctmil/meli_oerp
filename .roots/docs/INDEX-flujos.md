@@ -24,3 +24,5 @@ Documentacion del flujo de integracion MercadoLibre -> Odoo.
 | `meli_oerp_accounting/models/payments.py` | Pagos de proveedor (comision y envio) |
 | `meli_oerp_multiple/models/connection_configuration.py` | Configuracion de la conexion ML |
 | `odoo_connector_api_producteca/models/connection_account.py` | Integracion Producteca (alternativa) |
+
+- [Retención y limpieza automática (autovacuum)](retencion-y-limpieza.md) — notificaciones, chatter, cron executions, topes (26.425)
