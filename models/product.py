@@ -5501,6 +5501,42 @@ class product_product(models.Model):
             return  # sin candidato nuevo, conservamos el que hay
         self.meli_stock_moves_update = new_stamp or False
 
+    # Packs OCA (product_pack): un pack con dont_create_move no tiene stock.move propios, su stock sale de los
+    # componentes. Sin esto el binding del pack nunca pasa a 'update' cuando se mueve un componente (26.429).
+    # Si product_pack no esta instalado, ambos devuelven un recordset vacio.
+    def _meli_pack_installed( self ):
+        return ('product.pack.line' in self.env) and ('parent_product_id' in self.env['product.pack.line']._fields)
+
+    def _meli_pack_components( self ):
+        """Componentes (recursivo: packs de packs) de los productos de self que son pack OCA."""
+        comps = self.env['product.product']
+        if not self._meli_pack_installed() or not ('pack_line_ids' in self._fields):
+            return comps
+        seen = set(self.ids)
+        todo = self
+        while todo:
+            packs = todo.filtered( lambda p: ('pack_ok' not in p._fields or p.pack_ok) and p.pack_line_ids )
+            nxt = packs.mapped('pack_line_ids.product_id').filtered( lambda c: c.id not in seen )
+            seen.update( nxt.ids )
+            comps |= nxt
+            todo = nxt
+        return comps
+
+    def _meli_pack_parents( self ):
+        """Packs OCA (recursivo) que contienen a alguno de los productos de self."""
+        parents = self.env['product.product']
+        if not self._meli_pack_installed():
+            return parents
+        PackLine = self.env['product.pack.line'].sudo()
+        seen = set(self.ids)
+        todo = self
+        while todo:
+            nxt = PackLine.search([('product_id','in',todo.ids)]).mapped('parent_product_id').filtered( lambda p: p.id not in seen )
+            seen.update( nxt.ids )
+            parents |= nxt
+            todo = nxt
+        return parents.with_env(self.env)
+
     @api.depends()  # Empty depends - prevents automatic recompute on stock_move_ids
     def _meli_stock_moves_update( self ):
         _stored = self._meli_stored_moves_stamps(self.ids)
@@ -5526,6 +5562,9 @@ class product_product(models.Model):
                     for bm_line_id in bom_id.bom_line_ids:
                         if bm_line_id.product_id:
                             related_ids.add(bm_line_id.product_id.id)
+
+            # Packs OCA: los movimientos de sus componentes cuentan como movimientos del pack
+            related_ids.update( var._meli_pack_components().ids )
 
             stamps = self._meli_move_stamps_by_product(related_ids)
             var._meli_write_moves_stamp(max(stamps.values()) if stamps else False,
