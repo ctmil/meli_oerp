@@ -47,6 +47,15 @@ class StockMove(models.Model):
 
 
 
+            #PACK SECTION (OCA product_pack): los packs que contienen este producto no tienen movimientos
+            #propios (dont_create_move); se recalcula su ultimo movimiento para que sus bindings pasen a 'update'.
+            #Sin gate por meli_id/meli_pub: igual que el producto movido (arriba), el estado lo decide el binding.
+            pack_parents = product_id._meli_pack_parents()
+            if pack_parents:
+                _logger.info("meli_update_boms > packs OCA de "+str(product_id.display_name)+": "+str(pack_parents.ids))
+                for pack_product_id in pack_parents:
+                    pack_product_id.process_meli_stock_moves_update()
+
             #BOM SECTION POST STOCK if needed
 
             if not ("mrp.bom" in self.env):

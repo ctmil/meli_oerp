@@ -4143,6 +4143,42 @@ class product_product(models.Model):
     meli_image_update = fields.Datetime(string="Image update",index=True)
     meli_price_update = fields.Datetime(string="Price update",index=True)
     meli_stock_update = fields.Datetime(string="Stock Update",help="Ultima actualizacion de stock de Odoo a ML",index=True)
+    # Packs OCA (product_pack): un pack con dont_create_move no tiene stock.move propios, su stock sale de los
+    # componentes. Sin esto el binding del pack nunca pasa a 'update' cuando se mueve un componente (26.429).
+    # Si product_pack no esta instalado, ambos devuelven un recordset vacio.
+    def _meli_pack_installed( self ):
+        return ('product.pack.line' in self.env) and ('parent_product_id' in self.env['product.pack.line']._fields)
+
+    def _meli_pack_components( self ):
+        """Componentes (recursivo: packs de packs) de los productos de self que son pack OCA."""
+        comps = self.env['product.product']
+        if not self._meli_pack_installed() or not ('pack_line_ids' in self._fields):
+            return comps
+        seen = set(self.ids)
+        todo = self
+        while todo:
+            packs = todo.filtered( lambda p: ('pack_ok' not in p._fields or p.pack_ok) and p.pack_line_ids )
+            nxt = packs.mapped('pack_line_ids.product_id').filtered( lambda c: c.id not in seen )
+            seen.update( nxt.ids )
+            comps |= nxt
+            todo = nxt
+        return comps
+
+    def _meli_pack_parents( self ):
+        """Packs OCA (recursivo) que contienen a alguno de los productos de self."""
+        parents = self.env['product.product']
+        if not self._meli_pack_installed():
+            return parents
+        PackLine = self.env['product.pack.line'].sudo()
+        seen = set(self.ids)
+        todo = self
+        while todo:
+            nxt = PackLine.search([('product_id','in',todo.ids)]).mapped('parent_product_id').filtered( lambda p: p.id not in seen )
+            seen.update( nxt.ids )
+            parents |= nxt
+            todo = nxt
+        return parents.with_env(self.env)
+
     def _meli_stock_moves_update( self ):
         for var in self:
             _st_mv_ids = var.stock_move_ids and var.stock_move_ids.filtered(lambda x: x.create_date )
@@ -4159,6 +4195,13 @@ class product_product(models.Model):
                     for bm_line_id in bom_id.bom_line_ids:
                         bm_pr_id = bm_line_id.product_id
                         _st_mv_ids+= bm_pr_id.stock_move_ids and bm_pr_id.stock_move_ids.filtered(lambda x: x.create_date )
+
+            #packs OCA: el ultimo movimiento de cualquiera de sus componentes cuenta como movimiento del pack
+            pack_comps = var._meli_pack_components()
+            if pack_comps:
+                last_comp_mv = self.env['stock.move'].sudo().search([('product_id','in',pack_comps.ids),('create_date','!=',False)], order='create_date desc', limit=1)
+                if last_comp_mv:
+                    _st_mv_ids = (_st_mv_ids or self.env['stock.move']) | last_comp_mv
 
             var.meli_stock_moves_update = (_st_mv_ids and _st_mv_ids.sorted(lambda o: o.create_date, reverse=True)[0].create_date) or False
 
