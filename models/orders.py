@@ -32,6 +32,7 @@ from .receiver_cost import shipping_missing_in_paid as _meli_shipping_missing_in
 from . import address_lock as _meli_addr
 from time import monotonic as _mono
 from .import_lock import meli_import_guard as _meli_import_guard
+from .log_privacy import meli_mask_doc as _pii_doc, meli_redact_text as _meli_redact_text
 from .gtin import meli_item_gtins
 
 # Traducción de códigos de cancelación ML → español
@@ -5592,7 +5593,7 @@ class mercadolibre_orders(models.Model):
                          order_json.get('id','?'), _buyer_id_raw,
                          list(Buyer.get('billing_info', {}).keys()),
                          Buyer.get('billing_info', {}).get('doc_type', 'N/A'),
-                         Buyer.get('billing_info', {}).get('doc_number', 'N/A'))
+                         _pii_doc(Buyer.get('billing_info', {}).get('doc_number')))
             # Nombre para contacto principal: usar nombre del buyer de MeLi (de la orden)
             Buyer['first_name'] = ('first_name' in Buyer and Buyer['first_name']) or ''
             Buyer['last_name'] = ('last_name' in Buyer and Buyer['last_name']) or ''
@@ -6229,17 +6230,17 @@ class mercadolibre_orders(models.Model):
                 if company.country_id.code == "BR" and 'doc_type' in Buyer['billing_info']:
                     _br_doc_type   = Buyer['billing_info'].get('doc_type', '') or ''
                     _br_doc_number = Buyer['billing_info'].get('doc_number', '') or ''
-                    _logger.info("BR_BLOCK: doc_type=%s doc_number=%s", _br_doc_type, _br_doc_number)
+                    _logger.info("BR_BLOCK: doc_type=%s doc_number=%s", _br_doc_type, _pii_doc(_br_doc_number))
 
                     if _br_doc_number:
                         # 1) Campo cnpj_cpf propio de l10n_br
                         if 'cnpj_cpf' in self.env['res.partner']._fields:
                             meli_buyer_fields['cnpj_cpf'] = _br_doc_number
-                            _logger.info("BR_BLOCK: cnpj_cpf=%s", _br_doc_number)
+                            _logger.info("BR_BLOCK: cnpj_cpf=%s", _pii_doc(_br_doc_number))
                         else:
                             # Fallback: campo vat generico
                             meli_buyer_fields['vat'] = _br_doc_number
-                            _logger.info("BR_BLOCK: vat (fallback)=%s", _br_doc_number)
+                            _logger.info("BR_BLOCK: vat (fallback)=%s", _pii_doc(_br_doc_number))
 
                         # 2) Tipo de identificacion l10n_latam (Odoo 17+/19)
                         if 'l10n_latam_identification_type_id' in self.env['res.partner']._fields:
@@ -6366,7 +6367,7 @@ class mercadolibre_orders(models.Model):
                             partner_id = respartner_obj.create(dict(meli_buyer_fields, **self._meli_phone_mobile_vals(meli_buyer_fields.get('phone'))))
                             _mx_cfdi_new_partner_ids.add(partner_id.id)
                             partner_id.flush_recordset()  # forzar el INSERT dentro del savepoint
-                        _logger.info("Contacto principal creado: %s (meli_buyer_id: %s)", partner_id.name, buyer_fields['buyer_id'])
+                        _logger.info("Contacto principal creado: id:%s (meli_buyer_id: %s)", partner_id.id, buyer_fields['buyer_id'])
                 except Exception as e:
                     _logger.info("orders_update_order > Error creando Partner: " + str(e))
                     _logger.error(e, exc_info=True)
@@ -6376,8 +6377,7 @@ class mercadolibre_orders(models.Model):
                     partner_id = respartner_su.with_context(active_test=False).search(
                         [('meli_buyer_id', '=', _buyer_id_str)], limit=1)
                     if partner_id:
-                        _logger.info("orders_update_order > Partner existente reusado (su) tras colisión meli_buyer_id=%s: %s",
-                                     buyer_fields['buyer_id'], partner_id.name)
+                        _logger.info("orders_update_order > Partner existente reusado (su) tras colisión meli_buyer_id=%s: id:%s", buyer_fields['buyer_id'], partner_id.id)
                     else:
                         _logger.warning("orders_update_order > colisión meli_buyer_id=%s pero el partner no aparece ni con su (revisar)",
                                         buyer_fields['buyer_id'])
@@ -6419,7 +6419,7 @@ class mercadolibre_orders(models.Model):
             # Excepción: VATs genéricos (ej: XAXX010101000 en MX) se asignan
             # al buyer directamente — no generan entidad fiscal independiente.
             _logger.debug("Billing fields: vat=%s keys=%s billing_info_keys=%s",
-                         billing_child_fields.get('vat', 'NO_VAT'),
+                         _pii_doc(billing_child_fields.get('vat')),
                          list(billing_child_fields.keys()),
                          list(Buyer.get('billing_info', {}).keys()) if Buyer else 'NO_BUYER')
 
@@ -6451,9 +6451,7 @@ class mercadolibre_orders(models.Model):
                     _billing_norm = _norm(billing_full_name)
                     if _billing_norm and (_force_on_main or (_buyer_norm and _buyer_norm == _billing_norm)):
                         _logger.info(
-                            "BILLING_DEDUP: nombre buyer '%s' == billing '%s' — "
-                            "datos fiscales al contacto principal, sin crear hijo.",
-                            partner_id.name, billing_full_name
+                            "BILLING_DEDUP: buyer id:%s — nombre de facturación igual al del buyer — datos fiscales al contacto principal, sin crear hijo.", partner_id.id
                         )
                         _skip_billing_child = True
                         # Actualizar nombre del buyer al nombre legal (title-cased)
@@ -6495,9 +6493,7 @@ class mercadolibre_orders(models.Model):
                 # VAT genérico: asignar al buyer, no crear entidad fiscal
                 if _generic_vats and billing_vat.strip().upper() in _generic_vats:
                     _logger.info(
-                        "VAT genérico detectado: %s — se asigna al buyer %s, "
-                        "sin crear entidad fiscal independiente",
-                        billing_vat, partner_id.name,
+                        "VAT genérico detectado: %s — se asigna al buyer id:%s, sin crear entidad fiscal independiente", billing_vat, partner_id.id,
                     )
                     if not partner_id.vat:
                         try:
@@ -6603,16 +6599,12 @@ class mercadolibre_orders(models.Model):
                             invoice_update[_id_type_field] = _inferred_type.id
                             _logger.info(
                                 "SIN REGISTROS rescue: tipo de doc inferido '%s' (AFIP code=%s) "
-                                "desde VAT %s para contacto id:%s '%s'",
-                                _inferred_type.name,
-                                getattr(_inferred_type, 'l10n_ar_afip_code', '?'),
-                                billing_vat, partner_invoice_id.id, partner_invoice_id.display_name
+                                "desde VAT %s para contacto id:%s", _inferred_type.name, getattr(_inferred_type, 'l10n_ar_afip_code', '?'), _pii_doc(billing_vat), partner_invoice_id.id
                             )
                         else:
                             _logger.warning(
                                 "SIN REGISTROS: no se pudo inferir tipo de documento para VAT %s "
-                                "(país: %s, dígitos: %d) en contacto id:%s",
-                                billing_vat, _country_code, len(_vat_digits), partner_invoice_id.id
+                                "(país: %s, dígitos: %d) en contacto id:%s", _pii_doc(billing_vat), _country_code, len(_vat_digits), partner_invoice_id.id
                             )
 
                     # Sólo lo que CAMBIA (ver _meli_partner_vals_changed): un write sin cambios
@@ -6620,7 +6612,7 @@ class mercadolibre_orders(models.Model):
                     invoice_update = _meli_partner_vals_changed(partner_invoice_id, invoice_update)
                     if invoice_update:
                         _logger.info("Actualizando contacto facturación id:%s vat:%s campos:%s",
-                                     partner_invoice_id.id, invoice_update.get('vat', '-'), list(invoice_update.keys()))
+                                     partner_invoice_id.id, _pii_doc(invoice_update.get('vat')), list(invoice_update.keys()))
                         try:
                             partner_invoice_id.write(invoice_update)
                         except ValidationError as ve:
@@ -6647,8 +6639,7 @@ class mercadolibre_orders(models.Model):
                                 billing_child_fields['company_id'] = company.id
                             partner_invoice_id = respartner_obj.create(billing_child_fields)
                             _mx_cfdi_new_partner_ids.add(partner_invoice_id.id)
-                            _logger.info("Entidad fiscal creada: %s (VAT: %s) vinculada a buyer: %s",
-                                         partner_invoice_id.name, billing_vat, partner_id.name)
+                            _logger.info("Entidad fiscal creada: id:%s (VAT: %s) vinculada a buyer id:%s", partner_invoice_id.id, _pii_doc(billing_vat), partner_id.id)
                     except ValidationError as ve:
                         bad_vat = billing_child_fields.pop("vat", None)
                         if bad_vat:
@@ -6679,13 +6670,13 @@ class mercadolibre_orders(models.Model):
                 if not _saved_vat or not _saved_doc_type:
                     _logger.warning("POST-CHECK contacto facturación id:%s - vat:%s %s:%s afip_resp:%s - DATOS FISCALES INCOMPLETOS",
                                     partner_invoice_id.id,
-                                    _saved_vat or 'FALTA',
+                                    _pii_doc(_saved_vat),
                                     _doc_type_field or 'doc_type_field',
                                     (_saved_doc_type.name if _saved_doc_type else 'FALTA'),
                                     (_saved_afip_resp.name if _saved_afip_resp else 'FALTA'))
                 else:
                     _logger.info("POST-CHECK contacto facturación id:%s - vat:%s %s:%s afip_resp:%s - OK",
-                                 partner_invoice_id.id, _saved_vat,
+                                 partner_invoice_id.id, _pii_doc(_saved_vat),
                                  _doc_type_field, _saved_doc_type.name,
                                  (_saved_afip_resp.name if _saved_afip_resp else 'NO_FIELD'))
 
@@ -6732,8 +6723,7 @@ class mercadolibre_orders(models.Model):
                         _dup_names = ", ".join(["%s (id:%s, type:%s)" % (c.name, c.id, c.type) for c in _dup_contacts[:5]])
                         _logger.warning(
                             "MELI_DUPLICATE_VAT: VAT %s existe en buyer id:%s y en %d contacto(s) adicional(es): %s. "
-                            "Considerar fusionar con entidad fiscal id:%s",
-                            billing_vat, partner_id.id, len(_dup_contacts), _dup_names, partner_invoice_id.id)
+                            "Considerar fusionar con entidad fiscal id:%s", _pii_doc(billing_vat), partner_id.id, len(_dup_contacts), ", ".join("id:%s (type:%s)" % (c.id, c.type) for c in _dup_contacts[:5]), partner_invoice_id.id)
                         if order:
                             order.message_post(
                                 body=(
@@ -6758,14 +6748,12 @@ class mercadolibre_orders(models.Model):
                     if _children_without_vat:
                         _logger.info(
                             "MELI_DUPLICATE_VAT: NO se limpia VAT %s del buyer id:%s porque tiene %d hijo(s) sin VAT propio "
-                            "(limpiar causaría error en constraints de terceros)",
-                            billing_vat, partner_id.id, _children_without_vat)
+                            "(limpiar causaría error en constraints de terceros)", _pii_doc(billing_vat), partner_id.id, _children_without_vat)
                     else:
                         try:
                             with self.env.cr.savepoint():
                                 partner_id.write({'vat': False})
-                            _logger.info("MELI_DUPLICATE_VAT: limpiado VAT %s del buyer id:%s (ahora solo en entidad fiscal id:%s)",
-                                         billing_vat, partner_id.id, partner_invoice_id.id)
+                            _logger.info("MELI_DUPLICATE_VAT: limpiado VAT %s del buyer id:%s (ahora solo en entidad fiscal id:%s)", _pii_doc(billing_vat), partner_id.id, partner_invoice_id.id)
                         except Exception as e:
                             _logger.warning("MELI_DUPLICATE_VAT: no se pudo limpiar VAT del buyer id:%s: %s",
                                             partner_id.id, str(e))
@@ -6806,8 +6794,7 @@ class mercadolibre_orders(models.Model):
                     with self.env.cr.savepoint():
                         original_contact_partner_id.property_product_pricelist = _meli_pl
             except Exception as e:
-                _logger.warning('Could not set pricelist on partner %s (id:%s): %s',
-                                original_contact_partner_id.name, original_contact_partner_id.id, e)
+                _logger.warning('Could not set pricelist on partner id:%s: %s', original_contact_partner_id.id, e)
 
 
         if (original_contact_partner_id):
@@ -6855,7 +6842,7 @@ class mercadolibre_orders(models.Model):
             if _shp_diff and _norm_m(partner_shipping_id.name) != _pnorm:
                 _all_names_match = False
             if _all_names_match and (_inv_diff or _shp_diff):
-                _logger.info("merge_same_name_contacts: unificando contactos para '%s'", partner_id.name)
+                _logger.info("merge_same_name_contacts: unificando contactos del mismo nombre que id:%s", partner_id.id)
                 if _inv_diff:
                     # Before reassigning, copy fiscal fields from billing child
                     # to parent — otherwise the parent stays without the DNI /
@@ -7157,8 +7144,7 @@ class mercadolibre_orders(models.Model):
                     try:
                         _pack_so.write({'partner_invoice_id': partner_invoice_id.id,
                                         'meli_partner_invoice_auto_id': partner_invoice_id.id})
-                        _logger.info("Pack sub-order: actualizado partner_invoice_id en SO id:%s -> billing child id:%s (%s)",
-                                     _pack_so.id, partner_invoice_id.id, partner_invoice_id.name)
+                        _logger.info("Pack sub-order: actualizado partner_invoice_id en SO id:%s -> billing child id:%s", _pack_so.id, partner_invoice_id.id)
                     except Exception as _e:
                         _logger.warning("Pack sub-order: no se pudo actualizar partner_invoice_id en SO id:%s: %s",
                                         _pack_so.id, _e)
