@@ -43,6 +43,39 @@ def meli_redact_text(value):
     return s
 
 
+_PII_PATTERNS = (
+    # "The VAT number [20123456789] for partner [Juan Pérez] does not seem to be valid" (base_vat)
+    (re.compile(r'\[[^\[\]\n]{1,160}\]'), '[***]'),
+    (re.compile(r'[\w.+-]+@[\w-]+(?:\.[\w-]+)+'), '***@***'),
+    # documentos / teléfonos: 7 a 14 dígitos sueltos (no toca MLA123…, ni ids de orden de 16 dígitos)
+    (re.compile(r'(?<![\w.-])\d{7,14}(?![\w.-])'), lambda m: '***' + m.group(0)[-4:]),
+)
+
+
+def meli_redact_pii_text(value):
+    """Texto de un error de VALIDACIÓN DE CONTACTO con los datos personales tapados: lo que va entre
+    corchetes (así los nombra base_vat), emails y números de documento/teléfono. Usar sólo en errores
+    de alta/edición de contactos (en otros contextos taparía datos útiles para diagnosticar)."""
+    if value is None or value is False:
+        return value
+    s = meli_redact_text(value if isinstance(value, str) else str(value))
+    for rx, repl in _PII_PATTERNS:
+        s = rx.sub(repl, s)
+    return s
+
+
+def meli_pii_err(exc):
+    """``Clase: mensaje`` de una excepción de contacto, con datos personales y tokens tapados."""
+    try:
+        return '%s: %s' % (type(exc).__name__, meli_redact_pii_text(str(exc)))
+    except Exception:
+        return type(exc).__name__
+
+
+# extra= para un registro con traceback de un error de contacto: el filtro tapa también el traceback.
+MELI_PII_EXTRA = {'meli_pii': True}
+
+
 def meli_mask_doc(value, keep=4):
     """Documento fiscal/identidad enmascarado para logs: ``***1234``; ``FALTA`` si está vacío."""
     if value in (0, '0'):
@@ -80,14 +113,16 @@ class MeliSecretLogFilter(logging.Filter):
 
     def filter(self, record):
         try:
+            pii = getattr(record, 'meli_pii', False)
+            redact = meli_redact_pii_text if pii else meli_redact_text
             msg = record.getMessage()
-            red = meli_redact_text(msg)
+            red = redact(msg)
             if red != msg:
                 record.msg = red
                 record.args = None
             if record.exc_info and not getattr(record, 'exc_text', None):
                 txt = logging.Formatter().formatException(record.exc_info)
-                red_txt = meli_redact_text(txt)
+                red_txt = redact(txt)
                 if red_txt != txt:
                     record.exc_text = red_txt
         except Exception:
