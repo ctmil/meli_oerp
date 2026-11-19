@@ -89,12 +89,18 @@ class MercadolibreNotification(models.Model):
     # (meli_oerp_multiple cron_order_notifications) marcaba duplicados; en prod el que pierde puede ser
     # el cron de ventas. Ahora: candidatos por SQL plano con tope, lotes FOR UPDATE SKIP LOCKED que
     # re-chequean las condiciones, savepoint por lote (y fila a fila si el lote choca), lock_timeout
-    # corto, y se excluye el working set del cron de ordenes. Sin commits: lo hace el autovacuum.
+    # corto, y se excluye el working set del cron de ordenes. Sin commits: lo hace el autovacuum
+    # (que commitea después de CADA método @api.autovacuum: cada GC es su propia transacción).
     _GC_BATCH_SIZE = 500
     _GC_MAX_BATCHES = 20
     _GC_LOCK_TIMEOUT = '2s'
     _GC_RECENT_HOURS = 24
     _GC_ORDER_MAX_ATTEMPTS = 24  # = MELI_ORDER_NOTI_MAX_ATTEMPTS de meli_oerp_multiple (cron 177)
+    # 26.425 (un caso): el tope fijo 500x20 = 10.000/día quedaba por debajo de lo que entra en una
+    # cuenta grande (del orden de 9.000 notificaciones/día) y no alcanzaba para bajar un atraso. Ahora el tope
+    # por corrida es ICP meli_oerp.gc_max_rows (default 50.000; vale para notificaciones y chatter).
+    # Sólo cambia CUÁNTO de lo ya vencido se borra por día, no QUÉ se borra.
+    _GC_MAX_ROWS_DEFAULT = 50000
 
     # Condiciones de borrado (alias n). Se evalúan al elegir candidatos y OTRA VEZ al bloquear.
     _GC_WHERE = """
@@ -111,59 +117,55 @@ class MercadolibreNotification(models.Model):
                         AND COALESCE(s.attempts, 0) < %(max_attempts)s)))
     """
 
-    def _gc_meli_delete_chunk(self, ids, params):
-        """Borra las filas de `ids` que se puedan bloquear YA y sigan cumpliendo las condiciones.
-        Corre en un savepoint propio; si choca (lock / serialización / deadlock) lo deshace y
-        devuelve None para que el llamador decida (saltear o ir fila a fila)."""
+    @api.model
+    def _gc_meli_icp_int(self, key, default):
+        """Entero de ir.config_parameter; vacío o inválido => default. 20.0 usa get_str, 16-19 get_param."""
+        ICP = self.env['ir.config_parameter'].sudo()
+        getter = getattr(ICP, 'get_str', None) or ICP.get_param
+        try:
+            raw = getter(key, '')
+            return int(raw) if raw not in (None, False, '') else default
+        except (TypeError, ValueError):
+            return default
+
+    @api.model
+    def _gc_meli_max_rows(self):
+        cap = self._gc_meli_icp_int('meli_oerp.gc_max_rows', self._GC_MAX_ROWS_DEFAULT)
+        return cap if cap > 0 else self._GC_MAX_ROWS_DEFAULT
+
+    @api.model
+    def _gc_meli_locked_delete(self, table, alias, where, ids, params, label):
+        """Borra de `table` las filas de `ids` que se puedan bloquear YA y sigan cumpliendo `where`
+        (constante con alias `alias` y parámetros %(..)s). Savepoint propio; si choca (lock /
+        serialización / deadlock / FK de otro módulo que restringe el borrado) lo deshace y devuelve
+        None para que el llamador decida (saltear o ir fila a fila)."""
         import psycopg2.errors as pg_errors
         cr = self.env.cr
-        skip = (pg_errors.LockNotAvailable, pg_errors.SerializationFailure, pg_errors.DeadlockDetected)
+        skip = (pg_errors.LockNotAvailable, pg_errors.SerializationFailure, pg_errors.DeadlockDetected,
+                pg_errors.ForeignKeyViolation)
         try:
             with cr.savepoint(flush=False):
-                # _GC_WHERE es una constante de clase con parámetros %(..)s: sin datos externos
+                # table/alias/where son constantes de clase (o armadas desde metadatos del ORM): sin datos externos
                 cr.execute(  # pylint: disable=sql-injection
-                    "SELECT n.id FROM mercadolibre_notification n WHERE n.id = ANY(%(ids)s) AND "
-                    + self._GC_WHERE + " FOR UPDATE OF n SKIP LOCKED",
+                    "SELECT {a}.id FROM {t} {a} WHERE {a}.id = ANY(%(ids)s) AND ({w}) FOR UPDATE OF {a} SKIP LOCKED"
+                    .format(t=table, a=alias, w=where),
                     dict(params, ids=list(ids)), log_exceptions=False)
                 locked = [r[0] for r in cr.fetchall()]
                 if not locked:
                     return 0
-                cr.execute("DELETE FROM mercadolibre_notification WHERE id = ANY(%(ids)s)",
-                           {'ids': locked}, log_exceptions=False)
+                cr.execute(  # pylint: disable=sql-injection
+                    "DELETE FROM {t} WHERE id = ANY(%(ids)s)".format(t=table),
+                    {'ids': locked}, log_exceptions=False)
                 return cr.rowcount
         except skip as e:
-            _logger.info("_gc_meli_notifications: lote de %s salteado (%s)", len(ids), type(e).__name__)
+            _logger.info("%s: lote de %s salteado (%s)", label, len(ids), type(e).__name__)
             return None
 
-    @api.autovacuum
-    def _gc_meli_notifications(self, batch_size=None, max_batches=None):
-        """Retención (#696): borra notificaciones TERMINADAS (SUCCESS/FAILED) más viejas que
-        ICP meli_oerp.notification_days (default 90; 0 = no borrar). Nunca toca RECEIVED/PROCESSING
-        (meli_oerp_multiple guarda en processing_logs datos de trabajo: internal_job / sales).
-        26.338: nunca bloquea ni espera. Tampoco toca el working set del cron de órdenes: FAILED
-        orders_v2 reintentables, notificaciones de un resource con hermanas vivas, ni nada escrito
-        en las últimas 24 h. Lo que choca se saltea y lo toma la próxima vuelta."""
-        try:
-            days = int(self.env['ir.config_parameter'].sudo().get_param('meli_oerp.notification_days', 90))
-        except (TypeError, ValueError):
-            days = 90
-        if days <= 0:
-            return 0
-        batch_size = int(batch_size or self._GC_BATCH_SIZE)
-        max_batches = int(max_batches or self._GC_MAX_BATCHES)
-        now = fields.Datetime.now()
-        params = {
-            'limit_dt': now - timedelta(days=days),
-            'recent_dt': now - timedelta(hours=self._GC_RECENT_HOURS),
-            'max_attempts': self._GC_ORDER_MAX_ATTEMPTS,
-        }
+    @api.model
+    def _gc_meli_run_batches(self, table, alias, where, ids, params, batch_size, label):
+        """Recorre `ids` en lotes con lock_timeout corto; si un lote choca, fila a fila.
+        Devuelve (borradas, salteadas)."""
         cr = self.env.cr
-        self.env['mercadolibre.notification'].flush_model()
-        cr.execute("SELECT n.id FROM mercadolibre_notification n WHERE " + self._GC_WHERE  # pylint: disable=sql-injection
-                   + " ORDER BY n.id LIMIT %(cap)s", dict(params, cap=batch_size * max_batches))
-        ids = [r[0] for r in cr.fetchall()]
-        if not ids:
-            return 0
         cr.execute("SHOW lock_timeout")
         prev_lock_timeout = cr.fetchone()[0]
         cr.execute("SELECT set_config('lock_timeout', %s, true)", (self._GC_LOCK_TIMEOUT,))
@@ -171,12 +173,12 @@ class MercadolibreNotification(models.Model):
         try:
             for i in range(0, len(ids), batch_size):
                 chunk = ids[i:i + batch_size]
-                done = self._gc_meli_delete_chunk(chunk, params)
+                done = self._gc_meli_locked_delete(table, alias, where, chunk, params, label)
                 if done is None and len(chunk) > 1:
                     # el lote chocó: fila a fila, para no perder todo el lote por una sola
                     done = 0
                     for one in chunk:
-                        d = self._gc_meli_delete_chunk([one], params)
+                        d = self._gc_meli_locked_delete(table, alias, where, [one], params, label)
                         if d is None:
                             skipped += 1
                         else:
@@ -187,10 +189,154 @@ class MercadolibreNotification(models.Model):
                 total += done
         finally:
             cr.execute("SELECT set_config('lock_timeout', %s, true)", (prev_lock_timeout,))
+        return total, skipped
+
+    def _gc_meli_delete_chunk(self, ids, params):
+        """(compat 26.338) Lote de notificaciones: ver _gc_meli_locked_delete."""
+        return self._gc_meli_locked_delete('mercadolibre_notification', 'n', self._GC_WHERE, ids, params,
+                                           '_gc_meli_notifications')
+
+    @api.autovacuum
+    def _gc_meli_notifications(self, batch_size=None, max_batches=None):
+        """Retención (#696): borra notificaciones TERMINADAS (SUCCESS/FAILED) más viejas que
+        ICP meli_oerp.notification_days (default 90; 0 = no borrar). Nunca toca RECEIVED/PROCESSING
+        (meli_oerp_multiple guarda en processing_logs datos de trabajo: internal_job / sales).
+        26.338: nunca bloquea ni espera. Tampoco toca el working set del cron de órdenes: FAILED
+        orders_v2 reintentables, notificaciones de un resource con hermanas vivas, ni nada escrito
+        en las últimas 24 h. Lo que choca se saltea y lo toma la próxima vuelta.
+        26.425: tope por corrida = ICP meli_oerp.gc_max_rows (default 50.000) salvo que el llamador
+        pase batch_size/max_batches explícitos (tests)."""
+        days = self._gc_meli_icp_int('meli_oerp.notification_days', 90)
+        if days <= 0:
+            return 0
+        explicit_cap = bool(batch_size or max_batches)
+        batch_size = int(batch_size or self._GC_BATCH_SIZE)
+        max_batches = int(max_batches or self._GC_MAX_BATCHES)
+        cap = batch_size * max_batches if explicit_cap else self._gc_meli_max_rows()
+        now = fields.Datetime.now()
+        params = {
+            'limit_dt': now - timedelta(days=days),
+            'recent_dt': now - timedelta(hours=self._GC_RECENT_HOURS),
+            'max_attempts': self._GC_ORDER_MAX_ATTEMPTS,
+        }
+        cr = self.env.cr
+        self.env['mercadolibre.notification'].flush_model()
+        cr.execute("SELECT n.id FROM mercadolibre_notification n WHERE " + self._GC_WHERE  # pylint: disable=sql-injection
+                   + " ORDER BY n.id LIMIT %(cap)s", dict(params, cap=cap))
+        ids = [r[0] for r in cr.fetchall()]
+        if not ids:
+            return 0
+        try:
+            total, skipped = self._gc_meli_run_batches('mercadolibre_notification', 'n', self._GC_WHERE, ids, params,
+                                                       batch_size, '_gc_meli_notifications')
+        finally:
             self.env['mercadolibre.notification'].invalidate_model()
         if total or skipped:
             _logger.info("_gc_meli_notifications: %s notificaciones terminadas anteriores a %s borradas "
                          "(%s días; %s salteadas por estar en uso)", total, params['limit_dt'], days, skipped)
+        return total
+
+    # ------------------------------------------------------------------------------------------
+    # 26.425 (un caso): limpieza del CHATTER de los modelos meli. Una cuenta grande juntó 187.030
+    # mail.message 'notification' en mercadolibre.orders (115.701 de más de 30 días: «Pack Order, dont
+    # create», «Sale order created (pack)!», «Warning: sale order not created!»…), 5.547 en
+    # mercadolibre.shipment y 290 en mercadolibre.account: ~1,5 GB de mail_message sin valor después
+    # de unos días. NUNCA toca sale.order / account.move / stock.picking (ventas, facturas, entregas).
+    #
+    # Qué borra: mail.message con model IN _GC_CHATTER_MODELS, message_type = 'notification' (los
+    # avisos automáticos del módulo; NUNCA 'comment' = notas y mensajes de personas, ni 'email'),
+    # con date anterior a hoy - ICP meli_oerp.chatter_days. Default 0 = APAGADO (no cambia nada
+    # a nadie sin que lo pida). Mínimo efectivo 7 días (_GC_CHATTER_MIN_DAYS).
+    # Qué conserva aunque sea viejo: con adjuntos, destacados (starred / bookmarked), con tracking de
+    # campos, con un mail.mail asociado (correo en cola o con error), con respuestas (hijos), con
+    # reacciones, con una notificación de bandeja de entrada SIN LEER, y los que llevan la marca
+    # `<!-- meli-once:… -->` (guardas "postear una sola vez" de versions.meli_message_post).
+    #
+    # Efecto funcional (medido sobre origin/19.0, 19-nov-2026): los lectores de chatter del suite son
+    # de-dupe y miran OTROS modelos o sólo lo reciente — meli_message_already_posted /
+    # meli_message_text_posted / sale_order._meli_ready_note_posted / sorder.message_ids[:50]
+    # (orders.py "PRODUCTO NO ENCONTRADO") operan sobre sale.order; el único lector sobre
+    # mercadolibre.account (meli_oerp_multiple _meli_injobs_alert) mira sólo los mensajes de HOY.
+    # => con N >= 7 días no hay efecto funcional. Si mañana alguien postea con once_key sobre estos
+    # modelos, la exclusión por marca evita que el aviso se repita.
+    #
+    # Mecánica: la misma del GC de notificaciones (candidatos con tope, lotes FOR UPDATE SKIP LOCKED
+    # que re-chequean, savepoint, lock_timeout corto, fila a fila si choca). DELETE por SQL: las tablas
+    # hijas (mail_notification, mail_tracking_value, rels m2m, mail_message_translation, link previews…)
+    # tienen ondelete=cascade en el core; parent_id es set null. Un FK de terceros que restrinja el
+    # borrado hace saltear ESA fila (ForeignKeyViolation en el savepoint), no rompe el lote.
+    # No se usa unlink() a propósito: en 17+ manda un bus 'mail.message/delete' por partner y en cuentas
+    # grandes son decenas de miles de mensajes por corrida.
+    _GC_CHATTER_MODELS = ('mercadolibre.orders', 'mercadolibre.shipment', 'mercadolibre.account')
+    _GC_CHATTER_BATCH_SIZE = 1000
+    _GC_CHATTER_MIN_DAYS = 7
+    _GC_CHATTER_ONCE_MARKER = '%meli-once:%'
+
+    @api.model
+    def _gc_meli_chatter_where(self):
+        """Condiciones (alias m) armadas desde los metadatos del ORM de ESTA versión de Odoo:
+        16-19 tienen starred_partner_ids y mail_tracking_value; 20 tiene bookmarked_partner_ids y el
+        tracking como message_type propio. Sólo se agregan las que existen."""
+        Msg = self.env['mail.message']
+        conds = [
+            "m.model IN %(models)s",
+            "m.message_type = 'notification'",
+            "m.date < %(limit_dt)s",
+            "COALESCE(m.body, '') NOT LIKE %(once_marker)s",
+        ]
+        for fname in ('attachment_ids', 'starred_partner_ids', 'bookmarked_partner_ids'):
+            f = Msg._fields.get(fname)
+            if f is not None and f.type == 'many2many' and f.store and f.relation and f.column1:
+                conds.append("NOT EXISTS (SELECT 1 FROM %s r WHERE r.%s = m.id)" % (f.relation, f.column1))
+        for comodel, col in (('mail.tracking.value', 'mail_message_id'), ('mail.mail', 'mail_message_id'),
+                             ('mail.message', 'parent_id'), ('mail.message.reaction', 'message_id')):
+            if comodel in self.env and col in self.env[comodel]._fields:
+                conds.append("NOT EXISTS (SELECT 1 FROM %s x WHERE x.%s = m.id)" % (self.env[comodel]._table, col))
+        if 'mail.notification' in self.env:
+            conds.append("NOT EXISTS (SELECT 1 FROM mail_notification x WHERE x.mail_message_id = m.id"
+                         " AND x.notification_type = 'inbox' AND NOT COALESCE(x.is_read, false))")
+        return " AND ".join(conds)
+
+    @api.autovacuum
+    def _gc_meli_chatter(self, batch_size=None, max_rows=None):
+        """26.425 (un caso): borra avisos automáticos viejos del chatter de mercadolibre.orders /
+        mercadolibre.shipment / mercadolibre.account (ver el bloque de arriba). ICP
+        meli_oerp.chatter_days (default 0 = apagado; 1..6 => 7). Tope por corrida = ICP
+        meli_oerp.gc_max_rows (default 50.000). Devuelve la cantidad borrada."""
+        days = self._gc_meli_icp_int('meli_oerp.chatter_days', 0)
+        if days <= 0:
+            return 0
+        if days < self._GC_CHATTER_MIN_DAYS:
+            days = self._GC_CHATTER_MIN_DAYS
+        batch_size = int(batch_size or self._GC_CHATTER_BATCH_SIZE)
+        cap = int(max_rows or self._gc_meli_max_rows())
+        models_present = tuple(m for m in self._GC_CHATTER_MODELS if m in self.env)
+        if not models_present:
+            return 0
+        params = {
+            'models': models_present,
+            'limit_dt': fields.Datetime.now() - timedelta(days=days),
+            'once_marker': self._GC_CHATTER_ONCE_MARKER,
+        }
+        where = self._gc_meli_chatter_where()
+        cr = self.env.cr
+        self.env['mail.message'].flush_model()
+        cr.execute("SELECT m.id FROM mail_message m WHERE " + where  # pylint: disable=sql-injection
+                   + " ORDER BY m.id LIMIT %(cap)s", dict(params, cap=cap))
+        ids = [r[0] for r in cr.fetchall()]
+        if not ids:
+            return 0
+        try:
+            total, skipped = self._gc_meli_run_batches('mail_message', 'm', where, ids, params,
+                                                       batch_size, '_gc_meli_chatter')
+        finally:
+            self.env['mail.message'].invalidate_model()
+            for m in models_present:
+                self.env[m].invalidate_model(['message_ids'])
+        if total or skipped:
+            _logger.info("_gc_meli_chatter: %s mensajes automáticos del chatter (%s) anteriores a %s borrados "
+                         "(%s días; %s salteados por estar en uso)", total, ", ".join(models_present),
+                         params['limit_dt'], days, skipped)
         return total
 
     def _prepare_values(self, values):

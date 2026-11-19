@@ -1,5 +1,12 @@
 # meli_oerp - Changelog
 
+## 18.0.26.425 — 19-nov-2026 · Limpieza automática del chatter de Mercado Libre [#696 535]
+- **Nuevo (apagado por defecto):** limpieza diaria de los avisos automáticos del chatter de los registros de Mercado Libre (Pedidos de MercadoLibre, Envíos y Cuentas): «Pack Order, dont create», «Sale order created (pack)!», «Warning: sale order not created!» y similares. Se activa con el parámetro del sistema `meli_oerp.chatter_days` = cantidad de días a conservar (sugerido 30; 0 o vacío = no borrar nunca; el mínimo efectivo es 7). Corre dentro de la limpieza automática diaria de Odoo, por tandas, sin bloquear la importación de ventas.
+- **Qué NO toca nunca:** ventas, facturas ni entregas (ni su chatter); notas y mensajes escritos por personas; mensajes con adjuntos, destacados, con seguimiento de cambios de campos, con un correo asociado, con respuestas o con una notificación sin leer en la bandeja de entrada.
+- **Tope diario configurable:** la limpieza de notificaciones (`meli_oerp.notification_days`) y la del chatter borran hasta 50.000 registros por corrida (antes 10.000 fijos, poco para cuentas con mucho volumen). Ajustable con `meli_oerp.gc_max_rows`.
+
+---
+
 ## 18.0.26.422 — 19-nov-2026 · Release de flota 26.422
 - Sin cambios propios en este módulo: acompaña la versión 26.422 del suite (meli_oerp_multiple: los crons de stock y precio ya no reintentan publicaciones cerradas, eliminadas o inexistentes en Mercado Libre; «Analizar estado real en ML» actualiza el SKU de la vinculación con el de ML; las acciones «Desvincular …» permiten previsualizar antes de eliminar, sin tocar el producto).
 
