@@ -21,6 +21,7 @@
 
 from odoo import fields, models, api
 import logging
+from .log_privacy import meli_pii_err as _pii_err, MELI_PII_EXTRA as _PII_EXTRA
 from .meli_oerp_config import *
 from .import_lock import meli_import_guard as _meli_import_guard
 
@@ -1467,7 +1468,7 @@ class mercadolibre_shipment(models.Model):
                     partner_shipping_id = deliv_id
             except Exception as e:
                 _logger.error("Created res.partner delivery issue.")
-                _logger.info(e, exc_info=True)
+                _logger.info(_pii_err(e), exc_info=True, extra=_PII_EXTRA)
                 pass;
         else:
             # Safety: never overwrite the buyer/parent partner with shipping data
