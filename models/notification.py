@@ -22,6 +22,7 @@
 import os
 import json
 import logging
+from .log_privacy import meli_mask_doc as _pii_doc, meli_redact_text as _meli_redact_text
 _logger = logging.getLogger(__name__)
 
 import requests
@@ -324,23 +325,23 @@ class MercadolibreNotification(models.Model):
                 qjson =  questions.json()
                 if ('error' in qjson):
                     noti.state = 'FAILED'
-                    noti.processing_errors = str( ('message' in qjson and qjson['message']) or qjson['error'])
+                    noti.processing_errors = _meli_redact_text(str( ('message' in qjson and qjson['message']) or qjson['error']))
                 if ("item_id" in qjson):
                     posting = self.env["mercadolibre.posting"].search([('meli_id','=',qjson["item_id"])])
                     if (posting and len(posting)):
                         rsjson = posting.posting_query_questions()
                         if ('error' in rsjson):
                             noti.state = 'FAILED'
-                            noti.processing_errors = str( ('message' in rsjson and rsjson['message']) or rsjson['error'] )
+                            noti.processing_errors = _meli_redact_text(str( ('message' in rsjson and rsjson['message']) or rsjson['error'] ))
                         else:
                             noti.state = 'SUCCESS'
-                            noti.processing_errors = str(rsjson)
+                            noti.processing_errors = _meli_redact_text(str(rsjson))
                     else:
                         noti.state = 'FAILED'
-                        noti.processing_errors = str( "Posting not found related to question" )
+                        noti.processing_errors = _meli_redact_text(str( "Posting not found related to question" ))
             except Exception as E:
                 noti.state = 'FAILED'
-                noti.processing_errors = str(E)
+                noti.processing_errors = _meli_redact_text(str(E))
             finally:
                 noti.processing_ended = ml_datetime(str(datetime.now()))
 
@@ -362,14 +363,14 @@ class MercadolibreNotification(models.Model):
             try:
                 res = meli.get(""+str(noti.resource), {'access_token':meli.access_token} )
                 ojson =  res.json()
-                _logger.debug(ojson)
+                _logger.debug("ojson: id=%s keys=%s", (ojson.get('id') if isinstance(ojson, dict) else None), (sorted(ojson.keys()) if isinstance(ojson, dict) else type(ojson).__name__))
 
                 # Guardar último JSON de respuesta
                 noti.last_json_response = json.dumps(ojson, indent=2, ensure_ascii=False, default=str) if ojson else None
 
                 if (ojson and 'error' in ojson):
                     noti.state = 'FAILED'
-                    noti.processing_errors = str(ojson['error'])
+                    noti.processing_errors = _meli_redact_text(str(ojson['error']))
                 if (ojson and "id" in ojson):
 
                     morder = self.env["mercadolibre.orders"].search( [('order_id','=',ojson["id"])], limit=1 )
@@ -391,14 +392,14 @@ class MercadolibreNotification(models.Model):
                         noti.processing_errors = "Skipped: venta bloqueada para actualizar desde ML (meli_update_forbidden)"
                     elif (rsjson and 'error' in rsjson):
                         noti.state = 'FAILED'
-                        noti.processing_errors = str(rsjson['error'])
+                        noti.processing_errors = _meli_redact_text(str(rsjson['error']))
                     else:
                         noti.state = 'SUCCESS'
-                        noti.processing_errors = str(rsjson)
+                        noti.processing_errors = _meli_redact_text(str(rsjson))
 
             except Exception as E:
                 noti.state = 'FAILED'
-                noti.processing_errors = str(E)
+                noti.processing_errors = _meli_redact_text(str(E))
                 _logger.error("_process_notification_order:"+str(E))
             finally:
                 noti.processing_ended = ml_datetime(str(datetime.now()))
@@ -435,7 +436,7 @@ class MercadolibreNotification(models.Model):
 
                 if 'error' in item_json:
                     noti.state = 'FAILED'
-                    noti.processing_errors = str(item_json.get('message', item_json.get('error', 'Unknown error')))
+                    noti.processing_errors = _meli_redact_text(str(item_json.get('message', item_json.get('error', 'Unknown error'))))
                     continue
 
                 # Find binding by meli_id
@@ -449,7 +450,7 @@ class MercadolibreNotification(models.Model):
                     result = binding.process_item_notification(item_json=item_json, meli=meli)
                     if result.get('error'):
                         noti.state = 'FAILED'
-                        noti.processing_errors = str(result['error'])
+                        noti.processing_errors = _meli_redact_text(str(result['error']))
                     else:
                         noti.state = 'SUCCESS'
                         noti.processing_logs = f"Status updated: {result.get('status', 'N/A')} ({result.get('sub_status', '')})"
@@ -473,7 +474,7 @@ class MercadolibreNotification(models.Model):
 
             except Exception as E:
                 noti.state = 'FAILED'
-                noti.processing_errors = str(E)
+                noti.processing_errors = _meli_redact_text(str(E))
                 _logger.error("_process_notification_item:" + str(E))
             finally:
                 noti.processing_ended = ml_datetime(str(datetime.now()))
@@ -538,6 +539,6 @@ class MercadolibreNotification(models.Model):
 
     def stop_internal_notification(self, errors="", logs=""):
         self.processing_ended = ml_datetime( str( datetime.now() ) )
-        self.processing_errors = str(errors)
+        self.processing_errors = _meli_redact_text(str(errors))
         self.processing_logs = str(logs)
         self.state = 'SUCCESS'

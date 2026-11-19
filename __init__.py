@@ -95,4 +95,13 @@ def post_init_hook(env_or_cr, registry=None):
 from . import models
 from . import controllers
 from . import wizard
+
+# 26.427 privacidad en logs: tapa tokens/secretos de ML en todo lo que loguea este addon
+# (mensaje y traceback). Ver meli_oerp/models/log_privacy.py.
+try:
+    from .models.log_privacy import meli_install_log_filter as _meli_install_log_filter
+    _meli_install_log_filter(__name__)
+except Exception:  # meli_oerp sin log_privacy (versión vieja): no bloquea la carga del addon
+    pass
+
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
