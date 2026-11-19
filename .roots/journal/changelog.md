@@ -1,5 +1,10 @@
 # meli_oerp - Changelog
 
+## 20.0.26.421 — 19-nov-2026 · Release de flota 26.421
+- Sin cambios propios en este módulo: acompaña la versión 26.421 del suite (meli_oerp_accounting: las facturas de servicios de Mercado Libre México —CFDI— entran solas por la API de facturación de Mercado Libre, con el mismo proceso del importador manual; se activa en la pestaña Mercado Libre de la compañía).
+
+---
+
 ## 20.0.26.419 — 18-nov-2026 · Release de flota 26.419
 - Sin cambios propios en este módulo: acompaña la versión 26.419 del suite (meli_oerp_accounting: importación de las facturas de servicios de Mercado Libre México —CFDI XML/ZIP— a Cuentas por Pagar, sin duplicados, con cuenta por clave SAT y conciliación con los pagos a Mercado Libre por venta).
 
