@@ -156,6 +156,47 @@ class TestGcChatter(TransactionCase):
 
 
 @tagged('post_install', '-at_install', 'meli', 'meli_gc_chatter')
+class TestGcTopesDeTiempo(TransactionCase):
+    """El GC nunca ocupa el worker de cron: índice parcial para el NOT EXISTS, statement_timeout propio en la
+    selección de candidatos y presupuesto de tiempo total en el loop de lotes."""
+
+    def test_indice_parcial_existe(self):
+        N = self.env['mercadolibre.notification']
+        self.env.cr.execute("SELECT indexdef FROM pg_indexes WHERE indexname = %s", (N._GC_LIVE_INDEX,))
+        row = self.env.cr.fetchone()
+        self.assertTrue(row, "falta el índice parcial de resource")
+        self.assertIn('WHERE', row[0])
+        self.assertIn('RECEIVED', row[0])
+
+    def test_seleccion_con_timeout_devuelve_vacio_y_no_rompe_la_transaccion(self):
+        from unittest.mock import patch
+        N = self.env['mercadolibre.notification']
+        self.env.cr.execute("SHOW statement_timeout")
+        before = self.env.cr.fetchone()[0]
+        with patch.object(type(N), '_GC_SELECT_TIMEOUT', '50ms'):
+            ids = N._gc_meli_select_ids("SELECT 1 FROM pg_sleep(1)", {}, 'test')
+        self.assertEqual(ids, [])
+        self.env.cr.execute("SHOW statement_timeout")
+        self.assertEqual(self.env.cr.fetchone()[0], before)
+        self.env.cr.execute("SELECT 1")  # la transacción sigue sana
+        self.assertEqual(self.env.cr.fetchone()[0], 1)
+
+    def test_presupuesto_de_tiempo_corta_el_loop(self):
+        from unittest.mock import patch
+        N = self.env['mercadolibre.notification']
+        order = self.env['mercadolibre.orders'].create({'name': PFX + 'budget'})
+        msgs = self.env['mail.message'].sudo().create([{
+            'model': order._name, 'res_id': order.id, 'message_type': 'notification', 'body': 'x',
+            'date': fields.Datetime.now() - timedelta(days=60)} for _ in range(3)])
+        ICP = self.env['ir.config_parameter'].sudo()
+        (getattr(ICP, 'set_str', None) or ICP.set_param)('meli_oerp.chatter_days', '30')
+        with patch.object(type(N), '_GC_TIME_BUDGET_S', -1):
+            self.assertEqual(N._gc_meli_chatter(batch_size=1), 0)
+        self.assertEqual(len(msgs.exists()), 3)
+        self.assertEqual(N._gc_meli_chatter(batch_size=1), 3)
+
+
+@tagged('post_install', '-at_install', 'meli', 'meli_gc_chatter')
 class TestGcChatterNoBloquea(TransactionCase):
     """Un mensaje bloqueado por otra transacción (p.ej. el cron escribiendo en esa orden) se saltea
     sin esperar; el resto se borra. Datos commiteados en conexiones aparte, limpiados al final."""
