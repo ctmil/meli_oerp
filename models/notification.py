@@ -101,6 +101,15 @@ class MercadolibreNotification(models.Model):
     # por corrida es ICP meli_oerp.gc_max_rows (default 50.000; vale para notificaciones y chatter).
     # Sólo cambia CUÁNTO de lo ya vencido se borra por día, no QUÉ se borra.
     _GC_MAX_ROWS_DEFAULT = 50000
+    # 26.425 (pedido del bus 18-nov, un caso con 1,57 M filas): la query de candidatos tardó >11 min y ocupó
+    # el worker de cron (ventas sin entrar). Banco 19 con 1,5 M filas y ítems "calientes" (cientos de
+    # hermanas por resource, la última viva): 116 s para 10.000. Causas: el NOT EXISTS por resource
+    # recorría TODAS las hermanas de cada fila. Ahora: índice PARCIAL sobre las filas vivas/fallidas
+    # (chico: sólo RECEIVED/PROCESSING/FAILED), statement_timeout propio en la selección y presupuesto de
+    # tiempo total por GC: si vence, se corta, se loguea y sigue mañana. Nunca más un worker tomado.
+    _GC_SELECT_TIMEOUT = '60s'
+    _GC_TIME_BUDGET_S = 300
+    _GC_LIVE_INDEX = 'mercadolibre_notification_live_resource_idx'
 
     # Condiciones de borrado (alias n). Se evalúan al elegir candidatos y OTRA VEZ al bloquear.
     _GC_WHERE = """
@@ -112,10 +121,38 @@ class MercadolibreNotification(models.Model):
         AND NOT EXISTS (
             SELECT 1 FROM mercadolibre_notification s
              WHERE s.resource = n.resource AND s.id <> n.id
+               AND s.state IN ('RECEIVED', 'PROCESSING', 'FAILED')
                AND (s.state IN ('RECEIVED', 'PROCESSING')
                     OR (s.state = 'FAILED' AND s.topic = 'orders_v2'
                         AND COALESCE(s.attempts, 0) < %(max_attempts)s)))
     """
+
+    def init(self):
+        # 26.425: índice parcial para el NOT EXISTS de _GC_WHERE (resource de las vivas/fallidas). IF NOT EXISTS:
+        # sólo cuesta en el primer -u (recorre la tabla una vez y escribe pocas entradas).
+        self.env.cr.execute(
+            "CREATE INDEX IF NOT EXISTS %s ON mercadolibre_notification (resource)"
+            " WHERE state IN ('RECEIVED', 'PROCESSING', 'FAILED')" % self._GC_LIVE_INDEX)
+
+    @api.model
+    def _gc_meli_select_ids(self, query, params, label):
+        """Ejecuta la query de candidatos con statement_timeout propio (_GC_SELECT_TIMEOUT) en un savepoint.
+        Si vence, devuelve [] y lo loguea: el GC no hace nada hoy pero tampoco ocupa el worker de cron."""
+        import psycopg2.errors as pg_errors
+        cr = self.env.cr
+        cr.execute("SHOW statement_timeout")
+        prev = cr.fetchone()[0]
+        try:
+            with cr.savepoint(flush=False):
+                cr.execute("SELECT set_config('statement_timeout', %s, true)", (self._GC_SELECT_TIMEOUT,))
+                cr.execute(query, params, log_exceptions=False)
+                return [r[0] for r in cr.fetchall()]
+        except pg_errors.QueryCanceled:
+            _logger.warning("%s: la selección de candidatos superó %s; se saltea esta corrida", label,
+                            self._GC_SELECT_TIMEOUT)
+            return []
+        finally:
+            cr.execute("SELECT set_config('statement_timeout', %s, true)", (prev,))
 
     @api.model
     def _gc_meli_icp_int(self, key, default):
@@ -164,7 +201,10 @@ class MercadolibreNotification(models.Model):
     @api.model
     def _gc_meli_run_batches(self, table, alias, where, ids, params, batch_size, label):
         """Recorre `ids` en lotes con lock_timeout corto; si un lote choca, fila a fila.
+        Corta al pasar _GC_TIME_BUDGET_S (lo que quede lo toma la próxima corrida).
         Devuelve (borradas, salteadas)."""
+        import time
+        deadline = time.monotonic() + self._GC_TIME_BUDGET_S
         cr = self.env.cr
         cr.execute("SHOW lock_timeout")
         prev_lock_timeout = cr.fetchone()[0]
@@ -172,6 +212,10 @@ class MercadolibreNotification(models.Model):
         total = skipped = 0
         try:
             for i in range(0, len(ids), batch_size):
+                if time.monotonic() > deadline:
+                    _logger.info("%s: presupuesto de %ss agotado; quedan %s candidatos para la próxima corrida",
+                                 label, self._GC_TIME_BUDGET_S, len(ids) - i)
+                    break
                 chunk = ids[i:i + batch_size]
                 done = self._gc_meli_locked_delete(table, alias, where, chunk, params, label)
                 if done is None and len(chunk) > 1:
@@ -221,9 +265,9 @@ class MercadolibreNotification(models.Model):
         }
         cr = self.env.cr
         self.env['mercadolibre.notification'].flush_model()
-        cr.execute("SELECT n.id FROM mercadolibre_notification n WHERE " + self._GC_WHERE  # pylint: disable=sql-injection
-                   + " ORDER BY n.id LIMIT %(cap)s", dict(params, cap=cap))
-        ids = [r[0] for r in cr.fetchall()]
+        ids = self._gc_meli_select_ids(
+            "SELECT n.id FROM mercadolibre_notification n WHERE " + self._GC_WHERE + " ORDER BY n.id LIMIT %(cap)s",
+            dict(params, cap=cap), '_gc_meli_notifications')
         if not ids:
             return 0
         try:
@@ -321,9 +365,10 @@ class MercadolibreNotification(models.Model):
         where = self._gc_meli_chatter_where()
         cr = self.env.cr
         self.env['mail.message'].flush_model()
-        cr.execute("SELECT m.id FROM mail_message m WHERE " + where  # pylint: disable=sql-injection
-                   + " ORDER BY m.id LIMIT %(cap)s", dict(params, cap=cap))
-        ids = [r[0] for r in cr.fetchall()]
+        # sin ORDER BY a propósito: con ORDER BY m.id el planner puede recorrer la pkey de TODO mail_message
+        # (millones en una base con mucho chatter ajeno) en vez de ir por el índice (model, res_id).
+        ids = self._gc_meli_select_ids("SELECT m.id FROM mail_message m WHERE " + where + " LIMIT %(cap)s",
+                                       dict(params, cap=cap), '_gc_meli_chatter')
         if not ids:
             return 0
         try:
