@@ -33,6 +33,7 @@ from . import address_lock as _meli_addr
 from time import monotonic as _mono
 from .import_lock import meli_import_guard as _meli_import_guard
 from .log_privacy import meli_mask_doc as _pii_doc, meli_redact_text as _meli_redact_text
+from .log_privacy import meli_pii_err as _pii_err, MELI_PII_EXTRA as _PII_EXTRA
 from .gtin import meli_item_gtins
 
 # Traducción de códigos de cancelación ML → español
@@ -4392,7 +4393,7 @@ class mercadolibre_orders(models.Model):
                     partner.write(vals)
                 _logger.info("MX_CFDI: contacto id:%s <- %s (nuevo=%s)", partner.id, vals, is_new)
             except Exception as e:
-                _logger.warning("MX_CFDI: no se pudo escribir %s en contacto id:%s: %s", vals, partner.id, e)
+                _logger.warning("MX_CFDI: no se pudo escribir %s en contacto id:%s: %s", vals, partner.id, _pii_err(e))
                 return {}
         return vals
 
@@ -5356,7 +5357,7 @@ class mercadolibre_orders(models.Model):
             _logger.info("MELI_AR_CF_SIN_DOC: contacto id:%s sin documento ⇒ Consumidor Final + Sigd", target.id)
             return True
         except Exception as e:
-            _logger.warning("MELI_AR_CF_SIN_DOC: no se pudo marcar CF al contacto id:%s: %s", target.id, e)
+            _logger.warning("MELI_AR_CF_SIN_DOC: no se pudo marcar CF al contacto id:%s: %s", target.id, _pii_err(e))
             return False
 
     def orders_update_order_json( self, data, context=None, config=None, meli=None ):
@@ -6342,8 +6343,8 @@ class mercadolibre_orders(models.Model):
                             partner_id.flush_recordset()  # forzar el INSERT dentro del savepoint
                         _logger.info("Contacto principal creado: id:%s (meli_buyer_id: %s)", partner_id.id, buyer_fields['buyer_id'])
                 except Exception as e:
-                    _logger.info("orders_update_order > Error creando Partner: " + str(e))
-                    _logger.error(e, exc_info=True)
+                    _logger.info("orders_update_order > Error creando Partner: " + _pii_err(e))
+                    _logger.error(_pii_err(e), exc_info=True, extra=_PII_EXTRA)
                     # Self-heal (red de seguridad): el create chocó la constraint → el partner
                     # YA existe. Se reusa con with_user(1) + active_test=False para bypasear
                     # tanto ir.rules como overrides de search() de módulos de terceros.
@@ -6380,8 +6381,8 @@ class mercadolibre_orders(models.Model):
                         partner_id.write(parent_update)
                         MeliCommit(self)
                     except builtins.Exception as e:
-                        _logger.info("orders_update_order > Error actualizando Partner: " + str(e))
-                        _logger.error(e, exc_info=True)
+                        _logger.info("orders_update_order > Error actualizando Partner: " + _pii_err(e))
+                        _logger.error(_pii_err(e), exc_info=True, extra=_PII_EXTRA)
                         if order:
                             meli_message_post(order, "Error actualizando Partner: " + str(e), config=config)
 
@@ -6432,7 +6433,7 @@ class mercadolibre_orders(models.Model):
                             try:
                                 partner_id.write({'name': billing_full_name})
                             except Exception as _e:
-                                _logger.warning("BILLING_DEDUP: no se pudo actualizar nombre del buyer: %s", _e)
+                                _logger.warning("BILLING_DEDUP: no se pudo actualizar nombre del buyer: %s", _pii_err(_e))
                         # Poner datos fiscales directamente en el contacto principal
                         _FISCAL_PROTECTED_DEDUP = {
                             'l10n_ar_afip_responsibility_type_id',
@@ -6457,7 +6458,7 @@ class mercadolibre_orders(models.Model):
                             try:
                                 partner_id.write(_fiscal_update)
                             except Exception as _e:
-                                _logger.warning("BILLING_DEDUP: no se pudo escribir datos fiscales en buyer: %s", _e)
+                                _logger.warning("BILLING_DEDUP: no se pudo escribir datos fiscales en buyer: %s", _pii_err(_e))
                         partner_invoice_id = partner_id
 
             if not _skip_billing_child and partner_id and billing_child_fields.get('vat'):
@@ -6472,7 +6473,7 @@ class mercadolibre_orders(models.Model):
                         try:
                             partner_id.write({'vat': billing_vat})
                         except Exception as e:
-                            _logger.warning("Error asignando VAT genérico al buyer: %s", e)
+                            _logger.warning("Error asignando VAT genérico al buyer: %s", _pii_err(e))
                     partner_invoice_id = None
                     billing_vat = None  # Impedir que el bloque posterior cree entidad fiscal
 
@@ -6594,10 +6595,10 @@ class mercadolibre_orders(models.Model):
                                 try:
                                     partner_invoice_id.write(invoice_update)
                                 except Exception as e2:
-                                    _logger.error("Error actualizando contacto facturación (sin VAT): %s", str(e2))
+                                    _logger.error("Error actualizando contacto facturación (sin VAT): %s", _pii_err(e2))
                         except Exception as e:
-                            _logger.error("Error actualizando contacto de facturación: %s", str(e))
-                            _logger.error(e, exc_info=True)
+                            _logger.error("Error actualizando contacto de facturación: %s", _pii_err(e))
+                            _logger.error(_pii_err(e), exc_info=True, extra=_PII_EXTRA)
                 elif billing_vat:
                     # Crear nueva entidad fiscal (sin parent_id — contacto independiente)
                     try:
@@ -6620,10 +6621,10 @@ class mercadolibre_orders(models.Model):
                                 partner_invoice_id = respartner_obj.create(billing_child_fields)
                                 _mx_cfdi_new_partner_ids.add(partner_invoice_id.id)
                             except Exception as e2:
-                                _logger.error("Error creando entidad fiscal (sin VAT): %s", str(e2))
+                                _logger.error("Error creando entidad fiscal (sin VAT): %s", _pii_err(e2))
                     except Exception as e:
-                        _logger.info("orders_update_order > Error creando entidad fiscal: " + str(e))
-                        _logger.error(e, exc_info=True)
+                        _logger.info("orders_update_order > Error creando entidad fiscal: " + _pii_err(e))
+                        _logger.error(_pii_err(e), exc_info=True, extra=_PII_EXTRA)
 
             # Verificación post-update: confirmar que vat y tipo de documento se guardaron
             if partner_invoice_id and partner_invoice_id != partner_id:
@@ -6767,7 +6768,7 @@ class mercadolibre_orders(models.Model):
                     with self.env.cr.savepoint():
                         original_contact_partner_id.property_product_pricelist = _meli_pl
             except Exception as e:
-                _logger.warning('Could not set pricelist on partner id:%s: %s', original_contact_partner_id.id, e)
+                _logger.warning('Could not set pricelist on partner id:%s: %s', original_contact_partner_id.id, _pii_err(e))
 
 
         if (original_contact_partner_id):
