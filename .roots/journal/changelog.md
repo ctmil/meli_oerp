@@ -1,5 +1,12 @@
 # meli_oerp - Changelog
 
+## 19.0.26.427 — 19-nov-2026 · Privacidad en los logs
+- Privacidad en los logs del servidor: los mensajes del import de ventas identifican al comprador y a su contacto de facturación por id (y meli_buyer_id), ya no por nombre; CUIT/CUIL/DNI/CPF/CNPJ se registran enmascarados (`***1234`) o como `FALTA`. El JSON completo de la orden ya no se vuelca en DEBUG.
+- Nuevo `models/log_privacy.py`: filtro de logging que tapa tokens de Mercado Libre (`access_token=…`, `Bearer …`, `APP_USR-…`, `TG-…`) en el mensaje y en el traceback de todo el suite, y saneo de los mismos tokens en los errores guardados (stock, precio, notificaciones).
+- Test `test_26427_pii_logs` (venta simulada con datos inventados: el log no expone nombre, email, teléfono ni documento).
+
+---
+
 ## 19.0.26.422 — 19-nov-2026 · Release de flota 26.422
 - Sin cambios propios en este módulo: acompaña la versión 26.422 del suite (meli_oerp_multiple: los crons de stock y precio ya no reintentan publicaciones cerradas, eliminadas o inexistentes en Mercado Libre; «Analizar estado real en ML» actualiza el SKU de la vinculación con el de ML; las acciones «Desvincular …» permiten previsualizar antes de eliminar, sin tocar el producto).
 
