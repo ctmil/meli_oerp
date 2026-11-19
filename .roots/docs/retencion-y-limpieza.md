@@ -5,6 +5,14 @@ cada método `@api.autovacuum` ⇒ cada GC es su propia transacción; si uno fal
 Motor común (`mercadolibre.notification._gc_meli_run_batches`, desde 26.338/26.425): candidatos por SQL con
 tope, lotes `FOR UPDATE SKIP LOCKED` que re-chequean las condiciones, savepoint por lote, `lock_timeout` 2 s,
 fila a fila si un lote choca (lock / serialización / deadlock / FK de terceros). **Nunca espera a nadie.**
+**Nunca ocupa el worker de cron (26.425):** la selección de candidatos lleva `statement_timeout` propio
+(60 s; si vence, log y nada hoy), el loop de lotes tiene presupuesto de 300 s (lo que quede, mañana), y el
+NOT EXISTS por resource del GC de notificaciones usa el índice parcial
+`mercadolibre_notification_live_resource_idx` (resource WHERE state IN RECEIVED/PROCESSING/FAILED; se crea en el
+`-u`). Caso que lo motivó (bus 18-nov): 1,57 M filas ⇒ la selección tardó >11 min y las ventas no entraban.
+Banco 19 (1,5 M filas, 500 ítems con 1.500 hermanas viejas y la última viva): **116 s ⇒ 5,0 s** con el mismo
+tope de 10.000; 6,4 s con el tope nuevo de 50.000. Chatter: 50.000 borrados en 2,3 s con 2,3 M mensajes en la
+tabla (2 M de otros modelos, intactos). `-u meli_oerp` con 1,5 M filas: 6,8 s incluido el índice.
 
 | Parámetro del sistema (`ir.config_parameter`) | Default | Qué limpia | Desde |
 |---|---|---|---|
@@ -47,4 +55,4 @@ Después de un borrado grande, Postgres reutiliza el espacio pero el archivo no 
 (Odoo.sh: no se pide; el crecimiento se frena igual).
 Medir antes/después: `SELECT model, message_type, count(*) FROM mail_message WHERE model LIKE 'mercadolibre.%' GROUP BY 1,2;`
 
-Tests: `--test-tags meli_gc_chatter` (meli_oerp 6 + multiple 4) y `meli_696` (GC de notificaciones).
+Tests: `--test-tags meli_gc_chatter` (meli_oerp 9 + multiple 4) y `meli_696` (GC de notificaciones).
