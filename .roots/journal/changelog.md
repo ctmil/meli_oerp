@@ -1,5 +1,10 @@
 # meli_oerp - Changelog
 
+## 17.0.26.429 — 19-nov-2026 · Packs OCA re-publican stock al mover un componente
+- Packs OCA (product_pack): cuando se mueve el stock de un componente (venta, compra, ajuste), los packs que lo contienen —también packs de packs— quedan marcados para re-publicar su stock en Mercado Libre. Antes sólo se re-publicaba la unidad suelta y el pack quedaba desfasado hasta otro cambio. Sin product_pack instalado no cambia nada.
+
+---
+
 ## 17.0.26.422 — 19-nov-2026 · Release de flota 26.422
 - Sin cambios propios en este módulo: acompaña la versión 26.422 del suite (meli_oerp_multiple: los crons de stock y precio ya no reintentan publicaciones cerradas, eliminadas o inexistentes en Mercado Libre; «Analizar estado real en ML» actualiza el SKU de la vinculación con el de ML; las acciones «Desvincular …» permiten previsualizar antes de eliminar, sin tocar el producto).
 
