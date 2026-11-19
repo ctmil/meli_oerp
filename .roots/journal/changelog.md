@@ -4,6 +4,7 @@
 - **Nuevo (apagado por defecto):** limpieza diaria de los avisos automáticos del chatter de los registros de Mercado Libre (Pedidos de MercadoLibre, Envíos y Cuentas): «Pack Order, dont create», «Sale order created (pack)!», «Warning: sale order not created!» y similares. Se activa con el parámetro del sistema `meli_oerp.chatter_days` = cantidad de días a conservar (sugerido 30; 0 o vacío = no borrar nunca; el mínimo efectivo es 7). Corre dentro de la limpieza automática diaria de Odoo, por tandas, sin bloquear la importación de ventas.
 - **Qué NO toca nunca:** ventas, facturas ni entregas (ni su chatter); notas y mensajes escritos por personas; mensajes con adjuntos, destacados, con seguimiento de cambios de campos, con un correo asociado, con respuestas o con una notificación sin leer en la bandeja de entrada.
 - **Tope diario configurable:** la limpieza de notificaciones (`meli_oerp.notification_days`) y la del chatter borran hasta 50.000 registros por corrida (antes 10.000 fijos, poco para cuentas con mucho volumen). Ajustable con `meli_oerp.gc_max_rows`.
+- **Más liviano en bases grandes:** la limpieza de notificaciones ya no puede ocupar el proceso de tareas programadas por minutos (con más de un millón de notificaciones la selección podía tardar más de 10 minutos y demorar la entrada de ventas): ahora usa un índice específico, tiene un tiempo máximo por consulta y por corrida, y lo que no llega a borrar queda para el día siguiente.
 
 ---
 
