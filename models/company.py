@@ -23,6 +23,7 @@ from odoo import fields, models, api
 from odoo.tools.translate import _
 from markupsafe import Markup
 import logging
+from .log_privacy import meli_mask_doc as _pii_doc, meli_redact_text as _meli_redact_text
 _logger = logging.getLogger(__name__)
 
 import pdb
@@ -1912,10 +1913,10 @@ class res_company(models.Model):
                         logs_list.append(f"{obj.default_code} {obj.meli_id}: {obj.meli_available_quantity}")
 
                         if "error" in resjson:
-                            obj.meli_stock_error = str(resjson)
+                            obj.meli_stock_error = _meli_redact_text(str(resjson))
                             errors_list.append(f"{obj.default_code} {obj.meli_id} >> {resjson}")
                         else:
-                            obj.meli_stock_error = str({})
+                            obj.meli_stock_error = _meli_redact_text(str({}))
 
                         if ( icommit==40 or icount==maxcommits or icount==topcommits ):
                             noti.processing_errors = "\n".join(errors_list)
@@ -2017,10 +2018,10 @@ class res_company(models.Model):
                         logs_list.append(f"{obj.default_code} {obj.meli_id}: {obj.meli_available_quantity}")
 
                         if "error" in resjson:
-                            obj.meli_stock_error = str(resjson)
+                            obj.meli_stock_error = _meli_redact_text(str(resjson))
                             errors_list.append(f"{obj.default_code} {obj.meli_id} >> {resjson}")
                         else:
-                            obj.meli_stock_error = str({})
+                            obj.meli_stock_error = _meli_redact_text(str({}))
 
                         if ( icommit==40 or icount==maxcommits or icount==topcommits ):
                             noti.processing_errors = "\n".join(errors_list)

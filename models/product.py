@@ -24,6 +24,7 @@ from odoo.tools.translate import _
 
 import pdb
 import logging
+from .log_privacy import meli_mask_doc as _pii_doc, meli_redact_text as _meli_redact_text
 _logger = logging.getLogger(__name__)
 
 import hashlib
@@ -4914,7 +4915,7 @@ class product_product(models.Model):
 
         if "meli_update_stock_blocked" in product_tmpl._fields and product_tmpl.meli_update_stock_blocked:
             error = { "error": "Blocked by product template configuration." }
-            product.meli_stock_error = str(error)
+            product.meli_stock_error = _meli_redact_text(str(error))
             product_tmpl.meli_stock_error = product.meli_stock_error
             meli_message_post(product, error["error"])
             meli_message_post(product_tmpl, error["error"])
@@ -4922,7 +4923,7 @@ class product_product(models.Model):
 
         if "meli_update_stock_blocked" in product._fields and product.meli_update_stock_blocked:
             error = { "error": "Blocked by product configuration." }
-            product.meli_stock_error = str(error)
+            product.meli_stock_error = _meli_redact_text(str(error))
             product_tmpl.meli_stock_error = product.meli_stock_error
             meli_message_post(product, error["error"])
             meli_message_post(product_tmpl, error["error"])
@@ -5001,7 +5002,7 @@ class product_product(models.Model):
                                     if "error" in rjson:
                                         _logger.error(rjson)
                                         error = rjson
-                                        product.meli_stock_error = str(error)
+                                        product.meli_stock_error = _meli_redact_text(str(error))
                                         product_tmpl.meli_stock_error = product.meli_stock_error
                                         return error
 
@@ -5026,7 +5027,7 @@ class product_product(models.Model):
                                 if rjson:
                                     if "error" in rjson:
                                         error = rjson
-                                        product.meli_stock_error = str(error)
+                                        product.meli_stock_error = _meli_redact_text(str(error))
                                         product_tmpl.meli_stock_error = product.meli_stock_error
                                         return error
                             #_logger.info(responsevar.json())
@@ -5072,7 +5073,7 @@ class product_product(models.Model):
                                 _logger.info( "Posted ok:" + str(rjson['available_quantity']) )
                             if "error" in rjson:
                                 error = rjson
-                                product.meli_stock_error = str(error)
+                                product.meli_stock_error = _meli_redact_text(str(error))
                                 product_tmpl.meli_stock_error = product.meli_stock_error
                                 return error
                 else:
@@ -5083,7 +5084,7 @@ class product_product(models.Model):
                             _logger.info( "Posted ok:" + str(rjson['available_quantity']) )
                         if "error" in rjson:
                             error = rjson
-                            product.meli_stock_error = str(error)
+                            product.meli_stock_error = _meli_redact_text(str(error))
                             product_tmpl.meli_stock_error = product.meli_stock_error
                             return error
 
@@ -5105,10 +5106,10 @@ class product_product(models.Model):
             # Ahora el error viaja en el return.
             _logger.error("product_post_stock > exception error: %s", e, exc_info=True)
             error = { 'error': str(e) }
-            product.meli_stock_error = str(error)
+            product.meli_stock_error = _meli_redact_text(str(error))
             product_tmpl.meli_stock_error = product.meli_stock_error
 
-        product.meli_stock_error = str(error) if error else "Ok"
+        product.meli_stock_error = _meli_redact_text(str(error)) if error else "Ok"
         product_tmpl.meli_stock_error = product.meli_stock_error
         # 26.87 (H1): devolver el error si lo hubo (antes: siempre {}).
         return error or {}
@@ -5218,7 +5219,7 @@ class product_product(models.Model):
                         #_logger.info('rjson'+str(rjson))
                         if "error" in rjson:
                             _logger.error(rjson)
-                            self.meli_price_error = str(rjson)
+                            self.meli_price_error = _meli_redact_text(str(rjson))
                             self.meli_price_update = ml_datetime( str( datetime.now() ) )
                             self.product_tmpl_id.meli_price_error = self.meli_price_error
                             return rjson
@@ -5235,7 +5236,7 @@ class product_product(models.Model):
                 rjson = response.json()
                 if rjson and "error" in rjson:
                     _logger.error(rjson)
-                    self.meli_price_error = str(rjson)
+                    self.meli_price_error = _meli_redact_text(str(rjson))
                     self.meli_price_update = ml_datetime( str( datetime.now() ) )
                     self.product_tmpl_id.meli_price_error = self.meli_price_error
                     return rjson
