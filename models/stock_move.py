@@ -124,6 +124,16 @@ class StockMove(models.Model):
                                 bom_parents_added += 1
                             products_to_update.add(variant.id)
 
+        # STEP 2b: PACK SECTION (OCA product_pack) - packs que contienen los productos movidos
+        # (no tienen movimientos propios: su stock sale de los componentes). Mismo criterio que los KITs.
+        if move_product_ids:
+            pack_parents = self.env['product.product'].browse(list(move_product_ids))._meli_pack_parents()
+            for pk_product_id in pack_parents:
+                if pk_product_id.meli_id or pk_product_id.meli_pub:
+                    if pk_product_id.id not in products_to_update:
+                        bom_parents_added += 1
+                    products_to_update.add(pk_product_id.id)
+
         benchmark_data['bom_parent_products'] = bom_parents_added
         benchmark_data['total_products_to_update'] = len(products_to_update)
         t2_end = time.time()
