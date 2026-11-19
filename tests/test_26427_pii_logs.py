@@ -14,7 +14,8 @@ from odoo.tests import common, tagged
 from odoo.tools import mute_logger
 
 from odoo.addons.meli_oerp.models.log_privacy import (meli_mask_doc, meli_redact_text,
-                                                       meli_install_log_filter)
+                                                       meli_install_log_filter, meli_pii_err,
+                                                       meli_redact_pii_text, MELI_PII_EXTRA)
 
 OID = 9000000000004271
 PAY = 9000000000004272
@@ -201,3 +202,30 @@ class TestMeliPiiLogs(common.TransactionCase):
         self.assertEqual(meli_redact_text('%2Fitems%3Faccess_token%3DAPP_USR-abc'),
                          '%2Fitems%3Faccess_token%3D***')
         self.assertIsNone(meli_redact_text(None))
+
+    def test_04_error_de_contacto_sin_datos_personales(self):
+        """Un ValidationError de base_vat trae el documento y el nombre entre corchetes; los handlers
+        de alta/edición de contactos lo loguean con meli_pii_err + extra=MELI_PII_EXTRA (traceback
+        incluido)."""
+        msg = ("The VAT number [%s] for partner [%s %s] does not seem to be valid. "
+               "Note: the expected format is AR200-5536168-2 or 20055361682") % (CUIT, BUYER_FIRST, BUYER_LAST)
+        red = meli_redact_pii_text(msg)
+        for s in (CUIT, BUYER_FIRST, BUYER_LAST):
+            self.assertNotIn(s, red)
+        self.assertIn('does not seem to be valid', red)  # el motivo se sigue leyendo
+        self.assertNotIn(EMAIL, meli_redact_pii_text('contacto %s' % EMAIL))
+        # un id de orden de ML (16 dígitos) y un MLA… no se tapan: hacen falta para diagnosticar
+        self.assertIn('2000000000000001', meli_redact_pii_text('orden 2000000000000001 item MLA9000000001'))
+        self.assertIn('MLA9000000001', meli_redact_pii_text('orden 2000000000000001 item MLA9000000001'))
+        meli_install_log_filter('odoo.addons.meli_oerp')
+        cap = self._capture()
+        lg = logging.getLogger('odoo.addons.meli_oerp.models.orders')
+        try:
+            raise ValueError(msg)
+        except ValueError as e:
+            lg.info("orders_update_order > Error creando Partner: " + meli_pii_err(e))
+            lg.error(meli_pii_err(e), exc_info=True, extra=MELI_PII_EXTRA)
+        log = '\n'.join(cap.lines)
+        self.assertIn('Traceback', log)
+        for s in (CUIT, BUYER_FIRST, BUYER_LAST):
+            self.assertNotIn(s, log)
