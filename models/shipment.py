@@ -723,6 +723,62 @@ class mercadolibre_shipment(models.Model):
                 updated += 1
         return updated
 
+    def _meli_ship_name(self):
+        """Nombre ML del servicio de envio (el mismo criterio que usa la asignacion del transportista)."""
+        return (self.tracking_method
+                or (self.mode == "me1" and "ME1 - zip")
+                or (self.mode == "custom" and "Personalizado")
+                or (self.logistic_type == "self_service" and "Personalizado MFlex")
+                or "")
+
+    def _meli_fill_carrier_locked(self, sorder, company=None):
+        """[un caso] Venta BLOQUEADA sin «Metodo de entrega»: asignar el transportista igual.
+
+        La venta se confirma apenas el monto cierra. Si en ese momento ML todavia no asigno el
+        servicio de envio (envio en ``pending``: sin ``tracking_method``), el alta no tiene con que
+        elegir el transportista; lo pone la pasada siguiente. Pero si la compania tiene «Bloquear
+        pedidos confirmados», la venta ya esta en ``done`` y esa pasada salteaba TODO cambio
+        estructural: la venta y sus albaranes quedaban sin transportista para siempre (logistica lo
+        completaba a mano).
+
+        Asignar el transportista no es un cambio estructural: no toca lineas ni importes. Se escribe
+        en la venta y en los albaranes pendientes, igual que el core (delivery
+        ``sale.order.set_delivery_line``). NO se crea la linea de envio (la venta puede estar
+        facturada) ni un transportista nuevo: sólo uno existente (mapeo o nombre) de la compania.
+        Devuelve el transportista asignado o un recordset vacio.
+        """
+        Carrier = self.env["delivery.carrier"]
+        if not sorder or sorder.carrier_id:
+            return Carrier
+        if "meli_update_forbidden" in sorder._fields and sorder.meli_update_forbidden:
+            return Carrier
+        ship_name = self._meli_ship_name()
+        if not ship_name:
+            return Carrier
+        ship_company = sorder.company_id or company
+        carrier = Carrier
+        if "meli_oerp.carrier.mapping" in self.env:
+            carrier = self.env["meli_oerp.carrier.mapping"].resolve_carrier(
+                meli_name=ship_name, company=ship_company)
+        if carrier and not meli_carrier_company_ok(carrier, ship_company):
+            carrier = Carrier
+        if not carrier:
+            carrier = meli_carrier_by_name(self.env, ship_name, ship_company)
+        if not carrier:
+            _logger.info("MELI carrier-bloqueada SO %s bloqueada sin transportista: no hay uno para '%s'",
+                         sorder.name, ship_name)
+            return Carrier
+        sorder.carrier_id = carrier.id
+        pending = sorder.picking_ids.filtered(
+            lambda p: p.state not in ("done", "cancel")
+            and not any(m.origin_returned_move_id for m in p.move_ids)
+            and not p.carrier_id)
+        if pending:
+            pending.carrier_id = carrier.id
+        _logger.info("MELI carrier-bloqueada SO %s bloqueada: transportista '%s' asignado (venta + %d albaranes)",
+                     sorder.name, carrier.name, len(pending))
+        return carrier
+
     def _meli_pack_receiver_cost(self, meli, ship_id, rcosts, seller_id=None):
         """[#caso-K02/#caso-K21/#caso-K22] Flete del comprador que COBRO el vendedor (shipping_receiver_cost).
 
@@ -886,6 +942,13 @@ class mercadolibre_shipment(models.Model):
                     shipment._meli_sync_picking_tracking(sorder)
                 except Exception as e:
                     _logger.warning("tracking sync on locked order %s failed: %s", sorder.name, e)
+                # [un caso] confirmada (y bloqueada) antes de que ML asignara el envio: el
+                # transportista se completa igual (venta + albaranes), sin tocar lineas.
+                try:
+                    with self.env.cr.savepoint():
+                        shipment._meli_fill_carrier_locked(sorder, company=company)
+                except Exception as e:
+                    _logger.warning("carrier fill on locked order %s failed: %s", sorder.name, e)
                 continue;
 
             if (not sorder or not order):
