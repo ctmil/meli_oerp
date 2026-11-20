@@ -1,5 +1,10 @@
 # meli_oerp - Changelog
 
+## 18.0.26.434 — 20-nov-2026 · Release de flota 26.434
+- Sin cambios propios en este módulo: acompaña la versión 26.434 del suite (meli_oerp_multiple: la limpieza de vinculaciones reconoce el código de publicación mal escrito —minúscula, sin prefijo del sitio, referencia interna—: lo consulta por su forma correcta o marca la línea como duplicada/código inválido para que la limpieza la elimine).
+
+---
+
 ## 18.0.26.432 — 20-nov-2026 · Release de flota 26.432
 - Sin cambios propios en este módulo: acompaña la versión 26.432 del suite (meli_oerp_multiple: limpieza de vinculaciones de plantilla —«Analizar estado real en ML» y «Desvincular …» con previsualización— y limpieza automática opcional de vinculaciones cuya publicación está cerrada, eliminada o ya no existe en Mercado Libre, apagada por defecto).
 
