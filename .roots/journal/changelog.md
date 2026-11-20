@@ -1,5 +1,10 @@
 # meli_oerp - Changelog
 
+## 16.0.26.432 — 20-nov-2026 · Release de flota 26.432
+- Sin cambios propios en este módulo: acompaña la versión 26.432 del suite (meli_oerp_multiple: limpieza de vinculaciones de plantilla —«Analizar estado real en ML» y «Desvincular …» con previsualización— y limpieza automática opcional de vinculaciones cuya publicación está cerrada, eliminada o ya no existe en Mercado Libre, apagada por defecto).
+
+---
+
 ## 16.0.26.422 — 19-nov-2026 · Release de flota 26.422
 - Sin cambios propios en este módulo: acompaña la versión 26.422 del suite (meli_oerp_multiple: los crons de stock y precio ya no reintentan publicaciones cerradas, eliminadas o inexistentes en Mercado Libre; «Analizar estado real en ML» actualiza el SKU de la vinculación con el de ML; las acciones «Desvincular …» permiten previsualizar antes de eliminar, sin tocar el producto).
 
