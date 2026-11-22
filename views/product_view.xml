@@ -161,6 +161,10 @@
                         <field name="meli_category" />
                         <field name="meli_price" />
                         <field name="meli_dimensions" />
+                        <field name="meli_seller_package_height" />
+                        <field name="meli_seller_package_width" />
+                        <field name="meli_seller_package_length" />
+                        <field name="meli_seller_package_weight" />
                         <!--<field name="meli_attributes" />-->
                         <field name="meli_brand"/>
                         <field name="meli_model"/>
@@ -449,6 +453,10 @@
                               <field name="meli_category" options="{'no_create': True}"/>
                               <field name="meli_brand"/>
                               <field name="meli_model"/>
+                              <field name="meli_seller_package_height" />
+                              <field name="meli_seller_package_width" />
+                              <field name="meli_seller_package_length" />
+                              <field name="meli_seller_package_weight" />
                               <field name="meli_listing_type" />
                               <field name="meli_buying_mode" />
                               <field name="meli_price_fixed" />

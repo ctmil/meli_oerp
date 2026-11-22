@@ -28,6 +28,7 @@ _logger = logging.getLogger(__name__)
 
 import unidecode
 import hashlib
+import re
 import math
 import requests
 import base64
@@ -492,6 +493,11 @@ class product_template(models.Model):
                                         ("not_specified","No especificado")],
                                         'Condición del producto')
     meli_dimensions = fields.Char( string="Dimensiones del producto", size=128)
+    # Medidas del paquete a enviar (Mercado Envios): ML las pide como SELLER_PACKAGE_* al publicar.
+    meli_seller_package_height = fields.Char(string="Alto del paquete [vendedor]", help="SELLER_PACKAGE_HEIGHT: Alto del paquete a enviar. Ej: '30 cm'. Si se deja vacio, al publicar se toma de 'Dimensiones del producto'.")
+    meli_seller_package_width  = fields.Char(string="Ancho del paquete [vendedor]", help="SELLER_PACKAGE_WIDTH: Ancho del paquete a enviar. Ej: '20 cm'. Si se deja vacio, al publicar se toma de 'Dimensiones del producto'.")
+    meli_seller_package_length = fields.Char(string="Largo del paquete [vendedor]", help="SELLER_PACKAGE_LENGTH: Largo del paquete a enviar. Ej: '40 cm'. Si se deja vacio, al publicar se toma de 'Dimensiones del producto'.")
+    meli_seller_package_weight = fields.Char(string="Peso del paquete [vendedor]", help="SELLER_PACKAGE_WEIGHT: Peso del paquete a enviar. Ej: '500 g'. Si se deja vacio, al publicar se toma del peso del producto.")
     meli_pub = fields.Boolean('Meli Publication',help='MELI Product',index=True)
     meli_user_product_id = fields.Char(string='Product User Id')
     meli_master = fields.Boolean('Meli Producto Maestro', help='MELI Product Maestro',index=True)
@@ -3126,8 +3132,9 @@ class product_product(models.Model):
 
                     if (at_line_id.attribute_id.meli_default_id_attribute.id and
                         at_line_id.attribute_id.meli_default_id_attribute.variation_attribute==False):
+                        _att_id = at_line_id.attribute_id.meli_default_id_attribute.att_id
                         attribute = {
-                            "id": at_line_id.attribute_id.meli_default_id_attribute.att_id,
+                            "id": self._MELI_PACKAGE_REMAP.get(_att_id, _att_id),
                             "value_name": atval
                         }
                         attributes_ids[attribute["id"]] = attribute["value_name"]
@@ -3192,6 +3199,14 @@ class product_product(models.Model):
             attribute = { "id": "SIZE_GRID_ID", "value_name": product.meli_grid_chart_id.meli_id }
             attributes.append(attribute)
             _logger.info("attributes:"+str(attributes))
+            product.meli_attributes = str(attributes)
+
+        #medidas del paquete (SELLER_PACKAGE_*): ML las exige al publicar (cause 5400)
+        for attribute in product._meli_seller_package_attributes( product_tmpl=product_tmpl, product=product,
+                                                                  attributes_ids=attributes_ids,
+                                                                  use_defaults=not product.meli_id ):
+            attributes_ids[attribute["id"]] = attribute["value_name"]
+            attributes.append(attribute)
             product.meli_attributes = str(attributes)
 
         #_product_post_set_category
@@ -4058,6 +4073,109 @@ class product_product(models.Model):
     def get_title_for_meli(self):
         return self.name
 
+    # --- Medidas del paquete (SELLER_PACKAGE_*) al publicar ---------------------------------------
+    # ML rechaza la publicacion con cause 5400 item.attribute.missing.seller.package.dimensions
+    # ("[seller_package_height, width, length, weight] are all required") si no viajan las 4.
+    _MELI_SELLER_PACKAGE_FIELDS = [
+        ("meli_seller_package_height", "SELLER_PACKAGE_HEIGHT"),
+        ("meli_seller_package_width",  "SELLER_PACKAGE_WIDTH"),
+        ("meli_seller_package_length", "SELLER_PACKAGE_LENGTH"),
+        ("meli_seller_package_weight", "SELLER_PACKAGE_WEIGHT"),
+    ]
+    # PACKAGE_* son atributos de catalogo (no modificables): se mandan como SELLER_PACKAGE_*
+    _MELI_PACKAGE_REMAP = {
+        "PACKAGE_HEIGHT": "SELLER_PACKAGE_HEIGHT",
+        "PACKAGE_WIDTH":  "SELLER_PACKAGE_WIDTH",
+        "PACKAGE_LENGTH": "SELLER_PACKAGE_LENGTH",
+        "PACKAGE_WEIGHT": "SELLER_PACKAGE_WEIGHT",
+    }
+    _MELI_DIM_NUM = r"(\d+(?:[.,]\d+)?)"
+    _MELI_DIM_UNIT = r"\s*(cm|mm|m|in)?"
+
+    def _meli_parse_package_dimensions( self, dims ):
+        """'Dimensiones del producto' -> {SELLER_PACKAGE_*: 'N cm' / 'N g'}.
+        Acepta el formato de ML 'alto x ancho x largo,peso' ('30x30x4,500': cm y g) y texto libre
+        ('30 x 30 x 4cm', '30 cm x 30 cm x 4 cm', '300x300x40 mm'). Lo que no entiende devuelve {}."""
+        res = {}
+        if not dims or not isinstance(dims, str):
+            return res
+        txt = dims.strip().lower().replace("\u00d7", "x").replace("*", "x")
+        num = self._MELI_DIM_NUM
+        unit = self._MELI_DIM_UNIT
+        # el 3er numero no admite coma decimal: en el formato de ML la coma separa el peso
+        pat = (r"^\s*" + num + unit + r"\s*x\s*" + num + unit + r"\s*x\s*(\d+(?:\.\d+)?)" + unit
+               + r"\s*(?:,\s*(\d+(?:[.,]\d+)?)\s*(g|gr|grs|kg)?)?\s*$")
+        m = re.match(pat, txt)
+        if not m:
+            return res
+        h, hu, w, wu, l, lu, wt, wtu = m.groups()
+        def_unit = lu or wu or hu or "cm"
+        factor = { "cm": 1.0, "mm": 0.1, "m": 100.0, "in": 2.54 }
+        def _cm( n, u ):
+            v = float(n.replace(",", ".")) * factor.get(u or def_unit, 1.0)
+            return ("%g cm" % round(v, 2)) if v > 0 else False
+        for att_id, n, u in (("SELLER_PACKAGE_HEIGHT", h, hu), ("SELLER_PACKAGE_WIDTH", w, wu), ("SELLER_PACKAGE_LENGTH", l, lu)):
+            v = _cm(n, u)
+            if v:
+                res[att_id] = v
+        if wt:
+            g = float(wt.replace(",", ".")) * (1000.0 if wtu == "kg" else 1.0)
+            if g >= 1:
+                res["SELLER_PACKAGE_WEIGHT"] = "%d g" % int(round(g))
+        return res
+
+    def _meli_package_weight_from_product( self, recs ):
+        """Peso Odoo (unidad de la plantilla: kg por defecto, o lb) -> 'N g'. False si no hay peso."""
+        for rec in recs:
+            if "weight" not in rec._fields or not rec.weight:
+                continue
+            uom = ""
+            tmpl = rec if rec._name == "product.template" else ("product_tmpl_id" in rec._fields and rec.product_tmpl_id)
+            if tmpl and "weight_uom_name" in tmpl._fields:
+                uom = (tmpl.weight_uom_name or "").lower()
+            g = float(rec.weight) * (453.592 if uom in ("lb", "lbs") else 1000.0)
+            if g >= 1:
+                return "%d g" % int(round(g))
+        return False
+
+    def _meli_seller_package_attributes( self, product_tmpl=None, product=None, attributes_ids=None, use_defaults=True ):
+        """Atributos SELLER_PACKAGE_* a agregar al body de publicacion (lista de dicts id/value_name).
+        Prioridad por atributo: valor cargado en meli_seller_package_* (target/binding, variante, plantilla)
+        > 'Dimensiones del producto' (meli_dimensions) > peso del producto (solo el peso).
+        Los defaults (dimensiones/peso) solo con use_defaults (publicacion nueva): a una publicacion viva
+        no se le pisan las medidas que tiene en ML con un valor derivado. No pisa ids ya presentes."""
+        attributes_ids = attributes_ids if attributes_ids is not None else {}
+        recs = []
+        for rec in (product, (len(self) == 1 and self) or None, product_tmpl,
+                    (len(self) == 1 and "product_tmpl_id" in self._fields and self.product_tmpl_id) or None):
+            if rec is not None and rec is not False and rec and len(rec) == 1 and rec not in recs:
+                recs.append(rec)
+        dims = {}
+        weight = False
+        if use_defaults:
+            for rec in recs:
+                if "meli_dimensions" in rec._fields and rec.meli_dimensions:
+                    dims = self._meli_parse_package_dimensions(rec.meli_dimensions)
+                    if dims:
+                        break
+            weight = self._meli_package_weight_from_product([r for r in recs if r._name in ("product.product", "product.template")])
+        added = []
+        for field, att_id in self._MELI_SELLER_PACKAGE_FIELDS:
+            if att_id in attributes_ids:
+                continue
+            val = False
+            for rec in recs:
+                if field in rec._fields and rec[field]:
+                    val = rec[field]
+                    break
+            if not val:
+                val = dims.get(att_id) or (att_id == "SELLER_PACKAGE_WEIGHT" and weight) or False
+            if val:
+                added.append({ "id": att_id, "value_name": str(val) })
+        if added:
+            _logger.info("seller_package attributes: " + str(added))
+        return added
+
     def action_category_predictor(self):
         return self.product_tmpl_id.action_category_predictor()
 
@@ -4074,6 +4192,11 @@ class product_product(models.Model):
     meli_category = fields.Many2one("mercadolibre.category","Categoría de MercadoLibre")
     meli_price = fields.Char( string='Precio',help='Precio de venta en ML', size=128)
     meli_dimensions = fields.Char( string="Dimensiones del producto", size=128)
+    # Medidas del paquete a enviar (Mercado Envios): ML las pide como SELLER_PACKAGE_* al publicar.
+    meli_seller_package_height = fields.Char(string="Alto del paquete [vendedor]", help="SELLER_PACKAGE_HEIGHT: Alto del paquete a enviar. Ej: '30 cm'. Si se deja vacio, al publicar se toma de 'Dimensiones del producto'.")
+    meli_seller_package_width  = fields.Char(string="Ancho del paquete [vendedor]", help="SELLER_PACKAGE_WIDTH: Ancho del paquete a enviar. Ej: '20 cm'. Si se deja vacio, al publicar se toma de 'Dimensiones del producto'.")
+    meli_seller_package_length = fields.Char(string="Largo del paquete [vendedor]", help="SELLER_PACKAGE_LENGTH: Largo del paquete a enviar. Ej: '40 cm'. Si se deja vacio, al publicar se toma de 'Dimensiones del producto'.")
+    meli_seller_package_weight = fields.Char(string="Peso del paquete [vendedor]", help="SELLER_PACKAGE_WEIGHT: Peso del paquete a enviar. Ej: '500 g'. Si se deja vacio, al publicar se toma del peso del producto.")
     meli_pub = fields.Boolean('Meli Publication',help='MELI Product',index=True)
 
     meli_buying_mode = fields.Selection( [("buy_it_now","Compre ahora"),("classified","Clasificado")], string='Método de compra')
