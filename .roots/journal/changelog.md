@@ -1,5 +1,10 @@
 # meli_oerp - Changelog
 
+## 17.0.26.440 — 23-nov-2026 · Release de flota 26.440
+- Sin cambios propios en este módulo: acompaña la versión 26.440 del suite (meli_oerp_stock: en modo de stock *Planificado* una entrega confirmada sin reserva se descuenta del stock que se publica — ya no se publica como libre una unidad vendida cuando se libera la reserva de otra venta).
+
+---
+
 ## 17.0.26.434 — 20-nov-2026 · Release de flota 26.434
 - Sin cambios propios en este módulo: acompaña la versión 26.434 del suite (meli_oerp_multiple: la limpieza de vinculaciones reconoce el código de publicación mal escrito —minúscula, sin prefijo del sitio, referencia interna—: lo consulta por su forma correcta o marca la línea como duplicada/código inválido para que la limpieza la elimine).
 
