@@ -230,3 +230,11 @@ suite, se llama a `super()` con el contexto propio (llega a todas las altas/escr
 post-procesa después. `data['order_json']` es el JSON efectivamente usado y `order.buyer` está vinculado también en
 órdenes nuevas. Ejemplo: `steeltiger_meli_contacts` (repo ctmil/steeltigers).
 
+
+## MLM: contacto de facturación predeterminado vs. comprador con RFC (26.444)
+- `mercadolibre_invoice_partner` («Contacto de Facturación Predeterminado», p. ej. MERCADO LIBRE FULL / XAXX010101000) **ya no pisa** al contacto fiscal del comprador cuando éste trae un RFC propio (no genérico, forma SAT) — opción `mercadolibre_mx_invoice_partner_by_rfc` (compañía y cuenta de `meli_oerp_multiple`, default **True**; ausente = True).
+- Sólo `partner_invoice_id`; `partner_id` (cliente) sigue siendo `mercadolibre_contact_partner`. Los pagos de accounting usan `sale_order.partner_invoice_id` ⇒ pago y factura quedan en el mismo contacto.
+- Venta ya facturada (facturas no canceladas): no cambia de contacto. Sólo MLM (`site_id` de la orden; en packs, país MX de la compañía).
+- Guarda: factura a RFC genérico ⇒ `l10n_mx_edi_usage = S01` (no toca `l10n_mx_edi_cfdi_to_public`: `meli_oerp_global_invoice` rechaza un move con to_public fuera del diario global).
+- Régimen/uso de ML (`_meli_mx_apply_cfdi`) se escriben en el contacto fiscal del comprador aunque la factura quede en el predeterminado. Contactos viejos con 601 de default: `mercadolibre_mx_cfdi_override_default`.
+- Código: `_meli_mx_invoice_partner`, `_meli_mx_public_usage_vals`, `_meli_mx_pack_usage_vals` (orders.py) · pack: shipment.py. Test `meli_26444`.
