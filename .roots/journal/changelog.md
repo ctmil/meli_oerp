@@ -1,5 +1,10 @@
 # meli_oerp - Changelog
 
+## 19.0.26.447 — 25-nov-2026 · Release de flota 26.447
+- Sin cambios propios en este módulo: acompaña la versión 26.447 del suite (meli_oerp_stock: nuevo «Tope de cantidad publicada» por producto y por variante — con N > 0 Odoo publica en Mercado Libre como máximo N unidades aunque haya más; 0 = sin tope, igual que antes. Reemplaza en la práctica a «Max Compra», que Mercado Libre dejó de aplicar el 30-oct-2026.)
+
+---
+
 ## 19.0.26.445 — 24-nov-2026 · Nombre de familia «None» en publicaciones nuevas
 - Al importar una publicación que en Mercado Libre no tiene nombre de familia, Odoo guardaba el texto «None». Al publicar después un producto con ese dato, Mercado Libre armaba el título «None <Color> <Talle>» y pausaba la publicación por infracción. Ahora un nombre de familia vacío (o con el texto «None» / «False») se trata como vacío: al publicar se usa el título o el nombre del producto. La actualización limpia esos textos en productos y variantes. Las publicaciones ya creadas en Mercado Libre no cambian (ML no deja modificar el nombre de familia de un ítem existente).
 - La importación de una publicación ya no se corta entera si falla el cálculo del precio (queda en 0 y sigue).
