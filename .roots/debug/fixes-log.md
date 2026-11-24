@@ -2,6 +2,20 @@
 
 > Historial de correcciones implementadas.
 
+## 26.444 (24-nov-2026) — MLM: factura al «Contacto de Facturación Predeterminado» aunque el comprador tenga RFC
+- **Síntoma:** un caso (Odoo 19, MLM, cuenta con predeterminado MERCADO LIBRE FULL / XAXX010101000): compradores que cargaron
+  RFC propio en ML quedaban facturados a XAXX/616 con el uso del comprador (G03/G01) ⇒ el PAC rechaza (CFDI40161).
+- **Causa:** `partner_invoice_id = mercadolibre_invoice_partner_id or partner_invoice_id` (orders.py y pack en shipment.py)
+  pisaba SIEMPRE el contacto fiscal que el import ya había armado; `_meli_mx_apply_cfdi` corría después sobre el predeterminado
+  (bloqueado ⇒ no-op) y el comprador quedaba con 601 de default; el uso de ML sí entraba a la venta.
+- **Fix:** `_meli_mx_invoice_partner` (MLM + RFC no genérico con forma SAT + venta sin facturas no canceladas ⇒ contacto del
+  comprador; opción `mercadolibre_mx_invoice_partner_by_rfc`, default True, campo ausente = True); CFDI de ML al contacto del
+  comprador; guarda `_meli_mx_public_usage_vals` (RFC genérico ⇒ uso S01, sin tocar cfdi_to_public); pack: mismo helper +
+  `_meli_mx_pack_usage_vals`. Sólo `partner_invoice_id` (pagos de accounting usan `partner_invoice_id`).
+- **Tests:** `tests/test_26444_cfdi_partner_rfc.py` (10, camino real por simulación + receptor CFDI de l10n_mx_edi): fix 0F en
+  16/17/18/19 (enterprise l10n_mx_edi[_sale]) y 20 (community); control = receptor ('XAXX010101000','616','G03').
+- **Pase:** columna nueva ⇒ `-u meli_oerp,meli_oerp_multiple`. Contactos viejos con 601: `mercadolibre_mx_cfdi_override_default`.
+
 ## 26.412 (16-nov-2026) — venta cancelada en ML: la variante volvía a la venta sin mercadería
 - **Síntoma:** un caso (Odoo 13, multi-cuenta): una compradora canceló (`buyer_cancel_express`) y la variación volvió a
   estar a la venta con 1 unidad que no existía. ML repone sola la unidad al cancelar; Odoo no publicaba nada y el cron
