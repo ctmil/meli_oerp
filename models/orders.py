@@ -184,6 +184,72 @@ def _meli_mx_cfdi_order_usage(usage, valid_usages, order_is_new, current_usage, 
     return None
 
 
+# ----------------------------------------------------------------------------------------------
+# 26.444: MLM, comprador CON RFC propio => la factura va a SU contacto fiscal, no al
+# "Contacto de Facturacion Predeterminado" (p.ej. MERCADO LIBRE FULL, XAXX010101000). Antes el
+# predeterminado pisaba siempre al comprador y la factura salia XAXX/616 con el uso del comprador
+# (G03/G01) => el PAC la rechaza (CFDI40161). Opcion de cuenta, default prendida; apagada = 26.440.
+# ----------------------------------------------------------------------------------------------
+_MELI_MX_INVOICE_BY_RFC_FLAG = 'mercadolibre_mx_invoice_partner_by_rfc'
+_MELI_MX_GENERIC_RFCS = ('XAXX010101000', 'XEXX010101000')
+_MELI_MX_PUBLIC_USAGE = 'S01'
+# RFC SAT: 3 (moral) o 4 (fisica) letras + AAMMDD + homoclave de 3
+_MELI_MX_RFC_RE = re.compile(r'^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$')
+
+
+def _meli_mx_norm_rfc(vat):
+    v = str(vat or '').strip().upper().replace(' ', '').replace('-', '').replace('.', '')
+    if v.startswith('MX') and len(v) in (14, 15):
+        v = v[2:]
+    return v
+
+
+def _meli_mx_rfc_is_generic(vat, generic_vats=None):
+    """RFC generico (publico en general / extranjero) o vacio."""
+    v = _meli_mx_norm_rfc(vat)
+    if not v:
+        return True
+    generic = set(_MELI_MX_GENERIC_RFCS) | set(_meli_mx_norm_rfc(g) for g in (generic_vats or []))
+    return v in generic
+
+
+def _meli_mx_rfc_is_fiscal(vat, generic_vats=None):
+    """RFC propio del comprador: no generico y con forma de RFC del SAT."""
+    if _meli_mx_rfc_is_generic(vat, generic_vats):
+        return False
+    return bool(_MELI_MX_RFC_RE.match(_meli_mx_norm_rfc(vat)))
+
+
+def _meli_mx_flag_on(config, flag=_MELI_MX_INVOICE_BY_RFC_FLAG, default=True):
+    """Opcion de cuenta/compania; si el campo no existe (modulo sin actualizar) vale el default."""
+    if config is None or flag not in getattr(config, '_fields', {}):
+        return default
+    return bool(getattr(config, flag, default))
+
+
+def _meli_mx_keep_buyer_invoice_partner(flag_on, is_mlm, default_set, buyer_vat, generic_vats,
+                                        order_has_invoices):
+    """True = NO aplicar el contacto de facturacion predeterminado: queda el contacto fiscal del comprador.
+
+    Solo MLM, con la opcion prendida, con un predeterminado configurado, comprador con RFC propio y
+    la venta todavia sin facturas (si ya facturo, cambiar el contacto de la venta separaria el pago
+    -payments usa partner_invoice_id- de la factura ya emitida)."""
+    return bool(flag_on and is_mlm and default_set and not order_has_invoices
+                and _meli_mx_rfc_is_fiscal(buyer_vat, generic_vats))
+
+
+def _meli_mx_public_usage(invoice_vat, generic_vats, valid_usages, current_usage, order_has_invoices):
+    """Guarda 26.444: factura a RFC generico => uso S01 siempre (XAXX con G03/G01 = CFDI40161).
+    None = no tocar. No toca ventas ya facturadas ni facturas con RFC propio."""
+    if order_has_invoices or not _meli_mx_norm_rfc(invoice_vat) or not _meli_mx_rfc_is_generic(invoice_vat, generic_vats):
+        return None
+    if _MELI_MX_PUBLIC_USAGE not in (valid_usages or ()):
+        return None
+    if (current_usage or False) == _MELI_MX_PUBLIC_USAGE:
+        return None
+    return _MELI_MX_PUBLIC_USAGE
+
+
 def _meli_partner_fiscal_sql_fix(cr, partner_id, set_clauses, values):
     """UPDATE res_partner SET <set_clauses> sólo si algún valor DIFIERE del guardado.
 
@@ -4526,6 +4592,96 @@ class mercadolibre_orders(models.Model):
         except Exception:
             return set()
 
+    def _meli_generic_vats_for(self, config=None, company=None):
+        """VATs genericos de la cuenta (mercadolibre_generic_vats) o, vacio, los del pais de la compania."""
+        raw = ''
+        if config is not None and 'mercadolibre_generic_vats' in getattr(config, '_fields', {}):
+            raw = config.mercadolibre_generic_vats or ''
+        if not raw and company and company.country_id and company.country_id.code == 'MX':
+            raw = ','.join(_MELI_MX_GENERIC_RFCS)
+        return [v.strip().upper() for v in raw.split(',') if v.strip()]
+
+    def _meli_mx_is_mlm(self, site_id=None, company=None):
+        """MercadoLibre Mexico: el site_id de la orden; sin site_id, el pais de la compania."""
+        if site_id:
+            return str(site_id).strip().upper() == 'MLM'
+        return bool(company and company.country_id and company.country_id.code == 'MX')
+
+    def _meli_order_has_invoices(self, sorder):
+        if not (sorder and sorder.id and 'invoice_ids' in sorder._fields):
+            return False
+        return bool(sorder.invoice_ids.filtered(lambda m: m.state != 'cancel'))
+
+    def _meli_mx_invoice_partner(self, default_invoice_partner, buyer_invoice_partner, config=None,
+                                 company=None, site_id=None, sorder=None, billing_info=None):
+        """26.444: contacto de facturacion efectivo de la venta.
+
+        Devuelve (partner, uso_contacto_comprador). Con RFC propio del comprador (MLM, opcion de cuenta
+        mercadolibre_mx_invoice_partner_by_rfc, default prendida) el contacto de facturacion
+        predeterminado NO pisa al contacto fiscal del comprador. Sin predeterminado, RFC generico o
+        sin RFC: igual que 26.440 (predeterminado or comprador)."""
+        if not default_invoice_partner:
+            return (buyer_invoice_partner, False)
+        buyer = buyer_invoice_partner
+        if not buyer or len(buyer) != 1 or buyer == default_invoice_partner:
+            return (default_invoice_partner, False)
+        keep = _meli_mx_keep_buyer_invoice_partner(
+            _meli_mx_flag_on(config), self._meli_mx_is_mlm(site_id, company), True,
+            buyer.vat, self._meli_generic_vats_for(config, company), self._meli_order_has_invoices(sorder))
+        if not keep:
+            return (default_invoice_partner, False)
+        # CP fiscal / pais: el SAT valida el CP del receptor. Solo se completa lo VACIO (no pisa).
+        if isinstance(billing_info, dict) and not ('meli_update_forbidden' in buyer._fields and buyer.meli_update_forbidden):
+            address = billing_info.get('address') if isinstance(billing_info.get('address'), dict) else {}
+            zip_code = str(billing_info.get('ZIP_CODE') or address.get('zip_code') or '').strip()
+            fill = {}
+            if zip_code and not buyer.zip:
+                fill['zip'] = zip_code
+            if not buyer.country_id:
+                mx = self.env.ref('base.mx', raise_if_not_found=False)
+                if mx:
+                    fill['country_id'] = mx.id
+            if fill:
+                try:
+                    with self.env.cr.savepoint():
+                        buyer.write(fill)
+                except Exception as e:
+                    _logger.warning("MX_INVOICE_BY_RFC: no se pudo completar %s en contacto id:%s: %s", fill, buyer.id, e)
+        _logger.info("MX_INVOICE_BY_RFC: factura al contacto fiscal del comprador id:%s (RFC %s) en vez del "
+                     "predeterminado id:%s", buyer.id, buyer.vat, default_invoice_partner.id)
+        return (buyer, True)
+
+    def _meli_mx_public_usage_vals(self, invoice_partner, config=None, company=None, sorder=None, site_id=None):
+        """26.444 guarda: factura a RFC generico (XAXX/XEXX) => uso de CFDI S01 en la venta (solo MLM)."""
+        if not invoice_partner or len(invoice_partner) != 1 or not self._meli_mx_is_mlm(site_id, company):
+            return {}
+        so_model = self.env['sale.order']
+        if _MELI_MX_USAGE_FIELD not in so_model._fields or 'vat' not in invoice_partner._fields:
+            return {}
+        usage = _meli_mx_public_usage(
+            invoice_partner.vat, self._meli_generic_vats_for(config, company),
+            self._meli_mx_selection_codes('sale.order', _MELI_MX_USAGE_FIELD),
+            (sorder and sorder.id and sorder[_MELI_MX_USAGE_FIELD]) or None,
+            self._meli_order_has_invoices(sorder))
+        if not usage:
+            return {}
+        return {_MELI_MX_USAGE_FIELD: usage}
+
+    def _meli_mx_pack_usage_vals(self, invoice_partner, by_rfc, config=None, company=None, sorder=None):
+        """26.444 uso de CFDI de la venta de un PACK (no tiene billing-info propio).
+        Contacto fiscal del comprador => su uso (ML), venta nueva o sin facturas. RFC generico => S01."""
+        vals = self._meli_mx_public_usage_vals(invoice_partner, config=config, company=company, sorder=sorder)
+        if vals or not by_rfc or not invoice_partner or len(invoice_partner) != 1:
+            return vals
+        if _MELI_MX_USAGE_FIELD not in self.env['sale.order']._fields or _MELI_MX_USAGE_FIELD not in invoice_partner._fields:
+            return {}
+        usage = invoice_partner[_MELI_MX_USAGE_FIELD]
+        so = sorder if (sorder and sorder.id) else None
+        out = _meli_mx_cfdi_order_usage(
+            usage, self._meli_mx_selection_codes('sale.order', _MELI_MX_USAGE_FIELD),
+            not so, so and so[_MELI_MX_USAGE_FIELD], self._meli_order_has_invoices(so))
+        return {_MELI_MX_USAGE_FIELD: out} if out else {}
+
     def _meli_mx_apply_cfdi(self, partner, billing_info, is_new=False, config=None):
         """MLM: escribe regimen fiscal / uso de CFDI de ML en el contacto fiscal, sin pisar lo cargado a mano.
         No-op sin l10n_mx_edi, sin codigos de ML, con codigos fuera de la seleccion o con el contacto bloqueado.
@@ -7012,7 +7168,11 @@ class mercadolibre_orders(models.Model):
             mercadolibre_shipping_partner_id.meli_update_forbidden = True
 
         partner_id =  mercadolibre_contact_partner_id or partner_id
-        partner_invoice_id = mercadolibre_invoice_partner_id or partner_invoice_id
+        # 26.444: MLM con RFC propio del comprador => su contacto fiscal, no el predeterminado
+        _mx_buyer_invoice_partner = partner_invoice_id
+        partner_invoice_id, _mx_invoice_by_rfc = self._meli_mx_invoice_partner(
+            mercadolibre_invoice_partner_id, partner_invoice_id, config=config, company=company,
+            site_id=order_json.get('site_id'), sorder=sorder, billing_info=_mx_cfdi_billing_info)
         partner_shipping_id = mercadolibre_shipping_partner_id or partner_shipping_id
 
         # Unificar los 3 contactos cuando todos comparten el mismo nombre (modo Brasil)
@@ -7095,6 +7255,11 @@ class mercadolibre_orders(models.Model):
 
         # MLM: regimen fiscal / uso de CFDI informados por ML -> contacto fiscal (sin pisar lo cargado a mano)
         _mx_cfdi_partner = partner_invoice_id or partner_id
+        # 26.444: si la factura quedo en el predeterminado (bloqueado), el dato de ML va igual al
+        # contacto fiscal del COMPRADOR (antes se intentaba sobre el predeterminado y era no-op).
+        if (mercadolibre_invoice_partner_id and _mx_cfdi_partner == mercadolibre_invoice_partner_id
+                and _mx_buyer_invoice_partner and _mx_buyer_invoice_partner != mercadolibre_invoice_partner_id):
+            _mx_cfdi_partner = _mx_buyer_invoice_partner
         if _mx_cfdi_billing_info and _mx_cfdi_partner:
             self._meli_mx_apply_cfdi(_mx_cfdi_partner, _mx_cfdi_billing_info,
                                      is_new=(_mx_cfdi_partner.id in _mx_cfdi_new_partner_ids),
@@ -7113,6 +7278,13 @@ class mercadolibre_orders(models.Model):
                 bool(_mx_so and 'invoice_ids' in _mx_so._fields and _mx_so.invoice_ids))
             if _mx_so_usage:
                 meli_order_fields[_MELI_MX_USAGE_FIELD] = _mx_so_usage
+        # 26.444 guarda: factura a RFC generico (XAXX) => uso S01, nunca G03/G01 (CFDI40161)
+        _mx_inv_eff = partner_invoice_id
+        if (sorder and sorder.id and sorder.partner_invoice_id and sorder.partner_invoice_id != partner_invoice_id
+                and sorder._meli_address_locked('partner_invoice_id')):
+            _mx_inv_eff = sorder.partner_invoice_id
+        meli_order_fields.update(self._meli_mx_public_usage_vals(
+            _mx_inv_eff, config=config, company=company, sorder=sorder, site_id=order_json.get('site_id')))
 
         if partner_id:
             partner_already_set = (sorder and sorder.partner_id and sorder.partner_id.id == partner_id.id)

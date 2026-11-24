@@ -768,6 +768,16 @@ class res_company(models.Model):
              "Evita triplicar contactos para la misma persona.",
     )
 
+    mercadolibre_mx_invoice_partner_by_rfc = fields.Boolean(
+        string="México: facturar al comprador con RFC propio (no al contacto de facturación predeterminado)",
+        default=True,
+        help="Sólo MercadoLibre México. Si el comprador cargó en ML un RFC propio (no XAXX010101000 / "
+             "XEXX010101000), la venta y la factura van a su contacto fiscal (razón social, RFC, CP, régimen y "
+             "uso de CFDI de ML) aunque haya un «Contacto de Facturación Predeterminado». Sin RFC o con RFC "
+             "genérico se usa el predeterminado como siempre, con uso de CFDI S01. No cambia ventas ya "
+             "facturadas. Apagada: el predeterminado se aplica siempre (comportamiento anterior a 26.444).",
+    )
+
     mercadolibre_mx_cfdi_override_default = fields.Boolean(
         string="México: corregir régimen/uso CFDI por defecto (601/G03) con el dato de ML",
         default=False,
