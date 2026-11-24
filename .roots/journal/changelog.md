@@ -1,5 +1,11 @@
 # meli_oerp - Changelog
 
+## 17.0.26.445 — 24-nov-2026 · Nombre de familia «None» en publicaciones nuevas
+- Al importar una publicación que en Mercado Libre no tiene nombre de familia, Odoo guardaba el texto «None». Al publicar después un producto con ese dato, Mercado Libre armaba el título «None <Color> <Talle>» y pausaba la publicación por infracción. Ahora un nombre de familia vacío (o con el texto «None» / «False») se trata como vacío: al publicar se usa el título o el nombre del producto. La actualización limpia esos textos en productos y variantes. Las publicaciones ya creadas en Mercado Libre no cambian (ML no deja modificar el nombre de familia de un ítem existente).
+- La importación de una publicación ya no se corta entera si falla el cálculo del precio (queda en 0 y sigue).
+
+---
+
 ## 17.0.26.444 — 24-nov-2026 · MLM: factura al comprador con RFC propio
 - Mercado Libre México: cuando el comprador cargó en Mercado Libre un RFC propio, la venta y la factura van a su contacto fiscal (razón social, RFC, código postal, régimen y uso de CFDI informados por ML) aunque la cuenta tenga un «Contacto de Facturación Predeterminado» (p. ej. MERCADO LIBRE FULL); con RFC genérico (XAXX010101000 / XEXX010101000) o sin RFC se usa el predeterminado como siempre y el uso de CFDI queda en S01 (nunca XAXX con G03/G01, que el PAC rechaza con CFDI40161). Vale también para los carritos (pack). Ventas ya facturadas no cambian de contacto. Opción «México: facturar al comprador con RFC propio», prendida por defecto; apagada = comportamiento anterior. El régimen y uso de ML se escriben en el contacto fiscal del comprador también cuando la factura queda en el predeterminado (antes se intentaba sobre el predeterminado, bloqueado, y no se escribía nada).
 
