@@ -1942,7 +1942,11 @@ class mercadolibre_shipment(models.Model):
                         mercadolibre_shipping_partner_id.meli_update_forbidden = True
 
                     partner_id =  mercadolibre_contact_partner_id or partner_id
-                    partner_invoice_id = mercadolibre_invoice_partner_id or partner_invoice_id
+                    # 26.444: MLM con RFC propio del comprador => su contacto fiscal, no el predeterminado
+                    _mx_pack_so = self.env["sale.order"].search([('meli_order_id', '=', packed_order_ids)], order="id asc", limit=1)
+                    partner_invoice_id, _mx_invoice_by_rfc = self.env['mercadolibre.orders']._meli_mx_invoice_partner(
+                        mercadolibre_invoice_partner_id, partner_invoice_id, config=config, company=company,
+                        site_id=None, sorder=_mx_pack_so)
                     partner_shipping_id = mercadolibre_shipping_partner_id or partner_shipping_id
 
 
@@ -2048,6 +2052,15 @@ class mercadolibre_shipment(models.Model):
                         self.env["sale.order"].browse(sorder_pack[:1].ids)._meli_merge_ml_addresses(
                             meli_order_fields, invoice_partner=partner_invoice_id or None,
                             shipping_partner=partner_shipping_id or None)
+
+                        # 26.444 uso de CFDI del pack: con el contacto fiscal del comprador, el uso que ML
+                        # le informo (las ordenes del pack lo escribieron en el contacto); con RFC generico, S01.
+                        _mx_orders = self.env['mercadolibre.orders']
+                        _mx_inv_eff = (sorder_pack[:1].partner_invoice_id
+                                       if 'partner_invoice_id' not in meli_order_fields and sorder_pack[:1]
+                                       else partner_invoice_id)
+                        meli_order_fields.update(_mx_orders._meli_mx_pack_usage_vals(
+                            _mx_inv_eff, _mx_invoice_by_rfc, config=config, company=company, sorder=sorder_pack[:1]))
 
                         if ("pack_id" in all_orders[0] and all_orders[0]["pack_id"]):
                             meli_order_fields['name'] = "ML %s" % ( str(all_orders[0]["pack_id"]) )
