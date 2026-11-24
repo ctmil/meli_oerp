@@ -106,6 +106,23 @@ def _meli_is_valid_gtin(code):
     except Exception:
         return False
 
+# [26.445] ML devuelve `family_name: null` en los items que no son de user product. Importarlo
+# con str() guardaba el TEXTO 'None' (y str(False) => 'False'); al publicar, ML armaba el titulo
+# "None <Color> <Talle>" y moderaba el item por infraccion. Un family_name asi es VACIO: no se
+# guarda ni se envia.
+MELI_FAMILY_NAME_EMPTY = ('None', 'False')
+
+
+def meli_family_name_clean(value):
+    """family_name utilizable, o False si esta vacio o es el texto 'None'/'False' de un str() viejo."""
+    if value is None or value is False:
+        return False
+    value = str(value).strip()
+    if not value or value in MELI_FAMILY_NAME_EMPTY:
+        return False
+    return value
+
+
 class MyHTMLParser(HTMLParser):
 
     full_text = ""
@@ -2600,7 +2617,7 @@ class product_product(models.Model):
         try:
             if (float(rjson['price'])>=0.0):
                 product._meli_set_product_price( product_template, meli_list_price )
-        except:
+        except Exception as e:
             _logger.info(e, exc_info=True)
             rjson['price'] = 0.0
 
@@ -2616,7 +2633,7 @@ class product_product(models.Model):
             #'meli_post_required': True,
             'meli_id': rjson['id'],
             'meli_title': str(rjson['title']),
-            'meli_family_name': str(rjson['family_name']),
+            'meli_family_name': meli_family_name_clean(rjson.get('family_name')),
             'meli_description': desplain,
             'meli_listing_type': rjson['listing_type_id'],
             'meli_buying_mode':rjson['buying_mode'],
@@ -4019,7 +4036,7 @@ class product_product(models.Model):
         if product_tmpl.meli_title==False or ( product_tmpl.meli_title and len(product_tmpl.meli_title)==0 ):
             product_tmpl.meli_title = product_tmpl.name
 
-        if product_tmpl.meli_family_name==False or ( product_tmpl.meli_family_name and len(product_tmpl.meli_family_name)==0 ):
+        if not meli_family_name_clean(product_tmpl.meli_family_name):
             product_tmpl.meli_family_name = product_tmpl.meli_title or product_tmpl.name
 
         if config.mercadolibre_buying_mode and product_tmpl.meli_buying_mode==False:
@@ -4361,9 +4378,9 @@ class product_product(models.Model):
             body["video_id"] = product.meli_video.strip()
         if (config and "mercadolibre_user_product_seller" in config._fields ):
             if (config.mercadolibre_user_product_seller):
-                body["family_name"] = product.meli_family_name or product.meli_title or ''
+                body["family_name"] = meli_family_name_clean(product.meli_family_name) or product.meli_title or ''
             else:
-                body["title"] = product.meli_title or product.meli_family_name or ''
+                body["title"] = product.meli_title or meli_family_name_clean(product.meli_family_name) or ''
 
         if product.meli_max_purchase_quantity:
             body["sale_terms"].append({
@@ -4432,9 +4449,9 @@ class product_product(models.Model):
                 body["video_id"] = product.meli_video.strip()
             if (config and "mercadolibre_user_product_seller" in config._fields ):
                 if (config.mercadolibre_user_product_seller):
-                    body["family_name"] = product.meli_family_name or product.meli_title or ''
+                    body["family_name"] = meli_family_name_clean(product.meli_family_name) or product.meli_title or ''
                 else:
-                    body["title"] = product.meli_family_name or product.meli_title or ''
+                    body["title"] = meli_family_name_clean(product.meli_family_name) or product.meli_title or ''
 
                 
 

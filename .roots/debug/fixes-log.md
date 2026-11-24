@@ -2,6 +2,23 @@
 
 > Historial de correcciones implementadas.
 
+## 26.445 (24-nov-2026) — family_name 'None' en el título de ML
+- **Síntoma:** un caso (Odoo 13): publicación nueva salió con título «None Celeste 3» y ML la pausó por infracción
+  («El título y/o las fotos no coinciden con el producto»). En esa base, 416 plantillas / 426 variantes con 'None'.
+- **Causa:** `product_meli_get_product` importaba `'meli_family_name': str(rjson['family_name'])` ⇒ un null de ML
+  quedaba como el TEXTO 'None'. `_product_post` sólo rellenaba si era False/'' y el body lo mandaba tal cual; ML arma
+  el título user_product = family_name + atributos.
+- **Fix:** helper de módulo `meli_family_name_clean()` ('None'/'False'/vacío ⇒ False) en la importación, la
+  preparación de la plantilla y todos los `body["family_name"|"title"]`. Migración `post-migrate` 16.0.26.445:
+  `UPDATE ... SET meli_family_name = NULL WHERE btrim(meli_family_name) IN ('None','False')` en product_template y
+  product_product (sólo valores exactos; idempotente; no llama a ML; ítems existentes no cambian — ML no acepta
+  family_name en un PUT). Extra: `except:` sin nombre que hacía `_logger.info(e)` en el precio de la importación
+  ⇒ UnboundLocalError abortaba toda la importación; ahora `except Exception as e`.
+- **Tests:** `meli_26445` (`tests/test_26445_family_name_none.py`: helper, importación con fake ML, migración) en bancos
+  16–20; 13.0 sin core local: `python3 tests/test_26445_family_name_none_sin_odoo.py` (sin Odoo).
+- **No cubierto (14.0/15.0 congeladas):** mismo `str(rjson['family_name'])`. En 16–20 `_meli_set_product_price` lee
+  `product_template.lst_price` (campo de variante) en la rama sin lista de precios: falla y deja el precio en 0.
+
 ## 26.444 (24-nov-2026) — MLM: factura al «Contacto de Facturación Predeterminado» aunque el comprador tenga RFC
 - **Síntoma:** un caso (Odoo 19, MLM, cuenta con predeterminado MERCADO LIBRE FULL / XAXX010101000): compradores que cargaron
   RFC propio en ML quedaban facturados a XAXX/616 con el uso del comprador (G03/G01) ⇒ el PAC rechaza (CFDI40161).
