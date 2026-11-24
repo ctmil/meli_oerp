@@ -1,5 +1,10 @@
 # meli_oerp - Changelog
 
+## 19.0.26.444 — 24-nov-2026 · MLM: factura al comprador con RFC propio
+- Mercado Libre México: cuando el comprador cargó en Mercado Libre un RFC propio, la venta y la factura van a su contacto fiscal (razón social, RFC, código postal, régimen y uso de CFDI informados por ML) aunque la cuenta tenga un «Contacto de Facturación Predeterminado» (p. ej. MERCADO LIBRE FULL); con RFC genérico (XAXX010101000 / XEXX010101000) o sin RFC se usa el predeterminado como siempre y el uso de CFDI queda en S01 (nunca XAXX con G03/G01, que el PAC rechaza con CFDI40161). Vale también para los carritos (pack). Ventas ya facturadas no cambian de contacto. Opción «México: facturar al comprador con RFC propio», prendida por defecto; apagada = comportamiento anterior. El régimen y uso de ML se escriben en el contacto fiscal del comprador también cuando la factura queda en el predeterminado (antes se intentaba sobre el predeterminado, bloqueado, y no se escribía nada).
+
+---
+
 ## 19.0.26.440 — 23-nov-2026 · Release de flota 26.440
 - Sin cambios propios en este módulo: acompaña la versión 26.440 del suite (meli_oerp_stock: en modo de stock *Planificado* una entrega confirmada sin reserva se descuenta del stock que se publica — ya no se publica como libre una unidad vendida cuando se libera la reserva de otra venta).
 
