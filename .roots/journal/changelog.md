@@ -1,5 +1,13 @@
 # meli_oerp - Changelog
 
+## 17.0.26.453 — 25-nov-2026 · el aviso de venta cancelada por ML se escribe UNA vez
+- «Orden cancelada por MercadoLibre. Motivo: …» se escribía en el chatter en CADA sincronización de una venta que ya
+  estaba cancelada. Ahora se escribe cuando la venta se cancela y, si la venta ya estaba cancelada, sólo si el aviso
+  todavía no está. Las ventas viejas que ya lo tienen no reciben uno más. Lo mismo para «No se pudo cancelar la orden
+  automáticamente…» (una vez por venta y por error). Release de flota 26.453 en el resto del suite.
+
+---
+
 ## 17.0.26.450 — 25-nov-2026 · «Envío ML» en la factura impresa
 - La factura impresa muestra «Envío ML: <número>» debajo del bloque de información cuando viene de una venta de
   Mercado Libre con envío (Mercado Libre imprime en la etiqueta el número de ENVÍO, no el de venta: así se cruzan a
