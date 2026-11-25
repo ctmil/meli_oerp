@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Numero de ENVIO de Mercado Libre en la factura impresa, debajo del bloque de informacion
+         (donde va el Origen = nro de venta). ML imprime en la etiqueta el nro de envio: con esto
+         factura y etiqueta se cruzan a simple vista.
+         Ancla = HERMANO de div#informations, no un nodo de adentro: l10n_ar (y otras localizaciones)
+         hacen una copia primary del reporte y REEMPLAZAN ese div; un xpath sobre el campo
+         invoice_origin queda borrado en la copia sin error (medido en un caso, 25-nov-2026). -->
+    <template id="report_invoice_document_meli_shipping" inherit_id="account.report_invoice_document">
+        <xpath expr="//div[@id='informations']" position="after">
+            <t t-set="meli_shipping_ids" t-value="o.invoice_line_ids.sale_line_ids.order_id.filtered(lambda so: so.meli_shipping_id).mapped('meli_shipping_id')"/>
+            <div t-if="meli_shipping_ids" name="meli_shipping" class="row mb8">
+                <div class="col-12">
+                    <strong>Envío ML:</strong>
+                    <span t-out="', '.join(meli_shipping_ids)"/>
+                </div>
+            </div>
+        </xpath>
+    </template>
+</odoo>

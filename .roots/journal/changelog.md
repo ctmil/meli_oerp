@@ -1,5 +1,15 @@
 # meli_oerp - Changelog
 
+## 19.0.26.450 — 25-nov-2026 · «Envío ML» en la factura impresa
+- La factura impresa muestra «Envío ML: <número>» debajo del bloque de información cuando viene de una venta de
+  Mercado Libre con envío (Mercado Libre imprime en la etiqueta el número de ENVÍO, no el de venta: así se cruzan a
+  simple vista). Sobrevive a localizaciones que reemplazan ese bloque (l10n_ar). Facturas sin envío ML: sin cambios.
+  Origen: pedido de un cliente, probado en su base; template `report/report_invoice_meli_shipping.xml`.
+- Acompaña meli_oerp_multiple 26.450 (seguridad: `/ocapi/mercadolibre/status` por lista cerrada de campos, nunca
+  tokens ni claves).
+
+---
+
 ## 19.0.26.449 — 25-nov-2026 · Release de flota 26.449
 - Sin cambios propios en este módulo: acompaña la versión 26.449 del suite (meli_oerp_multiple: con «User Product Seller» prendido, «Actualizar» una publicación que ya tiene variaciones en Mercado Libre ya no corta con `KeyError: 'title'`; la actualización de las variaciones va con el título).
 
