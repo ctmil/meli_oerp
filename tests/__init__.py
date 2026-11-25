@@ -63,3 +63,4 @@ from . import test_26403_modo_config_sin_campo
 from . import test_26412_cancelada_stock
 from . import test_26444_cfdi_partner_rfc
 from . import test_26445_family_name_none
+from . import test_26450_envio_ml_factura
