@@ -1,5 +1,10 @@
 # meli_oerp - Changelog
 
+## 20.0.26.449 — 25-nov-2026 · Release de flota 26.449
+- Sin cambios propios en este módulo: acompaña la versión 26.449 del suite (meli_oerp_multiple: con «User Product Seller» prendido, «Actualizar» una publicación que ya tiene variaciones en Mercado Libre ya no corta con `KeyError: 'title'`; la actualización de las variaciones va con el título).
+
+---
+
 ## 20.0.26.447 — 25-nov-2026 · Release de flota 26.447
 - Sin cambios propios en este módulo: acompaña la versión 26.447 del suite (meli_oerp_stock: nuevo «Tope de cantidad publicada» por producto y por variante — con N > 0 Odoo publica en Mercado Libre como máximo N unidades aunque haya más; 0 = sin tope, igual que antes. Reemplaza en la práctica a «Max Compra», que Mercado Libre dejó de aplicar el 30-oct-2026.)
 
