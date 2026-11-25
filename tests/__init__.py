@@ -65,3 +65,4 @@ from . import test_26444_cfdi_partner_rfc
 from . import test_26445_family_name_none
 from . import test_26450_envio_ml_factura
 from . import test_26452_factura_desde_venta
+from . import test_26453_cancelada_aviso_una_vez
