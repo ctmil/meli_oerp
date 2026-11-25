@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Ventas › Imprimir › «Factura»: la factura publicada de la venta, con el reporte de
+         Contabilidad (account.account_invoices). Ver models/sale_order_print_invoice.py. -->
+    <record id="action_sale_order_print_invoices" model="ir.actions.server">
+        <field name="name">Factura</field>
+        <field name="model_id" ref="sale.model_sale_order"/>
+        <field name="binding_model_id" ref="sale.model_sale_order"/>
+        <field name="binding_type">report</field>
+        <field name="binding_view_types">list,form</field>
+        <field name="state">code</field>
+        <field name="code">action = records.meli_action_print_invoices()</field>
+    </record>
+</odoo>
