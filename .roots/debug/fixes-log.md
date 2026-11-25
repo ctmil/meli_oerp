@@ -2,6 +2,21 @@
 
 > Historial de correcciones implementadas.
 
+## 26.453 (25-nov-2026) — aviso «Orden cancelada por MercadoLibre» repetido en cada sync
+- **Síntoma:** un caso (Odoo 19): el chatter de una venta cancelada en ML acumulaba el mismo «Orden cancelada por
+  MercadoLibre. Motivo: …» en cada pasada de la sincronización.
+- **Causa:** `confirm_ml` (y los crons de resync) llaman a `meli_cancel_with_detail` con meli_status='cancelled' sin
+  mirar si la venta YA está en 'cancel'; `_meli_cancel_finish` paso 5 hacía `message_post(cancel_msg)` siempre que la
+  venta quedara cancelada, sin marca. El paso 4 («No se pudo cancelar la orden automáticamente: <e>») igual, con el
+  cron reintentando mientras la venta no cancele.
+- **Fix:** paso 5 — si la venta se canceló EN ESTA PASADA se escribe (con marca `cancel-done-<id>`); si ya estaba
+  cancelada, sólo si no está la marca ni el mismo texto sin marca (guarda de legado: ventas anteriores no reciben
+  uno más). Paso 4 — marca `cancel-fail-<id>-<hash del error>` + guarda de legado. Sigue `message_post` directo con
+  `order_message_type` (no pasa por notification_mode: visibilidad sin cambios).
+- **Tests:** `meli_26453` (`tests/test_26453_cancelada_aviso_una_vez.py`, 6 tests: 3 syncs por `confirm_ml`, finish ×2,
+  transición, legado sin marca, cancelada a mano, fallo ×2). Bancos 16–20: fix verde; control (origin + sólo el
+  test) 5 de 6 en rojo (sin fix: 3 syncs ⇒ 3 avisos).
+
 ## 26.445 (24-nov-2026) — family_name 'None' en el título de ML
 - **Síntoma:** un caso (Odoo 13): publicación nueva salió con título «None Celeste 3» y ML la pausó por infracción
   («El título y/o las fotos no coinciden con el producto»). En esa base, 416 plantillas / 426 variantes con 'None'.

@@ -2900,10 +2900,20 @@ class sale_order(models.Model):
                 cancelled = self._meli_action_cancel()
             except Exception as e:
                 _logger.error("meli_cancel_with_detail: no se pudo cancelar la orden %s: %s", self.name, e, exc_info=True)
-                self.message_post(
-                    body="No se pudo cancelar la orden automáticamente: %s. Gestionar manualmente." % str(e),
-                    message_type=order_message_type
-                )
+                # 26.453 (un caso): el cron reintenta mientras la venta no cancele => el mismo error se
+                # escribía en CADA pasada. Una vez por venta y por error (la clave lleva el hash del
+                # detalle: un error distinto sí se avisa). Guarda de legado: si el chatter ya lo
+                # tiene sin marca (ventas anteriores a 26.453), tampoco se repite.
+                fail_detail = str(e)
+                fail_body = "No se pudo cancelar la orden automáticamente: %s. Gestionar manualmente." % fail_detail
+                fail_key = "cancel-fail-%s-%s" % (self.id, self._meli_short_hash(fail_detail))
+                if meli_message_already_posted(self, fail_key) or meli_message_text_posted(self, fail_body):
+                    _logger.info("meli_cancel_with_detail: %s — aviso de cancelación fallida ya en el chatter", self.name)
+                else:
+                    self.message_post(
+                        body=meli_message_body_with_marker(fail_body, fail_key),
+                        message_type=order_message_type
+                    )
         else:
             _logger.warning(
                 "meli_cancel_with_detail: la orden %s está en state=%s — no es un estado cancelable.",
@@ -2914,8 +2924,21 @@ class sale_order(models.Model):
         #    SÓLO si realmente se canceló: el defecto que motivó este cambio no era que
         #    fallara, era que DEJABA ESCRITO que había cancelado una venta que seguía viva.
         #    Un chatter que miente es peor que un error, porque cierra la investigación.
+        #    26.453 (un caso): la sincronización vuelve a pasar por acá
+        #    con la venta YA cancelada (confirm_ml llama a meli_cancel_with_detail sin mirar el
+        #    estado) y el motivo se escribía de nuevo en CADA sync. Ahora:
+        #      - TRANSICIÓN (se canceló en esta pasada): se escribe, como siempre;
+        #      - ya estaba cancelada: sólo si el aviso todavía no está (marca once_key, o el mismo
+        #        texto sin marca en ventas anteriores a 26.453).
+        #    Sigue con message_post directo y order_message_type: no cambia la visibilidad.
         if cancelled:
-            self.message_post(body=cancel_msg, message_type=order_message_type)
+            done_key = "cancel-done-%s" % self.id
+            if was_cancelled and (meli_message_already_posted(self, done_key)
+                                  or meli_message_text_posted(self, cancel_msg)):
+                _logger.info("meli_cancel_with_detail: %s ya cancelada y con el aviso en el chatter", self.name)
+            else:
+                self.message_post(body=meli_message_body_with_marker(cancel_msg, done_key),
+                                  message_type=order_message_type)
         else:
             meli_message_post(
                 self,
