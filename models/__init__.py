@@ -22,6 +22,7 @@ from . import claim
 from . import orders
 from . import meli_cancel_stock
 from . import sale_order_invoice_state
+from . import sale_order_print_invoice
 from . import res_partner
 from . import res_groups
 #from . import currency
