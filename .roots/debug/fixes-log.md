@@ -2,6 +2,22 @@
 
 > Historial de correcciones implementadas.
 
+## 26.479 (27-nov-2026) — multiget `GET /items?ids=` deprecado por ML
+- **Síntoma:** un caso: el reporte diario y las lecturas por lote fallaban con `{'error': 'ResourceDeprecated', 'message':
+  'Resource deprecated - client no longer allowed to consume this resource'}` (403). Medido: multiget 8/32 = 403, la misma
+  publicación alterna 200/403, con y sin `attributes`; `GET /items/<id>` suelto 32/32 = 200.
+- **Causa:** ML está dando de baja el multiget. Cada llamador hacía su propio `/items?ids=` y ante una respuesta que no era
+  lista perdía el lote entero sin log por id (`get_all_items_from_ML` además hacía `extend()` del dict de error).
+- **Fix:** `meli_items_get(meli, ids, attributes, extra, multiget)` en `models/meli_util.py` + `meli.util`.meli_items_get
+  (lee `meli_oerp.items_multiget`; getter tolerante a Odoo 20 `get_str`). Multiget primero; lote no-lista o entrada con
+  code≠200 (salvo 404) ⇒ `GET /items/<id>` con 2 reintentos ante 0/429/5xx; `ResourceDeprecated` ⇒ sin multiget 6 h en el
+  proceso. Devuelve `[{code, body}]` alineada con los ids pedidos; ilegible ⇒ `{code, body:{error,message,status}}` + WARNING
+  con el id. Path sin query y params en dict nuevo por llamada (el cliente SDK concatena `?` y borra el token del dict).
+- **Tests:** `meli_26479` (7): deprecado devuelve todo en orden y 1 solo multiget; entrada con error se relee y 404 no;
+  429 se reintenta e ilegible queda explícito; parámetro apaga multiget; ids repetidos/vacíos alineados; diagnóstico de
+  stock y `filter_meli_ids` con multiget deprecado. Fakes de `meli_26341`/K01 aceptan `/items` + params. Bancos 16–20 verdes
+  (17.0 suite completa meli_oerp+multiple 827/827); control 20.0 = sólo los 7 nuevos en rojo.
+
 ## 26.453 (25-nov-2026) — aviso «Orden cancelada por MercadoLibre» repetido en cada sync
 - **Síntoma:** un caso (Odoo 19): el chatter de una venta cancelada en ML acumulaba el mismo «Orden cancelada por
   MercadoLibre. Motivo: …» en cada pasada de la sincronización.

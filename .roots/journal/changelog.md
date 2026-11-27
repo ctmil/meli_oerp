@@ -1,5 +1,17 @@
 # meli_oerp - Changelog
 
+## 19.0.26.479 — 27-nov-2026 · Las lecturas de publicaciones resisten el multiget deprecado por ML
+- **ML deprecó el multiget `GET /items?ids=`:** desde ~26-nov-2026 Mercado Libre responde 403 `ResourceDeprecated` a una
+  parte al azar de esas consultas (y se espera que pase a todas). Las lecturas de varias publicaciones ya no pierden el lote:
+  nuevo helper `meli_items_get` (`models/meli_util.py`, y `meli.util`.meli_items_get) que intenta el multiget y relee de a
+  una (`GET /items/<id>`, con reintento corto ante 429/5xx) lo que ML no devuelve; al primer `ResourceDeprecated` deja de
+  intentar el multiget por 6 h. Parámetro `meli_oerp.items_multiget = 0` = siempre de a una. Lo usan `filter_meli_ids`,
+  `get_all_items_from_existing_sku`, `get_all_items_from_ML` y el diagnóstico de stock (`_meli_diag_multiget`).
+- Test `meli_26479` (7 casos). Release de flota 26.479 (meli_oerp_multiple con cambios; stock, accounting,
+  autofacturacion y campaign sin cambios propios).
+
+---
+
 ## 19.0.26.453 — 25-nov-2026 · el aviso de venta cancelada por ML se escribe UNA vez
 - «Orden cancelada por MercadoLibre. Motivo: …» se escribía en el chatter en CADA sincronización de una venta que ya
   estaba cancelada. Ahora se escribe cuando la venta se cancela y, si la venta ya estaba cancelada, sólo si el aviso
