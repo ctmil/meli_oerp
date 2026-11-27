@@ -253,6 +253,152 @@ def meli_instance_session(meli):
     return (meli is not None and getattr(meli, "_session", None)) or requests
 
 
+# ---------------------------------------------------------------------------
+#  26.479 — ML DEPRECÓ EL MULTIGET `GET /items?ids=` (27-nov-2026, flota).
+#  Desde ~26-nov ML contesta 403 {"error": "ResourceDeprecated", "message": "Resource deprecated -
+#  client no longer allowed to consume this resource"} a una fracción AL AZAR de los multiget (un cliente:
+#  8/32 = 403, la MISMA publicación alterna 200/403); `GET /items/<id>` suelto respondió 32/32.
+#  Antes cada llamador hacía su multiget y, ante una respuesta que no era lista, perdía el lote
+#  ENTERO en silencio (o, en get_all_items_from_ML, hacía extend() de las claves del dict de error).
+#  TODO lectura de varias publicaciones pasa ahora por `meli_items_get`:
+#    - intenta el multiget (mientras ML lo siga sirviendo es 1 request por cada 20);
+#    - un lote que no vuelve como lista, o una entrada con code != 200 (salvo 404 real), se relee
+#      por `GET /items/<id>` de a uno, con reintento corto ante 429/5xx/red;
+#    - al primer ResourceDeprecated el PROCESO deja de intentar multiget por 6 h (cuando ML llegue
+#      al 100 % no se duplica el tráfico); `ir.config_parameter` meli_oerp.items_multiget = 0 lo
+#      apaga siempre (vía `meli.util`.meli_items_get);
+#    - devuelve la MISMA forma que el multiget ([{code, body}], alineada con los ids pedidos) y un id
+#      que no se pudo leer queda como {code: <http>, body: {error, message, status}} + WARNING con el id.
+#  El path va SIN query ('/items', '/items/<id>') y el query va en `params`, en un dict NUEVO por
+#  llamada: el cliente SDK hace `path += "?" + urlencode(params)` (con '?' ya en el path rompe la URL)
+#  y además borra el access_token del dict que recibe.
+# ---------------------------------------------------------------------------
+MELI_ITEMS_MULTIGET_MAX = 20
+MELI_ITEMS_MULTIGET_PAUSE = 6 * 3600
+MELI_ITEMS_RETRY_STATUS = (0, 429, 500, 502, 503, 504)
+_MELI_ITEMS_MULTIGET_STATE = {'off_until': 0.0}
+
+
+def _meli_items_is_deprecated(data):
+    try:
+        return 'resourcedeprecated' in str(data).lower().replace(' ', '')
+    except Exception:
+        return False
+
+
+def meli_items_multiget_available():
+    return _meli_time.time() >= _MELI_ITEMS_MULTIGET_STATE['off_until']
+
+
+def _meli_items_query(attributes=None, extra=None):
+    """dict de query: {'attributes': ..., **extra}. `extra` = dict o string "a=1&b=2"."""
+    query = {}
+    if attributes:
+        query['attributes'] = str(attributes)
+    if isinstance(extra, dict):
+        query.update({k: v for k, v in extra.items() if v not in (None, False, '')})
+    elif extra:
+        from urllib.parse import parse_qsl
+        query.update(dict(parse_qsl(str(extra).lstrip('&?'))))
+    return query
+
+
+def _meli_items_error_entry(data, default_error='sin_respuesta'):
+    data = data if isinstance(data, dict) else {}
+    status = data.get('status')
+    try:
+        status = int(status)
+    except (TypeError, ValueError):
+        status = 0
+    return {'code': status, 'body': {'error': str(data.get('error') or data.get('code') or default_error),
+                                     'message': str(data.get('message') or '')[:200],
+                                     'status': status}}
+
+
+def _meli_items_get_one(meli, item_id, query, retries=2):
+    """GET /items/<id> con reintento corto. Devuelve {code, body} (forma de una entrada del multiget)."""
+    data = None
+    for attempt in range(retries + 1):
+        try:
+            response = meli.get('/items/%s' % item_id, dict(query, access_token=meli.access_token))
+            data = response.json() if response is not None else None
+        except Exception as e:
+            if getattr(e, 'pgcode', '') in ('40001', '40P01'):
+                raise
+            data = {'error': 'request_exception', 'status': 0, 'message': str(e)[:200]}
+        if isinstance(data, dict) and 'error' not in data and data.get('id'):
+            return {'code': 200, 'body': data}
+        entry = _meli_items_error_entry(data)
+        if entry['code'] not in MELI_ITEMS_RETRY_STATUS or attempt >= retries:
+            return entry
+        _meli_time.sleep(0.5 * (attempt + 1))
+    return _meli_items_error_entry(data)
+
+
+def meli_items_get(meli, ids, attributes=None, extra=None, multiget=None, log_tag='MELI_ITEMS_GET'):
+    """Lee publicaciones de ML. Devuelve [{code, body}] alineada con `ids` (misma forma que el multiget
+    `/items?ids=`). `attributes` = "id,status,..." (opcional); `extra` = query extra ("include_attributes=all").
+    multiget: None = usarlo mientras ML no lo haya dado por deprecado en este proceso; False = nunca."""
+    ids = [(str(i).strip() if i else '') for i in (ids or [])]
+    uniq = list(dict.fromkeys(i for i in ids if i))
+    if not uniq:
+        return [{'code': 0, 'body': {'error': 'sin_id', 'message': '', 'status': 0}} for i in ids]
+    query = _meli_items_query(attributes, extra)
+    got = {}
+    pending = []
+    for i in range(0, len(uniq), MELI_ITEMS_MULTIGET_MAX):
+        chunk = uniq[i:i + MELI_ITEMS_MULTIGET_MAX]
+        # se re-evalua por lote: un ResourceDeprecated a mitad de la lista apaga los lotes siguientes.
+        use_multiget = meli_items_multiget_available() if multiget is None else bool(multiget)
+        if not use_multiget:
+            pending.extend(chunk)
+            continue
+        try:
+            response = meli.get('/items', dict(query, ids=','.join(chunk), access_token=meli.access_token))
+            data = response.json() if response is not None else None
+        except Exception as e:
+            if getattr(e, 'pgcode', '') in ('40001', '40P01'):
+                raise
+            data = {'error': 'request_exception', 'status': 0, 'message': str(e)[:200]}
+        if not isinstance(data, list):
+            if _meli_items_is_deprecated(data):
+                if meli_items_multiget_available():
+                    _logger.warning("%s: ML respondio ResourceDeprecated al multiget /items?ids= — se lee de a "
+                                    "una publicacion (GET /items/<id>) y no se reintenta multiget por %s h",
+                                    log_tag, MELI_ITEMS_MULTIGET_PAUSE // 3600)
+                _MELI_ITEMS_MULTIGET_STATE['off_until'] = _meli_time.time() + MELI_ITEMS_MULTIGET_PAUSE
+            else:
+                _logger.warning("%s: multiget sin lista (%s) — se lee de a una: %s",
+                                log_tag, ','.join(chunk)[:120], str(data)[:200])
+            pending.extend(chunk)
+            continue
+        requested = set(chunk)
+        for pos, entry in enumerate(data):
+            entry = entry if isinstance(entry, dict) else {}
+            body = entry.get('body') if isinstance(entry.get('body'), dict) else {}
+            # ML responde con el id CANONICO; si no coincide con lo pedido, es el de esa posicion.
+            mid = body.get('id') and str(body.get('id')).upper()
+            if mid not in requested:
+                mid = chunk[pos] if pos < len(chunk) else None
+            if not mid or mid in got:
+                continue
+            if entry.get('code') == 200 and body:
+                got[mid] = {'code': 200, 'body': body}
+            elif entry.get('code') == 404:
+                got[mid] = {'code': 404, 'body': body or {'error': 'not_found', 'status': 404}}
+        pending.extend(m for m in chunk if m not in got)
+    for mid in pending:
+        if mid in got:
+            continue
+        entry = _meli_items_get_one(meli, mid, query)
+        if entry.get('code') not in (200, 404):
+            _logger.warning("%s: %s no se pudo leer de ML: code=%s error=%s %s", log_tag, mid,
+                            entry.get('code'), entry['body'].get('error'), entry['body'].get('message', '')[:120])
+        got[mid] = entry
+    return [got.get(m) or {'code': 0, 'body': {'error': 'sin_id' if not m else 'sin_respuesta', 'message': '', 'status': 0}}
+            for m in ids]
+
+
 # NoSDK: requests Session con retry
 class MeliConfiguration:
     def __init__(self, host="https://api.mercadolibre.com", audit=None):
@@ -1394,6 +1540,16 @@ class MeliUtil(models.AbstractModel):
         return self.get_new_instance(self.env.user.company_id)
 
     @api.model
+    @api.model
+    def meli_items_get(self, meli, ids, attributes=None, extra=None, log_tag='MELI_ITEMS_GET'):
+        """26.479 — lectura de varias publicaciones resistente al multiget deprecado (ver meli_items_get).
+        ir.config_parameter meli_oerp.items_multiget = 0 => siempre GET /items/<id> de a uno."""
+        ICP = self.env['ir.config_parameter'].sudo()
+        _get = getattr(ICP, 'get_str', None) or ICP.get_param  # Odoo 20: get_param => get_str
+        flag = str(_get('meli_oerp.items_multiget') or '').strip().lower()
+        multiget = False if flag in ('0', 'false', 'no', 'off') else None
+        return meli_items_get(meli, ids, attributes=attributes, extra=extra, multiget=multiget, log_tag=log_tag)
+
     def get_new_instance(self, company=None, refresh_force=False):
 
         # Modo simulación: mientras una venta simulada se importa en este hilo, TODO cliente nuevo es
