@@ -38,8 +38,10 @@ class _FakeMeliMulti(object):
                 'shipping': {'logistic_type': 'xd_drop_off'}}
 
     def get(self, path, *args, **kwargs):
-        if path.startswith('/items?ids='):
-            ids = path.split('ids=')[1].split('&')[0].split(',')
+        params = (args and args[0]) or kwargs.get('params') or {}
+        if path.startswith('/items?ids=') or (path == '/items' and params.get('ids')):
+            # 26.479: meli_items_get pide el multiget como '/items' + params {'ids': ...}
+            ids = (params.get('ids') or path.split('ids=')[1].split('&')[0]).split(',')
             self.multigets.append(ids)
             return _Resp([{'code': 404, 'body': {'error': 'not_found', 'message': 'no existe'}}
                           if mid in self.missing else {'code': 200, 'body': self._body(mid)} for mid in ids])
