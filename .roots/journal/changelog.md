@@ -1,5 +1,10 @@
 # meli_oerp - Changelog
 
+## 18.0.26.480 — 27-nov-2026 · Release de flota 26.480
+- Sin cambios propios en este módulo: acompaña la versión 26.480 del suite (meli_oerp_multiple: «error de consulta» en Traer precio de ML e Importar sin pisar la referencia de otro producto).
+
+---
+
 ## 18.0.26.479 — 27-nov-2026 · Las lecturas de publicaciones resisten el multiget deprecado por ML
 - **ML deprecó el multiget `GET /items?ids=`:** desde ~26-nov-2026 Mercado Libre responde 403 `ResourceDeprecated` a una
   parte al azar de esas consultas (y se espera que pase a todas). Las lecturas de varias publicaciones ya no pierden el lote:
