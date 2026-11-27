@@ -1011,47 +1011,18 @@ class res_company(models.Model):
         if not official_store_id:
             return results
 
-        c = 0
-        n20 = 0
         rresults = []
-        #_logger.info("results:"+str(results))
         if not results:
             return rresults
 
-        ids = ""
-        coma = ""
-        maxc = (results and len(results)) or 0
-        for meli_id in results:
-            c+=1
-            n20+=1
-
-            #read id and official_store_id to check
-            #hacer paquetes de 20 !!!!!! /items?ids=$ITEM_ID1,$ITEM_ID2&attributes=$ATTRIBUTE1,$ATTRIBUTE2,$ATTRIBUTE3
-
-            #armamos el paquete
-            ids+= coma+str(meli_id)
-            coma = ","
-
-            if n20==20 or c==maxc:
-                item_params = {
-                    "ids": str(ids),
-                    "attributes": "id,official_store_id"
-                }
-                #_logger.info("item_params:"+str(item_params))
-                responseItem = meli.get("/items"+str('?ids='+str(ids)+'&attributes='+str('id,official_store_id')), {'access_token':meli.access_token } )
-                #[ { "code": 200, "body": { "id": "MLM<id>", "official_store_id": 3476 } },
-                #_logger.info("responseItem:"+str(responseItem and responseItem.json()))
-                if responseItem.json():
-                    for rr in responseItem.json():
-                        #_logger.info("rr:"+str(rr))
-                        if ("code" in rr and rr["code"]==200):
-                            if ("body" in rr and rr["body"]):
-                                st_id = "official_store_id" in rr["body"] and rr["body"]["official_store_id"]
-                                ml_id = "id" in rr["body"] and rr["body"]["id"]
-                                if (st_id and official_store_id and str(st_id)==str(official_store_id) ):
-                                    rresults.append(ml_id)
-                ids = ""
-                n20 = 0
+        # 26.479: lectura por meli.util.meli_items_get (multiget deprecado por ML => GET de a uno).
+        for rr in self.env['meli.util'].meli_items_get(meli, results, attributes='id,official_store_id',
+                                                       log_tag='filter_meli_ids'):
+            if rr.get("code") == 200 and rr.get("body"):
+                st_id = rr["body"].get("official_store_id")
+                ml_id = rr["body"].get("id")
+                if (st_id and official_store_id and str(st_id) == str(official_store_id)):
+                    rresults.append(ml_id)
         #_logger.info("rresults:"+str(rresults))
 
         return rresults
@@ -1633,12 +1604,9 @@ class res_company(models.Model):
                 ids_string = ','.join(results)
                 product.meli_id = result
                 meli_ids.extend(results)
-                params['access_token'] = meli.access_token
-                response = meli.get(
-                    f"/items?ids={ids_string}", 
-                    params=params
-                )
-                res = response.rjson
+                # 26.479: multiget deprecado por ML => meli.util.meli_items_get
+                res = self.env['meli.util'].meli_items_get(meli, results[:20],
+                                                           log_tag='get_all_items_from_existing_sku')
                 if len(res):
                     res = res[0]
                     if res.get('body', False):
@@ -1714,21 +1682,13 @@ class res_company(models.Model):
         #)
         #all_items = response.json
 
-        for meli_id_chunk in chunks(meli_ids, 20):
-            params['access_token'] = meli.access_token
-            # Convertir cada bloque en una cadena separada por comas
-            ids_string = ','.join(meli_id_chunk)
-            try:
-                # Realizar la solicitud para ese bloque de IDs
-                response = meli.get(
-                    f"/items?ids={ids_string}", 
-                    params=params
-                )
-                # Agregar los productos obtenidos a la lista total
-                all_items.extend(response.json())
-            except:
-                _logger.error(f"Error al obtener información de productos: {response.json()}")
-                continue
+        # 26.479: multiget deprecado por ML => meli.util.meli_items_get. Antes un 403 devolvia un dict y
+        # extend() agregaba sus CLAVES como items (search_item_by_sku reventaba con item['body']).
+        # Solo las que se pudieron leer: search_item_by_sku busca en body.attributes.
+        for rr in self.env['meli.util'].meli_items_get(meli, meli_ids, extra='include_attributes=all',
+                                                       log_tag='get_all_items_from_ML'):
+            if rr.get('code') == 200 and rr.get('body'):
+                all_items.append(rr)
             
         return all_items
 
@@ -2213,7 +2173,7 @@ class res_company(models.Model):
     MELI_STOCK_DIAG_ATTRIBUTES = 'id,status,sub_status,available_quantity,shipping,user_product_id,variations'
 
     def _meli_diag_multiget(self, meli, meli_ids):
-        """GET /items?ids= de a MELI_STOCK_DIAG_MULTIGET. Devuelve {meli_id: rjson}.
+        """Lee ML de a MELI_STOCK_DIAG_MULTIGET (meli_items_get). Devuelve {meli_id: rjson}.
         Un item que ML rechaza (o un lote que falla entero) vuelve como dict de error
         {'status': <http>, 'error': ..., 'message': ...}: el diagnostico lo cuenta como
         rechazo de ML, no como "sin accion" (ver (A))."""
@@ -2221,14 +2181,15 @@ class res_company(models.Model):
         ids = list(dict.fromkeys([str(m) for m in meli_ids if m]))
         for i in range(0, len(ids), self.MELI_STOCK_DIAG_MULTIGET):
             chunk = ids[i:i + self.MELI_STOCK_DIAG_MULTIGET]
+            # 26.479: multiget deprecado por ML (403 ResourceDeprecated al azar) => meli.util.meli_items_get:
+            # misma forma [{code, body}] alineada con chunk; lo que ML no sirve en lote se lee de a uno.
             try:
-                response = meli.get("/items?ids=%s&attributes=%s" % (','.join(chunk), self.MELI_STOCK_DIAG_ATTRIBUTES),
-                                    {'access_token': meli.access_token})
-                data = response.json() if response else None
+                data = self.env['meli.util'].meli_items_get(meli, chunk, attributes=self.MELI_STOCK_DIAG_ATTRIBUTES,
+                                                            log_tag='MELI_STOCK_DIAG')
             except Exception as _mg_err:
                 if getattr(_mg_err, 'pgcode', '') in ('40001', '40P01'):
                     raise
-                _logger.warning("MELI_STOCK_DIAG: multiget fallo (%s): %s", ','.join(chunk), _mg_err)
+                _logger.warning("MELI_STOCK_DIAG: lectura de items fallo (%s): %s", ','.join(chunk), _mg_err)
                 data = {'status': 0, 'error': 'multiget_exception', 'message': str(_mg_err)[:120]}
             if isinstance(data, list):
                 by_id = {}

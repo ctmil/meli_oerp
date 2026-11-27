@@ -41,9 +41,11 @@ class _FakeMeli(object):
     def get(self, path, *args, **kwargs):
         # 26.341: el diagnostico lee los candidatos por multiget /items?ids=a,b (de a 20) y
         # relee de a uno /items/<id> despues de pedir la activacion.
-        if path.startswith('/items?ids='):
+        params = (args and args[0]) or kwargs.get('params') or {}
+        if path.startswith('/items?ids=') or (path == '/items' and params.get('ids')):
+            # 26.479: meli_items_get pide el multiget como '/items' + params {'ids': ...}
             out = []
-            for mid in path.split('ids=')[1].split('&')[0].split(','):
+            for mid in (params.get('ids') or path.split('ids=')[1].split('&')[0]).split(','):
                 body = self._one(mid)
                 out.append({'code': int(body.get('status')) if str(body.get('status', '')).isdigit() else 200,
                             'body': body})
